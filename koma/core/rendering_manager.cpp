@@ -9,5 +9,6 @@ void RenderingManager::Update(double interpolation,
   GameObjectManager *game_object_manager) {
 
   game_object_manager->Update(interpolation);
+  ++this->counter_;
 }
 };  // namespace koma

@@ -12,7 +12,7 @@
 namespace koma {
 class Locator {
  public:
-   static void Initialize();
+  static void Initialize();
 
   static InputManager& input_manager() { return *Locator::input_manager_; }
   static TimeManager& time_manager() { return *Locator::time_manager_; }

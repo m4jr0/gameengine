@@ -11,6 +11,11 @@ namespace koma {
 class RenderingManager {
  public:
   void Update(double, GameObjectManager *);
+  void ResetCounter() { this->counter_ = 0; };
+
+  const int counter() const { return this->counter_; };
+ private:
+  int counter_ = 0;
 };
 };  // namespace koma
 

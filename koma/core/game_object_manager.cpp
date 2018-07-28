@@ -26,9 +26,9 @@ void GameObjectManager::FixedUpdate() {
 }
 
 void GameObjectManager::AddGameObject(GameObject *game_object) {
-  this->game_objects_.insert(
-    {boost::uuids::to_string(game_object->id()), game_object}
-  );
+  this->game_objects_.insert({
+    boost::uuids::to_string(game_object->id()), game_object
+  });
 }
 
 void GameObjectManager::RemoveGameObject(GameObject *game_object) {

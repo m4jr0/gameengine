@@ -25,20 +25,19 @@ class Game : public Observer {
   virtual ~Game();
 
   void Run();
+  void Stop();
   void ReceiveEvent(std::string);
+
+  const bool is_running() const { return this->is_running_; };
 
  protected:
   PhysicsManager physics_manager_;
   RenderingManager rendering_manager_;
   GameObjectManager game_object_manager_;
-
   TimeManager time_manager;
 
  private:
   bool is_running_ = false;
-  // TODO(m4jr): Remove these attributes below when the time comes.
-  int physics_frame_counter_ = 0;
-  int rendering_frame_counter_ = 0;
 };
 };  // namespace koma
 

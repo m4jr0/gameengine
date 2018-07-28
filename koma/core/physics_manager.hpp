@@ -11,6 +11,11 @@ namespace koma {
 class PhysicsManager {
  public:
   void Update(GameObjectManager *);
+  void ResetCounter() { this->counter_ = 0; };
+
+  const int counter() const { return this->counter_; };
+ private:
+  int counter_ = 0;
 };
 };  // namespace koma
 

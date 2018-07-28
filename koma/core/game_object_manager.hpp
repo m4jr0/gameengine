@@ -20,11 +20,11 @@ class GameObjectManager {
 
   void Update(double);
   void FixedUpdate();
-  void AddGameObject(koma::GameObject*);
-  void RemoveGameObject(koma::GameObject*);
+  void AddGameObject(GameObject*);
+  void RemoveGameObject(GameObject*);
 
  private:
-  std::unordered_map<std::string, koma::GameObject *> game_objects_;
+  std::unordered_map<std::string, GameObject *> game_objects_;
 };
 };  // namespace koma
 

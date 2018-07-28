@@ -8,5 +8,6 @@ namespace koma {
 void PhysicsManager::Update(
   GameObjectManager *game_object_manager) {
   game_object_manager->FixedUpdate();
+  ++this->counter_;
 }
 };  // namespace koma
