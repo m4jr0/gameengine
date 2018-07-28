@@ -8,10 +8,12 @@ namespace koma {
 InputManager *Locator::input_manager_ = nullptr;
 NullInputManager Locator::null_input_manager_ = NullInputManager();
 TimeManager* Locator::time_manager_ = nullptr;
+GameObjectManager* Locator::game_object_manager_ = nullptr;
 
 void Locator::Initialize() {
   Locator::input_manager_ = &null_input_manager_;
   Locator::time_manager_ = nullptr;
+  Locator::game_object_manager_ = nullptr;
 }
 
 void Locator::input_manager(InputManager* input_manager) {
@@ -24,5 +26,9 @@ void Locator::input_manager(InputManager* input_manager) {
 
 void Locator::time_manager(TimeManager* time_manager) {
   Locator::time_manager_ = time_manager;
+}
+
+void Locator::game_object_manager(GameObjectManager* game_object_manager) {
+  Locator::game_object_manager_ = game_object_manager;
 }
 };  // namespace koma

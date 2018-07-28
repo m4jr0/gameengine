@@ -15,6 +15,7 @@ Game::Game() {
 
   Locator::Initialize();
   Locator::time_manager(&this->time_manager);
+  Locator::game_object_manager(&this->game_object_manager_);
 }
 
 Game::~Game() {}
@@ -50,11 +51,17 @@ void Game::Stop() {
 }
 
 void Game::ReceiveEvent(std::string event) {
-  // TODO(m4jr): Remove both of the frame counters when the time comes.
-  std::cout << "PHYSICS " << this->physics_manager_.counter() << std::endl;
-  std::cout << "RENDERING " << this->rendering_manager_.counter() << std::endl;
+  if (event.compare("second") == 0) {
+    // TODO(m4jr): Remove both of the frame counters when the time comes.
+    std::cout << "PHYSICS " << this->physics_manager_.counter() << std::endl;
+    std::cout << "FPS " << this->rendering_manager_.counter() << std::endl;
 
-  this->physics_manager_.ResetCounter();
-  this->rendering_manager_.ResetCounter();
+    this->physics_manager_.ResetCounter();
+    this->rendering_manager_.ResetCounter();
+  } else if (event.compare("stop") == 0) {
+    this->Stop();
+  } else if (event.compare("run") == 0) {
+    this->Run();
+  }
 }
 };  // namespace koma

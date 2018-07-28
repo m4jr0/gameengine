@@ -13,9 +13,13 @@ namespace koma {
 class TimeManager : public Subject {
  public:
   virtual ~TimeManager() = default;
+
   static double GetNow();
   void Initialize();
   void Update();
+  void Stop();
+  void Resume();
+
   const double time_delta() const;
   const double current_time() const;
 

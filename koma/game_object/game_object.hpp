@@ -9,17 +9,25 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <iostream>
+#include <unordered_map>
+
+#include "component.hpp"
 
 namespace koma {
-class GameObject {
+class GameObject final {
  public:
-  virtual ~GameObject() {};
-  virtual void Update(double);
-  virtual void FixedUpdate();
+  ~GameObject();
+
+  void Update(double);
+  void FixedUpdate();
+  void AddComponent(Component*);
+  void RemoveComponent(Component*);
+
   const boost::uuids::uuid id() const;
 
  private:
     boost::uuids::uuid id_ = boost::uuids::random_generator()();
+    std::unordered_map<std::string, Component*> components_;
 };
 };  // namespace koma
 

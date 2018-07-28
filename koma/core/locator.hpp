@@ -16,6 +16,8 @@ class Locator {
 
   static InputManager& input_manager() { return *Locator::input_manager_; }
   static TimeManager& time_manager() { return *Locator::time_manager_; }
+  static GameObjectManager& game_object_manager()
+    { return *Locator::game_object_manager_; }
 
   static void input_manager(InputManager* input_manager);
 
@@ -23,8 +25,10 @@ class Locator {
   static InputManager* input_manager_;
   static NullInputManager null_input_manager_;
   static TimeManager* time_manager_;
+  static GameObjectManager* game_object_manager_;
 
   static void time_manager(TimeManager* time_manager);
+  static void game_object_manager(GameObjectManager* game_object_manager);
 
   friend class Game;
 };

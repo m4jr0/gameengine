@@ -5,12 +5,34 @@
 #include "game_object.hpp"
 
 namespace koma {
+GameObject::~GameObject() {
+  for (auto it : this->components_) {
+    delete it.second;
+  }
+}
+
 void GameObject::Update(double interpolation) {
-  // TODO(m4jr0): Implement it!
+  for (auto it : this->components_) {
+    it.second->Update(interpolation);
+  }
 }
 
 void GameObject::FixedUpdate() {
-  // TODO(m4jr0): Implement it!
+  for (auto it : this->components_) {
+    it.second->FixedUpdate();
+  }
+}
+
+void GameObject::AddComponent(Component *component) {
+  this->components_.insert({
+    boost::uuids::to_string(component->id()), component
+  });
+
+  component->Initialize();
+}
+
+void GameObject::RemoveComponent(Component *component) {
+  this->components_.erase(boost::uuids::to_string(component->id()));
 }
 
 const boost::uuids::uuid GameObject::id() const {

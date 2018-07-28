@@ -30,9 +30,17 @@ void TimeManager::Update() {
   this->time_counter_ += this->time_delta_;
 
   if (this->time_counter_ > 1000) {
-    this->NotifyObservers("second_elapsed");
+    this->NotifyObservers("second");
     this->time_counter_ = 0.0;
   }
+}
+
+void TimeManager::Stop() {
+  this->NotifyObservers("stop");
+}
+
+void TimeManager::Resume() {
+  this->NotifyObservers("run");
 }
 
 const double TimeManager::time_delta() const {
