@@ -1,59 +1,58 @@
+// Copyright 2018 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 #include "game.hpp"
 
-koma::Game *koma::Game::instance = nullptr;
+namespace koma {
+Game::Game() {
+  this->physics_manager_ = PhysicsManager();
+  this->rendering_manager_ = RenderingManager();
+  this->game_object_manager_ = GameObjectManager();
 
-koma::Game::Game() {
-    this->physics_manager = new koma::PhysicsManager();
-    this->input_manager = new koma::InputManager();
-    this->rendering_manager = new koma::RenderingManager();
-    this->time_manager = new koma::TimeManager();
-    this->game_object_manager = koma::GameObjectManager::Instance();
+  this->time_manager = TimeManager();
+  this->time_manager.AddObserver(this);
 
-    this->time_manager->add_observer(this);
+  Locator::Initialize();
+  Locator::time_manager(&this->time_manager);
 }
 
-koma::Game::~Game() {
-    delete this->physics_manager;
-    delete this->input_manager;
-    delete this->rendering_manager;
-    delete this->time_manager;
-    delete this->game_object_manager;
-}
+Game::~Game() {}
 
-void koma::Game::Run() {
-    this->is_running_ = true;
-    this->time_manager->Initialize();
-    double lag = 0.0;
+void Game::Run() {
+  this->is_running_ = true;
+  this->time_manager.Initialize();
+  double lag = 0.0;
 
-    while (this->is_running_) {
-        this->time_manager->Update();
+  while (this->is_running_) {
+    this->time_manager.Update();
 
-        lag += this->time_manager->GetTimeDelta();
-        this->input_manager->GetInputs();
+    lag += this->time_manager.time_delta();
+    Locator::input_manager().GetInput(Input::TO_BE_IMPLEMENTED);
 
-        while (lag >= koma::Game::MS_PER_UPDATE) {
-            this->physics_manager->Update();
-            this->physics_frame_counter_++;
-            lag -= koma::Game::MS_PER_UPDATE;
-        }
-
-        this->rendering_manager->Update(lag / koma::Game::MS_PER_UPDATE);
-        this->rendering_frame_counter_++;
-    }
-}
-
-koma::Game *koma::Game::Instance() {
-    if (!koma::Game::instance) {
-        koma::Game::instance = new koma::Game();
+    while (lag >= Game::MS_PER_UPDATE) {
+      this->physics_manager_.Update(&this->game_object_manager_);
+      // TODO(m4jr): Remove the line below when the time comes.
+      this->physics_frame_counter_++;
+      lag -= Game::MS_PER_UPDATE;
     }
 
-    return koma::Game::instance;
+    this->rendering_manager_.Update(
+      lag / Game::MS_PER_UPDATE,
+      &this->game_object_manager_
+    );
+
+    // TODO(m4jr): Remove the line below when the time comes.
+    this->rendering_frame_counter_++;
+  }
 }
 
-void koma::Game::receive_event(std::string event) {
-    std::cout << "PHYSICS " << this->physics_frame_counter_ << std::endl;
-    std::cout << "RENDERING " << this->rendering_frame_counter_ << std::endl;
+void Game::ReceiveEvent(std::string event) {
+  // TODO(m4jr): Remove both of the frame counters when the time comes.
+  std::cout << "PHYSICS " << this->physics_frame_counter_ << std::endl;
+  std::cout << "RENDERING " << this->rendering_frame_counter_ << std::endl;
 
-    this->physics_frame_counter_ = 0;
-    this->rendering_frame_counter_ = 0;
+  this->physics_frame_counter_ = 0;
+  this->rendering_frame_counter_ = 0;
 }
+};  //  namespace koma

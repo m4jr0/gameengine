@@ -1,13 +1,17 @@
-#ifndef RENDERING_MANAGER_HPP
-#define RENDERING_MANAGER_HPP
+// Copyright 2018 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef KOMA_CORE_RENDERING_MANAGER_HPP_
+#define KOMA_CORE_RENDERING_MANAGER_HPP_
 
 #include "game_object_manager.hpp"
 
 namespace koma {
 class RenderingManager {
-public:
-    void Update(double);
+ public:
+  void Update(double, GameObjectManager *);
 };
-}; // namespace koma
+}; //  namespace koma
 
-#endif // RENDERING_MANAGER_HPP
+#endif //  KOMA_CORE_RENDERING_MANAGER_HPP_

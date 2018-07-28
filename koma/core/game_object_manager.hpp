@@ -1,5 +1,9 @@
-#ifndef GAME_OBJECT_MANAGER_HPP
-#define GAME_OBJECT_MANAGER_HPP
+// Copyright 2018 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef KOMA_CORE_GAME_OBJECT_MANAGER_HPP_
+#define KOMA_CORE_GAME_OBJECT_MANAGER_HPP_
 
 #include <boost/functional/hash.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -10,24 +14,18 @@
 
 namespace koma {
 class GameObjectManager {
-public:
-    static koma::GameObjectManager *Instance();
+ public:
+  GameObjectManager();
+  virtual ~GameObjectManager();
 
-    virtual ~GameObjectManager();
-    GameObjectManager(koma::GameObjectManager const &) = delete;
-    koma::GameObjectManager &operator=(const GameObjectManager &) = delete;
-    void Update(double);
-    void FixedUpdate();
-    void AddGameObject(koma::GameObject*);
-    void RemoveGameObject(koma::GameObject*);
+  void Update(double);
+  void FixedUpdate();
+  void AddGameObject(koma::GameObject*);
+  void RemoveGameObject(koma::GameObject*);
 
-protected:
-    GameObjectManager();
-    static koma::GameObjectManager *instance;
-
-private:
-    std::unordered_map<std::string, koma::GameObject*> game_objects_;
+ private:
+  std::unordered_map<std::string, koma::GameObject *> game_objects_;
 };
-}; // namespace koma
+}; //  namespace koma
 
-#endif // GAME_OBJECT_MANAGER_HPP
+#endif //  KOMA_CORE_GAME_OBJECT_MANAGER_HPP_

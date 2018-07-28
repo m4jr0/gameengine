@@ -1,0 +1,28 @@
+// Copyright 2018 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#include "locator.hpp"
+
+namespace koma {
+InputManager *Locator::input_manager_ = nullptr;
+NullInputManager Locator::null_input_manager_ = NullInputManager();
+TimeManager* Locator::time_manager_ = nullptr;
+
+void Locator::Initialize() {
+  Locator::input_manager_ = &null_input_manager_;
+  Locator::time_manager_ = nullptr;
+}
+
+void Locator::input_manager(InputManager* input_manager) {
+  if (input_manager == nullptr) {
+    Locator::input_manager_ = &Locator::null_input_manager_;
+  } else {
+    Locator::input_manager_ = input_manager;
+  }
+}
+
+void Locator::time_manager(TimeManager* time_manager) {
+  Locator::time_manager_ = time_manager;
+}
+};  // namespace koma

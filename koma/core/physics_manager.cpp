@@ -1,6 +1,12 @@
+// Copyright 2018 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 #include "physics_manager.hpp"
 
-void koma::PhysicsManager::Update() {
-    koma::GameObjectManager *game_object_manager = koma::GameObjectManager::Instance();
-    game_object_manager->FixedUpdate();
+namespace koma {
+void PhysicsManager::Update(
+  GameObjectManager *game_object_manager) {
+  game_object_manager->FixedUpdate();
 }
+};  // namespace koma

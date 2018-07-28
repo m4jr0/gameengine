@@ -1,43 +1,45 @@
-#ifndef GAME_HPP
-#define GAME_HPP
+// Copyright 2018 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef KOMA_CORE_GAME_HPP_
+#define KOMA_CORE_GAME_HPP_
 
 #include <iostream>
 #include <string>
 
-#include "time_manager.hpp"
+#include "../utils/observer.hpp"
+#include "game_object_manager.hpp"
 #include "input_manager.hpp"
+#include "locator.hpp"
 #include "physics_manager.hpp"
 #include "rendering_manager.hpp"
-#include "game_object_manager.hpp"
-#include "../utils/observer.hpp"
+#include "time_manager.hpp"
 
 namespace koma {
 class Game : public Observer {
-public:
-    const double MS_PER_UPDATE = 16.66;
+ public:
+  const double MS_PER_UPDATE = 16.66;  // 60 Hz refresh.
 
-    static koma::Game *Instance();
+  Game();
+  virtual ~Game();
 
-    virtual ~Game();
-    Game(koma::Game const &) = delete;
-    koma::Game &operator=(const Game &) = delete;
-    void Run();
-    void receive_event(std::string);
+  void Run();
+  void ReceiveEvent(std::string);
 
-protected:
-    Game();
-    static koma::Game *instance;
-    koma::PhysicsManager *physics_manager = nullptr;
-    koma::RenderingManager *rendering_manager = nullptr;
-    koma::InputManager *input_manager = nullptr;
-    koma::TimeManager *time_manager = nullptr;
-    koma::GameObjectManager *game_object_manager = nullptr;
+ protected:
+  PhysicsManager physics_manager_;
+  RenderingManager rendering_manager_;
+  GameObjectManager game_object_manager_;
 
-private:
-    bool is_running_ = false;
-    int physics_frame_counter_ = 0;
-    int rendering_frame_counter_ = 0;
+  TimeManager time_manager;
+
+ private:
+  bool is_running_ = false;
+  // TODO(m4jr): Remove these attributes below when the time comes.
+  int physics_frame_counter_ = 0;
+  int rendering_frame_counter_ = 0;
 };
-}; // namespace koma
+}; //  namespace koma
 
-#endif // GAME_HPP
+#endif //  KOMA_CORE_GAME_HPP_
