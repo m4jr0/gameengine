@@ -55,4 +55,4 @@ void Game::ReceiveEvent(std::string event) {
   this->physics_frame_counter_ = 0;
   this->rendering_frame_counter_ = 0;
 }
-};  //  namespace koma
+};  // namespace koma

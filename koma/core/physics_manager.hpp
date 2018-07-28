@@ -12,6 +12,6 @@ class PhysicsManager {
  public:
   void Update(GameObjectManager *);
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_PHYSICS_MANAGER_HPP_
+#endif  // KOMA_CORE_PHYSICS_MANAGER_HPP_

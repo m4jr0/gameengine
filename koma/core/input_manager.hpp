@@ -19,6 +19,6 @@ class NullInputManager : public InputManager {
  public:
    virtual bool GetInput(Input) { return false;  };
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_INPUT_MANAGER_HPP_
+#endif  // KOMA_CORE_INPUT_MANAGER_HPP_

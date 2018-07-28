@@ -28,6 +28,6 @@ class Locator {
 
   friend class Game;
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_LOCATOR_HPP_
+#endif  // KOMA_CORE_LOCATOR_HPP_

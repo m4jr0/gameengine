@@ -20,6 +20,6 @@ class Subject {
  private:
   std::unordered_set<Observer*> observers_;
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_UTILS_SUBJECT_HPP_
+#endif  // KOMA_UTILS_SUBJECT_HPP_

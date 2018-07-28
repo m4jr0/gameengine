@@ -26,6 +26,6 @@ class GameObjectManager {
  private:
   std::unordered_map<std::string, koma::GameObject *> game_objects_;
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_GAME_OBJECT_MANAGER_HPP_
+#endif  // KOMA_CORE_GAME_OBJECT_MANAGER_HPP_

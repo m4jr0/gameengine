@@ -12,6 +12,6 @@ class RenderingManager {
  public:
   void Update(double, GameObjectManager *);
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_RENDERING_MANAGER_HPP_
+#endif  // KOMA_CORE_RENDERING_MANAGER_HPP_

@@ -25,6 +25,6 @@ class TimeManager : public Subject {
   double time_delta_ = 0.0;
   double time_counter_ = 0.0;
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_TIME_MANAGER_HPP_
+#endif  // KOMA_CORE_TIME_MANAGER_HPP_

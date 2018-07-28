@@ -21,6 +21,6 @@ class GameObject {
  private:
     boost::uuids::uuid id_ = boost::uuids::random_generator()();
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_GAME_OBJECT_HPP_
+#endif  // KOMA_CORE_GAME_OBJECT_HPP_

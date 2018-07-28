@@ -40,6 +40,6 @@ class Game : public Observer {
   int physics_frame_counter_ = 0;
   int rendering_frame_counter_ = 0;
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_CORE_GAME_HPP_
+#endif  // KOMA_CORE_GAME_HPP_

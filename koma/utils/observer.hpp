@@ -12,6 +12,6 @@ class Observer {
 public:
   virtual void ReceiveEvent(std::string) = 0;
 };
-}; //  namespace koma
+};  // namespace koma
 
-#endif //  KOMA_UTILS_OBSERVER_HPP_
+#endif  // KOMA_UTILS_OBSERVER_HPP_
