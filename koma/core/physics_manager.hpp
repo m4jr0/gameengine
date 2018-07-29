@@ -10,6 +10,9 @@
 namespace koma {
 class PhysicsManager {
  public:
+  void Initialize();
+  void Destroy();
+
   void Update(GameObjectManager *);
   void ResetCounter() { this->counter_ = 0; };
 

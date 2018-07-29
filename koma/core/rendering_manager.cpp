@@ -5,9 +5,11 @@
 #include "rendering_manager.hpp"
 
 namespace koma {
-void RenderingManager::Update(double interpolation, 
-  GameObjectManager *game_object_manager) {
+void RenderingManager::Initialize() {}
+void RenderingManager::Destroy() {}
 
+void RenderingManager::Update(double interpolation,
+                              GameObjectManager *game_object_manager) {
   game_object_manager->Update(interpolation);
   ++this->counter_;
 }

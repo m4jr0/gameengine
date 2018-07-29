@@ -25,6 +25,7 @@ class Game {
   Game();
   virtual ~Game();
 
+  void Initialize();
   void Run();
   void Stop();
   void Quit();

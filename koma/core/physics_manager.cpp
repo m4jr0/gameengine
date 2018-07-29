@@ -5,8 +5,10 @@
 #include "physics_manager.hpp"
 
 namespace koma {
-void PhysicsManager::Update(
-  GameObjectManager *game_object_manager) {
+void PhysicsManager::Initialize() {};
+void PhysicsManager::Destroy() {};
+
+void PhysicsManager::Update(GameObjectManager *game_object_manager) {
   game_object_manager->FixedUpdate();
   ++this->counter_;
 }

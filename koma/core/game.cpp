@@ -19,6 +19,11 @@ Game::Game() {
 
 Game::~Game() {}
 
+void Game::Initialize() {
+  this->rendering_manager_.Initialize();
+  this->physics_manager_.Initialize();
+}
+
 void Game::Run() {
   this->is_running_ = true;
   this->time_manager_.Initialize();
@@ -67,8 +72,8 @@ void Game::Stop() {
 void Game::Quit() {
   this->Stop();
 
-  // There will be more code here, probably. That is why do not call
-  // koma::Game::Stop() directly.
+  this->rendering_manager_.Destroy();
+  this->physics_manager_.Destroy();
 
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Message("Game quit");
 }

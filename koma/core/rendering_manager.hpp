@@ -10,6 +10,9 @@
 namespace koma {
 class RenderingManager {
  public:
+  void Initialize();
+  void Destroy();
+
   void Update(double, GameObjectManager *);
   void ResetCounter() { this->counter_ = 0; };
 
