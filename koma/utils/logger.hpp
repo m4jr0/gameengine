@@ -13,49 +13,52 @@
 namespace koma {
 class Logger final {
  public:
-  static std::shared_ptr<Logger> Get(std::string);
+  static std::shared_ptr<const Logger> Get(std::string);
 
   Logger() = delete;
   Logger(std::string);
   virtual ~Logger();
 
   template <typename... Targs>
-  void Error(Targs... args) {
+  void Error(Targs... args) const {
     std::stringstream string_stream;
     this->GetString(string_stream, args...);
-    std::cerr << string_stream.str() << std::endl;
+    std::cerr << "[Error] " << string_stream.str() << std::endl;
   }
 
   template <typename... Targs>
-  void Message(Targs... args) {
+  void Message(Targs... args) const {
     std::stringstream string_stream;
     this->GetString(string_stream, args...);
-    std::cout << string_stream.str() << std::endl;
+    std::cout << "[Message] " << string_stream.str() << std::endl;
   }
 
   template <typename... Targs>
-  void Warning(Targs... args) {
+  void Warning(Targs... args) const {
     std::stringstream string_stream;
     this->GetString(string_stream, args...);
-    std::cout << string_stream.str() << std::endl;
+    std::cout << "[Warning] " << string_stream.str() << std::endl;
   }
 
   const std::string name() const { return this->name_; };
 
  private:
   template <typename T>
-  void GetString(std::stringstream& string_stream, T arg) {
+  void GetString(std::stringstream& string_stream, T arg) const {
     string_stream << arg;
   }
 
   template <typename T, typename... Targs>
-  void GetString(std::stringstream& string_stream, T arg, Targs... args) {
+  void GetString(std::stringstream& string_stream, T arg, Targs... args)
+    const {
     this->GetString(string_stream, arg);
     this->GetString(string_stream, args...);
   }
 
-  static std::unordered_map<std::string, std::shared_ptr<Logger>> loggers_;
-  static std::shared_ptr<Logger> Create(std::string);
+  static std::unordered_map<std::string, std::shared_ptr<const Logger>>
+    loggers_;
+
+  static std::shared_ptr<const Logger> Create(std::string);
 
   std::string name_;
 };

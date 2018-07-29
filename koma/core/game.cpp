@@ -65,7 +65,8 @@ void Game::Quit() {
 }
 
 void Game::ResetCounters() {
-  std::shared_ptr<Logger> logger = Logger::Get(LOGGER_KOMA_CORE_GAME);
+  auto logger = Logger::Get(LOGGER_KOMA_CORE_GAME);
+
   logger->Message(
     "Physics ", this->physics_manager_.counter()
   );
