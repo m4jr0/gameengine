@@ -7,27 +7,29 @@
 
 #include <chrono>
 
-#include "../utils/subject.hpp"
-
 namespace koma {
-class TimeManager : public Subject {
+class TimeManager {
  public:
+  static double GetRealNow();
+
   virtual ~TimeManager() = default;
 
-  static double GetNow();
+  double GetNow();
   void Initialize();
   void Update();
   void Stop();
-  void Resume();
+  void Normalize();
 
   const double time_delta() const;
   const double current_time() const;
+  const float time_scale() const;
+  void time_scale(float);
 
  private:
   double current_time_ = 0.0;
   double previous_time_ = 0.0;
   double time_delta_ = 0.0;
-  double time_counter_ = 0.0;
+  float time_scale_ = 1.0f;
 };
 };  // namespace koma
 

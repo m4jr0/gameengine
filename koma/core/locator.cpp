@@ -5,12 +5,14 @@
 #include "locator.hpp"
 
 namespace koma {
+Game* Locator::game_ = nullptr;
 InputManager *Locator::input_manager_ = nullptr;
 NullInputManager Locator::null_input_manager_ = NullInputManager();
 TimeManager* Locator::time_manager_ = nullptr;
 GameObjectManager* Locator::game_object_manager_ = nullptr;
 
-void Locator::Initialize() {
+void Locator::Initialize(Game* game) {
+  Locator::game_ = game;
   Locator::input_manager_ = &null_input_manager_;
   Locator::time_manager_ = nullptr;
   Locator::game_object_manager_ = nullptr;

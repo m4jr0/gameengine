@@ -10,26 +10,34 @@ Game::Game() {
   this->rendering_manager_ = RenderingManager();
   this->game_object_manager_ = GameObjectManager();
 
-  this->time_manager = TimeManager();
-  this->time_manager.AddObserver(this);
+  this->time_manager_ = TimeManager();
 
-  Locator::Initialize();
-  Locator::time_manager(&this->time_manager);
+  Locator::Initialize(this);
+  Locator::time_manager(&this->time_manager_);
   Locator::game_object_manager(&this->game_object_manager_);
 }
 
 Game::~Game() {}
 
 void Game::Run() {
-  std::cout << "Game started" << std::endl;
   this->is_running_ = true;
-  this->time_manager.Initialize();
+  this->time_manager_.Initialize();
   double lag = 0.0;
+  double time_counter = 0;
+
+  std::cout << "Game started" << std::endl;
 
   while (this->is_running_) {
-    this->time_manager.Update();
+    this->time_manager_.Update();
+    double time_delta = this->time_manager_.time_delta();
+    time_counter += time_delta;
 
-    lag += this->time_manager.time_delta();
+    if (time_counter > 1000) {
+      this->ResetCounters();
+      time_counter = 0;
+    }
+
+    lag += time_delta;
     Locator::input_manager().GetInput(Input::TO_BE_IMPLEMENTED);
 
     while (lag >= Game::MS_PER_UPDATE) {
@@ -45,23 +53,22 @@ void Game::Run() {
 }
 
 void Game::Stop() {
-  std::cout << "Game stopped" << std::endl;
-
   this->is_running_ = false;
+
+  std::cout << "Game stopped" << std::endl;
 }
 
-void Game::ReceiveEvent(std::string event) {
-  if (event.compare("second") == 0) {
-    // TODO(m4jr): Remove both of the frame counters when the time comes.
-    std::cout << "PHYSICS " << this->physics_manager_.counter() << std::endl;
-    std::cout << "FPS " << this->rendering_manager_.counter() << std::endl;
+void Game::Quit() {
+  this->Stop();
 
-    this->physics_manager_.ResetCounter();
-    this->rendering_manager_.ResetCounter();
-  } else if (event.compare("stop") == 0) {
-    this->Stop();
-  } else if (event.compare("run") == 0) {
-    this->Run();
-  }
+  std::cout << "Game quit" << std::endl;
+}
+
+void Game::ResetCounters() {
+  std::cout << "PHYSICS " << this->physics_manager_.counter() << std::endl;
+  std::cout << "FPS " << this->rendering_manager_.counter() << std::endl;
+
+  this->physics_manager_.ResetCounter();
+  this->rendering_manager_.ResetCounter();
 }
 };  // namespace koma

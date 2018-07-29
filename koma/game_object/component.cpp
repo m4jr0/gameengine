@@ -6,11 +6,14 @@
 
 namespace koma {
   void Component::Update(double interpolation) {
-    // TODO(m4jr0): Implement it!
+    // Code has to be implemented in children.
+    // This function is called every frame rendered.
   }
 
   void Component::FixedUpdate() {
-    // TODO(m4jr0): Implement it!
+    // Code has to be implemented in children.
+    // This function is called every logic frame computed. In most cases, this
+    // is where the game logic will be implemented.
   }
 
   const boost::uuids::uuid Component::id() const {

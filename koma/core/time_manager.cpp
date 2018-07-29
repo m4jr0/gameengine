@@ -8,40 +8,33 @@
 #include "time_manager.hpp"
 
 namespace koma {
-double TimeManager::GetNow() {
+double TimeManager::GetRealNow() {
   auto current_time_ = std::chrono::system_clock::now();
 
-  auto duration_in_seconds = std::chrono::duration<double>(
-    current_time_.time_since_epoch()
-  );
+  auto duration_in_seconds =
+      std::chrono::duration<double>(current_time_.time_since_epoch());
 
   return duration_in_seconds.count() * 1000;
 }
 
-void TimeManager::Initialize() {
-  this->previous_time_ = TimeManager::GetNow();
+double TimeManager::GetNow() {
+  double time_delta = this->GetRealNow() - this->previous_time_;
+  double time_to_add = time_delta * this->time_scale_;
+
+  return this->previous_time_ + time_to_add;
 }
+
+void TimeManager::Initialize() { this->previous_time_ = this->GetRealNow(); }
 
 void TimeManager::Update() {
-  this->current_time_ = TimeManager::GetNow();
+  this->current_time_ = this->GetNow();
   this->time_delta_ = this->current_time_ - this->previous_time_;
   this->previous_time_ = this->current_time_;
-
-  this->time_counter_ += this->time_delta_;
-
-  if (this->time_counter_ > 1000) {
-    this->NotifyObservers("second");
-    this->time_counter_ = 0.0;
-  }
 }
 
-void TimeManager::Stop() {
-  this->NotifyObservers("stop");
-}
+void TimeManager::Stop() { this->time_scale(0.0f); }
 
-void TimeManager::Resume() {
-  this->NotifyObservers("run");
-}
+void TimeManager::Normalize() { this->time_scale(1.0f); }
 
 const double TimeManager::time_delta() const {
   return this->time_delta_;
@@ -49,5 +42,13 @@ const double TimeManager::time_delta() const {
 
 const double TimeManager::current_time() const {
   return this->current_time_;
+}
+
+const float TimeManager::time_scale() const {
+  return this->time_scale_;
+}
+
+void TimeManager::time_scale(float time_scale) {
+  this->time_scale_ = time_scale;
 }
 };  // namespace koma

@@ -7,24 +7,24 @@
 namespace komatests {
 const double StopComponent::TIME_DELTA = 2000;  // 2 seconds.
 
-void StopComponent::FixedUpdate() {
+void StopComponent::Update(double interpolation) {
   koma::TimeManager &time_manager = koma::Locator::time_manager();
-  double now = time_manager.GetNow();
+  double now = time_manager.GetRealNow();
 
   if (now - this->starting_time_ > StopComponent::TIME_DELTA) {
-    time_manager.Stop();
+    koma::Locator::game().Quit();
   }
 }
 
 void StopComponent::Initialize() {
-  this->starting_time_ = koma::Locator::time_manager().GetNow();
+  this->starting_time_ = koma::Locator::time_manager().GetRealNow();
 }
 };  // namespace komatests
 
 TEST_CASE("Game state handling", "[koma::Game]") {
   koma::Game game = koma::Game();
 
-  SECTION("Game can run, then stop after.") {
+  SECTION("Game can run, then quit after.") {
     koma::GameObject* game_object = new koma::GameObject();
     koma::Component* component = new komatests::StopComponent();
 

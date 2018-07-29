@@ -8,7 +8,6 @@
 #include <iostream>
 #include <string>
 
-#include "../utils/observer.hpp"
 #include "game_object_manager.hpp"
 #include "input_manager.hpp"
 #include "locator.hpp"
@@ -17,7 +16,7 @@
 #include "time_manager.hpp"
 
 namespace koma {
-class Game : public Observer {
+class Game {
  public:
   const double MS_PER_UPDATE = 16.66;  // 60 Hz refresh.
 
@@ -26,7 +25,7 @@ class Game : public Observer {
 
   void Run();
   void Stop();
-  void ReceiveEvent(std::string);
+  void Quit();
 
   const bool is_running() const { return this->is_running_; };
 
@@ -34,7 +33,9 @@ class Game : public Observer {
   PhysicsManager physics_manager_;
   RenderingManager rendering_manager_;
   GameObjectManager game_object_manager_;
-  TimeManager time_manager;
+  TimeManager time_manager_;
+
+  void ResetCounters();
 
  private:
   bool is_running_ = false;

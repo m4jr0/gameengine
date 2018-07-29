@@ -10,10 +10,13 @@
 #include "time_manager.hpp"
 
 namespace koma {
+class Game;
+
 class Locator {
  public:
-  static void Initialize();
+  static void Initialize(Game *);
 
+  static Game& game() { return *Locator::game_; };
   static InputManager& input_manager() { return *Locator::input_manager_; }
   static TimeManager& time_manager() { return *Locator::time_manager_; }
   static GameObjectManager& game_object_manager()
@@ -22,6 +25,7 @@ class Locator {
   static void input_manager(InputManager* input_manager);
 
  private:
+  static Game* game_;
   static InputManager* input_manager_;
   static NullInputManager null_input_manager_;
   static TimeManager* time_manager_;
