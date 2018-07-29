@@ -11,6 +11,7 @@ std::unordered_map<std::string, std::shared_ptr<const Logger>>
 std::shared_ptr<const Logger> Logger::Get(std::string logger_name) {
   auto found = Logger::loggers_.find(logger_name);
 
+  // If the logger does not exist, we create it.
   if (found == Logger::loggers_.end()) {
     std::shared_ptr<const Logger> new_logger = Logger::Create(logger_name);
     Logger::loggers_.insert({logger_name, new_logger});

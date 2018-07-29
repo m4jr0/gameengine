@@ -22,7 +22,9 @@ Game::~Game() {}
 void Game::Run() {
   this->is_running_ = true;
   this->time_manager_.Initialize();
+  // To catch up time taken to render.
   double lag = 0.0;
+  // To known when we reach a second to display counters accordingly.
   double time_counter = 0;
 
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Message("Game started");
@@ -32,6 +34,8 @@ void Game::Run() {
     double time_delta = this->time_manager_.time_delta();
     time_counter += time_delta;
 
+    // Here, we reset the counters which check for the physics and the
+    // rendering refreshing rate.
     if (time_counter > 1000) {
       this->ResetCounters();
       time_counter = 0;
@@ -40,11 +44,13 @@ void Game::Run() {
     lag += time_delta;
     Locator::input_manager().GetInput(Input::TO_BE_IMPLEMENTED);
 
+    // To render physics properly, we have to catch up with the lag.
     while (lag >= Game::MS_PER_UPDATE) {
       this->physics_manager_.Update(&this->game_object_manager_);
       lag -= Game::MS_PER_UPDATE;
     }
 
+    // Rendering a frame can take quite a huge amount of time.
     this->rendering_manager_.Update(
       lag / Game::MS_PER_UPDATE,
       &this->game_object_manager_
@@ -61,12 +67,17 @@ void Game::Stop() {
 void Game::Quit() {
   this->Stop();
 
+  // There will be more code here, probably. That is why do not call
+  // koma::Game::Stop() directly.
+
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Message("Game quit");
 }
 
 void Game::ResetCounters() {
   auto logger = Logger::Get(LOGGER_KOMA_CORE_GAME);
 
+  // TODO(m4jr0): Remove these messages when the rendering part will be (at
+  // least) partially implemented.
   logger->Message(
     "Physics ", this->physics_manager_.counter()
   );
