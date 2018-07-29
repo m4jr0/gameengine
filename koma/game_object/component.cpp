@@ -5,18 +5,22 @@
 #include "component.hpp"
 
 namespace koma {
-  void Component::Update(double interpolation) {
+void Component::Initialize(){
     // Code has to be implemented in children.
-    // This function is called every frame rendered.
-  }
+};
 
-  void Component::FixedUpdate() {
-    // Code has to be implemented in children.
-    // This function is called every logic frame computed. In most cases, this
-    // is where the game logic will be implemented.
-  }
+void Component::Update(double interpolation) {
+  // Code has to be implemented in children.
+  // This function is called every frame rendered.
+}
 
-  const boost::uuids::uuid Component::id() const {
-    return this->id_;
-  }
+void Component::FixedUpdate() {
+  // Code has to be implemented in children.
+  // This function is called every logic frame computed. In most cases, this
+  // is where the game logic will be implemented.
+}
+
+const boost::uuids::uuid Component::id() const {
+  return this->id_;
+}
 };  // namespace koma

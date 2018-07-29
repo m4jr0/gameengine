@@ -8,7 +8,6 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <iostream>
 
 namespace koma {
 class Component {
@@ -16,7 +15,7 @@ class Component {
   virtual ~Component() {};
   virtual void Update(double);
   virtual void FixedUpdate();
-  virtual void Initialize() {};
+  virtual void Initialize();
 
   const boost::uuids::uuid id() const;
 

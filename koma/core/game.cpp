@@ -25,7 +25,7 @@ void Game::Run() {
   double lag = 0.0;
   double time_counter = 0;
 
-  std::cout << "Game started" << std::endl;
+  Logger::Get(LOGGER_KOMA_CORE_GAME)->Message("Game started");
 
   while (this->is_running_) {
     this->time_manager_.Update();
@@ -55,18 +55,24 @@ void Game::Run() {
 void Game::Stop() {
   this->is_running_ = false;
 
-  std::cout << "Game stopped" << std::endl;
+  Logger::Get(LOGGER_KOMA_CORE_GAME)->Message("Game stopped");
 }
 
 void Game::Quit() {
   this->Stop();
 
-  std::cout << "Game quit" << std::endl;
+  Logger::Get(LOGGER_KOMA_CORE_GAME)->Message("Game quit");
 }
 
 void Game::ResetCounters() {
-  std::cout << "PHYSICS " << this->physics_manager_.counter() << std::endl;
-  std::cout << "FPS " << this->rendering_manager_.counter() << std::endl;
+  std::shared_ptr<Logger> logger = Logger::Get(LOGGER_KOMA_CORE_GAME);
+  logger->Message(
+    "Physics ", this->physics_manager_.counter()
+  );
+
+  logger->Message(
+    "FPS ", this->rendering_manager_.counter()
+  );
 
   this->physics_manager_.ResetCounter();
   this->rendering_manager_.ResetCounter();

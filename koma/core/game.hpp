@@ -5,9 +5,11 @@
 #ifndef KOMA_CORE_GAME_HPP_
 #define KOMA_CORE_GAME_HPP_
 
-#include <iostream>
+#define LOGGER_KOMA_CORE_GAME "game"
+
 #include <string>
 
+#include "../utils/logger.hpp"
 #include "game_object_manager.hpp"
 #include "input_manager.hpp"
 #include "locator.hpp"

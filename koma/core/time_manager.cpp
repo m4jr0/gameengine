@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 #include <chrono>
-#include <iostream>
 
 #include "time_manager.hpp"
 
