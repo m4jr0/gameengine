@@ -20,7 +20,7 @@
 namespace koma {
 class Game {
  public:
-  const double MS_PER_UPDATE = 16.66;  // 60 Hz refresh.
+  const double kMsPerUpdate = 16.66;  // 60 Hz refresh.
 
   Game();
   virtual ~Game();

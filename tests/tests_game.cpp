@@ -5,13 +5,13 @@
 #include "tests_game.hpp"
 
 namespace komatests {
-const double StopComponent::TIME_DELTA = 2000;  // 2 seconds.
+const double StopComponent::kTimeDelta = 2000;  // 2 seconds.
 
 void StopComponent::Update(double interpolation) {
   koma::TimeManager &time_manager = koma::Locator::time_manager();
   double now = time_manager.GetRealNow();
 
-  if (now - this->starting_time_ > StopComponent::TIME_DELTA) {
+  if (now - this->starting_time_ > this->kTimeDelta) {
     koma::Locator::game().Quit();
   }
 }

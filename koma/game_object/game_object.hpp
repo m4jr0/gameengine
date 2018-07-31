@@ -22,10 +22,10 @@ class GameObject final {
   void AddComponent(Component*);
   void RemoveComponent(Component*);
 
-  const boost::uuids::uuid id() const;
+  const boost::uuids::uuid kId() const;
 
  private:
-    boost::uuids::uuid id_ = boost::uuids::random_generator()();
+    const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
     std::unordered_map<std::string, Component*> components_;
 };
 };  // namespace koma

@@ -25,17 +25,17 @@ void GameObject::FixedUpdate() {
 
 void GameObject::AddComponent(Component *component) {
   this->components_.insert({
-    boost::uuids::to_string(component->id()), component
+    boost::uuids::to_string(component->kId()), component
   });
 
   component->Initialize();
 }
 
 void GameObject::RemoveComponent(Component *component) {
-  this->components_.erase(boost::uuids::to_string(component->id()));
+  this->components_.erase(boost::uuids::to_string(component->kId()));
 }
 
-const boost::uuids::uuid GameObject::id() const {
-  return this->id_;
+const boost::uuids::uuid GameObject::kId() const {
+  return this->kId_;
 }
 };  // namespace koma

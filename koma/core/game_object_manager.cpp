@@ -27,11 +27,11 @@ void GameObjectManager::FixedUpdate() {
 
 void GameObjectManager::AddGameObject(GameObject *game_object) {
   this->game_objects_.insert({
-    boost::uuids::to_string(game_object->id()), game_object
+    boost::uuids::to_string(game_object->kId()), game_object
   });
 }
 
 void GameObjectManager::RemoveGameObject(GameObject *game_object) {
-  this->game_objects_.erase(boost::uuids::to_string(game_object->id())); 
+  this->game_objects_.erase(boost::uuids::to_string(game_object->kId())); 
 }
 };  // namespace koma

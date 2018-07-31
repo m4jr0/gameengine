@@ -12,7 +12,7 @@
 namespace komatests {
 class StopComponent final : public koma::Component {
  public:
-  static const double TIME_DELTA;
+  static const double kTimeDelta;
 
   void Initialize() final;
   void Update(double) final;

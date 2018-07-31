@@ -17,10 +17,10 @@ class Component {
   virtual void FixedUpdate();
   virtual void Initialize();
 
-  const boost::uuids::uuid id() const;
+  const boost::uuids::uuid kId() const;
 
  private:
-  boost::uuids::uuid id_ = boost::uuids::random_generator()();
+  const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
 };
 };  // namespace koma
 

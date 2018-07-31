@@ -20,7 +20,7 @@ void Component::FixedUpdate() {
   // is where the game logic will be implemented.
 }
 
-const boost::uuids::uuid Component::id() const {
-  return this->id_;
+const boost::uuids::uuid Component::kId() const {
+  return this->kId_;
 }
 };  // namespace koma
