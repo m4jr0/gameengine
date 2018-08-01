@@ -31,23 +31,7 @@ void TimeManager::Update() {
   this->previous_time_ = this->current_time_;
 }
 
-void TimeManager::Stop() { this->time_scale(0.0f); }
+void TimeManager::Stop() noexcept { this->time_scale(0.0f); }
 
-void TimeManager::Normalize() { this->time_scale(1.0f); }
-
-const double TimeManager::time_delta() const {
-  return this->time_delta_;
-}
-
-const double TimeManager::current_time() const {
-  return this->current_time_;
-}
-
-const float TimeManager::time_scale() const {
-  return this->time_scale_;
-}
-
-void TimeManager::time_scale(float time_scale) {
-  this->time_scale_ = time_scale;
-}
+void TimeManager::Normalize() noexcept { this->time_scale(1.0f); }
 };  // namespace koma

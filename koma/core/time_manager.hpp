@@ -17,13 +17,14 @@ class TimeManager {
   double GetNow();
   void Initialize();
   void Update();
-  void Stop();
-  void Normalize();
+  void Stop() noexcept;
+  void Normalize() noexcept;
 
-  const double time_delta() const;
-  const double current_time() const;
-  const float time_scale() const;
-  void time_scale(float);
+  const double time_delta() const noexcept { return this->time_delta_; }
+  const double current_time() const noexcept { return this->current_time_; }
+  const float time_scale() const noexcept { return this->time_scale_; }
+  void time_scale(float time_scale) noexcept 
+    { this->time_scale_ = time_scale; }
 
  private:
   double current_time_ = 0.0;

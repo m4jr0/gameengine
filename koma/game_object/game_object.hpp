@@ -22,7 +22,7 @@ class GameObject final {
   void AddComponent(Component*);
   void RemoveComponent(Component*);
 
-  const boost::uuids::uuid kId() const;
+  const boost::uuids::uuid kId() const noexcept;
 
  private:
     const boost::uuids::uuid kId_ = boost::uuids::random_generator()();

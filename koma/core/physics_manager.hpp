@@ -14,9 +14,9 @@ class PhysicsManager {
   void Destroy();
 
   void Update(GameObjectManager *);
-  void ResetCounter() { this->counter_ = 0; };
+  void ResetCounter() noexcept { this->counter_ = 0; };
 
-  const int counter() const { return this->counter_; };
+  const int counter() const noexcept { return this->counter_; };
  private:
   int counter_ = 0;
 };

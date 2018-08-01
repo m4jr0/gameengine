@@ -7,7 +7,7 @@
 
 namespace koma {
 enum class Input {
-  TO_BE_IMPLEMENTED
+  kToBeImplemented
 };
 
 class InputManager {
@@ -17,7 +17,7 @@ class InputManager {
 
 class NullInputManager : public InputManager {
  public:
-   virtual bool GetInput(Input) { return false;  };
+   virtual bool GetInput(Input) override { return false;  };
 };
 };  // namespace koma
 

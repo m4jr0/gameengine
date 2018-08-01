@@ -17,7 +17,7 @@ class Component {
   virtual void FixedUpdate();
   virtual void Initialize();
 
-  const boost::uuids::uuid kId() const;
+  const boost::uuids::uuid kId() const noexcept;
 
  private:
   const boost::uuids::uuid kId_ = boost::uuids::random_generator()();

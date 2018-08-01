@@ -47,17 +47,17 @@ void Game::Run() {
     }
 
     lag += time_delta;
-    Locator::input_manager().GetInput(Input::TO_BE_IMPLEMENTED);
+    Locator::input_manager().GetInput(Input::kToBeImplemented);
 
     // To render physics properly, we have to catch up with the lag.
-    while (lag >= this->kMsPerUpdate) {
+    while (lag >= this->kMsPerUpdate_) {
       this->physics_manager_.Update(&this->game_object_manager_);
-      lag -= this->kMsPerUpdate;
+      lag -= this->kMsPerUpdate_;
     }
 
     // Rendering a frame can take quite a huge amount of time.
     this->rendering_manager_.Update(
-      lag / this->kMsPerUpdate,
+      lag / this->kMsPerUpdate_,
       &this->game_object_manager_
     );
   }

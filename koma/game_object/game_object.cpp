@@ -35,7 +35,7 @@ void GameObject::RemoveComponent(Component *component) {
   this->components_.erase(boost::uuids::to_string(component->kId()));
 }
 
-const boost::uuids::uuid GameObject::kId() const {
+const boost::uuids::uuid GameObject::kId() const noexcept {
   return this->kId_;
 }
 };  // namespace koma

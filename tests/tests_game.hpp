@@ -14,8 +14,8 @@ class StopComponent final : public koma::Component {
  public:
   static const double kTimeDelta;
 
-  void Initialize() final;
-  void Update(double) final;
+  void Initialize() override final;
+  void Update(double) override final;
 
  private:
   double starting_time_ = 0.0;

@@ -20,7 +20,7 @@
 namespace koma {
 class Game {
  public:
-  const double kMsPerUpdate = 16.66;  // 60 Hz refresh.
+  static constexpr double kMsPerUpdate_ = 16.66;  // 60 Hz refresh.
 
   Game();
   virtual ~Game();
@@ -30,7 +30,7 @@ class Game {
   void Stop();
   void Quit();
 
-  const bool is_running() const { return this->is_running_; };
+  const bool is_running() const noexcept { return this->is_running_; };
 
  protected:
   PhysicsManager physics_manager_;
