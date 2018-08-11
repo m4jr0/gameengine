@@ -10,12 +10,12 @@
 #include <string>
 
 #include "../utils/logger.hpp"
-#include "game_object_manager.hpp"
-#include "input_manager.hpp"
-#include "locator.hpp"
-#include "physics_manager.hpp"
-#include "rendering_manager.hpp"
-#include "time_manager.hpp"
+#include "game_object/game_object_manager.hpp"
+#include "input/input_manager.hpp"
+#include "resource/locator.hpp"
+#include "physics/physics_manager.hpp"
+#include "rendering/rendering_manager.hpp"
+#include "time/time_manager.hpp"
 
 namespace koma {
 class Game {

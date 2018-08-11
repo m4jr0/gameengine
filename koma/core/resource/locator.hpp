@@ -5,9 +5,9 @@
 #ifndef KOMA_CORE_LOCATOR_HPP_
 #define KOMA_CORE_LOCATOR_HPP_
 
-#include "game.hpp"
-#include "input_manager.hpp"
-#include "time_manager.hpp"
+#include "../game.hpp"
+#include "../input/input_manager.hpp"
+#include "../time/time_manager.hpp"
 
 namespace koma {
 class Game;

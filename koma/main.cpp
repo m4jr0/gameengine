@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include "core/game.hpp"
-#include "game_object/game_object.hpp"
+#include "core/game_object/game_object.hpp"
 
 int main(int argc, char *argv[]) {
     koma::Game game = koma::Game();

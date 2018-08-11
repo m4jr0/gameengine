@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RENDERING_MANAGER_HPP_
 #define KOMA_CORE_RENDERING_MANAGER_HPP_
 
-#include "game_object_manager.hpp"
+#include "../game_object/game_object_manager.hpp"
 
 namespace koma {
 class RenderingManager {
