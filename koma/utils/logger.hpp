@@ -23,21 +23,28 @@ class Logger final {
   void Error(Targs... args) const {
     std::stringstream string_stream;
     this->GetString(string_stream, args...);
-    std::cerr << "[Error] " << string_stream.str() << std::endl;
+    std::cerr << "[ERROR] " << string_stream.str() << std::endl;
   }
 
   template <typename... Targs>
-  void Message(Targs... args) const {
+  void Info(Targs... args) const {
     std::stringstream string_stream;
     this->GetString(string_stream, args...);
-    std::cout << "[Message] " << string_stream.str() << std::endl;
+    std::cout << "[INFO] " << string_stream.str() << std::endl;
+  }
+
+  template <typename... Targs>
+  void Debug(Targs... args) const {
+    std::stringstream string_stream;
+    this->GetString(string_stream, args...);
+    std::cout << "[DEBUG] " << string_stream.str() << std::endl;
   }
 
   template <typename... Targs>
   void Warning(Targs... args) const {
     std::stringstream string_stream;
     this->GetString(string_stream, args...);
-    std::cout << "[Warning] " << string_stream.str() << std::endl;
+    std::cout << "[WARNING] " << string_stream.str() << std::endl;
   }
 
   const std::string name() const { return this->name_; };
@@ -49,14 +56,13 @@ class Logger final {
   }
 
   template <typename T, typename... Targs>
-  void GetString(std::stringstream& string_stream, T arg, Targs... args)
-    const {
+  void GetString(std::stringstream& string_stream, T arg, Targs... args) const {
     this->GetString(string_stream, arg);
     this->GetString(string_stream, args...);
   }
 
   static std::unordered_map<std::string, std::shared_ptr<const Logger>>
-    loggers_;
+      loggers_;
 
   static std::shared_ptr<const Logger> Create(std::string);
 

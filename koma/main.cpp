@@ -8,5 +8,6 @@
 int main(int argc, char *argv[]) {
     koma::Game game = koma::Game();
 
+    game.Initialize();
     game.Run();
 }

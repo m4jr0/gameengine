@@ -5,16 +5,17 @@
 #ifndef KOMA_CORE_GAME_HPP_
 #define KOMA_CORE_GAME_HPP_
 
-#define LOGGER_KOMA_CORE_GAME "game"
+#define LOGGER_KOMA_CORE_GAME "koma_core_game"
 
+#include <iostream>
 #include <string>
 
 #include "../utils/logger.hpp"
 #include "game_object/game_object_manager.hpp"
 #include "input/input_manager.hpp"
-#include "resource/locator.hpp"
 #include "physics/physics_manager.hpp"
 #include "rendering/rendering_manager.hpp"
+#include "resource/locator.hpp"
 #include "time/time_manager.hpp"
 
 namespace koma {
@@ -37,8 +38,6 @@ class Game {
   RenderingManager rendering_manager_;
   GameObjectManager game_object_manager_;
   TimeManager time_manager_;
-
-  void ResetCounters();
 
  private:
   bool is_running_ = false;

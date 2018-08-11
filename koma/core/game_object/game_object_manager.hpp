@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef KOMA_CORE_GAME_OBJECT_MANAGER_HPP_
-#define KOMA_CORE_GAME_OBJECT_MANAGER_HPP_
+#ifndef KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
+#define KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
 
 #include <boost/functional/hash.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -28,4 +28,4 @@ class GameObjectManager {
 };
 };  // namespace koma
 
-#endif  // KOMA_CORE_GAME_OBJECT_MANAGER_HPP_
+#endif  // KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_

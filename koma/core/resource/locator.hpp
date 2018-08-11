@@ -2,10 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef KOMA_CORE_LOCATOR_HPP_
-#define KOMA_CORE_LOCATOR_HPP_
+#ifndef KOMA_CORE_RESOURCE_LOCATOR_HPP_
+#define KOMA_CORE_RESOURCE_LOCATOR_HPP_
 
-#include "../game.hpp"
+#include "../game_object/game_object_manager.hpp"
 #include "../input/input_manager.hpp"
 #include "../time/time_manager.hpp"
 
@@ -38,4 +38,4 @@ class Locator {
 };
 };  // namespace koma
 
-#endif  // KOMA_CORE_LOCATOR_HPP_
+#endif  // KOMA_CORE_RESOURCE_LOCATOR_HPP_

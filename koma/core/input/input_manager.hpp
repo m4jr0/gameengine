@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef KOMA_CORE_INPUT_MANAGER_HPP_
-#define KOMA_CORE_INPUT_MANAGER_HPP_
+#ifndef KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
+#define KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
 
 namespace koma {
 enum class Input {
@@ -21,4 +21,4 @@ class NullInputManager : public InputManager {
 };
 };  // namespace koma
 
-#endif  // KOMA_CORE_INPUT_MANAGER_HPP_
+#endif  // KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
