@@ -2,7 +2,16 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Allows debugging memory leaks.
+// TODO(m4jr0): Find a better solution.
+#ifdef _DEBUG
+#include "../../debug.hpp"
+#endif  // _DEBUG
+
 #include "physics_manager.hpp"
+
+#include "../../utils/logger.hpp"
+#include "../resource/locator.hpp"
 
 namespace koma {
 void PhysicsManager::Initialize() {};
@@ -23,4 +32,8 @@ void PhysicsManager::Update(GameObjectManager *game_object_manager) {
   game_object_manager->FixedUpdate();
   ++this->counter_;
 }
+
+const int PhysicsManager::counter() const noexcept {
+  return this->counter_;
+};
 };  // namespace koma

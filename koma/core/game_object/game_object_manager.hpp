@@ -5,9 +5,6 @@
 #ifndef KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
 #define KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
 
-#include <boost/functional/hash.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <functional>
 #include <unordered_map>
 
 #include "../game_object/game_object.hpp"

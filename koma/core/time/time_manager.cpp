@@ -2,6 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Allows debugging memory leaks.
+// TODO(m4jr0): Find a better solution.
+#ifdef _DEBUG
+#include "../../debug.hpp"
+#endif  // _DEBUG
+
 #include <chrono>
 
 #include "time_manager.hpp"
@@ -34,4 +40,20 @@ void TimeManager::Update() {
 void TimeManager::Stop() noexcept { this->time_scale(0.0f); }
 
 void TimeManager::Normalize() noexcept { this->time_scale(1.0f); }
+
+const double TimeManager::time_delta() const noexcept {
+  return this->time_delta_;
+}
+
+const double TimeManager::current_time() const noexcept {
+  return this->current_time_;
+}
+
+const float TimeManager::time_scale() const noexcept {
+  return this->time_scale_;
+}
+
+void TimeManager::time_scale(float time_scale) noexcept {
+  this->time_scale_ = time_scale;
+}
 };  // namespace koma

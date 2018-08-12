@@ -5,8 +5,6 @@
 #ifndef KOMA_CORE_TIME_MANAGER_HPP_
 #define KOMA_CORE_TIME_MANAGER_HPP_
 
-#include <chrono>
-
 namespace koma {
 class TimeManager {
  public:
@@ -20,11 +18,10 @@ class TimeManager {
   void Stop() noexcept;
   void Normalize() noexcept;
 
-  const double time_delta() const noexcept { return this->time_delta_; }
-  const double current_time() const noexcept { return this->current_time_; }
-  const float time_scale() const noexcept { return this->time_scale_; }
-  void time_scale(float time_scale) noexcept 
-    { this->time_scale_ = time_scale; }
+  const double time_delta() const noexcept;
+  const double current_time() const noexcept;
+  const float time_scale() const noexcept;
+  void time_scale(float time_scale) noexcept;
 
  private:
   double current_time_ = 0.0;

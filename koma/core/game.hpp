@@ -7,18 +7,14 @@
 
 #define LOGGER_KOMA_CORE_GAME "koma_core_game"
 
-#include <iostream>
-#include <string>
-
-#include "../utils/logger.hpp"
 #include "game_object/game_object_manager.hpp"
-#include "input/input_manager.hpp"
 #include "physics/physics_manager.hpp"
 #include "rendering/rendering_manager.hpp"
-#include "resource/locator.hpp"
 #include "time/time_manager.hpp"
 
 namespace koma {
+class Locator;
+
 class Game {
  public:
   static constexpr double kMsPerUpdate_ = 16.66;  // 60 Hz refresh.
@@ -31,7 +27,7 @@ class Game {
   void Stop();
   void Quit();
 
-  const bool is_running() const noexcept { return this->is_running_; };
+  const bool is_running() const noexcept;
 
  protected:
   PhysicsManager physics_manager_;

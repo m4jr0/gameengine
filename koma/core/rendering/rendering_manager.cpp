@@ -2,7 +2,20 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Allows debugging memory leaks.
+// TODO(m4jr0): Find a better solution.
+#ifdef _DEBUG
+#include "../../debug.hpp"
+#endif  // _DEBUG
+
 #include "rendering_manager.hpp"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <stdexcept>
+
+#include "../../utils/logger.hpp"
+#include "../resource/locator.hpp"
 
 namespace koma {
 void RenderingManager::Initialize() {
@@ -19,18 +32,18 @@ void RenderingManager::Initialize() {
   glfwWindowHint(GLFW_VERSION_MINOR, this->kOpenGLMinorVersion);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_OPENGL_CORE_PROFILE);
 
-  this->current_height = this->kDefaultHeight;
-  this->current_width = this->kDefaultWidth;
+  this->current_height_ = this->kDefaultHeight;
+  this->current_width_ = this->kDefaultWidth;
 
-  this->window = glfwCreateWindow(
-    this->current_width,
-    this->current_height,
+  this->window_ = glfwCreateWindow(
+    this->current_width_,
+    this->current_height_,
     this->kRenderingWindowName,
     nullptr,
     nullptr
   );
 
-  if (!this->window) {
+  if (!this->window_) {
     logger->Error(
       "Failed to open a GLFW window. If you have an Intel GPU, they are not ",
       this->kOpenGLMajorVersion,
@@ -39,16 +52,20 @@ void RenderingManager::Initialize() {
       " compatible"
     );
 
-    throw std::runtime_error("An error during rendering initialization");
+    throw std::runtime_error(
+      "An error occurred during rendering initialization"
+    );
   }
 
-  glfwMakeContextCurrent(this->window);
+  glfwMakeContextCurrent(this->window_);
   glewExperimental = true;
 
   if (glewInit() != GLEW_OK) {
     logger->Error("Failed to initialize GLEW");
 
-    throw std::runtime_error("An error during rendering initialization");
+    throw std::runtime_error(
+      "An error occurred during rendering initialization"
+    );
   }
 
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -64,10 +81,12 @@ void RenderingManager::Update(double interpolation,
                               GameObjectManager *game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  if (glfwWindowShouldClose(this->window_) != 0) Locator::game().Quit();
+
   this->current_time_ += Locator::time_manager().time_delta();
 
   if (this->current_time_ > 1000) {
-    glfwSetWindowTitle(this->window, std::move(this->GetTitle()).c_str());
+    glfwSetWindowTitle(this->window_, std::move(this->GetTitle()).c_str());
 
     this->current_time_ = 0;
     this->counter_ = 0;
@@ -75,7 +94,7 @@ void RenderingManager::Update(double interpolation,
 
   game_object_manager->Update(interpolation);
 
-  glfwSwapBuffers(this->window);
+  glfwSwapBuffers(this->window_);
   glfwPollEvents();
 
   ++this->counter_;
@@ -85,9 +104,9 @@ std::string RenderingManager::GetTitle() {
   return std::string() +
     this->kRenderingWindowName +
     " | " +
-    std::to_string(this->current_width) +
+    std::to_string(this->current_width_) +
     "x" +
-    std::to_string(this->current_height) +
+    std::to_string(this->current_height_) +
     "@" +
     std::to_string(this->counter_) +
     "FPS";

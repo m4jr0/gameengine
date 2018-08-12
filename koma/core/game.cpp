@@ -2,7 +2,20 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Allows debugging memory leaks.
+// TODO(m4jr0): Find a better solution.
+#ifdef _DEBUG
+#include "../debug.hpp"
+#endif  // _DEBUG
+
 #include "game.hpp"
+
+#include <iostream>
+#include <string>
+
+#include "../utils/logger.hpp"
+#include "input/input_manager.hpp"
+#include "resource/locator.hpp"
 
 namespace koma {
 Game::Game() {
@@ -89,4 +102,8 @@ void Game::Quit() {
 
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game quit");
 }
+
+const bool Game::is_running() const noexcept {
+  return this->is_running_;
+};
 };  // namespace koma

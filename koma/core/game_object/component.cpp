@@ -2,6 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Allows debugging memory leaks.
+// TODO(m4jr0): Find a better solution.
+#ifdef _DEBUG
+#include "../../debug.hpp"
+#endif  // _DEBUG
+
 #include "component.hpp"
 
 namespace koma {

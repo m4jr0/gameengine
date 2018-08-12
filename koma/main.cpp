@@ -2,12 +2,25 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
+// Allows debugging memory leaks.
+// TODO(m4jr0): Find a better solution.
+#ifdef _DEBUG
+#include "debug.hpp"
+#endif  // _DEBUG
+
 #include "core/game.hpp"
-#include "core/game_object/game_object.hpp"
 
 int main(int argc, char *argv[]) {
-    koma::Game game = koma::Game();
+  koma::Game game = koma::Game();
 
-    game.Initialize();
-    game.Run();
+  game.Initialize();
+  game.Run();
+
+  _CrtDumpMemoryLeaks();
+
+  return EXIT_SUCCESS;
 }
