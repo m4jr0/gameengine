@@ -14,6 +14,7 @@ InputManager *Locator::input_manager_ = nullptr;
 NullInputManager Locator::null_input_manager_ = NullInputManager();
 TimeManager *Locator::time_manager_ = nullptr;
 GameObjectManager *Locator::game_object_manager_ = nullptr;
+Camera *Locator::main_camera_ = nullptr;
 
 void Locator::Initialize(Game *game) {
   Locator::game_ = game;
@@ -42,6 +43,10 @@ GameObjectManager &Locator::game_object_manager() {
   return *Locator::game_object_manager_;
 }
 
+Camera &Locator::main_camera() {
+  return *Locator::main_camera_;
+}
+
 void Locator::rendering_manager(RenderingManager *rendering_manager) {
   Locator::rendering_manager_ = rendering_manager;
 }
@@ -60,5 +65,9 @@ void Locator::time_manager(TimeManager *time_manager) {
 
 void Locator::game_object_manager(GameObjectManager *game_object_manager) {
   Locator::game_object_manager_ = game_object_manager;
+}
+
+void Locator::main_camera(Camera *main_camera) {
+  Locator::main_camera_ = main_camera;
 }
 };  // namespace koma

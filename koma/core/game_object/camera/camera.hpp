@@ -5,19 +5,16 @@
 #ifndef KOMA_CORE_GAME_OBJECT_CAMERA_CAMERA_HPP_
 #define KOMA_CORE_GAME_OBJECT_CAMERA_CAMERA_HPP_
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../../locator/locator.hpp"
 #include "../component.hpp"
 
 namespace koma {
 class Camera : public Component {
  public:
-  virtual void UpdateMatrices(GLuint, GLuint);
-  virtual void UpdateProjectionMatrix(GLuint, GLuint) = 0;
+  virtual void UpdateMatrices(int, int);
+  virtual void UpdateProjectionMatrix(int, int) = 0;
   virtual void UpdateViewMatrix();
   virtual glm::mat4 GetMvp(glm::mat4) final;
 
@@ -43,12 +40,12 @@ class Camera : public Component {
   const float farthest_point() const noexcept;
 
  protected:
-  glm::vec3 position_;
-  glm::vec3 look_at_;
-  glm::vec3 orientation_;
+  glm::vec3 position_ = glm::vec3(0, 0, 0);
+  glm::vec3 look_at_ = glm::vec3(0, 0, 0);
+  glm::vec3 orientation_ = glm::vec3(0, 1, 0);
 
-  float nearest_point_;
-  float farthest_point_;
+  float nearest_point_ = 0.1f;
+  float farthest_point_ = 100.0f;
 
   glm::mat4 projection_matrix_;
   glm::mat4 view_matrix_;

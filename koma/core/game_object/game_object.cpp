@@ -14,9 +14,9 @@ GameObject::~GameObject() {
   }
 }
 
-void GameObject::Update(double interpolation) {
+void GameObject::Update() {
   for (auto it : this->components_) {
-    it.second->Update(interpolation);
+    it.second->Update();
   }
 }
 

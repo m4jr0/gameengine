@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "core/locator/locator.hpp"
 #include "core/rendering/shader/shader_loader.hpp"
 #include "core/rendering/texture/texture_loader.hpp"
 
@@ -96,11 +97,6 @@ static const GLfloat g_uv_buffer_data[] = {
   0.667979f, 1.0f - 0.335851f
 };
 
-glm::mat4 projection;
-glm::mat4 view;
-glm::mat4 model;
-glm::mat4 mvp;
-
 GLuint texture = -1;
 GLuint texture_id = -1;
 
@@ -118,24 +114,6 @@ void InitializeTmp(GLuint width, GLuint height) {
 
   matrix_id = glGetUniformLocation(program_id, "mvp");
 
-  projection = glm::perspective(
-    glm::radians(45.0f),
-    (float)width / (float)height,
-    0.1f,
-    100.0f
-  );
-
-  view = glm::lookAt(
-    glm::vec3(4, 3, 3),
-    glm::vec3(0, 0, 0),
-    glm::vec3(0, 1, 0)
-  );
-
-  model = glm::mat4(1.0f);
-
-  mvp = projection * view * model;
-
-  // GLuint texture = load_bmp("tmp/texture.bmp");
   texture = load_dds("tmp/texture_BMP_DXT3_1.DDS");
 
   texture_id = glGetUniformLocation(program_id, "texture_sampler");
@@ -163,6 +141,8 @@ void InitializeTmp(GLuint width, GLuint height) {
 
 void UpdateTmp() {
   glUseProgram(program_id);
+
+  glm::mat4 mvp = Locator::main_camera().GetMvp(glm::mat4(1.0f));
 
   glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
 

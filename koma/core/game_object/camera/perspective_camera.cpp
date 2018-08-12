@@ -7,8 +7,10 @@
 
 #include "perspective_camera.hpp"
 
+#include <glm/glm.hpp>
+
 namespace koma {
-void PerspectiveCamera::UpdateProjectionMatrix(GLuint width, GLuint height) {
+void PerspectiveCamera::UpdateProjectionMatrix(int width, int height) {
   this->projection_matrix_ = glm::perspective(
     glm::radians(this->fov_),
     (float)width / (float)height,

@@ -31,12 +31,12 @@ void RenderingManager::Initialize() {
   glfwWindowHint(GLFW_VERSION_MINOR, this->kOpenGLMinorVersion);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_OPENGL_CORE_PROFILE);
 
-  this->current_height_ = this->kDefaultHeight;
-  this->current_width_ = this->kDefaultWidth;
+  this->height_ = this->kDefaultHeight;
+  this->width_ = this->kDefaultWidth;
 
   this->window_ = glfwCreateWindow(
-    this->current_width_,
-    this->current_height_,
+    this->width_,
+    this->height_,
     this->kRenderingWindowName,
     nullptr,
     nullptr
@@ -71,7 +71,7 @@ void RenderingManager::Initialize() {
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
-  InitializeTmp(this->current_width_, this->current_height_);
+  InitializeTmp(this->width_, this->height_);
 }
 
 void RenderingManager::Destroy() {
@@ -86,6 +86,8 @@ void RenderingManager::Update(double interpolation,
 
   if (glfwWindowShouldClose(this->window_) != 0) Locator::game().Quit();
 
+  glfwGetWindowSize(this->window_, &this->width_, &this->height_);
+
   this->current_time_ += Locator::time_manager().time_delta();
 
   if (this->current_time_ > 1000) {
@@ -95,7 +97,7 @@ void RenderingManager::Update(double interpolation,
     this->counter_ = 0;
   }
 
-  game_object_manager->Update(interpolation);
+  game_object_manager->Update();
 
   UpdateTmp();
 
@@ -105,21 +107,33 @@ void RenderingManager::Update(double interpolation,
   ++this->counter_;
 }
 
-const GLuint RenderingManager::current_width() const noexcept {
-  return this->current_width_;
+const int RenderingManager::width() const noexcept {
+  return this->width_;
 }
 
-const GLuint RenderingManager::current_height() const noexcept {
-  return this->current_height_;
+const int RenderingManager::height() const noexcept {
+  return this->height_;
+}
+
+void RenderingManager::width(int width) {
+  this->width_ = width;
+
+  glfwSetWindowSize(this->window_, this->width_, this->height_);
+}
+
+void RenderingManager::height(int height) {
+  this->height_ = height;
+
+  glfwSetWindowSize(this->window_, this->width_, this->height_);
 }
 
 std::string RenderingManager::GetTitle() {
   return std::string() +
     this->kRenderingWindowName +
     " | " +
-    std::to_string(this->current_width_) +
+    std::to_string(this->width_) +
     "x" +
-    std::to_string(this->current_height_) +
+    std::to_string(this->height_) +
     "@" +
     std::to_string(this->counter_) +
     "FPS";

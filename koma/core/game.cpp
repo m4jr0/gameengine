@@ -14,6 +14,10 @@
 #include "input/input_manager.hpp"
 #include "locator/locator.hpp"
 
+// TODO(m4jr0): Remove this include when the main camera will be set
+// elsewhere.
+#include "game_object/camera/perspective_camera.hpp"
+
 namespace koma {
 Game::Game() {
   this->physics_manager_ = PhysicsManager();
@@ -26,13 +30,25 @@ Game::Game() {
 Game::~Game() {}
 
 void Game::Initialize() {
+  // TODO(m4jr0): Move the lines about the main camera elsewere, when a
+  // configuration file (of some sort) will be available for default/saved
+  // settings.
+  GameObject *camera_container = new GameObject();
+  PerspectiveCamera *main_camera = new PerspectiveCamera();
+  main_camera->position(4, 3, 3);
+
   Locator::Initialize(this);
   Locator::rendering_manager(&this->rendering_manager_);
   Locator::time_manager(&this->time_manager_);
   Locator::game_object_manager(&this->game_object_manager_);
+  Locator::main_camera(main_camera);
 
   this->rendering_manager_.Initialize();
   this->physics_manager_.Initialize();
+
+  // TODO(m4jr0): Move these lines as well (see TODO(m4jr0) above).
+  camera_container->AddComponent(main_camera);
+  this->game_object_manager_.AddGameObject(camera_container);
 }
 
 void Game::Run() {

@@ -27,15 +27,18 @@ class RenderingManager {
   void Destroy();
   void Update(double, GameObjectManager *);
 
-  const GLuint current_width() const noexcept;
-  const GLuint current_height() const noexcept;
+  const int width() const noexcept;
+  const int height() const noexcept;
+
+  void width(int);
+  void height(int);
 
  private:
   int counter_ = 0;
   double current_time_ = 0;
   GLFWwindow *window_ = nullptr;
-  GLuint current_width_ = 0;
-  GLuint current_height_ = 0;
+  int width_ = 0;
+  int height_ = 0;
 
   std::string GetTitle();
 };

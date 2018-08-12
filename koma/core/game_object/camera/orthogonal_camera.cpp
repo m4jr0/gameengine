@@ -7,8 +7,10 @@
 
 #include "orthogonal_camera.hpp"
 
+#include <glm/glm.hpp>
+
 namespace koma {
-  void OrthogonalCamera::UpdateProjectionMatrix(GLuint width, GLuint height) {
+  void OrthogonalCamera::UpdateProjectionMatrix(int width, int height) {
     this->projection_matrix_ = glm::ortho(
       0.0f,
       (float)width,

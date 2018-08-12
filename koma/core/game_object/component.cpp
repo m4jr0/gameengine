@@ -12,7 +12,7 @@ void Component::Initialize() {
     // Code has to be implemented in children.
 };
 
-void Component::Update(double interpolation) {
+void Component::Update() {
   // Code has to be implemented in children.
   // This function is called every frame rendered.
 }

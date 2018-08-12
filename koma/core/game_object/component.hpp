@@ -13,7 +13,7 @@ namespace koma {
 class Component {
  public:
   virtual ~Component() {};
-  virtual void Update(double);
+  virtual void Update();
   virtual void FixedUpdate();
   virtual void Initialize();
 

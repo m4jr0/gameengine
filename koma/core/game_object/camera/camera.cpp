@@ -7,6 +7,7 @@
 
 #include "camera.hpp"
 
+#include "../../locator/locator.hpp"
 #include "../../rendering/rendering_manager.hpp"
 
 namespace koma {
@@ -18,7 +19,7 @@ void Camera::UpdateViewMatrix() {
   );
 }
 
-void Camera::UpdateMatrices(GLuint width, GLuint height) {
+void Camera::UpdateMatrices(int width, int height) {
   this->UpdateProjectionMatrix(width, height);
   this->UpdateViewMatrix();
 }
@@ -31,7 +32,7 @@ void Camera::Initialize() {
   RenderingManager rendering_manager = Locator::rendering_manager();
 
   this->UpdateMatrices(
-    rendering_manager.current_width(), rendering_manager.current_height()
+    rendering_manager.width(), rendering_manager.height()
   );
 };
 
@@ -39,7 +40,7 @@ void Camera::FixedUpdate() {
   RenderingManager rendering_manager = Locator::rendering_manager();
 
   this->UpdateMatrices(
-    rendering_manager.current_width(), rendering_manager.current_height()
+    rendering_manager.width(), rendering_manager.height()
   );
 }
 

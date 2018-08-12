@@ -17,7 +17,7 @@ class GameObject final {
  public:
   ~GameObject();
 
-  void Update(double);
+  void Update();
   void FixedUpdate();
   void AddComponent(Component*);
   void RemoveComponent(Component*);

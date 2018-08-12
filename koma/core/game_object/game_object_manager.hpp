@@ -15,7 +15,7 @@ class GameObjectManager {
   GameObjectManager();
   virtual ~GameObjectManager();
 
-  void Update(double);
+  void Update();
   void FixedUpdate();
   void AddGameObject(GameObject*);
   void RemoveGameObject(GameObject*);

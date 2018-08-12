@@ -20,9 +20,9 @@ GameObjectManager::~GameObjectManager() {
   }
 }
 
-void GameObjectManager::Update(double interpolation) {
+void GameObjectManager::Update() {
   for (auto it : this->game_objects_) {
-    it.second->Update(interpolation);
+    it.second->Update();
   }
 }
 
