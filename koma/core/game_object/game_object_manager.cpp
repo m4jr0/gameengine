@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // Allows debugging memory leaks.
-// TODO(m4jr0): Find a better solution.
 #include "../../debug.hpp"
 
 #include "game_object_manager.hpp"

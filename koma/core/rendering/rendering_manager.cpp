@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // Allows debugging memory leaks.
-// TODO(m4jr0): Find a better solution.
 #include "../../debug.hpp"
 
 #include "rendering_manager.hpp"
@@ -13,7 +12,11 @@
 #include <stdexcept>
 
 #include "../../utils/logger.hpp"
-#include "../resource/locator.hpp"
+#include "../locator/locator.hpp"
+
+// TODO(m4jr0): Remove this include (and its uses) when a proper game object
+// handling will be added.
+#include "../../temporary_code.hpp"
 
 namespace koma {
 void RenderingManager::Initialize() {
@@ -22,7 +25,9 @@ void RenderingManager::Initialize() {
   if (!glfwInit()) {
     logger->Error("Failed to initialize GLFW");
 
-    throw std::runtime_error("An error during rendering initialization");
+    throw std::runtime_error(
+      "An error occurred during rendering initialization"
+    );
   }
 
   glfwWindowHint(GLFW_SAMPLES, 4);
@@ -69,9 +74,13 @@ void RenderingManager::Initialize() {
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
+
+  InitializeTmp(this->current_width_, this->current_height_);
 }
 
 void RenderingManager::Destroy() {
+  DestroyTmp();
+
   glfwTerminate();
 }
 
@@ -91,6 +100,8 @@ void RenderingManager::Update(double interpolation,
   }
 
   game_object_manager->Update(interpolation);
+
+  UpdateTmp();
 
   glfwSwapBuffers(this->window_);
   glfwPollEvents();

@@ -4,7 +4,7 @@
 
 #include "tests_game.hpp"
 
-#include "../koma/core/resource/locator.hpp"
+#include "../koma/core/locator/locator.hpp"
 
 namespace komatests {
 const double StopComponent::kTimeDelta = 2000;  // 2 seconds.

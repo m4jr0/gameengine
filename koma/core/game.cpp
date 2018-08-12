@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // Allows debugging memory leaks.
-// TODO(m4jr0): Find a better solution.
 #include "../debug.hpp"
 
 #include "game.hpp"
@@ -13,7 +12,7 @@
 
 #include "../utils/logger.hpp"
 #include "input/input_manager.hpp"
-#include "resource/locator.hpp"
+#include "locator/locator.hpp"
 
 namespace koma {
 Game::Game() {

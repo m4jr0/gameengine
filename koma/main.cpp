@@ -7,7 +7,6 @@
 #include <crtdbg.h>
 
 // Allows debugging memory leaks.
-// TODO(m4jr0): Find a better solution.
 #include "debug.hpp"
 
 #include "core/game.hpp"
