@@ -27,6 +27,7 @@ Game::~Game() {}
 
 void Game::Initialize() {
   Locator::Initialize(this);
+  Locator::rendering_manager(&this->rendering_manager_);
   Locator::time_manager(&this->time_manager_);
   Locator::game_object_manager(&this->game_object_manager_);
 

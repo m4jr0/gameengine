@@ -5,10 +5,6 @@
 // Allows debugging memory leaks.
 #include "../../debug.hpp"
 
-#include "rendering_manager.hpp"
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <stdexcept>
 
 #include "../../utils/logger.hpp"
@@ -107,6 +103,14 @@ void RenderingManager::Update(double interpolation,
   glfwPollEvents();
 
   ++this->counter_;
+}
+
+const GLuint RenderingManager::current_width() const noexcept {
+  return this->current_width_;
+}
+
+const GLuint RenderingManager::current_height() const noexcept {
+  return this->current_height_;
 }
 
 std::string RenderingManager::GetTitle() {

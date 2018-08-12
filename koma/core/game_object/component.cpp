@@ -8,7 +8,7 @@
 #include "component.hpp"
 
 namespace koma {
-void Component::Initialize(){
+void Component::Initialize() {
     // Code has to be implemented in children.
 };
 

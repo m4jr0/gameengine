@@ -13,6 +13,8 @@
 #include "../game_object/game_object_manager.hpp"
 
 namespace koma {
+class Locator;
+
 class RenderingManager {
  public:
   static constexpr char kRenderingWindowName[] = "Koma Game Engine";
@@ -23,8 +25,10 @@ class RenderingManager {
 
   void Initialize();
   void Destroy();
-
   void Update(double, GameObjectManager *);
+
+  const GLuint current_width() const noexcept;
+  const GLuint current_height() const noexcept;
 
  private:
   int counter_ = 0;
