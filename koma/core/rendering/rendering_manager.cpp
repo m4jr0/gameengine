@@ -115,13 +115,13 @@ const int RenderingManager::height() const noexcept {
   return this->height_;
 }
 
-void RenderingManager::width(int width) {
+void RenderingManager::width(int width) noexcept {
   this->width_ = width;
 
   glfwSetWindowSize(this->window_, this->width_, this->height_);
 }
 
-void RenderingManager::height(int height) {
+void RenderingManager::height(int height) noexcept {
   this->height_ = height;
 
   glfwSetWindowSize(this->window_, this->width_, this->height_);

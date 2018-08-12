@@ -30,8 +30,8 @@ class RenderingManager {
   const int width() const noexcept;
   const int height() const noexcept;
 
-  void width(int);
-  void height(int);
+  void width(int) noexcept;
+  void height(int) noexcept;
 
  private:
   int counter_ = 0;

@@ -12,7 +12,7 @@ class PerspectiveCamera : public Camera {
  public:
    virtual void UpdateProjectionMatrix(int, int) override;
 
-   void fov(float);
+   void fov(float) noexcept;
 
    const float fov() const noexcept;
 

@@ -19,7 +19,7 @@ void PerspectiveCamera::UpdateProjectionMatrix(int width, int height) {
   );
 }
 
-void PerspectiveCamera::fov(float fov) {
+void PerspectiveCamera::fov(float fov) noexcept {
   this->fov_ = fov;
 }
 

@@ -29,8 +29,8 @@ class Camera : public Component {
   void look_at(glm::vec3);
   void orientation(glm::vec3);
 
-  void nearest_point(float);
-  void farthest_point(float);
+  void nearest_point(float) noexcept;
+  void farthest_point(float) noexcept;
 
   const glm::vec3 position() const noexcept;
   const glm::vec3 look_at() const noexcept;

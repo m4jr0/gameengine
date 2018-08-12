@@ -68,11 +68,11 @@ void Camera::orientation(glm::vec3 orientation) {
   this->orientation_ = orientation;
 }
 
-void Camera::nearest_point(float nearest_point) {
+void Camera::nearest_point(float nearest_point) noexcept {
   this->nearest_point_ = nearest_point;
 }
 
-void Camera::farthest_point(float farthest_point) {
+void Camera::farthest_point(float farthest_point) noexcept {
   this->farthest_point_ = farthest_point;
 }
 
