@@ -4,6 +4,8 @@
 
 #include "tests_game.hpp"
 
+#include "../koma/core/resource/locator.hpp"
+
 namespace komatests {
 const double StopComponent::kTimeDelta = 2000;  // 2 seconds.
 
@@ -23,6 +25,7 @@ void StopComponent::Initialize() {
 
 TEST_CASE("Game state handling", "[koma::Game]") {
   koma::Game game = koma::Game();
+  game.Initialize();
 
   SECTION("Game can run, then quit after.") {
     koma::GameObject* game_object = new koma::GameObject();

@@ -8,9 +8,7 @@
 
 // Allows debugging memory leaks.
 // TODO(m4jr0): Find a better solution.
-#ifdef _DEBUG
 #include "debug.hpp"
-#endif  // _DEBUG
 
 #include "core/game.hpp"
 

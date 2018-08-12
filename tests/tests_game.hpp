@@ -5,7 +5,7 @@
 #ifndef TESTS_GAME_HPP_
 #define TESTS_GAME_HPP_
 
-#include "../koma/core/game.hpp"
+#include "../koma/core/game_object/component.hpp"
 
 #include "catch.hpp"
 
