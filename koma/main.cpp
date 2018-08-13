@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 
-// Allows debugging memory leaks.
+// Allow debugging memory leaks.
 #include "debug.hpp"
 
 #include "core/game.hpp"

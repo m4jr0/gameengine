@@ -2,8 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allows debugging memory leaks.
+// Allow debugging memory leaks.
 #include "../../debug.hpp"
+
+#include "rendering_manager.hpp"
 
 #include <stdexcept>
 
@@ -27,17 +29,17 @@ void RenderingManager::Initialize() {
   }
 
   glfwWindowHint(GLFW_SAMPLES, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, this->kOpenGLMajorVersion);
-  glfwWindowHint(GLFW_VERSION_MINOR, this->kOpenGLMinorVersion);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, this->kOpenGLMajorVersion_);
+  glfwWindowHint(GLFW_VERSION_MINOR, this->kOpenGLMinorVersion_);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_OPENGL_CORE_PROFILE);
 
-  this->height_ = this->kDefaultHeight;
-  this->width_ = this->kDefaultWidth;
+  this->height_ = this->kDefaultHeight_;
+  this->width_ = this->kDefaultWidth_;
 
   this->window_ = glfwCreateWindow(
     this->width_,
     this->height_,
-    this->kRenderingWindowName,
+    this->GetTitle().c_str(),
     nullptr,
     nullptr
   );
@@ -45,9 +47,9 @@ void RenderingManager::Initialize() {
   if (!this->window_) {
     logger->Error(
       "Failed to open a GLFW window. If you have an Intel GPU, they are not ",
-      this->kOpenGLMajorVersion,
+      this->kOpenGLMajorVersion_,
       ".",
-      this->kOpenGLMinorVersion,
+      this->kOpenGLMinorVersion_,
       " compatible"
     );
 
@@ -91,7 +93,7 @@ void RenderingManager::Update(double interpolation,
   this->current_time_ += Locator::time_manager().time_delta();
 
   if (this->current_time_ > 1000) {
-    glfwSetWindowTitle(this->window_, std::move(this->GetTitle()).c_str());
+    glfwSetWindowTitle(this->window_, this->GetTitle().c_str());
 
     this->current_time_ = 0;
     this->counter_ = 0;
@@ -129,7 +131,7 @@ void RenderingManager::height(int height) noexcept {
 
 std::string RenderingManager::GetTitle() {
   return std::string() +
-    this->kRenderingWindowName +
+    this->kDefaultRenderingWindowName_ +
     " | " +
     std::to_string(this->width_) +
     "x" +

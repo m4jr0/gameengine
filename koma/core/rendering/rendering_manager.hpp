@@ -17,11 +17,11 @@ class Locator;
 
 class RenderingManager {
  public:
-  static constexpr char kRenderingWindowName[] = "Koma Game Engine";
-  static constexpr unsigned short int kOpenGLMajorVersion = 3;
-  static constexpr unsigned short int kOpenGLMinorVersion = 3;
-  static constexpr unsigned int kDefaultWidth = 1280;
-  static constexpr unsigned int kDefaultHeight = 720;
+  static constexpr char kDefaultRenderingWindowName_[] = "Koma Game Engine";
+  static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
+  static constexpr unsigned short int kOpenGLMinorVersion_ = 3;
+  static constexpr unsigned int kDefaultWidth_ = 1280;
+  static constexpr unsigned int kDefaultHeight_ = 720;
 
   void Initialize();
   void Destroy();

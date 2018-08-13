@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allows debugging memory leaks.
+// Allow debugging memory leaks.
 #include "../debug.hpp"
 
 #include "game.hpp"
@@ -23,7 +23,6 @@ Game::Game() {
   this->physics_manager_ = PhysicsManager();
   this->rendering_manager_ = RenderingManager();
   this->game_object_manager_ = GameObjectManager();
-
   this->time_manager_ = TimeManager();
 }
 
@@ -74,8 +73,10 @@ void Game::Run() {
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      this->rendering_manager_.Update(lag / this->kMsPerUpdate_,
-        &this->game_object_manager_);
+      this->rendering_manager_.Update(
+        lag / this->kMsPerUpdate_,
+        &this->game_object_manager_
+      );
     }
   } catch (const std::runtime_error& runtime_error) {
     Logger::Get(LOGGER_KOMA_CORE_GAME)->Error(
