@@ -14,7 +14,7 @@ namespace koma {
 void Camera::UpdateViewMatrix() {
   this->view_matrix_ = glm::lookAt(
     this->position_,
-    this->look_at_,
+    this->position_ + this->direction_,
     this->orientation_
   );
 }
@@ -48,8 +48,8 @@ void Camera::position(float x, float y, float z) {
   this->position_ = glm::vec3(x, y, z);
 }
 
-void Camera::look_at(float x, float y, float z) {
-  this->look_at_ = glm::vec3(x, y, z);
+void Camera::direction(float x, float y, float z) {
+  this->direction_ = glm::vec3(x, y, z);
 }
 
 void Camera::orientation(float x, float y, float z) {
@@ -60,8 +60,8 @@ void Camera::position(glm::vec3 position) {
   this->position_ = position;
 }
 
-void Camera::look_at(glm::vec3 look_at) {
-  this->look_at_ = look_at;
+void Camera::direction(glm::vec3 direction) {
+  this->direction_ = direction;
 }
 
 void Camera::orientation(glm::vec3 orientation) {
@@ -80,8 +80,8 @@ const glm::vec3 Camera::position() const noexcept {
   return this->position_;
 }
 
-const glm::vec3 Camera::look_at() const noexcept {
-  return this->look_at_;
+const glm::vec3 Camera::direction() const noexcept {
+  return this->direction_;
 }
 
 const glm::vec3 Camera::orientation() const noexcept {

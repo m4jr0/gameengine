@@ -35,6 +35,7 @@ void Game::Initialize() {
   GameObject *camera_container = new GameObject();
   PerspectiveCamera *main_camera = new PerspectiveCamera();
   main_camera->position(4, 3, 3);
+  main_camera->direction(-4, -3, -3);
 
   Locator::Initialize(this);
   Locator::rendering_manager(&this->rendering_manager_);

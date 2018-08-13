@@ -22,18 +22,18 @@ class Camera : public Component {
   virtual void FixedUpdate() override;
 
   void position(float, float, float);
-  void look_at(float, float, float);
+  void direction(float, float, float);
   void orientation(float, float, float);
 
   void position(glm::vec3);
-  void look_at(glm::vec3);
+  void direction(glm::vec3);
   void orientation(glm::vec3);
 
   void nearest_point(float) noexcept;
   void farthest_point(float) noexcept;
 
   const glm::vec3 position() const noexcept;
-  const glm::vec3 look_at() const noexcept;
+  const glm::vec3 direction() const noexcept;
   const glm::vec3 orientation() const noexcept;
 
   const float nearest_point() const noexcept;
@@ -41,7 +41,7 @@ class Camera : public Component {
 
  protected:
   glm::vec3 position_ = glm::vec3(0, 0, 0);
-  glm::vec3 look_at_ = glm::vec3(0, 0, 0);
+  glm::vec3 direction_ = glm::vec3(0, 0, 0);
   glm::vec3 orientation_ = glm::vec3(0, 1, 0);
 
   float nearest_point_ = 0.1f;
