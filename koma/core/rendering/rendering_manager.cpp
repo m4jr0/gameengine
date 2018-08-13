@@ -72,6 +72,7 @@ void RenderingManager::Initialize() {
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
+  glEnable(GL_CULL_FACE);
 
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   InitializeTmp(this->width_, this->height_);
@@ -118,6 +119,10 @@ const int RenderingManager::width() const noexcept {
 
 const int RenderingManager::height() const noexcept {
   return this->height_;
+}
+
+const GLFWwindow *RenderingManager::window() const noexcept {
+  return this->window_;
 }
 
 void RenderingManager::width(int width) noexcept {

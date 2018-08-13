@@ -18,6 +18,7 @@
 // elsewhere.
 #include <memory>  // Except if it is used elsewhere, of course.
 
+#include "game_object/camera/camera_controls.hpp"
 #include "game_object/camera/perspective_camera.hpp"
 
 namespace koma {
@@ -36,6 +37,7 @@ void Game::Initialize() {
   // settings.
   auto camera_container = std::make_shared<GameObject>();
   auto main_camera = std::make_shared<PerspectiveCamera>();
+  auto camera_controls = std::make_shared<CameraControls>();
   main_camera->position(4, 3, 3);
   main_camera->direction(-4, -3, -3);
 
@@ -50,6 +52,7 @@ void Game::Initialize() {
 
   // TODO(m4jr0): Move these lines as well (see TODO(m4jr0) above).
   camera_container->AddComponent(main_camera);
+  camera_container->AddComponent(camera_controls);
   this->game_object_manager_.AddGameObject(camera_container);
 }
 

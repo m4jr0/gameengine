@@ -29,6 +29,7 @@ class RenderingManager {
 
   const int width() const noexcept;
   const int height() const noexcept;
+  const GLFWwindow *window() const noexcept;
 
   void width(int) noexcept;
   void height(int) noexcept;
