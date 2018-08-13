@@ -73,10 +73,12 @@ void RenderingManager::Initialize() {
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
+  // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   InitializeTmp(this->width_, this->height_);
 }
 
 void RenderingManager::Destroy() {
+  // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   DestroyTmp();
 
   glfwTerminate();
@@ -101,6 +103,7 @@ void RenderingManager::Update(double interpolation,
 
   game_object_manager->Update();
 
+  // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   UpdateTmp();
 
   glfwSwapBuffers(this->window_);
