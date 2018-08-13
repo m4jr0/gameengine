@@ -5,6 +5,8 @@
 #ifndef KOMA_CORE_RESOURCE_LOCATOR_HPP_
 #define KOMA_CORE_RESOURCE_LOCATOR_HPP_
 
+#include <memory>
+
 #include "../game.hpp"
 #include "../game_object/camera/camera.hpp"
 #include "../game_object/game_object_manager.hpp"
@@ -22,13 +24,13 @@ class Locator {
   static InputManager &input_manager();
   static TimeManager &time_manager();
   static GameObjectManager &game_object_manager();
-  static Camera &main_camera();
+  static std::shared_ptr<Camera> main_camera();
 
-  static void rendering_manager(RenderingManager *rendering_manager);
-  static void input_manager(InputManager *input_manager);
-  static void time_manager(TimeManager *time_manager);
-  static void game_object_manager(GameObjectManager *game_object_manager);
-  static void main_camera(Camera *camera);
+  static void rendering_manager(RenderingManager *);
+  static void input_manager(InputManager *);
+  static void time_manager(TimeManager *);
+  static void game_object_manager(GameObjectManager *);
+  static void main_camera(std::shared_ptr<Camera>);
 
  private:
   static Game *game_;
@@ -37,7 +39,7 @@ class Locator {
   static NullInputManager null_input_manager_;
   static TimeManager *time_manager_;
   static GameObjectManager *game_object_manager_;
-  static Camera *main_camera_;
+  static std::shared_ptr<Camera> main_camera_;
 };
 };  // namespace koma
 

@@ -142,7 +142,7 @@ void InitializeTmp(GLuint width, GLuint height) {
 void UpdateTmp() {
   glUseProgram(program_id);
 
-  glm::mat4 mvp = Locator::main_camera().GetMvp(glm::mat4(1.0f));
+  glm::mat4 mvp = Locator::main_camera()->GetMvp(glm::mat4(1.0f));
 
   glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
 

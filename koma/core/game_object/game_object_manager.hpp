@@ -5,6 +5,7 @@
 #ifndef KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
 #define KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
 
+#include <memory>
 #include <unordered_map>
 
 #include "../game_object/game_object.hpp"
@@ -17,11 +18,11 @@ class GameObjectManager {
 
   void Update();
   void FixedUpdate();
-  void AddGameObject(GameObject*);
-  void RemoveGameObject(GameObject*);
+  void AddGameObject(std::shared_ptr<GameObject>);
+  void RemoveGameObject(std::shared_ptr<GameObject>);
 
  private:
-  std::unordered_map<std::string, GameObject *> game_objects_;
+  std::unordered_map<std::string, std::shared_ptr<GameObject>> game_objects_;
 };
 };  // namespace koma
 

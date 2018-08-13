@@ -16,6 +16,8 @@
 
 // TODO(m4jr0): Remove this include when the main camera will be set
 // elsewhere.
+#include <memory>  // Except if it is used elsewhere, of course.
+
 #include "game_object/camera/perspective_camera.hpp"
 
 namespace koma {
@@ -32,8 +34,8 @@ void Game::Initialize() {
   // TODO(m4jr0): Move the lines about the main camera elsewere, when a
   // configuration file (of some sort) will be available for default/saved
   // settings.
-  GameObject *camera_container = new GameObject();
-  PerspectiveCamera *main_camera = new PerspectiveCamera();
+  auto camera_container = std::make_shared<GameObject>();
+  auto main_camera = std::make_shared<PerspectiveCamera>();
   main_camera->position(4, 3, 3);
   main_camera->direction(-4, -3, -3);
 

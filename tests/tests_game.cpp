@@ -4,12 +4,14 @@
 
 #include "tests_game.hpp"
 
+#include <memory>
+
 #include "../koma/core/locator/locator.hpp"
 
 namespace komatests {
 const double StopComponent::kTimeDelta = 2000;  // 2 seconds.
 
-void StopComponent::Update(double interpolation) {
+void StopComponent::Update() {
   koma::TimeManager &time_manager = koma::Locator::time_manager();
   double now = time_manager.GetRealNow();
 
@@ -28,8 +30,8 @@ TEST_CASE("Game state handling", "[koma::Game]") {
   game.Initialize();
 
   SECTION("Game can run, then quit after.") {
-    koma::GameObject* game_object = new koma::GameObject();
-    koma::Component* component = new komatests::StopComponent();
+    auto game_object = std::make_shared<koma::GameObject>();
+    auto component = std::make_shared<komatests::StopComponent>();
 
     koma::Locator::game_object_manager().AddGameObject(game_object);
     game_object->AddComponent(component);

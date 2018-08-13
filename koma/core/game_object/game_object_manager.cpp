@@ -14,11 +14,7 @@
 namespace koma {
 GameObjectManager::GameObjectManager() {}
 
-GameObjectManager::~GameObjectManager() {
-  for (auto it : this->game_objects_) {
-    delete it.second;
-  }
-}
+GameObjectManager::~GameObjectManager() = default;
 
 void GameObjectManager::Update() {
   for (auto it : this->game_objects_) {
@@ -32,13 +28,15 @@ void GameObjectManager::FixedUpdate() {
   }
 }
 
-void GameObjectManager::AddGameObject(GameObject *game_object) {
+void GameObjectManager::AddGameObject(
+  std::shared_ptr<GameObject> game_object) {
   this->game_objects_.insert({
     boost::uuids::to_string(game_object->kId()), game_object
   });
 }
 
-void GameObjectManager::RemoveGameObject(GameObject *game_object) {
+void GameObjectManager::RemoveGameObject(
+  std::shared_ptr<GameObject> game_object) {
   this->game_objects_.erase(boost::uuids::to_string(game_object->kId()));
 }
 };  // namespace koma

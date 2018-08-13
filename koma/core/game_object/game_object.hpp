@@ -8,6 +8,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <memory>
 #include <unordered_map>
 
 #include "component.hpp"
@@ -19,14 +20,14 @@ class GameObject final {
 
   void Update();
   void FixedUpdate();
-  void AddComponent(Component*);
-  void RemoveComponent(Component*);
+  void AddComponent(std::shared_ptr<Component>);
+  void RemoveComponent(std::shared_ptr<Component>);
 
   const boost::uuids::uuid kId() const noexcept;
 
  private:
     const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
-    std::unordered_map<std::string, Component*> components_;
+    std::unordered_map<std::string, std::shared_ptr<Component>> components_;
 };
 };  // namespace koma
 

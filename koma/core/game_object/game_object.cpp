@@ -8,11 +8,7 @@
 #include "game_object.hpp"
 
 namespace koma {
-GameObject::~GameObject() {
-  for (auto it : this->components_) {
-    delete it.second;
-  }
-}
+GameObject::~GameObject() = default;
 
 void GameObject::Update() {
   for (auto it : this->components_) {
@@ -26,7 +22,7 @@ void GameObject::FixedUpdate() {
   }
 }
 
-void GameObject::AddComponent(Component *component) {
+void GameObject::AddComponent(std::shared_ptr<Component> component) {
   this->components_.insert({
     boost::uuids::to_string(component->kId()), component
   });
@@ -34,7 +30,7 @@ void GameObject::AddComponent(Component *component) {
   component->Initialize();
 }
 
-void GameObject::RemoveComponent(Component *component) {
+void GameObject::RemoveComponent(std::shared_ptr<Component> component) {
   this->components_.erase(boost::uuids::to_string(component->kId()));
 }
 
