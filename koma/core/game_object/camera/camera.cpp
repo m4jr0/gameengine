@@ -8,7 +8,7 @@
 #include "camera.hpp"
 
 #include "../../locator/locator.hpp"
-#include "../../rendering/rendering_manager.hpp"
+#include "../../render/render_manager.hpp"
 
 namespace koma {
 void Camera::UpdateViewMatrix() {
@@ -29,18 +29,18 @@ glm::mat4 Camera::GetMvp(glm::mat4 model_matrix) {
 }
 
 void Camera::Initialize() {
-  RenderingManager rendering_manager = Locator::rendering_manager();
+  RenderManager render_manager = Locator::render_manager();
 
   this->UpdateMatrices(
-    rendering_manager.width(), rendering_manager.height()
+    render_manager.width(), render_manager.height()
   );
 };
 
 void Camera::FixedUpdate() {
-  RenderingManager rendering_manager = Locator::rendering_manager();
+  RenderManager render_manager = Locator::render_manager();
 
   this->UpdateMatrices(
-    rendering_manager.width(), rendering_manager.height()
+    render_manager.width(), render_manager.height()
   );
 }
 

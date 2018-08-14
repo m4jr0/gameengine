@@ -9,8 +9,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "core/locator/locator.hpp"
-#include "core/rendering/shader/shader_loader.hpp"
-#include "core/rendering/texture/texture_loader.hpp"
+#include "core/render/shader/shader_loader.hpp"
+#include "core/render/texture/texture_loader.hpp"
 
 // TODO(m4jr0): Remove this file (and its uses) when a proper game object
 // handling will be added.

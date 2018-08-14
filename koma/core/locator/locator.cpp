@@ -9,7 +9,7 @@
 
 namespace koma {
 Game *Locator::game_ = nullptr;
-RenderingManager *Locator::rendering_manager_ = nullptr;
+RenderManager *Locator::render_manager_ = nullptr;
 InputManager *Locator::input_manager_ = nullptr;
 NullInputManager Locator::null_input_manager_ = NullInputManager();
 TimeManager *Locator::time_manager_ = nullptr;
@@ -27,8 +27,8 @@ Game &Locator::game() {
   return *Locator::game_;
 };
 
-RenderingManager &Locator::rendering_manager() {
-  return *Locator::rendering_manager_;
+RenderManager &Locator::render_manager() {
+  return *Locator::render_manager_;
 }
 
 InputManager &Locator::input_manager() {
@@ -47,8 +47,8 @@ std::shared_ptr<Camera> Locator::main_camera() {
   return Locator::main_camera_;
 }
 
-void Locator::rendering_manager(RenderingManager *rendering_manager) {
-  Locator::rendering_manager_ = rendering_manager;
+void Locator::render_manager(RenderManager *render_manager) {
+  Locator::render_manager_ = render_manager;
 }
 
 void Locator::input_manager(InputManager *input_manager) {

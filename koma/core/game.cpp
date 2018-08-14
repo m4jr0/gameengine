@@ -24,7 +24,7 @@
 namespace koma {
 Game::Game() {
   this->physics_manager_ = PhysicsManager();
-  this->rendering_manager_ = RenderingManager();
+  this->render_manager_ = RenderManager();
   this->game_object_manager_ = GameObjectManager();
   this->time_manager_ = TimeManager();
 }
@@ -42,12 +42,12 @@ void Game::Initialize() {
   main_camera->direction(-4, -3, -3);
 
   Locator::Initialize(this);
-  Locator::rendering_manager(&this->rendering_manager_);
+  Locator::render_manager(&this->render_manager_);
   Locator::time_manager(&this->time_manager_);
   Locator::game_object_manager(&this->game_object_manager_);
   Locator::main_camera(main_camera);
 
-  this->rendering_manager_.Initialize();
+  this->render_manager_.Initialize();
   this->physics_manager_.Initialize();
 
   // TODO(m4jr0): Move these lines as well (see TODO(m4jr0) above).
@@ -79,7 +79,7 @@ void Game::Run() {
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      this->rendering_manager_.Update(
+      this->render_manager_.Update(
         lag / this->kMsPerUpdate_,
         &this->game_object_manager_
       );
@@ -118,7 +118,7 @@ void Game::Stop() {
 void Game::Quit() {
   this->Stop();
 
-  this->rendering_manager_.Destroy();
+  this->render_manager_.Destroy();
   this->physics_manager_.Destroy();
 
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game quit");

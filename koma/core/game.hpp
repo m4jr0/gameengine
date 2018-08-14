@@ -9,7 +9,7 @@
 
 #include "game_object/game_object_manager.hpp"
 #include "physics/physics_manager.hpp"
-#include "rendering/rendering_manager.hpp"
+#include "render/render_manager.hpp"
 #include "time/time_manager.hpp"
 
 namespace koma {
@@ -31,7 +31,7 @@ class Game {
 
  protected:
   PhysicsManager physics_manager_;
-  RenderingManager rendering_manager_;
+  RenderManager render_manager_;
   GameObjectManager game_object_manager_;
   TimeManager time_manager_;
 

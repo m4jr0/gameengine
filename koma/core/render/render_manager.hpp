@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef KOMA_CORE_RENDERING_RENDERING_MANAGER_HPP_
-#define KOMA_CORE_RENDERING_RENDERING_MANAGER_HPP_
+#ifndef KOMA_CORE_RENDER_RENDER_MANAGER_HPP_
+#define KOMA_CORE_RENDER_RENDER_MANAGER_HPP_
 
 #define LOGGER_KOMA_CORE_RENDERING "koma_core_rendering"
 
@@ -15,7 +15,7 @@
 namespace koma {
 class Locator;
 
-class RenderingManager {
+class RenderManager {
  public:
   static constexpr char kDefaultRenderingWindowName_[] = "Koma Game Engine";
   static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
@@ -45,4 +45,4 @@ class RenderingManager {
 };
 };  // namespace koma
 
-#endif  // KOMA_CORE_RENDERING_RENDERING_MANAGER_HPP_
+#endif  // KOMA_CORE_RENDER_RENDER_MANAGER_HPP_

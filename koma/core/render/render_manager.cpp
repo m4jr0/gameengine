@@ -5,7 +5,7 @@
 // Allow debugging memory leaks.
 #include "../../debug.hpp"
 
-#include "rendering_manager.hpp"
+#include "render_manager.hpp"
 
 #include <stdexcept>
 
@@ -17,7 +17,7 @@
 #include "../../temporary_code.hpp"
 
 namespace koma {
-void RenderingManager::Initialize() {
+void RenderManager::Initialize() {
   auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDERING);
 
   if (!glfwInit()) {
@@ -78,14 +78,14 @@ void RenderingManager::Initialize() {
   InitializeTmp(this->width_, this->height_);
 }
 
-void RenderingManager::Destroy() {
+void RenderManager::Destroy() {
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   DestroyTmp();
 
   glfwTerminate();
 }
 
-void RenderingManager::Update(double interpolation,
+void RenderManager::Update(double interpolation,
                               GameObjectManager *game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -113,31 +113,31 @@ void RenderingManager::Update(double interpolation,
   ++this->counter_;
 }
 
-const int RenderingManager::width() const noexcept {
+const int RenderManager::width() const noexcept {
   return this->width_;
 }
 
-const int RenderingManager::height() const noexcept {
+const int RenderManager::height() const noexcept {
   return this->height_;
 }
 
-const GLFWwindow *RenderingManager::window() const noexcept {
+const GLFWwindow *RenderManager::window() const noexcept {
   return this->window_;
 }
 
-void RenderingManager::width(int width) noexcept {
+void RenderManager::width(int width) noexcept {
   this->width_ = width;
 
   glfwSetWindowSize(this->window_, this->width_, this->height_);
 }
 
-void RenderingManager::height(int height) noexcept {
+void RenderManager::height(int height) noexcept {
   this->height_ = height;
 
   glfwSetWindowSize(this->window_, this->width_, this->height_);
 }
 
-std::string RenderingManager::GetTitle() {
+std::string RenderManager::GetTitle() {
   return std::string() +
     this->kDefaultRenderingWindowName_ +
     " | " +

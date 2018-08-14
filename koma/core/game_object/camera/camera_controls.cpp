@@ -9,17 +9,17 @@
 
 #include "../../locator/locator.hpp"
 #include "../../game_object/camera/camera.hpp"
-#include "../../rendering/rendering_manager.hpp"
+#include "../../render/render_manager.hpp"
 #include "../../time/time_manager.hpp"
 
 namespace koma {
 void CameraControls::Update() {
   TimeManager time_manager = Locator::time_manager();
-  RenderingManager rendering_manager = Locator::rendering_manager();
+  RenderManager render_manager = Locator::render_manager();
 
   double time_delta = time_manager.time_delta();
   double current_mouse_y_pos, current_mouse_x_pos;
-  GLFWwindow *window = const_cast<GLFWwindow *>(rendering_manager.window());
+  GLFWwindow *window = const_cast<GLFWwindow *>(render_manager.window());
 
   glfwGetCursorPos(
     window,
@@ -27,8 +27,8 @@ void CameraControls::Update() {
     &current_mouse_y_pos
   );
 
-  float middle_x = rendering_manager.width() / 2;
-  float middle_y = rendering_manager.height() / 2;
+  float middle_x = render_manager.width() / 2;
+  float middle_y = render_manager.height() / 2;
 
   glfwSetCursorPos(
     window,

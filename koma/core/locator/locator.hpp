@@ -11,7 +11,7 @@
 #include "../game_object/camera/camera.hpp"
 #include "../game_object/game_object_manager.hpp"
 #include "../input/input_manager.hpp"
-#include "../rendering/rendering_manager.hpp"
+#include "../render/render_manager.hpp"
 #include "../time/time_manager.hpp"
 
 namespace koma {
@@ -20,13 +20,13 @@ class Locator {
   static void Initialize(Game *);
 
   static Game &game();
-  static RenderingManager &rendering_manager();
+  static RenderManager &render_manager();
   static InputManager &input_manager();
   static TimeManager &time_manager();
   static GameObjectManager &game_object_manager();
   static std::shared_ptr<Camera> main_camera();
 
-  static void rendering_manager(RenderingManager *);
+  static void render_manager(RenderManager *);
   static void input_manager(InputManager *);
   static void time_manager(TimeManager *);
   static void game_object_manager(GameObjectManager *);
@@ -34,7 +34,7 @@ class Locator {
 
  private:
   static Game *game_;
-  static RenderingManager *rendering_manager_;
+  static RenderManager *render_manager_;
   static InputManager *input_manager_;
   static NullInputManager null_input_manager_;
   static TimeManager *time_manager_;
