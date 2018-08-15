@@ -27,20 +27,20 @@ void CameraControls::Update() {
     &current_mouse_y_pos
   );
 
-  float middle_x = render_manager.width() / 2;
-  float middle_y = render_manager.height() / 2;
+  float half_width = render_manager.width() / 2;
+  float half_height = render_manager.height() / 2;
 
   glfwSetCursorPos(
     window,
-    middle_x,
-    middle_y
+    half_width,
+    half_height
   );
 
   this->horizontal_angle_ += this->mouse_speed_ *
-    float(middle_x - current_mouse_x_pos);
+    float(half_width - current_mouse_x_pos);
 
   this->vertical_angle_ += this->mouse_speed_ *
-    float(middle_y - current_mouse_y_pos);
+    float(half_height - current_mouse_y_pos);
 
   glm::vec3 direction = glm::vec3(
     cos(this->vertical_angle_) * sin(this->horizontal_angle_),
