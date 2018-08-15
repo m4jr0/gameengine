@@ -70,7 +70,6 @@ void Game::Run() {
       double time_delta = this->time_manager_.time_delta();
 
       lag += time_delta;
-      Locator::input_manager().GetInput(Input::kToBeImplemented);
 
       // To render physics properly, we have to catch up with the lag.
       while (lag >= this->kMsPerUpdate_) {

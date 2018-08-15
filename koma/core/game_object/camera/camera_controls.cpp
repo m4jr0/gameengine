@@ -7,6 +7,7 @@
 
 #include "camera_controls.hpp"
 
+#include "../../input/input_manager.hpp"
 #include "../../locator/locator.hpp"
 #include "../../game_object/camera/camera.hpp"
 #include "../../render/render_manager.hpp"
@@ -16,31 +17,21 @@ namespace koma {
 void CameraControls::Update() {
   TimeManager time_manager = Locator::time_manager();
   RenderManager render_manager = Locator::render_manager();
+  InputManager input_manager = Locator::input_manager();
 
   double time_delta = time_manager.time_delta();
-  double current_mouse_y_pos, current_mouse_x_pos;
-  GLFWwindow *window = const_cast<GLFWwindow *>(render_manager.window());
-
-  glfwGetCursorPos(
-    window,
-    &current_mouse_x_pos,
-    &current_mouse_y_pos
-  );
+  glm::vec2 current_mouse_pos = input_manager.GetMousePosition();
 
   float half_width = render_manager.width() / 2;
   float half_height = render_manager.height() / 2;
 
-  glfwSetCursorPos(
-    window,
-    half_width,
-    half_height
-  );
+  input_manager.SetMousePosition(half_width, half_height);
 
   this->horizontal_angle_ += this->mouse_speed_ *
-    float(half_width - current_mouse_x_pos);
+    float(half_width - current_mouse_pos.x);
 
   this->vertical_angle_ += this->mouse_speed_ *
-    float(half_height - current_mouse_y_pos);
+    float(half_height - current_mouse_pos.y);
 
   glm::vec3 direction = glm::vec3(
     cos(this->vertical_angle_) * sin(this->horizontal_angle_),
@@ -56,19 +47,19 @@ void CameraControls::Update() {
 
   glm::vec3 up = glm::cross(right, direction);
 
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+  if (input_manager.GetKeyDown(KeyCode::W)) {
     this->position_ += direction * (float)time_delta * this->speed_;
   }
 
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+  if (input_manager.GetKeyDown(KeyCode::S)) {
     this->position_ -= direction * (float)time_delta * this->speed_;
   }
 
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+  if (input_manager.GetKeyDown(KeyCode::D)) {
     this->position_ += right * (float)time_delta * this->speed_;
   }
 
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+  if (input_manager.GetKeyDown(KeyCode::A)) {
     this->position_ -= right * (float)time_delta * this->speed_;
   }
 
