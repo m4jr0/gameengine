@@ -17,7 +17,7 @@
 
 namespace koma {
 GLuint load_bmp(const char *image_path) {
-  auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDERING);
+  auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER);
 
   unsigned char header[54];
   unsigned int data_pos, width, height, size;

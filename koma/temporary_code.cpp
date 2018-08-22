@@ -5,19 +5,20 @@
 // Allow debugging memory leaks.
 #include "debug.hpp"
 
+#include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <memory>
 
 #include "core/locator/locator.hpp"
-#include "core/render/shader/shader_loader.hpp"
+#include "core/render/shader/shader_program.hpp"
 #include "core/render/texture/texture_loader.hpp"
 
 // TODO(m4jr0): Remove this file (and its uses) when a proper game object
 // handling will be added.
 namespace koma {
 GLuint vertex_array_id;
-GLuint program_id = -1;
-GLuint matrix_id = -1;
+std::unique_ptr<ShaderProgram> shader_program = nullptr;
 
 static const GLfloat g_vertex_buffer_data[] = {
   -1.0f,-1.0f,-1.0f,
@@ -98,7 +99,6 @@ static const GLfloat g_uv_buffer_data[] = {
 };
 
 GLuint texture = -1;
-GLuint texture_id = -1;
 
 GLuint vertex_buffer = -1;
 GLuint uv_buffer = -1;
@@ -107,16 +107,12 @@ void InitializeTmp(GLuint width, GLuint height) {
   glGenVertexArrays(1, &vertex_array_id);
   glBindVertexArray(vertex_array_id);
 
-  program_id = LoadShaders(
+  shader_program = std::make_unique<ShaderProgram>(
     "tmp/TextureVertexShader.vertexshader",
     "tmp/TextureFragmentShader.fragmentshader"
   );
 
-  matrix_id = glGetUniformLocation(program_id, "mvp");
-
   texture = load_dds("tmp/texture_BMP_DXT3_1.DDS");
-
-  texture_id = glGetUniformLocation(program_id, "texture_sampler");
 
   glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
@@ -140,16 +136,16 @@ void InitializeTmp(GLuint width, GLuint height) {
 }
 
 void UpdateTmp() {
-  glUseProgram(program_id);
+  shader_program->Use();
 
   glm::mat4 mvp = Locator::main_camera()->GetMvp(glm::mat4(1.0f));
 
-  glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
+  shader_program->SetMatrix4fv("mvp", 1, GL_FALSE, &mvp[0][0]);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  glUniform1i(texture_id, 0);
+  shader_program->SetInt("texture_sampler", 0);
 
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
@@ -185,7 +181,7 @@ void DestroyTmp() {
   glDeleteBuffers(1, &vertex_buffer);
   glDeleteBuffers(1, &uv_buffer);
   glDeleteTextures(1, &texture);
-  glDeleteProgram(program_id);
+  shader_program->Delete();
   glDeleteVertexArrays(1, &vertex_array_id);
 }
 };

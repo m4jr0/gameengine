@@ -2,6 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// The include for boost is here, because Visual Studio will not
+// compile the file if it's included after debug.hpp
+#include <boost/format.hpp>
+
 // Allow debugging memory leaks.
 #include "../../debug.hpp"
 
@@ -18,7 +22,7 @@
 
 namespace koma {
 void RenderManager::Initialize() {
-  auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDERING);
+  auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER);
 
   if (!glfwInit()) {
     logger->Error("Failed to initialize GLFW");
@@ -106,6 +110,19 @@ void RenderManager::Update(double interpolation,
 
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   UpdateTmp();
+
+  GLenum error_code = glGetError();
+
+  if (error_code != GL_NO_ERROR) {
+    Logger::Get(LOGGER_KOMA_CORE_RENDER)->Error(
+      "OpenGL Error ",
+      error_code,
+      " (",
+      boost::format("0x%02x") % error_code,
+      "): ",
+      glewGetErrorString(error_code)
+    );
+  }
 
   glfwSwapBuffers(this->window_);
   glfwPollEvents();
