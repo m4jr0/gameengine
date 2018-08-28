@@ -7,18 +7,10 @@
 
 #define LOGGER_KOMA_CORE_RENDER "koma_core_render"
 
-#define FOURCC_DXT1 0x31545844  // Equivalent to "DXT1" in ASCII.
-#define FOURCC_DXT3 0x33545844  // Equivalent to "DXT3" in ASCII.
-#define FOURCC_DXT5 0x35545844  // Equivalent to "DXT5" in ASCII.
-
-#include <GL/glew.h>
-
-// Some of this code was directly inspired from there:
-// http://www.opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/
+#include <string>
 
 namespace koma {
-  GLuint load_bmp(const char *);
-  GLuint load_dds(const char *);
+  unsigned int Load2DTextureFromFile(const std::string &, bool = false);
 };  // namespace koma
 
 #endif  // KOMA_CORE_RENDER_TEXTURE_TEXTURE_LOADER_HPP_

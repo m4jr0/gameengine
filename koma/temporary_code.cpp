@@ -2,9 +2,6 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "debug.hpp"
-
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -13,175 +10,40 @@
 #include "core/locator/locator.hpp"
 #include "core/render/shader/shader_program.hpp"
 #include "core/render/texture/texture_loader.hpp"
+#include "core/game_object/game_object.hpp"
+#include "core/game_object/model/model.hpp"
+#include "core/game_object/physics/transform.hpp"
+
+// Allow debugging memory leaks.
+#include "debug.hpp"
 
 // TODO(m4jr0): Remove this file (and its uses) when a proper game object
 // handling will be added.
 namespace koma {
-GLuint vertex_array_id;
-std::unique_ptr<ShaderProgram> shader_program = nullptr;
-
-static const GLfloat g_vertex_buffer_data[] = {
-  -1.0f,-1.0f,-1.0f,
-  -1.0f,-1.0f, 1.0f,
-  -1.0f, 1.0f, 1.0f,
-  1.0f, 1.0f,-1.0f,
-  -1.0f,-1.0f,-1.0f,
-  -1.0f, 1.0f,-1.0f,
-  1.0f,-1.0f, 1.0f,
-  -1.0f,-1.0f,-1.0f,
-  1.0f,-1.0f,-1.0f,
-  1.0f, 1.0f,-1.0f,
-  1.0f,-1.0f,-1.0f,
-  -1.0f,-1.0f,-1.0f,
-  -1.0f,-1.0f,-1.0f,
-  -1.0f, 1.0f, 1.0f,
-  -1.0f, 1.0f,-1.0f,
-  1.0f,-1.0f, 1.0f,
-  -1.0f,-1.0f, 1.0f,
-  -1.0f,-1.0f,-1.0f,
-  -1.0f, 1.0f, 1.0f,
-  -1.0f,-1.0f, 1.0f,
-  1.0f,-1.0f, 1.0f,
-  1.0f, 1.0f, 1.0f,
-  1.0f,-1.0f,-1.0f,
-  1.0f, 1.0f,-1.0f,
-  1.0f,-1.0f,-1.0f,
-  1.0f, 1.0f, 1.0f,
-  1.0f,-1.0f, 1.0f,
-  1.0f, 1.0f, 1.0f,
-  1.0f, 1.0f,-1.0f,
-  -1.0f, 1.0f,-1.0f,
-  1.0f, 1.0f, 1.0f,
-  -1.0f, 1.0f,-1.0f,
-  -1.0f, 1.0f, 1.0f,
-  1.0f, 1.0f, 1.0f,
-  -1.0f, 1.0f, 1.0f,
-  1.0f,-1.0f, 1.0f
-};
-
-static const GLfloat g_uv_buffer_data[] = {
-  0.000059f, 1.0f - 0.000004f,
-  0.000103f, 1.0f - 0.336048f,
-  0.335973f, 1.0f - 0.335903f,
-  1.000023f, 1.0f - 0.000013f,
-  0.667979f, 1.0f - 0.335851f,
-  0.999958f, 1.0f - 0.336064f,
-  0.667979f, 1.0f - 0.335851f,
-  0.336024f, 1.0f - 0.671877f,
-  0.667969f, 1.0f - 0.671889f,
-  1.000023f, 1.0f - 0.000013f,
-  0.668104f, 1.0f - 0.000013f,
-  0.667979f, 1.0f - 0.335851f,
-  0.000059f, 1.0f - 0.000004f,
-  0.335973f, 1.0f - 0.335903f,
-  0.336098f, 1.0f - 0.000071f,
-  0.667979f, 1.0f - 0.335851f,
-  0.335973f, 1.0f - 0.335903f,
-  0.336024f, 1.0f - 0.671877f,
-  1.000004f, 1.0f - 0.671847f,
-  0.999958f, 1.0f - 0.336064f,
-  0.667979f, 1.0f - 0.335851f,
-  0.668104f, 1.0f - 0.000013f,
-  0.335973f, 1.0f - 0.335903f,
-  0.667979f, 1.0f - 0.335851f,
-  0.335973f, 1.0f - 0.335903f,
-  0.668104f, 1.0f - 0.000013f,
-  0.336098f, 1.0f - 0.000071f,
-  0.000103f, 1.0f - 0.336048f,
-  0.000004f, 1.0f - 0.671870f,
-  0.336024f, 1.0f - 0.671877f,
-  0.000103f, 1.0f - 0.336048f,
-  0.336024f, 1.0f - 0.671877f,
-  0.335973f, 1.0f - 0.335903f,
-  0.667969f, 1.0f - 0.671889f,
-  1.000004f, 1.0f - 0.671847f,
-  0.667979f, 1.0f - 0.335851f
-};
-
-GLuint texture = -1;
-
-GLuint vertex_buffer = -1;
-GLuint uv_buffer = -1;
+std::shared_ptr<ShaderProgram> shader_program = nullptr;
+std::shared_ptr<GameObject> test_game_object = nullptr;
 
 void InitializeTmp(GLuint width, GLuint height) {
-  glGenVertexArrays(1, &vertex_array_id);
-  glBindVertexArray(vertex_array_id);
-
-  shader_program = std::make_unique<ShaderProgram>(
-    "tmp/TextureVertexShader.vertexshader",
-    "tmp/TextureFragmentShader.fragmentshader"
+  shader_program = std::make_shared<ShaderProgram>(
+    "tmp/model_shader.vs",
+    "tmp/model_shader.fs"
   );
 
-  texture = load_dds("tmp/texture_BMP_DXT3_1.DDS");
+  std::string test = "tmp/model/model.obj";
+  auto test_model = std::make_shared<Model>(test, shader_program);
+  auto test_transform = std::make_shared<Transform>();
 
-  glGenBuffers(1, &vertex_buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+  test_game_object = GameObject::Create();
+  test_game_object->AddComponent(test_transform);
+  test_game_object->AddComponent(test_model);
 
-  glBufferData(
-    GL_ARRAY_BUFFER,
-    sizeof(g_vertex_buffer_data),
-    g_vertex_buffer_data,
-    GL_STATIC_DRAW
-  );
-
-  glGenBuffers(1, &uv_buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
-
-  glBufferData(
-    GL_ARRAY_BUFFER,
-    sizeof(g_uv_buffer_data),
-    g_uv_buffer_data,
-    GL_STATIC_DRAW
-  );
+  Locator::game_object_manager().AddGameObject(test_game_object);
 }
 
 void UpdateTmp() {
-  shader_program->Use();
-
-  glm::mat4 mvp = Locator::main_camera()->GetMvp(glm::mat4(1.0f));
-
-  shader_program->SetMatrix4fv("mvp", 1, GL_FALSE, &mvp[0][0]);
-
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  shader_program->SetInt("texture_sampler", 0);
-
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-
-  glVertexAttribPointer(
-    0,
-    3,
-    GL_FLOAT,
-    GL_FALSE,
-    0,
-    (void *)0
-  );
-
-  glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
-
-  glVertexAttribPointer(
-    1,
-    2,
-    GL_FLOAT,
-    GL_FALSE,
-    0,
-    (void*)0
-  );
-
-  glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
-
-  glDisableVertexAttribArray(0);
-  glDisableVertexAttribArray(1);
 }
 
 void DestroyTmp() {
-  glDeleteBuffers(1, &vertex_buffer);
-  glDeleteBuffers(1, &uv_buffer);
-  glDeleteTextures(1, &texture);
   shader_program->Delete();
-  glDeleteVertexArrays(1, &vertex_array_id);
 }
 };

@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../../../debug.hpp"
-
 #include "shader_program.hpp"
 
-#include "../../../utils/file.hpp"
-#include "../../../utils/logger.hpp"
+#include <utils/file.hpp>
+#include <utils/logger.hpp>
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 ShaderProgram::ShaderProgram(const char *vertex_shader_path,

@@ -2,14 +2,14 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../../debug.hpp"
-
 #include "game_object_manager.hpp"
 
 #include <boost/functional/hash.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <functional>
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 GameObjectManager::GameObjectManager() {}

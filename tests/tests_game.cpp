@@ -30,7 +30,7 @@ TEST_CASE("Game state handling", "[koma::Game]") {
   game.Initialize();
 
   SECTION("Game can run, then quit after.") {
-    auto game_object = std::make_shared<koma::GameObject>();
+    auto game_object = koma::GameObject::Create();
     auto component = std::make_shared<komatests::StopComponent>();
 
     koma::Locator::game_object_manager().AddGameObject(game_object);

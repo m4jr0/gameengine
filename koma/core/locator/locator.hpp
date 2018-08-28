@@ -7,12 +7,12 @@
 
 #include <memory>
 
-#include "../game.hpp"
-#include "../game_object/camera/camera.hpp"
-#include "../game_object/game_object_manager.hpp"
-#include "../input/input_manager.hpp"
-#include "../render/render_manager.hpp"
-#include "../time/time_manager.hpp"
+#include <core/game.hpp>
+#include <core/game_object/camera/camera.hpp>
+#include <core/game_object/game_object_manager.hpp>
+#include <core/input/input_manager.hpp>
+#include <core/render/render_manager.hpp>
+#include <core/time/time_manager.hpp>
 
 namespace koma {
 class Locator {

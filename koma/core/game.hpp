@@ -8,6 +8,7 @@
 #define LOGGER_KOMA_CORE_GAME "koma_core_game"
 
 #include "game_object/game_object_manager.hpp"
+#include "input/input_manager.hpp"
 #include "physics/physics_manager.hpp"
 #include "render/render_manager.hpp"
 #include "time/time_manager.hpp"
@@ -30,6 +31,7 @@ class Game {
   const bool is_running() const noexcept;
 
  protected:
+  InputManager input_manager_;
   PhysicsManager physics_manager_;
   RenderManager render_manager_;
   GameObjectManager game_object_manager_;

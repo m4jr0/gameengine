@@ -2,23 +2,20 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// The include for boost is here, because Visual Studio will not
-// compile the file if it's included after debug.hpp
-#include <boost/format.hpp>
-
-// Allow debugging memory leaks.
-#include "../../debug.hpp"
-
 #include "render_manager.hpp"
 
+#include <boost/format.hpp>
 #include <stdexcept>
 
-#include "../../utils/logger.hpp"
-#include "../locator/locator.hpp"
+#include <core/locator/locator.hpp>
+#include <utils/logger.hpp>
 
 // TODO(m4jr0): Remove this include (and its uses) when a proper game object
 // handling will be added.
 #include "../../temporary_code.hpp"
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 void RenderManager::Initialize() {
@@ -36,6 +33,11 @@ void RenderManager::Initialize() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, this->kOpenGLMajorVersion_);
   glfwWindowHint(GLFW_VERSION_MINOR, this->kOpenGLMinorVersion_);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+  // Fix  compoilation on Mac OS X.
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
   this->height_ = this->kDefaultHeight_;
   this->width_ = this->kDefaultWidth_;
@@ -73,10 +75,11 @@ void RenderManager::Initialize() {
     );
   }
 
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClearColor(0.5f, 0.5f, 0.5f, 0.5f);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
-  glEnable(GL_CULL_FACE);
+  // glEnable(GL_CULL_FACE);
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   InitializeTmp(this->width_, this->height_);
@@ -90,7 +93,7 @@ void RenderManager::Destroy() {
 }
 
 void RenderManager::Update(double interpolation,
-                              GameObjectManager *game_object_manager) {
+                           GameObjectManager *game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (glfwWindowShouldClose(this->window_) != 0) Locator::game().Quit();
@@ -125,7 +128,8 @@ void RenderManager::Update(double interpolation,
   }
 
   glfwSwapBuffers(this->window_);
-  glfwPollEvents();
+
+  Locator::input_manager().Update();
 
   ++this->counter_;
 }

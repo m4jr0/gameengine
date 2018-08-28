@@ -14,18 +14,33 @@
 #include "component.hpp"
 
 namespace koma {
-class GameObject final {
+class GameObject final : std::enable_shared_from_this<GameObject> {
  public:
   ~GameObject();
+  static std::shared_ptr<GameObject> Create();
 
   void Update();
   void FixedUpdate();
   void AddComponent(std::shared_ptr<Component>);
   void RemoveComponent(std::shared_ptr<Component>);
+  std::shared_ptr<Component> GetComponent(const boost::uuids::uuid);
+
+  template <typename ComponentType>
+  auto GetComponent() {
+    for (auto it in this->components_) {
+      if (dynamic_cast<std::shared_ptr<ComponentType>>(it.second)) {
+        return it.second;
+      }
+    }
+
+    return nullptr;
+  };
 
   const boost::uuids::uuid kId() const noexcept;
 
  private:
+   GameObject();
+
     const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
     std::unordered_map<std::string, std::shared_ptr<Component>> components_;
 };

@@ -145,6 +145,9 @@ class InputManager {
   virtual glm::vec2 GetMousePosition();
   virtual void SetMousePosition(float, float);
 
+  virtual void Initialize();
+  virtual void Update();
+
  private:
   virtual GLFWwindow *GetWindow();
 };

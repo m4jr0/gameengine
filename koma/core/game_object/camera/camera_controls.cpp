@@ -2,16 +2,16 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../../../debug.hpp"
-
 #include "camera_controls.hpp"
 
-#include "../../input/input_manager.hpp"
-#include "../../locator/locator.hpp"
-#include "../../game_object/camera/camera.hpp"
-#include "../../render/render_manager.hpp"
-#include "../../time/time_manager.hpp"
+#include <core/input/input_manager.hpp>
+#include <core/locator/locator.hpp>
+#include <core/game_object/camera/camera.hpp>
+#include <core/render/render_manager.hpp>
+#include <core/time/time_manager.hpp>
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 void CameraControls::Update() {

@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../component.hpp"
+#include <core/game_object/component.hpp>
 
 namespace koma {
 class CameraControls : public Component {

@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../../../debug.hpp"
-
 #include "camera.hpp"
 
-#include "../../locator/locator.hpp"
-#include "../../render/render_manager.hpp"
+#include <core/locator/locator.hpp>
+#include <core/render/render_manager.hpp>
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 void Camera::UpdateViewMatrix() {

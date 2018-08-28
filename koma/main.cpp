@@ -6,10 +6,10 @@
 #include <stdlib.h>
 #include <crtdbg.h>
 
+#include "core/game.hpp"
+
 // Allow debugging memory leaks.
 #include "debug.hpp"
-
-#include "core/game.hpp"
 
 int main(int argc, char *argv[]) {
   koma::Game game = koma::Game();

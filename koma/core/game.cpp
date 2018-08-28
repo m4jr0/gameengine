@@ -2,15 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../debug.hpp"
-
 #include "game.hpp"
 
 #include <iostream>
 #include <string>
 
-#include "../utils/logger.hpp"
+#include <utils/logger.hpp>
 #include "input/input_manager.hpp"
 #include "locator/locator.hpp"
 
@@ -21,12 +18,16 @@
 #include "game_object/camera/camera_controls.hpp"
 #include "game_object/camera/perspective_camera.hpp"
 
+// Allow debugging memory leaks.
+#include <debug.hpp>
+
 namespace koma {
 Game::Game() {
   this->physics_manager_ = PhysicsManager();
   this->render_manager_ = RenderManager();
   this->game_object_manager_ = GameObjectManager();
   this->time_manager_ = TimeManager();
+  this->input_manager_ = InputManager();
 }
 
 Game::~Game() {}
@@ -35,11 +36,11 @@ void Game::Initialize() {
   // TODO(m4jr0): Move the lines about the main camera elsewere, when a
   // configuration file (of some sort) will be available for default/saved
   // settings.
-  auto camera_container = std::make_shared<GameObject>();
+  auto camera_container = GameObject::Create();
   auto main_camera = std::make_shared<PerspectiveCamera>();
   auto camera_controls = std::make_shared<CameraControls>();
-  main_camera->position(4, 3, 3);
-  main_camera->direction(-4, -3, -3);
+  main_camera->position(0, 0, 3);
+  main_camera->direction(0.715616, 0.691498, -0.098611);
 
   Locator::Initialize(this);
   Locator::render_manager(&this->render_manager_);
@@ -49,6 +50,7 @@ void Game::Initialize() {
 
   this->render_manager_.Initialize();
   this->physics_manager_.Initialize();
+  this->input_manager_.Initialize();
 
   // TODO(m4jr0): Move these lines as well (see TODO(m4jr0) above).
   camera_container->AddComponent(main_camera);

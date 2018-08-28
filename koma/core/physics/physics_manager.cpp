@@ -2,13 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../../debug.hpp"
-
 #include "physics_manager.hpp"
 
-#include "../../utils/logger.hpp"
-#include "../locator/locator.hpp"
+#include <core/locator/locator.hpp>
+#include <utils/logger.hpp>
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 void PhysicsManager::Initialize() {};

@@ -7,7 +7,7 @@
 
 #define LOGGER_KOMA_CORE_PHYSICS "koma_physics"
 
-#include "../game_object/game_object_manager.hpp"
+#include <core/game_object/game_object_manager.hpp>
 
 namespace koma {
 class PhysicsManager {

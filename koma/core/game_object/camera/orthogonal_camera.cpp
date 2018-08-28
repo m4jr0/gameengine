@@ -2,12 +2,12 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../../../debug.hpp"
-
 #include "orthogonal_camera.hpp"
 
 #include <glm/glm.hpp>
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
   void OrthogonalCamera::UpdateProjectionMatrix(int width, int height) {

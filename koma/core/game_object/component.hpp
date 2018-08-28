@@ -8,8 +8,11 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <memory>
 
 namespace koma {
+class GameObject;
+
 class Component {
  public:
   virtual ~Component() {};
@@ -18,9 +21,14 @@ class Component {
   virtual void Initialize();
 
   const boost::uuids::uuid kId() const noexcept;
+  std::shared_ptr<GameObject> game_object() noexcept;
 
  private:
   const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
+  std::shared_ptr<GameObject> game_object_ = nullptr;
+  void game_object(std::shared_ptr<GameObject>);
+
+  friend class GameObject;
 };
 };  // namespace koma
 

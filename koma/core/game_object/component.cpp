@@ -2,10 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../../debug.hpp"
-
 #include "component.hpp"
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 void Component::Initialize() {
@@ -25,5 +25,13 @@ void Component::FixedUpdate() {
 
 const boost::uuids::uuid Component::kId() const noexcept {
   return this->kId_;
+}
+
+std::shared_ptr<GameObject> Component::game_object() noexcept {
+  return this->game_object_;
+}
+
+void Component::game_object(std::shared_ptr<GameObject> game_object) {
+  this->game_object_ = game_object;
 }
 };  // namespace koma

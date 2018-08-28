@@ -2,15 +2,15 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-// Allow debugging memory leaks.
-#include "../debug.hpp"
-
 #include "file.hpp"
 
 #include <fstream>
 #include <sstream>
 
 #include "logger.hpp"
+
+// Allow debugging memory leaks.
+#include <debug.hpp>
 
 namespace koma {
 bool ReadFile(std::string *buffer, std::string file_path) {
