@@ -4,12 +4,22 @@
 
 #include "component.hpp"
 
+#include <utils/logger.hpp>
+
 // Allow debugging memory leaks.
 #include <debug.hpp>
 
 namespace koma {
 void Component::Initialize() {
-    // Code has to be implemented in children.
+  if (!this->game_object_) {
+    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_COMPONENT)->Error(
+      "Cannot initialize a component without game objects"
+    );
+
+    return;
+  }
+
+  // Code has to be implemented in children.
 };
 
 void Component::Update() {

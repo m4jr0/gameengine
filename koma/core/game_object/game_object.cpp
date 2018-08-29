@@ -11,7 +11,7 @@ namespace koma {
 GameObject::~GameObject() = default;
 
 std::shared_ptr<GameObject> GameObject::Create() {
-  return std::make_shared<GameObject>();
+  return std::make_shared<GameObject>(GameObject::constructor_tag_{});
 }
 
 void GameObject::Update() {
@@ -39,6 +39,19 @@ void GameObject::RemoveComponent(std::shared_ptr<Component> component) {
   this->components_.erase(boost::uuids::to_string(component->kId()));
 }
 
+template<typename ComponentType>
+auto GameObject::GetComponent() {
+  for (auto it : this->components_) {
+    if (
+      auto to_return = std::dynamic_pointer_cast<ComponentType>(it.second)
+      ) {
+      return to_return;
+    }
+  }
+
+  return std::shared_ptr<ComponentType>{};
+};
+
 std::shared_ptr<Component> GameObject::GetComponent(
   const boost::uuids::uuid id) {
   return this->components_[boost::uuids::to_string(id)];
@@ -48,5 +61,5 @@ const boost::uuids::uuid GameObject::kId() const noexcept {
   return this->kId_;
 }
 
-GameObject::GameObject() = default;
+GameObject::GameObject(GameObject::constructor_tag_) {};
 };  // namespace koma

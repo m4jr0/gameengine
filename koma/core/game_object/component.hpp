@@ -5,6 +5,8 @@
 #ifndef KOMA_CORE_GAME_OBJECT_COMPONENT_HPP_
 #define KOMA_CORE_GAME_OBJECT_COMPONENT_HPP_
 
+#define LOGGER_KOMA_CORE_GAME_OBJECT_COMPONENT "koma_core_render"
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -23,9 +25,11 @@ class Component {
   const boost::uuids::uuid kId() const noexcept;
   std::shared_ptr<GameObject> game_object() noexcept;
 
+ protected:
+  std::shared_ptr<GameObject> game_object_ = nullptr;
+
  private:
   const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
-  std::shared_ptr<GameObject> game_object_ = nullptr;
   void game_object(std::shared_ptr<GameObject>);
 
   friend class GameObject;

@@ -15,9 +15,6 @@
 // Allow debugging memory leaks.
 #include <debug.hpp>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/string_cast.hpp>
-
 namespace koma {
 Model::Model(const std::string &model_path,
              std::shared_ptr<ShaderProgram> shader_program) {
@@ -211,6 +208,8 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial *material,
 }
 
 void Model::Initialize() {
+  this->Component::Initialize();
+
   this->LoadModel();
 }
 

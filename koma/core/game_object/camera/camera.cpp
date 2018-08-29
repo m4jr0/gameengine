@@ -29,6 +29,8 @@ glm::mat4 Camera::GetMvp(glm::mat4 model_matrix) {
 }
 
 void Camera::Initialize() {
+  this->Component::Initialize();
+
   RenderManager render_manager = Locator::render_manager();
 
   this->UpdateMatrices(
