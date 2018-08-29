@@ -30,7 +30,17 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
   std::shared_ptr<Component> GetComponent(const boost::uuids::uuid);
 
   template<typename ComponentType>
-  auto GetComponent();
+  auto GetComponent() {
+    for (auto it : this->components_) {
+      if (
+        auto to_return = std::dynamic_pointer_cast<ComponentType>(it.second)
+        ) {
+        return to_return;
+      }
+    }
+
+    return std::shared_ptr<ComponentType>{};
+  };
 
   const boost::uuids::uuid kId() const noexcept;
 

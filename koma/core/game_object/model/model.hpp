@@ -7,6 +7,8 @@
 
 #define LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL "koma_core_render"
 
+#include "mesh.hpp"
+
 #include <assimp/scene.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -15,8 +17,8 @@
 #include <vector>
 
 #include <core/game_object/component.hpp>
+#include <core/game_object/physics/transform.hpp>
 #include <core/render/shader/shader_program.hpp>
-#include "mesh.hpp"
 
 namespace koma {
 class Model : public Component {
@@ -31,6 +33,7 @@ class Model : public Component {
   std::vector<Mesh> meshes_;
   std::string path_;
   std::string directory_;
+  std::shared_ptr<Transform> transform_ = nullptr;
   std::shared_ptr<ShaderProgram> shader_program_ = nullptr;
 
   void LoadModel();

@@ -210,6 +210,14 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial *material,
 void Model::Initialize() {
   this->Component::Initialize();
 
+  if (!(this->transform_ = this->game_object_->GetComponent<Transform>())) {
+    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL)->Error(
+      "A 'Transform' component is required when adding a Model component"
+    );
+
+    return;
+  }
+
   this->LoadModel();
 }
 
