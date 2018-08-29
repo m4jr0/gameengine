@@ -8,6 +8,11 @@
 #include <debug.hpp>
 
 namespace koma {
+const glm::mat4 Transform::GetTransformMatrix() const {
+  // TODO(m4jr0): Replace this piece of code with some real transformations.
+  return glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+}
+
 const glm::vec3 Transform::position() const noexcept {
   return this->position_;
 }

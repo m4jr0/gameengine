@@ -226,13 +226,9 @@ void Model::Update() {
 
   this->shader_program_->Use();
 
-  glm::mat4 model;
-
-  model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-
-  model = glm::mat4(1.0f);
-
-  glm::mat4 mvp = Locator::main_camera()->GetMvp(model);
+  glm::mat4 mvp = Locator::main_camera()->GetMvp(
+    this->transform_->GetTransformMatrix()
+  );
 
   this->shader_program_->SetMatrix4("mvp", mvp);
   this->Draw(this->shader_program_);

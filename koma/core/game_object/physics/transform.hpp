@@ -13,6 +13,8 @@
 namespace koma {
 class Transform : public Component {
  public:
+  const glm::mat4 GetTransformMatrix() const;
+
   const glm::vec3 position() const noexcept;
   void position(float, float, float);
   void position(glm::vec3);
