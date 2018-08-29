@@ -16,12 +16,33 @@
 namespace koma {
 class GameObject final : public std::enable_shared_from_this<GameObject> {
  protected:
+  // We want to be sure that GameObject instances are created in a shared
+  // pointer. Because of this, we can try to make our constructor private, and
+  // create a static koma::GameObject::Create() method that returns a new
+  // koma::GameObject instance pointed by a shared_ptr<GameObject> pointer.
+  //
+  // For performance reasons, we also want to use the
+  // std::make_shared<GameObject> function, which then cannot access private
+  // members of our koma::GameObject class, including our
+  // koma::GameObject::Create() method.
+  //
+  // To solve this, a public constructor was implemented, needing a
+  // constructor_tag_ struct to create an instance of a koma::GameObject
+  // class.
+  //
+  // The constructor_tag_ struct cannot be accessed outside our
+  // koma::GameObject class, making it impossible to call the public
+  // constructor outside of the latter.
+  //
+  // Therefore, it is impossible to create a koma::GameObject instance without
+  // having it pointed by a std::shared_ptr<GameObject> pointer, making the
+  // use of koma::GameObject's shared_from_this safe.
   struct constructor_tag_ { explicit constructor_tag_() = default; };
 
  public:
   ~GameObject();
-  GameObject(constructor_tag_);
-  static std::shared_ptr<GameObject> Create();
+  GameObject(constructor_tag_);  // Please, see comment above.
+  static std::shared_ptr<GameObject> Create();  // Same here.
 
   void Update();
   void FixedUpdate();
