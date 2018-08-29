@@ -17,7 +17,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   std::string fragment_shader_code;
 
   if (!ReadFile(&vertex_shader_code, vertex_shader_path)) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER)->Error(
+    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
       "An error occurred while reading the vertex shader program file"
     );
 
@@ -25,7 +25,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   }
 
   if (!ReadFile(&fragment_shader_code, fragment_shader_path)) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER)->Error(
+    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
       "An error occurred while reading the fragment shader program file"
     );
 
@@ -57,7 +57,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   glGetProgramiv(this->id_, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER);
+    auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM);
 
     std::vector<GLchar> error_message(info_log_len + 1);
 
@@ -102,7 +102,7 @@ bool ShaderProgram::CompileShader(unsigned int *shader_id,
   glGetShaderiv(*shader_id, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER);
+    auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM);
 
     std::vector<char> error_message(info_log_len + 1);
 
@@ -122,7 +122,7 @@ bool ShaderProgram::CompileShader(unsigned int *shader_id,
   }
 
   if (result == GL_FALSE) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER)->Error(
+    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
       "Error while compiling shader for shader program"
     );
 

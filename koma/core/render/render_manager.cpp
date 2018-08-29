@@ -19,7 +19,7 @@
 
 namespace koma {
 void RenderManager::Initialize() {
-  auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER);
+  auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER_RENDER_MANAGER);
 
   if (!glfwInit()) {
     logger->Error("Failed to initialize GLFW");
@@ -117,7 +117,7 @@ void RenderManager::Update(double interpolation,
   GLenum error_code = glGetError();
 
   if (error_code != GL_NO_ERROR) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER)->Error(
+    Logger::Get(LOGGER_KOMA_CORE_RENDER_RENDER_MANAGER)->Error(
       "OpenGL Error ",
       error_code,
       " (",

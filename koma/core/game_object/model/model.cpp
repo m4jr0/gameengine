@@ -40,7 +40,7 @@ void Model::LoadModel() {
 
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       !scene->mRootNode) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER)->Error(
+    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL)->Error(
       "Assimp error: ", importer.GetErrorString()
     );
 

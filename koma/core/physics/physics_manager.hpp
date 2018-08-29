@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_PHYSICS_PHYSICS_MANAGER_HPP_
 #define KOMA_CORE_PHYSICS_PHYSICS_MANAGER_HPP_
 
-#define LOGGER_KOMA_CORE_PHYSICS "koma_physics"
+#define LOGGER_KOMA_CORE_PHYSICS_PHYSICS_MANAGER "koma_physics"
 
 #include <core/game_object/game_object_manager.hpp>
 

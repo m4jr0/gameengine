@@ -5,7 +5,7 @@
 #ifndef KOMA_UTILS_FILE_HPP_
 #define KOMA_UTILS_FILE_HPP_
 
-#define LOGGER_KOMA_UTILS "koma_utils"
+#define LOGGER_KOMA_UTILS_FILE "koma_utils"
 
 #include <string>
 

@@ -19,7 +19,7 @@ void PhysicsManager::Update(GameObjectManager *game_object_manager) {
 
   if (this->current_time_ > 1000) {
     // TODO(m4jr0): Uncomment this when debugging the physics module.
-    // Logger::Get(LOGGER_KOMA_CORE_PHYSICS)->Debug(
+    // Logger::Get(LOGGER_KOMA_CORE_PHYSICS_PHYSICS_MANAGER)->Debug(
     //   "Physics ", this->counter_
     // );
 

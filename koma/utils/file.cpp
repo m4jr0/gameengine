@@ -19,7 +19,7 @@ bool ReadFile(std::string *buffer, std::string file_path) {
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
   if (!input_stream.is_open()) {
-    Logger::Get(LOGGER_KOMA_UTILS)->Error(
+    Logger::Get(LOGGER_KOMA_UTILS_FILE)->Error(
       "Unable to open ", file_path
     );
 

@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_GAME_OBJECT_MODEL_MESH_HPP_
 #define KOMA_CORE_GAME_OBJECT_MODEL_MESH_HPP_
 
-#define LOGGER_KOMA_CORE_RENDER "koma_core_render"
+#define LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MESH "koma_core_render"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

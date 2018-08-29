@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_
 #define KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_
 
-#define LOGGER_KOMA_CORE_RENDER "koma_core_render"
+#define LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM "koma_core_render"
 
 #include <GL/glew.h>
 #include <string>
