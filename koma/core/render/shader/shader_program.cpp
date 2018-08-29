@@ -263,66 +263,66 @@ void ShaderProgram::SetUnsignedIntArray4(const std::string &name,
   glUniform4uiv(glGetUniformLocation(this->id_, name.c_str()), count, value);
 }
 
-void ShaderProgram::SetMatrix2fv(const std::string &name, std::size_t count,
-                                 bool transpose, const float *value) {
+void ShaderProgram::SetMatrix2(const std::string &name,
+                               const glm::mat2 &matrix, bool transpose) {
   glUniformMatrix2fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix3fv(const std::string &name, std::size_t count,
-                                 bool transpose, const float *value) {
+void ShaderProgram::SetMatrix3(const std::string &name,
+                                 const glm::mat3 &matrix, bool transpose) {
   glUniformMatrix3fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix4fv(const std::string &name, std::size_t count,
-                                 bool transpose, const float *value) {
+void ShaderProgram::SetMatrix4(const std::string &name,
+                                 const glm::mat4 &matrix, bool transpose) {
   glUniformMatrix4fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix2x3fv(const std::string &name, std::size_t count,
-                                   bool transpose, const float *value) {
+void ShaderProgram::SetMatrix2x3(const std::string &name,
+                                 const glm::mat2x3 &matrix, bool transpose) {
   glUniformMatrix2x3fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix3x2fv(const std::string &name, std::size_t count,
-                                   bool transpose, const float *value) {
+void ShaderProgram::SetMatrix3x2(const std::string &name,
+                                 const glm::mat3x2 &matrix, bool transpose) {
   glUniformMatrix3x2fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix2x4fv(const std::string &name, std::size_t count,
-                                   bool transpose, const float *value) {
+void ShaderProgram::SetMatrix2x4(const std::string &name,
+                                 const glm::mat2x4 &matrix, bool transpose) {
   glUniformMatrix2x4fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix4x2fv(const std::string &name, std::size_t count,
-                                   bool transpose, const float *value) {
+void ShaderProgram::SetMatrix4x2(const std::string &name,
+                                 const glm::mat4x2 &matrix, bool transpose) {
   glUniformMatrix4x2fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix3x4fv(const std::string &name, std::size_t count,
-                                   bool transpose, const float *value) {
+void ShaderProgram::SetMatrix3x4(const std::string &name,
+                                 const glm::mat3x4 &matrix, bool transpose) {
   glUniformMatrix3x4fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 
-void ShaderProgram::SetMatrix4x3fv(const std::string &name, std::size_t count,
-                                   bool transpose, const float *value) {
+void ShaderProgram::SetMatrix4x3(const std::string &name,
+                                 const glm::mat4x3 &matrix, bool transpose) {
   glUniformMatrix4x3fv(glGetUniformLocation(
-    this->id_, name.c_str()), count, transpose, value
+    this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
 };  // namespace koma

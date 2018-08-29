@@ -234,7 +234,7 @@ void Model::Update() {
 
   glm::mat4 mvp = Locator::main_camera()->GetMvp(model);
 
-  this->shader_program_->SetMatrix4fv("mvp", 1, GL_FALSE, &mvp[0][0]);
+  this->shader_program_->SetMatrix4("mvp", mvp);
   this->Draw(this->shader_program_);
 }
 };  // namespace koma

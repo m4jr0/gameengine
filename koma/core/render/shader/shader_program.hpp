@@ -8,6 +8,7 @@
 #define LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM "koma_core_render"
 
 #include <GL/glew.h>
+#include <glm/glm.hpp>
 #include <string>
 
 namespace koma {
@@ -56,15 +57,27 @@ class ShaderProgram {
   void SetUnsignedIntArray4(const std::string &, std::size_t,
                             const unsigned int *);
 
-  void SetMatrix2fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix3fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix4fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix2x3fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix3x2fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix2x4fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix4x2fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix3x4fv(const std::string &, std::size_t, bool, const float *);
-  void SetMatrix4x3fv(const std::string &, std::size_t, bool, const float *);
+  void SetMatrix2(const std::string &, const glm::mat2 &, bool = GL_FALSE);
+  void SetMatrix3(const std::string &, const glm::mat3 &, bool = GL_FALSE);
+  void SetMatrix4(const std::string &, const glm::mat4 &, bool = GL_FALSE);
+
+  void SetMatrix2x3(const std::string &, const glm::mat2x3 &,
+                    bool = GL_FALSE);
+
+  void SetMatrix3x2(const std::string &, const glm::mat3x2 &,
+                    bool = GL_FALSE);
+
+  void SetMatrix2x4(const std::string &, const glm::mat2x4 &,
+                    bool = GL_FALSE);
+
+  void SetMatrix4x2(const std::string &, const glm::mat4x2 &,
+                    bool = GL_FALSE);
+
+  void SetMatrix3x4(const std::string &, const glm::mat3x4 &,
+                    bool = GL_FALSE);
+
+  void SetMatrix4x3(const std::string &, const glm::mat4x3 &,
+                    bool = GL_FALSE);
 
   const unsigned int id() const noexcept;
 
