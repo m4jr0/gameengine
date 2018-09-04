@@ -10,12 +10,13 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include <core/manager.hpp>
 #include <core/game_object/game_object_manager.hpp>
 
 namespace koma {
 class Locator;
 
-class RenderManager {
+class RenderManager : public Manager {
  public:
   static constexpr char kDefaultRenderingWindowName_[] = "Koma Game Engine";
   static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
@@ -23,8 +24,8 @@ class RenderManager {
   static constexpr unsigned int kDefaultWidth_ = 1280;
   static constexpr unsigned int kDefaultHeight_ = 720;
 
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Destroy() override;
   void Update(double, GameObjectManager *);
 
   const int width() const noexcept;

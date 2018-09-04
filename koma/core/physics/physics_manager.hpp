@@ -7,13 +7,14 @@
 
 #define LOGGER_KOMA_CORE_PHYSICS_PHYSICS_MANAGER "koma_physics"
 
+#include <core/manager.hpp>
 #include <core/game_object/game_object_manager.hpp>
 
 namespace koma {
-class PhysicsManager {
+class PhysicsManager : public Manager {
  public:
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Destroy() override;
 
   void Update(GameObjectManager *);
 

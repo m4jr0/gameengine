@@ -9,6 +9,8 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+#include <core/manager.hpp>
+
 namespace koma {
 // Here, we wrap the GLFW "input manager" to make it easier if we want to
 // change it, some day.
@@ -137,7 +139,7 @@ enum class KeyCode {
   LAST = GLFW_KEY_LAST
 };
 
-class InputManager {
+class InputManager : public Manager {
  public:
   virtual bool GetKey(KeyCode);
   virtual bool GetKeyUp(KeyCode);
@@ -145,8 +147,8 @@ class InputManager {
   virtual glm::vec2 GetMousePosition();
   virtual void SetMousePosition(float, float);
 
-  virtual void Initialize();
-  virtual void Update();
+  virtual void Initialize() override;
+  virtual void Update() override;
 
  private:
   virtual GLFWwindow *GetWindow();

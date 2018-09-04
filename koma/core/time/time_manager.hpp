@@ -5,16 +5,18 @@
 #ifndef KOMA_CORE_TIME_MANAGER_HPP_
 #define KOMA_CORE_TIME_MANAGER_HPP_
 
+#include <core/manager.hpp>
+
 namespace koma {
-class TimeManager {
+class TimeManager : public Manager {
  public:
   static double GetRealNow();
 
   virtual ~TimeManager() = default;
 
   double GetNow();
-  void Initialize();
-  void Update();
+  void Initialize() override;
+  void Update() override;
   void Stop() noexcept;
   void Normalize() noexcept;
 

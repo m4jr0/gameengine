@@ -4,7 +4,7 @@
 
 #include "shader_program.hpp"
 
-#include <utils/file.hpp>
+#include <utils/file_system.hpp>
 #include <utils/logger.hpp>
 
 // Allow debugging memory leaks.
@@ -16,7 +16,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   std::string vertex_shader_code;
   std::string fragment_shader_code;
 
-  if (!ReadFile(&vertex_shader_code, vertex_shader_path)) {
+  if (!filesystem::ReadFile(vertex_shader_path, &vertex_shader_code)) {
     Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
       "An error occurred while reading the vertex shader program file"
     );
@@ -24,7 +24,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
     return;
   }
 
-  if (!ReadFile(&fragment_shader_code, fragment_shader_path)) {
+  if (!filesystem::ReadFile(fragment_shader_path, &fragment_shader_code)) {
     Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
       "An error occurred while reading the fragment shader program file"
     );

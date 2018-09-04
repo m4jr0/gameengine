@@ -8,15 +8,16 @@
 #include <memory>
 #include <unordered_map>
 
+#include <core/manager.hpp>
 #include <core/game_object/game_object.hpp>
 
 namespace koma {
-class GameObjectManager {
+class GameObjectManager : public Manager {
  public:
   GameObjectManager();
   virtual ~GameObjectManager();
 
-  void Update();
+  void Update() override;
   void FixedUpdate();
   void AddGameObject(std::shared_ptr<GameObject>);
   void RemoveGameObject(std::shared_ptr<GameObject>);

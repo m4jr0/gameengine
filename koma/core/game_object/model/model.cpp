@@ -9,6 +9,7 @@
 
 #include <core/locator/locator.hpp>
 #include <core/render/texture/texture_loader.hpp>
+#include <utils/file_system.hpp>
 #include <utils/logger.hpp>
 #include "mesh.hpp"
 
@@ -47,7 +48,7 @@ void Model::LoadModel() {
     return;
   }
 
-  this->directory_ = this->path_.substr(0, this->path_.find_last_of("/"));
+  this->directory_ = filesystem::GetDirectoryPath(this->path_);
 
   this->LoadNode(scene->mRootNode, scene);
 }
