@@ -16,6 +16,7 @@ class GameObjectManager : public Manager {
  public:
   GameObjectManager();
   virtual ~GameObjectManager();
+  void Destroy() override;
 
   void Update() override;
   void FixedUpdate();

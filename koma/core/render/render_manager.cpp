@@ -78,7 +78,7 @@ void RenderManager::Initialize() {
   glClearColor(0.5f, 0.5f, 0.5f, 0.5f);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
-  // glEnable(GL_CULL_FACE);
+  glEnable(GL_CULL_FACE);
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
@@ -96,7 +96,11 @@ void RenderManager::Update(double interpolation,
                            GameObjectManager *game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  if (glfwWindowShouldClose(this->window_) != 0) Locator::game().Quit();
+  if (glfwWindowShouldClose(this->window_) != 0) {
+    Locator::game().Quit();
+
+    return;
+  }
 
   glfwGetWindowSize(this->window_, &this->width_, &this->height_);
 

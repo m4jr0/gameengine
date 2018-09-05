@@ -14,6 +14,12 @@ std::shared_ptr<GameObject> GameObject::Create() {
   return std::make_shared<GameObject>(GameObject::constructor_tag_{});
 }
 
+void GameObject::Destroy() {
+  for (auto it : this->components_) {
+    it.second->Destroy();
+  }
+}
+
 void GameObject::Update() {
   for (auto it : this->components_) {
     it.second->Update();
@@ -36,7 +42,10 @@ void GameObject::AddComponent(std::shared_ptr<Component> component) {
 }
 
 void GameObject::RemoveComponent(std::shared_ptr<Component> component) {
-  this->components_.erase(boost::uuids::to_string(component->kId()));
+  std::string component_id = boost::uuids::to_string(component->kId());
+
+  this->components_.at(component_id)->Destroy();
+  this->components_.erase(component_id);
 }
 
 std::shared_ptr<Component> GameObject::GetComponent(

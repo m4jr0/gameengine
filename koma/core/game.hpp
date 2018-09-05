@@ -26,6 +26,7 @@ class Game {
   void Initialize();
   void Run();
   void Stop();
+  void Destroy();
   void Quit();
 
   const bool is_running() const noexcept;

@@ -136,7 +136,7 @@ void ShaderProgram::Use() {
   glUseProgram(this->id_);
 }
 
-void ShaderProgram::Delete() {
+void ShaderProgram::Destroy() {
   glDeleteProgram(this->id_);
 }
 

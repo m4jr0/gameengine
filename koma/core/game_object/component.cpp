@@ -22,6 +22,11 @@ void Component::Initialize() {
   // Code has to be implemented in children.
 };
 
+void Component::Destroy() {
+  // Code has to be implemented in children.
+  // This function is called every frame rendered.
+}
+
 void Component::Update() {
   // Code has to be implemented in children.
   // This function is called every frame rendered.

@@ -18,9 +18,10 @@ class GameObject;
 class Component {
  public:
   virtual ~Component() {};
+  virtual void Initialize();
+  virtual void Destroy();
   virtual void Update();
   virtual void FixedUpdate();
-  virtual void Initialize();
 
   const boost::uuids::uuid kId() const noexcept;
   std::shared_ptr<GameObject> game_object() noexcept;

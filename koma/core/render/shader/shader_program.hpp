@@ -17,7 +17,7 @@ class ShaderProgram {
   ShaderProgram(const char *, const char *);
 
   void Use();
-  void Delete();
+  void Destroy();
 
   void SetFloat(const std::string &, float);
   void SetFloat(const std::string &, float, float);

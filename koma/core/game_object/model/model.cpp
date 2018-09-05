@@ -175,15 +175,15 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial *material,
     material->GetTexture(texture_type, index, &texture_path);
 
     bool is_skip = false;
-    std::size_t textures_loaded_number = this->textures_loaded_.size();
+    std::size_t loaded_textures_number = this->loaded_textures_.size();
 
-    for (std::size_t tl_index = 0; tl_index < textures_loaded_number;
+    for (std::size_t tl_index = 0; tl_index < loaded_textures_number;
          ++tl_index) {
       if (std::strcmp(
-        this->textures_loaded_[tl_index].path.data(),
+        this->loaded_textures_[tl_index].path.data(),
         texture_path.C_Str()
       ) == 0) {
-        textures.push_back(this->textures_loaded_[tl_index]);
+        textures.push_back(this->loaded_textures_[tl_index]);
         is_skip = true;
 
         break;
@@ -202,7 +202,7 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial *material,
     texture.path = texture_path.C_Str();
 
     textures.push_back(texture);
-    this->textures_loaded_.push_back(texture);
+    this->loaded_textures_.push_back(texture);
   }
 
   return textures;
@@ -233,5 +233,11 @@ void Model::Update() {
 
   this->shader_program_->SetMatrix4("mvp", mvp);
   this->Draw(this->shader_program_);
+}
+
+void Model::Destroy() {
+  for (auto texture : this->loaded_textures_) {
+    glDeleteTextures(1, &texture.id);
+  }
 }
 };  // namespace koma

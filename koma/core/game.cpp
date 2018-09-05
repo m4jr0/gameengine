@@ -116,11 +116,17 @@ void Game::Stop() {
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game stopped");
 }
 
+void Game::Destroy() {
+  this->game_object_manager_.Destroy();
+  this->physics_manager_.Destroy();
+  this->render_manager_.Destroy();
+
+  Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game destroyed");
+}
+
 void Game::Quit() {
   this->Stop();
-
-  this->render_manager_.Destroy();
-  this->physics_manager_.Destroy();
+  this->Destroy();
 
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game quit");
 }

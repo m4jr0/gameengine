@@ -27,6 +27,7 @@ class Model : public Component {
 
   void Draw(std::shared_ptr<ShaderProgram>);
   void Initialize() override;
+  void Destroy() override;
   void Update() override;
 
  private:
@@ -43,7 +44,7 @@ class Model : public Component {
   std::vector<Texture> LoadMaterialTextures(aiMaterial *, aiTextureType,
                                             std::string);
 
-  std::vector<Texture> textures_loaded_;
+  std::vector<Texture> loaded_textures_;
 };
 };  // namespace koma
 

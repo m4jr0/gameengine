@@ -43,6 +43,7 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
   ~GameObject();
   GameObject(constructor_tag_);  // Please, see comment above.
   static std::shared_ptr<GameObject> Create();  // Same here.
+  void Destroy();
 
   void Update();
   void FixedUpdate();

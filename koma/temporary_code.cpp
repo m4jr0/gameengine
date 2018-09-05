@@ -44,6 +44,6 @@ void UpdateTmp() {
 }
 
 void DestroyTmp() {
-  shader_program->Delete();
+  shader_program->Destroy();
 }
 };
