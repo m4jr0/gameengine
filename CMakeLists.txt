@@ -1,0 +1,185 @@
+cmake_minimum_required(VERSION 3.18)
+
+# CMake setup.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_BUILD_TYPE Debug)
+
+# Global variables.
+set(EXECUTABLE_NAME kge)
+set(TESTS_EXECUTABLE_NAME kge_tests)
+set(CORE_LIBRARY_NAME core)
+set(UTILS_LIBRARY_NAME utils)
+set(MESSAGE_PREFIX "[KGE] ")
+set(VCPKG_REPO "https://github.com/Microsoft/vcpkg.git")
+
+# OS specifics.
+if(UNIX AND NOT APPLE)
+    set(LINUX TRUE)
+endif()
+
+# Vcpkg setup.
+set(ENV{VCPKG_FEATURE_FLAGS} "versions")
+
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  if(NOT DEFINED VCPKG_ROOT)
+    if(NOT DEFINED ENV{VCPKG_ROOT})
+      message(FATAL_ERROR
+        "${MESSAGE_PREFIX}CMAKE_TOOLCHAIN_FILE and VCPKG_ROOT are not set. "
+        "Please define at least VCPKG_ROOT to your Vcpkg root directory. "
+        "Aborting.")
+    else()
+      set(VCPKG_ROOT $ENV{VCPKG_ROOT})
+    endif()
+  endif()
+
+  if(NOT EXISTS ${VCPKG_ROOT})
+    if(NOT DEFINED IS_VCPKG_CLONE OR NOT IS_VCPKG_CLONE)
+      message(FATAL_ERROR
+        "${MESSAGE_PREFIX}Vcpkg does not exist at ${VCPKG_ROOT} and boolean "
+        "IS_VCPKG_CLONE is not set to TRUE. Aborting.")
+    endif()
+
+    message(STATUS "${MESSAGE_PREFIX}Cloning Vcpkg in ${VCPKG_ROOT}...")
+    execute_process(COMMAND git clone ${VCPKG_REPO} ${VCPKG_ROOT})
+  else()
+    message(STATUS "${MESSAGE_PREFIX}Updating Vcpkg at ${VCPKG_ROOT}...")
+    execute_process(COMMAND git pull --ff-only WORKING_DIRECTORY ${VCPKG_ROOT})
+  endif()
+
+  if(WIN32)
+    set(VCPKG_BIN ${VCPKG_ROOT}/vcpkg.exe)
+    set(VCPKG_BOOTSTRAP_SCRIPT ${VCPKG_ROOT}/bootstrap-vcpkg.bat)
+  else()
+    set(VCPKG_BIN ${VCPKG_ROOT}/vcpkg)
+    set(VCPKG_BOOTSTRAP_SCRIPT ${VCPKG_ROOT}/bootstrap-vcpkg.sh)
+  endif()
+
+  if(NOT EXISTS ${VCPKG_BIN})
+    message(STATUS "${MESSAGE_PREFIX}Bootstrapping Vcpkg in ${VCPKG_ROOT}...")
+    execute_process(
+      COMMAND ${VCPKG_BOOTSTRAP_SCRIPT} WORKING_DIRECTORY ${VCPKG_ROOT}
+    )
+  endif()
+
+  if(NOT EXISTS ${VCPKG_BIN})
+    message(FATAL_ERROR
+      "${MESSAGE_PREFIX}Something wrong happened while boostrapping Vcpkg. "
+      "Aborting.")
+  endif()
+
+  if(WIN32)
+    execute_process(
+      COMMAND ${VCPKG_BIN} integrate install
+    )
+  endif()
+
+  if(WIN32)
+    set(CMAKE_TOOLCHAIN_FILE
+      "${VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake")
+  else()
+    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+  endif()
+
+  message(STATUS "${MESSAGE_PREFIX}CMAKE_TOOLCHAIN_FILE set to"
+    " \"${CMAKE_TOOLCHAIN_FILE}\".")
+endif()
+
+# Project.
+message(STATUS
+  "${MESSAGE_PREFIX}Building ${CMAKE_PROJECT_NAME} "
+  "to ${CMAKE_CURRENT_BINARY_DIR}...")
+
+project("Koma Game Engine"
+  VERSION 0.1.0
+  DESCRIPTION "Simple video game engine"
+  LANGUAGES CXX
+)
+
+# Set package variables.
+set(Boost_USE_STATIC_LIBS ON)
+
+# Find packages.
+find_package(assimp REQUIRED)
+find_package(Boost REQUIRED COMPONENTS
+  filesystem
+  serialization
+)
+find_package(Catch2 REQUIRED)
+find_package(efsw REQUIRED)
+find_package(glew REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(glm REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(Stb REQUIRED COMPONENTS stb_image)
+
+if(LINUX)
+  find_package(X11 REQUIRED)
+endif()
+
+# Set Vcpkg useful variables.
+set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
+set(VCPKG_LIBRARY_DIR "${VCPKG_BASE_DIR}/lib")
+
+add_subdirectory(koma/core)
+add_subdirectory(koma/utils)
+
+# KGE executable.
+list(APPEND EXECUTABLE_SOURCES
+  koma/main.cpp
+)
+
+if(WIN32)
+list(APPEND EXECUTABLE_SOURCES
+  koma/debug_windows.hpp
+)
+endif()
+
+add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
+
+target_link_directories(${EXECUTABLE_NAME}
+  PRIVATE
+    ${VCPKG_LIBRARY_DIR}
+)
+
+target_link_libraries(${EXECUTABLE_NAME}
+  PRIVATE
+    ${CORE_LIBRARY_NAME}
+    ${UTILS_LIBRARY_NAME}
+)
+
+# KGE tests executable.
+list(APPEND TESTS_EXECUTABLE_SOURCES
+  tests/tests_file_system.cpp
+  tests/tests_game.cpp
+  tests/tests.cpp
+)
+
+add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
+
+target_include_directories(${TESTS_EXECUTABLE_NAME}
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}/koma"
+    ${VCPKG_INCLUDE_DIR}
+)
+
+target_link_directories(${TESTS_EXECUTABLE_NAME}
+  PRIVATE
+    ${VCPKG_LIBRARY_DIR}
+)
+
+target_link_libraries(${TESTS_EXECUTABLE_NAME}
+  PRIVATE
+    ${CORE_LIBRARY_NAME}
+    ${UTILS_LIBRARY_NAME}
+)
+
+# Copying necessary files.
+message(STATUS
+  "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
+file(COPY ./koma/assets DESTINATION .)
+file(COPY ./koma/tmp DESTINATION .) # To delete.
+
+message(STATUS "${MESSAGE_PREFIX}Done.")
