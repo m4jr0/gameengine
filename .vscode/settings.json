@@ -1,0 +1,12 @@
+{
+    "cmake.configureOnOpen": true,
+    "cmake.configureSettings": { 
+        "VCPKG_ROOT": "${workspaceFolder}/vcpkg",
+        "IS_VCPKG_CLONE": true
+    },
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "C_Cpp.clang_format_fallbackStyle": "Google",
+    "editor.rulers": [
+        80, 120
+    ]
+}
