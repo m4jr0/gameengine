@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -35,6 +35,6 @@ class Component {
 
   friend class GameObject;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_OBJECT_COMPONENT_HPP_

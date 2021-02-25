@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -56,7 +56,7 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
     for (auto it : this->components_) {
       if (
         auto to_return = std::dynamic_pointer_cast<ComponentType>(it.second)
-        ) {
+      ) {
         return to_return;
       }
     }
@@ -70,6 +70,6 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
   const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
   std::unordered_map<std::string, std::shared_ptr<Component>> components_;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_OBJECT_GAME_OBJECT_HPP_

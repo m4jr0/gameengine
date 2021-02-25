@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -31,6 +31,6 @@ class TimeManager : public Manager {
   double time_delta_ = 0.0;
   float time_scale_ = 1.0f;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_TIME_MANAGER_HPP_

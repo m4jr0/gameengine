@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -13,8 +13,10 @@
 #include <utils/logger.hpp>
 #include "mesh.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 Model::Model(const std::string &model_path,
@@ -240,4 +242,4 @@ void Model::Destroy() {
     glDeleteTextures(1, &texture.id);
   }
 }
-};  // namespace koma
+}  // namespace koma

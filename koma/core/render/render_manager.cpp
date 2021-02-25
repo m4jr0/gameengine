@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -12,10 +12,12 @@
 
 // TODO(m4jr0): Remove this include (and its uses) when a proper game object
 // handling will be added.
-#include "../../temporary_code.hpp"
+#include "../temporary_code.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 void RenderManager::Initialize() {
@@ -35,9 +37,9 @@ void RenderManager::Initialize() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
-  // Fix  compoilation on Mac OS X.
+  // Fix compilation on Mac OS X.
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
+#endif  //  __APPLE__
 
   this->height_ = this->kDefaultHeight_;
   this->width_ = this->kDefaultWidth_;
@@ -88,7 +90,6 @@ void RenderManager::Initialize() {
 void RenderManager::Destroy() {
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   DestroyTmp();
-
   glfwTerminate();
 }
 
@@ -173,4 +174,4 @@ std::string RenderManager::GetTitle() {
     std::to_string(this->counter_) +
     "FPS";
 }
-};  // namespace koma
+}  // namespace koma

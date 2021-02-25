@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -14,15 +14,15 @@
 
 namespace koma {
 namespace filesystem {
-bool WriteToFile(const std::string &, const std::string &);
+bool WriteToFile(const std::string &, const std::string &, bool = false);
 bool ReadFile(const std::string &, std::string *);
 bool CreateFile(const std::string &, bool = false);
 bool CreateDirectory(const std::string &, bool = false);
 bool Move(const std::string &, const std::string &);
 bool Remove(const std::string &, bool = false);
-std::vector<std::string> ListDirectories(const std::string &);
-std::vector<std::string> ListFiles(const std::string &);
-std::vector<std::string> ListAll(const std::string &);
+std::vector<std::string> ListDirectories(const std::string &, bool = false);
+std::vector<std::string> ListFiles(const std::string &, bool = false);
+std::vector<std::string> ListAll(const std::string &, bool = false);
 std::string GetCurrentDirectory();
 std::string GetAbsolutePath(const std::string &);
 std::string GetRelativePath(const std::string &);
@@ -42,7 +42,9 @@ std::string GetNormalizedPath(const std::string &);
 std::string GetRelativePath(const std::string &, const std::string &);
 void RemoveTrailingSlashes(std::string &);
 void RemoveLeadingSlashes(std::string &);
-};  // namespace filesystem
-};  // namespace koma
+double GetLastModificationTime(const std::string &);
+std::string GetChecksum(const std::string &);
+}  // namespace filesystem
+}  // namespace koma
 
 #endif  // KOMA_UTILS_FILE_SYSTEM_HPP_

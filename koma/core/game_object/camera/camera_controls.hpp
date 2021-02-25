@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -23,6 +23,6 @@ class CameraControls : public Component {
   float speed_ = 0.01f;
   float mouse_speed_ = 0.005f;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_HPP_

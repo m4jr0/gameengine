@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,21 +6,34 @@
 
 #include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <picosha2.h>
 #include <sstream>
 
+#include "date.hpp"
 #include "logger.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 namespace filesystem {
-bool WriteToFile(const std::string &file_path, const std::string &buffer) {
+bool WriteToFile(const std::string &file_path, const std::string &buffer,
+                 bool is_append) {
   std::string directory_path = GetParentPath(file_path);
 
   if (!IsExist(directory_path) || !IsDirectory(directory_path)) return false;
 
-  boost::filesystem::ofstream file{ file_path };
+  std::ios_base::openmode mode = boost::filesystem::ofstream::out;
+
+  if (!is_append) {
+    mode |= boost::filesystem::ofstream::trunc;
+  } else {
+    mode |= boost::filesystem::ofstream::app;
+  }
+
+  boost::filesystem::ofstream file{ file_path, mode };
   file << buffer;
   file.close();
 
@@ -28,11 +41,23 @@ bool WriteToFile(const std::string &file_path, const std::string &buffer) {
 }
 
 bool ReadFile(const std::string &file_path, std::string *buffer) {
-  std::ifstream input_stream = std::ifstream(file_path, std::ios::in);
-
+  std::ifstream input_stream;
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+  bool is_open = false;
 
-  if (!input_stream.is_open()) {
+  try {
+    input_stream.open(file_path, std::ios::in);
+
+    if (!input_stream.is_open()) {
+      is_open = false;
+    } else {
+      is_open = true;
+    }
+  } catch (std::ifstream::failure& failure) {
+    is_open = false;
+  }
+
+  if (!is_open) {
     Logger::Get(LOGGER_KOMA_UTILS_FILE_SYSTEM)->Error(
       "Unable to open ", file_path
     );
@@ -114,7 +139,8 @@ bool Remove(const std::string &to_delete, bool is_recursive) {
   }
 }
 
-std::vector<std::string> ListDirectories(const std::string &directory) {
+std::vector<std::string> ListDirectories(const std::string &directory,
+                                         bool is_sorted) {
   if (!IsExist(directory) || IsFile(directory)) {
     return std::vector<std::string>();
   }
@@ -129,10 +155,15 @@ std::vector<std::string> ListDirectories(const std::string &directory) {
     }
   }
 
+  if (is_sorted) {
+    std::sort(list.begin(), list.end());
+  }
+
   return list;
 }
 
-std::vector<std::string> ListFiles(const std::string &directory) {
+std::vector<std::string> ListFiles(const std::string &directory,
+                                   bool is_sorted) {
   if (!IsExist(directory)) return std::vector<std::string>();
 
   std::vector<std::string> list;
@@ -153,10 +184,14 @@ std::vector<std::string> ListFiles(const std::string &directory) {
     }
   }
 
+  if (is_sorted) {
+    std::sort(list.begin(), list.end());
+  }
+
   return list;
 }
 
-std::vector<std::string> ListAll(const std::string &directory) {
+std::vector<std::string> ListAll(const std::string &directory, bool is_sorted) {
   if (!IsExist(directory)) return std::vector<std::string>();
 
   std::vector<std::string> list;
@@ -165,6 +200,10 @@ std::vector<std::string> ListAll(const std::string &directory) {
 
   for (boost::filesystem::directory_iterator it(path); it != end_it; ++it) {
     list.push_back(it->path().generic_string());
+  }
+
+  if (is_sorted) {
+    std::sort(list.begin(), list.end());
   }
 
   return list;
@@ -291,5 +330,24 @@ void RemoveLeadingSlashes(std::string &path) {
     return character != '/';
   }));
 }
-};  // namespace filesystem
-};  // namespace koma
+
+double GetLastModificationTime(const std::string &path) {
+  if (!IsExist(path)) return -1;
+
+  return koma::date::GetDouble(boost::filesystem::last_write_time(path));
+}
+
+std::string GetChecksum(const std::string &path) {
+  if (!IsFile(path)) return "";
+
+  std::ifstream file = std::ifstream(path, std::ios::binary);
+
+  std::vector<unsigned char> checksum =
+    std::vector<unsigned char>(picosha2::k_digest_size);
+
+  picosha2::hash256(file, checksum.begin(), checksum.end());
+
+  return std::string(checksum.begin(), checksum.end());
+}
+}  // namespace filesystem
+}  // namespace koma

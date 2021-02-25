@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -9,7 +9,7 @@
 #include "../koma/core/locator/locator.hpp"
 
 namespace komatests {
-const double StopComponent::kTimeDelta = 2000;  // 2 seconds.
+const double StopComponent::kTimeDelta = 500;  // 0.5 seconds.
 
 void StopComponent::Update() {
   koma::TimeManager &time_manager = koma::Locator::time_manager();
@@ -29,7 +29,7 @@ TEST_CASE("Game state handling", "[koma::Game]") {
   koma::Game game = koma::Game();
   game.Initialize();
 
-  SECTION("Game can run, then quit after.") {
+  SECTION("Game runs, then quits after.") {
     auto game_object = koma::GameObject::Create();
     auto component = std::make_shared<komatests::StopComponent>();
 

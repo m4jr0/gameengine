@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -44,6 +44,6 @@ class RenderManager : public Manager {
 
   std::string GetTitle();
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_RENDER_RENDER_MANAGER_HPP_

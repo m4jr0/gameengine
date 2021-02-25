@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,16 +7,15 @@
 #include <utils/file_system.hpp>
 #include <utils/logger.hpp>
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   const char *fragment_shader_path) {
-  std::string vertex_shader_code;
-  std::string fragment_shader_code;
-
-  if (!filesystem::ReadFile(vertex_shader_path, &vertex_shader_code)) {
+  if (!filesystem::ReadFile(vertex_shader_path, &this->vertex_shader_code_)) {
     Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
       "An error occurred while reading the vertex shader program file"
     );
@@ -24,7 +23,9 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
     return;
   }
 
-  if (!filesystem::ReadFile(fragment_shader_path, &fragment_shader_code)) {
+  if (!filesystem::ReadFile(
+    fragment_shader_path, &this->fragment_shader_code_
+  )) {
     Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
       "An error occurred while reading the fragment shader program file"
     );
@@ -32,15 +33,27 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
     return;
   }
 
+  this->can_be_initialized_ = true;
+}
+void ShaderProgram::Initialize() {
+  if (!this->can_be_initialized_) {
+    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)->Error(
+      "An error occurred while creating the shader program. It can't be "
+      "initialized"
+    );
+
+    return;
+  }
+
   this->CompileShader(
     &this->vertex_shader_id_,
-    &vertex_shader_code,
+    &this->vertex_shader_code_,
     GL_VERTEX_SHADER
   );
 
   this->CompileShader(
     &this->fragment_shader_id_,
-    &fragment_shader_code,
+    &this->fragment_shader_code_,
     GL_FRAGMENT_SHADER
   );
 
@@ -52,7 +65,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   int result = GL_FALSE;
   int info_log_len;
 
-  // check the program
+  // Check the program.
   glGetProgramiv(this->id_, GL_LINK_STATUS, &result);
   glGetProgramiv(this->id_, GL_INFO_LOG_LENGTH, &info_log_len);
 
@@ -325,4 +338,4 @@ void ShaderProgram::SetMatrix4x3(const std::string &name,
     this->id_, name.c_str()), 1, transpose, &matrix[0][0]
   );
 }
-};  // namespace koma
+}  // namespace koma

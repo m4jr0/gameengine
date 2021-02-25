@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -18,11 +18,14 @@
 #include "game_object/camera/camera_controls.hpp"
 #include "game_object/camera/perspective_camera.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 Game::Game() {
+  this->resource_manager_ = ResourceManager();
   this->physics_manager_ = PhysicsManager();
   this->render_manager_ = RenderManager();
   this->game_object_manager_ = GameObjectManager();
@@ -43,12 +46,14 @@ void Game::Initialize() {
   main_camera->direction(0.715616, 0.691498, -0.098611);
 
   Locator::Initialize(this);
+  Locator::resource_manager(&this->resource_manager_);
   Locator::render_manager(&this->render_manager_);
   Locator::time_manager(&this->time_manager_);
   Locator::game_object_manager(&this->game_object_manager_);
   Locator::main_camera(main_camera);
 
   this->render_manager_.Initialize();
+  this->resource_manager_.Initialize();
   this->physics_manager_.Initialize();
   this->input_manager_.Initialize();
 
@@ -68,6 +73,10 @@ void Game::Run() {
     Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game started");
 
     while (this->is_running_) {
+      if (this->is_exit_requested_) {
+        break;
+      }
+
       this->time_manager_.Update();
       double time_delta = this->time_manager_.time_delta();
 
@@ -108,6 +117,8 @@ void Game::Run() {
 
     std::cin.get();
   }
+
+  this->Exit();
 }
 
 void Game::Stop() {
@@ -124,14 +135,20 @@ void Game::Destroy() {
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game destroyed");
 }
 
-void Game::Quit() {
+void Game::Exit() {
   this->Stop();
   this->Destroy();
 
   Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game quit");
 }
 
+void Game::Quit() {
+  this->is_exit_requested_ = true;
+
+  Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game is required to quit");
+}
+
 const bool Game::is_running() const noexcept {
   return this->is_running_;
-};
-};  // namespace koma
+}
+}  // namespace koma

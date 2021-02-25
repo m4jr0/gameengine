@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -30,6 +30,16 @@ class Model : public Component {
   void Destroy() override;
   void Update() override;
 
+  template<class Archive>
+  void Serialize(Archive &archive, const unsigned int file_version) {
+    archive & this->meshes_;
+    archive & this->path_;
+    archive & this->directory_;
+    archive & this->transform_;
+    archive & this->shader_program_;
+    archive & this->loaded_textures_;
+  }
+
  private:
   std::vector<Mesh> meshes_;
   std::string path_;
@@ -46,6 +56,6 @@ class Model : public Component {
 
   std::vector<Texture> loaded_textures_;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_OBJECT_MODEL_MODEL_HPP_

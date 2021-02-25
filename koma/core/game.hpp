@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -11,6 +11,7 @@
 #include "input/input_manager.hpp"
 #include "physics/physics_manager.hpp"
 #include "render/render_manager.hpp"
+#include "resource/resource_manager.hpp"
 #include "time/time_manager.hpp"
 
 namespace koma {
@@ -32,6 +33,7 @@ class Game {
   const bool is_running() const noexcept;
 
  protected:
+  ResourceManager resource_manager_;
   InputManager input_manager_;
   PhysicsManager physics_manager_;
   RenderManager render_manager_;
@@ -40,7 +42,10 @@ class Game {
 
  private:
   bool is_running_ = false;
+  bool is_exit_requested_ = false;
+
+  void Exit();
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_HPP_

@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -26,6 +26,6 @@ class GameObjectManager : public Manager {
  private:
   std::unordered_map<std::string, std::shared_ptr<GameObject>> game_objects_;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_

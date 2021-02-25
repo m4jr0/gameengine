@@ -1,17 +1,19 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #include "camera_controls.hpp"
 
+#include <core/game_object/camera/camera.hpp>
 #include <core/input/input_manager.hpp>
 #include <core/locator/locator.hpp>
-#include <core/game_object/camera/camera.hpp>
 #include <core/render/render_manager.hpp>
 #include <core/time/time_manager.hpp>
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 void CameraControls::Update() {
@@ -69,4 +71,4 @@ void CameraControls::Update() {
   main_camera->direction(direction);
   main_camera->orientation(up);
 }
-};  // namespace koma
+}  // namespace koma

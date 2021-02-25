@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -16,6 +16,7 @@ class ShaderProgram {
  public:
   ShaderProgram(const char *, const char *);
 
+  void Initialize();
   void Use();
   void Destroy();
 
@@ -81,12 +82,21 @@ class ShaderProgram {
 
   const unsigned int id() const noexcept;
 
+  template<class Archive>
+  void Serialize(Archive &archive, const unsigned int file_version) {
+    archive & this->vertex_shader_code_;
+    archive & this->fragment_shader_code_;
+  }
+
  private:
    unsigned int id_ = -1;
    unsigned int vertex_shader_id_ = -1;
    unsigned int fragment_shader_id_ = -1;
    bool CompileShader(unsigned int *, std::string *, GLenum);
+   std::string vertex_shader_code_;
+   std::string fragment_shader_code_;
+   bool can_be_initialized_ = false;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_

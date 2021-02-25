@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -11,8 +11,9 @@
 #include <utils/file_system.hpp>
 
 namespace komatests {
+const std::string test_dir = "komatests_tests_file_system";
 std::string current_dir = koma::filesystem::GetCurrentDirectory();
-std::string tmp_dir = current_dir + "/tmp";
+std::string tmp_dir = current_dir + "/" + test_dir;
 
 std::string &FormatAbsolutePath(std::string &absolute_path,
                                 const std::string &to_search,
@@ -30,7 +31,7 @@ std::string &FormatAbsolutePath(std::string &absolute_path,
 
   return absolute_path;
 }
-};  // namespace komatests
+}  // namespace komatests
 
 TEST_CASE("File system management", "[koma::filesystem]") {
   SECTION("Create operations.") {
@@ -125,14 +126,18 @@ TEST_CASE("File system management", "[koma::filesystem]") {
     dir_to_test.push_back(komatests::tmp_dir + "/test5");
     dir_to_test.push_back(komatests::tmp_dir + "/test9");
 
-    REQUIRE(koma::filesystem::ListDirectories(komatests::tmp_dir) == dir_to_test);
+    REQUIRE(
+      koma::filesystem::ListDirectories(komatests::tmp_dir, true) == dir_to_test
+    );
 
     std::vector<std::string> files_to_test;
 
     files_to_test.push_back(komatests::tmp_dir + "/test");
     files_to_test.push_back(komatests::tmp_dir + "/test8");
 
-    REQUIRE(koma::filesystem::ListFiles(komatests::tmp_dir) == files_to_test);
+    REQUIRE(
+      koma::filesystem::ListFiles(komatests::tmp_dir, true) == files_to_test
+    );
 
     std::vector<std::string> all_test;
 
@@ -142,23 +147,27 @@ TEST_CASE("File system management", "[koma::filesystem]") {
     all_test.push_back(komatests::tmp_dir + "/test8");
     all_test.push_back(komatests::tmp_dir + "/test9");
 
-    REQUIRE(koma::filesystem::ListAll(komatests::tmp_dir) == all_test);
+    REQUIRE(koma::filesystem::ListAll(komatests::tmp_dir, true) == all_test);
 
     std::string does_not_exist = komatests::tmp_dir + "/DOESNOTEXIST";
     std::vector<std::string>last_tests;  // Empty list.
 
-    REQUIRE(koma::filesystem::ListFiles(does_not_exist) == last_tests);
-    REQUIRE(koma::filesystem::ListDirectories(does_not_exist) == last_tests);
-    REQUIRE(koma::filesystem::ListAll(does_not_exist) == last_tests);
+    REQUIRE(koma::filesystem::ListFiles(does_not_exist, true) == last_tests);
+
+    REQUIRE(
+      koma::filesystem::ListDirectories(does_not_exist, true) == last_tests
+    );
+
+    REQUIRE(koma::filesystem::ListAll(does_not_exist, true) == last_tests);
 
     std::string file_path = komatests::tmp_dir + "/test8";
 
     // Should be empty, because a file is not a directory.
-    REQUIRE(koma::filesystem::ListDirectories(file_path) == last_tests);
+    REQUIRE(koma::filesystem::ListDirectories(file_path, true) == last_tests);
 
     last_tests.push_back(file_path);  // One file only.
 
-    REQUIRE(koma::filesystem::ListFiles(file_path) == last_tests);
+    REQUIRE(koma::filesystem::ListFiles(file_path, true) == last_tests);
   }
 
   SECTION("String operations.") {
@@ -196,7 +205,7 @@ TEST_CASE("File system management", "[koma::filesystem]") {
 
     REQUIRE(
       komatests::FormatAbsolutePath(tmp_file_path, "/", 2) ==
-      "/tmp/test8"
+      "/" + komatests::test_dir + "/test8"
     );
 
     std::string tmp_dir_path =
@@ -204,7 +213,7 @@ TEST_CASE("File system management", "[koma::filesystem]") {
 
     REQUIRE(
       komatests::FormatAbsolutePath(tmp_dir_path, "/", 2) ==
-      "/tmp/test3"
+      "/" + komatests::test_dir + "/test3"
     );
 
     std::string tmp_does_not_exist_path =
@@ -212,25 +221,36 @@ TEST_CASE("File system management", "[koma::filesystem]") {
 
     REQUIRE(
       komatests::FormatAbsolutePath(tmp_does_not_exist_path, "/", 2) ==
-      "/tmp/DOESNOTEXIST"
+      "/" + komatests::test_dir + "/DOESNOTEXIST"
     );
 
-    REQUIRE(koma::filesystem::GetRelativePath(file_path) == "tmp/test8");
-    REQUIRE(koma::filesystem::GetRelativePath(dir_path) == "tmp/test3");
+    REQUIRE(
+      koma::filesystem::GetRelativePath(file_path) == 
+      "" + komatests::test_dir + "/test8"
+    );
+
+    REQUIRE(
+      koma::filesystem::GetRelativePath(dir_path) == 
+      "" + komatests::test_dir + "/test3"
+    );
 
     REQUIRE(
       koma::filesystem::GetRelativePath(does_not_exist_path) ==
-      "tmp/DOESNOTEXIST"
+      "" + komatests::test_dir + "/DOESNOTEXIST"
     );
 
     tmp_file_path = koma::filesystem::GetDirectoryPath(file_path);
 
-    REQUIRE(komatests::FormatAbsolutePath(tmp_file_path, "/", 1) == "/tmp");
+    REQUIRE(
+      komatests::FormatAbsolutePath(tmp_file_path, "/", 1) == 
+      "/" + komatests::test_dir
+    );
 
     tmp_dir_path = koma::filesystem::GetDirectoryPath(dir_path);
 
     REQUIRE(
-      komatests::FormatAbsolutePath(tmp_dir_path, "/", 2) == "/tmp/test3"
+      komatests::FormatAbsolutePath(tmp_dir_path, "/", 2) == 
+      "/" + komatests::test_dir + "/test3"
     );
 
     tmp_does_not_exist_path =
@@ -252,8 +272,14 @@ TEST_CASE("File system management", "[koma::filesystem]") {
     REQUIRE(koma::filesystem::GetExtension(does_not_exist_path) == "");
 
     REQUIRE(koma::filesystem::IsRelative("../test"));
+#ifdef _WIN32
     REQUIRE(!koma::filesystem::IsRelative("C://test1/test2/test3"));
     REQUIRE(koma::filesystem::IsAbsolute("C://test1/test2/test3"));
+#endif  // _WIN32
+#ifdef __linux__
+    REQUIRE(!koma::filesystem::IsRelative("/test1/test2/test3"));
+    REQUIRE(koma::filesystem::IsAbsolute("/test1/test2/test3"));
+#endif  // __linux__
     REQUIRE(!koma::filesystem::IsAbsolute("../test"));
   }
 

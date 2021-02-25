@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -9,8 +9,10 @@
 
 #include <utils/logger.hpp>
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
@@ -134,4 +136,4 @@ const std::vector<unsigned int> Mesh::indices() const noexcept {
 const std::vector<Texture> Mesh::textures() const noexcept {
   return this->textures_;
 }
-};  // namespace koma
+}  // namespace koma

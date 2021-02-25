@@ -1,10 +1,17 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
+
+#ifdef _MSC_VER
 #include <crtdbg.h>
+#else
+#define _ASSERT (expr)((void)0)
+#define _ASSERTE (expr)((void)0)
+#endif  // _MSC_VER
+
 #include <memory>
 
 #ifdef _WIN32
@@ -14,26 +21,31 @@
 
 #include "core/game.hpp"
 
-// Allow debugging memory leaks.
-#include "debug.hpp"
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include "debug_windows.hpp"
+#endif  // _WIN32
 
 std::shared_ptr<koma::Game> game = nullptr;
 
+#ifdef _WIN32
 BOOL WINAPI ConsoleHandler(DWORD);
+#endif  // _WIN32
+
 void KillGame();
 
 #ifdef _WIN32
 BOOL WINAPI ConsoleHandler(DWORD dwType) {
   switch (dwType) {
-  case CTRL_CLOSE_EVENT:
-  case CTRL_LOGOFF_EVENT:
-  case CTRL_SHUTDOWN_EVENT:
-    KillGame();
+    case CTRL_CLOSE_EVENT:
+    case CTRL_LOGOFF_EVENT:
+    case CTRL_SHUTDOWN_EVENT:
+      KillGame();
 
-    return TRUE;
+      return TRUE;
 
-  default:
-    break;
+    default:
+      break;
   }
 
   return FALSE;
@@ -60,7 +72,9 @@ int main(int argc, char *argv[]) {
   game->Initialize();
   game->Run();
 
+#ifdef _WIN32
   _CrtDumpMemoryLeaks();
+#endif  // _WIN32
 
   return EXIT_SUCCESS;
 }

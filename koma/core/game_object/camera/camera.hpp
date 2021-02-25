@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -51,6 +51,6 @@ class Camera : public Component {
   glm::mat4 view_matrix_;
   glm::mat4 model_matrix_;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_OBJECT_CAMERA_CAMERA_HPP_

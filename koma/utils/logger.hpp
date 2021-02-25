@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define KOMA_UTILS_LOGGER_HPP_
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -68,6 +69,6 @@ class Logger final {
 
   std::string name_;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_UTILS_LOGGER_HPP_

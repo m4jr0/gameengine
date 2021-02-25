@@ -1,22 +1,19 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include <chrono>
-
 #include "time_manager.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#include <utils/date.hpp>
+
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include <debug_windows.hpp>
+#endif  // _WIN32
 
 namespace koma {
 double TimeManager::GetRealNow() {
-  auto current_time_ = std::chrono::system_clock::now();
-
-  auto duration_in_seconds =
-      std::chrono::duration<double>(current_time_.time_since_epoch());
-
-  return duration_in_seconds.count() * 1000;
+  return date::GetNow();
 }
 
 double TimeManager::GetNow() {
@@ -53,4 +50,4 @@ const float TimeManager::time_scale() const noexcept {
 void TimeManager::time_scale(float time_scale) noexcept {
   this->time_scale_ = time_scale;
 }
-};  // namespace koma
+}  // namespace koma
