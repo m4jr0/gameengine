@@ -32,9 +32,9 @@ To use **Visual Studio** with **Vcpkg**, follow the **[Quick Start: Windows](htt
 
 #### With Visual Studio Code
 
-Open the project with **Visual Studio Code**, and launch **KGE** with the **KGE (build)** configuration.
+Open the project with **Visual Studio Code**, and with **CTRL+SHIFT+P** execute the `CMake: Configure` command. Then, launch **KGE** with the **KGE (build) [Windows/Unix]** configuration.
 
-**Note:** you will need to install the **[C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)** and **[CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)** extensions.
+**Note:** you will need to install the **[C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)** and **[CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)** extensions. You might have to install the **[.NET SDK for Visual Studio Code](https://dotnet.microsoft.com/download/dotnet/sdk-for-vs-code?utm_source=vs-code&amp;utm_medium=referral&amp;utm_campaign=sdk-install)** as well.
 
 #### With CMake only
 
@@ -43,8 +43,6 @@ Open a terminal and enter the following commands:
 * `cd gameengine && mkdir build && cd build`
 * `cmake -DVCPKG_ROOT=/path/to/gameengine/vcpkg -DIS_VCPKG_CLONE=TRUE ..`
 * `cmake --build .`
-
-**Note:** on Windows, I had to copy **glew32.dll** (located in `path\to\project\build\vcpkg_installed\x64-windows\bin`) manually to `path\to\project\build\Debug`.
 
 ## License
 

@@ -17,8 +17,7 @@
                     "./build/",
                     "-ItemType",
                     "Directory",
-                    "-ErrorAction",
-                    "Ignore"
+                    "-Force"
                 ]
             },
             "options": {
@@ -68,7 +67,8 @@
                     "./build/",
                     "-Recurse",
                     "-ErrorAction",
-                    "Ignore"
+                    "Ignore",
+                    "-Force"
                 ]
             },
             "options": {

@@ -1,11 +1,24 @@
 cmake_minimum_required(VERSION 3.18)
 
-# CMake setup.
+# CMake setup ##################################################################
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_BUILD_TYPE Debug)
 
-# Global variables.
+# Generic builds.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# Multi-config builds.
+foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+    string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
+
+# Global variables #############################################################
 set(EXECUTABLE_NAME kge)
 set(TESTS_EXECUTABLE_NAME kge_tests)
 set(CORE_LIBRARY_NAME core)
@@ -13,12 +26,12 @@ set(UTILS_LIBRARY_NAME utils)
 set(MESSAGE_PREFIX "[KGE] ")
 set(VCPKG_REPO "https://github.com/Microsoft/vcpkg.git")
 
-# OS specifics.
+# OS specifics #################################################################
 if(UNIX AND NOT APPLE)
     set(LINUX TRUE)
 endif()
 
-# Vcpkg setup.
+# Vcpkg setup ##################################################################
 set(ENV{VCPKG_FEATURE_FLAGS} "versions")
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -85,7 +98,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     " \"${CMAKE_TOOLCHAIN_FILE}\".")
 endif()
 
-# Project.
+# Project ######################################################################
 message(STATUS
   "${MESSAGE_PREFIX}Building ${CMAKE_PROJECT_NAME} "
   "to ${CMAKE_CURRENT_BINARY_DIR}...")
@@ -96,10 +109,9 @@ project("Koma Game Engine"
   LANGUAGES CXX
 )
 
-# Set package variables.
+# Pckages ######################################################################
 set(Boost_USE_STATIC_LIBS ON)
 
-# Find packages.
 find_package(assimp REQUIRED)
 find_package(Boost REQUIRED COMPONENTS
   filesystem
@@ -118,7 +130,7 @@ if(LINUX)
   find_package(X11 REQUIRED)
 endif()
 
-# Set Vcpkg useful variables.
+# Vcpkg variables ##############################################################
 set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
 set(VCPKG_LIBRARY_DIR "${VCPKG_BASE_DIR}/lib")
@@ -126,7 +138,7 @@ set(VCPKG_LIBRARY_DIR "${VCPKG_BASE_DIR}/lib")
 add_subdirectory(koma/core)
 add_subdirectory(koma/utils)
 
-# KGE executable.
+# KGE executable ###############################################################
 list(APPEND EXECUTABLE_SOURCES
   koma/main.cpp
 )
@@ -150,7 +162,7 @@ target_link_libraries(${EXECUTABLE_NAME}
     ${UTILS_LIBRARY_NAME}
 )
 
-# KGE tests executable.
+# KGE tests executable #########################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
   tests/tests_file_system.cpp
   tests/tests_game.cpp
@@ -176,10 +188,19 @@ target_link_libraries(${TESTS_EXECUTABLE_NAME}
     ${UTILS_LIBRARY_NAME}
 )
 
+# Post-configure operations ####################################################
 # Copying necessary files.
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
-file(COPY ./koma/assets DESTINATION .)
-file(COPY ./koma/tmp DESTINATION .) # To delete.
+file(COPY ./koma/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ./koma/tmp DESTINATION ${CMAKE_CURRENT_BINARY_DIR}) # To delete.
+
+if(WIN32) # Workaround for missing DLL (should be fixed in a proper way).
+  message(STATUS "${MESSAGE_PREFIX}Copying missing \"glew32.dll\" library...")
+  file(
+    COPY "${VCPKG_BASE_DIR}/bin/glew32.dll"
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )
+endif()
 
 message(STATUS "${MESSAGE_PREFIX}Done.")

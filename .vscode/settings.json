@@ -1,6 +1,5 @@
 {
     "vcpkgRoot": "${workspaceFolder}/vcpkg",
-    "cmake.configureOnOpen": true,
     "cmake.configureSettings": { 
         "VCPKG_ROOT": "${workspaceFolder}/vcpkg",
         "IS_VCPKG_CLONE": true
