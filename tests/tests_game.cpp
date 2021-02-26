@@ -15,13 +15,13 @@ void StopComponent::Update() {
   koma::TimeManager &time_manager = koma::Locator::time_manager();
   double now = time_manager.GetRealNow();
 
-  if (now - this->starting_time_ > this->kTimeDelta) {
+  if (now - starting_time_ > kTimeDelta) {
     koma::Locator::game().Quit();
   }
 }
 
 void StopComponent::Initialize() {
-  this->starting_time_ = koma::Locator::time_manager().GetRealNow();
+  starting_time_ = koma::Locator::time_manager().GetRealNow();
 }
 };  // namespace komatests
 

@@ -12,12 +12,12 @@
 
 namespace koma {
 class Subject {
-public:
+ public:
   virtual void AddObserver(Observer*);
   virtual void RemoveObserver(Observer*);
   virtual void NotifyObservers(std::string);
 
-private:
+ private:
   std::unordered_set<Observer*> observers_;
 };
 }  // namespace koma

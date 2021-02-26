@@ -4,17 +4,17 @@
 
 #include "file_system.hpp"
 
-#include <boost/algorithm/string.hpp>
 #include <fstream>
-#include <picosha2.h>
 #include <sstream>
 
+#include "boost/algorithm/string.hpp"
 #include "date.hpp"
 #include "logger.hpp"
+#include "picosha2.h"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
@@ -33,7 +33,7 @@ bool WriteToFile(const std::string &file_path, const std::string &buffer,
     mode |= boost::filesystem::ofstream::app;
   }
 
-  boost::filesystem::ofstream file{ file_path, mode };
+  boost::filesystem::ofstream file{file_path, mode};
   file << buffer;
   file.close();
 
@@ -53,14 +53,13 @@ bool ReadFile(const std::string &file_path, std::string *buffer) {
     } else {
       is_open = true;
     }
-  } catch (std::ifstream::failure& failure) {
+  } catch (std::ifstream::failure &failure) {
     is_open = false;
   }
 
   if (!is_open) {
-    Logger::Get(LOGGER_KOMA_UTILS_FILE_SYSTEM)->Error(
-      "Unable to open ", file_path
-    );
+    Logger::Get(LOGGER_KOMA_UTILS_FILE_SYSTEM)
+        ->Error("Unable to open ", file_path);
 
     return false;
   }
@@ -114,13 +113,13 @@ bool CreateDirectory(const std::string &create_path, bool is_recursive) {
 }
 
 bool Move(const std::string &previous_name, const std::string &new_name) {
-  if (!IsExist(previous_name) || (IsExist(new_name)) &&
-      previous_name != new_name) {
+  if (!IsExist(previous_name) ||
+      (IsExist(new_name)) && previous_name != new_name) {
     return false;
   }
 
   boost::filesystem::path previous_path =
-    boost::filesystem::path(previous_name);
+      boost::filesystem::path(previous_name);
 
   boost::filesystem::path new_path = boost::filesystem::path(new_name);
 
@@ -214,8 +213,7 @@ std::string GetCurrentDirectory() {
 }
 
 std::string GetAbsolutePath(const std::string &relative_path) {
-  return boost::filesystem::path(relative_path).generic_path()
-    .generic_string();
+  return boost::filesystem::path(relative_path).generic_path().generic_string();
 }
 
 std::string GetRelativePath(const std::string &absolute_path) {
@@ -241,7 +239,7 @@ std::string GetName(const std::string &path) {
 
 std::string GetExtension(const std::string &file_path) {
   std::string extension =
-    boost::filesystem::path(file_path).extension().generic_string();
+      boost::filesystem::path(file_path).extension().generic_string();
 
   extension.erase(0, 1);
   boost::algorithm::to_lower(extension);
@@ -297,7 +295,7 @@ bool IsEmpty(const std::string &path) {
   return boost::filesystem::is_empty(path);
 }
 
-std::string Append(const std::string &a, const std::string&b) {
+std::string Append(const std::string &a, const std::string &b) {
   std::string formatted_a = std::string(a);
   std::string formatted_b = std::string(b);
 
@@ -319,16 +317,16 @@ std::string GetRelativePath(const std::string &from, const std::string &to) {
 }
 
 void RemoveTrailingSlashes(std::string &path) {
-  path.erase(std::find_if(path.rbegin(), path.rend(), [](int character) {
-    return character != '/';
-  }).base(), path.end());
+  path.erase(std::find_if(path.rbegin(), path.rend(),
+                          [](int character) { return character != '/'; })
+                 .base(),
+             path.end());
 }
 
 void RemoveLeadingSlashes(std::string &path) {
-  path.erase(path.begin(), std::find_if(path.begin(), path.end(),
-             [](int character) {
-    return character != '/';
-  }));
+  path.erase(path.begin(),
+             std::find_if(path.begin(), path.end(),
+                          [](int character) { return character != '/'; }));
 }
 
 double GetLastModificationTime(const std::string &path) {
@@ -343,7 +341,7 @@ std::string GetChecksum(const std::string &path) {
   std::ifstream file = std::ifstream(path, std::ios::binary);
 
   std::vector<unsigned char> checksum =
-    std::vector<unsigned char>(picosha2::k_digest_size);
+      std::vector<unsigned char>(picosha2::k_digest_size);
 
   picosha2::hash256(file, checksum.begin(), checksum.end());
 

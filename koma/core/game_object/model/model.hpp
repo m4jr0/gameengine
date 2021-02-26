@@ -7,18 +7,17 @@
 
 #define LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL "koma_core_render"
 
-#include "mesh.hpp"
-
-#include <assimp/scene.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <core/game_object/component.hpp>
-#include <core/game_object/physics/transform.hpp>
-#include <core/render/shader/shader_program.hpp>
+#include "assimp/scene.h"
+#include "core/game_object/component.hpp"
+#include "core/game_object/physics/transform.hpp"
+#include "core/render/shader/shader_program.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "mesh.hpp"
 
 namespace koma {
 class Model : public Component {
@@ -30,14 +29,14 @@ class Model : public Component {
   void Destroy() override;
   void Update() override;
 
-  template<class Archive>
+  template <class Archive>
   void Serialize(Archive &archive, const unsigned int file_version) {
-    archive & this->meshes_;
-    archive & this->path_;
-    archive & this->directory_;
-    archive & this->transform_;
-    archive & this->shader_program_;
-    archive & this->loaded_textures_;
+    archive &meshes_;
+    archive &path_;
+    archive &directory_;
+    archive &transform_;
+    archive &shader_program_;
+    archive &loaded_textures_;
   }
 
  private:

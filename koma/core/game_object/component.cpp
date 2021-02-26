@@ -4,19 +4,18 @@
 
 #include "component.hpp"
 
-#include <utils/logger.hpp>
+#include "utils/logger.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
 void Component::Initialize() {
-  if (!this->game_object_) {
-    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_COMPONENT)->Error(
-      "Cannot initialize a component without a game object"
-    );
+  if (!game_object_) {
+    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_COMPONENT)
+        ->Error("Cannot initialize a component without a game object");
 
     return;
   }
@@ -39,15 +38,13 @@ void Component::FixedUpdate() {
   // This function is called every logic frame computed.
 }
 
-const boost::uuids::uuid Component::kId() const noexcept {
-  return this->kId_;
-}
+const boost::uuids::uuid Component::kId() const noexcept { return kId_; }
 
 std::shared_ptr<GameObject> Component::game_object() noexcept {
-  return this->game_object_;
+  return game_object_;
 }
 
 void Component::game_object(std::shared_ptr<GameObject> game_object) {
-  this->game_object_ = game_object;
+  game_object_ = game_object;
 }
 }  // namespace koma

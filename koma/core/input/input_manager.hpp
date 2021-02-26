@@ -5,11 +5,10 @@
 #ifndef KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
 #define KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-
-#include <core/manager.hpp>
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#include "core/manager.hpp"
+#include "glm/glm.hpp"
 
 namespace koma {
 // Here, we wrap the GLFW "input manager" to make it easier if we want to
@@ -156,14 +155,15 @@ class InputManager : public Manager {
 
 class NullInputManager : public InputManager {
  public:
-   virtual bool GetKey(KeyCode) override { return false; };
-   virtual bool GetKeyUp(KeyCode) override { return false; };
-   virtual bool GetKeyDown(KeyCode) override { return false; };
+  virtual bool GetKey(KeyCode) override { return false; };
+  virtual bool GetKeyUp(KeyCode) override { return false; };
+  virtual bool GetKeyDown(KeyCode) override { return false; };
 
-   virtual glm::vec2 GetMousePosition() override
-     { return glm::vec2(0.0f, 0.0f); };
+  virtual glm::vec2 GetMousePosition() override {
+    return glm::vec2(0.0f, 0.0f);
+  };
 
-   virtual void SetMousePosition(float, float) override {};
+  virtual void SetMousePosition(float, float) override{};
 };
 }  // namespace koma
 

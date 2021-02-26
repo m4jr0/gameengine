@@ -4,24 +4,23 @@
 
 #include "mesh.hpp"
 
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-
-#include <utils/logger.hpp>
+#include "GL/glew.h"
+#include "glm/glm.hpp"
+#include "utils/logger.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
            std::vector<Texture> textures) {
-  this->vertices_ = vertices;
-  this->indices_ = indices;
-  this->textures_ = textures;
+  vertices_ = vertices;
+  indices_ = indices;
+  textures_ = textures;
 
-  this->Initialize();
+  Initialize();
 }
 
 void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
@@ -29,13 +28,13 @@ void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
   std::size_t specular_index = 0;
   std::size_t normal_index = 0;
   std::size_t height_index = 0;
-  std::size_t textures_number = this->textures_.size();
+  std::size_t textures_number = textures_.size();
 
   for (std::size_t index = 0; index < textures_number; ++index) {
     glActiveTexture(GL_TEXTURE0 + index);
 
     std::string texture_number;
-    std::string texture_type = this->textures_[index].type;
+    std::string texture_type = textures_[index].type;
 
     if (texture_type == "texture_diffuse") {
       texture_number = std::to_string(diffuse_index++);
@@ -46,94 +45,71 @@ void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
     } else if (texture_type == "texture_height") {
       texture_number = std::to_string(height_index++);
     } else {
-      Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MESH)->Warning(
-        "Unknown texture type: ", texture_type
-      );
+      Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MESH)
+          ->Warning("Unknown texture type: ", texture_type);
 
       continue;
     }
 
-    shader_program->SetInt(
-      (texture_type + texture_number).c_str(), index
-    );
+    shader_program->SetInt((texture_type + texture_number).c_str(), index);
 
-    glBindTexture(GL_TEXTURE_2D, this->textures_[index].id);
+    glBindTexture(GL_TEXTURE_2D, textures_[index].id);
   }
 
-  glBindVertexArray(this->vao_);
-  glDrawElements(GL_TRIANGLES, this->indices_.size(), GL_UNSIGNED_INT, 0);
+  glBindVertexArray(vao_);
+  glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, 0);
   glBindVertexArray(0);
 
   glActiveTexture(GL_TEXTURE0);
 }
 
 void Mesh::Initialize() {
-  glGenVertexArrays(1, &this->vao_);
-  glGenBuffers(1, &this->vbo_);
-  glGenBuffers(1, &this->ebo_);
+  glGenVertexArrays(1, &vao_);
+  glGenBuffers(1, &vbo_);
+  glGenBuffers(1, &ebo_);
 
-  glBindVertexArray(this->vao_);
-  glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
+  glBindVertexArray(vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_);
 
-  glBufferData(
-    GL_ARRAY_BUFFER,
-    this->vertices_.size() * sizeof(Vertex),
-    &this->vertices_[0],
-    GL_STATIC_DRAW
-  );
+  glBufferData(GL_ARRAY_BUFFER, vertices_.size() * sizeof(Vertex),
+               &vertices_[0], GL_STATIC_DRAW);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_);
 
-  glBufferData(
-    GL_ELEMENT_ARRAY_BUFFER,
-    this->indices_.size() * sizeof(unsigned int),
-    &this->indices_[0],
-    GL_STATIC_DRAW
-  );
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size() * sizeof(unsigned int),
+               &indices_[0], GL_STATIC_DRAW);
 
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
 
   glEnableVertexAttribArray(1);
 
-  glVertexAttribPointer(
-    1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-    (void *)offsetof(Vertex, normal)
-  );
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)offsetof(Vertex, normal));
 
   glEnableVertexAttribArray(2);
 
-  glVertexAttribPointer(
-    2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-    (void *)offsetof(Vertex, tangent)
-  );
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)offsetof(Vertex, tangent));
 
   glEnableVertexAttribArray(3);
 
-  glVertexAttribPointer(
-    3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-    (void *)offsetof(Vertex, bitangent)
-  );
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)offsetof(Vertex, bitangent));
 
   glEnableVertexAttribArray(4);
 
-  glVertexAttribPointer(
-    4, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-    (void *)offsetof(Vertex, texture_coordinates)
-  );
+  glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)offsetof(Vertex, texture_coordinates));
 
   glBindVertexArray(0);
 }
 
-const std::vector<Vertex> Mesh::vertices() const noexcept {
-  return this->vertices_;
-}
+const std::vector<Vertex> Mesh::vertices() const noexcept { return vertices_; }
 
 const std::vector<unsigned int> Mesh::indices() const noexcept {
-  return this->indices_;
+  return indices_;
 }
 
-const std::vector<Texture> Mesh::textures() const noexcept {
-  return this->textures_;
-}
+const std::vector<Texture> Mesh::textures() const noexcept { return textures_; }
 }  // namespace koma

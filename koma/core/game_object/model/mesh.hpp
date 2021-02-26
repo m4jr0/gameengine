@@ -7,14 +7,14 @@
 
 #define LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MESH "koma_core_render"
 
-#include <boost/serialization/vector.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <core/render/shader/shader_program.hpp>
+#include "boost/serialization/vector.hpp"
+#include "core/render/shader/shader_program.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace koma {
 struct Vertex {
@@ -33,31 +33,31 @@ struct Texture {
 
 class Mesh {
  public:
-   Mesh(std::vector<Vertex>, std::vector<unsigned int>, std::vector<Texture>);
+  Mesh(std::vector<Vertex>, std::vector<unsigned int>, std::vector<Texture>);
 
-   void Draw(std::shared_ptr<ShaderProgram>);
+  void Draw(std::shared_ptr<ShaderProgram>);
 
-   const std::vector<Vertex> vertices() const noexcept;
-   const std::vector<unsigned int> indices() const noexcept;
-   const std::vector<Texture> textures() const noexcept;
+  const std::vector<Vertex> vertices() const noexcept;
+  const std::vector<unsigned int> indices() const noexcept;
+  const std::vector<Texture> textures() const noexcept;
 
-   template<class Archive>
-   void Serialize(Archive &archive, const unsigned int file_version) {
-     archive & this->vertices_;
-     archive & this->indices_;
-     archive & this->textures_;
-   }
+  template <class Archive>
+  void Serialize(Archive &archive, const unsigned int file_version) {
+    archive &vertices_;
+    archive &indices_;
+    archive &textures_;
+  }
 
  private:
-   void Initialize();
+  void Initialize();
 
-   std::vector<Vertex> vertices_;
-   std::vector<unsigned int> indices_;
-   std::vector<Texture> textures_;
+  std::vector<Vertex> vertices_;
+  std::vector<unsigned int> indices_;
+  std::vector<Texture> textures_;
 
-   unsigned int vao_;
-   unsigned int vbo_;
-   unsigned int ebo_;
+  unsigned int vao_;
+  unsigned int vbo_;
+  unsigned int ebo_;
 };
 }  // namespace koma
 

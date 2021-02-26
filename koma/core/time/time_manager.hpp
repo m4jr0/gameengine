@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_TIME_MANAGER_HPP_
 #define KOMA_CORE_TIME_MANAGER_HPP_
 
-#include <core/manager.hpp>
+#include "core/manager.hpp"
 
 namespace koma {
 class TimeManager : public Manager {

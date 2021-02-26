@@ -4,71 +4,63 @@
 
 #include "resource_manager.hpp"
 
-#include <efsw/efsw.hpp>
 #include <functional>
-#include <nlohmann/json.hpp>
 #include <vector>
 
-#include <utils/date.hpp>
-#include <utils/file_system.hpp>
-#include <utils/logger.hpp>
+#include "efsw/efsw.hpp"
+#include "nlohmann/json.hpp"
+#include "utils/date.hpp"
+#include "utils/file_system.hpp"
+#include "utils/logger.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
 void ResourceManager::Initialize() {
-  this->InitializeResourcesDirectory();
-  this->InitializeAssetsDirectory();
+  InitializeResourcesDirectory();
+  InitializeAssetsDirectory();
 
-  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)->Debug(
-    "Resource manager listening to '",
-    this->assets_root_path_,
-    "'..."
-  );
+  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)
+      ->Debug("Resource manager listening to '", assets_root_path_, "'...");
 
-  this->Refresh();
-  this->InitializeWatcher();
-  this->Watch();
+  Refresh();
+  InitializeWatcher();
+  Watch();
 }
 
 void ResourceManager::InitializeAssetsDirectory() {
-  this->assets_root_path_ = filesystem::Append(
-    filesystem::GetCurrentDirectory(),
-    this->kDefaultAssetsRootDirectory_
-  );
+  assets_root_path_ = filesystem::Append(filesystem::GetCurrentDirectory(),
+                                         kDefaultAssetsRootDirectory_);
 
-  if (!filesystem::IsExist(this->assets_root_path_)) {
-    filesystem::CreateDirectory(this->kDefaultAssetsRootDirectory_, true);
+  if (!filesystem::IsExist(assets_root_path_)) {
+    filesystem::CreateDirectory(kDefaultAssetsRootDirectory_, true);
   }
 }
 
 void ResourceManager::InitializeResourcesDirectory() {
   auto test = filesystem::GetParentPath(filesystem::GetCurrentDirectory());
-  this->resources_root_path_ = filesystem::Append(
-    filesystem::GetCurrentDirectory(),
-    this->kDefaultResourcesRootDirectory_
-  );
+  resources_root_path_ = filesystem::Append(filesystem::GetCurrentDirectory(),
+                                            kDefaultResourcesRootDirectory_);
 
-  std::string library_meta_path = filesystem::Append(
-    this->resources_root_path_, "library.meta"
-  );
+  std::string library_meta_path =
+      filesystem::Append(resources_root_path_, "library.meta");
 
-  if (!filesystem::IsExist(this->resources_root_path_) ||
+  if (!filesystem::IsExist(resources_root_path_) ||
       !filesystem::IsFile(library_meta_path)) {
-    filesystem::CreateDirectory(this->kDefaultResourcesRootDirectory_, true);
-    this->last_update_time_ = -1;
+    filesystem::CreateDirectory(kDefaultResourcesRootDirectory_, true);
+    last_update_time_ = -1;
   } else {
     std::string raw_library_meta_data;
 
     filesystem::ReadFile(library_meta_path, &raw_library_meta_data);
 
     nlohmann::json library_meta_data =
-      nlohmann::json::parse(raw_library_meta_data);
+        nlohmann::json::parse(raw_library_meta_data);
 
-    this->last_update_time_ = library_meta_data["last_update_time"];
+    last_update_time_ = library_meta_data["last_update_time"];
   }
 }
 
@@ -99,9 +91,7 @@ void ResourceManager::handleFileAction(efsw::WatchID watch_id,
       break;
 
     case efsw::Actions::Moved:
-      logger->Debug(
-        "Change detected: move ", path, " from ", old_file_name
-      );
+      logger->Debug("Change detected: move ", path, " from ", old_file_name);
 
       break;
 
@@ -111,52 +101,46 @@ void ResourceManager::handleFileAction(efsw::WatchID watch_id,
       return;
   }
 
-  this->Refresh(path);
+  Refresh(path);
 }
 
-void ResourceManager::Refresh() {
-  this->Refresh(this->assets_root_path_);
-}
+void ResourceManager::Refresh() { Refresh(assets_root_path_); }
 
 void ResourceManager::Refresh(const std::string &path) {
-  this->Unwatch();
+  Unwatch();
 
   if (filesystem::IsDirectory(path)) {
-    this->RefreshFolder(path);
+    RefreshFolder(path);
   } else if (filesystem::IsFile(path)) {
-    this->RefreshAsset(path);
+    RefreshAsset(path);
   } else {
-    Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)->Error(
-      "Bad path given: ", path
-    );
+    Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)
+        ->Error("Bad path given: ", path);
 
-    this->Watch();
+    Watch();
 
     return;
   }
 
-  this->SetResourceMetaFile();
-  this->Watch();
+  SetResourceMetaFile();
+  Watch();
 }
 
 void ResourceManager::SetResourceMetaFile() {
-  this->last_update_time_ = date::GetNow();
+  last_update_time_ = date::GetNow();
 
-  std::string library_meta_file_path = filesystem::Append(
-    this->resources_root_path_, "library.meta"
-  );
+  std::string library_meta_file_path =
+      filesystem::Append(resources_root_path_, "library.meta");
 
   nlohmann::json library_meta_data;
 
-  library_meta_data["last_update_time"] = this->last_update_time_;
+  library_meta_data["last_update_time"] = last_update_time_;
   std::string lirary_raw_meta_data = library_meta_data.dump(2);
 
-  if (!filesystem::WriteToFile(library_meta_file_path, lirary_raw_meta_data)
-     ) {
-    Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)->Error(
-      "Could not write the resource meta file at path ",
-      library_meta_file_path
-    );
+  if (!filesystem::WriteToFile(library_meta_file_path, lirary_raw_meta_data)) {
+    Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)
+        ->Error("Could not write the resource meta file at path ",
+                library_meta_file_path);
   }
 }
 
@@ -175,94 +159,83 @@ void ResourceManager::SetFolderMetaFile(const std::string &path) {
   }
 
   if (!filesystem::WriteToFile(path, folder_meta_data.dump(2))) {
-    Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)->Error(
-      "Could not write the folder meta file at path ", path
-    );
+    Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)
+        ->Error("Could not write the folder meta file at path ", path);
   }
 }
 
 bool ResourceManager::IsRefreshFolder(const std::string &path,
                                       const std::string &meta_file_path) {
-  if (path == this->assets_root_path_) return true;
+  if (path == assets_root_path_) return true;
 
-  return this->last_update_time_ >
-    filesystem::GetLastModificationTime(path) ||
-    !filesystem::IsExist(meta_file_path);
+  return last_update_time_ > filesystem::GetLastModificationTime(path) ||
+         !filesystem::IsExist(meta_file_path);
 }
 
 void ResourceManager::RefreshFolder(const std::string &path) {
   std::string folder_name = filesystem::GetName(path);
 
   std::string meta_file_path = filesystem::Append(
-    filesystem::GetParentPath(path),
-    folder_name + ".dir.meta"
-  );
+      filesystem::GetParentPath(path), folder_name + ".dir.meta");
 
-  if (!this->IsRefreshFolder(path, meta_file_path)) return;
+  if (!IsRefreshFolder(path, meta_file_path)) return;
 
-  if (path != this->assets_root_path_) {
-    this->SetFolderMetaFile(meta_file_path);
+  if (path != assets_root_path_) {
+    SetFolderMetaFile(meta_file_path);
   }
 
   auto folders = filesystem::ListDirectories(path);
 
   for (auto folder : folders) {
-    this->RefreshFolder(folder);
+    RefreshFolder(folder);
   }
 
   auto resources = filesystem::ListFiles(path);
 
   for (auto resource : resources) {
-    this->RefreshAsset(resource);
+    RefreshAsset(resource);
   }
 
-  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)->Debug(
-    path, " refreshed"
-  );
+  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)
+      ->Debug(path, " refreshed");
 }
 
 void ResourceManager::RefreshAsset(const std::string &path) {
-  if (this->last_update_time_ >
-      filesystem::GetLastModificationTime(path)) {
+  if (last_update_time_ > filesystem::GetLastModificationTime(path)) {
     return;
   }
 
-  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)->Debug(
-    path, " refreshed"
-  );
+  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER)
+      ->Debug(path, " refreshed");
 }
 
 void ResourceManager::InitializeWatcher() {
-  this->assets_watcher_ = new efsw::FileWatcher();
-  this->assets_watcher_->watch();
+  assets_watcher_ = new efsw::FileWatcher();
+  assets_watcher_->watch();
 }
 
 void ResourceManager::Watch() {
-  if (this->assets_watch_id_ != -1 || !this->assets_watcher_) return;
+  if (assets_watch_id_ != -1 || !assets_watcher_) return;
 
-  this->assets_watch_id_ = this->assets_watcher_->addWatch(
-    this->assets_root_path_, this, false
-  );
+  assets_watch_id_ = assets_watcher_->addWatch(assets_root_path_, this, false);
 }
 
 void ResourceManager::Unwatch() {
-  if (this->assets_watch_id_ == -1) return;
+  if (assets_watch_id_ == -1) return;
 
-  this->assets_watcher_->removeWatch(this->assets_watch_id_);
-  this->assets_watch_id_ = -1;
+  assets_watcher_->removeWatch(assets_watch_id_);
+  assets_watch_id_ = -1;
 }
 
 void ResourceManager::Destroy() {}
 
-ResourceManager::~ResourceManager() {
-  delete this->assets_watcher_;
-}
+ResourceManager::~ResourceManager() { delete assets_watcher_; }
 
 const std::string ResourceManager::assets_root_path() const noexcept {
-  return this->assets_root_path_;
+  return assets_root_path_;
 }
 
 const std::string ResourceManager::resources_root_path() const noexcept {
-  return this->resources_root_path_;
+  return resources_root_path_;
 }
 }  // namespace koma

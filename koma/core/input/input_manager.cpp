@@ -4,33 +4,27 @@
 
 #include "input_manager.hpp"
 
-#include <core/locator/locator.hpp>
+#include "core/locator/locator.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
 bool InputManager::GetKey(KeyCode key_code) {
-  return glfwGetKey(
-    this->GetWindow(),
-    static_cast<std::underlying_type_t<KeyCode>>(key_code)
-  ) == GLFW_REPEAT;
+  return glfwGetKey(GetWindow(), static_cast<std::underlying_type_t<KeyCode>>(
+                                     key_code)) == GLFW_REPEAT;
 }
 
 bool InputManager::GetKeyUp(KeyCode key_code) {
-  return glfwGetKey(
-    this->GetWindow(),
-    static_cast<std::underlying_type_t<KeyCode>>(key_code)
-  ) == GLFW_RELEASE;
+  return glfwGetKey(GetWindow(), static_cast<std::underlying_type_t<KeyCode>>(
+                                     key_code)) == GLFW_RELEASE;
 }
 
 bool InputManager::GetKeyDown(KeyCode key_code) {
-  return glfwGetKey(
-    this->GetWindow(),
-    static_cast<std::underlying_type_t<KeyCode>>(key_code)
-  ) == GLFW_PRESS;
+  return glfwGetKey(GetWindow(), static_cast<std::underlying_type_t<KeyCode>>(
+                                     key_code)) == GLFW_PRESS;
 }
 
 GLFWwindow *InputManager::GetWindow() {
@@ -40,24 +34,18 @@ GLFWwindow *InputManager::GetWindow() {
 glm::vec2 InputManager::GetMousePosition() {
   double current_mouse_y_pos, current_mouse_x_pos;
 
-  glfwGetCursorPos(
-    this->GetWindow(),
-    &current_mouse_x_pos,
-    &current_mouse_y_pos
-  );
+  glfwGetCursorPos(GetWindow(), &current_mouse_x_pos, &current_mouse_y_pos);
 
   return glm::vec2((float)current_mouse_x_pos, (float)current_mouse_y_pos);
 }
 
 void InputManager::SetMousePosition(float x, float y) {
-  glfwSetCursorPos(this->GetWindow(), x, y);
+  glfwSetCursorPos(GetWindow(), x, y);
 }
 
 void InputManager::Initialize() {
-  glfwSetInputMode(this->GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
-void InputManager::Update() {
-  glfwPollEvents();
-}
+void InputManager::Update() { glfwPollEvents(); }
 }  // namespace koma

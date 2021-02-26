@@ -12,11 +12,14 @@
 #define _ASSERTE (expr)((void)0)
 #endif  // _MSC_VER
 
+#ifdef _WIN32
+#include <windows.h>
+#endif  // _WIN32
+
 #include <memory>
 
 #ifdef _WIN32
 #include <iostream>
-#include <windows.h>
 #endif  // _WIN32
 
 #include "core/game.hpp"
@@ -63,9 +66,9 @@ int main(int argc, char *argv[]) {
 
 #ifdef _WIN32
   if (!SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {
-    std::cout << "Could not set console handler. This could result in " <<
-      "memory leaks as the game would not shut down properly if the " <<
-      "console window is closed." << std::endl;
+    std::cout << "Could not set console handler. This could result in "
+              << "memory leaks as the game would not shut down properly if the "
+              << "console window is closed." << std::endl;
   }
 #endif  // _WIN32
 

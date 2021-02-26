@@ -7,10 +7,11 @@
 
 #define LOGGER_KOMA_UTILS_FILE_SYSTEM "koma_utils"
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <string>
 #include <vector>
+
+#include "boost/filesystem.hpp"
+#include "boost/filesystem/fstream.hpp"
 
 namespace koma {
 namespace filesystem {
@@ -37,7 +38,7 @@ bool IsRelative(const std::string &);
 bool IsAbsolute(const std::string &);
 bool IsExist(const std::string &);
 bool IsEmpty(const std::string &);
-std::string Append(const std::string &, const std::string&);
+std::string Append(const std::string &, const std::string &);
 std::string GetNormalizedPath(const std::string &);
 std::string GetRelativePath(const std::string &, const std::string &);
 void RemoveTrailingSlashes(std::string &);

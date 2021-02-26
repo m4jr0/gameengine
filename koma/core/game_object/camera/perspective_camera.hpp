@@ -10,13 +10,13 @@
 namespace koma {
 class PerspectiveCamera : public Camera {
  public:
-   virtual void UpdateProjectionMatrix(int, int) override;
+  virtual void UpdateProjectionMatrix(int, int) override;
 
-   void fov(float) noexcept;
+  void fov(float) noexcept;
 
-   const float fov() const noexcept;
+  const float fov() const noexcept;
 
-protected:
+ protected:
   float fov_ = 45.0f;
 };
 }  // namespace koma

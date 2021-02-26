@@ -4,36 +4,34 @@
 
 #include "physics_manager.hpp"
 
-#include <core/locator/locator.hpp>
-#include <utils/logger.hpp>
+#include "core/locator/locator.hpp"
+#include "utils/logger.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
-void PhysicsManager::Initialize() {};
-void PhysicsManager::Destroy() {};
+void PhysicsManager::Initialize(){};
+void PhysicsManager::Destroy(){};
 
 void PhysicsManager::Update(GameObjectManager *game_object_manager) {
-  this->current_time_ += Locator::time_manager().time_delta();
+  current_time_ += Locator::time_manager().time_delta();
 
-  if (this->current_time_ > 1000) {
+  if (current_time_ > 1000) {
     // TODO(m4jr0): Uncomment this when debugging the physics module.
     // Logger::Get(LOGGER_KOMA_CORE_PHYSICS_PHYSICS_MANAGER)->Debug(
-    //   "Physics ", this->counter_
+    //   "Physics ", counter_
     // );
 
-    this->current_time_ = 0;
-    this->counter_ = 0;
+    current_time_ = 0;
+    counter_ = 0;
   }
 
   game_object_manager->FixedUpdate();
-  ++this->counter_;
+  ++counter_;
 }
 
-const int PhysicsManager::counter() const noexcept {
-  return this->counter_;
-}
+const int PhysicsManager::counter() const noexcept { return counter_; }
 }  // namespace koma

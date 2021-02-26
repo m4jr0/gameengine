@@ -4,50 +4,44 @@
 
 #include "time_manager.hpp"
 
-#include <utils/date.hpp>
+#include "utils/date.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
-double TimeManager::GetRealNow() {
-  return date::GetNow();
-}
+double TimeManager::GetRealNow() { return date::GetNow(); }
 
 double TimeManager::GetNow() {
-  double time_delta = this->GetRealNow() - this->previous_time_;
-  double time_to_add = time_delta * this->time_scale_;
+  double time_delta = GetRealNow() - previous_time_;
+  double time_to_add = time_delta * time_scale_;
 
-  return this->previous_time_ + time_to_add;
+  return previous_time_ + time_to_add;
 }
 
-void TimeManager::Initialize() { this->previous_time_ = this->GetRealNow(); }
+void TimeManager::Initialize() { previous_time_ = GetRealNow(); }
 
 void TimeManager::Update() {
-  this->current_time_ = this->GetNow();
-  this->time_delta_ = this->current_time_ - this->previous_time_;
-  this->previous_time_ = this->current_time_;
+  current_time_ = GetNow();
+  time_delta_ = current_time_ - previous_time_;
+  previous_time_ = current_time_;
 }
 
-void TimeManager::Stop() noexcept { this->time_scale(0.0f); }
+void TimeManager::Stop() noexcept { time_scale(0.0f); }
 
-void TimeManager::Normalize() noexcept { this->time_scale(1.0f); }
+void TimeManager::Normalize() noexcept { time_scale(1.0f); }
 
-const double TimeManager::time_delta() const noexcept {
-  return this->time_delta_;
-}
+const double TimeManager::time_delta() const noexcept { return time_delta_; }
 
 const double TimeManager::current_time() const noexcept {
-  return this->current_time_;
+  return current_time_;
 }
 
-const float TimeManager::time_scale() const noexcept {
-  return this->time_scale_;
-}
+const float TimeManager::time_scale() const noexcept { return time_scale_; }
 
 void TimeManager::time_scale(float time_scale) noexcept {
-  this->time_scale_ = time_scale;
+  time_scale_ = time_scale;
 }
 }  // namespace koma

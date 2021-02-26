@@ -6,7 +6,7 @@
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
@@ -18,14 +18,14 @@ double GetNow() {
 }
 
 std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
-  const std::time_t &time) {
+    const std::time_t &time) {
   return std::chrono::system_clock::from_time_t(time);
 }
 
 double GetDouble(
-  const std::chrono::time_point<std::chrono::system_clock> &time) {
+    const std::chrono::time_point<std::chrono::system_clock> &time) {
   auto duration_in_seconds =
-    std::chrono::duration<double>(time.time_since_epoch());
+      std::chrono::duration<double>(time.time_since_epoch());
 
   return duration_in_seconds.count() * 1000;
 }

@@ -6,20 +6,16 @@
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
-void Subject::AddObserver(Observer *observer) {
-  this->observers_.insert(observer);
-}
+void Subject::AddObserver(Observer *observer) { observers_.insert(observer); }
 
-void Subject::RemoveObserver(Observer *observer) {
-  this->observers_.erase(observer);
-}
+void Subject::RemoveObserver(Observer *observer) { observers_.erase(observer); }
 
 void Subject::NotifyObservers(std::string event) {
-  for (Observer* observer : this->observers_) {
+  for (Observer *observer : observers_) {
     observer->ReceiveEvent(event);
   }
 }

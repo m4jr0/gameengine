@@ -15,7 +15,7 @@ namespace date {
 double GetNow();
 
 std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
-  const std::time_t &);
+    const std::time_t &);
 
 double GetDouble(const std::chrono::time_point<std::chrono::system_clock> &);
 double GetDouble(const std::time_t &);

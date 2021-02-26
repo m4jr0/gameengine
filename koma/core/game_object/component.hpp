@@ -7,17 +7,18 @@
 
 #define LOGGER_KOMA_CORE_GAME_OBJECT_COMPONENT "koma_core_render"
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <memory>
+
+#include "boost/uuid/uuid.hpp"
+#include "boost/uuid/uuid_generators.hpp"
+#include "boost/uuid/uuid_io.hpp"
 
 namespace koma {
 class GameObject;
 
 class Component {
  public:
-  virtual ~Component() {};
+  virtual ~Component(){};
   virtual void Initialize();
   virtual void Destroy();
   virtual void Update();

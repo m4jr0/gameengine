@@ -9,7 +9,7 @@
 
 namespace koma {
 class OrthogonalCamera : public Camera {
-public:
+ public:
   virtual void UpdateProjectionMatrix(int, int) override;
 };
 }  // namespace koma

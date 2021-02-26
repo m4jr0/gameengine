@@ -5,10 +5,9 @@
 #ifndef KOMA_CORE_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_HPP_
 #define KOMA_CORE_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_HPP_
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <core/game_object/component.hpp>
+#include "core/game_object/component.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace koma {
 class CameraControls : public Component {

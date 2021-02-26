@@ -9,7 +9,7 @@
 
 namespace koma {
 class Observer {
-public:
+ public:
   virtual void ReceiveEvent(std::string) = 0;
 };
 }  // namespace koma

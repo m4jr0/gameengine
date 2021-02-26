@@ -6,7 +6,7 @@
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
@@ -17,47 +17,43 @@ std::shared_ptr<GameObject> GameObject::Create() {
 }
 
 void GameObject::Destroy() {
-  for (auto it : this->components_) {
+  for (auto it : components_) {
     it.second->Destroy();
   }
 }
 
 void GameObject::Update() {
-  for (auto it : this->components_) {
+  for (auto it : components_) {
     it.second->Update();
   }
 }
 
 void GameObject::FixedUpdate() {
-  for (auto it : this->components_) {
+  for (auto it : components_) {
     it.second->FixedUpdate();
   }
 }
 
 void GameObject::AddComponent(std::shared_ptr<Component> component) {
-  this->components_.insert({
-    boost::uuids::to_string(component->kId()), component
-  });
+  components_.insert({boost::uuids::to_string(component->kId()), component});
 
-  component->game_object(this->shared_from_this());
+  component->game_object(shared_from_this());
   component->Initialize();
 }
 
 void GameObject::RemoveComponent(std::shared_ptr<Component> component) {
   std::string component_id = boost::uuids::to_string(component->kId());
 
-  this->components_.at(component_id)->Destroy();
-  this->components_.erase(component_id);
+  components_.at(component_id)->Destroy();
+  components_.erase(component_id);
 }
 
 std::shared_ptr<Component> GameObject::GetComponent(
-  const boost::uuids::uuid id) {
-  return this->components_[boost::uuids::to_string(id)];
+    const boost::uuids::uuid id) {
+  return components_[boost::uuids::to_string(id)];
 }
 
-const boost::uuids::uuid GameObject::kId() const noexcept {
-  return this->kId_;
-}
+const boost::uuids::uuid GameObject::kId() const noexcept { return kId_; }
 
-GameObject::GameObject(GameObject::constructor_tag_) {};
+GameObject::GameObject(GameObject::constructor_tag_){};
 }  // namespace koma

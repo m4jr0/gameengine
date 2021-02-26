@@ -5,11 +5,11 @@
 #ifndef KOMA_CORE_GAME_OBJECT_PHYSICS_TRANFORM_HPP_
 #define KOMA_CORE_GAME_OBJECT_PHYSICS_TRANFORM_HPP_
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <unordered_map>
 
-#include <core/game_object/component.hpp>
+#include "core/game_object/component.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace koma {
 class Transform : public Component,

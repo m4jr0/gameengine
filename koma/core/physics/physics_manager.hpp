@@ -7,8 +7,8 @@
 
 #define LOGGER_KOMA_CORE_PHYSICS_PHYSICS_MANAGER "koma_physics"
 
-#include <core/manager.hpp>
-#include <core/game_object/game_object_manager.hpp>
+#include "core/game_object/game_object_manager.hpp"
+#include "core/manager.hpp"
 
 namespace koma {
 class PhysicsManager : public Manager {
@@ -19,6 +19,7 @@ class PhysicsManager : public Manager {
   void Update(GameObjectManager *);
 
   const int counter() const noexcept;
+
  private:
   int counter_ = 0;
   double current_time_ = 0;

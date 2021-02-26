@@ -7,11 +7,10 @@
 
 #define LOGGER_KOMA_CORE_RENDER_RENDER_MANAGER "koma_core_render"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include <core/manager.hpp>
-#include <core/game_object/game_object_manager.hpp>
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#include "core/game_object/game_object_manager.hpp"
+#include "core/manager.hpp"
 
 namespace koma {
 class Locator;

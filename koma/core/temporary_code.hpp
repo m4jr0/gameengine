@@ -5,8 +5,8 @@
 #ifndef KOMA_TEMPORARY_CODE_HPP_
 #define KOMA_TEMPORARY_CODE_HPP_
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
 
 namespace koma {
 void InitializeTmp(GLuint, GLuint);

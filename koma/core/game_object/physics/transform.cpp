@@ -6,7 +6,7 @@
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
@@ -16,27 +16,23 @@ const glm::mat4 Transform::GetTransformMatrix() const {
 }
 
 void Transform::Destroy() {
-  this->parent_ = nullptr;
-  this->root_parent_ = nullptr;
+  parent_ = nullptr;
+  root_parent_ = nullptr;
 }
 
-const glm::vec3 Transform::position() const noexcept {
-  return this->position_;
-}
+const glm::vec3 Transform::position() const noexcept { return position_; }
 
 void Transform::position(float x, float y, float z) {
-  this->position_ = glm::vec3(x, y, z);
+  position_ = glm::vec3(x, y, z);
 }
 
-void Transform::position(glm::vec3 position) {
-  this->position_ = position;
-}
+void Transform::position(glm::vec3 position) { position_ = position; }
 
 const std::shared_ptr<Transform> Transform::parent() const noexcept {
-  return this->parent_;
+  return parent_;
 }
 
 const std::shared_ptr<Transform> Transform::root_parent() const noexcept {
-  return this->root_parent_;
+  return root_parent_;
 }
 }  // namespace koma

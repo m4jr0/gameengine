@@ -7,9 +7,10 @@
 
 #define LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM "koma_core_render"
 
-#include <GL/glew.h>
-#include <glm/glm.hpp>
 #include <string>
+
+#include "GL/glew.h"
+#include "glm/glm.hpp"
 
 namespace koma {
 class ShaderProgram {
@@ -62,40 +63,34 @@ class ShaderProgram {
   void SetMatrix3(const std::string &, const glm::mat3 &, bool = GL_FALSE);
   void SetMatrix4(const std::string &, const glm::mat4 &, bool = GL_FALSE);
 
-  void SetMatrix2x3(const std::string &, const glm::mat2x3 &,
-                    bool = GL_FALSE);
+  void SetMatrix2x3(const std::string &, const glm::mat2x3 &, bool = GL_FALSE);
 
-  void SetMatrix3x2(const std::string &, const glm::mat3x2 &,
-                    bool = GL_FALSE);
+  void SetMatrix3x2(const std::string &, const glm::mat3x2 &, bool = GL_FALSE);
 
-  void SetMatrix2x4(const std::string &, const glm::mat2x4 &,
-                    bool = GL_FALSE);
+  void SetMatrix2x4(const std::string &, const glm::mat2x4 &, bool = GL_FALSE);
 
-  void SetMatrix4x2(const std::string &, const glm::mat4x2 &,
-                    bool = GL_FALSE);
+  void SetMatrix4x2(const std::string &, const glm::mat4x2 &, bool = GL_FALSE);
 
-  void SetMatrix3x4(const std::string &, const glm::mat3x4 &,
-                    bool = GL_FALSE);
+  void SetMatrix3x4(const std::string &, const glm::mat3x4 &, bool = GL_FALSE);
 
-  void SetMatrix4x3(const std::string &, const glm::mat4x3 &,
-                    bool = GL_FALSE);
+  void SetMatrix4x3(const std::string &, const glm::mat4x3 &, bool = GL_FALSE);
 
   const unsigned int id() const noexcept;
 
-  template<class Archive>
+  template <class Archive>
   void Serialize(Archive &archive, const unsigned int file_version) {
-    archive & this->vertex_shader_code_;
-    archive & this->fragment_shader_code_;
+    archive &vertex_shader_code_;
+    archive &fragment_shader_code_;
   }
 
  private:
-   unsigned int id_ = -1;
-   unsigned int vertex_shader_id_ = -1;
-   unsigned int fragment_shader_id_ = -1;
-   bool CompileShader(unsigned int *, std::string *, GLenum);
-   std::string vertex_shader_code_;
-   std::string fragment_shader_code_;
-   bool can_be_initialized_ = false;
+  unsigned int id_ = -1;
+  unsigned int vertex_shader_id_ = -1;
+  unsigned int fragment_shader_id_ = -1;
+  bool CompileShader(unsigned int *, std::string *, GLenum);
+  std::string vertex_shader_code_;
+  std::string fragment_shader_code_;
+  bool can_be_initialized_ = false;
 };
 }  // namespace koma
 

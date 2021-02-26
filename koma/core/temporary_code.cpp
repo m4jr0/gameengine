@@ -2,11 +2,9 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
+#include "GL/glew.h"
 #include "core/game_object/game_object.hpp"
 #include "core/game_object/model/model.hpp"
 #include "core/game_object/physics/transform.hpp"
@@ -14,6 +12,8 @@
 #include "core/render/shader/shader_program.hpp"
 #include "core/render/texture/texture_loader.hpp"
 #include "core/resource/model_resource.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
@@ -27,7 +27,7 @@ std::shared_ptr<GameObject> test_game_object = nullptr;
 
 void InitializeTmp(GLuint width, GLuint height) {
   auto model_resource =
-    std::make_shared<ModelResource>("assets/models/nanosuit/model.obj");
+      std::make_shared<ModelResource>("assets/models/nanosuit/model.obj");
 
   model_resource->Import();
   auto test_transform = std::make_shared<Transform>();
@@ -39,9 +39,7 @@ void InitializeTmp(GLuint width, GLuint height) {
   Locator::game_object_manager().AddGameObject(test_game_object);
 }
 
-void UpdateTmp() {
-}
+void UpdateTmp() {}
 
-void DestroyTmp() {
-}
-};
+void DestroyTmp() {}
+};  // namespace koma

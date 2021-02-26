@@ -7,11 +7,11 @@
 
 #define LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER "koma_core_resource"
 
-#include <efsw/efsw.hpp>
 #include <filesystem>
 #include <string>
 
-#include <core/manager.hpp>
+#include "core/manager.hpp"
+#include "efsw/efsw.hpp"
 
 namespace koma {
 class ResourceManager : public Manager, public efsw::FileWatchListener {
@@ -30,9 +30,8 @@ class ResourceManager : public Manager, public efsw::FileWatchListener {
   void SetResourceMetaFile();
 
   // Override esfw::FileWatchListener's method.
-  void handleFileAction(efsw::WatchID, const std::string &,
-                        const std::string &, efsw::Action, std::string = "")
-                        override;
+  void handleFileAction(efsw::WatchID, const std::string &, const std::string &,
+                        efsw::Action, std::string = "") override;
 
   const std::string assets_root_path() const noexcept;
   const std::string resources_root_path() const noexcept;

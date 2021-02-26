@@ -6,7 +6,7 @@
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
@@ -26,33 +26,23 @@ void Locator::Initialize(Game *game) {
   Locator::game_object_manager_ = nullptr;
 }
 
-Game &Locator::game() {
-  return *Locator::game_;
-};
+Game &Locator::game() { return *Locator::game_; };
 
 ResourceManager &Locator::resource_manager() {
   return *Locator::resource_manager_;
 }
 
-RenderManager &Locator::render_manager() {
-  return *Locator::render_manager_;
-}
+RenderManager &Locator::render_manager() { return *Locator::render_manager_; }
 
-InputManager &Locator::input_manager() {
-  return *Locator::input_manager_;
-}
+InputManager &Locator::input_manager() { return *Locator::input_manager_; }
 
-TimeManager &Locator::time_manager() {
-  return *Locator::time_manager_;
-}
+TimeManager &Locator::time_manager() { return *Locator::time_manager_; }
 
 GameObjectManager &Locator::game_object_manager() {
   return *Locator::game_object_manager_;
 }
 
-std::shared_ptr<Camera> Locator::main_camera() {
-  return Locator::main_camera_;
-}
+std::shared_ptr<Camera> Locator::main_camera() { return Locator::main_camera_; }
 
 void Locator::resource_manager(ResourceManager *resource_manager) {
   Locator::resource_manager_ = resource_manager;

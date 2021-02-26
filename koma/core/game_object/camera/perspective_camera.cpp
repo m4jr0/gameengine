@@ -4,28 +4,21 @@
 
 #include "perspective_camera.hpp"
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
-#include <debug_windows.hpp>
+#include "debug_windows.hpp"
 #endif  // _WIN32
 
 namespace koma {
 void PerspectiveCamera::UpdateProjectionMatrix(int width, int height) {
-  this->projection_matrix_ = glm::perspective(
-    glm::radians(this->fov_),
-    (float)width / (float)height,
-    this->nearest_point_,
-    this->farthest_point_
-  );
+  projection_matrix_ =
+      glm::perspective(glm::radians(fov_), (float)width / (float)height,
+                       nearest_point_, farthest_point_);
 }
 
-void PerspectiveCamera::fov(float fov) noexcept {
-  this->fov_ = fov;
-}
+void PerspectiveCamera::fov(float fov) noexcept { fov_ = fov; }
 
-const float PerspectiveCamera::fov() const noexcept {
-  return this->fov_;
-}
+const float PerspectiveCamera::fov() const noexcept { return fov_; }
 }  // namespace koma

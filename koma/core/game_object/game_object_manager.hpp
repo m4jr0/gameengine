@@ -8,8 +8,8 @@
 #include <memory>
 #include <unordered_map>
 
-#include <core/manager.hpp>
-#include <core/game_object/game_object.hpp>
+#include "core/game_object/game_object.hpp"
+#include "core/manager.hpp"
 
 namespace koma {
 class GameObjectManager : public Manager {

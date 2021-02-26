@@ -7,11 +7,10 @@
 
 #define LOGGER_KOMA_CORE_RESOURCE_MODEL_RESOURCE "koma_core_resource"
 
-#include "resource.hpp"
-
 #include <memory>
 
-#include <core/game_object/model/model.hpp>
+#include "core/game_object/model/model.hpp"
+#include "resource.hpp"
 
 namespace koma {
 class ModelResource : public Resource {
@@ -26,7 +25,7 @@ class ModelResource : public Resource {
   virtual bool Load() override;
 
   virtual nlohmann::json GetMetaData() override;
-  virtual std::shared_ptr<Model> GetModel() { return this->model_; };
+  virtual std::shared_ptr<Model> GetModel() { return model_; };
 
  protected:
   std::shared_ptr<Model> model_ = nullptr;
