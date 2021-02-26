@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,18 +7,17 @@
 
 #define LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL "koma_core_render"
 
-#include "mesh.hpp"
-
-#include <assimp/scene.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <core/game_object/component.hpp>
-#include <core/game_object/physics/transform.hpp>
-#include <core/render/shader/shader_program.hpp>
+#include "assimp/scene.h"
+#include "core/game_object/component.hpp"
+#include "core/game_object/physics/transform.hpp"
+#include "core/render/shader/shader_program.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "mesh.hpp"
 
 namespace koma {
 class Model : public Component {
@@ -27,7 +26,18 @@ class Model : public Component {
 
   void Draw(std::shared_ptr<ShaderProgram>);
   void Initialize() override;
+  void Destroy() override;
   void Update() override;
+
+  template <class Archive>
+  void Serialize(Archive &archive, const unsigned int file_version) {
+    archive &meshes_;
+    archive &path_;
+    archive &directory_;
+    archive &transform_;
+    archive &shader_program_;
+    archive &loaded_textures_;
+  }
 
  private:
   std::vector<Mesh> meshes_;
@@ -43,8 +53,8 @@ class Model : public Component {
   std::vector<Texture> LoadMaterialTextures(aiMaterial *, aiTextureType,
                                             std::string);
 
-  std::vector<Texture> textures_loaded_;
+  std::vector<Texture> loaded_textures_;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_GAME_OBJECT_MODEL_MODEL_HPP_

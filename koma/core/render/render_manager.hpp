@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,15 +7,15 @@
 
 #define LOGGER_KOMA_CORE_RENDER_RENDER_MANAGER "koma_core_render"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
-#include <core/game_object/game_object_manager.hpp>
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#include "core/game_object/game_object_manager.hpp"
+#include "core/manager.hpp"
 
 namespace koma {
 class Locator;
 
-class RenderManager {
+class RenderManager : public Manager {
  public:
   static constexpr char kDefaultRenderingWindowName_[] = "Koma Game Engine";
   static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
@@ -23,8 +23,8 @@ class RenderManager {
   static constexpr unsigned int kDefaultWidth_ = 1280;
   static constexpr unsigned int kDefaultHeight_ = 720;
 
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Destroy() override;
   void Update(double, GameObjectManager *);
 
   const int width() const noexcept;
@@ -43,6 +43,6 @@ class RenderManager {
 
   std::string GetTitle();
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_RENDER_RENDER_MANAGER_HPP_

@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,21 +7,23 @@
 
 #define LOGGER_KOMA_CORE_PHYSICS_PHYSICS_MANAGER "koma_physics"
 
-#include <core/game_object/game_object_manager.hpp>
+#include "core/game_object/game_object_manager.hpp"
+#include "core/manager.hpp"
 
 namespace koma {
-class PhysicsManager {
+class PhysicsManager : public Manager {
  public:
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Destroy() override;
 
   void Update(GameObjectManager *);
 
   const int counter() const noexcept;
+
  private:
   int counter_ = 0;
   double current_time_ = 0;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_PHYSICS_PHYSICS_MANAGER_HPP_

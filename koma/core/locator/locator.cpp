@@ -1,14 +1,17 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #include "locator.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include "debug_windows.hpp"
+#endif  // _WIN32
 
 namespace koma {
 Game *Locator::game_ = nullptr;
+ResourceManager *Locator::resource_manager_ = nullptr;
 RenderManager *Locator::render_manager_ = nullptr;
 InputManager *Locator::input_manager_ = nullptr;
 NullInputManager Locator::null_input_manager_ = NullInputManager();
@@ -23,28 +26,26 @@ void Locator::Initialize(Game *game) {
   Locator::game_object_manager_ = nullptr;
 }
 
-Game &Locator::game() {
-  return *Locator::game_;
-};
+Game &Locator::game() { return *Locator::game_; };
 
-RenderManager &Locator::render_manager() {
-  return *Locator::render_manager_;
+ResourceManager &Locator::resource_manager() {
+  return *Locator::resource_manager_;
 }
 
-InputManager &Locator::input_manager() {
-  return *Locator::input_manager_;
-}
+RenderManager &Locator::render_manager() { return *Locator::render_manager_; }
 
-TimeManager &Locator::time_manager() {
-  return *Locator::time_manager_;
-}
+InputManager &Locator::input_manager() { return *Locator::input_manager_; }
+
+TimeManager &Locator::time_manager() { return *Locator::time_manager_; }
 
 GameObjectManager &Locator::game_object_manager() {
   return *Locator::game_object_manager_;
 }
 
-std::shared_ptr<Camera> Locator::main_camera() {
-  return Locator::main_camera_;
+std::shared_ptr<Camera> Locator::main_camera() { return Locator::main_camera_; }
+
+void Locator::resource_manager(ResourceManager *resource_manager) {
+  Locator::resource_manager_ = resource_manager;
 }
 
 void Locator::render_manager(RenderManager *render_manager) {
@@ -70,4 +71,4 @@ void Locator::game_object_manager(GameObjectManager *game_object_manager) {
 void Locator::main_camera(std::shared_ptr<Camera> main_camera) {
   Locator::main_camera_ = main_camera;
 }
-};  // namespace koma
+}  // namespace koma

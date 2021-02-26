@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define KOMA_UTILS_LOGGER_HPP_
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -22,32 +23,32 @@ class Logger final {
   template <typename... Targs>
   void Error(Targs... args) const {
     std::stringstream string_stream;
-    this->GetString(string_stream, args...);
+    GetString(string_stream, args...);
     std::cerr << "[ERROR] " << string_stream.str() << std::endl;
   }
 
   template <typename... Targs>
   void Info(Targs... args) const {
     std::stringstream string_stream;
-    this->GetString(string_stream, args...);
+    GetString(string_stream, args...);
     std::cout << "[INFO] " << string_stream.str() << std::endl;
   }
 
   template <typename... Targs>
   void Debug(Targs... args) const {
     std::stringstream string_stream;
-    this->GetString(string_stream, args...);
+    GetString(string_stream, args...);
     std::cout << "[DEBUG] " << string_stream.str() << std::endl;
   }
 
   template <typename... Targs>
   void Warning(Targs... args) const {
     std::stringstream string_stream;
-    this->GetString(string_stream, args...);
+    GetString(string_stream, args...);
     std::cout << "[WARNING] " << string_stream.str() << std::endl;
   }
 
-  const std::string name() const { return this->name_; };
+  const std::string name() const { return name_; };
 
  private:
   template <typename T>
@@ -57,8 +58,8 @@ class Logger final {
 
   template <typename T, typename... Targs>
   void GetString(std::stringstream& string_stream, T arg, Targs... args) const {
-    this->GetString(string_stream, arg);
-    this->GetString(string_stream, args...);
+    GetString(string_stream, arg);
+    GetString(string_stream, args...);
   }
 
   static std::unordered_map<std::string, std::shared_ptr<const Logger>>
@@ -68,6 +69,6 @@ class Logger final {
 
   std::string name_;
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_UTILS_LOGGER_HPP_

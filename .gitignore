@@ -38,6 +38,13 @@
 Debug/
 x64/
 
+# Assets
+!**/assets/**
+*.meta
+
+# Vcpkg
+vcpkg/
+
 # Others
 build/
 dependencies/

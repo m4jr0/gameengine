@@ -1,0 +1,99 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // Unix ////////////////////////////////////////////////////////////////
+        {
+            "name": "KGE (build) [Unix]",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cmake_build"
+        },
+        {
+            "name": "KGE tests (build) [Unix]",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge_tests",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cmake_build"
+        },
+        {
+            "name": "KGE (clean + build) [Unix]",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cleanbuild"
+        },
+        {
+            "name": "KGE tests (clean + build) [Unix]",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge_tests",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cleanbuild"
+        },
+        {
+            "name": "KGE (no build) [Unix]",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge",
+            "cwd": "${workspaceFolder}/build/",
+        },
+        {
+            "name": "KGE tests (no build) [Unix]",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge_tests",
+            "cwd": "${workspaceFolder}/build/",
+        },
+        // Windows /////////////////////////////////////////////////////////////
+        {
+            "name": "KGE (build) [Windows]",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge.exe",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cmake_build"
+        },
+        {
+            "name": "KGE tests (build) [Windows]",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge_tests.exe",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cmake_build"
+        },
+        {
+            "name": "KGE (clean + build) [Windows]",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge.exe",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cleanbuild"
+        },
+        {
+            "name": "KGE tests (clean + build) [Windows]",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge_tests.exe",
+            "cwd": "${workspaceFolder}/build/",
+            "preLaunchTask": "cleanbuild"
+        },
+        {
+            "name": "KGE (no build) [Windows]",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge.exe",
+            "cwd": "${workspaceFolder}/build/",
+        },
+        {
+            "name": "KGE tests (no build) [Windows]",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/kge_tests.exe",
+            "cwd": "${workspaceFolder}/build/",
+        }
+    ]
+}

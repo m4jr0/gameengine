@@ -1,4 +1,4 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,7 +6,6 @@
 #define TESTS_GAME_HPP_
 
 #include "../koma/core/game_object/component.hpp"
-
 #include "catch.hpp"
 
 namespace komatests {

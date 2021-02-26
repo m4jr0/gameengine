@@ -1,13 +1,14 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
 #define KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#include "core/manager.hpp"
+#include "glm/glm.hpp"
 
 namespace koma {
 // Here, we wrap the GLFW "input manager" to make it easier if we want to
@@ -69,7 +70,7 @@ enum class KeyCode {
   TAB = GLFW_KEY_TAB,
   BACKSPACE = GLFW_KEY_BACKSPACE,
   INSERT = GLFW_KEY_INSERT,
-  DELETE = GLFW_KEY_DELETE,
+  DEL = GLFW_KEY_DELETE,
   RIGHT = GLFW_KEY_RIGHT,
   LEFT = GLFW_KEY_LEFT,
   DOWN = GLFW_KEY_DOWN,
@@ -137,7 +138,7 @@ enum class KeyCode {
   LAST = GLFW_KEY_LAST
 };
 
-class InputManager {
+class InputManager : public Manager {
  public:
   virtual bool GetKey(KeyCode);
   virtual bool GetKeyUp(KeyCode);
@@ -145,8 +146,8 @@ class InputManager {
   virtual glm::vec2 GetMousePosition();
   virtual void SetMousePosition(float, float);
 
-  virtual void Initialize();
-  virtual void Update();
+  virtual void Initialize() override;
+  virtual void Update() override;
 
  private:
   virtual GLFWwindow *GetWindow();
@@ -154,15 +155,16 @@ class InputManager {
 
 class NullInputManager : public InputManager {
  public:
-   virtual bool GetKey(KeyCode) override { return false; };
-   virtual bool GetKeyUp(KeyCode) override { return false; };
-   virtual bool GetKeyDown(KeyCode) override { return false; };
+  virtual bool GetKey(KeyCode) override { return false; };
+  virtual bool GetKeyUp(KeyCode) override { return false; };
+  virtual bool GetKeyDown(KeyCode) override { return false; };
 
-   virtual glm::vec2 GetMousePosition() override
-     { return glm::vec2(0.0f, 0.0f); };
+  virtual glm::vec2 GetMousePosition() override {
+    return glm::vec2(0.0f, 0.0f);
+  };
 
-   virtual void SetMousePosition(float, float) override {};
+  virtual void SetMousePosition(float, float) override{};
 };
-};  // namespace koma
+}  // namespace koma
 
 #endif  // KOMA_CORE_INPUT_INPUT_MANAGER_HPP_

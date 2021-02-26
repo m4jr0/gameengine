@@ -1,15 +1,16 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #include "logger.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include "debug_windows.hpp"
+#endif  // _WIN32
 
 namespace koma {
-std::unordered_map<std::string, std::shared_ptr<const Logger>>
-  Logger::loggers_;
+std::unordered_map<std::string, std::shared_ptr<const Logger>> Logger::loggers_;
 
 std::shared_ptr<const Logger> Logger::Get(std::string logger_name) {
   auto found = Logger::loggers_.find(logger_name);
@@ -29,7 +30,7 @@ std::shared_ptr<const Logger> Logger::Create(std::string logger_name) {
   return std::make_shared<const Logger>(logger_name);
 }
 
-Logger::Logger(std::string logger_name) { this->name_ = logger_name; }
+Logger::Logger(std::string logger_name) { name_ = logger_name; }
 
 Logger::~Logger() {}
-};  // namespace koma
+}  // namespace koma

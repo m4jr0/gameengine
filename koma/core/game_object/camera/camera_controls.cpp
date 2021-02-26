@@ -1,17 +1,19 @@
-// Copyright 2018 m4jr0. All Rights Reserved.
+// Copyright 2021 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #include "camera_controls.hpp"
 
-#include <core/input/input_manager.hpp>
-#include <core/locator/locator.hpp>
-#include <core/game_object/camera/camera.hpp>
-#include <core/render/render_manager.hpp>
-#include <core/time/time_manager.hpp>
+#include "core/game_object/camera/camera.hpp"
+#include "core/input/input_manager.hpp"
+#include "core/locator/locator.hpp"
+#include "core/render/render_manager.hpp"
+#include "core/time/time_manager.hpp"
 
-// Allow debugging memory leaks.
-#include <debug.hpp>
+#ifdef _WIN32
+// Allow debugging memory leaks on Windows.
+#include "debug_windows.hpp"
+#endif  // _WIN32
 
 namespace koma {
 void CameraControls::Update() {
@@ -27,46 +29,39 @@ void CameraControls::Update() {
 
   input_manager.SetMousePosition(half_width, half_height);
 
-  this->horizontal_angle_ += this->mouse_speed_ *
-    float(half_width - current_mouse_pos.x);
+  horizontal_angle_ += mouse_speed_ * float(half_width - current_mouse_pos.x);
 
-  this->vertical_angle_ += this->mouse_speed_ *
-    float(half_height - current_mouse_pos.y);
+  vertical_angle_ += mouse_speed_ * float(half_height - current_mouse_pos.y);
 
   glm::vec3 direction = glm::vec3(
-    cos(this->vertical_angle_) * sin(this->horizontal_angle_),
-    sin(this->vertical_angle_),
-    cos(this->vertical_angle_) * cos(this->horizontal_angle_)
-  );
+      cos(vertical_angle_) * sin(horizontal_angle_), sin(vertical_angle_),
+      cos(vertical_angle_) * cos(horizontal_angle_));
 
-  glm::vec3 right = glm::vec3(
-    sin(this->horizontal_angle_ - 3.14f / 2.0f),
-    0,
-    cos(this->horizontal_angle_ - 3.14f / 2.0f)
-  );
+  glm::vec3 right = glm::vec3(sin(horizontal_angle_ - 3.14f / 2.0f), 0,
+                              cos(horizontal_angle_ - 3.14f / 2.0f));
 
   glm::vec3 up = glm::cross(right, direction);
 
   if (input_manager.GetKeyDown(KeyCode::W)) {
-    this->position_ += direction * (float)time_delta * this->speed_;
+    position_ += direction * (float)time_delta * speed_;
   }
 
   if (input_manager.GetKeyDown(KeyCode::S)) {
-    this->position_ -= direction * (float)time_delta * this->speed_;
+    position_ -= direction * (float)time_delta * speed_;
   }
 
   if (input_manager.GetKeyDown(KeyCode::D)) {
-    this->position_ += right * (float)time_delta * this->speed_;
+    position_ += right * (float)time_delta * speed_;
   }
 
   if (input_manager.GetKeyDown(KeyCode::A)) {
-    this->position_ -= right * (float)time_delta * this->speed_;
+    position_ -= right * (float)time_delta * speed_;
   }
 
   auto main_camera = Locator::main_camera();
 
-  main_camera->position(this->position_);
+  main_camera->position(position_);
   main_camera->direction(direction);
   main_camera->orientation(up);
 }
-};  // namespace koma
+}  // namespace koma
