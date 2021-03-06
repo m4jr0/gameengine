@@ -193,7 +193,6 @@ target_link_libraries(${TESTS_EXECUTABLE_NAME}
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
 file(COPY ./koma/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ./koma/tmp DESTINATION ${CMAKE_CURRENT_BINARY_DIR}) # To delete.
 
 if(WIN32) # Workaround for missing DLL (should be fixed in a proper way).
   message(STATUS "${MESSAGE_PREFIX}Copying missing \"glew32.dll\" library...")

@@ -17,8 +17,8 @@ namespace koma {
 bool ModelResource::Import() {
   Logger::Get(kLoggerKomaCoreResourceModelResource)->Debug("Import");
 
-  auto shader_program = std::make_shared<ShaderProgram>("tmp/model_shader.vs",
-                                                        "tmp/model_shader.fs");
+  auto shader_program = std::make_shared<ShaderProgram>(
+      "assets/shaders/model_shader.vs", "assets/shaders/model_shader.fs");
 
   shader_program->Initialize();
   model_ = std::make_shared<Model>(file_system_path_, shader_program);
