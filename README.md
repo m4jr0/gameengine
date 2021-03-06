@@ -28,7 +28,9 @@ These should be available on other Linux distributions as well.
 
 #### With Visual Studio
 
-To use **Visual Studio** with **Vcpkg**, follow the **[Quick Start: Windows](https://github.com/microsoft/vcpkg#quick-start-windows)** guide on the **[Vcpkg official repository page](https://github.com/microsoft/vcpkg)**.
+To use **Visual Studio** with **Vcpkg**, you have to set the `VCPKG_ROOT` environment variable to the desired location of your **Vcpkg directory**.
+
+Then, after making sure via the **Visual Studio Installer** that the **C++ CMake tools for Windows** are correctly installed, open the cloned project directly on **Visual Studio**.
 
 #### With Visual Studio Code
 
