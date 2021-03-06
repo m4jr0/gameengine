@@ -15,24 +15,20 @@
 #endif  // _WIN32
 
 namespace koma {
-GameObjectManager::GameObjectManager() {}
-
-GameObjectManager::~GameObjectManager() = default;
-
 void GameObjectManager::Destroy() {
-  for (auto it : game_objects_) {
+  for (const auto &it : game_objects_) {
     it.second->Destroy();
   }
 }
 
 void GameObjectManager::Update() {
-  for (auto it : game_objects_) {
+  for (const auto &it : game_objects_) {
     it.second->Update();
   }
 }
 
 void GameObjectManager::FixedUpdate() {
-  for (auto it : game_objects_) {
+  for (const auto &it : game_objects_) {
     it.second->FixedUpdate();
   }
 }

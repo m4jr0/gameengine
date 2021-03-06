@@ -17,19 +17,19 @@ std::shared_ptr<GameObject> GameObject::Create() {
 }
 
 void GameObject::Destroy() {
-  for (auto it : components_) {
+  for (const auto &it : components_) {
     it.second->Destroy();
   }
 }
 
 void GameObject::Update() {
-  for (auto it : components_) {
+  for (const auto &it : components_) {
     it.second->Update();
   }
 }
 
 void GameObject::FixedUpdate() {
-  for (auto it : components_) {
+  for (const auto &it : components_) {
     it.second->FixedUpdate();
   }
 }
@@ -42,7 +42,7 @@ void GameObject::AddComponent(std::shared_ptr<Component> component) {
 }
 
 void GameObject::RemoveComponent(std::shared_ptr<Component> component) {
-  std::string component_id = boost::uuids::to_string(component->kId());
+  const auto component_id = boost::uuids::to_string(component->kId());
 
   components_.at(component_id)->Destroy();
   components_.erase(component_id);

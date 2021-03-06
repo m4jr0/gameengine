@@ -15,27 +15,24 @@
 
 namespace koma {
 bool ModelResource::Import() {
-  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_MODEL_RESOURCE)->Debug("Import");
+  Logger::Get(kLoggerKomaCoreResourceModelResource)->Debug("Import");
 
   auto shader_program = std::make_shared<ShaderProgram>("tmp/model_shader.vs",
                                                         "tmp/model_shader.fs");
 
   shader_program->Initialize();
-
   model_ = std::make_shared<Model>(file_system_path_, shader_program);
 
   return true;
 }
 
 bool ModelResource::Export() {
-  Logger::Get(LOGGER_KOMA_CORE_RESOURCE_MODEL_RESOURCE)->Debug("Export");
-
+  Logger::Get(kLoggerKomaCoreResourceModelResource)->Debug("Export");
   return true;
 }
 
 bool ModelResource::Dump() {
-  // if (!model_) return false;
-
+  // if (model_ == nullptr) return false;
   return true;
 }
 

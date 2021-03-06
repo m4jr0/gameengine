@@ -12,7 +12,7 @@
 namespace koma {
 namespace date {
 double GetNow() {
-  auto current_time = std::chrono::system_clock::now();
+  const auto current_time = std::chrono::system_clock::now();
 
   return GetDouble(current_time);
 }
@@ -24,7 +24,7 @@ std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
 
 double GetDouble(
     const std::chrono::time_point<std::chrono::system_clock> &time) {
-  auto duration_in_seconds =
+  const auto duration_in_seconds =
       std::chrono::duration<double>(time.time_since_epoch());
 
   return duration_in_seconds.count() * 1000;

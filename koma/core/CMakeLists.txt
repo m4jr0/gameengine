@@ -18,8 +18,6 @@ add_library(${CORE_LIBRARY_NAME}
 
   input/input_manager.cpp
 
-  locator/locator.cpp
-
   physics/physics_manager.cpp
 
   render/render_manager.cpp

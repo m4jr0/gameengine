@@ -5,10 +5,10 @@
 #include <memory>
 
 #include "GL/glew.h"
+#include "core/game.hpp"
 #include "core/game_object/game_object.hpp"
 #include "core/game_object/model/model.hpp"
 #include "core/game_object/physics/transform.hpp"
-#include "core/locator/locator.hpp"
 #include "core/render/shader/shader_program.hpp"
 #include "core/render/texture/texture_loader.hpp"
 #include "core/resource/model_resource.hpp"
@@ -30,13 +30,13 @@ void InitializeTmp(GLuint width, GLuint height) {
       std::make_shared<ModelResource>("assets/models/nanosuit/model.obj");
 
   model_resource->Import();
-  auto test_transform = std::make_shared<Transform>();
+  const auto test_transform = std::make_shared<Transform>();
 
   test_game_object = GameObject::Create();
   test_game_object->AddComponent(test_transform);
   test_game_object->AddComponent(model_resource->GetModel());
 
-  Locator::game_object_manager().AddGameObject(test_game_object);
+  Game::game()->game_object_manager()->AddGameObject(test_game_object);
 }
 
 void UpdateTmp() {}

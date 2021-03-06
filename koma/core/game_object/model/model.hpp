@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_GAME_OBJECT_MODEL_MODEL_HPP_
 #define KOMA_CORE_GAME_OBJECT_MODEL_MODEL_HPP_
 
-#define LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL "koma_core_render"
+constexpr auto kLoggerKomaCoreGameObjectModelModel = "koma_core_render";
 
 #include <memory>
 #include <string>
@@ -24,10 +24,10 @@ class Model : public Component {
  public:
   Model(const std::string &, std::shared_ptr<ShaderProgram> = nullptr);
 
-  void Draw(std::shared_ptr<ShaderProgram>);
   void Initialize() override;
   void Destroy() override;
   void Update() override;
+  void Draw(std::shared_ptr<ShaderProgram>);
 
   template <class Archive>
   void Serialize(Archive &archive, const unsigned int file_version) {
@@ -40,19 +40,18 @@ class Model : public Component {
   }
 
  private:
+  void LoadModel();
+  void LoadNode(const aiNode *, const aiScene *);
+  Mesh LoadMesh(const aiMesh *, const aiScene *);
+
+  std::vector<Texture> LoadMaterialTextures(aiMaterial *, aiTextureType,
+                                            const std::string &);
+
   std::vector<Mesh> meshes_;
   std::string path_;
   std::string directory_;
   std::shared_ptr<Transform> transform_ = nullptr;
   std::shared_ptr<ShaderProgram> shader_program_ = nullptr;
-
-  void LoadModel();
-  void LoadNode(aiNode *, const aiScene *);
-  Mesh LoadMesh(aiMesh *, const aiScene *);
-
-  std::vector<Texture> LoadMaterialTextures(aiMaterial *, aiTextureType,
-                                            std::string);
-
   std::vector<Texture> loaded_textures_;
 };
 }  // namespace koma

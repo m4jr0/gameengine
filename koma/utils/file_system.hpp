@@ -5,7 +5,7 @@
 #ifndef KOMA_UTILS_FILE_SYSTEM_HPP_
 #define KOMA_UTILS_FILE_SYSTEM_HPP_
 
-#define LOGGER_KOMA_UTILS_FILE_SYSTEM "koma_utils"
+constexpr auto kLoggerKomaUtilsFileSystem = "koma_utils";
 
 #include <string>
 #include <vector>

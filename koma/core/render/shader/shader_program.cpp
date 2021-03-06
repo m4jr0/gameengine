@@ -16,7 +16,7 @@ namespace koma {
 ShaderProgram::ShaderProgram(const char *vertex_shader_path,
                              const char *fragment_shader_path) {
   if (!filesystem::ReadFile(vertex_shader_path, &vertex_shader_code_)) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)
+    Logger::Get(kLoggerKomaCoreRenderShaderShaderProgram)
         ->Error(
             "An error occurred while reading the vertex shader program file");
 
@@ -24,7 +24,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   }
 
   if (!filesystem::ReadFile(fragment_shader_path, &fragment_shader_code_)) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)
+    Logger::Get(kLoggerKomaCoreRenderShaderShaderProgram)
         ->Error(
             "An error occurred while reading the fragment shader program file");
 
@@ -35,7 +35,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
 }
 void ShaderProgram::Initialize() {
   if (!can_be_initialized_) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)
+    Logger::Get(kLoggerKomaCoreRenderShaderShaderProgram)
         ->Error(
             "An error occurred while creating the shader program. It can't be "
             "initialized");
@@ -53,7 +53,7 @@ void ShaderProgram::Initialize() {
   glAttachShader(id_, fragment_shader_id_);
   glLinkProgram(id_);
 
-  int result = GL_FALSE;
+  auto result = GL_FALSE;
   int info_log_len;
 
   // Check the program.
@@ -61,14 +61,12 @@ void ShaderProgram::Initialize() {
   glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM);
-
+    const auto logger = Logger::Get(kLoggerKomaCoreRenderShaderShaderProgram);
     std::vector<GLchar> error_message(info_log_len + 1);
 
     glGetProgramInfoLog(id_, info_log_len, nullptr, &error_message[0]);
 
     logger->Error("Error while creating the shader program");
-
     logger->Error(std::string(error_message.data()));
   }
 
@@ -80,16 +78,16 @@ void ShaderProgram::Initialize() {
 }
 
 bool ShaderProgram::CompileShader(unsigned int *shader_id,
-                                  std::string *shader_code,
+                                  const std::string *shader_code,
                                   GLenum shader_type) {
   // compile shader
-  char const *source_pointer = shader_code->c_str();
+  auto source_pointer = shader_code->c_str();
 
   *shader_id = glCreateShader(shader_type);
   glShaderSource(*shader_id, 1, &source_pointer, nullptr);
   glCompileShader(*shader_id);
 
-  int result = GL_FALSE;
+  auto result = GL_FALSE;
   int info_log_len;
 
   // check shader
@@ -97,21 +95,20 @@ bool ShaderProgram::CompileShader(unsigned int *shader_id,
   glGetShaderiv(*shader_id, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM);
+    const auto logger = Logger::Get(kLoggerKomaCoreRenderShaderShaderProgram);
 
     std::vector<char> error_message(info_log_len + 1);
 
     glGetShaderInfoLog(*shader_id, info_log_len, nullptr, &error_message[0]);
 
     logger->Error("Error while compiling shader for shader program");
-
     logger->Error(std::string(error_message.data()));
 
     return false;
   }
 
   if (result == GL_FALSE) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM)
+    Logger::Get(kLoggerKomaCoreRenderShaderShaderProgram)
         ->Error("Error while compiling shader for shader program");
 
     return false;

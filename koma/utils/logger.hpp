@@ -18,7 +18,6 @@ class Logger final {
 
   Logger() = delete;
   Logger(std::string);
-  virtual ~Logger();
 
   template <typename... Targs>
   void Error(Targs... args) const {
@@ -62,10 +61,10 @@ class Logger final {
     GetString(string_stream, args...);
   }
 
+  static std::shared_ptr<const Logger> Create(std::string);
+
   static std::unordered_map<std::string, std::shared_ptr<const Logger>>
       loggers_;
-
-  static std::shared_ptr<const Logger> Create(std::string);
 
   std::string name_;
 };

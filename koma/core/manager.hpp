@@ -13,6 +13,13 @@
 namespace koma {
 class Manager {
  public:
+  Manager() = default;
+  Manager(const Manager&) = delete;
+  Manager(Manager&&) = delete;
+  Manager& operator=(const Manager&) = delete;
+  Manager& operator=(Manager&&) = delete;
+  virtual ~Manager() = default;
+
   virtual void Initialize();
   virtual void Destroy();
   virtual void Update();

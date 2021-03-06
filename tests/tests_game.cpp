@@ -6,38 +6,37 @@
 
 #include <memory>
 
-#include "../koma/core/locator/locator.hpp"
+#include "core/game.hpp"
 
 namespace komatests {
 const double StopComponent::kTimeDelta = 500;  // 0.5 seconds.
 
 void StopComponent::Update() {
-  koma::TimeManager &time_manager = koma::Locator::time_manager();
-  double now = time_manager.GetRealNow();
+  auto now = koma::Game::game()->time_manager()->GetRealNow();
 
   if (now - starting_time_ > kTimeDelta) {
-    koma::Locator::game().Quit();
+    koma::Game::game()->game()->Quit();
   }
 }
 
 void StopComponent::Initialize() {
-  starting_time_ = koma::Locator::time_manager().GetRealNow();
+  starting_time_ = koma::Game::game()->time_manager()->GetRealNow();
 }
 };  // namespace komatests
 
 TEST_CASE("Game state handling", "[koma::Game]") {
-  koma::Game game = koma::Game();
-  game.Initialize();
+  auto game = koma::Game::game();
+  game->Initialize();
 
   SECTION("Game runs, then quits after.") {
     auto game_object = koma::GameObject::Create();
     auto component = std::make_shared<komatests::StopComponent>();
 
-    koma::Locator::game_object_manager().AddGameObject(game_object);
+    game->game_object_manager()->AddGameObject(game_object);
     game_object->AddComponent(component);
 
-    game.Run();
+    game->Run();
 
-    REQUIRE(game.is_running() == false);
+    REQUIRE(game->is_running() == false);
   }
 }

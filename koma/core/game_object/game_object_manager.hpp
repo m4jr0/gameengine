@@ -14,10 +14,14 @@
 namespace koma {
 class GameObjectManager : public Manager {
  public:
-  GameObjectManager();
-  virtual ~GameObjectManager();
-  void Destroy() override;
+  GameObjectManager() = default;
+  GameObjectManager(const GameObjectManager &) = delete;
+  GameObjectManager(GameObjectManager &&) = delete;
+  GameObjectManager &operator=(const GameObjectManager &) = delete;
+  GameObjectManager &operator=(GameObjectManager &&) = delete;
+  virtual ~GameObjectManager() = default;
 
+  void Destroy() override;
   void Update() override;
   void FixedUpdate();
   void AddGameObject(std::shared_ptr<GameObject>);

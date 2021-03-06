@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_GAME_OBJECT_MODEL_MESH_HPP_
 #define KOMA_CORE_GAME_OBJECT_MODEL_MESH_HPP_
 
-#define LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MESH "koma_core_render"
+constexpr auto kLoggerKomaCoreGameObjectModelMesh = "koma_core_render";
 
 #include <memory>
 #include <string>
@@ -37,10 +37,6 @@ class Mesh {
 
   void Draw(std::shared_ptr<ShaderProgram>);
 
-  const std::vector<Vertex> vertices() const noexcept;
-  const std::vector<unsigned int> indices() const noexcept;
-  const std::vector<Texture> textures() const noexcept;
-
   template <class Archive>
   void Serialize(Archive &archive, const unsigned int file_version) {
     archive &vertices_;
@@ -48,13 +44,16 @@ class Mesh {
     archive &textures_;
   }
 
+  const std::vector<Vertex> vertices() const noexcept;
+  const std::vector<unsigned int> indices() const noexcept;
+  const std::vector<Texture> textures() const noexcept;
+
  private:
   void Initialize();
 
   std::vector<Vertex> vertices_;
   std::vector<unsigned int> indices_;
   std::vector<Texture> textures_;
-
   unsigned int vao_;
   unsigned int vbo_;
   unsigned int ebo_;

@@ -15,14 +15,13 @@ namespace koma {
 class Transform : public Component,
                   public std::enable_shared_from_this<Transform> {
  public:
-  const glm::mat4 GetTransformMatrix() const;
-
   void Destroy() override;
+
+  const glm::mat4 GetTransformMatrix() const;
 
   const glm::vec3 position() const noexcept;
   void position(float, float, float);
   void position(glm::vec3);
-
   const std::shared_ptr<Transform> parent() const noexcept;
   const std::shared_ptr<Transform> root_parent() const noexcept;
 

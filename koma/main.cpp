@@ -2,42 +2,32 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-
-#ifdef _MSC_VER
-#include <crtdbg.h>
-#else
-#define _ASSERT (expr)((void)0)
-#define _ASSERTE (expr)((void)0)
-#endif  // _MSC_VER
-
-#ifdef _WIN32
-#include <windows.h>
-#endif  // _WIN32
-
 #include <memory>
-
-#ifdef _WIN32
-#include <iostream>
-#endif  // _WIN32
 
 #include "core/game.hpp"
 
 #ifdef _WIN32
+#include <windows.h>
+
+#include <iostream>
+
 // Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
 #endif  // _WIN32
 
-std::shared_ptr<koma::Game> game = nullptr;
-
-#ifdef _WIN32
-BOOL WINAPI ConsoleHandler(DWORD);
-#endif  // _WIN32
+koma::Game* game = nullptr;
 
 void KillGame();
 
+void KillGame() {
+  if (game == nullptr) return;
+
+  game->Destroy();
+}
+
 #ifdef _WIN32
+BOOL WINAPI ConsoleHandler(DWORD);
+
 BOOL WINAPI ConsoleHandler(DWORD dwType) {
   switch (dwType) {
     case CTRL_CLOSE_EVENT:
@@ -55,14 +45,8 @@ BOOL WINAPI ConsoleHandler(DWORD dwType) {
 }
 #endif  // _WIN32
 
-void KillGame() {
-  if (!game) return;
-
-  game->Destroy();
-}
-
-int main(int argc, char *argv[]) {
-  game = std::make_shared<koma::Game>();
+int main(int argc, char* argv[]) {
+  game = koma::Game::game();
 
 #ifdef _WIN32
   if (!SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {

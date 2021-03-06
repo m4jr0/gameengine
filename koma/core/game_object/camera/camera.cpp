@@ -4,7 +4,7 @@
 
 #include "camera.hpp"
 
-#include "core/locator/locator.hpp"
+#include "core/game.hpp"
 #include "core/render/render_manager.hpp"
 
 #ifdef _WIN32
@@ -13,6 +13,20 @@
 #endif  // _WIN32
 
 namespace koma {
+void Camera::Initialize() {
+  Component::Initialize();
+
+  const auto render_manager = Game::game()->render_manager();
+
+  UpdateMatrices(render_manager->width(), render_manager->height());
+};
+
+void Camera::FixedUpdate() {
+  const auto render_manager = Game::game()->render_manager();
+
+  UpdateMatrices(render_manager->width(), render_manager->height());
+}
+
 void Camera::UpdateViewMatrix() {
   view_matrix_ = glm::lookAt(position_, position_ + direction_, orientation_);
 }
@@ -22,22 +36,8 @@ void Camera::UpdateMatrices(int width, int height) {
   UpdateViewMatrix();
 }
 
-glm::mat4 Camera::GetMvp(glm::mat4 model_matrix) {
+glm::mat4 Camera::GetMvp(const glm::mat4& model_matrix) {
   return projection_matrix_ * view_matrix_ * model_matrix;
-}
-
-void Camera::Initialize() {
-  Component::Initialize();
-
-  RenderManager render_manager = Locator::render_manager();
-
-  UpdateMatrices(render_manager.width(), render_manager.height());
-};
-
-void Camera::FixedUpdate() {
-  RenderManager render_manager = Locator::render_manager();
-
-  UpdateMatrices(render_manager.width(), render_manager.height());
 }
 
 void Camera::position(float x, float y, float z) {
@@ -52,11 +52,13 @@ void Camera::orientation(float x, float y, float z) {
   orientation_ = glm::vec3(x, y, z);
 }
 
-void Camera::position(glm::vec3 position) { position_ = position; }
+void Camera::position(const glm::vec3& position) { position_ = position; }
 
-void Camera::direction(glm::vec3 direction) { direction_ = direction; }
+void Camera::direction(const glm::vec3& direction) { direction_ = direction; }
 
-void Camera::orientation(glm::vec3 orientation) { orientation_ = orientation; }
+void Camera::orientation(const glm::vec3& orientation) {
+  orientation_ = orientation;
+}
 
 void Camera::nearest_point(float nearest_point) noexcept {
   nearest_point_ = nearest_point;

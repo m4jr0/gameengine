@@ -2,8 +2,6 @@ add_library(${UTILS_LIBRARY_NAME}
   date.cpp
   file_system.cpp
   logger.cpp
-  observer.hpp
-  subject.cpp
 )
 
 target_include_directories(${UTILS_LIBRARY_NAME}

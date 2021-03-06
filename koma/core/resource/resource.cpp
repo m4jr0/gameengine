@@ -22,8 +22,8 @@ Resource::Resource(const std::string &path) {
 }
 
 void Resource::SetMetaFile() {
-  nlohmann::json resource_meta_data;
-  double now = date::GetNow();
+  nlohmann::json resource_meta_data{};
+  const auto now = date::GetNow();
 
   if (filesystem::IsExist(file_system_path_)) {
     std::string raw_meta_data;
@@ -41,11 +41,10 @@ void Resource::SetMetaFile() {
   }
 
   resource_meta_data["checksum"] = filesystem::GetChecksum(file_system_path_);
-
   resource_meta_data["data"] = GetMetaData();
 
   if (!filesystem::WriteToFile(file_system_path_, resource_meta_data.dump(2))) {
-    Logger::Get(LOGGER_KOMA_CORE_RESOURCE_RESOURCE)
+    Logger::Get(kLoggerKomaCoreResourceResource)
         ->Error("Could not write the resource meta file at path ",
                 file_system_path_);
   }
@@ -54,13 +53,11 @@ void Resource::SetMetaFile() {
 void Resource::Initialize() {
   creation_time_ = date::GetNow();
   modification_time_ = creation_time_;
-
   SetMetaFile();
 }
 
 void Resource::Update() {
   modification_time_ = date::GetNow();
-
   SetMetaFile();
 }
 

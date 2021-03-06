@@ -7,7 +7,7 @@
 #include <stdexcept>
 
 #include "boost/format.hpp"
-#include "core/locator/locator.hpp"
+#include "core/game.hpp"
 #include "utils/logger.hpp"
 
 // TODO(m4jr0): Remove this include (and its uses) when a proper game object
@@ -21,7 +21,7 @@
 
 namespace koma {
 void RenderManager::Initialize() {
-  auto logger = Logger::Get(LOGGER_KOMA_CORE_RENDER_RENDER_MANAGER);
+  const auto logger = Logger::Get(kLoggerKomaCoreRenderRenderManager);
 
   if (!glfwInit()) {
     logger->Error("Failed to initialize GLFW");
@@ -42,11 +42,10 @@ void RenderManager::Initialize() {
 
   height_ = kDefaultHeight_;
   width_ = kDefaultWidth_;
-
   window_ =
       glfwCreateWindow(width_, height_, GetTitle().c_str(), nullptr, nullptr);
 
-  if (!window_) {
+  if (window_ == nullptr) {
     logger->Error(
         "Failed to open a GLFW window. If you have an Intel GPU, they are not ",
         kOpenGLMajorVersion_, ".", kOpenGLMinorVersion_, " compatible");
@@ -86,14 +85,14 @@ void RenderManager::Update(double interpolation,
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (glfwWindowShouldClose(window_) != 0) {
-    Locator::game().Quit();
+    Game::game()->game()->Quit();
 
     return;
   }
 
   glfwGetWindowSize(window_, &width_, &height_);
 
-  current_time_ += Locator::time_manager().time_delta();
+  current_time_ += Game::game()->time_manager()->time_delta();
 
   if (current_time_ > 1000) {
     glfwSetWindowTitle(window_, GetTitle().c_str());
@@ -107,19 +106,17 @@ void RenderManager::Update(double interpolation,
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   UpdateTmp();
 
-  GLenum error_code = glGetError();
+  const auto error_code = glGetError();
 
   if (error_code != GL_NO_ERROR) {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER_RENDER_MANAGER)
+    Logger::Get(kLoggerKomaCoreRenderRenderManager)
         ->Error("OpenGL Error ", error_code, " (",
                 boost::format("0x%02x") % error_code,
                 "): ", glewGetErrorString(error_code));
   }
 
   glfwSwapBuffers(window_);
-
-  Locator::input_manager().Update();
-
+  Game::game()->input_manager()->Update();
   ++counter_;
 }
 
@@ -137,7 +134,6 @@ void RenderManager::width(int width) noexcept {
 
 void RenderManager::height(int height) noexcept {
   height_ = height;
-
   glfwSetWindowSize(window_, width_, height_);
 }
 

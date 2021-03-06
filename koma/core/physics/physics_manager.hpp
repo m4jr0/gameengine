@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_PHYSICS_PHYSICS_MANAGER_HPP_
 #define KOMA_CORE_PHYSICS_PHYSICS_MANAGER_HPP_
 
-#define LOGGER_KOMA_CORE_PHYSICS_PHYSICS_MANAGER "koma_physics"
+constexpr auto kLoggerKomaCorePhysicsPhysicsManager = "koma_physics";
 
 #include "core/game_object/game_object_manager.hpp"
 #include "core/manager.hpp"
@@ -13,15 +13,21 @@
 namespace koma {
 class PhysicsManager : public Manager {
  public:
+  PhysicsManager() = default;
+  PhysicsManager(const PhysicsManager &) = delete;
+  PhysicsManager(PhysicsManager &&) = delete;
+  PhysicsManager &operator=(const PhysicsManager &) = delete;
+  PhysicsManager &operator=(PhysicsManager &&) = delete;
+  virtual ~PhysicsManager() = default;
+
   void Initialize() override;
   void Destroy() override;
-
   void Update(GameObjectManager *);
 
   const int counter() const noexcept;
 
  private:
-  int counter_ = 0;
+  unsigned int counter_ = 0;
   double current_time_ = 0;
 };
 }  // namespace koma

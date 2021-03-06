@@ -5,7 +5,7 @@
 #ifndef KOMA_UTILS_DATE_HPP_
 #define KOMA_UTILS_DATE_HPP_
 
-#define LOGGER_KOMA_UTILS_DATE "koma_utils"
+constexpr auto kLoggerKomaUtilsDate = "koma_utils";
 
 #include <chrono>
 #include <ctime>

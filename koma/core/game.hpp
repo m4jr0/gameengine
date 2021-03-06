@@ -5,8 +5,11 @@
 #ifndef KOMA_CORE_GAME_HPP_
 #define KOMA_CORE_GAME_HPP_
 
-#define LOGGER_KOMA_CORE_GAME "koma_core_game"
+constexpr auto kLoggerKomaCoreGame = "koma_core_game";
 
+#include <memory>
+
+#include "game_object/camera/camera.hpp"
 #include "game_object/game_object_manager.hpp"
 #include "input/input_manager.hpp"
 #include "physics/physics_manager.hpp"
@@ -15,14 +18,14 @@
 #include "time/time_manager.hpp"
 
 namespace koma {
-class Locator;
-
 class Game {
  public:
   static constexpr double kMsPerUpdate_ = 16.66;  // 60 Hz refresh.
 
-  Game();
-  virtual ~Game();
+  Game(const Game&) = delete;
+  Game(Game&&) = delete;
+  Game& operator=(const Game&) = delete;
+  Game& operator=(Game&&) = delete;
 
   void Initialize();
   void Run();
@@ -30,17 +33,30 @@ class Game {
   void Destroy();
   void Quit();
 
+  static Game* const game();
+  ResourceManager* const resource_manager();
+  RenderManager* const render_manager();
+  InputManager* const input_manager();
+  TimeManager* const time_manager();
+  GameObjectManager* const game_object_manager();
+  Camera* const main_camera();
+
   const bool is_running() const noexcept;
 
  protected:
-  ResourceManager resource_manager_;
-  InputManager input_manager_;
-  PhysicsManager physics_manager_;
-  RenderManager render_manager_;
-  GameObjectManager game_object_manager_;
-  TimeManager time_manager_;
+  static std::unique_ptr<Game> game_;
+
+  std::unique_ptr<ResourceManager> resource_manager_ = nullptr;
+  std::unique_ptr<InputManager> input_manager_ = nullptr;
+  std::unique_ptr<PhysicsManager> physics_manager_ = nullptr;
+  std::unique_ptr<RenderManager> render_manager_ = nullptr;
+  std::unique_ptr<GameObjectManager> game_object_manager_ = nullptr;
+  std::unique_ptr<TimeManager> time_manager_ = nullptr;
+  std::shared_ptr<Camera> main_camera_ = nullptr;
 
  private:
+  Game();
+
   bool is_running_ = false;
   bool is_exit_requested_ = false;
 

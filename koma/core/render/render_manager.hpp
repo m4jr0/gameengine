@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RENDER_RENDER_MANAGER_HPP_
 #define KOMA_CORE_RENDER_RENDER_MANAGER_HPP_
 
-#define LOGGER_KOMA_CORE_RENDER_RENDER_MANAGER "koma_core_render"
+constexpr auto kLoggerKomaCoreRenderRenderManager = "koma_core_render";
 
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -13,8 +13,6 @@
 #include "core/manager.hpp"
 
 namespace koma {
-class Locator;
-
 class RenderManager : public Manager {
  public:
   static constexpr char kDefaultRenderingWindowName_[] = "Koma Game Engine";
@@ -23,6 +21,13 @@ class RenderManager : public Manager {
   static constexpr unsigned int kDefaultWidth_ = 1280;
   static constexpr unsigned int kDefaultHeight_ = 720;
 
+  RenderManager() = default;
+  RenderManager(const RenderManager &) = delete;
+  RenderManager(RenderManager &&) = delete;
+  RenderManager &operator=(const RenderManager &) = delete;
+  RenderManager &operator=(RenderManager &&) = delete;
+  virtual ~RenderManager() = default;
+
   void Initialize() override;
   void Destroy() override;
   void Update(double, GameObjectManager *);
@@ -30,18 +35,17 @@ class RenderManager : public Manager {
   const int width() const noexcept;
   const int height() const noexcept;
   const GLFWwindow *window() const noexcept;
-
   void width(int) noexcept;
   void height(int) noexcept;
 
  private:
+  std::string GetTitle();
+
   int counter_ = 0;
   double current_time_ = 0;
   GLFWwindow *window_ = nullptr;
   int width_ = 0;
   int height_ = 0;
-
-  std::string GetTitle();
 };
 }  // namespace koma
 

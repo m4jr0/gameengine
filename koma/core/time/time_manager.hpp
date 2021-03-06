@@ -10,10 +10,14 @@
 namespace koma {
 class TimeManager : public Manager {
  public:
-  static double GetRealNow();
-
+  TimeManager() = default;
+  TimeManager(const TimeManager&) = delete;
+  TimeManager(TimeManager&&) = delete;
+  TimeManager& operator=(const TimeManager&) = delete;
+  TimeManager& operator=(TimeManager&&) = delete;
   virtual ~TimeManager() = default;
 
+  static double GetRealNow();
   double GetNow();
   void Initialize() override;
   void Update() override;

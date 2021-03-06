@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_
 #define KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_
 
-#define LOGGER_KOMA_CORE_RENDER_SHADER_SHADER_PROGRAM "koma_core_render"
+constexpr auto kLoggerKomaCoreRenderShaderShaderProgram = "koma_core_render";
 
 #include <string>
 
@@ -20,7 +20,6 @@ class ShaderProgram {
   void Initialize();
   void Use();
   void Destroy();
-
   void SetFloat(const std::string &, float);
   void SetFloat(const std::string &, float, float);
   void SetFloat(const std::string &, float, float, float);
@@ -87,7 +86,7 @@ class ShaderProgram {
   unsigned int id_ = -1;
   unsigned int vertex_shader_id_ = -1;
   unsigned int fragment_shader_id_ = -1;
-  bool CompileShader(unsigned int *, std::string *, GLenum);
+  bool CompileShader(unsigned int *, const std::string *, GLenum);
   std::string vertex_shader_code_;
   std::string fragment_shader_code_;
   bool can_be_initialized_ = false;

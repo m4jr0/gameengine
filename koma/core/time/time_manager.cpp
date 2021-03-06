@@ -15,8 +15,8 @@ namespace koma {
 double TimeManager::GetRealNow() { return date::GetNow(); }
 
 double TimeManager::GetNow() {
-  double time_delta = GetRealNow() - previous_time_;
-  double time_to_add = time_delta * time_scale_;
+  const auto time_delta = GetRealNow() - previous_time_;
+  const auto time_to_add = time_delta * time_scale_;
 
   return previous_time_ + time_to_add;
 }

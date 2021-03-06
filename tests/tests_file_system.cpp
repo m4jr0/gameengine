@@ -11,19 +11,18 @@
 
 namespace komatests {
 const std::string test_dir = "komatests_tests_file_system";
-std::string current_dir = koma::filesystem::GetCurrentDirectory();
-std::string tmp_dir = current_dir + "/" + test_dir;
+auto current_dir = koma::filesystem::GetCurrentDirectory();
+auto tmp_dir = current_dir + "/" + test_dir;
 
-std::string &FormatAbsolutePath(std::string &absolute_path,
-                                const std::string &to_search, const int index) {
-  boost::iterator_range<std::string::iterator> it =
-      boost::find_nth(absolute_path, to_search, -index);
+std::string FormatAbsolutePath(const std::string &absolute_path,
+                               const std::string &to_search, const int index) {
+  auto it = boost::find_nth(absolute_path, to_search, -index);
 
-  std::size_t index_to_cut = std::distance(absolute_path.begin(), it.begin());
+  auto index_to_cut = std::distance(absolute_path.begin(), it.begin());
+  const auto formatted_absolute_path =
+      absolute_path.substr(index_to_cut, absolute_path.length());
 
-  absolute_path = absolute_path.substr(index_to_cut, absolute_path.length());
-
-  return absolute_path;
+  return formatted_absolute_path;
 }
 }  // namespace komatests
 
@@ -120,7 +119,7 @@ TEST_CASE("File system management", "[koma::filesystem]") {
 
     REQUIRE(koma::filesystem::ListAll(komatests::tmp_dir, true) == all_test);
 
-    std::string does_not_exist = komatests::tmp_dir + "/DOESNOTEXIST";
+    const auto does_not_exist = komatests::tmp_dir + "/DOESNOTEXIST";
     std::vector<std::string> last_tests;  // Empty list.
 
     REQUIRE(koma::filesystem::ListFiles(does_not_exist, true) == last_tests);
@@ -130,7 +129,7 @@ TEST_CASE("File system management", "[koma::filesystem]") {
 
     REQUIRE(koma::filesystem::ListAll(does_not_exist, true) == last_tests);
 
-    std::string file_path = komatests::tmp_dir + "/test8";
+    const auto file_path = komatests::tmp_dir + "/test8";
 
     // Should be empty, because a file is not a directory.
     REQUIRE(koma::filesystem::ListDirectories(file_path, true) == last_tests);
@@ -160,24 +159,23 @@ TEST_CASE("File system management", "[koma::filesystem]") {
 
     REQUIRE(koma::filesystem::GetNormalizedPath("test/.././test") == "test");
 
-    const std::string file_path = komatests::tmp_dir + "/test8";
-    const std::string dir_path = komatests::tmp_dir + "/test3";
-    const std::string does_not_exist_path =
-        komatests::tmp_dir + "/DOESNOTEXIST";
+    const auto file_path = komatests::tmp_dir + "/test8";
+    const auto dir_path = komatests::tmp_dir + "/test3";
+    const auto does_not_exist_path = komatests::tmp_dir + "/DOESNOTEXIST";
 
     // For tests with absolute paths, we simply cut the beginning of the
     // string to allow the tests to run on any computer.
-    std::string tmp_file_path = koma::filesystem::GetAbsolutePath(file_path);
+    auto tmp_file_path = koma::filesystem::GetAbsolutePath(file_path);
 
     REQUIRE(komatests::FormatAbsolutePath(tmp_file_path, "/", 2) ==
             "/" + komatests::test_dir + "/test8");
 
-    std::string tmp_dir_path = koma::filesystem::GetAbsolutePath(dir_path);
+    auto tmp_dir_path = koma::filesystem::GetAbsolutePath(dir_path);
 
     REQUIRE(komatests::FormatAbsolutePath(tmp_dir_path, "/", 2) ==
             "/" + komatests::test_dir + "/test3");
 
-    std::string tmp_does_not_exist_path =
+    auto tmp_does_not_exist_path =
         koma::filesystem::GetAbsolutePath(does_not_exist_path);
 
     REQUIRE(komatests::FormatAbsolutePath(tmp_does_not_exist_path, "/", 2) ==
@@ -232,9 +230,9 @@ TEST_CASE("File system management", "[koma::filesystem]") {
   }
 
   SECTION("State operations.") {
-    std::string file_path = komatests::tmp_dir + "/test8";
-    std::string dir_path = komatests::tmp_dir + "/test3";
-    std::string does_not_exist = komatests::tmp_dir + "/DOESNOTEXIST";
+    const auto file_path = komatests::tmp_dir + "/test8";
+    const auto dir_path = komatests::tmp_dir + "/test3";
+    const auto does_not_exist = komatests::tmp_dir + "/DOESNOTEXIST";
 
     REQUIRE(!koma::filesystem::IsDirectory(file_path));
     REQUIRE(koma::filesystem::IsFile(file_path));

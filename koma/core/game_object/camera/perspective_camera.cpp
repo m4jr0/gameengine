@@ -14,7 +14,8 @@
 namespace koma {
 void PerspectiveCamera::UpdateProjectionMatrix(int width, int height) {
   projection_matrix_ =
-      glm::perspective(glm::radians(fov_), (float)width / (float)height,
+      glm::perspective(glm::radians(fov_),
+                       static_cast<float>(width) / static_cast<float>(height),
                        nearest_point_, farthest_point_);
 }
 

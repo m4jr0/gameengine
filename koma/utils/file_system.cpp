@@ -25,7 +25,12 @@ bool WriteToFile(const std::string &file_path, const std::string &buffer,
 
   if (!IsExist(directory_path) || !IsDirectory(directory_path)) return false;
 
-  std::ios_base::openmode mode = boost::filesystem::ofstream::out;
+  // Necessary cast to make it work on Windows.
+#ifdef _WIN32
+  auto mode = static_cast<int>(boost::filesystem::ofstream::out);
+#else
+  auto mode = boost::filesystem::ofstream::out;
+#endif  // _WIN32
 
   if (!is_append) {
     mode |= boost::filesystem::ofstream::trunc;
@@ -33,7 +38,8 @@ bool WriteToFile(const std::string &file_path, const std::string &buffer,
     mode |= boost::filesystem::ofstream::app;
   }
 
-  boost::filesystem::ofstream file{file_path, mode};
+  auto file = boost::filesystem::ofstream(file_path, mode);
+
   file << buffer;
   file.close();
 
@@ -43,28 +49,23 @@ bool WriteToFile(const std::string &file_path, const std::string &buffer,
 bool ReadFile(const std::string &file_path, std::string *buffer) {
   std::ifstream input_stream;
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-  bool is_open = false;
+  auto is_open = false;
 
   try {
     input_stream.open(file_path, std::ios::in);
-
-    if (!input_stream.is_open()) {
-      is_open = false;
-    } else {
-      is_open = true;
-    }
+    is_open = input_stream.is_open();
   } catch (std::ifstream::failure &failure) {
     is_open = false;
   }
 
   if (!is_open) {
-    Logger::Get(LOGGER_KOMA_UTILS_FILE_SYSTEM)
+    Logger::Get(kLoggerKomaUtilsFileSystem)
         ->Error("Unable to open ", file_path);
 
     return false;
   }
 
-  std::stringstream string_stream;
+  std::stringstream string_stream{};
 
   string_stream << input_stream.rdbuf();
   *buffer = string_stream.str();
@@ -77,11 +78,11 @@ bool ReadFile(const std::string &file_path, std::string *buffer) {
 bool CreateFile(const std::string &create_path, bool is_recursive) {
   if (create_path.length() < 0) return false;
 
-  const std::string last_character = std::string(&create_path.back());
+  const auto last_character = std::string(&create_path.back());
 
   if (last_character == "/" || last_character == "\\") return false;
 
-  boost::filesystem::path path = boost::filesystem::path(create_path);
+  auto path = boost::filesystem::path(create_path);
 
   if (is_recursive) {
     boost::filesystem::path parent_path(GetParentPath(create_path));
@@ -89,7 +90,7 @@ bool CreateFile(const std::string &create_path, bool is_recursive) {
     if (!boost::filesystem::create_directories(parent_path)) return false;
   }
 
-  std::string directory_path = GetParentPath(create_path);
+  const auto directory_path = GetParentPath(create_path);
 
   if (!IsDirectory(directory_path) || !IsExist(directory_path)) {
     return false;
@@ -101,7 +102,7 @@ bool CreateFile(const std::string &create_path, bool is_recursive) {
 }
 
 bool CreateDirectory(const std::string &create_path, bool is_recursive) {
-  boost::filesystem::path path = boost::filesystem::path(create_path);
+  const auto path = boost::filesystem::path(create_path);
 
   if (is_recursive) {
     return boost::filesystem::create_directories(path);
@@ -118,18 +119,15 @@ bool Move(const std::string &previous_name, const std::string &new_name) {
     return false;
   }
 
-  boost::filesystem::path previous_path =
-      boost::filesystem::path(previous_name);
-
-  boost::filesystem::path new_path = boost::filesystem::path(new_name);
-
+  const auto previous_path = boost::filesystem::path(previous_name);
+  const auto new_path = boost::filesystem::path(new_name);
   boost::filesystem::rename(previous_path, new_path);
 
   return true;
 }
 
 bool Remove(const std::string &to_delete, bool is_recursive) {
-  boost::filesystem::path path = boost::filesystem::path(to_delete);
+  const auto path = boost::filesystem::path(to_delete);
 
   if (!is_recursive && IsDirectory(to_delete) && !IsEmpty(to_delete)) {
     return false;
@@ -145,7 +143,7 @@ std::vector<std::string> ListDirectories(const std::string &directory,
   }
 
   std::vector<std::string> list;
-  boost::filesystem::path path = boost::filesystem::path(directory);
+  const auto path = boost::filesystem::path(directory);
   boost::filesystem::directory_iterator end_it;
 
   for (boost::filesystem::directory_iterator it(path); it != end_it; ++it) {
@@ -173,7 +171,7 @@ std::vector<std::string> ListFiles(const std::string &directory,
     return list;
   }
 
-  boost::filesystem::path path = boost::filesystem::path(directory);
+  const auto path = boost::filesystem::path(directory);
   boost::filesystem::directory_iterator end_it;
 
   for (boost::filesystem::directory_iterator it(path); it != end_it; ++it) {
@@ -194,7 +192,7 @@ std::vector<std::string> ListAll(const std::string &directory, bool is_sorted) {
   if (!IsExist(directory)) return std::vector<std::string>();
 
   std::vector<std::string> list;
-  boost::filesystem::path path = boost::filesystem::path(directory);
+  const auto path = boost::filesystem::path(directory);
   boost::filesystem::directory_iterator end_it;
 
   for (boost::filesystem::directory_iterator it(path); it != end_it; ++it) {
@@ -221,8 +219,8 @@ std::string GetRelativePath(const std::string &absolute_path) {
 }
 
 std::string GetDirectoryPath(const std::string &file_path) {
-  bool is_directory = IsDirectory(file_path);
-  bool is_file = IsFile(file_path);
+  const auto is_directory = IsDirectory(file_path);
+  const auto is_file = IsFile(file_path);
 
   if (!is_directory && !is_file) return "";
 
@@ -238,7 +236,7 @@ std::string GetName(const std::string &path) {
 }
 
 std::string GetExtension(const std::string &file_path) {
-  std::string extension =
+  auto extension =
       boost::filesystem::path(file_path).extension().generic_string();
 
   extension.erase(0, 1);
@@ -248,19 +246,18 @@ std::string GetExtension(const std::string &file_path) {
 }
 
 std::string GetParentPath(const std::string &current_path) {
-  std::string absolute_path = GetAbsolutePath(current_path);
-
-  std::size_t path_size = absolute_path.length();
+  auto absolute_path = GetAbsolutePath(current_path);
+  const auto path_size = absolute_path.length();
 
   if (path_size <= 0) return "";
 
-  std::string last_character = std::string(&absolute_path.back());
+  const auto last_character = std::string(&absolute_path.back());
 
   if (last_character == "/") {
     absolute_path = absolute_path.substr(0, path_size - 1);
   }
 
-  std::size_t last_index = absolute_path.find_last_of("/");
+  const auto last_index = absolute_path.find_last_of("/");
 
   if (last_index == std::string::npos) return absolute_path;
 
@@ -276,6 +273,7 @@ bool IsDirectory(const std::string &path) {
 }
 
 bool IsFile(const std::string &path) {
+  std::cout << GetCurrentDirectory() << std::endl;
   return boost::filesystem::is_regular_file(path);
 }
 
@@ -296,8 +294,8 @@ bool IsEmpty(const std::string &path) {
 }
 
 std::string Append(const std::string &a, const std::string &b) {
-  std::string formatted_a = std::string(a);
-  std::string formatted_b = std::string(b);
+  auto formatted_a = std::string(a);
+  auto formatted_b = std::string(b);
 
   RemoveTrailingSlashes(formatted_a);
   RemoveLeadingSlashes(formatted_b);
@@ -310,8 +308,8 @@ std::string GetNormalizedPath(const std::string &path) {
 }
 
 std::string GetRelativePath(const std::string &from, const std::string &to) {
-  boost::filesystem::path from_path = boost::filesystem::path(from);
-  boost::filesystem::path to_path = boost::filesystem::path(to);
+  const auto from_path = boost::filesystem::path(from);
+  const auto to_path = boost::filesystem::path(to);
 
   return from_path.lexically_relative(to).generic_string();
 }
@@ -338,14 +336,13 @@ double GetLastModificationTime(const std::string &path) {
 std::string GetChecksum(const std::string &path) {
   if (!IsFile(path)) return "";
 
-  std::ifstream file = std::ifstream(path, std::ios::binary);
+  auto file = std::ifstream(path, std::ios::binary);
 
-  std::vector<unsigned char> checksum =
-      std::vector<unsigned char>(picosha2::k_digest_size);
+  auto checksum = std::vector<unsigned char>(picosha2::k_digest_size);
 
   picosha2::hash256(file, checksum.begin(), checksum.end());
 
-  return std::string(checksum.begin(), checksum.end());
+  return std::string(checksum.cbegin(), checksum.cend());
 }
 }  // namespace filesystem
 }  // namespace koma

@@ -5,6 +5,8 @@
 #ifndef KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
 #define KOMA_CORE_INPUT_INPUT_MANAGER_HPP_
 
+#include <atomic>
+
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 #include "core/manager.hpp"
@@ -140,29 +142,41 @@ enum class KeyCode {
 
 class InputManager : public Manager {
  public:
-  virtual bool GetKey(KeyCode);
-  virtual bool GetKeyUp(KeyCode);
-  virtual bool GetKeyDown(KeyCode);
-  virtual glm::vec2 GetMousePosition();
-  virtual void SetMousePosition(float, float);
+  InputManager() = default;
+  InputManager(const InputManager &) = delete;
+  InputManager(InputManager &&) = delete;
+  InputManager &operator=(const InputManager &) = delete;
+  InputManager &operator=(InputManager &&) = delete;
+  virtual ~InputManager() = default;
 
   virtual void Initialize() override;
   virtual void Update() override;
+  virtual bool IsKeyBeingPressed(KeyCode) const;
+  virtual bool IsKeyUp(KeyCode) const;
+  virtual bool IsKeyDown(KeyCode) const;
+  virtual glm::vec2 GetMousePosition() const;
+  virtual void SetMousePosition(float, float);
 
  private:
-  virtual GLFWwindow *GetWindow();
+  mutable std::atomic<GLFWwindow *> cached_window_ = nullptr;
+  virtual GLFWwindow *cached_window() const;
 };
 
 class NullInputManager : public InputManager {
  public:
-  virtual bool GetKey(KeyCode) override { return false; };
-  virtual bool GetKeyUp(KeyCode) override { return false; };
-  virtual bool GetKeyDown(KeyCode) override { return false; };
+  NullInputManager() = default;
+  NullInputManager(const NullInputManager &) = delete;
+  NullInputManager(NullInputManager &&) = delete;
+  NullInputManager &operator=(const NullInputManager &) = delete;
+  NullInputManager &operator=(NullInputManager &&) = delete;
+  virtual ~NullInputManager() = default;
 
-  virtual glm::vec2 GetMousePosition() override {
+  virtual bool IsKeyBeingPressed(KeyCode) const override { return false; };
+  virtual bool IsKeyUp(KeyCode) const override { return false; };
+  virtual bool IsKeyDown(KeyCode) const override { return false; };
+  virtual glm::vec2 GetMousePosition() const override {
     return glm::vec2(0.0f, 0.0f);
   };
-
   virtual void SetMousePosition(float, float) override{};
 };
 }  // namespace koma

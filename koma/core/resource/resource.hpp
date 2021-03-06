@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RESOURCE_RESOURCE_HPP_
 #define KOMA_CORE_RESOURCE_RESOURCE_HPP_
 
-#define LOGGER_KOMA_CORE_RESOURCE_RESOURCE "koma_core_resource"
+constexpr auto kLoggerKomaCoreResourceResource = "koma_core_resource";
 
 #include <memory>
 #include <string>
@@ -20,20 +20,15 @@
 namespace koma {
 class Resource : public Component {
  public:
-  const boost::uuids::uuid kId() const noexcept;
+  friend ResourceManager;
+
   Resource(const std::string &);
 
   virtual void Destroy() = 0;
 
-  friend ResourceManager;
+  const boost::uuids::uuid kId() const noexcept;
 
  protected:
-  double creation_time_;
-  double modification_time_;
-  std::string file_system_path_;
-  std::string file_system_name_;
-  const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
-
   Resource() = delete;
   virtual void SetMetaFile();
   virtual nlohmann::json GetMetaData() = 0;
@@ -44,6 +39,12 @@ class Resource : public Component {
   virtual bool Export() = 0;
   virtual bool Dump() = 0;
   virtual bool Load() = 0;
+
+  double creation_time_;
+  double modification_time_;
+  std::string file_system_path_;
+  std::string file_system_name_;
+  const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
 };
 }  // namespace koma
 

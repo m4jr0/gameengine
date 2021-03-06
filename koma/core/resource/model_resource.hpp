@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RESOURCE_MODEL_RESOURCE_HPP_
 #define KOMA_CORE_RESOURCE_MODEL_RESOURCE_HPP_
 
-#define LOGGER_KOMA_CORE_RESOURCE_MODEL_RESOURCE "koma_core_resource"
+constexpr auto kLoggerKomaCoreResourceModelResource = "koma_core_resource";
 
 #include <memory>
 
@@ -18,12 +18,10 @@ class ModelResource : public Resource {
   ModelResource(const std::string &path) : Resource(path){};
 
   virtual void Destroy() override;
-
   virtual bool Import() override;
   virtual bool Export() override;
   virtual bool Dump() override;
   virtual bool Load() override;
-
   virtual nlohmann::json GetMetaData() override;
   virtual std::shared_ptr<Model> GetModel() { return model_; };
 

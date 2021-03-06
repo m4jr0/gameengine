@@ -14,7 +14,6 @@
 #include "game_object/camera/camera_controls.hpp"
 #include "game_object/camera/perspective_camera.hpp"
 #include "input/input_manager.hpp"
-#include "locator/locator.hpp"
 #include "utils/logger.hpp"
 
 #ifdef _WIN32
@@ -24,87 +23,78 @@
 
 namespace koma {
 Game::Game() {
-  resource_manager_ = ResourceManager();
-  physics_manager_ = PhysicsManager();
-  render_manager_ = RenderManager();
-  game_object_manager_ = GameObjectManager();
-  time_manager_ = TimeManager();
-  input_manager_ = InputManager();
+  resource_manager_ = std::make_unique<ResourceManager>();
+  physics_manager_ = std::make_unique<PhysicsManager>();
+  render_manager_ = std::make_unique<RenderManager>();
+  game_object_manager_ = std::make_unique<GameObjectManager>();
+  time_manager_ = std::make_unique<TimeManager>();
+  input_manager_ = std::make_unique<InputManager>();
 }
-
-Game::~Game() {}
 
 void Game::Initialize() {
   // TODO(m4jr0): Move the lines about the main camera elsewere, when a
   // configuration file (of some sort) will be available for default/saved
   // settings.
   auto camera_container = GameObject::Create();
-  auto main_camera = std::make_shared<PerspectiveCamera>();
+  main_camera_ = std::make_shared<PerspectiveCamera>();
   auto camera_controls = std::make_shared<CameraControls>();
-  main_camera->position(0, 0, 3);
-  main_camera->direction(0.715616, 0.691498, -0.098611);
+  main_camera_->position(0, 0, 3);
+  main_camera_->direction(0.715616, 0.691498, -0.098611);
 
-  Locator::Initialize(this);
-  Locator::resource_manager(&resource_manager_);
-  Locator::render_manager(&render_manager_);
-  Locator::time_manager(&time_manager_);
-  Locator::game_object_manager(&game_object_manager_);
-  Locator::main_camera(main_camera);
-
-  render_manager_.Initialize();
-  resource_manager_.Initialize();
-  physics_manager_.Initialize();
-  input_manager_.Initialize();
+  render_manager_->Initialize();
+  resource_manager_->Initialize();
+  physics_manager_->Initialize();
+  input_manager_->Initialize();
 
   // TODO(m4jr0): Move these lines as well (see TODO(m4jr0) above).
-  camera_container->AddComponent(main_camera);
+  camera_container->AddComponent(main_camera_);
   camera_container->AddComponent(camera_controls);
-  game_object_manager_.AddGameObject(camera_container);
+  game_object_manager_->AddGameObject(camera_container);
 }
 
 void Game::Run() {
   try {
     is_running_ = true;
-    time_manager_.Initialize();
+    time_manager_->Initialize();
     // To catch up time taken to render.
     double lag = 0.0;
 
-    Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game started");
+    Logger::Get(kLoggerKomaCoreGame)->Info("Game started");
 
     while (is_running_) {
       if (is_exit_requested_) {
         break;
       }
 
-      time_manager_.Update();
-      double time_delta = time_manager_.time_delta();
+      time_manager_->Update();
+      const auto time_delta = time_manager_->time_delta();
 
       lag += time_delta;
 
       // To render physics properly, we have to catch up with the lag.
       while (lag >= kMsPerUpdate_) {
-        physics_manager_.Update(&game_object_manager_);
+        physics_manager_->Update(game_object_manager());
         lag -= kMsPerUpdate_;
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      render_manager_.Update(lag / kMsPerUpdate_, &game_object_manager_);
+      render_manager_->Update(lag / kMsPerUpdate_, game_object_manager());
     }
   } catch (const std::runtime_error& runtime_error) {
-    Logger::Get(LOGGER_KOMA_CORE_GAME)
+    Logger::Get(kLoggerKomaCoreGame)
         ->Error("Runtime error: ", runtime_error.what());
 
     Quit();
 
     std::cin.get();
   } catch (const std::exception& exception) {
-    Logger::Get(LOGGER_KOMA_CORE_GAME)->Error("Exception: ", exception.what());
+    Logger::Get(kLoggerKomaCoreGame)->Error("Exception: ", exception.what());
 
     Quit();
 
     std::cin.get();
   } catch (...) {
-    Logger::Get(LOGGER_KOMA_CORE_GAME)
+    Logger::Get(kLoggerKomaCoreGame)
         ->Error("Unknown failure occurred. Possible memory corruption");
 
     std::cin.get();
@@ -116,29 +106,50 @@ void Game::Run() {
 void Game::Stop() {
   is_running_ = false;
 
-  Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game stopped");
+  Logger::Get(kLoggerKomaCoreGame)->Info("Game stopped");
 }
 
 void Game::Destroy() {
-  game_object_manager_.Destroy();
-  physics_manager_.Destroy();
-  render_manager_.Destroy();
+  game_object_manager_->Destroy();
+  physics_manager_->Destroy();
+  render_manager_->Destroy();
 
-  Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game destroyed");
+  Logger::Get(kLoggerKomaCoreGame)->Info("Game destroyed");
 }
 
 void Game::Exit() {
   Stop();
   Destroy();
 
-  Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game quit");
+  Logger::Get(kLoggerKomaCoreGame)->Info("Game quit");
 }
 
 void Game::Quit() {
   is_exit_requested_ = true;
-
-  Logger::Get(LOGGER_KOMA_CORE_GAME)->Info("Game is required to quit");
+  Logger::Get(kLoggerKomaCoreGame)->Info("Game is required to quit");
 }
+
+Game* const Game::game() {
+  static Game game_;
+
+  return &game_;
+}
+
+ResourceManager* const Game::resource_manager() {
+  return resource_manager_.get();
+}
+
+RenderManager* const Game::render_manager() { return render_manager_.get(); }
+
+InputManager* const Game::input_manager() { return input_manager_.get(); }
+
+TimeManager* const Game::time_manager() { return time_manager_.get(); }
+
+GameObjectManager* const Game::game_object_manager() {
+  return game_object_manager_.get();
+}
+
+Camera* const Game::main_camera() { return main_camera_.get(); }
 
 const bool Game::is_running() const noexcept { return is_running_; }
 }  // namespace koma

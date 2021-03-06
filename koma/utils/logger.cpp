@@ -10,14 +10,14 @@
 #endif  // _WIN32
 
 namespace koma {
-std::unordered_map<std::string, std::shared_ptr<const Logger>> Logger::loggers_;
+Logger::Logger(std::string logger_name) { name_ = logger_name; }
 
 std::shared_ptr<const Logger> Logger::Get(std::string logger_name) {
-  auto found = Logger::loggers_.find(logger_name);
+  const auto found = Logger::loggers_.find(logger_name);
 
   // If the logger does not exist, we create it.
   if (found == Logger::loggers_.end()) {
-    std::shared_ptr<const Logger> new_logger = Logger::Create(logger_name);
+    const auto new_logger = Logger::Create(logger_name);
     Logger::loggers_.insert({logger_name, new_logger});
 
     return new_logger;
@@ -30,7 +30,5 @@ std::shared_ptr<const Logger> Logger::Create(std::string logger_name) {
   return std::make_shared<const Logger>(logger_name);
 }
 
-Logger::Logger(std::string logger_name) { name_ = logger_name; }
-
-Logger::~Logger() {}
+std::unordered_map<std::string, std::shared_ptr<const Logger>> Logger::loggers_;
 }  // namespace koma

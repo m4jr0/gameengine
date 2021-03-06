@@ -28,7 +28,7 @@ void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
   std::size_t specular_index = 0;
   std::size_t normal_index = 0;
   std::size_t height_index = 0;
-  std::size_t textures_number = textures_.size();
+  auto textures_number = textures_.size();
 
   for (std::size_t index = 0; index < textures_number; ++index) {
     glActiveTexture(GL_TEXTURE0 + index);
@@ -45,7 +45,7 @@ void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
     } else if (texture_type == "texture_height") {
       texture_number = std::to_string(height_index++);
     } else {
-      Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MESH)
+      Logger::Get(kLoggerKomaCoreGameObjectModelMesh)
           ->Warning("Unknown texture type: ", texture_type);
 
       continue;

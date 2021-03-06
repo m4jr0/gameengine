@@ -42,11 +42,11 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
   };
 
  public:
-  ~GameObject();
   GameObject(constructor_tag_);                 // Please, see comment above.
+  ~GameObject();
+
   static std::shared_ptr<GameObject> Create();  // Same here.
   void Destroy();
-
   void Update();
   void FixedUpdate();
   void AddComponent(std::shared_ptr<Component>);
@@ -55,8 +55,8 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
 
   template <typename ComponentType>
   auto GetComponent() {
-    for (auto it : components_) {
-      if (auto to_return =
+    for (const auto &it : components_) {
+      if (const auto to_return =
               std::dynamic_pointer_cast<ComponentType>(it.second)) {
         return to_return;
       }

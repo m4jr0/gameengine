@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RENDER_TEXTURE_TEXTURE_LOADER_HPP_
 #define KOMA_CORE_RENDER_TEXTURE_TEXTURE_LOADER_HPP_
 
-#define LOGGER_KOMA_CORE_RENDER_TEXTURE_TEXTURE_LOADER "koma_core_render"
+constexpr auto kLoggerKomaCoreRenderTextureTextureLoader = "koma_core_render";
 
 #include <string>
 

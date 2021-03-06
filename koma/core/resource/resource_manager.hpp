@@ -5,7 +5,7 @@
 #ifndef KOMA_CORE_RESOURCE_RESOURCE_MANAGER_HPP_
 #define KOMA_CORE_RESOURCE_RESOURCE_MANAGER_HPP_
 
-#define LOGGER_KOMA_CORE_RESOURCE_RESOURCE_MANAGER "koma_core_resource"
+constexpr auto kLoggerKomaCoreResourceResourceManager = "koma_core_resource";
 
 #include <filesystem>
 #include <string>
@@ -19,11 +19,15 @@ class ResourceManager : public Manager, public efsw::FileWatchListener {
   static constexpr char kDefaultAssetsRootDirectory_[] = "assets";
   static constexpr char kDefaultResourcesRootDirectory_[] = "resources";
 
-  virtual ~ResourceManager();
+  ResourceManager() = default;
+  ResourceManager(const ResourceManager &) = delete;
+  ResourceManager(ResourceManager &&) = delete;
+  ResourceManager &operator=(const ResourceManager &) = delete;
+  ResourceManager &operator=(ResourceManager &&) = delete;
+  virtual ~ResourceManager() = default;
 
   void Initialize() override;
   void Destroy() override;
-
   void Refresh();
   void Refresh(const std::string &);
   void SetFolderMetaFile(const std::string &);
@@ -40,7 +44,7 @@ class ResourceManager : public Manager, public efsw::FileWatchListener {
   double last_update_time_;
   std::string assets_root_path_;
   std::string resources_root_path_;
-  efsw::FileWatcher *assets_watcher_ = nullptr;
+  std::unique_ptr<efsw::FileWatcher> assets_watcher_ = nullptr;
   efsw::WatchID assets_watch_id_ = -1;
 
   void RefreshFolder(const std::string &);

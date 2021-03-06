@@ -6,7 +6,7 @@
 
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
-#include "core/locator/locator.hpp"
+#include "core/game.hpp"
 #include "core/render/texture/texture_loader.hpp"
 #include "mesh.hpp"
 #include "utils/file_system.hpp"
@@ -24,8 +24,41 @@ Model::Model(const std::string &model_path,
   shader_program_ = shader_program;
 }
 
+void Model::Initialize() {
+  Component::Initialize();
+
+  if ((transform_ = game_object_->GetComponent<Transform>()) == nullptr) {
+    Logger::Get(kLoggerKomaCoreGameObjectModelModel)
+        ->Error(
+            "A 'Transform' component is required when adding a Model "
+            "component");
+
+    return;
+  }
+
+  LoadModel();
+}
+
+void Model::Destroy() {
+  for (const auto &texture : loaded_textures_) {
+    glDeleteTextures(1, &texture.id);
+  }
+}
+
+void Model::Update() {
+  if (shader_program_ == nullptr) return;
+
+  shader_program_->Use();
+
+  const auto mvp =
+      Game::game()->main_camera()->GetMvp(transform_->GetTransformMatrix());
+
+  shader_program_->SetMatrix4("mvp", mvp);
+  Draw(shader_program_);
+}
+
 void Model::Draw(std::shared_ptr<ShaderProgram> shader_program) {
-  std::size_t meshes_number = meshes_.size();
+  const auto meshes_number = meshes_.size();
 
   for (std::size_t index = 0; index < meshes_number; ++index) {
     meshes_[index].Draw(shader_program);
@@ -35,26 +68,25 @@ void Model::Draw(std::shared_ptr<ShaderProgram> shader_program) {
 void Model::LoadModel() {
   Assimp::Importer importer;
 
-  const aiScene *scene =
+  const auto *scene =
       importer.ReadFile(path_, aiProcess_Triangulate | aiProcess_FlipUVs |
                                    aiProcess_CalcTangentSpace);
 
-  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
-      !scene->mRootNode) {
-    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL)
+  if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+      scene->mRootNode == nullptr) {
+    Logger::Get(kLoggerKomaCoreGameObjectModelModel)
         ->Error("Assimp error: ", importer.GetErrorString());
 
     return;
   }
 
   directory_ = filesystem::GetDirectoryPath(path_);
-
   LoadNode(scene->mRootNode, scene);
 }
 
-void Model::LoadNode(aiNode *current_node, const aiScene *scene) {
+void Model::LoadNode(const aiNode *current_node, const aiScene *scene) {
   for (std::size_t index = 0; index < current_node->mNumMeshes; ++index) {
-    aiMesh *mesh = scene->mMeshes[current_node->mMeshes[index]];
+    const auto *mesh = scene->mMeshes[current_node->mMeshes[index]];
     meshes_.push_back(LoadMesh(mesh, scene));
   }
 
@@ -63,13 +95,13 @@ void Model::LoadNode(aiNode *current_node, const aiScene *scene) {
   }
 }
 
-Mesh Model::LoadMesh(aiMesh *current_mesh, const aiScene *scene) {
+Mesh Model::LoadMesh(const aiMesh *current_mesh, const aiScene *scene) {
   std::vector<Vertex> vertices;
   std::vector<unsigned int> indices;
   std::vector<Texture> textures;
 
   for (std::size_t index = 0; index < current_mesh->mNumVertices; ++index) {
-    Vertex vertex;
+    Vertex vertex{};
 
     if (current_mesh->mVertices) {
       vertex.position = glm::vec3(current_mesh->mVertices[index].x,
@@ -108,7 +140,7 @@ Mesh Model::LoadMesh(aiMesh *current_mesh, const aiScene *scene) {
   }
 
   for (std::size_t index = 0; index < current_mesh->mNumFaces; ++index) {
-    aiFace face = current_mesh->mFaces[index];
+    const auto &face = current_mesh->mFaces[index];
 
     for (std::size_t face_index = 0; face_index < face.mNumIndices;
          ++face_index) {
@@ -117,27 +149,29 @@ Mesh Model::LoadMesh(aiMesh *current_mesh, const aiScene *scene) {
   }
 
   if (current_mesh->mMaterialIndex >= 0) {
-    aiMaterial *material = scene->mMaterials[current_mesh->mMaterialIndex];
+    const auto material = scene->mMaterials[current_mesh->mMaterialIndex];
 
-    std::vector<Texture> diffuse_maps = LoadMaterialTextures(
+    const auto diffuse_maps = LoadMaterialTextures(
         material, aiTextureType_DIFFUSE, "texture_diffuse");
 
-    textures.insert(textures.end(), diffuse_maps.begin(), diffuse_maps.end());
+    textures.insert(textures.cend(), diffuse_maps.cbegin(),
+                    diffuse_maps.cend());
 
-    std::vector<Texture> specular_maps = LoadMaterialTextures(
+    const auto specular_maps = LoadMaterialTextures(
         material, aiTextureType_SPECULAR, "texture_specular");
 
-    textures.insert(textures.end(), specular_maps.begin(), specular_maps.end());
+    textures.insert(textures.cend(), specular_maps.cbegin(),
+                    specular_maps.cend());
 
-    std::vector<Texture> normal_maps =
+    const auto normal_maps =
         LoadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
 
-    textures.insert(textures.end(), normal_maps.begin(), normal_maps.end());
+    textures.insert(textures.cend(), normal_maps.cbegin(), normal_maps.cend());
 
-    std::vector<Texture> height_maps =
+    const auto height_maps =
         LoadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
 
-    textures.insert(textures.end(), height_maps.begin(), height_maps.end());
+    textures.insert(textures.cend(), height_maps.cbegin(), height_maps.cend());
   }
 
   return Mesh(vertices, indices, textures);
@@ -145,16 +179,16 @@ Mesh Model::LoadMesh(aiMesh *current_mesh, const aiScene *scene) {
 
 std::vector<Texture> Model::LoadMaterialTextures(
     aiMaterial *material, aiTextureType texture_type,
-    std::string texture_type_name) {
+    const std::string &texture_type_name) {
   std::vector<Texture> textures;
-  std::size_t texture_number = material->GetTextureCount(texture_type);
+  const auto texture_number = material->GetTextureCount(texture_type);
 
   for (std::size_t index = 0; index < texture_number; ++index) {
     aiString texture_path;
     material->GetTexture(texture_type, index, &texture_path);
 
-    bool is_skip = false;
-    std::size_t loaded_textures_number = loaded_textures_.size();
+    auto is_skip = false;
+    const auto loaded_textures_number = loaded_textures_.size();
 
     for (std::size_t tl_index = 0; tl_index < loaded_textures_number;
          ++tl_index) {
@@ -170,9 +204,7 @@ std::vector<Texture> Model::LoadMaterialTextures(
     if (is_skip) continue;
 
     Texture texture;
-
     texture.id = Load2DTextureFromFile(directory_ + "/" + texture_path.C_Str());
-
     texture.type = texture_type_name;
     texture.path = texture_path.C_Str();
 
@@ -181,38 +213,5 @@ std::vector<Texture> Model::LoadMaterialTextures(
   }
 
   return textures;
-}
-
-void Model::Initialize() {
-  Component::Initialize();
-
-  if (!(transform_ = game_object_->GetComponent<Transform>())) {
-    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_MODEL_MODEL)
-        ->Error(
-            "A 'Transform' component is required when adding a Model "
-            "component");
-
-    return;
-  }
-
-  LoadModel();
-}
-
-void Model::Update() {
-  if (!shader_program_) return;
-
-  shader_program_->Use();
-
-  glm::mat4 mvp =
-      Locator::main_camera()->GetMvp(transform_->GetTransformMatrix());
-
-  shader_program_->SetMatrix4("mvp", mvp);
-  Draw(shader_program_);
-}
-
-void Model::Destroy() {
-  for (auto texture : loaded_textures_) {
-    glDeleteTextures(1, &texture.id);
-  }
 }
 }  // namespace koma

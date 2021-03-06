@@ -13,8 +13,8 @@
 
 namespace koma {
 void Component::Initialize() {
-  if (!game_object_) {
-    Logger::Get(LOGGER_KOMA_CORE_GAME_OBJECT_COMPONENT)
+  if (game_object_ == nullptr) {
+    Logger::Get(kLoggerKomaCoreGameObjectComponent)
         ->Error("Cannot initialize a component without a game object");
 
     return;

@@ -23,20 +23,20 @@ unsigned int Load2DTextureFromFile(const std::string &texture_path,
 
   glGenTextures(1, &texture_id);
 
-  unsigned char *data =
+  auto data =
       stbi_load(texture_path.c_str(), &width, &height, &components_number, 0);
 
-  if (data) {
+  if (data != nullptr) {
     GLenum format;
 
-    if (components_number == 1)
+    if (components_number == 1) {
       format = GL_RED;
-    else if (components_number == 3)
+    } else if (components_number == 3) {
       format = GL_RGB;
-    else if (components_number == 4)
+    } else if (components_number == 4) {
       format = GL_RGBA;
-    else {
-      Logger::Get(LOGGER_KOMA_CORE_RENDER_TEXTURE_TEXTURE_LOADER)
+    } else {
+      Logger::Get(kLoggerKomaCoreRenderTextureTextureLoader)
           ->Error("Unsupported texture type at path: ", texture_path);
 
       return 0;
@@ -57,7 +57,7 @@ unsigned int Load2DTextureFromFile(const std::string &texture_path,
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   } else {
-    Logger::Get(LOGGER_KOMA_CORE_RENDER_TEXTURE_TEXTURE_LOADER)
+    Logger::Get(kLoggerKomaCoreRenderTextureTextureLoader)
         ->Error("Texture failed to load at path: ", texture_path);
   }
 
