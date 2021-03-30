@@ -4,7 +4,7 @@
 
 #include "camera.hpp"
 
-#include "core/game.hpp"
+#include "core/engine.hpp"
 #include "core/render/render_manager.hpp"
 
 #ifdef _WIN32
@@ -16,13 +16,13 @@ namespace comet {
 void Camera::Initialize() {
   Component::Initialize();
 
-  const auto render_manager = Game::game()->render_manager();
+  const auto render_manager = Engine::engine()->render_manager();
 
   UpdateMatrices(render_manager->width(), render_manager->height());
 };
 
 void Camera::FixedUpdate() {
-  const auto render_manager = Game::game()->render_manager();
+  const auto render_manager = Engine::engine()->render_manager();
 
   UpdateMatrices(render_manager->width(), render_manager->height());
 }

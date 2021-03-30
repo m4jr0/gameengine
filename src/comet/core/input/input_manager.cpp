@@ -4,7 +4,7 @@
 
 #include "input_manager.hpp"
 
-#include "core/game.hpp"
+#include "core/engine.hpp"
 #include "utils/logger.hpp"
 
 #ifdef _WIN32
@@ -40,7 +40,7 @@ bool InputManager::IsKeyDown(KeyCode key_code) const {
 GLFWwindow *InputManager::cached_window() const {
   if (cached_window_ == nullptr) {
     cached_window_ =
-        const_cast<GLFWwindow *>(Game::game()->render_manager()->window());
+        const_cast<GLFWwindow *>(Engine::engine()->render_manager()->window());
   }
 
   return cached_window_;

@@ -6,7 +6,7 @@
 
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
-#include "core/game.hpp"
+#include "core/engine.hpp"
 #include "core/render/texture/texture_loader.hpp"
 #include "mesh.hpp"
 #include "utils/file_system.hpp"
@@ -51,7 +51,7 @@ void Model::Update() {
   shader_program_->Use();
 
   const auto mvp =
-      Game::game()->main_camera()->GetMvp(transform_->GetTransformMatrix());
+      Engine::engine()->main_camera()->GetMvp(transform_->GetTransformMatrix());
 
   shader_program_->SetMatrix4("mvp", mvp);
   Draw(shader_program_);

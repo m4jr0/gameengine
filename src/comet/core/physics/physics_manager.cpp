@@ -4,7 +4,7 @@
 
 #include "physics_manager.hpp"
 
-#include "core/game.hpp"
+#include "core/engine.hpp"
 #include "utils/logger.hpp"
 
 #ifdef _WIN32
@@ -17,7 +17,7 @@ void PhysicsManager::Initialize(){};
 void PhysicsManager::Destroy(){};
 
 void PhysicsManager::Update(GameObjectManager *game_object_manager) {
-  current_time_ += Game::game()->time_manager()->time_delta();
+  current_time_ += Engine::engine()->time_manager()->time_delta();
 
   if (current_time_ > 1000) {
     // TODO(m4jr0): Uncomment this when debugging the physics module.

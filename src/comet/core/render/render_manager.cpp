@@ -7,7 +7,7 @@
 #include <stdexcept>
 
 #include "boost/format.hpp"
-#include "core/game.hpp"
+#include "core/engine.hpp"
 #include "utils/logger.hpp"
 
 // TODO(m4jr0): Remove this include (and its uses) when a proper game object
@@ -85,14 +85,14 @@ void RenderManager::Update(double interpolation,
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (glfwWindowShouldClose(window_) != 0) {
-    Game::game()->game()->Quit();
+    Engine::engine()->engine()->Quit();
 
     return;
   }
 
   glfwGetWindowSize(window_, &width_, &height_);
 
-  current_time_ += Game::game()->time_manager()->time_delta();
+  current_time_ += Engine::engine()->time_manager()->time_delta();
 
   if (current_time_ > 1000) {
     glfwSetWindowTitle(window_, GetTitle().c_str());
@@ -116,7 +116,7 @@ void RenderManager::Update(double interpolation,
   }
 
   glfwSwapBuffers(window_);
-  Game::game()->input_manager()->Update();
+  Engine::engine()->input_manager()->Update();
   ++counter_;
 }
 

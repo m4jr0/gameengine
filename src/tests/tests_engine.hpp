@@ -5,10 +5,15 @@
 #ifndef TESTS_GAME_HPP_
 #define TESTS_GAME_HPP_
 
-#include "../comet/core/game_object/component.hpp"
 #include "catch.hpp"
+#include "comet.hpp"
 
 namespace comettests {
+class CometTester : public comet::Engine {
+ public:
+  CometTester();
+};
+
 class StopComponent final : public comet::Component {
  public:
   static const double kTimeDelta;

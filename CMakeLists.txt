@@ -19,7 +19,7 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
 endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 
 # Global variables #############################################################
-set(EXECUTABLE_NAME comet)
+set(EXECUTABLE_NAME comet_editor)
 set(TESTS_EXECUTABLE_NAME comet_tests)
 set(CORE_LIBRARY_NAME core)
 set(UTILS_LIBRARY_NAME utils)
@@ -135,17 +135,17 @@ set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
 set(VCPKG_LIBRARY_DIR "${VCPKG_BASE_DIR}/lib")
 
-add_subdirectory(comet/core)
-add_subdirectory(comet/utils)
+add_subdirectory(src/comet/core)
+add_subdirectory(src/comet/utils)
 
 # Comet executable #############################################################
 list(APPEND EXECUTABLE_SOURCES
-  comet/main.cpp
+  src/editor/editor.cpp
 )
 
 if(WIN32)
 list(APPEND EXECUTABLE_SOURCES
-  comet/debug_windows.hpp
+  src/comet/debug_windows.hpp
 )
 endif()
 
@@ -164,9 +164,9 @@ target_link_libraries(${EXECUTABLE_NAME}
 
 # Comet tests executable #######################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
-  tests/tests_file_system.cpp
-  tests/tests_game.cpp
-  tests/tests.cpp
+  src/tests/tests_file_system.cpp
+  src/tests/tests_engine.cpp
+  src/tests/tests.cpp
 )
 
 add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
@@ -192,7 +192,7 @@ target_link_libraries(${TESTS_EXECUTABLE_NAME}
 # Copying necessary files.
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
-file(COPY ./comet/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ./src/comet/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 if(WIN32) # Workaround for missing DLL (should be fixed in a proper way).
   message(STATUS "${MESSAGE_PREFIX}Copying missing \"glew32.dll\" library...")

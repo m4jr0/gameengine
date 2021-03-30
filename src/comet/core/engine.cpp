@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "game.hpp"
+#include "engine.hpp"
 
 #include <iostream>
 #include <string>
@@ -22,16 +22,7 @@
 #endif  // _WIN32
 
 namespace comet {
-Game::Game() {
-  resource_manager_ = std::make_unique<ResourceManager>();
-  physics_manager_ = std::make_unique<PhysicsManager>();
-  render_manager_ = std::make_unique<RenderManager>();
-  game_object_manager_ = std::make_unique<GameObjectManager>();
-  time_manager_ = std::make_unique<TimeManager>();
-  input_manager_ = std::make_unique<InputManager>();
-}
-
-void Game::Initialize() {
+void Engine::Initialize() {
   // TODO(m4jr0): Move the lines about the main camera elsewere, when a
   // configuration file (of some sort) will be available for default/saved
   // settings.
@@ -52,14 +43,14 @@ void Game::Initialize() {
   game_object_manager_->AddGameObject(camera_container);
 }
 
-void Game::Run() {
+void Engine::Run() {
   try {
     is_running_ = true;
     time_manager_->Initialize();
     // To catch up time taken to render.
     double lag = 0.0;
 
-    Logger::Get(kLoggerCometCoreGame)->Info("Game started");
+    Logger::Get(kLoggerCometCoreEngine)->Info("Engine started");
 
     while (is_running_) {
       if (is_exit_requested_) {
@@ -81,20 +72,20 @@ void Game::Run() {
       render_manager_->Update(lag / kMsPerUpdate_, game_object_manager());
     }
   } catch (const std::runtime_error& runtime_error) {
-    Logger::Get(kLoggerCometCoreGame)
+    Logger::Get(kLoggerCometCoreEngine)
         ->Error("Runtime error: ", runtime_error.what());
 
     Quit();
 
     std::cin.get();
   } catch (const std::exception& exception) {
-    Logger::Get(kLoggerCometCoreGame)->Error("Exception: ", exception.what());
+    Logger::Get(kLoggerCometCoreEngine)->Error("Exception: ", exception.what());
 
     Quit();
 
     std::cin.get();
   } catch (...) {
-    Logger::Get(kLoggerCometCoreGame)
+    Logger::Get(kLoggerCometCoreEngine)
         ->Error("Unknown failure occurred. Possible memory corruption");
 
     std::cin.get();
@@ -103,53 +94,61 @@ void Game::Run() {
   Exit();
 }
 
-void Game::Stop() {
+void Engine::Stop() {
   is_running_ = false;
 
-  Logger::Get(kLoggerCometCoreGame)->Info("Game stopped");
+  Logger::Get(kLoggerCometCoreEngine)->Info("Engine stopped");
 }
 
-void Game::Destroy() {
+void Engine::Destroy() {
   game_object_manager_->Destroy();
   physics_manager_->Destroy();
   render_manager_->Destroy();
+  Engine::engine_ = nullptr;
 
-  Logger::Get(kLoggerCometCoreGame)->Info("Game destroyed");
+  Logger::Get(kLoggerCometCoreEngine)->Info("Engine destroyed");
 }
 
-void Game::Exit() {
+void Engine::Quit() {
+  is_exit_requested_ = true;
+  Logger::Get(kLoggerCometCoreEngine)->Info("Engine is required to quit");
+}
+
+Engine::Engine() {
+  resource_manager_ = std::make_unique<ResourceManager>();
+  physics_manager_ = std::make_unique<PhysicsManager>();
+  render_manager_ = std::make_unique<RenderManager>();
+  game_object_manager_ = std::make_unique<GameObjectManager>();
+  time_manager_ = std::make_unique<TimeManager>();
+  input_manager_ = std::make_unique<InputManager>();
+
+  Engine::engine_ = this;
+}
+
+void Engine::Exit() {
   Stop();
   Destroy();
 
-  Logger::Get(kLoggerCometCoreGame)->Info("Game quit");
+  Logger::Get(kLoggerCometCoreEngine)->Info("Engine quit");
 }
 
-void Game::Quit() {
-  is_exit_requested_ = true;
-  Logger::Get(kLoggerCometCoreGame)->Info("Game is required to quit");
-}
+Engine* const Engine::engine() { return Engine::engine_; }
 
-Game* const Game::game() {
-  static Game game_;
-
-  return &game_;
-}
-
-ResourceManager* const Game::resource_manager() {
+ResourceManager* const Engine::resource_manager() {
   return resource_manager_.get();
 }
 
-RenderManager* const Game::render_manager() { return render_manager_.get(); }
+RenderManager* const Engine::render_manager() { return render_manager_.get(); }
 
-InputManager* const Game::input_manager() { return input_manager_.get(); }
+InputManager* const Engine::input_manager() { return input_manager_.get(); }
 
-TimeManager* const Game::time_manager() { return time_manager_.get(); }
+TimeManager* const Engine::time_manager() { return time_manager_.get(); }
 
-GameObjectManager* const Game::game_object_manager() {
+GameObjectManager* const Engine::game_object_manager() {
   return game_object_manager_.get();
 }
 
-Camera* const Game::main_camera() { return main_camera_.get(); }
+Camera* const Engine::main_camera() { return main_camera_.get(); }
 
-const bool Game::is_running() const noexcept { return is_running_; }
+const bool Engine::is_running() const noexcept { return is_running_; }
 }  // namespace comet

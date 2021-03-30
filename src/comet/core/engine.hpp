@@ -5,7 +5,7 @@
 #ifndef COMET_CORE_GAME_HPP_
 #define COMET_CORE_GAME_HPP_
 
-constexpr auto kLoggerCometCoreGame = "comet_core_game";
+constexpr auto kLoggerCometCoreEngine = "comet_core_engine";
 
 #include <memory>
 
@@ -18,22 +18,22 @@ constexpr auto kLoggerCometCoreGame = "comet_core_game";
 #include "time/time_manager.hpp"
 
 namespace comet {
-class Game {
+class Engine {
  public:
   static constexpr double kMsPerUpdate_ = 16.66;  // 60 Hz refresh.
 
-  Game(const Game&) = delete;
-  Game(Game&&) = delete;
-  Game& operator=(const Game&) = delete;
-  Game& operator=(Game&&) = delete;
+  Engine(const Engine&) = delete;
+  Engine(Engine&&) = delete;
+  Engine& operator=(const Engine&) = delete;
+  Engine& operator=(Engine&&) = delete;
 
-  void Initialize();
-  void Run();
-  void Stop();
-  void Destroy();
-  void Quit();
+  virtual void Initialize();
+  virtual void Run();
+  virtual void Stop();
+  virtual void Destroy();
+  virtual void Quit();
 
-  static Game* const game();
+  static Engine* const engine();
   ResourceManager* const resource_manager();
   RenderManager* const render_manager();
   InputManager* const input_manager();
@@ -44,7 +44,10 @@ class Game {
   const bool is_running() const noexcept;
 
  protected:
-  static std::unique_ptr<Game> game_;
+  Engine();
+  virtual void Exit();
+
+  inline static Engine* engine_;
 
   std::unique_ptr<ResourceManager> resource_manager_ = nullptr;
   std::unique_ptr<InputManager> input_manager_ = nullptr;
@@ -55,13 +58,11 @@ class Game {
   std::shared_ptr<Camera> main_camera_ = nullptr;
 
  private:
-  Game();
-
   bool is_running_ = false;
   bool is_exit_requested_ = false;
-
-  void Exit();
 };
+
+std::unique_ptr<Engine> CreateEngine();
 }  // namespace comet
 
 #endif  // COMET_CORE_GAME_HPP_

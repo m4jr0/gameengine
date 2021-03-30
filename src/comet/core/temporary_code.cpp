@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "GL/glew.h"
-#include "core/game.hpp"
+#include "core/engine.hpp"
 #include "core/game_object/game_object.hpp"
 #include "core/game_object/model/model.hpp"
 #include "core/game_object/physics/transform.hpp"
@@ -36,7 +36,7 @@ void InitializeTmp(GLuint width, GLuint height) {
   test_game_object->AddComponent(test_transform);
   test_game_object->AddComponent(model_resource->GetModel());
 
-  Game::game()->game_object_manager()->AddGameObject(test_game_object);
+  Engine::engine()->game_object_manager()->AddGameObject(test_game_object);
 }
 
 void UpdateTmp() {}

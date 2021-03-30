@@ -1,5 +1,6 @@
 add_library(${CORE_LIBRARY_NAME}
-  game.cpp
+  engine.cpp
+  entry_point.cpp
   manager.cpp
 
   game_object/component.cpp
@@ -33,12 +34,12 @@ add_library(${CORE_LIBRARY_NAME}
   time/time_manager.cpp
 
   temporary_code.cpp # To delete.
-)
+ )
 
 target_include_directories(${CORE_LIBRARY_NAME}
   PUBLIC
     ${VCPKG_INCLUDE_DIR}
-    "${PROJECT_SOURCE_DIR}/comet"
+    "${PROJECT_SOURCE_DIR}/src/comet"
 )
 
 target_link_directories(${CORE_LIBRARY_NAME}

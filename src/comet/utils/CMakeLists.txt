@@ -7,7 +7,7 @@ add_library(${UTILS_LIBRARY_NAME}
 target_include_directories(${UTILS_LIBRARY_NAME}
   PUBLIC
     ${VCPKG_INCLUDE_DIR}
-    "${PROJECT_SOURCE_DIR}/comet"
+    "${PROJECT_SOURCE_DIR}/src/comet"
 )
 
 target_link_directories(${UTILS_LIBRARY_NAME}

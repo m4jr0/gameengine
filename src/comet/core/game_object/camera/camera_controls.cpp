@@ -4,7 +4,7 @@
 
 #include "camera_controls.hpp"
 
-#include "core/game.hpp"
+#include "core/engine.hpp"
 #include "core/game_object/camera/camera.hpp"
 #include "core/input/input_manager.hpp"
 #include "core/render/render_manager.hpp"
@@ -17,9 +17,9 @@
 
 namespace comet {
 void CameraControls::Update() {
-  const auto time_manager = Game::game()->time_manager();
-  const auto render_manager = Game::game()->render_manager();
-  auto input_manager = Game::game()->input_manager();
+  const auto time_manager = Engine::engine()->time_manager();
+  const auto render_manager = Engine::engine()->render_manager();
+  auto input_manager = Engine::engine()->input_manager();
 
   const auto time_delta = time_manager->time_delta();
   const auto current_mouse_pos = input_manager->GetMousePosition();
@@ -54,7 +54,7 @@ void CameraControls::Update() {
     position_ -= right * static_cast<float>(time_delta) * speed_;
   }
 
-  auto main_camera = Game::game()->main_camera();
+  auto main_camera = Engine::engine()->main_camera();
 
   main_camera->position(position_);
   main_camera->direction(direction);
