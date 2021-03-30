@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "name": "koma_x64-Debug",
+      "name": "comet_x64-Debug",
       "buildRoot": "${projectDir}\\build",
       "inheritEnvironments": []
     }

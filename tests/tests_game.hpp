@@ -5,11 +5,11 @@
 #ifndef TESTS_GAME_HPP_
 #define TESTS_GAME_HPP_
 
-#include "../koma/core/game_object/component.hpp"
+#include "../comet/core/game_object/component.hpp"
 #include "catch.hpp"
 
-namespace komatests {
-class StopComponent final : public koma::Component {
+namespace comettests {
+class StopComponent final : public comet::Component {
  public:
   static const double kTimeDelta;
 
@@ -19,6 +19,6 @@ class StopComponent final : public koma::Component {
  private:
   double starting_time_ = 0.0;
 };
-};  // namespace komatests
+};  // namespace comettests
 
 #endif  // TESTS_GAME_HPP_

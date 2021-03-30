@@ -1,0 +1,20 @@
+// Copyright 2021 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_DEBUG_HPP_
+#define COMET_DEBUG_HPP_
+
+#define _CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
+
+#ifdef _DEBUG
+#ifndef DBG_NEW
+#define DBG_NEW new (_NORMAL_BLOCK, __FILE__, __LINE__)
+#define new DBG_NEW
+#endif  // DBG_NEW
+
+#endif  // _DEBUG
+
+#endif  // COMET_DEBUG_HPP_

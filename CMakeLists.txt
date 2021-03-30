@@ -19,11 +19,11 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
 endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 
 # Global variables #############################################################
-set(EXECUTABLE_NAME kge)
-set(TESTS_EXECUTABLE_NAME kge_tests)
+set(EXECUTABLE_NAME comet)
+set(TESTS_EXECUTABLE_NAME comet_tests)
 set(CORE_LIBRARY_NAME core)
 set(UTILS_LIBRARY_NAME utils)
-set(MESSAGE_PREFIX "[KGE] ")
+set(MESSAGE_PREFIX "[Comet] ")
 set(VCPKG_REPO "https://github.com/Microsoft/vcpkg.git")
 
 # OS specifics #################################################################
@@ -103,7 +103,7 @@ message(STATUS
   "${MESSAGE_PREFIX}Building ${CMAKE_PROJECT_NAME} "
   "to ${CMAKE_CURRENT_BINARY_DIR}...")
 
-project("Koma Game Engine"
+project("Comet Game Engine"
   VERSION 0.1.0
   DESCRIPTION "Simple video game engine"
   LANGUAGES CXX
@@ -135,17 +135,17 @@ set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
 set(VCPKG_LIBRARY_DIR "${VCPKG_BASE_DIR}/lib")
 
-add_subdirectory(koma/core)
-add_subdirectory(koma/utils)
+add_subdirectory(comet/core)
+add_subdirectory(comet/utils)
 
-# KGE executable ###############################################################
+# Comet executable #############################################################
 list(APPEND EXECUTABLE_SOURCES
-  koma/main.cpp
+  comet/main.cpp
 )
 
 if(WIN32)
 list(APPEND EXECUTABLE_SOURCES
-  koma/debug_windows.hpp
+  comet/debug_windows.hpp
 )
 endif()
 
@@ -162,7 +162,7 @@ target_link_libraries(${EXECUTABLE_NAME}
     ${UTILS_LIBRARY_NAME}
 )
 
-# KGE tests executable #########################################################
+# Comet tests executable #######################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
   tests/tests_file_system.cpp
   tests/tests_game.cpp
@@ -173,7 +173,7 @@ add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
 
 target_include_directories(${TESTS_EXECUTABLE_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/koma"
+    "${PROJECT_SOURCE_DIR}/comet"
     ${VCPKG_INCLUDE_DIR}
 )
 
@@ -192,7 +192,7 @@ target_link_libraries(${TESTS_EXECUTABLE_NAME}
 # Copying necessary files.
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
-file(COPY ./koma/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ./comet/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 if(WIN32) # Workaround for missing DLL (should be fixed in a proper way).
   message(STATUS "${MESSAGE_PREFIX}Copying missing \"glew32.dll\" library...")
