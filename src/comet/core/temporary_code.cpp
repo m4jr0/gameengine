@@ -22,7 +22,7 @@
 namespace comet {
 std::shared_ptr<GameObject> test_game_object = nullptr;
 
-void InitializeTmp(GLuint width, GLuint height) {
+void InitializeTmp() {
   auto model_resource =
       std::make_shared<ModelResource>("assets/models/nanosuit/model.obj");
 

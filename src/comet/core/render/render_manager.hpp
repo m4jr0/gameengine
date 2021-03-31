@@ -7,20 +7,16 @@
 
 constexpr auto kLoggerCometCoreRenderRenderManager = "comet_core_render";
 
-#include "GL/glew.h"
-#include "GLFW/glfw3.h"
 #include "comet_precompile.hpp"
 #include "core/game_object/game_object_manager.hpp"
 #include "core/manager.hpp"
+#include "core/render/window/glfw_window.hpp"
 
 namespace comet {
 class RenderManager : public Manager {
  public:
-  static constexpr char kDefaultRenderingWindowName_[] = "Comet Game Engine";
   static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
   static constexpr unsigned short int kOpenGLMinorVersion_ = 3;
-  static constexpr unsigned int kDefaultWidth_ = 1280;
-  static constexpr unsigned int kDefaultHeight_ = 720;
 
   RenderManager() = default;
   RenderManager(const RenderManager &) = delete;
@@ -33,20 +29,12 @@ class RenderManager : public Manager {
   void Destroy() override;
   void Update(double, GameObjectManager *);
 
-  const int width() const noexcept;
-  const int height() const noexcept;
-  const GLFWwindow *window() const noexcept;
-  void width(int) noexcept;
-  void height(int) noexcept;
+  const GlfwWindow *window() const;
 
  private:
-  std::string GetTitle();
-
   int counter_ = 0;
   double current_time_ = 0;
-  GLFWwindow *window_ = nullptr;
-  int width_ = 0;
-  int height_ = 0;
+  std::unique_ptr<GlfwWindow> window_ = nullptr;
 };
 }  // namespace comet
 

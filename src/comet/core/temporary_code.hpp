@@ -10,7 +10,7 @@
 #include "comet_precompile.hpp"
 
 namespace comet {
-void InitializeTmp(GLuint, GLuint);
+void InitializeTmp();
 void UpdateTmp();
 void DestroyTmp();
 }  // namespace comet

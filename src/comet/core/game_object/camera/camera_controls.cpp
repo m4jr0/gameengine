@@ -22,8 +22,8 @@ void CameraControls::Update() {
 
   const auto time_delta = time_manager->time_delta();
   const auto current_mouse_pos = input_manager->GetMousePosition();
-  const auto half_width = render_manager->width() / 2;
-  const auto half_height = render_manager->height() / 2;
+  const auto half_width = render_manager->window()->width() / 2;
+  const auto half_height = render_manager->window()->height() / 2;
 
   horizontal_angle_ = mouse_speed_ * float(half_width - current_mouse_pos.x);
   vertical_angle_ = mouse_speed_ * float(half_height - current_mouse_pos.y);

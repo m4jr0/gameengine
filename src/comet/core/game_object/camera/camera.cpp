@@ -17,13 +17,15 @@ void Camera::Initialize() {
 
   const auto render_manager = Engine::engine()->render_manager();
 
-  UpdateMatrices(render_manager->width(), render_manager->height());
+  UpdateMatrices(render_manager->window()->width(),
+                 render_manager->window()->height());
 };
 
 void Camera::FixedUpdate() {
   const auto render_manager = Engine::engine()->render_manager();
 
-  UpdateMatrices(render_manager->width(), render_manager->height());
+  UpdateMatrices(render_manager->window()->width(),
+                 render_manager->window()->height());
 }
 
 void Camera::UpdateViewMatrix() {

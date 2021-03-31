@@ -38,8 +38,8 @@ bool InputManager::IsKeyDown(KeyCode key_code) const {
 
 GLFWwindow *InputManager::cached_window() const {
   if (cached_window_ == nullptr) {
-    cached_window_ =
-        const_cast<GLFWwindow *>(Engine::engine()->render_manager()->window());
+    cached_window_ = const_cast<GLFWwindow *>(
+        Engine::engine()->render_manager()->window()->glfw_window());
   }
 
   return cached_window_;

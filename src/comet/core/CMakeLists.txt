@@ -26,6 +26,9 @@ add_library(${CORE_LIBRARY_NAME}
   render/shader/shader_program.cpp
 
   render/texture/texture_loader.cpp
+  
+  render/window/glfw_window.cpp
+  render/window/window.cpp
 
   resource/model_resource.cpp
   resource/resource.cpp
@@ -34,7 +37,7 @@ add_library(${CORE_LIBRARY_NAME}
   time/time_manager.cpp
 
   temporary_code.cpp # To delete.
- )
+)
 
 target_include_directories(${CORE_LIBRARY_NAME}
   PUBLIC

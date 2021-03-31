@@ -37,21 +37,8 @@ void RenderManager::Initialize() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif  //  __APPLE__
 
-  height_ = kDefaultHeight_;
-  width_ = kDefaultWidth_;
-  window_ =
-      glfwCreateWindow(width_, height_, GetTitle().c_str(), nullptr, nullptr);
-
-  if (window_ == nullptr) {
-    logger->Error(
-        "Failed to open a GLFW window. If you have an Intel GPU, they are not ",
-        kOpenGLMajorVersion_, ".", kOpenGLMinorVersion_, " compatible");
-
-    throw std::runtime_error(
-        "An error occurred during rendering initialization");
-  }
-
-  glfwMakeContextCurrent(window_);
+  window_ = std::make_unique<GlfwWindow>();
+  window_->Initialize();
   glewExperimental = true;
 
   if (glewInit() != GLEW_OK) {
@@ -68,32 +55,28 @@ void RenderManager::Initialize() {
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
-  InitializeTmp(width_, height_);
+  InitializeTmp();
 }
 
 void RenderManager::Destroy() {
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   DestroyTmp();
-  glfwTerminate();
+  window_->Destroy();
 }
 
 void RenderManager::Update(double interpolation,
                            GameObjectManager *game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  if (glfwWindowShouldClose(window_) != 0) {
+  if (glfwWindowShouldClose(window_->glfw_window()) != 0) {
     Engine::engine()->engine()->Quit();
 
     return;
   }
 
-  glfwGetWindowSize(window_, &width_, &height_);
-
   current_time_ += Engine::engine()->time_manager()->time_delta();
 
   if (current_time_ > 1000) {
-    glfwSetWindowTitle(window_, GetTitle().c_str());
-
     current_time_ = 0;
     counter_ = 0;
   }
@@ -112,31 +95,10 @@ void RenderManager::Update(double interpolation,
                 "): ", glewGetErrorString(error_code));
   }
 
-  glfwSwapBuffers(window_);
+  window_->Update();
   Engine::engine()->input_manager()->Update();
   ++counter_;
 }
 
-const int RenderManager::width() const noexcept { return width_; }
-
-const int RenderManager::height() const noexcept { return height_; }
-
-const GLFWwindow *RenderManager::window() const noexcept { return window_; }
-
-void RenderManager::width(int width) noexcept {
-  width_ = width;
-
-  glfwSetWindowSize(window_, width_, height_);
-}
-
-void RenderManager::height(int height) noexcept {
-  height_ = height;
-  glfwSetWindowSize(window_, width_, height_);
-}
-
-std::string RenderManager::GetTitle() {
-  return std::string() + kDefaultRenderingWindowName_ + " | " +
-         std::to_string(width_) + "x" + std::to_string(height_) + "@" +
-         std::to_string(counter_) + "FPS";
-}
+const GlfwWindow *RenderManager::window() const { return window_.get(); }
 }  // namespace comet
