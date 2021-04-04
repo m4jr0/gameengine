@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "boost/algorithm/string/find.hpp"
-#include "tests_engine.hpp"
+#include "catch.hpp"
 #include "utils/file_system.hpp"
 
 namespace comettests {
@@ -33,10 +33,11 @@ TEST_CASE("File system management", "[comet::filesystem]") {
     REQUIRE(!comet::filesystem::CreateFile(comettests::tmp_dir + "/test2/"));
     REQUIRE(comet::filesystem::CreateDirectory(comettests::tmp_dir + "/test3"));
 
-    REQUIRE(comet::filesystem::CreateDirectory(comettests::tmp_dir + "/test4/"));
+    REQUIRE(
+        comet::filesystem::CreateDirectory(comettests::tmp_dir + "/test4/"));
 
     REQUIRE(!comet::filesystem::CreateDirectory(comettests::tmp_dir +
-                                               "/test5/test6"));
+                                                "/test5/test6"));
 
     REQUIRE(comet::filesystem::CreateDirectory(
         comettests::tmp_dir + "/test5/test6", true));
@@ -47,16 +48,16 @@ TEST_CASE("File system management", "[comet::filesystem]") {
 
     // The file does not exist (yet).
     REQUIRE(comet::filesystem::WriteToFile(comettests::tmp_dir + "/test7",
-                                          test_write));
+                                           test_write));
 
     // The file already exists.
     REQUIRE(comet::filesystem::WriteToFile(comettests::tmp_dir + "/test",
-                                          test_write));
+                                           test_write));
 
     std::string test_read;
 
-    REQUIRE(
-        comet::filesystem::ReadFile(comettests::tmp_dir + "/test7", &test_read));
+    REQUIRE(comet::filesystem::ReadFile(comettests::tmp_dir + "/test7",
+                                        &test_read));
 
     REQUIRE(test_read == test_write);
   }
@@ -64,31 +65,31 @@ TEST_CASE("File system management", "[comet::filesystem]") {
   SECTION("Move operations.") {
     // Checking with something that does not exist.
     REQUIRE(!comet::filesystem::Move(comettests::tmp_dir + "/DOESNOTEXIST",
-                                    comettests::tmp_dir + "/test8"));
+                                     comettests::tmp_dir + "/test8"));
 
     // Checking with a file.
     REQUIRE(comet::filesystem::Move(comettests::tmp_dir + "/test7",
-                                   comettests::tmp_dir + "/test8"));
+                                    comettests::tmp_dir + "/test8"));
 
     // Checking with a file on itself.
     REQUIRE(comet::filesystem::Move(comettests::tmp_dir + "/test8",
-                                   comettests::tmp_dir + "/test8"));
+                                    comettests::tmp_dir + "/test8"));
 
     // Checking with a folder.
     REQUIRE(comet::filesystem::Move(comettests::tmp_dir + "/test4",
-                                   comettests::tmp_dir + "/test9"));
+                                    comettests::tmp_dir + "/test9"));
 
     // Checking with a folder on itself.
     REQUIRE(comet::filesystem::Move(comettests::tmp_dir + "/test9",
-                                   comettests::tmp_dir + "/test9"));
+                                    comettests::tmp_dir + "/test9"));
 
     // Checking with a folder on a file.
     REQUIRE(!comet::filesystem::Move(comettests::tmp_dir + "/test9",
-                                    comettests::tmp_dir + "/test8"));
+                                     comettests::tmp_dir + "/test8"));
 
     // Checking with a file on a folder.
     REQUIRE(!comet::filesystem::Move(comettests::tmp_dir + "/test8",
-                                    comettests::tmp_dir + "/test9"));
+                                     comettests::tmp_dir + "/test9"));
   }
 
   SECTION("List operations.") {
