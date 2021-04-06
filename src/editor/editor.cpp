@@ -4,8 +4,6 @@
 
 #include "editor.hpp"
 
-#include <memory>
-
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
