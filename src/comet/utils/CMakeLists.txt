@@ -2,6 +2,9 @@ add_library(${UTILS_LIBRARY_NAME}
   date.cpp
   file_system.cpp
   logger.cpp
+
+  structure/exception.hpp
+  structure/ring_queue.hpp
 )
 
 target_include_directories(${UTILS_LIBRARY_NAME}

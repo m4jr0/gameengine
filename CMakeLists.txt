@@ -170,9 +170,11 @@ target_link_libraries(${EXECUTABLE_NAME}
 
 # Comet tests executable #######################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
-  src/tests/tests_file_system.cpp
-  src/tests/tests_engine.cpp
+  src/tests/dummies.cpp
   src/tests/tests.cpp
+  src/tests/tests_engine.cpp
+  src/tests/tests_file_system.cpp
+  src/tests/tests_ring_queue.cpp
 )
 
 add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
