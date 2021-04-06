@@ -3,6 +3,9 @@ add_library(${CORE_LIBRARY_NAME}
   entry_point.cpp
   manager.cpp
 
+  event/event.cpp
+  event/event_manager.cpp
+
   game_object/component.cpp
   game_object/game_object.cpp
   game_object/game_object_manager.cpp

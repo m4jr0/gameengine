@@ -56,6 +56,7 @@ void Engine::Run() {
 
       // To render physics properly, we have to catch up with the lag.
       while (lag >= kMsPerUpdate_) {
+        event_manager_->FireAllEvents();
         physics_manager_->Update(game_object_manager());
         lag -= kMsPerUpdate_;
       }
@@ -113,6 +114,7 @@ Engine::Engine() {
   game_object_manager_ = std::make_unique<GameObjectManager>();
   time_manager_ = std::make_unique<TimeManager>();
   input_manager_ = std::make_unique<InputManager>();
+  event_manager_ = std::make_unique<event::EventManager>();
 
   Engine::engine_ = this;
 }
@@ -138,6 +140,10 @@ TimeManager* const Engine::time_manager() { return time_manager_.get(); }
 
 GameObjectManager* const Engine::game_object_manager() {
   return game_object_manager_.get();
+}
+
+event::EventManager* const Engine::event_manager() {
+  return event_manager_.get();
 }
 
 Camera* const Engine::main_camera() { return main_camera_.get(); }

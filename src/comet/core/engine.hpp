@@ -8,6 +8,7 @@
 constexpr auto kLoggerCometCoreEngine = "comet_core_engine";
 
 #include "comet_precompile.hpp"
+#include "event/event_manager.hpp"
 #include "game_object/camera/camera.hpp"
 #include "game_object/game_object_manager.hpp"
 #include "input/input_manager.hpp"
@@ -38,6 +39,7 @@ class Engine {
   InputManager* const input_manager();
   TimeManager* const time_manager();
   GameObjectManager* const game_object_manager();
+  event::EventManager* const event_manager();
   Camera* const main_camera();
 
   const bool is_running() const noexcept;
@@ -54,6 +56,7 @@ class Engine {
   std::unique_ptr<RenderManager> render_manager_ = nullptr;
   std::unique_ptr<GameObjectManager> game_object_manager_ = nullptr;
   std::unique_ptr<TimeManager> time_manager_ = nullptr;
+  std::unique_ptr<event::EventManager> event_manager_ = nullptr;
   std::shared_ptr<Camera> main_camera_ = nullptr;
 
  private:
