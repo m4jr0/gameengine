@@ -5,6 +5,7 @@
 #ifndef COMET_DEBUG_HPP_
 #define COMET_DEBUG_HPP_
 
+#ifdef _WIN32
 #define _CRTDBG_MAP_ALLOC
 
 #include <crtdbg.h>
@@ -17,5 +18,6 @@
 #define new DBG_NEW
 #endif  // DBG_NEW
 #endif  // _DEBUG
+#endif  // _WIN32
 
 #endif  // COMET_DEBUG_HPP_
