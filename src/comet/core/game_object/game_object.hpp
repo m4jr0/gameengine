@@ -5,12 +5,10 @@
 #ifndef COMET_CORE_GAME_OBJECT_GAME_OBJECT_HPP_
 #define COMET_CORE_GAME_OBJECT_GAME_OBJECT_HPP_
 
-#include <memory>
-#include <unordered_map>
-
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+#include "comet_precompile.hpp"
 #include "component.hpp"
 
 namespace comet {
@@ -42,7 +40,7 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
   };
 
  public:
-  GameObject(constructor_tag_);                 // Please, see comment above.
+  GameObject(constructor_tag_);  // Please, see comment above.
   ~GameObject();
 
   static std::shared_ptr<GameObject> Create();  // Same here.

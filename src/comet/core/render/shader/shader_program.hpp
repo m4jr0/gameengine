@@ -7,9 +7,8 @@
 
 constexpr auto kLoggerCometCoreRenderShaderShaderProgram = "comet_core_render";
 
-#include <string>
-
 #include "GL/glew.h"
+#include "comet_precompile.hpp"
 #include "glm/glm.hpp"
 
 namespace comet {

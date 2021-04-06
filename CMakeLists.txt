@@ -151,13 +151,19 @@ endif()
 
 add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
 
+target_precompile_headers(${EXECUTABLE_NAME}
+  PRIVATE
+    src/comet/comet_precompile.hpp
+    src/comet/debug_windows.hpp
+)
+
 target_link_directories(${EXECUTABLE_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
 )
 
 target_link_libraries(${EXECUTABLE_NAME}
-  PRIVATE
+  PUBLIC
     ${CORE_LIBRARY_NAME}
     ${UTILS_LIBRARY_NAME}
 )

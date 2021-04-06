@@ -7,12 +7,10 @@
 
 constexpr auto kLoggerCometCoreResourceResource = "comet_core_resource";
 
-#include <memory>
-#include <string>
-
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+#include "comet_precompile.hpp"
 #include "core/game_object/component.hpp"
 #include "nlohmann/json.hpp"
 #include "resource_manager.hpp"

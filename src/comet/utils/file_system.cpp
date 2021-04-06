@@ -4,16 +4,12 @@
 
 #include "file_system.hpp"
 
-#include <fstream>
-#include <sstream>
-
 #include "boost/algorithm/string.hpp"
 #include "date.hpp"
 #include "logger.hpp"
 #include "picosha2.h"
 
 #ifdef _WIN32
-// Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
 #endif  // _WIN32
 
@@ -25,8 +21,8 @@ bool WriteToFile(const std::string &file_path, const std::string &buffer,
 
   if (!IsExist(directory_path) || !IsDirectory(directory_path)) return false;
 
-  // Necessary cast to make it work on Windows.
 #ifdef _WIN32
+  // Necessary cast to make it work on Windows.
   auto mode = static_cast<int>(boost::filesystem::ofstream::out);
 #else
   auto mode = boost::filesystem::ofstream::out;

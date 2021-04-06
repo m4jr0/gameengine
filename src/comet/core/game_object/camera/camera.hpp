@@ -5,6 +5,7 @@
 #ifndef COMET_CORE_GAME_OBJECT_CAMERA_CAMERA_HPP_
 #define COMET_CORE_GAME_OBJECT_CAMERA_CAMERA_HPP_
 
+#include "comet_precompile.hpp"
 #include "core/game_object/component.hpp"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"

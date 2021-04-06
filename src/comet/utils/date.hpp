@@ -7,8 +7,7 @@
 
 constexpr auto kLoggerCometUtilsDate = "comet_utils";
 
-#include <chrono>
-#include <ctime>
+#include "comet_precompile.hpp"
 
 namespace comet {
 namespace date {

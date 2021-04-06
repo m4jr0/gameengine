@@ -7,11 +7,8 @@
 
 constexpr auto kLoggerCometCoreGameObjectModelModel = "comet_core_render";
 
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "assimp/scene.h"
+#include "comet_precompile.hpp"
 #include "core/game_object/component.hpp"
 #include "core/game_object/physics/transform.hpp"
 #include "core/render/shader/shader_program.hpp"

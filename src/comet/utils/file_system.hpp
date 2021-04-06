@@ -7,11 +7,9 @@
 
 constexpr auto kLoggerCometUtilsFileSystem = "comet_utils";
 
-#include <string>
-#include <vector>
-
 #include "boost/filesystem.hpp"
 #include "boost/filesystem/fstream.hpp"
+#include "comet_precompile.hpp"
 
 namespace comet {
 namespace filesystem {

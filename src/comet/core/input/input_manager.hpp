@@ -5,10 +5,9 @@
 #ifndef COMET_CORE_INPUT_INPUT_MANAGER_HPP_
 #define COMET_CORE_INPUT_INPUT_MANAGER_HPP_
 
-#include <atomic>
-
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
+#include "comet_precompile.hpp"
 #include "core/manager.hpp"
 #include "glm/glm.hpp"
 

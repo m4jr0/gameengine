@@ -4,9 +4,6 @@
 
 #include "resource_manager.hpp"
 
-#include <functional>
-#include <vector>
-
 #include "efsw/efsw.hpp"
 #include "nlohmann/json.hpp"
 #include "utils/date.hpp"
@@ -14,7 +11,6 @@
 #include "utils/logger.hpp"
 
 #ifdef _WIN32
-// Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
 #endif  // _WIN32
 

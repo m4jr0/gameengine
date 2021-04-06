@@ -7,11 +7,10 @@
 
 constexpr auto kLoggerCometCoreGameObjectComponent = "comet_core_render";
 
-#include <memory>
-
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+#include "comet_precompile.hpp"
 
 namespace comet {
 class GameObject;

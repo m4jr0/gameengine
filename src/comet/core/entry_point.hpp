@@ -5,9 +5,9 @@
 #ifndef COMET_CORE_ENTRY_POINT_HPP_
 #define COMET_CORE_ENTRY_POINT_HPP_
 
-#include <memory>
-
+#include "comet_precompile.hpp"
 #include "engine.hpp"
+
 extern std::unique_ptr<comet::Engine> comet::CreateEngine();
 
 namespace comet {}  // namespace comet

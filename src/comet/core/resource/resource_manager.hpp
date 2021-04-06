@@ -7,9 +7,7 @@
 
 constexpr auto kLoggerCometCoreResourceResourceManager = "comet_core_resource";
 
-#include <filesystem>
-#include <string>
-
+#include "comet_precompile.hpp"
 #include "core/manager.hpp"
 #include "efsw/efsw.hpp"
 

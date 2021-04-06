@@ -6,6 +6,7 @@
 #define COMET_CORE_GAME_OBJECT_CAMERA_PERSPECTIVE_CAMERA_HPP_
 
 #include "camera.hpp"
+#include "comet_precompile.hpp"
 
 namespace comet {
 class PerspectiveCamera : public Camera {

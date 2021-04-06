@@ -5,9 +5,7 @@
 #ifndef COMET_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
 #define COMET_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
 
-#include <memory>
-#include <unordered_map>
-
+#include "comet_precompile.hpp"
 #include "core/game_object/game_object.hpp"
 #include "core/manager.hpp"
 

@@ -7,8 +7,7 @@
 
 constexpr auto kLoggerCometCoreResourceModelResource = "comet_core_resource";
 
-#include <memory>
-
+#include "comet_precompile.hpp"
 #include "core/game_object/model/model.hpp"
 #include "resource.hpp"
 

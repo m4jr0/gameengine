@@ -4,13 +4,10 @@
 
 #include "game_object_manager.hpp"
 
-#include <functional>
-
 #include "boost/functional/hash.hpp"
 #include "boost/uuid/uuid.hpp"
 
 #ifdef _WIN32
-// Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
 #endif  // _WIN32
 

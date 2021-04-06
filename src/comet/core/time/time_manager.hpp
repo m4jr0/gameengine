@@ -5,6 +5,7 @@
 #ifndef COMET_CORE_TIME_MANAGER_HPP_
 #define COMET_CORE_TIME_MANAGER_HPP_
 
+#include "comet_precompile.hpp"
 #include "core/manager.hpp"
 
 namespace comet {

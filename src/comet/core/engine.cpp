@@ -4,20 +4,12 @@
 
 #include "engine.hpp"
 
-#include <iostream>
-#include <string>
-
-// TODO(m4jr0): Remove this include when the main camera will be set
-// elsewhere.
-#include <memory>  // Except if it is used elsewhere, of course.
-
 #include "game_object/camera/camera_controls.hpp"
 #include "game_object/camera/perspective_camera.hpp"
 #include "input/input_manager.hpp"
 #include "utils/logger.hpp"
 
 #ifdef _WIN32
-// Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
 #endif  // _WIN32
 

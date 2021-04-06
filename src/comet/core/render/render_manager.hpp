@@ -9,6 +9,7 @@ constexpr auto kLoggerCometCoreRenderRenderManager = "comet_core_render";
 
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
+#include "comet_precompile.hpp"
 #include "core/game_object/game_object_manager.hpp"
 #include "core/manager.hpp"
 

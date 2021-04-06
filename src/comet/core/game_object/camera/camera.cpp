@@ -8,7 +8,6 @@
 #include "core/render/render_manager.hpp"
 
 #ifdef _WIN32
-// Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
 #endif  // _WIN32
 

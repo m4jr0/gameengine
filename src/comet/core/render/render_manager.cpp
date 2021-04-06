@@ -4,20 +4,17 @@
 
 #include "render_manager.hpp"
 
-#include <stdexcept>
-
 #include "boost/format.hpp"
 #include "core/engine.hpp"
 #include "utils/logger.hpp"
 
+#ifdef _WIN32
+#include "debug_windows.hpp"
+#endif  // _WIN32
+
 // TODO(m4jr0): Remove this include (and its uses) when a proper game object
 // handling will be added.
 #include "../temporary_code.hpp"
-
-#ifdef _WIN32
-// Allow debugging memory leaks on Windows.
-#include "debug_windows.hpp"
-#endif  // _WIN32
 
 namespace comet {
 void RenderManager::Initialize() {

@@ -7,7 +7,7 @@
 
 constexpr auto kLoggerCometCoreRenderTextureTextureLoader = "comet_core_render";
 
-#include <string>
+#include "comet_precompile.hpp"
 
 namespace comet {
 unsigned int Load2DTextureFromFile(const std::string &, bool = false);

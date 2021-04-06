@@ -5,11 +5,7 @@
 #ifndef COMET_UTILS_LOGGER_HPP_
 #define COMET_UTILS_LOGGER_HPP_
 
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <unordered_map>
+#include "comet_precompile.hpp"
 
 namespace comet {
 class Logger final {

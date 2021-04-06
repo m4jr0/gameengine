@@ -7,6 +7,7 @@
 
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
+#include "comet_precompile.hpp"
 
 namespace comet {
 void InitializeTmp(GLuint, GLuint);

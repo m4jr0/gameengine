@@ -7,6 +7,7 @@
 
 constexpr auto kLoggerCometCorePhysicsPhysicsManager = "comet_physics";
 
+#include "comet_precompile.hpp"
 #include "core/game_object/game_object_manager.hpp"
 #include "core/manager.hpp"
 

@@ -5,10 +5,7 @@
 #ifndef COMET_CORE_MANAGER_HPP_
 #define COMET_CORE_MANAGER_HPP_
 
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <unordered_map>
+#include "comet_precompile.hpp"
 
 namespace comet {
 class Manager {

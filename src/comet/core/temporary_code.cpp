@@ -2,8 +2,6 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include <memory>
-
 #include "GL/glew.h"
 #include "core/engine.hpp"
 #include "core/game_object/game_object.hpp"
@@ -16,7 +14,6 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #ifdef _WIN32
-// Allow debugging memory leaks on Windows.
 #include "debug_windows.hpp"
 #endif  // _WIN32
 

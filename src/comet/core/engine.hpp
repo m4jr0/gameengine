@@ -7,8 +7,7 @@
 
 constexpr auto kLoggerCometCoreEngine = "comet_core_engine";
 
-#include <memory>
-
+#include "comet_precompile.hpp"
 #include "game_object/camera/camera.hpp"
 #include "game_object/game_object_manager.hpp"
 #include "input/input_manager.hpp"
