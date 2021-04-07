@@ -47,6 +47,7 @@ DummyObject& DummyObject::operator=(const DummyObject& other) {
 
   id_ = other.id_;
   value_ = other.value_;
+  return *this;
 }
 
 DummyObject& DummyObject::operator=(DummyObject&& other) noexcept {
@@ -56,6 +57,7 @@ DummyObject& DummyObject::operator=(DummyObject&& other) noexcept {
 
   id_ = other.id_;
   value_ = other.value_;
+  return *this;
 }
 
 DummyObject::~DummyObject() {
