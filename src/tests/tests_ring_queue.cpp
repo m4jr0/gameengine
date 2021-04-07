@@ -3,9 +3,9 @@
 // license that can be found in the LICENSE file.
 
 #include "catch.hpp"
-#include "dummies.hpp"
-#include "utils/structure/exception.hpp"
-#include "utils/structure/ring_queue.hpp"
+#include "comet/utils/structure/exception.hpp"
+#include "comet/utils/structure/ring_queue.hpp"
+#include "tests/dummies.hpp"
 
 TEST_CASE("Ring queue creation with specific capacity", "[comet::structure]") {
   const std::size_t capacity = 15;

@@ -4,10 +4,10 @@
 
 #include "engine.hpp"
 
-#include "game_object/camera/camera_controls.hpp"
-#include "game_object/camera/perspective_camera.hpp"
-#include "input/input_manager.hpp"
-#include "utils/logger.hpp"
+#include "comet/game_object/camera/camera_controls.hpp"
+#include "comet/game_object/camera/perspective_camera.hpp"
+#include "comet/input/input_manager.hpp"
+#include "comet/utils/logger.hpp"
 
 #ifdef _WIN32
 #include "debug_windows.hpp"

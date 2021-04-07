@@ -6,10 +6,6 @@
 
 #include "catch.hpp"
 
-#ifdef _WIN32
-#include "debug_windows.hpp"
-#endif  // _WIN32
-
 namespace comettests {
 std::size_t DummyObject::counter_ = 0;
 

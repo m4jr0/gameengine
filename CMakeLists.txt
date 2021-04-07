@@ -19,10 +19,34 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
 endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 
 # Global variables #############################################################
-set(EXECUTABLE_NAME comet_editor)
-set(TESTS_EXECUTABLE_NAME comet_tests)
-set(CORE_LIBRARY_NAME core)
-set(UTILS_LIBRARY_NAME utils)
+set(EXECUTABLE_NAME "comet_editor")
+set(TESTS_EXECUTABLE_NAME "comet_tests")
+
+# Component names.
+set(CORE_LIBRARY_NAME "core")
+set(EVENT_LIBRARY_NAME "event")
+set(GAME_OBJECT_LIBRARY_NAME "game_object")
+set(INPUT_LIBRARY_NAME "input")
+set(PHYSICS_LIBRARY_NAME "physics")
+set(RENDERING_LIBRARY_NAME "rendering")
+set(RESOURCE_LIBRARY_NAME "resource")
+set(TIME_LIBRARY_NAME "time")
+set(UTILS_LIBRARY_NAME "utils")
+
+
+list(APPEND COMET_LIBRARIES
+  ${CORE_LIBRARY_NAME}
+  ${EVENT_LIBRARY_NAME}
+  ${GAME_OBJECT_LIBRARY_NAME}
+  ${INPUT_LIBRARY_NAME}
+  ${PHYSICS_LIBRARY_NAME}
+  ${RENDERING_LIBRARY_NAME}
+  ${RESOURCE_LIBRARY_NAME}
+  ${TIME_LIBRARY_NAME}
+  ${UTILS_LIBRARY_NAME}
+)
+
+# Other.
 set(MESSAGE_PREFIX "[Comet] ")
 set(VCPKG_REPO "https://github.com/Microsoft/vcpkg.git")
 
@@ -109,7 +133,7 @@ project("Comet Game Engine"
   LANGUAGES CXX
 )
 
-# Pckages ######################################################################
+# Packages #####################################################################
 set(Boost_USE_STATIC_LIBS ON)
 
 find_package(assimp REQUIRED)
@@ -135,78 +159,22 @@ set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
 set(VCPKG_LIBRARY_DIR "${VCPKG_BASE_DIR}/lib")
 
-add_subdirectory(src/comet/core)
-add_subdirectory(src/comet/utils)
-
-# Comet executable #############################################################
-list(APPEND EXECUTABLE_SOURCES
-  src/editor/editor.cpp
-)
-
-if(WIN32)
-list(APPEND EXECUTABLE_SOURCES
-  src/comet/debug_windows.hpp
-)
-endif()
-
-add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
-
-target_precompile_headers(${EXECUTABLE_NAME}
-  PRIVATE
-    src/comet/comet_precompile.hpp
-    src/comet/debug_windows.hpp
-)
-
-target_link_directories(${EXECUTABLE_NAME}
-  PRIVATE
-    ${VCPKG_LIBRARY_DIR}
-)
-
-target_link_libraries(${EXECUTABLE_NAME}
-  PUBLIC
-    ${CORE_LIBRARY_NAME}
-    ${UTILS_LIBRARY_NAME}
-)
-
-# Comet tests executable #######################################################
-list(APPEND TESTS_EXECUTABLE_SOURCES
-  src/tests/dummies.cpp
-  src/tests/tests.cpp
-  src/tests/tests_engine.cpp
-  src/tests/tests_file_system.cpp
-  src/tests/tests_ring_queue.cpp
-)
-
-add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
-
-target_include_directories(${TESTS_EXECUTABLE_NAME}
-  PRIVATE
-    "${PROJECT_SOURCE_DIR}/comet"
-    ${VCPKG_INCLUDE_DIR}
-)
-
-target_link_directories(${TESTS_EXECUTABLE_NAME}
-  PRIVATE
-    ${VCPKG_LIBRARY_DIR}
-)
-
-target_link_libraries(${TESTS_EXECUTABLE_NAME}
-  PRIVATE
-    ${CORE_LIBRARY_NAME}
-    ${UTILS_LIBRARY_NAME}
-)
+# Subdirectories ###############################################################
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
 
 # Post-configure operations ####################################################
 # Copying necessary files.
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
-file(COPY ./src/comet/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY "./src/editor/assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 if(WIN32) # Workaround for missing DLL (should be fixed in a proper way).
   message(STATUS "${MESSAGE_PREFIX}Copying missing \"glew32.dll\" library...")
   file(
     COPY "${VCPKG_BASE_DIR}/bin/glew32.dll"
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
   )
 endif()
 

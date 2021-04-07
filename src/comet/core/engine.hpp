@@ -7,15 +7,15 @@
 
 constexpr auto kLoggerCometCoreEngine = "comet_core_engine";
 
+#include "comet/event/event_manager.hpp"
+#include "comet/game_object/camera/camera.hpp"
+#include "comet/game_object/game_object_manager.hpp"
+#include "comet/input/input_manager.hpp"
+#include "comet/physics/physics_manager.hpp"
+#include "comet/rendering/rendering_manager.hpp"
+#include "comet/resource/resource_manager.hpp"
+#include "comet/time/time_manager.hpp"
 #include "comet_precompile.hpp"
-#include "event/event_manager.hpp"
-#include "game_object/camera/camera.hpp"
-#include "game_object/game_object_manager.hpp"
-#include "input/input_manager.hpp"
-#include "physics/physics_manager.hpp"
-#include "render/render_manager.hpp"
-#include "resource/resource_manager.hpp"
-#include "time/time_manager.hpp"
 
 namespace comet {
 class Engine {

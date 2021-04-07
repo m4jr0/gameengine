@@ -6,7 +6,8 @@
 #define TESTS_GAME_HPP_
 
 #include "catch.hpp"
-#include "comet.hpp"
+#include "comet/comet.hpp"
+#include "comet_precompile.hpp"
 
 namespace comettests {
 class CometTester : public comet::Engine {

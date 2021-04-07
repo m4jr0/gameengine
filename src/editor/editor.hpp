@@ -5,13 +5,8 @@
 #ifndef EDITOR_EDITOR_HPP_
 #define EDITOR_EDITOR_HPP_
 
-#ifdef _WIN32
-#include <windows.h>
-
-#include <iostream>
-#endif  // _WIN32
-
-#include "comet.hpp"
+#include "comet/comet.hpp"
+#include "comet_precompile.hpp"
 
 namespace comet {
 class CometEditor : public Engine {

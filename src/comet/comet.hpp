@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_HPP_
 #define COMET_COMET_HPP_
 
-#include "core/engine.hpp"
-#include "core/entry_point.hpp"
+#include "comet/core/engine.hpp"
+#include "comet/core/entry_point.hpp"
 
 #endif  // COMET_COMET_HPP_

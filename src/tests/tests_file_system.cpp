@@ -2,12 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include <iostream>
-#include <memory>
-
 #include "boost/algorithm/string/find.hpp"
 #include "catch.hpp"
-#include "utils/file_system.hpp"
+#include "comet/utils/file_system.hpp"
+#include "comet_precompile.hpp"
 
 namespace comettests {
 const std::string test_dir = "comettests_tests_file_system";

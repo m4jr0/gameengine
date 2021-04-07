@@ -4,8 +4,6 @@
 
 #include "tests_engine.hpp"
 
-#include <memory>
-
 namespace comettests {
 const double StopComponent::kTimeDelta = 500;  // 0.5 seconds.
 

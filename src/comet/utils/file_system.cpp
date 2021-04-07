@@ -5,8 +5,8 @@
 #include "file_system.hpp"
 
 #include "boost/algorithm/string.hpp"
-#include "date.hpp"
-#include "logger.hpp"
+#include "comet/utils/date.hpp"
+#include "comet/utils/logger.hpp"
 #include "picosha2.h"
 
 #ifdef _WIN32

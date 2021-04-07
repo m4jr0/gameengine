@@ -1,0 +1,44 @@
+add_library(${RESOURCE_LIBRARY_NAME}
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_manager.cpp"
+)
+
+target_include_directories(${RESOURCE_LIBRARY_NAME}
+  PUBLIC
+    ${VCPKG_INCLUDE_DIR}
+    "${PROJECT_SOURCE_DIR}/src/"
+)
+
+target_link_directories(${RESOURCE_LIBRARY_NAME}
+  PUBLIC
+    ${VCPKG_LIBRARY_DIR}
+)
+
+target_link_libraries(${RESOURCE_LIBRARY_NAME}
+  PUBLIC
+    ${Boost_LIBRARIES}
+    efsw
+    ${ZLIB_LIBRARY_RELEASE}
+)
+
+if(WIN32)
+  target_link_libraries(${RESOURCE_LIBRARY_NAME}
+    PUBLIC
+      # Put libraries here.
+  )
+endif()
+
+if(LINUX)
+  target_link_libraries(${RESOURCE_LIBRARY_NAME}
+    PUBLIC
+      # Put libraries here.
+  )
+endif()
+
+list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${RESOURCE_LIBRARY_NAME}")
+
+target_link_libraries(${RESOURCE_LIBRARY_NAME}
+  PRIVATE
+    ${COMET_LIBRARIES}
+)
