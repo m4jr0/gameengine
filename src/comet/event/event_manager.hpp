@@ -16,6 +16,7 @@ namespace event {
 class CallbackBase {
  public:
   virtual void Call(Event* event) = 0;
+  virtual ~CallbackBase() = default;
 };
 
 template <typename T, typename F>
