@@ -4,7 +4,6 @@
 
 #include "shader_program.h"
 
-#include "comet/core/logger.h"
 #include "comet/utils/file_system.h"
 
 #ifdef _WIN32

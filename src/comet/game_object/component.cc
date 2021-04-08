@@ -4,8 +4,6 @@
 
 #include "component.h"
 
-#include "comet/core/logger.h"
-
 #ifdef _WIN32
 #include "debug_windows.h"
 #endif  // _WIN32

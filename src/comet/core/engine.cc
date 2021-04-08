@@ -4,7 +4,6 @@
 
 #include "engine.h"
 
-#include "comet/core/logger.h"
 #include "comet/game_object/camera/camera_controls.h"
 #include "comet/game_object/camera/perspective_camera.h"
 #include "comet/input/input_manager.h"

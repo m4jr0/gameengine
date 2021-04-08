@@ -7,7 +7,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "GL/glew.h"
-#include "comet/core/logger.h"
 #include "stb_image.h"
 
 #ifdef _WIN32

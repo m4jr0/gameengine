@@ -4,7 +4,6 @@
 
 #include "model_resource.h"
 
-#include "comet/core/logger.h"
 #include "comet/rendering/shader/shader_program.h"
 #include "nlohmann/json.hpp"
 

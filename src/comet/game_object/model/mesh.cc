@@ -5,7 +5,6 @@
 #include "mesh.h"
 
 #include "GL/glew.h"
-#include "comet/core/logger.h"
 #include "glm/glm.hpp"
 
 #ifdef _WIN32
