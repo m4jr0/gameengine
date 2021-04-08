@@ -6,8 +6,7 @@
 
 namespace comet {
 namespace event {
-EventManager::EventManager(std::size_t queue_size)
-    : event_queue_(queue_size) {}
+EventManager::EventManager(std::size_t queue_size) : event_queue_(queue_size) {}
 
 void EventManager::Dispatch(std::unique_ptr<Event> event) {
   const int event_type = static_cast<int>(event->GetType());
