@@ -10,19 +10,19 @@
 
 # Source files #################################################################
 add_library(${GAME_OBJECT_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/component.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/game_object.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/game_object_manager.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/component.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/game_object.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/game_object_manager.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/camera_controls.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/camera.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/orthogonal_camera.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/perspective_camera.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/camera_controls.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/camera.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/orthogonal_camera.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/camera/perspective_camera.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/model/mesh.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/model/model.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/model/mesh.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/model/model.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/comet/game_object/physics/transform.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/game_object/physics/transform.cc"
 )
 
 # Compiling ####################################################################

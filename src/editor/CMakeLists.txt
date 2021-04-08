@@ -10,7 +10,7 @@
 
 # Source files #################################################################
 list(APPEND EXECUTABLE_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/editor/editor.cpp"
+  "${PROJECT_SOURCE_DIR}/src/editor/editor.cc"
 )
 
 # Executable ###################################################################
@@ -19,8 +19,8 @@ add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
 # Compiling ####################################################################
 target_precompile_headers(${EXECUTABLE_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/comet_precompile.hpp"
-    "${PROJECT_SOURCE_DIR}/src/debug_windows.hpp"
+    "${PROJECT_SOURCE_DIR}/src/comet_precompile.h"
+    "${PROJECT_SOURCE_DIR}/src/debug_windows.h"
 )
 
 target_include_directories(${EXECUTABLE_NAME}

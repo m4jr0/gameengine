@@ -10,9 +10,9 @@
 
 # Source files #################################################################
 add_library(${CORE_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/core/engine.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/entry_point.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/manager.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/engine.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/entry_point.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/manager.cc"
 )
 
 # Compiling ####################################################################

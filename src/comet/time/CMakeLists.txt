@@ -10,7 +10,7 @@
 
 # Source files #################################################################
 add_library(${TIME_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/time/time_manager.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/time/time_manager.cc"
 )
 
 # Compiling ####################################################################

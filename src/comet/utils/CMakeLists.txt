@@ -10,12 +10,12 @@
 
 # Source files #################################################################
 add_library(${UTILS_LIBRARY_NAME}
-    "${PROJECT_SOURCE_DIR}/src/comet/utils/date.cpp"
-    "${PROJECT_SOURCE_DIR}/src/comet/utils/file_system.cpp"
-    "${PROJECT_SOURCE_DIR}/src/comet/utils/logger.cpp"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/date.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/file_system.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/logger.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/exception.hpp"
-    "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/ring_queue.hpp"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/exception.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/ring_queue.h"
 )
 
 # Compiling ####################################################################

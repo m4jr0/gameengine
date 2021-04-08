@@ -10,11 +10,11 @@
 
 # Source files #################################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/tests/dummies.cpp"
-  "${PROJECT_SOURCE_DIR}/src/tests/tests.cpp"
-  "${PROJECT_SOURCE_DIR}/src/tests/tests_engine.cpp"
-  "${PROJECT_SOURCE_DIR}/src/tests/tests_file_system.cpp"
-  "${PROJECT_SOURCE_DIR}/src/tests/tests_ring_queue.cpp"
+  "${PROJECT_SOURCE_DIR}/src/tests/dummies.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/tests.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/tests_engine.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/tests_file_system.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/tests_ring_queue.cc"
 )
 
 # Executable ###################################################################
@@ -23,7 +23,7 @@ add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
 # Compiling ####################################################################
 target_precompile_headers(${TESTS_EXECUTABLE_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/comet_precompile.hpp"
+    "${PROJECT_SOURCE_DIR}/src/comet_precompile.h"
 )
 
 target_include_directories(${TESTS_EXECUTABLE_NAME}

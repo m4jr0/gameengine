@@ -10,7 +10,7 @@
 
 # Source files #################################################################
 add_library(${PHYSICS_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/physics/physics_manager.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/physics/physics_manager.cc"
 )
 
 # Compiling ####################################################################

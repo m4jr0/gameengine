@@ -10,7 +10,7 @@
 
 # Source files #################################################################
 add_library(${INPUT_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/input/input_manager.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/input/input_manager.cc"
 )
 
 # Compiling ####################################################################

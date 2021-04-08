@@ -10,16 +10,16 @@
 
 # Source files #################################################################
 add_library(${RENDERING_LIBRARY_NAME}
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cpp"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/shader/shader_program.cpp"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/shader/shader_program.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/texture/texture_loader.cpp"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/texture/texture_loader.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw_window.cpp"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cpp"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw_window.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/temporary_code.cpp" # To delete.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/temporary_code.cc" # To delete.
 )
 
 # Compiling ####################################################################

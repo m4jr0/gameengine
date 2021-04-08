@@ -10,9 +10,9 @@
 
 # Source files #################################################################
 add_library(${RESOURCE_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cpp"
-  "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_manager.cpp"
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_manager.cc"
 )
 
 # Compiling ####################################################################
