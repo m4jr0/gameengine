@@ -18,11 +18,6 @@ void PhysicsManager::Update(GameObjectManager *game_object_manager) {
   current_time_ += Engine::engine()->time_manager()->time_delta();
 
   if (current_time_ > 1000) {
-    // TODO(m4jr0): Uncomment this when debugging the physics module.
-    // Logger::Get(LOGGER_COMET_CORE_PHYSICS_PHYSICS_MANAGER)->Debug(
-    //   "Physics ", counter_
-    // );
-
     current_time_ = 0;
     counter_ = 0;
   }
