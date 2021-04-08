@@ -16,7 +16,7 @@ target_link_directories(${EVENT_LIBRARY_NAME}
 
 target_link_libraries(${EVENT_LIBRARY_NAME}
   PUBLIC
-    ${Boost_LIBRARIES}
+    # Put libraries here.
 )
 
 if(WIN32)
@@ -33,10 +33,7 @@ if(LINUX)
   )
 endif()
 
-list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${EVENT_LIBRARY_NAME}")
-
 target_link_libraries(${EVENT_LIBRARY_NAME}
   PRIVATE
-    ${COMET_LIBRARIES}
+    # Put internal libraries here.
 )
-

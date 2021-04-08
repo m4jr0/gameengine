@@ -15,7 +15,7 @@ target_link_directories(${TIME_LIBRARY_NAME}
 
 target_link_libraries(${TIME_LIBRARY_NAME}
   PUBLIC
-    ${Boost_LIBRARIES}
+    # Put libraries here.
 )
 
 if(WIN32)
@@ -32,9 +32,7 @@ if(LINUX)
   )
 endif()
 
-list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${TIME_LIBRARY_NAME}")
-
 target_link_libraries(${TIME_LIBRARY_NAME}
   PRIVATE
-    ${COMET_LIBRARIES}
+    # Put internal libraries here.
 )

@@ -15,30 +15,24 @@ target_link_directories(${INPUT_LIBRARY_NAME}
 
 target_link_libraries(${INPUT_LIBRARY_NAME}
   PUBLIC
-    ${Boost_LIBRARIES}
+    # Put libraries here.
 )
 
 if(WIN32)
   target_link_libraries(${INPUT_LIBRARY_NAME}
     PUBLIC
-      opengl32
-      glfw3dll
-      glew32
+      # Put libraries here.
   )
 endif()
 
 if(LINUX)
   target_link_libraries(${INPUT_LIBRARY_NAME}
     PUBLIC
-      ${OPENGL_opengl_LIBRARY}
-      glfw3
-      GLEW
+      # Put libraries here.
   )
 endif()
 
-list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${INPUT_LIBRARY_NAME}")
-
 target_link_libraries(${INPUT_LIBRARY_NAME}
   PRIVATE
-    ${COMET_LIBRARIES}
+    # Put internal libraries here.
 )

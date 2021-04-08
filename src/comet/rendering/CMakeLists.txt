@@ -52,9 +52,16 @@ if(LINUX)
   )
 endif()
 
+# Temporary. For temporary code files.
 list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${RENDERING_LIBRARY_NAME}")
 
 target_link_libraries(${RENDERING_LIBRARY_NAME}
   PRIVATE
     ${COMET_LIBRARIES}
 )
+
+# Should be uncommented when removing temporary code.
+# target_link_libraries(${RENDERING_LIBRARY_NAME}
+#   PRIVATE
+#     # Put internal libraries here.
+# )

@@ -17,7 +17,7 @@ target_link_directories(${CORE_LIBRARY_NAME}
 
 target_link_libraries(${CORE_LIBRARY_NAME}
   PUBLIC
-    ${Boost_LIBRARIES}
+    # Put libraries here.
 )
 
 if(WIN32)
@@ -34,6 +34,8 @@ if(LINUX)
   )
 endif()
 
+# Could be better, but for now, the engine could use any part of the engine, so
+# we include all the other components.
 list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${CORE_LIBRARY_NAME}")
 
 target_link_libraries(${CORE_LIBRARY_NAME}

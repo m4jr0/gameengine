@@ -20,12 +20,10 @@ target_link_directories(${UTILS_LIBRARY_NAME}
 
 target_link_libraries(${UTILS_LIBRARY_NAME}
   PUBLIC
-    ${Boost_LIBRARIES}
+    # Put libraries here.
 )
-
-list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${UTILS_LIBRARY_NAME}")
 
 target_link_libraries(${UTILS_LIBRARY_NAME}
   PRIVATE
-    ${COMET_LIBRARIES}
+    # Put internal libraries here.
 )

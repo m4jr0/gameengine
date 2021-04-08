@@ -17,9 +17,7 @@ target_link_directories(${RESOURCE_LIBRARY_NAME}
 
 target_link_libraries(${RESOURCE_LIBRARY_NAME}
   PUBLIC
-    ${Boost_LIBRARIES}
     efsw
-    ${ZLIB_LIBRARY_RELEASE}
 )
 
 if(WIN32)
@@ -36,9 +34,7 @@ if(LINUX)
   )
 endif()
 
-list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${RESOURCE_LIBRARY_NAME}")
-
 target_link_libraries(${RESOURCE_LIBRARY_NAME}
   PRIVATE
-    ${COMET_LIBRARIES}
+    # Put internal libraries here.
 )
