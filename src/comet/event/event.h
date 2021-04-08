@@ -14,12 +14,12 @@
 
 namespace comet {
 namespace event {
-enum class Type {
+enum class EventType {
   Unknown = 0,
   WindowResize,
 };
 
-enum Category {
+enum EventCategory {
   kUnknown = 1 << 0,
   kEngine = 1 << 1,
   kInput = 1 << 2,
@@ -29,7 +29,7 @@ enum Category {
 
 class Event {
  public:
-  static constexpr Type kStaticType_ = Type::Unknown;
+  static constexpr EventType kStaticType_ = EventType::Unknown;
 
   virtual ~Event() = default;
 
@@ -45,25 +45,27 @@ class Event {
     return event;
   }
 
-  Type GetType() { return type_; }
+  EventType GetType() { return type_; }
   virtual int GetCategoryFlags() const = 0;
-  bool IsInCategory(Category category) const;
+  bool IsInCategory(EventCategory category) const;
 
  protected:
   Event() = default;
 
-  Type type_ = Type::Unknown;
+  EventType type_ = EventType::Unknown;
 };
 
 class SpecificEvent : public Event {
  public:
-  static constexpr Type kStaticType_ = Type::WindowResize;
+  static constexpr EventType kStaticType_ = EventType::WindowResize;
 
   SpecificEvent(const std::string& data) { data_ = data; }
 
   const std::string& GetString() const { return data_; }
 
-  virtual int GetCategoryFlags() const override { return Category::kUnknown; }
+  virtual int GetCategoryFlags() const override {
+    return EventCategory::kUnknown;
+  }
 
  private:
   std::string data_ = "default";

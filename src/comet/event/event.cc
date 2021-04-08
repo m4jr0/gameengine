@@ -2,7 +2,7 @@
 
 namespace comet {
 namespace event {
-bool Event::IsInCategory(Category category) const {
+bool Event::IsInCategory(EventCategory category) const {
   return GetCategoryFlags() & category;
 }
 }  // namespace event
