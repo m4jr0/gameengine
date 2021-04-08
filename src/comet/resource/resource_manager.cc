@@ -4,9 +4,9 @@
 
 #include "resource_manager.h"
 
+#include "comet/core/logger.h"
 #include "comet/utils/date.h"
 #include "comet/utils/file_system.h"
-#include "comet/utils/logger.h"
 #include "efsw/efsw.hpp"
 #include "nlohmann/json.hpp"
 

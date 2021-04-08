@@ -7,9 +7,9 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "comet/core/engine.h"
+#include "comet/core/logger.h"
 #include "comet/rendering/texture/texture_loader.h"
 #include "comet/utils/file_system.h"
-#include "comet/utils/logger.h"
 
 #ifdef _WIN32
 #include "debug_windows.h"

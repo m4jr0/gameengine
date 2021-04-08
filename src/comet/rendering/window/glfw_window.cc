@@ -4,7 +4,7 @@
 
 #include "glfw_window.h"
 
-#include "comet/utils/logger.h"
+#include "comet/core/logger.h"
 
 namespace comet {
 GlfwWindow::GlfwWindow(const std::string &name, unsigned int width,

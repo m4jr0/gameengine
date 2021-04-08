@@ -12,6 +12,7 @@
 add_library(${CORE_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/core/engine.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/entry_point.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/logger.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/manager.cc"
 )
 

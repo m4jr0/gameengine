@@ -4,9 +4,9 @@
 
 #include "resource.h"
 
+#include "comet/core/logger.h"
 #include "comet/utils/date.h"
 #include "comet/utils/file_system.h"
-#include "comet/utils/logger.h"
 
 #ifdef _WIN32
 #include "debug_windows.h"

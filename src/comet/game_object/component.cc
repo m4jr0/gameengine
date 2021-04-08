@@ -4,7 +4,7 @@
 
 #include "component.h"
 
-#include "comet/utils/logger.h"
+#include "comet/core/logger.h"
 
 #ifdef _WIN32
 #include "debug_windows.h"
