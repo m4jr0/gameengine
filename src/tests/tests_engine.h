@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef TESTS_GAME_HPP_
-#define TESTS_GAME_HPP_
+#ifndef COMET_TESTS_TESTS_ENGINE_H_
+#define COMET_TESTS_TESTS_ENGINE_H_
 
 #include "catch.hpp"
 #include "comet/comet.h"
@@ -27,4 +27,4 @@ class StopComponent final : public comet::Component {
 };
 };  // namespace comettests
 
-#endif  // TESTS_GAME_HPP_
+#endif  // COMET_TESTS_TESTS_ENGINE_H_

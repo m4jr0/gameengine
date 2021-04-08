@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_GAME_HPP_
-#define COMET_CORE_GAME_HPP_
+#ifndef COMET_COMET_CORE_ENGINE_H_
+#define COMET_COMET_CORE_ENGINE_H_
 
 constexpr auto kLoggerCometCoreEngine = "comet_core_engine";
 
@@ -67,4 +67,4 @@ class Engine {
 std::unique_ptr<Engine> CreateEngine();
 }  // namespace comet
 
-#endif  // COMET_CORE_GAME_HPP_
+#endif  // COMET_COMET_CORE_ENGINE_H_

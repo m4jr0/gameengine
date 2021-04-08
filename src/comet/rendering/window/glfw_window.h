@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_RENDER_WINDOW_GLFW_WINDOW_HPP_
-#define COMET_CORE_RENDER_WINDOW_GLFW_WINDOW_HPP_
+#ifndef COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
+#define COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
 
 constexpr auto kLoggerCometCoreRenderWindowGlfwWindow = "comet_core_window";
 
@@ -39,4 +39,4 @@ class GlfwWindow : public Window {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_RENDER_WINDOW_GLFW_WINDOW_HPP_
+#endif  // COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_

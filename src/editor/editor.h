@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef EDITOR_EDITOR_HPP_
-#define EDITOR_EDITOR_HPP_
+#ifndef COMET_EDITOR_EDITOR_H_
+#define COMET_EDITOR_EDITOR_H_
 
 #include "comet/comet.h"
 #include "comet_precompile.h"
@@ -23,4 +23,4 @@ class CometEditor : public Engine {
 };
 }  // namespace comet
 
-#endif  // EDITOR_EDITOR_HPP_
+#endif  // COMET_EDITOR_EDITOR_H_

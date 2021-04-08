@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_UTILS_STRUCTURE_RING_QUEUE_HPP_
-#define COMET_UTILS_STRUCTURE_RING_QUEUE_HPP_
+#ifndef COMET_COMET_UTILS_STRUCTURE_RING_QUEUE_H_
+#define COMET_COMET_UTILS_STRUCTURE_RING_QUEUE_H_
 
 constexpr auto kLoggerCometUtilsStructureRingQueue = "comet_utils";
 
@@ -240,4 +240,4 @@ inline void concurrent_ring_queue<T>::clear() noexcept {
 }  // namespace structure
 }  // namespace comet
 
-#endif  // COMET_UTILS_STRUCTURE_RING_QUEUE_HPP_
+#endif  // COMET_COMET_UTILS_STRUCTURE_RING_QUEUE_H_

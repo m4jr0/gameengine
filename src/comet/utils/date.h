@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_UTILS_DATE_HPP_
-#define COMET_UTILS_DATE_HPP_
+#ifndef COMET_COMET_UTILS_DATE_H_
+#define COMET_COMET_UTILS_DATE_H_
 
 constexpr auto kLoggerCometUtilsDate = "comet_utils";
 
@@ -21,4 +21,4 @@ double GetDouble(const std::time_t &);
 }  // namespace date
 }  // namespace comet
 
-#endif  // COMET_UTILS_DATE_HPP_
+#endif  // COMET_COMET_UTILS_DATE_H_

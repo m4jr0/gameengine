@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_TEMPORARY_CODE_HPP_
-#define COMET_TEMPORARY_CODE_HPP_
+#ifndef COMET_COMET_RENDERING_TEMPORARY_CODE_H_
+#define COMET_COMET_RENDERING_TEMPORARY_CODE_H_
 
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -15,4 +15,4 @@ void UpdateTmp();
 void DestroyTmp();
 }  // namespace comet
 
-#endif  // COMET_CORE_GAME_OBJECT_COMPONENT_HPP_
+#endif  // COMET_COMET_RENDERING_TEMPORARY_CODE_H_

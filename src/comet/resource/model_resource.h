@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_RESOURCE_MODEL_RESOURCE_HPP_
-#define COMET_CORE_RESOURCE_MODEL_RESOURCE_HPP_
+#ifndef COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
+#define COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 
 constexpr auto kLoggerCometCoreResourceModelResource = "comet_core_resource";
 
@@ -29,4 +29,4 @@ class ModelResource : public Resource {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_RESOURCE_MODEL_RESOURCE_HPP_
+#endif  // COMET_COMET_RESOURCE_MODEL_RESOURCE_H_

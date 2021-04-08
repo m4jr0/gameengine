@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_EVENT_MANAGER_HPP_
-#define COMET_CORE_EVENT_MANAGER_HPP_
+#ifndef COMET_COMET_EVENT_EVENT_MANAGER_H_
+#define COMET_COMET_EVENT_EVENT_MANAGER_H_
 
 #include "comet/event/event.h"
 #include "comet/utils/structure/ring_queue.h"
@@ -74,4 +74,4 @@ class EventManager {
 }  // namespace event
 }  // namespace comet
 
-#endif  // COMET_CORE_EVENT_MANAGER_HPP_
+#endif  // COMET_COMET_EVENT_EVENT_MANAGER_H_

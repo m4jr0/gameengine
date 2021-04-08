@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_PRECOMPILE_HPP_
-#define COMET_PRECOMPILE_HPP_
+#ifndef COMET_COMET_PRECOMPILE_H_
+#define COMET_COMET_PRECOMPILE_H_
 
 #include <algorithm>
 #include <array>
@@ -32,4 +32,4 @@
 #include <windows.h>
 #endif  // _WIN32
 
-#endif  // COMET_PRECOMPILE_HPP_
+#endif  // COMET_COMET_PRECOMPILE_H_

@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_UTILS_LOGGER_HPP_
-#define COMET_UTILS_LOGGER_HPP_
+#ifndef COMET_COMET_UTILS_LOGGER_H_
+#define COMET_COMET_UTILS_LOGGER_H_
 
 #include "comet_precompile.h"
 
@@ -66,4 +66,4 @@ class Logger final {
 };
 }  // namespace comet
 
-#endif  // COMET_UTILS_LOGGER_HPP_
+#endif  // COMET_COMET_UTILS_LOGGER_H_

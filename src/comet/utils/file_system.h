@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_UTILS_FILE_SYSTEM_HPP_
-#define COMET_UTILS_FILE_SYSTEM_HPP_
+#ifndef COMET_COMET_UTILS_FILE_SYSTEM_H_
+#define COMET_COMET_UTILS_FILE_SYSTEM_H_
 
 constexpr auto kLoggerCometUtilsFileSystem = "comet_utils";
 
@@ -46,4 +46,4 @@ std::string GetChecksum(const std::string &);
 }  // namespace filesystem
 }  // namespace comet
 
-#endif  // COMET_UTILS_FILE_SYSTEM_HPP_
+#endif  // COMET_COMET_UTILS_FILE_SYSTEM_H_

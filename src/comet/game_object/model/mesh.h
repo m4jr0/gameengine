@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_GAME_OBJECT_MODEL_MESH_HPP_
-#define COMET_CORE_GAME_OBJECT_MODEL_MESH_HPP_
+#ifndef COMET_COMET_GAME_OBJECT_MODEL_MESH_H_
+#define COMET_COMET_GAME_OBJECT_MODEL_MESH_H_
 
 constexpr auto kLoggerCometCoreGameObjectModelMesh = "comet_core_render";
 
@@ -57,4 +57,4 @@ class Mesh {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_GAME_OBJECT_MODEL_MESH_HPP_
+#endif  // COMET_COMET_GAME_OBJECT_MODEL_MESH_H_

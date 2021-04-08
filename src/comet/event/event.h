@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_EVENT_EVENT_HPP_
-#define COMET_CORE_EVENT_EVENT_HPP_
+#ifndef COMET_COMET_EVENT_EVENT_H_
+#define COMET_COMET_EVENT_EVENT_H_
 
 #define COMET_EVENT_BIND_FUNCTION(fn)                       \
   [this](auto&&... args) -> decltype(auto) {                \
@@ -71,4 +71,4 @@ class SpecificEvent : public Event {
 }  // namespace event
 }  // namespace comet
 
-#endif  // COMET_CORE_EVENT_EVENT_HPP_
+#endif  // COMET_COMET_EVENT_EVENT_H_

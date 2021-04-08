@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_
-#define COMET_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_
+#ifndef COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
+#define COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
 
 constexpr auto kLoggerCometCoreRenderShaderShaderProgram = "comet_core_render";
 
@@ -92,4 +92,4 @@ class ShaderProgram {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_RENDER_SHADER_SHADER_PROGRAM_HPP_
+#endif  // COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_

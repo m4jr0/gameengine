@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_RESOURCE_RESOURCE_MANAGER_HPP_
-#define COMET_CORE_RESOURCE_RESOURCE_MANAGER_HPP_
+#ifndef COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
+#define COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
 
 constexpr auto kLoggerCometCoreResourceResourceManager = "comet_core_resource";
 
@@ -57,4 +57,4 @@ class ResourceManager : public Manager, public efsw::FileWatchListener {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_RESOURCE_RESOURCE_MANAGER_HPP_
+#endif  // COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_

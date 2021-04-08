@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_INPUT_INPUT_MANAGER_HPP_
-#define COMET_CORE_INPUT_INPUT_MANAGER_HPP_
+#ifndef COMET_COMET_INPUT_INPUT_MANAGER_H_
+#define COMET_COMET_INPUT_INPUT_MANAGER_H_
 
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
@@ -180,4 +180,4 @@ class NullInputManager : public InputManager {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_INPUT_INPUT_MANAGER_HPP_
+#endif  // COMET_COMET_INPUT_INPUT_MANAGER_H_

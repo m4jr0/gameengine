@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_DEBUG_HPP_
-#define COMET_DEBUG_HPP_
+#ifndef COMET_DEBUG_WINDOWS_H_
+#define COMET_DEBUG_WINDOWS_H_
 
 #ifdef _WIN32
 #define _CRTDBG_MAP_ALLOC
@@ -20,4 +20,4 @@
 #endif  // _DEBUG
 #endif  // _WIN32
 
-#endif  // COMET_DEBUG_HPP_
+#endif  // COMET_DEBUG_WINDOWS_H_

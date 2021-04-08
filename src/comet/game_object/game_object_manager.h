@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
-#define COMET_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
+#ifndef COMET_COMET_GAME_OBJECT_GAME_OBJECT_MANAGER_H_
+#define COMET_COMET_GAME_OBJECT_GAME_OBJECT_MANAGER_H_
 
 #include "comet/core/manager.h"
 #include "comet/game_object/game_object.h"
@@ -30,4 +30,4 @@ class GameObjectManager : public Manager {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_GAME_OBJECT_GAME_OBJECT_MANAGER_HPP_
+#endif  // COMET_COMET_GAME_OBJECT_GAME_OBJECT_MANAGER_H_

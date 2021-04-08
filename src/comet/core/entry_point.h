@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_ENTRY_POINT_HPP_
-#define COMET_CORE_ENTRY_POINT_HPP_
+#ifndef COMET_COMET_CORE_ENTRY_POINT_H_
+#define COMET_COMET_CORE_ENTRY_POINT_H_
 
 #include "comet/core/engine.h"
 #include "comet_precompile.h"
@@ -12,4 +12,4 @@ extern std::unique_ptr<comet::Engine> comet::CreateEngine();
 
 namespace comet {}  // namespace comet
 
-#endif  // COMET_CORE_ENTRY_POINT_HPP_
+#endif  // COMET_COMET_CORE_ENTRY_POINT_H_

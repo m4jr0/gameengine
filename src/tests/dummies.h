@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef TESTS_DUMMIES_HPP_
-#define TESTS_DUMMIES_HPP_
+#ifndef COMET_TESTS_DUMMIES_H_
+#define COMET_TESTS_DUMMIES_H_
 
 #include "comet_precompile.h"
 
@@ -42,4 +42,4 @@ class DummyObject {
 std::ostream &operator<<(std::ostream &, const comettests::DummyObject &);
 }  // namespace comettests
 
-#endif  // TESTS_DUMMIES_HPP_
+#endif  // COMET_TESTS_DUMMIES_H_

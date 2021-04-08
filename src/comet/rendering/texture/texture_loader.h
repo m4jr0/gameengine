@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_RENDER_TEXTURE_TEXTURE_LOADER_HPP_
-#define COMET_CORE_RENDER_TEXTURE_TEXTURE_LOADER_HPP_
+#ifndef COMET_COMET_RENDERING_TEXTURE_TEXTURE_LOADER_H_
+#define COMET_COMET_RENDERING_TEXTURE_TEXTURE_LOADER_H_
 
 constexpr auto kLoggerCometCoreRenderTextureTextureLoader = "comet_core_render";
 
@@ -13,4 +13,4 @@ namespace comet {
 unsigned int Load2DTextureFromFile(const std::string &, bool = false);
 }  // namespace comet
 
-#endif  // COMET_CORE_RENDER_TEXTURE_TEXTURE_LOADER_HPP_
+#endif  // COMET_COMET_RENDERING_TEXTURE_TEXTURE_LOADER_H_

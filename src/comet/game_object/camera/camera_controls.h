@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_CORE_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_HPP_
-#define COMET_CORE_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_HPP_
+#ifndef COMET_COMET_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_H_
+#define COMET_COMET_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_H_
 
 #include "comet/game_object/component.h"
 #include "comet_precompile.h"
@@ -25,4 +25,4 @@ class CameraControls : public Component {
 };
 }  // namespace comet
 
-#endif  // COMET_CORE_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_HPP_
+#endif  // COMET_COMET_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_H_
