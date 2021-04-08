@@ -13,13 +13,14 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace core {
 void Engine::Initialize() {
   // TODO(m4jr0): Move the lines about the main camera elsewere, when a
   // configuration file (of some sort) will be available for default/saved
   // settings.
-  auto camera_container = GameObject::Create();
-  main_camera_ = std::make_shared<PerspectiveCamera>();
-  auto camera_controls = std::make_shared<CameraControls>();
+  auto camera_container = game_object::GameObject::Create();
+  main_camera_ = std::make_shared<game_object::PerspectiveCamera>();
+  auto camera_controls = std::make_shared<game_object::CameraControls>();
   main_camera_->position(0, 0, 3);
   main_camera_->direction(0.715616, 0.691498, -0.098611);
 
@@ -107,12 +108,12 @@ void Engine::Quit() {
 }
 
 Engine::Engine() {
-  resource_manager_ = std::make_unique<ResourceManager>();
-  physics_manager_ = std::make_unique<PhysicsManager>();
-  rendering_manager_ = std::make_unique<RenderingManager>();
-  game_object_manager_ = std::make_unique<GameObjectManager>();
-  time_manager_ = std::make_unique<TimeManager>();
-  input_manager_ = std::make_unique<InputManager>();
+  resource_manager_ = std::make_unique<resource::ResourceManager>();
+  physics_manager_ = std::make_unique<physics::PhysicsManager>();
+  rendering_manager_ = std::make_unique<rendering::RenderingManager>();
+  game_object_manager_ = std::make_unique<game_object::GameObjectManager>();
+  time_manager_ = std::make_unique<time::TimeManager>();
+  input_manager_ = std::make_unique<input::InputManager>();
   event_manager_ = std::make_unique<event::EventManager>();
 
   Engine::engine_ = this;
@@ -127,19 +128,21 @@ void Engine::Exit() {
 
 Engine* const Engine::engine() { return Engine::engine_; }
 
-ResourceManager* const Engine::resource_manager() {
+resource::ResourceManager* const Engine::resource_manager() {
   return resource_manager_.get();
 }
 
-RenderingManager* const Engine::rendering_manager() {
+rendering::RenderingManager* const Engine::rendering_manager() {
   return rendering_manager_.get();
 }
 
-InputManager* const Engine::input_manager() { return input_manager_.get(); }
+input::InputManager* const Engine::input_manager() {
+  return input_manager_.get();
+}
 
-TimeManager* const Engine::time_manager() { return time_manager_.get(); }
+time::TimeManager* const Engine::time_manager() { return time_manager_.get(); }
 
-GameObjectManager* const Engine::game_object_manager() {
+game_object::GameObjectManager* const Engine::game_object_manager() {
   return game_object_manager_.get();
 }
 
@@ -147,7 +150,8 @@ event::EventManager* const Engine::event_manager() {
   return event_manager_.get();
 }
 
-Camera* const Engine::main_camera() { return main_camera_.get(); }
+game_object::Camera* const Engine::main_camera() { return main_camera_.get(); }
 
 const bool Engine::is_running() const noexcept { return is_running_; }
+}  // namespace core
 }  // namespace comet

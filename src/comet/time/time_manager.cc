@@ -11,7 +11,8 @@
 #endif  // _WIN32
 
 namespace comet {
-double TimeManager::GetRealNow() { return date::GetNow(); }
+namespace time {
+double TimeManager::GetRealNow() { return utils::date::GetNow(); }
 
 double TimeManager::GetNow() {
   const auto time_delta = GetRealNow() - previous_time_;
@@ -43,4 +44,5 @@ const float TimeManager::time_scale() const noexcept { return time_scale_; }
 void TimeManager::time_scale(float time_scale) noexcept {
   time_scale_ = time_scale;
 }
+}  // namespace time
 }  // namespace comet

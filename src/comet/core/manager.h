@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace core {
 class Manager {
  public:
   Manager() = default;
@@ -21,6 +22,7 @@ class Manager {
   virtual void Destroy();
   virtual void Update();
 };
+}  // namespace core
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_MANAGER_H_

@@ -9,6 +9,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 GameObject::GameObject(GameObject::constructor_tag_){};
 
 GameObject::~GameObject() = default;
@@ -55,4 +56,5 @@ std::shared_ptr<Component> GameObject::GetComponent(
 }
 
 const boost::uuids::uuid GameObject::kId() const noexcept { return kId_; }
+}  // namespace game_object
 }  // namespace comet

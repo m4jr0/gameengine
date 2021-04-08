@@ -9,6 +9,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace utils {
 namespace date {
 double GetNow() {
   const auto current_time = std::chrono::system_clock::now();
@@ -33,4 +34,5 @@ double GetDouble(const std::time_t &time) {
   return GetDouble(GetChronoTimePoint(time));
 }
 }  // namespace date
+}  // namespace utils
 }  // namespace comet

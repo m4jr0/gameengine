@@ -12,6 +12,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace comet {
+namespace game_object {
 struct Vertex {
   glm::vec3 position;
   glm::vec3 normal;
@@ -30,7 +31,7 @@ class Mesh {
  public:
   Mesh(std::vector<Vertex>, std::vector<unsigned int>, std::vector<Texture>);
 
-  void Draw(std::shared_ptr<ShaderProgram>);
+  void Draw(std::shared_ptr<rendering::ShaderProgram>);
 
   template <class Archive>
   void Serialize(Archive &archive, const unsigned int file_version) {
@@ -53,6 +54,7 @@ class Mesh {
   unsigned int vbo_;
   unsigned int ebo_;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_MODEL_MESH_H_

@@ -15,10 +15,11 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 void CameraControls::Update() {
-  const auto time_manager = Engine::engine()->time_manager();
-  const auto rendering_manager = Engine::engine()->rendering_manager();
-  auto input_manager = Engine::engine()->input_manager();
+  const auto time_manager = core::Engine::engine()->time_manager();
+  const auto rendering_manager = core::Engine::engine()->rendering_manager();
+  auto input_manager = core::Engine::engine()->input_manager();
 
   const auto time_delta = time_manager->time_delta();
   const auto current_mouse_pos = input_manager->GetMousePosition();
@@ -37,26 +38,27 @@ void CameraControls::Update() {
 
   const auto up = glm::cross(right, direction);
 
-  if (input_manager->IsKeyDown(KeyCode::W)) {
+  if (input_manager->IsKeyDown(input::KeyCode::W)) {
     position_ += direction * static_cast<float>(time_delta) * speed_;
   }
 
-  if (input_manager->IsKeyDown(KeyCode::S)) {
+  if (input_manager->IsKeyDown(input::KeyCode::S)) {
     position_ -= direction * static_cast<float>(time_delta) * speed_;
   }
 
-  if (input_manager->IsKeyDown(KeyCode::D)) {
+  if (input_manager->IsKeyDown(input::KeyCode::D)) {
     position_ += right * static_cast<float>(time_delta) * speed_;
   }
 
-  if (input_manager->IsKeyDown(KeyCode::A)) {
+  if (input_manager->IsKeyDown(input::KeyCode::A)) {
     position_ -= right * static_cast<float>(time_delta) * speed_;
   }
 
-  auto main_camera = Engine::engine()->main_camera();
+  auto main_camera = core::Engine::engine()->main_camera();
 
   main_camera->position(position_);
   main_camera->direction(direction);
   main_camera->orientation(up);
 }
+}  // namespace game_object
 }  // namespace comet

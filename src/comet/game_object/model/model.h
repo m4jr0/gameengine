@@ -15,14 +15,16 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace comet {
+namespace game_object {
 class Model : public Component {
  public:
-  Model(const std::string &, std::shared_ptr<ShaderProgram> = nullptr);
+  Model(const std::string &,
+        std::shared_ptr<rendering::ShaderProgram> = nullptr);
 
   void Initialize() override;
   void Destroy() override;
   void Update() override;
-  void Draw(std::shared_ptr<ShaderProgram>);
+  void Draw(std::shared_ptr<rendering::ShaderProgram>);
 
   template <class Archive>
   void Serialize(Archive &archive, const unsigned int file_version) {
@@ -46,9 +48,10 @@ class Model : public Component {
   std::string path_;
   std::string directory_;
   std::shared_ptr<Transform> transform_ = nullptr;
-  std::shared_ptr<ShaderProgram> shader_program_ = nullptr;
+  std::shared_ptr<rendering::ShaderProgram> shader_program_ = nullptr;
   std::vector<Texture> loaded_textures_;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_MODEL_MODEL_H_

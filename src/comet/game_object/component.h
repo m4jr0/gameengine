@@ -11,6 +11,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace game_object {
 class GameObject;
 
 class Component {
@@ -35,6 +36,7 @@ class Component {
   const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
   void game_object(std::shared_ptr<GameObject>);
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_COMPONENT_H_

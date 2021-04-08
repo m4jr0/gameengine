@@ -11,6 +11,7 @@
 #include "window.h"
 
 namespace comet {
+namespace rendering {
 class GlfwWindow : public Window {
  public:
   GlfwWindow(const std::string & = Window::kDefaultName_,
@@ -35,6 +36,7 @@ class GlfwWindow : public Window {
   GLFWwindow *window_ = nullptr;
   bool is_vsync_ = true;
 };
+}  // namespace rendering
 }  // namespace comet
 
 #endif  // COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_

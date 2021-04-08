@@ -8,7 +8,7 @@
 #include "comet/core/engine.h"
 #include "comet_precompile.h"
 
-extern std::unique_ptr<comet::Engine> comet::CreateEngine();
+extern std::unique_ptr<comet::core::Engine> comet::core::CreateEngine();
 
 namespace comet {}  // namespace comet
 

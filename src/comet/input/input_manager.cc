@@ -11,6 +11,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace input {
 void InputManager::Initialize() {
   glfwSetInputMode(cached_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
@@ -38,7 +39,7 @@ bool InputManager::IsKeyDown(KeyCode key_code) const {
 GLFWwindow *InputManager::cached_window() const {
   if (cached_window_ == nullptr) {
     cached_window_ = const_cast<GLFWwindow *>(
-        Engine::engine()->rendering_manager()->window()->glfw_window());
+        core::Engine::engine()->rendering_manager()->window()->glfw_window());
   }
 
   return cached_window_;
@@ -56,5 +57,5 @@ glm::vec2 InputManager::GetMousePosition() const {
 void InputManager::SetMousePosition(float x, float y) {
   glfwSetCursorPos(cached_window(), x, y);
 }
-
+}  // namespace input
 }  // namespace comet

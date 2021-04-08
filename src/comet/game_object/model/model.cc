@@ -15,8 +15,9 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 Model::Model(const std::string &model_path,
-             std::shared_ptr<ShaderProgram> shader_program) {
+             std::shared_ptr<rendering::ShaderProgram> shader_program) {
   path_ = model_path;
   shader_program_ = shader_program;
 }
@@ -25,7 +26,7 @@ void Model::Initialize() {
   Component::Initialize();
 
   if ((transform_ = game_object_->GetComponent<Transform>()) == nullptr) {
-    Logger::Get(LoggerType::GameObject)
+    core::Logger::Get(core::LoggerType::GameObject)
         ->Error(
             "A 'Transform' component is required when adding a Model "
             "component");
@@ -47,14 +48,14 @@ void Model::Update() {
 
   shader_program_->Use();
 
-  const auto mvp =
-      Engine::engine()->main_camera()->GetMvp(transform_->GetTransformMatrix());
+  const auto mvp = core::Engine::engine()->main_camera()->GetMvp(
+      transform_->GetTransformMatrix());
 
   shader_program_->SetMatrix4("mvp", mvp);
   Draw(shader_program_);
 }
 
-void Model::Draw(std::shared_ptr<ShaderProgram> shader_program) {
+void Model::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
   const auto meshes_number = meshes_.size();
 
   for (std::size_t index = 0; index < meshes_number; ++index) {
@@ -71,13 +72,13 @@ void Model::LoadModel() {
 
   if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       scene->mRootNode == nullptr) {
-    Logger::Get(LoggerType::GameObject)
+    core::Logger::Get(core::LoggerType::GameObject)
         ->Error("Assimp error: ", importer.GetErrorString());
 
     return;
   }
 
-  directory_ = filesystem::GetDirectoryPath(path_);
+  directory_ = utils::filesystem::GetDirectoryPath(path_);
   LoadNode(scene->mRootNode, scene);
 }
 
@@ -201,7 +202,8 @@ std::vector<Texture> Model::LoadMaterialTextures(
     if (is_skip) continue;
 
     Texture texture;
-    texture.id = Load2DTextureFromFile(directory_ + "/" + texture_path.C_Str());
+    texture.id = rendering::Load2DTextureFromFile(directory_ + "/" +
+                                                  texture_path.C_Str());
     texture.type = texture_type_name;
     texture.path = texture_path.C_Str();
 
@@ -211,4 +213,5 @@ std::vector<Texture> Model::LoadMaterialTextures(
 
   return textures;
 }
+}  // namespace game_object
 }  // namespace comet

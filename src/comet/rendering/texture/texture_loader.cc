@@ -14,6 +14,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace rendering {
 unsigned int Load2DTextureFromFile(const std::string &texture_path,
                                    bool is_gamma) {
   unsigned int texture_id;
@@ -34,7 +35,7 @@ unsigned int Load2DTextureFromFile(const std::string &texture_path,
     } else if (components_number == 4) {
       format = GL_RGBA;
     } else {
-      Logger::Get(LoggerType::Rendering)
+      core::Logger::Get(core::LoggerType::Rendering)
           ->Error("Unsupported texture type at path: ", texture_path);
 
       return 0;
@@ -55,7 +56,7 @@ unsigned int Load2DTextureFromFile(const std::string &texture_path,
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   } else {
-    Logger::Get(LoggerType::Rendering)
+    core::Logger::Get(core::LoggerType::Rendering)
         ->Error("Texture failed to load at path: ", texture_path);
   }
 
@@ -63,4 +64,5 @@ unsigned int Load2DTextureFromFile(const std::string &texture_path,
 
   return texture_id;
 }
+}  // namespace rendering
 }  // namespace comet

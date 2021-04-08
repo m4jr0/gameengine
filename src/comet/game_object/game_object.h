@@ -12,6 +12,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace game_object {
 class GameObject final : public std::enable_shared_from_this<GameObject> {
  protected:
   // We want to be sure that GameObject instances are created in a shared
@@ -69,6 +70,7 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
   const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
   std::unordered_map<std::string, std::shared_ptr<Component>> components_;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_GAME_OBJECT_H_

@@ -9,9 +9,10 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 void Component::Initialize() {
   if (game_object_ == nullptr) {
-    Logger::Get(LoggerType::GameObject)
+    core::Logger::Get(core::LoggerType::GameObject)
         ->Error("Cannot initialize a component without a game object");
 
     return;
@@ -44,4 +45,5 @@ std::shared_ptr<GameObject> Component::game_object() noexcept {
 void Component::game_object(std::shared_ptr<GameObject> game_object) {
   game_object_ = game_object;
 }
+}  // namespace game_object
 }  // namespace comet

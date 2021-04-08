@@ -9,6 +9,7 @@
 #include "exception.h"
 
 namespace comet {
+namespace utils {
 namespace structure {
 // Abstract ring queue with a fixed capacity given at its instanciation.
 // The public member naming rules follow the STL containers to ease its use.
@@ -236,6 +237,7 @@ inline void concurrent_ring_queue<T>::clear() noexcept {
   has_data_.notify_one();
 }
 }  // namespace structure
+}  // namespace utils
 }  // namespace comet
 
 #endif  // COMET_COMET_UTILS_STRUCTURE_RING_QUEUE_H_

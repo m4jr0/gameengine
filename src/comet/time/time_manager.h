@@ -9,7 +9,8 @@
 #include "comet_precompile.h"
 
 namespace comet {
-class TimeManager : public Manager {
+namespace time {
+class TimeManager : public core::Manager {
  public:
   TimeManager() = default;
   TimeManager(const TimeManager&) = delete;
@@ -36,6 +37,7 @@ class TimeManager : public Manager {
   double time_delta_ = 0.0;
   float time_scale_ = 1.0f;
 };
+}  // namespace time
 }  // namespace comet
 
 #endif  // COMET_COMET_TIME_TIME_MANAGER_H_

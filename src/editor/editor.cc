@@ -10,7 +10,8 @@
 #endif  // _WIN32
 
 namespace comet {
-CometEditor::CometEditor() : Engine() {}
+namespace editor {
+CometEditor::CometEditor() : core::Engine() {}
 
 void CometEditor::Initialize() {
 #ifdef _WIN32
@@ -22,11 +23,11 @@ void CometEditor::Initialize() {
   }
 #endif  // _WIN32
 
-  Engine::Initialize();
+  core::Engine::Initialize();
 }
 
 void CometEditor::Exit() {
-  Engine::Exit();
+  core::Engine::Exit();
 
 #ifdef _WIN32
   _CrtDumpMemoryLeaks();
@@ -49,8 +50,9 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
   return FALSE;
 }
 #endif  // _WIN32
+}  // namespace editor
 
-std::unique_ptr<Engine> CreateEngine() {
-  return std::make_unique<CometEditor>();
+std::unique_ptr<core::Engine> core::CreateEngine() {
+  return std::make_unique<editor::CometEditor>();
 }
 }  // namespace comet

@@ -13,6 +13,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace utils {
 namespace filesystem {
 bool WriteToFile(const std::string &file_path, const std::string &buffer,
                  bool is_append) {
@@ -54,7 +55,8 @@ bool ReadFile(const std::string &file_path, std::string *buffer) {
   }
 
   if (!is_open) {
-    Logger::Get(LoggerType::Utils)->Error("Unable to open ", file_path);
+    core::Logger::Get(core::LoggerType::Utils)
+        ->Error("Unable to open ", file_path);
 
     return false;
   }
@@ -324,7 +326,7 @@ void RemoveLeadingSlashes(std::string &path) {
 double GetLastModificationTime(const std::string &path) {
   if (!IsExist(path)) return -1;
 
-  return comet::date::GetDouble(boost::filesystem::last_write_time(path));
+  return date::GetDouble(boost::filesystem::last_write_time(path));
 }
 
 std::string GetChecksum(const std::string &path) {
@@ -339,4 +341,5 @@ std::string GetChecksum(const std::string &path) {
   return std::string(checksum.cbegin(), checksum.cend());
 }
 }  // namespace filesystem
+}  // namespace utils
 }  // namespace comet

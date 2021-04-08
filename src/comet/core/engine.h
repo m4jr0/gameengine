@@ -16,6 +16,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace core {
 class Engine {
  public:
   static constexpr double kMsPerUpdate_ = 16.66;  // 60 Hz refresh.
@@ -32,13 +33,13 @@ class Engine {
   virtual void Quit();
 
   static Engine* const engine();
-  ResourceManager* const resource_manager();
-  RenderingManager* const rendering_manager();
-  InputManager* const input_manager();
-  TimeManager* const time_manager();
-  GameObjectManager* const game_object_manager();
+  resource::ResourceManager* const resource_manager();
+  rendering::RenderingManager* const rendering_manager();
+  input::InputManager* const input_manager();
+  time::TimeManager* const time_manager();
+  game_object::GameObjectManager* const game_object_manager();
   event::EventManager* const event_manager();
-  Camera* const main_camera();
+  game_object::Camera* const main_camera();
 
   const bool is_running() const noexcept;
 
@@ -48,14 +49,15 @@ class Engine {
 
   inline static Engine* engine_;
 
-  std::unique_ptr<ResourceManager> resource_manager_ = nullptr;
-  std::unique_ptr<InputManager> input_manager_ = nullptr;
-  std::unique_ptr<PhysicsManager> physics_manager_ = nullptr;
-  std::unique_ptr<RenderingManager> rendering_manager_ = nullptr;
-  std::unique_ptr<GameObjectManager> game_object_manager_ = nullptr;
-  std::unique_ptr<TimeManager> time_manager_ = nullptr;
+  std::unique_ptr<resource::ResourceManager> resource_manager_ = nullptr;
+  std::unique_ptr<input::InputManager> input_manager_ = nullptr;
+  std::unique_ptr<physics::PhysicsManager> physics_manager_ = nullptr;
+  std::unique_ptr<rendering::RenderingManager> rendering_manager_ = nullptr;
+  std::unique_ptr<game_object::GameObjectManager> game_object_manager_ =
+      nullptr;
+  std::unique_ptr<time::TimeManager> time_manager_ = nullptr;
   std::unique_ptr<event::EventManager> event_manager_ = nullptr;
-  std::shared_ptr<Camera> main_camera_ = nullptr;
+  std::shared_ptr<game_object::Camera> main_camera_ = nullptr;
 
  private:
   bool is_running_ = false;
@@ -63,6 +65,7 @@ class Engine {
 };
 
 std::unique_ptr<Engine> CreateEngine();
+}  // namespace core
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_ENGINE_H_

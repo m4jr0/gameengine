@@ -11,6 +11,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace comet {
+namespace game_object {
 class Transform : public Component,
                   public std::enable_shared_from_this<Transform> {
  public:
@@ -30,6 +31,7 @@ class Transform : public Component,
   std::shared_ptr<Transform> root_parent_ = nullptr;
   std::unordered_map<std::string, std::shared_ptr<Transform>> children_;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_PHYSICS_TRANFORM_H_

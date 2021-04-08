@@ -8,10 +8,12 @@
 #include "comet/game_object/camera/camera.h"
 
 namespace comet {
+namespace game_object {
 class OrthogonalCamera : public Camera {
  public:
   virtual void UpdateProjectionMatrix(int, int) override;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_CAMERA_ORTHOGONAL_CAMERA_H_

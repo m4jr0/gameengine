@@ -11,6 +11,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace comet {
+namespace game_object {
 class CameraControls : public Component {
  public:
   virtual void Update() override;
@@ -23,6 +24,7 @@ class CameraControls : public Component {
   float speed_ = 0.01f;
   float mouse_speed_ = 0.005f;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_CAMERA_CAMERA_CONTROLS_H_

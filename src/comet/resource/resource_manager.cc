@@ -14,11 +14,12 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace resource {
 void ResourceManager::Initialize() {
   InitializeResourcesDirectory();
   InitializeAssetsDirectory();
 
-  Logger::Get(LoggerType::Resource)
+  core::Logger::Get(core::LoggerType::Resource)
       ->Debug("Resource manager listening to '", assets_root_path_, "'...");
 
   Refresh();
@@ -29,28 +30,29 @@ void ResourceManager::Initialize() {
 void ResourceManager::Destroy() {}
 
 void ResourceManager::InitializeAssetsDirectory() {
-  assets_root_path_ = filesystem::Append(filesystem::GetCurrentDirectory(),
-                                         kDefaultAssetsRootDirectory_);
+  assets_root_path_ = utils::filesystem::Append(
+      utils::filesystem::GetCurrentDirectory(), kDefaultAssetsRootDirectory_);
 
-  if (!filesystem::IsExist(assets_root_path_)) {
-    filesystem::CreateDirectory(kDefaultAssetsRootDirectory_, true);
+  if (!utils::filesystem::IsExist(assets_root_path_)) {
+    utils::filesystem::CreateDirectory(kDefaultAssetsRootDirectory_, true);
   }
 }
 
 void ResourceManager::InitializeResourcesDirectory() {
-  resources_root_path_ = filesystem::Append(filesystem::GetCurrentDirectory(),
-                                            kDefaultResourcesRootDirectory_);
+  resources_root_path_ =
+      utils::filesystem::Append(utils::filesystem::GetCurrentDirectory(),
+                                kDefaultResourcesRootDirectory_);
 
   std::string library_meta_path =
-      filesystem::Append(resources_root_path_, "library.meta");
+      utils::filesystem::Append(resources_root_path_, "library.meta");
 
-  if (!filesystem::IsExist(resources_root_path_) ||
-      !filesystem::IsFile(library_meta_path)) {
-    filesystem::CreateDirectory(kDefaultResourcesRootDirectory_, true);
+  if (!utils::filesystem::IsExist(resources_root_path_) ||
+      !utils::filesystem::IsFile(library_meta_path)) {
+    utils::filesystem::CreateDirectory(kDefaultResourcesRootDirectory_, true);
     last_update_time_ = -1;
   } else {
     std::string raw_library_meta_data;
-    filesystem::ReadFile(library_meta_path, &raw_library_meta_data);
+    utils::filesystem::ReadFile(library_meta_path, &raw_library_meta_data);
     auto library_meta_data = nlohmann::json::parse(raw_library_meta_data);
     last_update_time_ = library_meta_data["last_update_time"];
   }
@@ -61,10 +63,11 @@ void ResourceManager::handleFileAction(efsw::WatchID watch_id,
                                        const std::string &file_name,
                                        efsw::Action action,
                                        std::string old_file_name) {
-  const auto logger = Logger::Get(LoggerType::Resource);
+  const auto logger = core::Logger::Get(core::LoggerType::Resource);
 
-  auto path = filesystem::GetNormalizedPath(directory);
-  path = filesystem::Append(path, filesystem::GetNormalizedPath(file_name));
+  auto path = utils::filesystem::GetNormalizedPath(directory);
+  path = utils::filesystem::Append(
+      path, utils::filesystem::GetNormalizedPath(file_name));
 
   switch (action) {
     case efsw::Actions::Add:
@@ -96,12 +99,13 @@ void ResourceManager::Refresh() { Refresh(assets_root_path_); }
 void ResourceManager::Refresh(const std::string &path) {
   Unwatch();
 
-  if (filesystem::IsDirectory(path)) {
+  if (utils::filesystem::IsDirectory(path)) {
     RefreshFolder(path);
-  } else if (filesystem::IsFile(path)) {
+  } else if (utils::filesystem::IsFile(path)) {
     RefreshAsset(path);
   } else {
-    Logger::Get(LoggerType::Resource)->Error("Bad path given: ", path);
+    core::Logger::Get(core::LoggerType::Resource)
+        ->Error("Bad path given: ", path);
 
     Watch();
 
@@ -113,18 +117,19 @@ void ResourceManager::Refresh(const std::string &path) {
 }
 
 void ResourceManager::SetResourceMetaFile() {
-  last_update_time_ = date::GetNow();
+  last_update_time_ = utils::date::GetNow();
 
   const auto library_meta_file_path =
-      filesystem::Append(resources_root_path_, "library.meta");
+      utils::filesystem::Append(resources_root_path_, "library.meta");
 
   nlohmann::json library_meta_data;
 
   library_meta_data["last_update_time"] = last_update_time_;
   std::string lirary_raw_meta_data = library_meta_data.dump(2);
 
-  if (!filesystem::WriteToFile(library_meta_file_path, lirary_raw_meta_data)) {
-    Logger::Get(LoggerType::Resource)
+  if (!utils::filesystem::WriteToFile(library_meta_file_path,
+                                      lirary_raw_meta_data)) {
+    core::Logger::Get(core::LoggerType::Resource)
         ->Error("Could not write the resource meta file at path ",
                 library_meta_file_path);
   }
@@ -132,11 +137,11 @@ void ResourceManager::SetResourceMetaFile() {
 
 void ResourceManager::SetFolderMetaFile(const std::string &path) {
   nlohmann::json folder_meta_data;
-  const auto now = date::GetNow();
+  const auto now = utils::date::GetNow();
 
-  if (filesystem::IsExist(path)) {
+  if (utils::filesystem::IsExist(path)) {
     std::string raw_meta_data;
-    folder_meta_data = filesystem::ReadFile(path, &raw_meta_data);
+    folder_meta_data = utils::filesystem::ReadFile(path, &raw_meta_data);
     folder_meta_data = nlohmann::json::parse(raw_meta_data);
     folder_meta_data["modification_time"] = now;
   } else {
@@ -144,8 +149,8 @@ void ResourceManager::SetFolderMetaFile(const std::string &path) {
     folder_meta_data["modification_time"] = now;
   }
 
-  if (!filesystem::WriteToFile(path, folder_meta_data.dump(2))) {
-    Logger::Get(LoggerType::Resource)
+  if (!utils::filesystem::WriteToFile(path, folder_meta_data.dump(2))) {
+    core::Logger::Get(core::LoggerType::Resource)
         ->Error("Could not write the folder meta file at path ", path);
   }
 }
@@ -154,15 +159,15 @@ bool ResourceManager::IsRefreshFolder(const std::string &path,
                                       const std::string &meta_file_path) {
   if (path == assets_root_path_) return true;
 
-  return last_update_time_ > filesystem::GetLastModificationTime(path) ||
-         !filesystem::IsExist(meta_file_path);
+  return last_update_time_ > utils::filesystem::GetLastModificationTime(path) ||
+         !utils::filesystem::IsExist(meta_file_path);
 }
 
 void ResourceManager::RefreshFolder(const std::string &path) {
-  const auto folder_name = filesystem::GetName(path);
+  const auto folder_name = utils::filesystem::GetName(path);
 
-  const auto meta_file_path = filesystem::Append(
-      filesystem::GetParentPath(path), folder_name + ".dir.meta");
+  const auto meta_file_path = utils::filesystem::Append(
+      utils::filesystem::GetParentPath(path), folder_name + ".dir.meta");
 
   if (!IsRefreshFolder(path, meta_file_path)) return;
 
@@ -170,27 +175,27 @@ void ResourceManager::RefreshFolder(const std::string &path) {
     SetFolderMetaFile(meta_file_path);
   }
 
-  const auto folders = filesystem::ListDirectories(path);
+  const auto folders = utils::filesystem::ListDirectories(path);
 
   for (const auto &folder : folders) {
     RefreshFolder(folder);
   }
 
-  const auto resources = filesystem::ListFiles(path);
+  const auto resources = utils::filesystem::ListFiles(path);
 
   for (const auto &resource : resources) {
     RefreshAsset(resource);
   }
 
-  Logger::Get(LoggerType::Resource)->Debug(path, " refreshed");
+  core::Logger::Get(core::LoggerType::Resource)->Debug(path, " refreshed");
 }
 
 void ResourceManager::RefreshAsset(const std::string &path) {
-  if (last_update_time_ > filesystem::GetLastModificationTime(path)) {
+  if (last_update_time_ > utils::filesystem::GetLastModificationTime(path)) {
     return;
   }
 
-  Logger::Get(LoggerType::Resource)->Debug(path, " refreshed");
+  core::Logger::Get(core::LoggerType::Resource)->Debug(path, " refreshed");
 }
 
 void ResourceManager::InitializeWatcher() {
@@ -218,4 +223,5 @@ const std::string ResourceManager::assets_root_path() const noexcept {
 const std::string ResourceManager::resources_root_path() const noexcept {
   return resources_root_path_;
 }
+}  // namespace resource
 }  // namespace comet

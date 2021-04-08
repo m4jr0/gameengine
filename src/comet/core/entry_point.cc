@@ -9,7 +9,7 @@
 #endif  // _WIN32
 
 int main(int argc, char* argv[]) {
-  auto engine = comet::CreateEngine();
+  auto engine = comet::core::CreateEngine();
   engine->Initialize();
   engine->Run();
 

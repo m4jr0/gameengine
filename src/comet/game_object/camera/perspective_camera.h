@@ -9,6 +9,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace game_object {
 class PerspectiveCamera : public Camera {
  public:
   virtual void UpdateProjectionMatrix(int, int) override;
@@ -20,6 +21,7 @@ class PerspectiveCamera : public Camera {
  protected:
   float fov_ = 45.0f;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_CAMERA_PERSPECTIVE_CAMERA_H_

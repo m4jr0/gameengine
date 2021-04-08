@@ -12,22 +12,23 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace resource {
 const boost::uuids::uuid Resource::kId() const noexcept { return kId_; }
 
 Resource::Resource(const std::string &path) {
   file_system_path_ = path;
-  file_system_name_ = filesystem::GetName(path);
+  file_system_name_ = utils::filesystem::GetName(path);
 }
 
 void Resource::SetMetaFile() {
   nlohmann::json resource_meta_data{};
-  const auto now = date::GetNow();
+  const auto now = utils::date::GetNow();
 
-  if (filesystem::IsExist(file_system_path_)) {
+  if (utils::filesystem::IsExist(file_system_path_)) {
     std::string raw_meta_data;
 
     resource_meta_data =
-        filesystem::ReadFile(file_system_path_, &raw_meta_data);
+        utils::filesystem::ReadFile(file_system_path_, &raw_meta_data);
 
     resource_meta_data = nlohmann::json::parse(raw_meta_data);
     resource_meta_data["id"] = kId_;
@@ -38,26 +39,29 @@ void Resource::SetMetaFile() {
     resource_meta_data["modification_time"] = now;
   }
 
-  resource_meta_data["checksum"] = filesystem::GetChecksum(file_system_path_);
+  resource_meta_data["checksum"] =
+      utils::filesystem::GetChecksum(file_system_path_);
   resource_meta_data["data"] = GetMetaData();
 
-  if (!filesystem::WriteToFile(file_system_path_, resource_meta_data.dump(2))) {
-    Logger::Get(LoggerType::Resource)
+  if (!utils::filesystem::WriteToFile(file_system_path_,
+                                      resource_meta_data.dump(2))) {
+    core::Logger::Get(core::LoggerType::Resource)
         ->Error("Could not write the resource meta file at path ",
                 file_system_path_);
   }
 }
 
 void Resource::Initialize() {
-  creation_time_ = date::GetNow();
+  creation_time_ = utils::date::GetNow();
   modification_time_ = creation_time_;
   SetMetaFile();
 }
 
 void Resource::Update() {
-  modification_time_ = date::GetNow();
+  modification_time_ = utils::date::GetNow();
   SetMetaFile();
 }
 
 bool Resource::Delete() { return true; }
+}  // namespace resource
 }  // namespace comet

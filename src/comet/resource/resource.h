@@ -14,7 +14,8 @@
 #include "nlohmann/json.hpp"
 
 namespace comet {
-class Resource : public Component {
+namespace resource {
+class Resource : public game_object::Component {
  public:
   friend ResourceManager;
 
@@ -42,6 +43,7 @@ class Resource : public Component {
   std::string file_system_name_;
   const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
 };
+}  // namespace resource
 }  // namespace comet
 
 #endif  // COMET_COMET_RESOURCE_RESOURCE_H_

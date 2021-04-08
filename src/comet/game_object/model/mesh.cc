@@ -12,6 +12,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
            std::vector<Texture> textures) {
   vertices_ = vertices;
@@ -21,7 +22,7 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
   Initialize();
 }
 
-void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
+void Mesh::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
   std::size_t diffuse_index = 0;
   std::size_t specular_index = 0;
   std::size_t normal_index = 0;
@@ -43,7 +44,7 @@ void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
     } else if (texture_type == "texture_height") {
       texture_number = std::to_string(height_index++);
     } else {
-      Logger::Get(LoggerType::GameObject)
+      core::Logger::Get(core::LoggerType::GameObject)
           ->Warning("Unknown texture type: ", texture_type);
 
       continue;
@@ -110,4 +111,5 @@ const std::vector<unsigned int> Mesh::indices() const noexcept {
 }
 
 const std::vector<Texture> Mesh::textures() const noexcept { return textures_; }
+}  // namespace game_object
 }  // namespace comet

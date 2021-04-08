@@ -11,6 +11,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace comet {
+namespace game_object {
 class Camera : public Component {
  public:
   virtual void Initialize() override;
@@ -47,6 +48,7 @@ class Camera : public Component {
   glm::mat4 view_matrix_;
   glm::mat4 model_matrix_;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_CAMERA_CAMERA_H_

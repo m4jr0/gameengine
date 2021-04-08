@@ -7,27 +7,27 @@
 namespace comettests {
 const double StopComponent::kTimeDelta = 500;  // 0.5 seconds.
 
-CometTester::CometTester() : comet::Engine() {}
+CometTester::CometTester() : comet::core::Engine() {}
 
 void StopComponent::Update() {
-  auto now = comet::Engine::engine()->time_manager()->GetRealNow();
+  auto now = comet::core::Engine::engine()->time_manager()->GetRealNow();
 
   if (now - starting_time_ > kTimeDelta) {
-    comet::Engine::engine()->engine()->Quit();
+    comet::core::Engine::engine()->engine()->Quit();
   }
 }
 
 void StopComponent::Initialize() {
-  starting_time_ = comet::Engine::engine()->time_manager()->GetRealNow();
+  starting_time_ = comet::core::Engine::engine()->time_manager()->GetRealNow();
 }
 };  // namespace comettests
 
-TEST_CASE("Game state handling", "[comet::Engine]") {
+TEST_CASE("Game state handling", "[comet::core::Engine]") {
   auto game = comettests::CometTester();
   game.Initialize();
 
   SECTION("Game runs, then quits after.") {
-    auto game_object = comet::GameObject::Create();
+    auto game_object = comet::game_object::GameObject::Create();
     auto component = std::make_shared<comettests::StopComponent>();
 
     game.game_object_manager()->AddGameObject(game_object);

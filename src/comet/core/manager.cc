@@ -9,6 +9,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace core {
 void Manager::Initialize() {
   // Code has to be implemented in children.
 }
@@ -20,4 +21,5 @@ void Manager::Destroy() {
 void Manager::Update() {
   // Code has to be implemented in children.
 }
+}  // namespace core
 }  // namespace comet

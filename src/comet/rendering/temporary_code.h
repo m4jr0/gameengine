@@ -10,9 +10,11 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace rendering {
 void InitializeTmp();
 void UpdateTmp();
 void DestroyTmp();
+}  // namespace rendering
 }  // namespace comet
 
 #endif  // COMET_COMET_RENDERING_TEMPORARY_CODE_H_

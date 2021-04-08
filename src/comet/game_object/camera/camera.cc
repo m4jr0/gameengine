@@ -12,17 +12,18 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 void Camera::Initialize() {
   Component::Initialize();
 
-  const auto rendering_manager = Engine::engine()->rendering_manager();
+  const auto rendering_manager = core::Engine::engine()->rendering_manager();
 
   UpdateMatrices(rendering_manager->window()->width(),
                  rendering_manager->window()->height());
 };
 
 void Camera::FixedUpdate() {
-  const auto rendering_manager = Engine::engine()->rendering_manager();
+  const auto rendering_manager = core::Engine::engine()->rendering_manager();
 
   UpdateMatrices(rendering_manager->window()->width(),
                  rendering_manager->window()->height());
@@ -78,4 +79,5 @@ const glm::vec3 Camera::orientation() const noexcept { return orientation_; }
 const float Camera::nearest_point() const noexcept { return nearest_point_; }
 
 const float Camera::farthest_point() const noexcept { return farthest_point_; }
+}  // namespace game_object
 }  // namespace comet

@@ -8,7 +8,9 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace rendering {
 unsigned int Load2DTextureFromFile(const std::string &, bool = false);
+}  // namespace rendering
 }  // namespace comet
 
 #endif  // COMET_COMET_RENDERING_TEXTURE_TEXTURE_LOADER_H_

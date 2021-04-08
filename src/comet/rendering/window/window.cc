@@ -5,6 +5,7 @@
 #include "window.h"
 
 namespace comet {
+namespace rendering {
 Window::Window(const std::string &name, unsigned int width,
                unsigned int height) {
   name_ = name;
@@ -17,4 +18,5 @@ const std::string Window::name() const noexcept { return name_; }
 const unsigned int Window::width() const noexcept { return width_; }
 
 const unsigned int Window::height() const noexcept { return height_; }
+}  // namespace rendering
 }  // namespace comet

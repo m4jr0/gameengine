@@ -10,7 +10,8 @@
 #include "comet_precompile.h"
 
 namespace comet {
-class GameObjectManager : public Manager {
+namespace game_object {
+class GameObjectManager : public core::Manager {
  public:
   GameObjectManager() = default;
   GameObjectManager(const GameObjectManager &) = delete;
@@ -28,6 +29,7 @@ class GameObjectManager : public Manager {
  private:
   std::unordered_map<std::string, std::shared_ptr<GameObject>> game_objects_;
 };
+}  // namespace game_object
 }  // namespace comet
 
 #endif  // COMET_COMET_GAME_OBJECT_GAME_OBJECT_MANAGER_H_

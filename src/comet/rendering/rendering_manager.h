@@ -11,7 +11,8 @@
 #include "comet_precompile.h"
 
 namespace comet {
-class RenderingManager : public Manager {
+namespace rendering {
+class RenderingManager : public core::Manager {
  public:
   static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
   static constexpr unsigned short int kOpenGLMinorVersion_ = 3;
@@ -25,7 +26,7 @@ class RenderingManager : public Manager {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(double, GameObjectManager *);
+  void Update(double, game_object::GameObjectManager *);
 
   const GlfwWindow *window() const;
 
@@ -34,6 +35,7 @@ class RenderingManager : public Manager {
   double current_time_ = 0;
   std::unique_ptr<GlfwWindow> window_ = nullptr;
 };
+}  // namespace rendering
 }  // namespace comet
 
 #endif  // COMET_COMET_RENDERING_RENDERING_MANAGER_H_

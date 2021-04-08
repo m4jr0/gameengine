@@ -11,11 +11,13 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace physics {
 void PhysicsManager::Initialize(){};
 void PhysicsManager::Destroy(){};
 
-void PhysicsManager::Update(GameObjectManager *game_object_manager) {
-  current_time_ += Engine::engine()->time_manager()->time_delta();
+void PhysicsManager::Update(
+    game_object::GameObjectManager *game_object_manager) {
+  current_time_ += core::Engine::engine()->time_manager()->time_delta();
 
   if (current_time_ > 1000) {
     current_time_ = 0;
@@ -27,4 +29,5 @@ void PhysicsManager::Update(GameObjectManager *game_object_manager) {
 }
 
 const int PhysicsManager::counter() const noexcept { return counter_; }
+}  // namespace physics
 }  // namespace comet

@@ -10,6 +10,7 @@
 #include "glm/glm.hpp"
 
 namespace comet {
+namespace rendering {
 class ShaderProgram {
  public:
   ShaderProgram(const char *, const char *);
@@ -88,6 +89,7 @@ class ShaderProgram {
   std::string fragment_shader_code_;
   bool can_be_initialized_ = false;
 };
+}  // namespace rendering
 }  // namespace comet
 
 #endif  // COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_

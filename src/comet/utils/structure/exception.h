@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace utils {
 namespace structure {
 class maximum_capacity_reached_error : public std::runtime_error {
  public:
@@ -21,6 +22,7 @@ class empty_error : public std::runtime_error {
   empty_error() : runtime_error("Structure instance is empty") {}
 };
 }  // namespace structure
+}  // namespace utils
 }  // namespace comet
 
 #endif  // COMET_COMET_UTILS_STRUCTURE_EXCEPTION_H_

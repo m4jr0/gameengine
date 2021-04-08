@@ -9,6 +9,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 void Transform::Destroy() {
   parent_ = nullptr;
   root_parent_ = nullptr;
@@ -34,4 +35,5 @@ const std::shared_ptr<Transform> Transform::parent() const noexcept {
 const std::shared_ptr<Transform> Transform::root_parent() const noexcept {
   return root_parent_;
 }
+}  // namespace game_object
 }  // namespace comet

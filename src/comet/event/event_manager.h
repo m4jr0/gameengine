@@ -10,7 +10,9 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace core {
 class Engine;
+}  // namespace core
 
 namespace event {
 class CallbackBase {
@@ -62,11 +64,12 @@ class EventManager {
   }
 
  private:
-  friend Engine;
+  friend core::Engine;
   mutable std::mutex mutex_;
   std::unordered_map<int, std::vector<std::unique_ptr<CallbackBase>>>
       listeners_;
-  comet::structure::ring_queue<std::unique_ptr<Event>> event_queue_;
+  comet::utils::structure::ring_queue<std::unique_ptr<event::Event>>
+      event_queue_;
 
   void Dispatch(std::unique_ptr<Event>);
   void FireAllEvents();

@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace core {
 enum class LoggerType {
   Global = 0,
   Core,
@@ -77,6 +78,7 @@ class Logger final {
 
   LoggerType type_;
 };
+}  // namespace core
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_LOGGER_H_

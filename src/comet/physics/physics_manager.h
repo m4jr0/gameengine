@@ -10,7 +10,8 @@
 #include "comet_precompile.h"
 
 namespace comet {
-class PhysicsManager : public Manager {
+namespace physics {
+class PhysicsManager : public core::Manager {
  public:
   PhysicsManager() = default;
   PhysicsManager(const PhysicsManager &) = delete;
@@ -21,7 +22,7 @@ class PhysicsManager : public Manager {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(GameObjectManager *);
+  void Update(game_object::GameObjectManager *);
 
   const int counter() const noexcept;
 
@@ -29,6 +30,7 @@ class PhysicsManager : public Manager {
   unsigned int counter_ = 0;
   double current_time_ = 0;
 };
+}  // namespace physics
 }  // namespace comet
 
 #endif  // COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_

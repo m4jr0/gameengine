@@ -10,6 +10,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace utils {
 namespace filesystem {
 bool WriteToFile(const std::string &, const std::string &, bool = false);
 bool ReadFile(const std::string &, std::string *);
@@ -42,6 +43,7 @@ void RemoveLeadingSlashes(std::string &);
 double GetLastModificationTime(const std::string &);
 std::string GetChecksum(const std::string &);
 }  // namespace filesystem
+}  // namespace utils
 }  // namespace comet
 
 #endif  // COMET_COMET_UTILS_FILE_SYSTEM_H_

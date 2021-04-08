@@ -16,8 +16,9 @@
 #include "comet/rendering/temporary_code.h"
 
 namespace comet {
+namespace rendering {
 void RenderingManager::Initialize() {
-  const auto logger = Logger::Get(LoggerType::Rendering);
+  const auto logger = core::Logger::Get(core::LoggerType::Rendering);
 
   if (!glfwInit()) {
     logger->Error("Failed to initialize GLFW");
@@ -63,17 +64,17 @@ void RenderingManager::Destroy() {
   window_->Destroy();
 }
 
-void RenderingManager::Update(double interpolation,
-                              GameObjectManager *game_object_manager) {
+void RenderingManager::Update(
+    double interpolation, game_object::GameObjectManager *game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (glfwWindowShouldClose(window_->glfw_window()) != 0) {
-    Engine::engine()->engine()->Quit();
+    core::Engine::engine()->engine()->Quit();
 
     return;
   }
 
-  current_time_ += Engine::engine()->time_manager()->time_delta();
+  current_time_ += core::Engine::engine()->time_manager()->time_delta();
 
   if (current_time_ > 1000) {
     current_time_ = 0;
@@ -88,16 +89,17 @@ void RenderingManager::Update(double interpolation,
   const auto error_code = glGetError();
 
   if (error_code != GL_NO_ERROR) {
-    Logger::Get(LoggerType::Rendering)
+    core::Logger::Get(core::LoggerType::Rendering)
         ->Error("OpenGL Error ", error_code, " (",
                 boost::format("0x%02x") % error_code,
                 "): ", glewGetErrorString(error_code));
   }
 
   window_->Update();
-  Engine::engine()->input_manager()->Update();
+  core::Engine::engine()->input_manager()->Update();
   ++counter_;
 }
 
 const GlfwWindow *RenderingManager::window() const { return window_.get(); }
+}  // namespace rendering
 }  // namespace comet

@@ -12,20 +12,22 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace resource {
 bool ModelResource::Import() {
-  Logger::Get(LoggerType::Resource)->Debug("Import");
+  core::Logger::Get(core::LoggerType::Resource)->Debug("Import");
 
-  auto shader_program = std::make_shared<ShaderProgram>(
+  auto shader_program = std::make_shared<rendering::ShaderProgram>(
       "assets/shaders/model_shader.vs", "assets/shaders/model_shader.fs");
 
   shader_program->Initialize();
-  model_ = std::make_shared<Model>(file_system_path_, shader_program);
+  model_ =
+      std::make_shared<game_object::Model>(file_system_path_, shader_program);
 
   return true;
 }
 
 bool ModelResource::Export() {
-  Logger::Get(LoggerType::Resource)->Debug("Export");
+  core::Logger::Get(core::LoggerType::Resource)->Debug("Export");
   return true;
 }
 
@@ -39,4 +41,5 @@ bool ModelResource::Load() { return true; }
 nlohmann::json ModelResource::GetMetaData() { return nlohmann::json(); }
 
 void ModelResource::Destroy() {}
+}  // namespace resource
 }  // namespace comet

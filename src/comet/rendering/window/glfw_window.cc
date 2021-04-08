@@ -5,6 +5,7 @@
 #include "glfw_window.h"
 
 namespace comet {
+namespace rendering {
 GlfwWindow::GlfwWindow(const std::string &name, unsigned int width,
                        unsigned int height) {
   name_ = name;
@@ -15,7 +16,7 @@ GlfwWindow::GlfwWindow(const std::string &name, unsigned int width,
 GlfwWindow::~GlfwWindow() { Destroy(); }
 
 void GlfwWindow::Initialize() {
-  const auto logger = Logger::Get(LoggerType::Rendering);
+  const auto logger = core::Logger::Get(core::LoggerType::Rendering);
 
   if (window_count_ == 0) {
     const bool is_glfw_initialized = glfwInit() == GLFW_TRUE;
@@ -87,4 +88,5 @@ void GlfwWindow::is_vsync(bool is_vsync) {
     glfwSwapInterval(0);
   }
 }
+}  // namespace rendering
 }  // namespace comet

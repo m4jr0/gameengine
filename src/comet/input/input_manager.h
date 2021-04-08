@@ -12,6 +12,7 @@
 #include "glm/glm.hpp"
 
 namespace comet {
+namespace input {
 // Here, we wrap the GLFW "input manager" to make it easier if we want to
 // change it, some day.
 enum class KeyCode {
@@ -139,7 +140,7 @@ enum class KeyCode {
   LAST = GLFW_KEY_LAST
 };
 
-class InputManager : public Manager {
+class InputManager : public core::Manager {
  public:
   InputManager() = default;
   InputManager(const InputManager &) = delete;
@@ -178,6 +179,7 @@ class NullInputManager : public InputManager {
   };
   virtual void SetMousePosition(float, float) override{};
 };
+}  // namespace input
 }  // namespace comet
 
 #endif  // COMET_COMET_INPUT_INPUT_MANAGER_H_

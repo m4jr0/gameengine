@@ -12,6 +12,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 void GameObjectManager::Destroy() {
   for (const auto &it : game_objects_) {
     it.second->Destroy();
@@ -39,4 +40,5 @@ void GameObjectManager::RemoveGameObject(
     std::shared_ptr<GameObject> game_object) {
   game_objects_.erase(boost::uuids::to_string(game_object->kId()));
 }
+}  // namespace game_object
 }  // namespace comet

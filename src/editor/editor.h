@@ -9,7 +9,8 @@
 #include "comet_precompile.h"
 
 namespace comet {
-class CometEditor : public Engine {
+namespace editor {
+class CometEditor : public core::Engine {
  public:
   CometEditor();
 
@@ -21,6 +22,7 @@ class CometEditor : public Engine {
   static BOOL WINAPI HandleConsole(DWORD);
 #endif  // _WIN32
 };
+}  // namespace editor
 }  // namespace comet
 
 #endif  // COMET_EDITOR_EDITOR_H_

@@ -10,7 +10,8 @@
 #include "efsw/efsw.hpp"
 
 namespace comet {
-class ResourceManager : public Manager, public efsw::FileWatchListener {
+namespace resource {
+class ResourceManager : public core::Manager, public efsw::FileWatchListener {
  public:
   static constexpr char kDefaultAssetsRootDirectory_[] = "assets";
   static constexpr char kDefaultResourcesRootDirectory_[] = "resources";
@@ -53,6 +54,7 @@ class ResourceManager : public Manager, public efsw::FileWatchListener {
   void InitializeResourcesDirectory();
   void InitializeWatcher();
 };
+}  // namespace resource
 }  // namespace comet
 
 #endif  // COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_

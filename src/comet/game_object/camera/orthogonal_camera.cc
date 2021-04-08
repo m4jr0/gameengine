@@ -11,9 +11,11 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace game_object {
 void OrthogonalCamera::UpdateProjectionMatrix(int width, int height) {
   projection_matrix_ =
       glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height),
                  0.0f, nearest_point_, farthest_point_);
 }
+}  // namespace game_object
 }  // namespace comet

@@ -23,23 +23,26 @@
 // TODO(m4jr0): Remove this file (and its uses) when a proper game object
 // handling will be added.
 namespace comet {
-std::shared_ptr<GameObject> test_game_object = nullptr;
+namespace rendering {
+std::shared_ptr<game_object::GameObject> test_game_object = nullptr;
 
 void InitializeTmp() {
-  auto model_resource =
-      std::make_shared<ModelResource>("assets/models/nanosuit/model.obj");
+  auto model_resource = std::make_shared<resource::ModelResource>(
+      "assets/models/nanosuit/model.obj");
 
   model_resource->Import();
-  const auto test_transform = std::make_shared<Transform>();
+  const auto test_transform = std::make_shared<game_object::Transform>();
 
-  test_game_object = GameObject::Create();
+  test_game_object = game_object::GameObject::Create();
   test_game_object->AddComponent(test_transform);
   test_game_object->AddComponent(model_resource->GetModel());
 
-  Engine::engine()->game_object_manager()->AddGameObject(test_game_object);
+  core::Engine::engine()->game_object_manager()->AddGameObject(
+      test_game_object);
 }
 
 void UpdateTmp() {}
 
 void DestroyTmp() {}
+}  // namespace rendering
 };  // namespace comet

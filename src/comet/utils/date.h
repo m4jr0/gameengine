@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace utils {
 namespace date {
 double GetNow();
 
@@ -17,6 +18,7 @@ std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
 double GetDouble(const std::chrono::time_point<std::chrono::system_clock> &);
 double GetDouble(const std::time_t &);
 }  // namespace date
+}  // namespace utils
 }  // namespace comet
 
 #endif  // COMET_COMET_UTILS_DATE_H_

@@ -10,12 +10,12 @@
 #include "comet_precompile.h"
 
 namespace comettests {
-class CometTester : public comet::Engine {
+class CometTester : public comet::core::Engine {
  public:
   CometTester();
 };
 
-class StopComponent final : public comet::Component {
+class StopComponent final : public comet::game_object::Component {
  public:
   static const double kTimeDelta;
 

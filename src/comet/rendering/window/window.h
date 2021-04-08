@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 namespace comet {
+namespace rendering {
 class Window {
  public:
   static constexpr unsigned int kDefaultWidth_ = 1280;
@@ -36,6 +37,7 @@ class Window {
   unsigned int height_ = 0;
   std::string name_ = kDefaultName_;
 };
+}  // namespace rendering
 }  // namespace comet
 
 #endif  // COMET_COMET_RENDERING_WINDOW_WINDOW_H_

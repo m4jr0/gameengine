@@ -9,6 +9,7 @@
 #endif  // _WIN32
 
 namespace comet {
+namespace core {
 std::shared_ptr<const Logger> Logger::Get(LoggerType logger_type) {
   const auto found = Logger::loggers_.find(logger_type);
 
@@ -36,4 +37,5 @@ std::shared_ptr<const Logger> Logger::Create(LoggerType logger_type) {
 }
 
 std::unordered_map<LoggerType, std::shared_ptr<const Logger>> Logger::loggers_;
+}  // namespace core
 }  // namespace comet
