@@ -1,3 +1,14 @@
+# Copyright 2021 m4jr0. All Rights Reserved.
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE file.
+
+################################################################################
+#
+# Comet game object library CMake file
+#
+################################################################################
+
+# Source files #################################################################
 add_library(${GAME_OBJECT_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/game_object/component.cpp"
   "${PROJECT_SOURCE_DIR}/src/comet/game_object/game_object.cpp"
@@ -14,12 +25,14 @@ add_library(${GAME_OBJECT_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/game_object/physics/transform.cpp"
 )
 
+# Compiling ####################################################################
 target_include_directories(${GAME_OBJECT_LIBRARY_NAME}
   PUBLIC
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
+# Linking ######################################################################
 target_link_directories(${GAME_OBJECT_LIBRARY_NAME}
   PUBLIC
     ${VCPKG_LIBRARY_DIR}
@@ -44,6 +57,7 @@ if(LINUX)
   )
 endif()
 
+# Internal libraries.
 # Could be better, but for now, a game object could use any part of the engine,
 # so we include all the other components.
 list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${GAME_OBJECT_LIBRARY_NAME}")

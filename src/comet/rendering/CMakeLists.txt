@@ -1,3 +1,14 @@
+# Copyright 2021 m4jr0. All Rights Reserved.
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE file.
+
+################################################################################
+#
+# Comet rendering library CMake file
+#
+################################################################################
+
+# Source files #################################################################
 add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cpp"
 
@@ -11,12 +22,14 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/temporary_code.cpp" # To delete.
 )
 
+# Compiling ####################################################################
 target_include_directories(${RENDERING_LIBRARY_NAME}
   PUBLIC
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
+# Linking ######################################################################
 target_link_directories(${RENDERING_LIBRARY_NAME}
   PUBLIC
     ${VCPKG_LIBRARY_DIR}
@@ -52,6 +65,7 @@ if(LINUX)
   )
 endif()
 
+# Internal libraries.
 # Temporary. For temporary code files.
 list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${RENDERING_LIBRARY_NAME}")
 

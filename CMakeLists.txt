@@ -1,3 +1,13 @@
+# Copyright 2021 m4jr0. All Rights Reserved.
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE file.
+
+################################################################################
+#
+# Main CMake file
+#
+################################################################################
+
 cmake_minimum_required(VERSION 3.18)
 
 # CMake setup ##################################################################
@@ -19,10 +29,11 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
 endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 
 # Global variables #############################################################
+# Executables.
 set(EXECUTABLE_NAME "comet_editor")
 set(TESTS_EXECUTABLE_NAME "comet_tests")
 
-# Component names.
+# Internal library names.
 set(CORE_LIBRARY_NAME "core")
 set(EVENT_LIBRARY_NAME "event")
 set(GAME_OBJECT_LIBRARY_NAME "game_object")
@@ -33,7 +44,7 @@ set(RESOURCE_LIBRARY_NAME "resource")
 set(TIME_LIBRARY_NAME "time")
 set(UTILS_LIBRARY_NAME "utils")
 
-
+# Internal libraries container.
 list(APPEND COMET_LIBRARIES
   ${CORE_LIBRARY_NAME}
   ${EVENT_LIBRARY_NAME}
