@@ -11,17 +11,17 @@
 #include "comet_precompile.h"
 
 namespace comet {
-class RenderManager : public Manager {
+class RenderingManager : public Manager {
  public:
   static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
   static constexpr unsigned short int kOpenGLMinorVersion_ = 3;
 
-  RenderManager() = default;
-  RenderManager(const RenderManager &) = delete;
-  RenderManager(RenderManager &&) = delete;
-  RenderManager &operator=(const RenderManager &) = delete;
-  RenderManager &operator=(RenderManager &&) = delete;
-  virtual ~RenderManager() = default;
+  RenderingManager() = default;
+  RenderingManager(const RenderingManager &) = delete;
+  RenderingManager(RenderingManager &&) = delete;
+  RenderingManager &operator=(const RenderingManager &) = delete;
+  RenderingManager &operator=(RenderingManager &&) = delete;
+  virtual ~RenderingManager() = default;
 
   void Initialize() override;
   void Destroy() override;

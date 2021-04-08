@@ -16,7 +16,7 @@
 #include "comet/rendering/temporary_code.h"
 
 namespace comet {
-void RenderManager::Initialize() {
+void RenderingManager::Initialize() {
   const auto logger = Logger::Get(LoggerType::Rendering);
 
   if (!glfwInit()) {
@@ -57,14 +57,14 @@ void RenderManager::Initialize() {
   InitializeTmp();
 }
 
-void RenderManager::Destroy() {
+void RenderingManager::Destroy() {
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   DestroyTmp();
   window_->Destroy();
 }
 
-void RenderManager::Update(double interpolation,
-                           GameObjectManager *game_object_manager) {
+void RenderingManager::Update(double interpolation,
+                              GameObjectManager *game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (glfwWindowShouldClose(window_->glfw_window()) != 0) {
@@ -99,5 +99,5 @@ void RenderManager::Update(double interpolation,
   ++counter_;
 }
 
-const GlfwWindow *RenderManager::window() const { return window_.get(); }
+const GlfwWindow *RenderingManager::window() const { return window_.get(); }
 }  // namespace comet

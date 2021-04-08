@@ -23,7 +23,7 @@ void Engine::Initialize() {
   main_camera_->position(0, 0, 3);
   main_camera_->direction(0.715616, 0.691498, -0.098611);
 
-  render_manager_->Initialize();
+  rendering_manager_->Initialize();
   resource_manager_->Initialize();
   physics_manager_->Initialize();
   input_manager_->Initialize();
@@ -61,7 +61,7 @@ void Engine::Run() {
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      render_manager_->Update(lag / kMsPerUpdate_, game_object_manager());
+      rendering_manager_->Update(lag / kMsPerUpdate_, game_object_manager());
     }
   } catch (const std::runtime_error& runtime_error) {
     Logger::Get(LoggerType::Core)
@@ -95,7 +95,7 @@ void Engine::Stop() {
 void Engine::Destroy() {
   game_object_manager_->Destroy();
   physics_manager_->Destroy();
-  render_manager_->Destroy();
+  rendering_manager_->Destroy();
   Engine::engine_ = nullptr;
 
   Logger::Get(LoggerType::Core)->Info("Engine destroyed");
@@ -109,7 +109,7 @@ void Engine::Quit() {
 Engine::Engine() {
   resource_manager_ = std::make_unique<ResourceManager>();
   physics_manager_ = std::make_unique<PhysicsManager>();
-  render_manager_ = std::make_unique<RenderManager>();
+  rendering_manager_ = std::make_unique<RenderingManager>();
   game_object_manager_ = std::make_unique<GameObjectManager>();
   time_manager_ = std::make_unique<TimeManager>();
   input_manager_ = std::make_unique<InputManager>();
@@ -131,7 +131,9 @@ ResourceManager* const Engine::resource_manager() {
   return resource_manager_.get();
 }
 
-RenderManager* const Engine::render_manager() { return render_manager_.get(); }
+RenderingManager* const Engine::rendering_manager() {
+  return rendering_manager_.get();
+}
 
 InputManager* const Engine::input_manager() { return input_manager_.get(); }
 

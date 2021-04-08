@@ -17,13 +17,13 @@
 namespace comet {
 void CameraControls::Update() {
   const auto time_manager = Engine::engine()->time_manager();
-  const auto render_manager = Engine::engine()->render_manager();
+  const auto rendering_manager = Engine::engine()->rendering_manager();
   auto input_manager = Engine::engine()->input_manager();
 
   const auto time_delta = time_manager->time_delta();
   const auto current_mouse_pos = input_manager->GetMousePosition();
-  const auto half_width = render_manager->window()->width() / 2;
-  const auto half_height = render_manager->window()->height() / 2;
+  const auto half_width = rendering_manager->window()->width() / 2;
+  const auto half_height = rendering_manager->window()->height() / 2;
 
   horizontal_angle_ = mouse_speed_ * float(half_width - current_mouse_pos.x);
   vertical_angle_ = mouse_speed_ * float(half_height - current_mouse_pos.y);

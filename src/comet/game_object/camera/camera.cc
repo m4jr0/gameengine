@@ -15,17 +15,17 @@ namespace comet {
 void Camera::Initialize() {
   Component::Initialize();
 
-  const auto render_manager = Engine::engine()->render_manager();
+  const auto rendering_manager = Engine::engine()->rendering_manager();
 
-  UpdateMatrices(render_manager->window()->width(),
-                 render_manager->window()->height());
+  UpdateMatrices(rendering_manager->window()->width(),
+                 rendering_manager->window()->height());
 };
 
 void Camera::FixedUpdate() {
-  const auto render_manager = Engine::engine()->render_manager();
+  const auto rendering_manager = Engine::engine()->rendering_manager();
 
-  UpdateMatrices(render_manager->window()->width(),
-                 render_manager->window()->height());
+  UpdateMatrices(rendering_manager->window()->width(),
+                 rendering_manager->window()->height());
 }
 
 void Camera::UpdateViewMatrix() {

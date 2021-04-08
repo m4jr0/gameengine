@@ -33,7 +33,7 @@ class Engine {
 
   static Engine* const engine();
   ResourceManager* const resource_manager();
-  RenderManager* const render_manager();
+  RenderingManager* const rendering_manager();
   InputManager* const input_manager();
   TimeManager* const time_manager();
   GameObjectManager* const game_object_manager();
@@ -51,7 +51,7 @@ class Engine {
   std::unique_ptr<ResourceManager> resource_manager_ = nullptr;
   std::unique_ptr<InputManager> input_manager_ = nullptr;
   std::unique_ptr<PhysicsManager> physics_manager_ = nullptr;
-  std::unique_ptr<RenderManager> render_manager_ = nullptr;
+  std::unique_ptr<RenderingManager> rendering_manager_ = nullptr;
   std::unique_ptr<GameObjectManager> game_object_manager_ = nullptr;
   std::unique_ptr<TimeManager> time_manager_ = nullptr;
   std::unique_ptr<event::EventManager> event_manager_ = nullptr;
