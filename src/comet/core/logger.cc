@@ -9,8 +9,6 @@
 #endif  // _WIN32
 
 namespace comet {
-Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
-
 std::shared_ptr<const Logger> Logger::Get(LoggerType logger_type) {
   const auto found = Logger::loggers_.find(logger_type);
 
@@ -25,8 +23,16 @@ std::shared_ptr<const Logger> Logger::Get(LoggerType logger_type) {
   return found->second;
 }
 
+Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
+
 std::shared_ptr<const Logger> Logger::Create(LoggerType logger_type) {
-  return std::make_shared<const Logger>(logger_type);
+  // Because the constructor is private, we have to separate the initialization
+  // from the shared pointer construction.
+  // It should be safe though, as this line does nothing else than initializing
+  // a logger instance and saving it to a shared pointer.
+  // Performance-wise, it should be acceptable, as very few loggers will be
+  // instanciated anyway.
+  return std::shared_ptr<const Logger>(new Logger(logger_type));
 }
 
 std::unordered_map<LoggerType, std::shared_ptr<const Logger>> Logger::loggers_;

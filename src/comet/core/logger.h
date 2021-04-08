@@ -26,7 +26,6 @@ class Logger final {
   static std::shared_ptr<const Logger> Get(LoggerType);
 
   Logger() = delete;
-  Logger(LoggerType);
 
   template <typename... Targs>
   void Error(Targs... args) const {
@@ -59,6 +58,8 @@ class Logger final {
   const LoggerType type() const { return type_; };
 
  private:
+  Logger(LoggerType);
+
   template <typename T>
   void GetString(std::stringstream& string_stream, T arg) const {
     string_stream << arg;
