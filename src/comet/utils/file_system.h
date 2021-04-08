@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_UTILS_FILE_SYSTEM_H_
 #define COMET_COMET_UTILS_FILE_SYSTEM_H_
 
-constexpr auto kLoggerCometUtilsFileSystem = "comet_utils";
-
 #include "boost/filesystem.hpp"
 #include "boost/filesystem/fstream.hpp"
 #include "comet_precompile.h"

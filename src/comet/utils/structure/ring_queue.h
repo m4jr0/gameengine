@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_UTILS_STRUCTURE_RING_QUEUE_H_
 #define COMET_COMET_UTILS_STRUCTURE_RING_QUEUE_H_
 
-constexpr auto kLoggerCometUtilsStructureRingQueue = "comet_utils";
-
 #include "comet_precompile.h"
 #include "exception.h"
 

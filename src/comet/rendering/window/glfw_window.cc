@@ -17,7 +17,7 @@ GlfwWindow::GlfwWindow(const std::string &name, unsigned int width,
 GlfwWindow::~GlfwWindow() { Destroy(); }
 
 void GlfwWindow::Initialize() {
-  const auto logger = Logger::Get(kLoggerCometCoreRenderWindowGlfwWindow);
+  const auto logger = Logger::Get(LoggerType::Rendering);
 
   if (window_count_ == 0) {
     const bool is_glfw_initialized = glfwInit() == GLFW_TRUE;

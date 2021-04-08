@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RENDERING_TEXTURE_TEXTURE_LOADER_H_
 #define COMET_COMET_RENDERING_TEXTURE_TEXTURE_LOADER_H_
 
-constexpr auto kLoggerCometCoreRenderTextureTextureLoader = "comet_core_render";
-
 #include "comet_precompile.h"
 
 namespace comet {

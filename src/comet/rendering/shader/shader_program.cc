@@ -15,7 +15,7 @@ namespace comet {
 ShaderProgram::ShaderProgram(const char *vertex_shader_path,
                              const char *fragment_shader_path) {
   if (!filesystem::ReadFile(vertex_shader_path, &vertex_shader_code_)) {
-    Logger::Get(kLoggerCometCoreRenderShaderShaderProgram)
+    Logger::Get(LoggerType::Rendering)
         ->Error(
             "An error occurred while reading the vertex shader program file");
 
@@ -23,7 +23,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
   }
 
   if (!filesystem::ReadFile(fragment_shader_path, &fragment_shader_code_)) {
-    Logger::Get(kLoggerCometCoreRenderShaderShaderProgram)
+    Logger::Get(LoggerType::Rendering)
         ->Error(
             "An error occurred while reading the fragment shader program file");
 
@@ -34,7 +34,7 @@ ShaderProgram::ShaderProgram(const char *vertex_shader_path,
 }
 void ShaderProgram::Initialize() {
   if (!can_be_initialized_) {
-    Logger::Get(kLoggerCometCoreRenderShaderShaderProgram)
+    Logger::Get(LoggerType::Rendering)
         ->Error(
             "An error occurred while creating the shader program. It can't be "
             "initialized");
@@ -60,7 +60,7 @@ void ShaderProgram::Initialize() {
   glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    const auto logger = Logger::Get(kLoggerCometCoreRenderShaderShaderProgram);
+    const auto logger = Logger::Get(LoggerType::Rendering);
     std::vector<GLchar> error_message(info_log_len + 1);
 
     glGetProgramInfoLog(id_, info_log_len, nullptr, &error_message[0]);
@@ -94,7 +94,7 @@ bool ShaderProgram::CompileShader(unsigned int *shader_id,
   glGetShaderiv(*shader_id, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    const auto logger = Logger::Get(kLoggerCometCoreRenderShaderShaderProgram);
+    const auto logger = Logger::Get(LoggerType::Rendering);
 
     std::vector<char> error_message(info_log_len + 1);
 
@@ -107,7 +107,7 @@ bool ShaderProgram::CompileShader(unsigned int *shader_id,
   }
 
   if (result == GL_FALSE) {
-    Logger::Get(kLoggerCometCoreRenderShaderShaderProgram)
+    Logger::Get(LoggerType::Rendering)
         ->Error("Error while compiling shader for shader program");
 
     return false;

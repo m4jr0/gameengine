@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_CORE_ENGINE_H_
 #define COMET_COMET_CORE_ENGINE_H_
 
-constexpr auto kLoggerCometCoreEngine = "comet_core_engine";
-
 #include "comet/event/event_manager.h"
 #include "comet/game_object/camera/camera.h"
 #include "comet/game_object/game_object_manager.h"

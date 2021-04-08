@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_UTILS_DATE_H_
 #define COMET_COMET_UTILS_DATE_H_
 
-constexpr auto kLoggerCometUtilsDate = "comet_utils";
-
 #include "comet_precompile.h"
 
 namespace comet {

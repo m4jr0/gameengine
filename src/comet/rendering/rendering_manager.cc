@@ -18,7 +18,7 @@
 
 namespace comet {
 void RenderManager::Initialize() {
-  const auto logger = Logger::Get(kLoggerCometCoreRenderRenderManager);
+  const auto logger = Logger::Get(LoggerType::Rendering);
 
   if (!glfwInit()) {
     logger->Error("Failed to initialize GLFW");
@@ -89,7 +89,7 @@ void RenderManager::Update(double interpolation,
   const auto error_code = glGetError();
 
   if (error_code != GL_NO_ERROR) {
-    Logger::Get(kLoggerCometCoreRenderRenderManager)
+    Logger::Get(LoggerType::Rendering)
         ->Error("OpenGL Error ", error_code, " (",
                 boost::format("0x%02x") % error_code,
                 "): ", glewGetErrorString(error_code));

@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_UTILS_STRUCTURE_EXCEPTION_H_
 #define COMET_COMET_UTILS_STRUCTURE_EXCEPTION_H_
 
-constexpr auto kLoggerCometUtilsStructureException = "comet_utils";
-
 #include "comet_precompile.h"
 
 namespace comet {

@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 #define COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 
-constexpr auto kLoggerCometCoreResourceModelResource = "comet_core_resource";
-
 #include "comet/game_object/model/model.h"
 #include "comet_precompile.h"
 #include "resource.h"

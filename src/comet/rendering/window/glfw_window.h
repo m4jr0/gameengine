@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
 
-constexpr auto kLoggerCometCoreRenderWindowGlfwWindow = "comet_core_window";
-
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 #include "comet_precompile.h"

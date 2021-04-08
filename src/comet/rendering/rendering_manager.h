@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 #define COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 
-constexpr auto kLoggerCometCoreRenderRenderManager = "comet_core_render";
-
 #include "comet/core/manager.h"
 #include "comet/game_object/game_object_manager.h"
 #include "comet/rendering/window/glfw_window.h"

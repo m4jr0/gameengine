@@ -35,7 +35,7 @@ unsigned int Load2DTextureFromFile(const std::string &texture_path,
     } else if (components_number == 4) {
       format = GL_RGBA;
     } else {
-      Logger::Get(kLoggerCometCoreRenderTextureTextureLoader)
+      Logger::Get(LoggerType::Rendering)
           ->Error("Unsupported texture type at path: ", texture_path);
 
       return 0;
@@ -56,7 +56,7 @@ unsigned int Load2DTextureFromFile(const std::string &texture_path,
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   } else {
-    Logger::Get(kLoggerCometCoreRenderTextureTextureLoader)
+    Logger::Get(LoggerType::Rendering)
         ->Error("Texture failed to load at path: ", texture_path);
   }
 

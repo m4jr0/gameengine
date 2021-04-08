@@ -13,7 +13,7 @@
 namespace comet {
 void Component::Initialize() {
   if (game_object_ == nullptr) {
-    Logger::Get(kLoggerCometCoreGameObjectComponent)
+    Logger::Get(LoggerType::GameObject)
         ->Error("Cannot initialize a component without a game object");
 
     return;

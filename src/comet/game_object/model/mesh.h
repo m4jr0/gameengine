@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_GAME_OBJECT_MODEL_MESH_H_
 #define COMET_COMET_GAME_OBJECT_MODEL_MESH_H_
 
-constexpr auto kLoggerCometCoreGameObjectModelMesh = "comet_core_render";
-
 #include "boost/serialization/vector.hpp"
 #include "comet/rendering/shader/shader_program.h"
 #include "comet_precompile.h"

@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
 #define COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
 
-constexpr auto kLoggerCometCoreResourceResourceManager = "comet_core_resource";
-
 #include "comet/core/manager.h"
 #include "comet_precompile.h"
 #include "efsw/efsw.hpp"

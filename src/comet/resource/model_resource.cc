@@ -14,7 +14,7 @@
 
 namespace comet {
 bool ModelResource::Import() {
-  Logger::Get(kLoggerCometCoreResourceModelResource)->Debug("Import");
+  Logger::Get(LoggerType::Resource)->Debug("Import");
 
   auto shader_program = std::make_shared<ShaderProgram>(
       "assets/shaders/model_shader.vs", "assets/shaders/model_shader.fs");
@@ -26,7 +26,7 @@ bool ModelResource::Import() {
 }
 
 bool ModelResource::Export() {
-  Logger::Get(kLoggerCometCoreResourceModelResource)->Debug("Export");
+  Logger::Get(LoggerType::Resource)->Debug("Export");
   return true;
 }
 

@@ -43,7 +43,7 @@ void Resource::SetMetaFile() {
   resource_meta_data["data"] = GetMetaData();
 
   if (!filesystem::WriteToFile(file_system_path_, resource_meta_data.dump(2))) {
-    Logger::Get(kLoggerCometCoreResourceResource)
+    Logger::Get(LoggerType::Resource)
         ->Error("Could not write the resource meta file at path ",
                 file_system_path_);
   }

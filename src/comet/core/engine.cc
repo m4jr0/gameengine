@@ -42,7 +42,7 @@ void Engine::Run() {
     // To catch up time taken to render.
     double lag = 0.0;
 
-    Logger::Get(kLoggerCometCoreEngine)->Info("Engine started");
+    Logger::Get(LoggerType::Core)->Info("Engine started");
 
     while (is_running_) {
       if (is_exit_requested_) {
@@ -65,20 +65,20 @@ void Engine::Run() {
       render_manager_->Update(lag / kMsPerUpdate_, game_object_manager());
     }
   } catch (const std::runtime_error& runtime_error) {
-    Logger::Get(kLoggerCometCoreEngine)
+    Logger::Get(LoggerType::Core)
         ->Error("Runtime error: ", runtime_error.what());
 
     Quit();
 
     std::cin.get();
   } catch (const std::exception& exception) {
-    Logger::Get(kLoggerCometCoreEngine)->Error("Exception: ", exception.what());
+    Logger::Get(LoggerType::Core)->Error("Exception: ", exception.what());
 
     Quit();
 
     std::cin.get();
   } catch (...) {
-    Logger::Get(kLoggerCometCoreEngine)
+    Logger::Get(LoggerType::Core)
         ->Error("Unknown failure occurred. Possible memory corruption");
 
     std::cin.get();
@@ -90,7 +90,7 @@ void Engine::Run() {
 void Engine::Stop() {
   is_running_ = false;
 
-  Logger::Get(kLoggerCometCoreEngine)->Info("Engine stopped");
+  Logger::Get(LoggerType::Core)->Info("Engine stopped");
 }
 
 void Engine::Destroy() {
@@ -99,12 +99,12 @@ void Engine::Destroy() {
   render_manager_->Destroy();
   Engine::engine_ = nullptr;
 
-  Logger::Get(kLoggerCometCoreEngine)->Info("Engine destroyed");
+  Logger::Get(LoggerType::Core)->Info("Engine destroyed");
 }
 
 void Engine::Quit() {
   is_exit_requested_ = true;
-  Logger::Get(kLoggerCometCoreEngine)->Info("Engine is required to quit");
+  Logger::Get(LoggerType::Core)->Info("Engine is required to quit");
 }
 
 Engine::Engine() {
@@ -123,7 +123,7 @@ void Engine::Exit() {
   Stop();
   Destroy();
 
-  Logger::Get(kLoggerCometCoreEngine)->Info("Engine quit");
+  Logger::Get(LoggerType::Core)->Info("Engine quit");
 }
 
 Engine* const Engine::engine() { return Engine::engine_; }

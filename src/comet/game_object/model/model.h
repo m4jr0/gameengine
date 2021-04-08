@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_GAME_OBJECT_MODEL_MODEL_H_
 #define COMET_COMET_GAME_OBJECT_MODEL_MODEL_H_
 
-constexpr auto kLoggerCometCoreGameObjectModelModel = "comet_core_render";
-
 #include "assimp/scene.h"
 #include "comet/game_object/component.h"
 #include "comet/game_object/model/mesh.h"

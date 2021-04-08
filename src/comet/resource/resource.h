@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_RESOURCE_H_
 
-constexpr auto kLoggerCometCoreResourceResource = "COMET_COMET_core_resource";
-
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"

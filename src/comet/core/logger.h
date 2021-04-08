@@ -8,12 +8,25 @@
 #include "comet_precompile.h"
 
 namespace comet {
+enum class LoggerType {
+  Global = 0,
+  Core,
+  Event,
+  GameObject,
+  Input,
+  Physics,
+  Rendering,
+  Resource,
+  Time,
+  Utils
+};
+
 class Logger final {
  public:
-  static std::shared_ptr<const Logger> Get(std::string);
+  static std::shared_ptr<const Logger> Get(LoggerType);
 
   Logger() = delete;
-  Logger(std::string);
+  Logger(LoggerType);
 
   template <typename... Targs>
   void Error(Targs... args) const {
@@ -43,7 +56,7 @@ class Logger final {
     std::cout << "[WARNING] " << string_stream.str() << std::endl;
   }
 
-  const std::string name() const { return name_; };
+  const LoggerType type() const { return type_; };
 
  private:
   template <typename T>
@@ -57,12 +70,11 @@ class Logger final {
     GetString(string_stream, args...);
   }
 
-  static std::shared_ptr<const Logger> Create(std::string);
+  static std::shared_ptr<const Logger> Create(LoggerType);
 
-  static std::unordered_map<std::string, std::shared_ptr<const Logger>>
-      loggers_;
+  static std::unordered_map<LoggerType, std::shared_ptr<const Logger>> loggers_;
 
-  std::string name_;
+  LoggerType type_;
 };
 }  // namespace comet
 

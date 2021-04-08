@@ -44,7 +44,7 @@ void Mesh::Draw(std::shared_ptr<ShaderProgram> shader_program) {
     } else if (texture_type == "texture_height") {
       texture_number = std::to_string(height_index++);
     } else {
-      Logger::Get(kLoggerCometCoreGameObjectModelMesh)
+      Logger::Get(LoggerType::GameObject)
           ->Warning("Unknown texture type: ", texture_type);
 
       continue;

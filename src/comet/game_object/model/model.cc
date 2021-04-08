@@ -26,7 +26,7 @@ void Model::Initialize() {
   Component::Initialize();
 
   if ((transform_ = game_object_->GetComponent<Transform>()) == nullptr) {
-    Logger::Get(kLoggerCometCoreGameObjectModelModel)
+    Logger::Get(LoggerType::GameObject)
         ->Error(
             "A 'Transform' component is required when adding a Model "
             "component");
@@ -72,7 +72,7 @@ void Model::LoadModel() {
 
   if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       scene->mRootNode == nullptr) {
-    Logger::Get(kLoggerCometCoreGameObjectModelModel)
+    Logger::Get(LoggerType::GameObject)
         ->Error("Assimp error: ", importer.GetErrorString());
 
     return;

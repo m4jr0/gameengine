@@ -55,8 +55,7 @@ bool ReadFile(const std::string &file_path, std::string *buffer) {
   }
 
   if (!is_open) {
-    Logger::Get(kLoggerCometUtilsFileSystem)
-        ->Error("Unable to open ", file_path);
+    Logger::Get(LoggerType::Utils)->Error("Unable to open ", file_path);
 
     return false;
   }

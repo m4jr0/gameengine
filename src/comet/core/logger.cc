@@ -9,15 +9,15 @@
 #endif  // _WIN32
 
 namespace comet {
-Logger::Logger(std::string logger_name) { name_ = logger_name; }
+Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
 
-std::shared_ptr<const Logger> Logger::Get(std::string logger_name) {
-  const auto found = Logger::loggers_.find(logger_name);
+std::shared_ptr<const Logger> Logger::Get(LoggerType logger_type) {
+  const auto found = Logger::loggers_.find(logger_type);
 
   // If the logger does not exist, we create it.
   if (found == Logger::loggers_.end()) {
-    const auto new_logger = Logger::Create(logger_name);
-    Logger::loggers_.insert({logger_name, new_logger});
+    const auto new_logger = Logger::Create(logger_type);
+    Logger::loggers_.insert({logger_type, new_logger});
 
     return new_logger;
   }
@@ -25,9 +25,9 @@ std::shared_ptr<const Logger> Logger::Get(std::string logger_name) {
   return found->second;
 }
 
-std::shared_ptr<const Logger> Logger::Create(std::string logger_name) {
-  return std::make_shared<const Logger>(logger_name);
+std::shared_ptr<const Logger> Logger::Create(LoggerType logger_type) {
+  return std::make_shared<const Logger>(logger_type);
 }
 
-std::unordered_map<std::string, std::shared_ptr<const Logger>> Logger::loggers_;
+std::unordered_map<LoggerType, std::shared_ptr<const Logger>> Logger::loggers_;
 }  // namespace comet

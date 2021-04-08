@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
 #define COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
 
-constexpr auto kLoggerCometCoreRenderShaderShaderProgram = "comet_core_render";
-
 #include "GL/glew.h"
 #include "comet_precompile.h"
 #include "glm/glm.hpp"

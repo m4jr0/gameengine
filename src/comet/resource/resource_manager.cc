@@ -19,7 +19,7 @@ void ResourceManager::Initialize() {
   InitializeResourcesDirectory();
   InitializeAssetsDirectory();
 
-  Logger::Get(kLoggerCometCoreResourceResourceManager)
+  Logger::Get(LoggerType::Resource)
       ->Debug("Resource manager listening to '", assets_root_path_, "'...");
 
   Refresh();
@@ -62,7 +62,7 @@ void ResourceManager::handleFileAction(efsw::WatchID watch_id,
                                        const std::string &file_name,
                                        efsw::Action action,
                                        std::string old_file_name) {
-  const auto logger = Logger::Get(kLoggerCometCoreResourceResourceManager);
+  const auto logger = Logger::Get(LoggerType::Resource);
 
   auto path = filesystem::GetNormalizedPath(directory);
   path = filesystem::Append(path, filesystem::GetNormalizedPath(file_name));
@@ -102,8 +102,7 @@ void ResourceManager::Refresh(const std::string &path) {
   } else if (filesystem::IsFile(path)) {
     RefreshAsset(path);
   } else {
-    Logger::Get(kLoggerCometCoreResourceResourceManager)
-        ->Error("Bad path given: ", path);
+    Logger::Get(LoggerType::Resource)->Error("Bad path given: ", path);
 
     Watch();
 
@@ -126,7 +125,7 @@ void ResourceManager::SetResourceMetaFile() {
   std::string lirary_raw_meta_data = library_meta_data.dump(2);
 
   if (!filesystem::WriteToFile(library_meta_file_path, lirary_raw_meta_data)) {
-    Logger::Get(kLoggerCometCoreResourceResourceManager)
+    Logger::Get(LoggerType::Resource)
         ->Error("Could not write the resource meta file at path ",
                 library_meta_file_path);
   }
@@ -147,7 +146,7 @@ void ResourceManager::SetFolderMetaFile(const std::string &path) {
   }
 
   if (!filesystem::WriteToFile(path, folder_meta_data.dump(2))) {
-    Logger::Get(kLoggerCometCoreResourceResourceManager)
+    Logger::Get(LoggerType::Resource)
         ->Error("Could not write the folder meta file at path ", path);
   }
 }
@@ -184,8 +183,7 @@ void ResourceManager::RefreshFolder(const std::string &path) {
     RefreshAsset(resource);
   }
 
-  Logger::Get(kLoggerCometCoreResourceResourceManager)
-      ->Debug(path, " refreshed");
+  Logger::Get(LoggerType::Resource)->Debug(path, " refreshed");
 }
 
 void ResourceManager::RefreshAsset(const std::string &path) {
@@ -193,8 +191,7 @@ void ResourceManager::RefreshAsset(const std::string &path) {
     return;
   }
 
-  Logger::Get(kLoggerCometCoreResourceResourceManager)
-      ->Debug(path, " refreshed");
+  Logger::Get(LoggerType::Resource)->Debug(path, " refreshed");
 }
 
 void ResourceManager::InitializeWatcher() {

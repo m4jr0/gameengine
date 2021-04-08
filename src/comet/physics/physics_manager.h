@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 #define COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 
-constexpr auto kLoggerCometCorePhysicsPhysicsManager = "comet_physics";
-
 #include "comet/core/manager.h"
 #include "comet/game_object/game_object_manager.h"
 #include "comet_precompile.h"
