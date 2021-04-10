@@ -1,8 +1,8 @@
-# Koma Game Engine
+# Comet Game Engine
 
 ## Description
 
-The **Koma Game Engine** is a simple software to help building video games in C++. Currently, KGE is being developed in my free time as an experimental project: to put it simply, it helps me learn game engine programming in an interesting way.
+The **Comet Game Engine** is a simple software to help create video games in C++. Currently, Comet is being developed in my free time as an experimental project: to put it simply, it helps me learn game engine programming in an interesting way.
 
 ## Quick start
 
@@ -28,11 +28,13 @@ These should be available on other Linux distributions as well.
 
 #### With Visual Studio
 
-To use **Visual Studio** with **Vcpkg**, follow the **[Quick Start: Windows](https://github.com/microsoft/vcpkg#quick-start-windows)** guide on the **[Vcpkg official repository page](https://github.com/microsoft/vcpkg)**.
+To use **Visual Studio** with **Vcpkg**, you have to set the `VCPKG_ROOT` environment variable to the desired location of your **Vcpkg directory**.
+
+Then, after making sure via the **Visual Studio Installer** that the **C++ CMake tools for Windows** are correctly installed, open the cloned project directly from **Visual Studio**.
 
 #### With Visual Studio Code
 
-Open the project with **Visual Studio Code**, and with **CTRL+SHIFT+P** execute the `CMake: Configure` command. Then, launch **KGE** with the **KGE (build) [Windows/Unix]** configuration.
+Open the project with **Visual Studio Code**, and with **CTRL+SHIFT+P** execute the `CMake: Configure` command. Then, launch **Comet** with the **Comet (build) [Windows/Unix]** configuration.
 
 **Note:** you will need to install the **[C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)** and **[CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)** extensions. You might have to install the **[.NET SDK for Visual Studio Code](https://dotnet.microsoft.com/download/dotnet/sdk-for-vs-code?utm_source=vs-code&amp;utm_medium=referral&amp;utm_campaign=sdk-install)** as well.
 

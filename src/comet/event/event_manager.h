@@ -1,0 +1,96 @@
+// Copyright 2021 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_COMET_EVENT_EVENT_MANAGER_H_
+#define COMET_COMET_EVENT_EVENT_MANAGER_H_
+
+#include "comet/event/event.h"
+#include "comet/utils/structure/ring_queue.h"
+#include "comet_precompile.h"
+
+namespace comet {
+namespace core {
+class Engine;
+}  // namespace core
+
+namespace event {
+class CallbackBase {
+ public:
+  virtual void Call(Event* event) = 0;
+  virtual ~CallbackBase() = default;
+
+  CallbackBase(const CallbackBase&) = delete;
+  CallbackBase(CallbackBase&&) = delete;
+  CallbackBase& operator=(const CallbackBase&) = delete;
+  CallbackBase& operator=(CallbackBase&&) = delete;
+};
+
+template <typename T, typename F>
+class Callback : public CallbackBase {
+ public:
+  Callback(const F& function) : function_(function) {}
+
+  Callback(const Callback&) = delete;
+  Callback(Callback&&) = delete;
+  Callback& operator=(const Callback&) = delete;
+  Callback& operator=(Callback&&) = delete;
+  virtual ~Callback() = default;
+
+  virtual void Call(Event* event) override {
+    function_(dynamic_cast<T&>(*event));
+  }
+
+ private:
+  const F& function_;
+};
+
+class EventManager {
+ public:
+  EventManager(std::size_t = 200);
+  EventManager(const EventManager&) = delete;
+  EventManager(EventManager&&) = delete;
+  EventManager& operator=(const EventManager&) = delete;
+  EventManager& operator=(EventManager&&) = delete;
+  virtual ~EventManager() = default;
+
+  template <typename T, typename F>
+  bool Register(const F& function) {
+    if (!std::is_base_of<Event, T>::value) {
+      return false;
+    }
+
+    std::scoped_lock<std::mutex> lock(mutex_);
+    auto& listeners = listeners_[static_cast<int>(T::kStaticType_)];
+    listeners.emplace_back(
+        std::move(std::make_unique<Callback<T, F>>(function)));
+
+    return true;
+  }
+
+  template <typename T, typename... Targs>
+  void FireEventNow(Targs... args) {
+    Dispatch(Event::Create<T>(args...));
+  }
+
+  template <typename T, typename... Targs>
+  void FireEvent(Targs... args) {
+    std::scoped_lock<std::mutex> lock(mutex_);
+    event_queue_.push(Event::Create<T>(args...));
+  }
+
+ private:
+  friend core::Engine;
+  mutable std::mutex mutex_;
+  std::unordered_map<int, std::vector<std::unique_ptr<CallbackBase>>>
+      listeners_;
+  comet::utils::structure::ring_queue<std::unique_ptr<event::Event>>
+      event_queue_;
+
+  void Dispatch(std::unique_ptr<Event>);
+  void FireAllEvents();
+};
+}  // namespace event
+}  // namespace comet
+
+#endif  // COMET_COMET_EVENT_EVENT_MANAGER_H_

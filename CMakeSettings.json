@@ -1,0 +1,9 @@
+{
+  "configurations": [
+    {
+      "name": "comet_x64-Debug",
+      "buildRoot": "${projectDir}\\build",
+      "inheritEnvironments": []
+    }
+  ]
+}

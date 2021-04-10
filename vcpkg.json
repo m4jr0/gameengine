@@ -1,51 +1,41 @@
 {
-  "name": "koma-game-engine",
-  "version": "0.1.0",
+  "name": "comet-game-engine",
+  "version": "0.0.1",
   "description": "Simple video game engine",
   "homepage": "https://github.com/m4jr0/gameengine/",
   "dependencies": [
     {
-      "name": "assimp",
-      "version>=": "5.0.1#4"
+      "name": "assimp"
     },
     {
-      "name": "boost",
-      "version>=": "1.75.0"
+      "name": "boost"
     },
     {
-      "name": "catch2",
-      "version>=": "2.13.1"
+      "name": "catch2"
     },
     {
-      "name": "efsw",
-      "version>=": "2020-06-08#1"
+      "name": "efsw"
     },
     {
-      "name": "glew",
-      "version>=": "2.1.0#10"
+      "name": "glew"
     },
     {
-      "name": "glfw3",
-      "version>=": "3.3.2#1"
+      "name": "glfw3"
     },
     {
-      "name": "glm",
-      "version>=": "0.9.9.8"
+      "name": "glm"
     },
     {
       "name": "opengl"
     },
     {
-      "name": "nlohmann-json",
-      "version>=": "3.9.1"
+      "name": "nlohmann-json"
     },
     {
-      "name": "picosha2",
-      "version>=": "2018-07-30"
+      "name": "picosha2"
     },
     {
-      "name": "stb",
-      "version>=": "2020-09-14"
+      "name": "stb"
     }
   ]
 }

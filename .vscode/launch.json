@@ -3,96 +3,96 @@
     "configurations": [
         // Unix ////////////////////////////////////////////////////////////////
         {
-            "name": "KGE (build) [Unix]",
+            "name": "Comet (build) [Unix]",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge",
+            "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build"
         },
         {
-            "name": "KGE tests (build) [Unix]",
+            "name": "Comet tests (build) [Unix]",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge_tests",
+            "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build"
         },
         {
-            "name": "KGE (clean + build) [Unix]",
+            "name": "Comet (clean + build) [Unix]",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge",
+            "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild"
         },
         {
-            "name": "KGE tests (clean + build) [Unix]",
+            "name": "Comet tests (clean + build) [Unix]",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge_tests",
+            "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild"
         },
         {
-            "name": "KGE (no build) [Unix]",
+            "name": "Comet (no build) [Unix]",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge",
+            "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
         },
         {
-            "name": "KGE tests (no build) [Unix]",
+            "name": "Comet tests (no build) [Unix]",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge_tests",
+            "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
         },
         // Windows /////////////////////////////////////////////////////////////
         {
-            "name": "KGE (build) [Windows]",
+            "name": "Comet (build) [Windows]",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge.exe",
+            "program": "${workspaceFolder}/build/comet.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build"
         },
         {
-            "name": "KGE tests (build) [Windows]",
+            "name": "Comet tests (build) [Windows]",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge_tests.exe",
+            "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build"
         },
         {
-            "name": "KGE (clean + build) [Windows]",
+            "name": "Comet (clean + build) [Windows]",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge.exe",
+            "program": "${workspaceFolder}/build/comet.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild"
         },
         {
-            "name": "KGE tests (clean + build) [Windows]",
+            "name": "Comet tests (clean + build) [Windows]",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge_tests.exe",
+            "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild"
         },
         {
-            "name": "KGE (no build) [Windows]",
+            "name": "Comet (no build) [Windows]",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge.exe",
+            "program": "${workspaceFolder}/build/comet.exe",
             "cwd": "${workspaceFolder}/build/",
         },
         {
-            "name": "KGE tests (no build) [Windows]",
+            "name": "Comet tests (no build) [Windows]",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kge_tests.exe",
+            "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
         }
     ]
