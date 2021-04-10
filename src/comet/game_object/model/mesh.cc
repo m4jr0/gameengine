@@ -22,12 +22,56 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
   Initialize();
 }
 
+Mesh::Mesh(const Mesh& other)
+    : vertices_(other.vertices_),
+      indices_(other.indices_),
+      textures_(other.textures_),
+      vao_(other.vao_),
+      vbo_(other.vbo_),
+      ebo_(other.ebo_) {}
+
+Mesh::Mesh(Mesh&& other) noexcept
+    : vertices_(std::move(other.vertices_)),
+      indices_(std::move(other.indices_)),
+      textures_(std::move(other.textures_)),
+      vao_(std::move(other.vao_)),
+      vbo_(std::move(other.vbo_)),
+      ebo_(std::move(other.ebo_)) {}
+
+Mesh& Mesh::operator=(const Mesh& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  vertices_ = other.vertices_;
+  indices_ = other.indices_;
+  textures_ = other.textures_;
+  vao_ = other.vao_;
+  vbo_ = other.vbo_;
+  ebo_ = other.ebo_;
+  return *this;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  vertices_ = std::move(other.vertices_);
+  indices_ = std::move(other.indices_);
+  textures_ = std::move(other.textures_);
+  vao_ = std::move(other.vao_);
+  vbo_ = std::move(other.vbo_);
+  ebo_ = std::move(other.ebo_);
+  return *this;
+}
+
 void Mesh::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
   std::size_t diffuse_index = 0;
   std::size_t specular_index = 0;
   std::size_t normal_index = 0;
   std::size_t height_index = 0;
-  auto textures_number = textures_.size();
+  const auto textures_number = textures_.size();
 
   for (std::size_t index = 0; index < textures_number; ++index) {
     glActiveTexture(GL_TEXTURE0 + index);
@@ -45,7 +89,7 @@ void Mesh::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
       texture_number = std::to_string(height_index++);
     } else {
       core::Logger::Get(core::LoggerType::GameObject)
-          ->Warning("Unknown texture type: ", texture_type);
+          .Warning("Unknown texture type: ", texture_type);
 
       continue;
     }
@@ -79,37 +123,41 @@ void Mesh::Initialize() {
                &indices_[0], GL_STATIC_DRAW);
 
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
 
   glEnableVertexAttribArray(1);
 
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void *)offsetof(Vertex, normal));
+                        (void*)offsetof(Vertex, normal));
 
   glEnableVertexAttribArray(2);
 
   glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void *)offsetof(Vertex, tangent));
+                        (void*)offsetof(Vertex, tangent));
 
   glEnableVertexAttribArray(3);
 
   glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void *)offsetof(Vertex, bitangent));
+                        (void*)offsetof(Vertex, bitangent));
 
   glEnableVertexAttribArray(4);
 
   glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void *)offsetof(Vertex, texture_coordinates));
+                        (void*)offsetof(Vertex, texture_coordinates));
 
   glBindVertexArray(0);
 }
 
-const std::vector<Vertex> Mesh::vertices() const noexcept { return vertices_; }
+const std::vector<Vertex>& Mesh::GetVertices() const noexcept {
+  return vertices_;
+}
 
-const std::vector<unsigned int> Mesh::indices() const noexcept {
+const std::vector<unsigned int>& Mesh::GetIndices() const noexcept {
   return indices_;
 }
 
-const std::vector<Texture> Mesh::textures() const noexcept { return textures_; }
+const std::vector<Texture>& Mesh::GetTextures() const noexcept {
+  return textures_;
+}
 }  // namespace game_object
 }  // namespace comet

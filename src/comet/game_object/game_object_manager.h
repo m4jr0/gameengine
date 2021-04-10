@@ -14,10 +14,10 @@ namespace game_object {
 class GameObjectManager : public core::Manager {
  public:
   GameObjectManager() = default;
-  GameObjectManager(const GameObjectManager &) = delete;
-  GameObjectManager(GameObjectManager &&) = delete;
-  GameObjectManager &operator=(const GameObjectManager &) = delete;
-  GameObjectManager &operator=(GameObjectManager &&) = delete;
+  GameObjectManager(const GameObjectManager&) = delete;
+  GameObjectManager(GameObjectManager&&) = delete;
+  GameObjectManager& operator=(const GameObjectManager&) = delete;
+  GameObjectManager& operator=(GameObjectManager&&) = delete;
   virtual ~GameObjectManager() = default;
 
   void Destroy() override;

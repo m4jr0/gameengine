@@ -10,51 +10,59 @@
 
 namespace comet {
 namespace game_object {
-GameObject::GameObject(GameObject::constructor_tag_){};
+std::shared_ptr<GameObject> GameObject::Clone() const {
+  auto clone = GameObject::Create();
+  std::shared_ptr<Component> component = nullptr;
 
-GameObject::~GameObject() = default;
+  for (const auto& it : components_) {
+    component = it.second->Clone();
+    clone->AddComponent(component);
+  }
+
+  return clone;
+}
 
 std::shared_ptr<GameObject> GameObject::Create() {
-  return std::make_shared<GameObject>(GameObject::constructor_tag_{});
+  return std::make_shared<GameObject>();
 }
 
 void GameObject::Destroy() {
-  for (const auto &it : components_) {
+  for (const auto& it : components_) {
     it.second->Destroy();
   }
 }
 
 void GameObject::Update() {
-  for (const auto &it : components_) {
+  for (const auto& it : components_) {
     it.second->Update();
   }
 }
 
 void GameObject::FixedUpdate() {
-  for (const auto &it : components_) {
+  for (const auto& it : components_) {
     it.second->FixedUpdate();
   }
 }
 
 void GameObject::AddComponent(std::shared_ptr<Component> component) {
-  components_.insert({boost::uuids::to_string(component->kId()), component});
+  components_.insert({boost::uuids::to_string(component->GetId()), component});
 
-  component->game_object(shared_from_this());
+  component->SetGameObject(shared_from_this());
   component->Initialize();
 }
 
 void GameObject::RemoveComponent(std::shared_ptr<Component> component) {
-  const auto component_id = boost::uuids::to_string(component->kId());
+  const auto component_id = boost::uuids::to_string(component->GetId());
 
   components_.at(component_id)->Destroy();
   components_.erase(component_id);
 }
 
 std::shared_ptr<Component> GameObject::GetComponent(
-    const boost::uuids::uuid id) {
+    const boost::uuids::uuid& id) {
   return components_[boost::uuids::to_string(id)];
 }
 
-const boost::uuids::uuid GameObject::kId() const noexcept { return kId_; }
+const boost::uuids::uuid GameObject::GetId() const noexcept { return id_; }
 }  // namespace game_object
 }  // namespace comet

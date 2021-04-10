@@ -29,19 +29,19 @@ void TimeManager::Update() {
   previous_time_ = current_time_;
 }
 
-void TimeManager::Stop() noexcept { time_scale(0.0f); }
+void TimeManager::Stop() noexcept { SetTimeScale(0.0f); }
 
-void TimeManager::Normalize() noexcept { time_scale(1.0f); }
+void TimeManager::Normalize() noexcept { SetTimeScale(1.0f); }
 
-const double TimeManager::time_delta() const noexcept { return time_delta_; }
+const double TimeManager::GetTimeDelta() const noexcept { return time_delta_; }
 
-const double TimeManager::current_time() const noexcept {
+const double TimeManager::GetCurrentTime() const noexcept {
   return current_time_;
 }
 
-const float TimeManager::time_scale() const noexcept { return time_scale_; }
+const float TimeManager::GetTimeScale() const noexcept { return time_scale_; }
 
-void TimeManager::time_scale(float time_scale) noexcept {
+void TimeManager::SetTimeScale(float time_scale) noexcept {
   time_scale_ = time_scale;
 }
 }  // namespace time

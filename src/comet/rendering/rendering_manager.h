@@ -18,19 +18,22 @@ class RenderingManager : public core::Manager {
   static constexpr unsigned short int kOpenGLMinorVersion_ = 3;
 
   RenderingManager() = default;
-  RenderingManager(const RenderingManager &) = delete;
-  RenderingManager(RenderingManager &&) = delete;
-  RenderingManager &operator=(const RenderingManager &) = delete;
-  RenderingManager &operator=(RenderingManager &&) = delete;
+  RenderingManager(const RenderingManager&) = delete;
+  RenderingManager(RenderingManager&&) = delete;
+  RenderingManager& operator=(const RenderingManager&) = delete;
+  RenderingManager& operator=(RenderingManager&&) = delete;
   virtual ~RenderingManager() = default;
 
   void Initialize() override;
   void Destroy() override;
-  void Update(double, game_object::GameObjectManager *);
+  void Update(double, game_object::GameObjectManager&);
 
-  const GlfwWindow *window() const;
+  void IncrementSomething() { something_++; }
+
+  const GlfwWindow* GetWindow() const;
 
  private:
+  int something_ = 0;
   int counter_ = 0;
   double current_time_ = 0;
   std::unique_ptr<GlfwWindow> window_ = nullptr;

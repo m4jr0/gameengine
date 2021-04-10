@@ -19,12 +19,23 @@ class CallbackBase {
  public:
   virtual void Call(Event* event) = 0;
   virtual ~CallbackBase() = default;
+
+  CallbackBase(const CallbackBase&) = delete;
+  CallbackBase(CallbackBase&&) = delete;
+  CallbackBase& operator=(const CallbackBase&) = delete;
+  CallbackBase& operator=(CallbackBase&&) = delete;
 };
 
 template <typename T, typename F>
 class Callback : public CallbackBase {
  public:
   Callback(const F& function) : function_(function) {}
+
+  Callback(const Callback&) = delete;
+  Callback(Callback&&) = delete;
+  Callback& operator=(const Callback&) = delete;
+  Callback& operator=(Callback&&) = delete;
+  virtual ~Callback() = default;
 
   virtual void Call(Event* event) override {
     function_(dynamic_cast<T&>(*event));
@@ -37,6 +48,11 @@ class Callback : public CallbackBase {
 class EventManager {
  public:
   EventManager(std::size_t = 200);
+  EventManager(const EventManager&) = delete;
+  EventManager(EventManager&&) = delete;
+  EventManager& operator=(const EventManager&) = delete;
+  EventManager& operator=(EventManager&&) = delete;
+  virtual ~EventManager() = default;
 
   template <typename T, typename F>
   bool Register(const F& function) {

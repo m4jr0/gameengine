@@ -10,32 +10,30 @@
 
 namespace comet {
 namespace core {
-std::shared_ptr<const Logger> Logger::Get(LoggerType logger_type) {
+Logger& Logger::Get(LoggerType logger_type) {
   const auto found = Logger::loggers_.find(logger_type);
 
   // If the logger does not exist, we create it.
   if (found == Logger::loggers_.end()) {
-    const auto new_logger = Logger::Create(logger_type);
-    Logger::loggers_.insert({logger_type, new_logger});
-
-    return new_logger;
+    return *Logger::loggers_.insert({logger_type, Logger::Create(logger_type)})
+                .first->second;
   }
 
-  return found->second;
+  return *found->second;
 }
 
 Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
 
-std::shared_ptr<const Logger> Logger::Create(LoggerType logger_type) {
+std::shared_ptr<Logger> Logger::Create(LoggerType logger_type) {
   // Because the constructor is private, we have to separate the initialization
   // from the shared pointer construction.
   // It should be safe though, as this line does nothing else than initializing
   // a logger instance and saving it to a shared pointer.
   // Performance-wise, it should be acceptable, as very few loggers will be
   // instanciated anyway.
-  return std::shared_ptr<const Logger>(new Logger(logger_type));
+  return std::shared_ptr<Logger>(new Logger(logger_type));
 }
 
-std::unordered_map<LoggerType, std::shared_ptr<const Logger>> Logger::loggers_;
+std::unordered_map<LoggerType, std::shared_ptr<Logger>> Logger::loggers_;
 }  // namespace core
 }  // namespace comet

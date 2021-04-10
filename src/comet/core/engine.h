@@ -25,6 +25,7 @@ class Engine {
   Engine(Engine&&) = delete;
   Engine& operator=(const Engine&) = delete;
   Engine& operator=(Engine&&) = delete;
+  virtual ~Engine() = default;
 
   virtual void Initialize();
   virtual void Run();
@@ -32,14 +33,14 @@ class Engine {
   virtual void Destroy();
   virtual void Quit();
 
-  static Engine* const engine();
-  resource::ResourceManager* const resource_manager();
-  rendering::RenderingManager* const rendering_manager();
-  input::InputManager* const input_manager();
-  time::TimeManager* const time_manager();
-  game_object::GameObjectManager* const game_object_manager();
-  event::EventManager* const event_manager();
-  game_object::Camera* const main_camera();
+  static Engine& GetEngine();
+  resource::ResourceManager& GetResourceManager();
+  rendering::RenderingManager& GetRenderingManager();
+  input::InputManager& GetInputManager();
+  time::TimeManager& GetTimeManager();
+  game_object::GameObjectManager& GetGameObjectManager();
+  event::EventManager& GetEventManager();
+  game_object::Camera& GetMainCamera();
 
   const bool is_running() const noexcept;
 

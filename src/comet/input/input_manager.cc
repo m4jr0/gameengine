@@ -13,33 +13,35 @@
 namespace comet {
 namespace input {
 void InputManager::Initialize() {
-  glfwSetInputMode(cached_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(GetCachedWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void InputManager::Update() { glfwPollEvents(); }
 
 bool InputManager::IsKeyBeingPressed(KeyCode key_code) const {
-  return glfwGetKey(cached_window(),
+  return glfwGetKey(GetCachedWindow(),
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_REPEAT;
 }
 
 bool InputManager::IsKeyUp(KeyCode key_code) const {
-  return glfwGetKey(cached_window(),
+  return glfwGetKey(GetCachedWindow(),
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_RELEASE;
 }
 
 bool InputManager::IsKeyDown(KeyCode key_code) const {
-  return glfwGetKey(cached_window(),
+  return glfwGetKey(GetCachedWindow(),
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_PRESS;
 }
 
-GLFWwindow *InputManager::cached_window() const {
+GLFWwindow* InputManager::GetCachedWindow() const {
   if (cached_window_ == nullptr) {
-    cached_window_ = const_cast<GLFWwindow *>(
-        core::Engine::engine()->rendering_manager()->window()->glfw_window());
+    cached_window_ = const_cast<GLFWwindow*>(core::Engine::GetEngine()
+                                                 .GetRenderingManager()
+                                                 .GetWindow()
+                                                 ->GetGlfwWindow());
   }
 
   return cached_window_;
@@ -48,14 +50,15 @@ GLFWwindow *InputManager::cached_window() const {
 glm::vec2 InputManager::GetMousePosition() const {
   double current_mouse_y_pos = 0, current_mouse_x_pos = 0;
 
-  glfwGetCursorPos(cached_window(), &current_mouse_x_pos, &current_mouse_y_pos);
+  glfwGetCursorPos(GetCachedWindow(), &current_mouse_x_pos,
+                   &current_mouse_y_pos);
 
   return glm::vec2(static_cast<float>(current_mouse_x_pos),
                    static_cast<float>(current_mouse_y_pos));
 }
 
 void InputManager::SetMousePosition(float x, float y) {
-  glfwSetCursorPos(cached_window(), x, y);
+  glfwSetCursorPos(GetCachedWindow(), x, y);
 }
 }  // namespace input
 }  // namespace comet

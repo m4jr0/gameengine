@@ -12,8 +12,8 @@ const std::string test_dir = "comettests_tests_file_system";
 auto current_dir = comet::utils::filesystem::GetCurrentDirectory();
 auto tmp_dir = current_dir + "/" + test_dir;
 
-std::string FormatAbsolutePath(const std::string &absolute_path,
-                               const std::string &to_search, const int index) {
+std::string FormatAbsolutePath(const std::string& absolute_path,
+                               const std::string& to_search, const int index) {
   auto it = boost::find_nth(absolute_path, to_search, -index);
 
   auto index_to_cut = std::distance(absolute_path.begin(), it.begin());

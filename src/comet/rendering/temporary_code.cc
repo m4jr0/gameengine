@@ -37,7 +37,7 @@ void InitializeTmp() {
   test_game_object->AddComponent(test_transform);
   test_game_object->AddComponent(model_resource->GetModel());
 
-  core::Engine::engine()->game_object_manager()->AddGameObject(
+  core::Engine::GetEngine().GetGameObjectManager().AddGameObject(
       test_game_object);
 }
 

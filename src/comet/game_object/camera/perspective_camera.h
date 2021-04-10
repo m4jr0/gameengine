@@ -12,11 +12,18 @@ namespace comet {
 namespace game_object {
 class PerspectiveCamera : public Camera {
  public:
+  PerspectiveCamera() = default;
+  PerspectiveCamera(const PerspectiveCamera&);
+  PerspectiveCamera(PerspectiveCamera&&) noexcept;
+  PerspectiveCamera& operator=(const PerspectiveCamera&);
+  PerspectiveCamera& operator=(PerspectiveCamera&&) noexcept;
+  virtual ~PerspectiveCamera() = default;
+
+  virtual std::shared_ptr<Component> Clone() const override;
   virtual void UpdateProjectionMatrix(int, int) override;
 
-  void fov(float) noexcept;
-
-  const float fov() const noexcept;
+  float GetFov() const noexcept;
+  void SetFov(float) noexcept;
 
  protected:
   float fov_ = 45.0f;

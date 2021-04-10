@@ -16,16 +16,21 @@ class GameObject;
 
 class Component {
  public:
+  Component() = default;
+  Component(const Component&);
+  Component(Component&&) noexcept;
+  Component& operator=(const Component&);
+  Component& operator=(Component&&) noexcept;
   virtual ~Component() = default;
 
+  virtual std::shared_ptr<Component> Clone() const = 0;
   virtual void Initialize();
   virtual void Destroy();
   virtual void Update();
   virtual void FixedUpdate();
 
-  const boost::uuids::uuid kId() const noexcept;
-
-  std::shared_ptr<GameObject> game_object() noexcept;
+  const boost::uuids::uuid& GetId() const noexcept;
+  std::shared_ptr<GameObject> GetGameObject() const noexcept;
 
  protected:
   std::shared_ptr<GameObject> game_object_ = nullptr;
@@ -33,8 +38,9 @@ class Component {
  private:
   friend class GameObject;
 
-  const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
-  void game_object(std::shared_ptr<GameObject>);
+  boost::uuids::uuid id_ = boost::uuids::random_generator()();
+
+  void SetGameObject(std::shared_ptr<GameObject>);
 };
 }  // namespace game_object
 }  // namespace comet

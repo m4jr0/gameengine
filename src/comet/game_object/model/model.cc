@@ -16,10 +16,59 @@
 
 namespace comet {
 namespace game_object {
-Model::Model(const std::string &model_path,
+Model::Model(const std::string& model_path,
              std::shared_ptr<rendering::ShaderProgram> shader_program) {
   path_ = model_path;
   shader_program_ = shader_program;
+}
+
+Model::Model(const Model& other)
+    : Component(other),
+      meshes_(other.meshes_),
+      transform_(other.transform_),
+      shader_program_(other.shader_program_),
+      loaded_textures_(other.loaded_textures_) {
+  transform_ = std::make_shared<Transform>(*other.transform_);
+
+  shader_program_ =
+      std::make_shared<rendering::ShaderProgram>(*other.shader_program_);
+}
+
+Model::Model(Model&& other) noexcept
+    : Component(std::move(other)),
+      meshes_(std::move(other.meshes_)),
+      transform_(std::move(other.transform_)),
+      shader_program_(std::move(other.shader_program_)),
+      loaded_textures_(std::move(other.loaded_textures_)) {}
+
+Model& Model::operator=(const Model& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  Component::operator=(other);
+  meshes_ = other.meshes_;
+  transform_ = other.transform_;
+  shader_program_ = other.shader_program_;
+  loaded_textures_ = other.loaded_textures_;
+  return *this;
+}
+
+Model& Model::operator=(Model&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  Component::operator=(std::move(other));
+  meshes_ = std::move(other.meshes_);
+  transform_ = std::move(other.transform_);
+  shader_program_ = std::move(other.shader_program_);
+  loaded_textures_ = std::move(other.loaded_textures_);
+  return *this;
+}
+
+std::shared_ptr<Component> Model::Clone() const {
+  return std::make_shared<Model>(*this);
 }
 
 void Model::Initialize() {
@@ -27,7 +76,7 @@ void Model::Initialize() {
 
   if ((transform_ = game_object_->GetComponent<Transform>()) == nullptr) {
     core::Logger::Get(core::LoggerType::GameObject)
-        ->Error(
+        .Error(
             "A 'Transform' component is required when adding a Model "
             "component");
 
@@ -38,17 +87,19 @@ void Model::Initialize() {
 }
 
 void Model::Destroy() {
-  for (const auto &texture : loaded_textures_) {
+  for (const auto& texture : loaded_textures_) {
     glDeleteTextures(1, &texture.id);
   }
 }
 
 void Model::Update() {
-  if (shader_program_ == nullptr) return;
+  if (shader_program_ == nullptr) {
+    return;
+  }
 
   shader_program_->Use();
 
-  const auto mvp = core::Engine::engine()->main_camera()->GetMvp(
+  const auto mvp = core::Engine::GetEngine().GetMainCamera().GetMvp(
       transform_->GetTransformMatrix());
 
   shader_program_->SetMatrix4("mvp", mvp);
@@ -66,14 +117,14 @@ void Model::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
 void Model::LoadModel() {
   Assimp::Importer importer;
 
-  const auto *scene =
+  const auto* scene =
       importer.ReadFile(path_, aiProcess_Triangulate | aiProcess_FlipUVs |
                                    aiProcess_CalcTangentSpace);
 
   if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       scene->mRootNode == nullptr) {
     core::Logger::Get(core::LoggerType::GameObject)
-        ->Error("Assimp error: ", importer.GetErrorString());
+        .Error("Assimp error: ", importer.GetErrorString());
 
     return;
   }
@@ -82,9 +133,9 @@ void Model::LoadModel() {
   LoadNode(scene->mRootNode, scene);
 }
 
-void Model::LoadNode(const aiNode *current_node, const aiScene *scene) {
+void Model::LoadNode(const aiNode* current_node, const aiScene* scene) {
   for (std::size_t index = 0; index < current_node->mNumMeshes; ++index) {
-    const auto *mesh = scene->mMeshes[current_node->mMeshes[index]];
+    const auto* mesh = scene->mMeshes[current_node->mMeshes[index]];
     meshes_.push_back(LoadMesh(mesh, scene));
   }
 
@@ -93,7 +144,7 @@ void Model::LoadNode(const aiNode *current_node, const aiScene *scene) {
   }
 }
 
-Mesh Model::LoadMesh(const aiMesh *current_mesh, const aiScene *scene) {
+Mesh Model::LoadMesh(const aiMesh* current_mesh, const aiScene* scene) {
   std::vector<Vertex> vertices;
   std::vector<unsigned int> indices;
   std::vector<Texture> textures;
@@ -138,7 +189,7 @@ Mesh Model::LoadMesh(const aiMesh *current_mesh, const aiScene *scene) {
   }
 
   for (std::size_t index = 0; index < current_mesh->mNumFaces; ++index) {
-    const auto &face = current_mesh->mFaces[index];
+    const auto& face = current_mesh->mFaces[index];
 
     for (std::size_t face_index = 0; face_index < face.mNumIndices;
          ++face_index) {
@@ -176,8 +227,8 @@ Mesh Model::LoadMesh(const aiMesh *current_mesh, const aiScene *scene) {
 }
 
 std::vector<Texture> Model::LoadMaterialTextures(
-    aiMaterial *material, aiTextureType texture_type,
-    const std::string &texture_type_name) {
+    aiMaterial* material, aiTextureType texture_type,
+    const std::string& texture_type_name) {
   std::vector<Texture> textures;
   const auto texture_number = material->GetTextureCount(texture_type);
 
@@ -199,7 +250,9 @@ std::vector<Texture> Model::LoadMaterialTextures(
       }
     }
 
-    if (is_skip) continue;
+    if (is_skip) {
+      continue;
+    }
 
     Texture texture;
     texture.id = rendering::Load2DTextureFromFile(directory_ + "/" +

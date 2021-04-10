@@ -20,7 +20,7 @@ void ResourceManager::Initialize() {
   InitializeAssetsDirectory();
 
   core::Logger::Get(core::LoggerType::Resource)
-      ->Debug("Resource manager listening to '", assets_root_path_, "'...");
+      .Debug("Resource manager listening to '", assets_root_path_, "'...");
 
   Refresh();
   InitializeWatcher();
@@ -53,17 +53,17 @@ void ResourceManager::InitializeResourcesDirectory() {
   } else {
     std::string raw_library_meta_data;
     utils::filesystem::ReadFile(library_meta_path, &raw_library_meta_data);
-    auto library_meta_data = nlohmann::json::parse(raw_library_meta_data);
+    const auto library_meta_data = nlohmann::json::parse(raw_library_meta_data);
     last_update_time_ = library_meta_data["last_update_time"];
   }
 }
 
 void ResourceManager::handleFileAction(efsw::WatchID watch_id,
-                                       const std::string &directory,
-                                       const std::string &file_name,
+                                       const std::string& directory,
+                                       const std::string& file_name,
                                        efsw::Action action,
                                        std::string old_file_name) {
-  const auto logger = core::Logger::Get(core::LoggerType::Resource);
+  const auto& logger = core::Logger::Get(core::LoggerType::Resource);
 
   auto path = utils::filesystem::GetNormalizedPath(directory);
   path = utils::filesystem::Append(
@@ -71,23 +71,23 @@ void ResourceManager::handleFileAction(efsw::WatchID watch_id,
 
   switch (action) {
     case efsw::Actions::Add:
-      logger->Debug("Change detected: add ", path);
+      logger.Debug("Change detected: add ", path);
       break;
 
     case efsw::Actions::Delete:
-      logger->Debug("Change detected: delete ", path);
+      logger.Debug("Change detected: delete ", path);
       return;
 
     case efsw::Actions::Modified:
-      logger->Debug("Change detected: modify ", path);
+      logger.Debug("Change detected: modify ", path);
       break;
 
     case efsw::Actions::Moved:
-      logger->Debug("Change detected: move ", path, " from ", old_file_name);
+      logger.Debug("Change detected: move ", path, " from ", old_file_name);
       break;
 
     default:
-      logger->Error("Odd action '", action, "' detected with ", path);
+      logger.Error("Odd action '", action, "' detected with ", path);
       return;
   }
 
@@ -96,7 +96,7 @@ void ResourceManager::handleFileAction(efsw::WatchID watch_id,
 
 void ResourceManager::Refresh() { Refresh(assets_root_path_); }
 
-void ResourceManager::Refresh(const std::string &path) {
+void ResourceManager::Refresh(const std::string& path) {
   Unwatch();
 
   if (utils::filesystem::IsDirectory(path)) {
@@ -105,7 +105,7 @@ void ResourceManager::Refresh(const std::string &path) {
     RefreshAsset(path);
   } else {
     core::Logger::Get(core::LoggerType::Resource)
-        ->Error("Bad path given: ", path);
+        .Error("Bad path given: ", path);
 
     Watch();
 
@@ -130,12 +130,12 @@ void ResourceManager::SetResourceMetaFile() {
   if (!utils::filesystem::WriteToFile(library_meta_file_path,
                                       lirary_raw_meta_data)) {
     core::Logger::Get(core::LoggerType::Resource)
-        ->Error("Could not write the resource meta file at path ",
-                library_meta_file_path);
+        .Error("Could not write the resource meta file at path ",
+               library_meta_file_path);
   }
 }
 
-void ResourceManager::SetFolderMetaFile(const std::string &path) {
+void ResourceManager::SetFolderMetaFile(const std::string& path) {
   nlohmann::json folder_meta_data;
   const auto now = utils::date::GetNow();
 
@@ -151,25 +151,29 @@ void ResourceManager::SetFolderMetaFile(const std::string &path) {
 
   if (!utils::filesystem::WriteToFile(path, folder_meta_data.dump(2))) {
     core::Logger::Get(core::LoggerType::Resource)
-        ->Error("Could not write the folder meta file at path ", path);
+        .Error("Could not write the folder meta file at path ", path);
   }
 }
 
-bool ResourceManager::IsRefreshFolder(const std::string &path,
-                                      const std::string &meta_file_path) {
-  if (path == assets_root_path_) return true;
+bool ResourceManager::IsRefreshFolder(const std::string& path,
+                                      const std::string& meta_file_path) {
+  if (path == assets_root_path_) {
+    return true;
+  }
 
   return last_update_time_ > utils::filesystem::GetLastModificationTime(path) ||
          !utils::filesystem::IsExist(meta_file_path);
 }
 
-void ResourceManager::RefreshFolder(const std::string &path) {
+void ResourceManager::RefreshFolder(const std::string& path) {
   const auto folder_name = utils::filesystem::GetName(path);
 
   const auto meta_file_path = utils::filesystem::Append(
       utils::filesystem::GetParentPath(path), folder_name + ".dir.meta");
 
-  if (!IsRefreshFolder(path, meta_file_path)) return;
+  if (!IsRefreshFolder(path, meta_file_path)) {
+    return;
+  }
 
   if (path != assets_root_path_) {
     SetFolderMetaFile(meta_file_path);
@@ -177,25 +181,25 @@ void ResourceManager::RefreshFolder(const std::string &path) {
 
   const auto folders = utils::filesystem::ListDirectories(path);
 
-  for (const auto &folder : folders) {
+  for (const auto& folder : folders) {
     RefreshFolder(folder);
   }
 
   const auto resources = utils::filesystem::ListFiles(path);
 
-  for (const auto &resource : resources) {
+  for (const auto& resource : resources) {
     RefreshAsset(resource);
   }
 
-  core::Logger::Get(core::LoggerType::Resource)->Debug(path, " refreshed");
+  core::Logger::Get(core::LoggerType::Resource).Debug(path, " refreshed");
 }
 
-void ResourceManager::RefreshAsset(const std::string &path) {
+void ResourceManager::RefreshAsset(const std::string& path) {
   if (last_update_time_ > utils::filesystem::GetLastModificationTime(path)) {
     return;
   }
 
-  core::Logger::Get(core::LoggerType::Resource)->Debug(path, " refreshed");
+  core::Logger::Get(core::LoggerType::Resource).Debug(path, " refreshed");
 }
 
 void ResourceManager::InitializeWatcher() {
@@ -204,23 +208,27 @@ void ResourceManager::InitializeWatcher() {
 }
 
 void ResourceManager::Watch() {
-  if (assets_watch_id_ != -1 || !assets_watcher_) return;
+  if (assets_watch_id_ != -1 || !assets_watcher_) {
+    return;
+  }
 
   assets_watch_id_ = assets_watcher_->addWatch(assets_root_path_, this, false);
 }
 
 void ResourceManager::Unwatch() {
-  if (assets_watch_id_ == -1) return;
+  if (assets_watch_id_ == -1) {
+    return;
+  }
 
   assets_watcher_->removeWatch(assets_watch_id_);
   assets_watch_id_ = -1;
 }
 
-const std::string ResourceManager::assets_root_path() const noexcept {
+const std::string& ResourceManager::GetAssetsRootPath() const noexcept {
   return assets_root_path_;
 }
 
-const std::string ResourceManager::resources_root_path() const noexcept {
+const std::string& ResourceManager::GetResourcesRootPath() const noexcept {
   return resources_root_path_;
 }
 }  // namespace resource

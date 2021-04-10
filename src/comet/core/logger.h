@@ -24,9 +24,14 @@ enum class LoggerType {
 
 class Logger final {
  public:
-  static std::shared_ptr<const Logger> Get(LoggerType);
+  static Logger& Get(LoggerType);
 
   Logger() = delete;
+  Logger(const Logger&) = delete;
+  Logger(Logger&&) = delete;
+  Logger& operator=(const Logger&) = delete;
+  Logger& operator=(Logger&&) = delete;
+  virtual ~Logger() = default;
 
   template <typename... Targs>
   void Error(Targs... args) const {
@@ -56,7 +61,7 @@ class Logger final {
     std::cout << "[WARNING] " << string_stream.str() << std::endl;
   }
 
-  const LoggerType type() const { return type_; };
+  const LoggerType GetType() const { return type_; };
 
  private:
   Logger(LoggerType);
@@ -72,9 +77,9 @@ class Logger final {
     GetString(string_stream, args...);
   }
 
-  static std::shared_ptr<const Logger> Create(LoggerType);
+  static std::shared_ptr<Logger> Create(LoggerType);
 
-  static std::unordered_map<LoggerType, std::shared_ptr<const Logger>> loggers_;
+  static std::unordered_map<LoggerType, std::shared_ptr<Logger>> loggers_;
 
   LoggerType type_;
 };

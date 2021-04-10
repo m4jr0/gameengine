@@ -13,20 +13,86 @@
 
 namespace comet {
 namespace game_object {
+Camera::Camera(const Camera& other)
+    : Component(other),
+      position_(other.position_),
+      direction_(other.direction_),
+      orientation_(other.orientation_),
+      nearest_point_(other.nearest_point_),
+      farthest_point_(other.farthest_point_),
+      projection_matrix_(other.projection_matrix_),
+      view_matrix_(other.view_matrix_),
+      model_matrix_(other.model_matrix_) {}
+
+Camera::Camera(Camera&& other) noexcept
+    : Component(std::move(other)),
+      position_(std::move(other.position_)),
+      direction_(std::move(other.direction_)),
+      orientation_(std::move(other.orientation_)),
+      nearest_point_(std::move(other.nearest_point_)),
+      farthest_point_(std::move(other.farthest_point_)),
+      projection_matrix_(std::move(other.projection_matrix_)),
+      view_matrix_(std::move(other.view_matrix_)),
+      model_matrix_(std::move(other.model_matrix_)) {}
+
+Camera& Camera::operator=(const Camera& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  Component::operator=(other);
+
+  position_ = other.position_;
+  direction_ = other.direction_;
+  orientation_ = other.orientation_;
+
+  nearest_point_ = other.nearest_point_;
+  farthest_point_ = other.farthest_point_;
+
+  projection_matrix_ = other.projection_matrix_;
+  view_matrix_ = other.view_matrix_;
+  model_matrix_ = other.model_matrix_;
+
+  return *this;
+}
+
+Camera& Camera::operator=(Camera&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  Component::operator=(std::move(other));
+
+  position_ = std::move(other.position_);
+  direction_ = std::move(other.direction_);
+  orientation_ = std::move(other.orientation_);
+
+  nearest_point_ = std::move(other.nearest_point_);
+  farthest_point_ = std::move(other.farthest_point_);
+
+  projection_matrix_ = std::move(other.projection_matrix_);
+  view_matrix_ = std::move(other.view_matrix_);
+  model_matrix_ = std::move(other.model_matrix_);
+
+  return *this;
+}
+
 void Camera::Initialize() {
   Component::Initialize();
 
-  const auto rendering_manager = core::Engine::engine()->rendering_manager();
+  const auto& rendering_manager =
+      core::Engine::GetEngine().GetRenderingManager();
 
-  UpdateMatrices(rendering_manager->window()->width(),
-                 rendering_manager->window()->height());
+  UpdateMatrices(rendering_manager.GetWindow()->GetWidth(),
+                 rendering_manager.GetWindow()->GetHeight());
 };
 
 void Camera::FixedUpdate() {
-  const auto rendering_manager = core::Engine::engine()->rendering_manager();
+  const auto& rendering_manager =
+      core::Engine::GetEngine().GetRenderingManager();
 
-  UpdateMatrices(rendering_manager->window()->width(),
-                 rendering_manager->window()->height());
+  UpdateMatrices(rendering_manager.GetWindow()->GetWidth(),
+                 rendering_manager.GetWindow()->GetHeight());
 }
 
 void Camera::UpdateViewMatrix() {
@@ -42,42 +108,46 @@ glm::mat4 Camera::GetMvp(const glm::mat4& model_matrix) {
   return projection_matrix_ * view_matrix_ * model_matrix;
 }
 
-void Camera::position(float x, float y, float z) {
+const glm::vec3& Camera::GetPosition() const noexcept { return position_; }
+
+const glm::vec3& Camera::GetDirection() const noexcept { return direction_; }
+
+const glm::vec3& Camera::GetOrientation() const noexcept {
+  return orientation_;
+}
+
+float Camera::GetNearestPoint() const noexcept { return nearest_point_; }
+
+float Camera::GetFarthestPoint() const noexcept { return farthest_point_; }
+
+void Camera::SetPosition(float x, float y, float z) {
   position_ = glm::vec3(x, y, z);
 }
 
-void Camera::direction(float x, float y, float z) {
+void Camera::SetDirection(float x, float y, float z) {
   direction_ = glm::vec3(x, y, z);
 }
 
-void Camera::orientation(float x, float y, float z) {
+void Camera::SetOrientation(float x, float y, float z) {
   orientation_ = glm::vec3(x, y, z);
 }
 
-void Camera::position(const glm::vec3& position) { position_ = position; }
+void Camera::SetPosition(const glm::vec3& position) { position_ = position; }
 
-void Camera::direction(const glm::vec3& direction) { direction_ = direction; }
+void Camera::SetDirection(const glm::vec3& direction) {
+  direction_ = direction;
+}
 
-void Camera::orientation(const glm::vec3& orientation) {
+void Camera::SetOrientation(const glm::vec3& orientation) {
   orientation_ = orientation;
 }
 
-void Camera::nearest_point(float nearest_point) noexcept {
+void Camera::SetNearestPoint(float nearest_point) noexcept {
   nearest_point_ = nearest_point;
 }
 
-void Camera::farthest_point(float farthest_point) noexcept {
+void Camera::SetFarthestPoint(float farthest_point) noexcept {
   farthest_point_ = farthest_point;
 }
-
-const glm::vec3 Camera::position() const noexcept { return position_; }
-
-const glm::vec3 Camera::direction() const noexcept { return direction_; }
-
-const glm::vec3 Camera::orientation() const noexcept { return orientation_; }
-
-const float Camera::nearest_point() const noexcept { return nearest_point_; }
-
-const float Camera::farthest_point() const noexcept { return farthest_point_; }
 }  // namespace game_object
 }  // namespace comet

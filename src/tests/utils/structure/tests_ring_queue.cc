@@ -5,7 +5,7 @@
 #include "catch.hpp"
 #include "comet/utils/structure/exception.h"
 #include "comet/utils/structure/ring_queue.h"
-#include "tests/dummies.h"
+#include "tests/dummies/dummy_object.h"
 
 TEST_CASE("Ring queue creation with specific capacity",
           "[comet::utils::structure]") {

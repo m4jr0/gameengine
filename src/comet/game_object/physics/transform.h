@@ -15,15 +15,22 @@ namespace game_object {
 class Transform : public Component,
                   public std::enable_shared_from_this<Transform> {
  public:
+  Transform() = default;
+  Transform(const Transform&);
+  Transform(Transform&&) noexcept;
+  Transform& operator=(const Transform&);
+  Transform& operator=(Transform&&) noexcept;
+  virtual ~Transform() = default;
+
+  virtual std::shared_ptr<Component> Clone() const override;
   void Destroy() override;
 
   const glm::mat4 GetTransformMatrix() const;
-
-  const glm::vec3 position() const noexcept;
-  void position(float, float, float);
-  void position(glm::vec3);
-  const std::shared_ptr<Transform> parent() const noexcept;
-  const std::shared_ptr<Transform> root_parent() const noexcept;
+  const glm::vec3& GetPosition() const noexcept;
+  void SetPosition(float, float, float);
+  void SetPosition(glm::vec3);
+  std::shared_ptr<Transform> GetParent() noexcept;
+  std::shared_ptr<Transform> GetRootParent() noexcept;
 
  protected:
   glm::vec3 position_ = glm::vec3(0, 0, 0);

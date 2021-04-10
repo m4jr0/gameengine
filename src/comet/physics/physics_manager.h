@@ -14,17 +14,17 @@ namespace physics {
 class PhysicsManager : public core::Manager {
  public:
   PhysicsManager() = default;
-  PhysicsManager(const PhysicsManager &) = delete;
-  PhysicsManager(PhysicsManager &&) = delete;
-  PhysicsManager &operator=(const PhysicsManager &) = delete;
-  PhysicsManager &operator=(PhysicsManager &&) = delete;
+  PhysicsManager(const PhysicsManager&) = delete;
+  PhysicsManager(PhysicsManager&&) = delete;
+  PhysicsManager& operator=(const PhysicsManager&) = delete;
+  PhysicsManager& operator=(PhysicsManager&&) = delete;
   virtual ~PhysicsManager() = default;
 
   void Initialize() override;
   void Destroy() override;
-  void Update(game_object::GameObjectManager *);
+  void Update(game_object::GameObjectManager&);
 
-  const int counter() const noexcept;
+  unsigned int GetCounter() const noexcept;
 
  private:
   unsigned int counter_ = 0;

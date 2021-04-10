@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "dummies.h"
+#include "dummy_object.h"
 
 #include "catch.hpp"
 
@@ -10,27 +10,21 @@ namespace comettests {
 std::size_t DummyObject::counter_ = 0;
 
 DummyObject::DummyObject(int value, bool is_verbose)
-    : value_(value), is_verbose_(is_verbose) {
-  id_ = counter_++;
-
+    : id_(counter_++), value_(value), is_verbose_(is_verbose) {
   if (is_verbose_) {
     Print("(int value, bool is_verbose) Constructor");
   }
 }
 
-DummyObject::DummyObject(const DummyObject& other) {
-  id_ = counter_++;
-  value_ = other.value_;
-
+DummyObject::DummyObject(const DummyObject& other)
+    : id_(counter_++), value_(other.value_) {
   if (is_verbose_) {
     Print("Copy constructor");
   }
 }
 
-DummyObject::DummyObject(DummyObject&& other) noexcept {
-  id_ = other.id_;
-  value_ = other.value_;
-
+DummyObject::DummyObject(DummyObject&& other) noexcept
+    : id_(std::move(other.id_)), value_(std::move(other.value_)) {
   if (is_verbose_) {
     Print("Move constructor");
   }
@@ -55,8 +49,8 @@ DummyObject& DummyObject::operator=(DummyObject&& other) noexcept {
     return *this;
   }
 
-  id_ = other.id_;
-  value_ = other.value_;
+  id_ = std::move(other.id_);
+  value_ = std::move(other.value_);
   return *this;
 }
 

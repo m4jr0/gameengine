@@ -17,10 +17,10 @@ class Window {
 
   Window(const std::string & = Window::kDefaultName_,
          unsigned int = kDefaultWidth_, unsigned int = kDefaultHeight_);
-  Window(const Window &) = delete;
-  Window(Window &&) = delete;
-  Window &operator=(const Window &) = delete;
-  Window &operator=(Window &&) = delete;
+  Window(const Window &) = default;
+  Window(Window &&) = default;
+  Window &operator=(const Window &) = default;
+  Window &operator=(Window &&) = default;
   virtual ~Window() = default;
 
   virtual void Initialize() = 0;
@@ -28,9 +28,9 @@ class Window {
   virtual void Update(){};
   virtual void SetSize(unsigned int, unsigned int) = 0;
 
-  virtual const std::string name() const noexcept;
-  virtual const unsigned int width() const noexcept;
-  virtual const unsigned int height() const noexcept;
+  virtual const std::string GetName() const noexcept;
+  virtual const unsigned int GetWidth() const noexcept;
+  virtual const unsigned int GetHeight() const noexcept;
 
  protected:
   unsigned int width_ = 0;

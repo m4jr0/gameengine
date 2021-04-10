@@ -16,18 +16,18 @@ void PhysicsManager::Initialize(){};
 void PhysicsManager::Destroy(){};
 
 void PhysicsManager::Update(
-    game_object::GameObjectManager *game_object_manager) {
-  current_time_ += core::Engine::engine()->time_manager()->time_delta();
+    game_object::GameObjectManager& game_object_manager) {
+  current_time_ += core::Engine::GetEngine().GetTimeManager().GetTimeDelta();
 
   if (current_time_ > 1000) {
     current_time_ = 0;
     counter_ = 0;
   }
 
-  game_object_manager->FixedUpdate();
+  game_object_manager.FixedUpdate();
   ++counter_;
 }
 
-const int PhysicsManager::counter() const noexcept { return counter_; }
+unsigned int PhysicsManager::GetCounter() const noexcept { return counter_; }
 }  // namespace physics
 }  // namespace comet

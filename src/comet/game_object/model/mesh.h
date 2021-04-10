@@ -30,19 +30,24 @@ struct Texture {
 class Mesh {
  public:
   Mesh(std::vector<Vertex>, std::vector<unsigned int>, std::vector<Texture>);
+  Mesh(const Mesh&);
+  Mesh(Mesh&&) noexcept;
+  Mesh& operator=(const Mesh&);
+  Mesh& operator=(Mesh&&) noexcept;
+  virtual ~Mesh() = default;
 
   void Draw(std::shared_ptr<rendering::ShaderProgram>);
 
   template <class Archive>
-  void Serialize(Archive &archive, const unsigned int file_version) {
-    archive &vertices_;
-    archive &indices_;
-    archive &textures_;
+  void Serialize(Archive& archive, const unsigned int file_version) {
+    archive& vertices_;
+    archive& indices_;
+    archive& textures_;
   }
 
-  const std::vector<Vertex> vertices() const noexcept;
-  const std::vector<unsigned int> indices() const noexcept;
-  const std::vector<Texture> textures() const noexcept;
+  const std::vector<Vertex>& GetVertices() const noexcept;
+  const std::vector<unsigned int>& GetIndices() const noexcept;
+  const std::vector<Texture>& GetTextures() const noexcept;
 
  private:
   void Initialize();

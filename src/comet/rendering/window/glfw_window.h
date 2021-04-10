@@ -14,12 +14,12 @@ namespace comet {
 namespace rendering {
 class GlfwWindow : public Window {
  public:
-  GlfwWindow(const std::string & = Window::kDefaultName_,
+  GlfwWindow(const std::string& = Window::kDefaultName_,
              unsigned int = kDefaultWidth_, unsigned int = kDefaultHeight_);
-  GlfwWindow(const GlfwWindow &) = delete;
-  GlfwWindow(GlfwWindow &&) = delete;
-  GlfwWindow &operator=(const GlfwWindow &) = delete;
-  GlfwWindow &operator=(GlfwWindow &&) = delete;
+  GlfwWindow(const GlfwWindow&);
+  GlfwWindow(GlfwWindow&&) = default;
+  GlfwWindow& operator=(const GlfwWindow&);
+  GlfwWindow& operator=(GlfwWindow&&) = default;
   virtual ~GlfwWindow() override;
 
   virtual void Initialize() override;
@@ -27,13 +27,13 @@ class GlfwWindow : public Window {
   virtual void Update() override;
   virtual void SetSize(unsigned int, unsigned int) override;
 
-  virtual GLFWwindow *glfw_window() const noexcept;
-  virtual bool is_vsync() const noexcept;
-  virtual void is_vsync(bool);
+  virtual GLFWwindow* GetGlfwWindow() const noexcept;
+  virtual bool IsVsync() const noexcept;
+  virtual void SetVsync(bool);
 
  protected:
   inline static std::size_t window_count_ = 0;
-  GLFWwindow *window_ = nullptr;
+  GLFWwindow* window_ = nullptr;
   bool is_vsync_ = true;
 };
 }  // namespace rendering

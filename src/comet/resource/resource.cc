@@ -13,41 +13,84 @@
 
 namespace comet {
 namespace resource {
-const boost::uuids::uuid Resource::kId() const noexcept { return kId_; }
-
-Resource::Resource(const std::string &path) {
+Resource::Resource(const std::string& path) {
   file_system_path_ = path;
   file_system_name_ = utils::filesystem::GetName(path);
 }
 
+Resource::Resource(const Resource& other)
+    : comet::game_object::Component(other),
+      creation_time_(other.creation_time_),
+      modification_time_(other.modification_time_),
+      file_system_path_(other.file_system_path_),
+      file_system_name_(other.file_system_name_),
+      id_(boost::uuids::random_generator()()),
+      meta_data_(other.meta_data_) {}
+
+Resource::Resource(Resource&& other) noexcept
+    : comet::game_object::Component(std::move(other)),
+      creation_time_(std::move(other.creation_time_)),
+      modification_time_(std::move(other.modification_time_)),
+      file_system_path_(std::move(other.file_system_path_)),
+      file_system_name_(std::move(other.file_system_name_)),
+      id_(boost::uuids::random_generator()()),
+      meta_data_(std::move(other.meta_data_)) {}
+
+Resource& Resource::operator=(const Resource& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  Component::operator=(other);
+  creation_time_ = other.creation_time_;
+  modification_time_ = other.modification_time_;
+  file_system_path_ = other.file_system_path_;
+  file_system_name_ = other.file_system_name_;
+  id_ = boost::uuids::random_generator()();
+  meta_data_ = other.meta_data_;
+  return *this;
+}
+
+Resource& Resource::operator=(Resource&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  Component::operator=(other);
+  creation_time_ = std::move(other.creation_time_);
+  modification_time_ = std::move(other.modification_time_);
+  file_system_path_ = std::move(other.file_system_path_);
+  file_system_name_ = std::move(other.file_system_name_);
+  id_ = boost::uuids::random_generator()();
+  meta_data_ = std::move(other.meta_data_);
+  return *this;
+}
+
 void Resource::SetMetaFile() {
-  nlohmann::json resource_meta_data{};
+  meta_data_.empty();
   const auto now = utils::date::GetNow();
 
   if (utils::filesystem::IsExist(file_system_path_)) {
     std::string raw_meta_data;
 
-    resource_meta_data =
-        utils::filesystem::ReadFile(file_system_path_, &raw_meta_data);
+    meta_data_ = utils::filesystem::ReadFile(file_system_path_, &raw_meta_data);
 
-    resource_meta_data = nlohmann::json::parse(raw_meta_data);
-    resource_meta_data["id"] = kId_;
-    resource_meta_data["modification_time"] = now;
+    meta_data_ = nlohmann::json::parse(raw_meta_data);
+    meta_data_["id"] = id_;
+    meta_data_["modification_time"] = now;
   } else {
-    resource_meta_data["id"] = kId_;
-    resource_meta_data["creation_time"] = now;
-    resource_meta_data["modification_time"] = now;
+    meta_data_["id"] = id_;
+    meta_data_["creation_time"] = now;
+    meta_data_["modification_time"] = now;
   }
 
-  resource_meta_data["checksum"] =
-      utils::filesystem::GetChecksum(file_system_path_);
-  resource_meta_data["data"] = GetMetaData();
+  meta_data_["checksum"] = utils::filesystem::GetChecksum(file_system_path_);
+  meta_data_["data"] = GetMetaData();
 
-  if (!utils::filesystem::WriteToFile(file_system_path_,
-                                      resource_meta_data.dump(2))) {
+  if (!utils::filesystem::WriteToFile(file_system_path_, meta_data_.dump(2))) {
     core::Logger::Get(core::LoggerType::Resource)
-        ->Error("Could not write the resource meta file at path ",
-                file_system_path_);
+        .Error("Could not write the resource meta file at path ",
+               file_system_path_);
   }
 }
 
@@ -63,5 +106,9 @@ void Resource::Update() {
 }
 
 bool Resource::Delete() { return true; }
+
+const boost::uuids::uuid& Resource::GetId() const noexcept { return id_; }
+
+const nlohmann::json& Resource::GetMetaData() const { return meta_data_; }
 }  // namespace resource
 }  // namespace comet

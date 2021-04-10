@@ -11,6 +11,14 @@ namespace comet {
 namespace game_object {
 class OrthogonalCamera : public Camera {
  public:
+  OrthogonalCamera() = default;
+  OrthogonalCamera(const OrthogonalCamera&);
+  OrthogonalCamera(OrthogonalCamera&&) noexcept;
+  OrthogonalCamera& operator=(const OrthogonalCamera&);
+  OrthogonalCamera& operator=(OrthogonalCamera&&) noexcept;
+  virtual ~OrthogonalCamera() = default;
+
+  virtual std::shared_ptr<Component> Clone() const override;
   virtual void UpdateProjectionMatrix(int, int) override;
 };
 }  // namespace game_object

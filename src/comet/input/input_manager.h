@@ -143,10 +143,10 @@ enum class KeyCode {
 class InputManager : public core::Manager {
  public:
   InputManager() = default;
-  InputManager(const InputManager &) = delete;
-  InputManager(InputManager &&) = delete;
-  InputManager &operator=(const InputManager &) = delete;
-  InputManager &operator=(InputManager &&) = delete;
+  InputManager(const InputManager&) = delete;
+  InputManager(InputManager&&) = delete;
+  InputManager& operator=(const InputManager&) = delete;
+  InputManager& operator=(InputManager&&) = delete;
   virtual ~InputManager() = default;
 
   virtual void Initialize() override;
@@ -158,17 +158,17 @@ class InputManager : public core::Manager {
   virtual void SetMousePosition(float, float);
 
  private:
-  mutable std::atomic<GLFWwindow *> cached_window_ = nullptr;
-  virtual GLFWwindow *cached_window() const;
+  mutable std::atomic<GLFWwindow*> cached_window_ = nullptr;
+  virtual GLFWwindow* GetCachedWindow() const;
 };
 
 class NullInputManager : public InputManager {
  public:
   NullInputManager() = default;
-  NullInputManager(const NullInputManager &) = delete;
-  NullInputManager(NullInputManager &&) = delete;
-  NullInputManager &operator=(const NullInputManager &) = delete;
-  NullInputManager &operator=(NullInputManager &&) = delete;
+  NullInputManager(const NullInputManager&) = delete;
+  NullInputManager(NullInputManager&&) = delete;
+  NullInputManager& operator=(const NullInputManager&) = delete;
+  NullInputManager& operator=(NullInputManager&&) = delete;
   virtual ~NullInputManager() = default;
 
   virtual bool IsKeyBeingPressed(KeyCode) const override { return false; };

@@ -6,23 +6,36 @@
 
 namespace comet {
 namespace rendering {
-GlfwWindow::GlfwWindow(const std::string &name, unsigned int width,
+GlfwWindow::GlfwWindow(const std::string& name, unsigned int width,
                        unsigned int height) {
   name_ = name;
   width_ = width;
   height_ = height;
 }
 
+GlfwWindow::GlfwWindow(const GlfwWindow& other)
+    : is_vsync_(other.is_vsync_), window_(nullptr) {}
+
+GlfwWindow& GlfwWindow::operator=(const GlfwWindow& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  is_vsync_ = other.is_vsync_;
+  window_ = nullptr;
+  return *this;
+}
+
 GlfwWindow::~GlfwWindow() { Destroy(); }
 
 void GlfwWindow::Initialize() {
-  const auto logger = core::Logger::Get(core::LoggerType::Rendering);
+  const auto& logger = core::Logger::Get(core::LoggerType::Rendering);
 
   if (window_count_ == 0) {
     const bool is_glfw_initialized = glfwInit() == GLFW_TRUE;
 
     if (!is_glfw_initialized) {
-      logger->Error("Failed to initialize GLFW");
+      logger.Error("Failed to initialize GLFW");
 
       throw std::runtime_error(
           "An error occurred during rendering initialization");
@@ -34,7 +47,7 @@ void GlfwWindow::Initialize() {
                        name_.c_str(), nullptr, nullptr);
 
   if (window_ == nullptr) {
-    logger->Error("Failed to initialize a GLFW window.");
+    logger.Error("Failed to initialize a GLFW window.");
 
     throw std::runtime_error(
         "An error occurred during rendering initialization");
@@ -42,7 +55,7 @@ void GlfwWindow::Initialize() {
 
   window_count_++;
   glfwMakeContextCurrent(window_);
-  is_vsync(is_vsync_);
+  SetVsync(is_vsync_);
 }
 
 void GlfwWindow::Destroy() {
@@ -72,11 +85,11 @@ void GlfwWindow::SetSize(unsigned int width, unsigned int height) {
   }
 }
 
-GLFWwindow *GlfwWindow::glfw_window() const noexcept { return window_; }
+GLFWwindow* GlfwWindow::GetGlfwWindow() const noexcept { return window_; }
 
-bool GlfwWindow::is_vsync() const noexcept { return is_vsync_; }
+bool GlfwWindow::IsVsync() const noexcept { return is_vsync_; }
 
-void GlfwWindow::is_vsync(bool is_vsync) {
+void GlfwWindow::SetVsync(bool is_vsync) {
   is_vsync_ = is_vsync;
   if (window_ == nullptr) {
     return;

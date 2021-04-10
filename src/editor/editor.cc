@@ -11,8 +11,6 @@
 
 namespace comet {
 namespace editor {
-CometEditor::CometEditor() : core::Engine() {}
-
 void CometEditor::Initialize() {
 #ifdef _WIN32
   if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)HandleConsole, TRUE)) {
@@ -40,7 +38,7 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
     case CTRL_CLOSE_EVENT:
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
-      CometEditor::engine()->Quit();
+      CometEditor::GetEngine().Quit();
       return TRUE;
 
     default:

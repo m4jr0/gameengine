@@ -10,11 +10,17 @@
 
 # Source files #################################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/tests/dummies.cc"
   "${PROJECT_SOURCE_DIR}/src/tests/tests.cc"
-  "${PROJECT_SOURCE_DIR}/src/tests/tests_engine.cc"
-  "${PROJECT_SOURCE_DIR}/src/tests/tests_file_system.cc"
-  "${PROJECT_SOURCE_DIR}/src/tests/tests_ring_queue.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/tests/core/tests_engine.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/tests/game_object/tests_game_object.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/tests/utils/tests_file_system.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/tests/utils/structure/tests_ring_queue.cc"
 )
 
 # Executable ###################################################################

@@ -13,15 +13,21 @@ namespace comet {
 namespace resource {
 class ModelResource : public Resource {
  public:
-  ModelResource(const std::string &path) : Resource(path){};
+  ModelResource(const std::string&);
+  ModelResource(const ModelResource&);
+  ModelResource(ModelResource&&) noexcept;
+  ModelResource& operator=(const ModelResource&);
+  ModelResource& operator=(ModelResource&&) noexcept;
+  virtual ~ModelResource() = default;
 
+  virtual std::shared_ptr<Component> Clone() const override;
   virtual void Destroy() override;
   virtual bool Import() override;
   virtual bool Export() override;
   virtual bool Dump() override;
   virtual bool Load() override;
-  virtual nlohmann::json GetMetaData() override;
-  virtual std::shared_ptr<game_object::Model> GetModel() { return model_; };
+
+  virtual std::shared_ptr<game_object::Model> GetModel();
 
  protected:
   std::shared_ptr<game_object::Model> model_ = nullptr;

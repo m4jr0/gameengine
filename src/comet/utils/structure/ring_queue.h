@@ -16,19 +16,61 @@ namespace structure {
 template <class T>
 class abstract_ring_queue {
  public:
+  explicit abstract_ring_queue(std::size_t);
+  abstract_ring_queue(const abstract_ring_queue&);
+  abstract_ring_queue(abstract_ring_queue&&) noexcept;
+  abstract_ring_queue& operator=(const abstract_ring_queue&);
+  abstract_ring_queue& operator=(abstract_ring_queue&&) noexcept;
+
+  // By default, there is not empty() member to prevent from using it in the
+  // thread-safe implementation and therefore having TOCTTOU bugs.
   virtual void push(T&& element) = 0;
   virtual T& front() = 0;
   virtual void pop() noexcept = 0;
   virtual void clear() noexcept = 0;
 
-  // By default, there is not empty() member to prevent from using it in the
-  // thread-safe implementation and therefore having TOCTTOU bugs.
-  virtual std::size_t size() const noexcept = 0;
   virtual std::size_t capacity() const noexcept;
+  virtual std::size_t size() const noexcept = 0;
 
  protected:
   std::size_t capacity_ = 0;
 };
+
+template <class T>
+inline abstract_ring_queue<T>::abstract_ring_queue(std::size_t capacity)
+    : capacity_(capacity) {}
+
+template <class T>
+inline abstract_ring_queue<T>::abstract_ring_queue(
+    const abstract_ring_queue<T>& other)
+    : capacity_(other.capacity_) {}
+
+template <class T>
+inline abstract_ring_queue<T>::abstract_ring_queue(
+    abstract_ring_queue<T>&& other) noexcept
+    : capacity_(std::move(other.capacity_)) {}
+
+template <class T>
+inline abstract_ring_queue<T>& abstract_ring_queue<T>::operator=(
+    const abstract_ring_queue<T>& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  capacity_ = other.capacity;
+  return *this;
+}
+
+template <class T>
+inline abstract_ring_queue<T>& abstract_ring_queue<T>::operator=(
+    abstract_ring_queue<T>&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  capacity_ = std::move(capacity_);
+  return *this;
+}
 
 template <class T>
 inline std::size_t abstract_ring_queue<T>::capacity() const noexcept {
@@ -40,7 +82,12 @@ inline std::size_t abstract_ring_queue<T>::capacity() const noexcept {
 template <class T>
 class ring_queue : public abstract_ring_queue<T> {
  public:
-  ring_queue(std::size_t);
+  explicit ring_queue(std::size_t);
+  ring_queue(const ring_queue&);
+  ring_queue(ring_queue&&) noexcept;
+  ring_queue& operator=(const ring_queue&);
+  ring_queue& operator=(ring_queue&&) noexcept;
+  virtual ~ring_queue() = default;
 
   virtual void push(T&& element) override;
   virtual T& front() override;
@@ -48,7 +95,7 @@ class ring_queue : public abstract_ring_queue<T> {
   virtual void clear() noexcept override;
   virtual bool empty() const noexcept;
 
-  std::size_t size() const noexcept override;
+  virtual std::size_t size() const noexcept override;
 
  private:
   std::size_t head_ = 0;
@@ -58,13 +105,48 @@ class ring_queue : public abstract_ring_queue<T> {
 
 template <class T>
 inline ring_queue<T>::ring_queue(std::size_t capacity)
-    : elements_(std::vector<T>(capacity)) {
-  this->capacity_ = capacity;
+    : abstract_ring_queue<T>(capacity), elements_(std::vector<T>(capacity)) {}
+
+template <class T>
+inline ring_queue<T>::ring_queue(const ring_queue<T>& other)
+    : abstract_ring_queue<T>(other),
+      head_(other.head_),
+      size_(other.size_),
+      elements_(other.elements_) {}
+
+template <class T>
+inline ring_queue<T>::ring_queue(ring_queue<T>&& other) noexcept
+    : abstract_ring_queue<T>(std::move(other)),
+      head_(std::move(other.head_)),
+      size_(std::move(other.size_)),
+      elements_(std::move(other.elements_)) {}
+
+template <class T>
+inline ring_queue<T>& ring_queue<T>::operator=(const ring_queue<T>& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  abstract_ring_queue<T>::operator=(other);
+  head_ = other.head_;
+  size_ = other.size_;
+  elements_ = other.elements_;
+
+  return *this;
 }
 
 template <class T>
-inline std::size_t ring_queue<T>::size() const noexcept {
-  return size_;
+inline ring_queue<T>& ring_queue<T>::operator=(ring_queue<T>&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  abstract_ring_queue<T>::operator=(std::move(other));
+  head_ = std::move(other.head_);
+  size_ = std::move(other.size_);
+  elements_ = std::move(other.elements_);
+
+  return *this;
 }
 
 template <class T>
@@ -106,12 +188,22 @@ inline bool ring_queue<T>::empty() const noexcept {
   return size_ == 0;
 }
 
+template <class T>
+inline std::size_t ring_queue<T>::size() const noexcept {
+  return size_;
+}
+
 // Thread-safe ring queue with a fixed capacity given at its instanciation.
 // The public member naming rules follow the STL containers to ease its use.
 template <class T>
 class concurrent_ring_queue : public abstract_ring_queue<T> {
  public:
-  concurrent_ring_queue(std::size_t);
+  explicit concurrent_ring_queue(std::size_t);
+  concurrent_ring_queue(const concurrent_ring_queue&);
+  concurrent_ring_queue(concurrent_ring_queue&&) noexcept;
+  concurrent_ring_queue& operator=(const concurrent_ring_queue&);
+  concurrent_ring_queue& operator=(concurrent_ring_queue&&) noexcept;
+  virtual ~concurrent_ring_queue() = default;
 
   virtual void push(T&& element) override;
   virtual void wait_and_push(T&& element);
@@ -135,14 +227,82 @@ class concurrent_ring_queue : public abstract_ring_queue<T> {
 
 template <class T>
 inline concurrent_ring_queue<T>::concurrent_ring_queue(std::size_t capacity)
-    : elements_(std::vector<T>(capacity)) {
-  this->capacity_ = capacity;
+    : abstract_ring_queue<T>(capacity), elements_(std::vector<T>(capacity)) {}
+
+template <class T>
+inline concurrent_ring_queue<T>::concurrent_ring_queue(
+    const concurrent_ring_queue<T>& other) {
+  auto this_lock = std::unique_lock<std::mutex>(mutex_, std::defer_lock);
+  auto other_lock = std::unique_lock<std::mutex>(other.mutex_, std::defer_lock);
+  std::lock(this_lock, other_lock);
+
+  this->capacity_ = this->capacity_;
+  head_ = other.head_;
+  size_ = other.size_;
+  elements_ = other.elements_;
 }
 
 template <class T>
-inline std::size_t concurrent_ring_queue<T>::size() const noexcept {
-  std::scoped_lock<std::mutex> lock(mutex_);
-  return size_;
+inline concurrent_ring_queue<T>::concurrent_ring_queue(
+    concurrent_ring_queue<T>&& other) noexcept {
+  auto this_lock = std::unique_lock<std::mutex>(mutex_, std::defer_lock);
+  auto other_lock = std::unique_lock<std::mutex>(other.mutex_, std::defer_lock);
+  std::lock(this_lock, other_lock);
+
+  this->capacity_ = std::move(this->capacity_);
+  head_ = std::move(other.head_);
+  size_ = std::move(other.size_);
+  elements_ = std::move(other.elements_);
+}
+
+template <class T>
+inline concurrent_ring_queue<T>& concurrent_ring_queue<T>::operator=(
+    const concurrent_ring_queue<T>& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  auto this_lock = std::unique_lock<std::mutex>(mutex_, std::defer_lock);
+  auto other_lock = std::unique_lock<std::mutex>(other.mutex_, std::defer_lock);
+  std::lock(this_lock, other_lock);
+
+  const auto old_size = size_;
+  const auto old_capacity = capacity_;
+  abstract_ring_queue<T>::operator=(other);
+  head_ = other.head_;
+  size_ = other.size_;
+  elements_ = other.elements_;
+
+  if ((old_size == 0 && size_ > 0) ||
+      (old_size == old_capacity && size_ < capacity_)) {
+    has_data_.notify_one();
+  }
+
+  return *this;
+}
+
+template <class T>
+inline concurrent_ring_queue<T>& concurrent_ring_queue<T>::operator=(
+    concurrent_ring_queue<T>&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  auto this_lock = std::unique_lock<std::mutex>(mutex_, std::defer_lock);
+  auto other_lock = std::unique_lock<std::mutex>(other.mutex_, std::defer_lock);
+  std::lock(this_lock, other_lock);
+
+  abstract_ring_queue<T>::operator=(std::move(other));
+  head_ = std::move(other.head_);
+  size_ = std::move(other.size_);
+  elements_ = std::move(other.elements_);
+
+  if ((old_size == 0 && size_ > 0) ||
+      (old_size == old_capacity && size_ < capacity_)) {
+    has_data_.notify_one();
+  }
+
+  return *this;
 }
 
 template <class T>
@@ -235,6 +395,12 @@ inline void concurrent_ring_queue<T>::clear() noexcept {
   size_ = 0;
   lock.unlock();
   has_data_.notify_one();
+}
+
+template <class T>
+inline std::size_t concurrent_ring_queue<T>::size() const noexcept {
+  std::scoped_lock<std::mutex> lock(mutex_);
+  return size_;
 }
 }  // namespace structure
 }  // namespace utils

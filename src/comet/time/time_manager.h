@@ -26,10 +26,10 @@ class TimeManager : public core::Manager {
   void Stop() noexcept;
   void Normalize() noexcept;
 
-  const double time_delta() const noexcept;
-  const double current_time() const noexcept;
-  const float time_scale() const noexcept;
-  void time_scale(float time_scale) noexcept;
+  const double GetTimeDelta() const noexcept;
+  const double GetCurrentTime() const noexcept;
+  const float GetTimeScale() const noexcept;
+  void SetTimeScale(float time_scale) noexcept;
 
  private:
   double current_time_ = 0.0;

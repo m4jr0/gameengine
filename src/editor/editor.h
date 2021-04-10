@@ -12,7 +12,12 @@ namespace comet {
 namespace editor {
 class CometEditor : public core::Engine {
  public:
-  CometEditor();
+  CometEditor() = default;
+  CometEditor(const CometEditor&) = delete;
+  CometEditor(CometEditor&&) = delete;
+  CometEditor& operator=(const CometEditor&) = delete;
+  CometEditor& operator=(CometEditor&&) = delete;
+  virtual ~CometEditor() = default;
 
   void Initialize() override;
 

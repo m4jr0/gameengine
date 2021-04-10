@@ -19,16 +19,19 @@ class Resource : public game_object::Component {
  public:
   friend ResourceManager;
 
-  Resource(const std::string &);
+  Resource(const std::string&);
+  Resource(const Resource&);
+  Resource(Resource&&) noexcept;
+  Resource& operator=(const Resource&);
+  Resource& operator=(Resource&&) noexcept;
+  virtual ~Resource() = default;
 
   virtual void Destroy() = 0;
 
-  const boost::uuids::uuid kId() const noexcept;
+  const boost::uuids::uuid& GetId() const noexcept;
 
  protected:
-  Resource() = delete;
   virtual void SetMetaFile();
-  virtual nlohmann::json GetMetaData() = 0;
   virtual void Initialize();
   virtual void Update();
   virtual bool Delete();
@@ -37,11 +40,14 @@ class Resource : public game_object::Component {
   virtual bool Dump() = 0;
   virtual bool Load() = 0;
 
+  virtual const nlohmann::json& GetMetaData() const;
+
   double creation_time_;
   double modification_time_;
   std::string file_system_path_;
   std::string file_system_name_;
-  const boost::uuids::uuid kId_ = boost::uuids::random_generator()();
+  boost::uuids::uuid id_ = boost::uuids::random_generator()();
+  nlohmann::json meta_data_;
 };
 }  // namespace resource
 }  // namespace comet

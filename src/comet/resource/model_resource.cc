@@ -13,10 +13,45 @@
 
 namespace comet {
 namespace resource {
-bool ModelResource::Import() {
-  core::Logger::Get(core::LoggerType::Resource)->Debug("Import");
+ModelResource::ModelResource(const std::string& path) : Resource(path){};
 
-  auto shader_program = std::make_shared<rendering::ShaderProgram>(
+ModelResource::ModelResource(const ModelResource& other) : Resource(other) {
+  model_ = std::make_shared<game_object::Model>(*other.model_);
+}
+
+ModelResource::ModelResource(ModelResource&& other) noexcept
+    : Resource(std::move(other)), model_(std::move(other.model_)) {}
+
+ModelResource& ModelResource::operator=(const ModelResource& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  Resource::operator=(other);
+  model_ = std::make_shared<game_object::Model>(*other.model_);
+  return *this;
+}
+
+ModelResource& ModelResource::operator=(ModelResource&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  Resource::operator=(std::move(other));
+  model_ = std::make_shared<game_object::Model>(*other.model_);
+  return *this;
+}
+
+std::shared_ptr<comet::game_object::Component> ModelResource::Clone() const {
+  return std::make_shared<ModelResource>(*this);
+}
+
+void ModelResource::Destroy() {}
+
+bool ModelResource::Import() {
+  core::Logger::Get(core::LoggerType::Resource).Debug("Import");
+
+  const auto shader_program = std::make_shared<rendering::ShaderProgram>(
       "assets/shaders/model_shader.vs", "assets/shaders/model_shader.fs");
 
   shader_program->Initialize();
@@ -27,7 +62,7 @@ bool ModelResource::Import() {
 }
 
 bool ModelResource::Export() {
-  core::Logger::Get(core::LoggerType::Resource)->Debug("Export");
+  core::Logger::Get(core::LoggerType::Resource).Debug("Export");
   return true;
 }
 
@@ -38,8 +73,6 @@ bool ModelResource::Dump() {
 
 bool ModelResource::Load() { return true; }
 
-nlohmann::json ModelResource::GetMetaData() { return nlohmann::json(); }
-
-void ModelResource::Destroy() {}
+std::shared_ptr<game_object::Model> ModelResource::GetModel() { return model_; }
 }  // namespace resource
 }  // namespace comet

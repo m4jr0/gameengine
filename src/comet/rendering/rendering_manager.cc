@@ -18,10 +18,10 @@
 namespace comet {
 namespace rendering {
 void RenderingManager::Initialize() {
-  const auto logger = core::Logger::Get(core::LoggerType::Rendering);
+  const auto& logger = core::Logger::Get(core::LoggerType::Rendering);
 
   if (!glfwInit()) {
-    logger->Error("Failed to initialize GLFW");
+    logger.Error("Failed to initialize GLFW");
 
     throw std::runtime_error(
         "An error occurred during rendering initialization");
@@ -42,7 +42,7 @@ void RenderingManager::Initialize() {
   glewExperimental = true;
 
   if (glewInit() != GLEW_OK) {
-    logger->Error("Failed to initialize GLEW");
+    logger.Error("Failed to initialize GLEW");
 
     throw std::runtime_error(
         "An error occurred during rendering initialization");
@@ -65,23 +65,23 @@ void RenderingManager::Destroy() {
 }
 
 void RenderingManager::Update(
-    double interpolation, game_object::GameObjectManager *game_object_manager) {
+    double interpolation, game_object::GameObjectManager& game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  if (glfwWindowShouldClose(window_->glfw_window()) != 0) {
-    core::Engine::engine()->engine()->Quit();
+  if (glfwWindowShouldClose(window_->GetGlfwWindow()) != 0) {
+    core::Engine::GetEngine().Quit();
 
     return;
   }
 
-  current_time_ += core::Engine::engine()->time_manager()->time_delta();
+  current_time_ += core::Engine::GetEngine().GetTimeManager().GetTimeDelta();
 
   if (current_time_ > 1000) {
     current_time_ = 0;
     counter_ = 0;
   }
 
-  game_object_manager->Update();
+  game_object_manager.Update();
 
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   UpdateTmp();
@@ -90,16 +90,16 @@ void RenderingManager::Update(
 
   if (error_code != GL_NO_ERROR) {
     core::Logger::Get(core::LoggerType::Rendering)
-        ->Error("OpenGL Error ", error_code, " (",
-                boost::format("0x%02x") % error_code,
-                "): ", glewGetErrorString(error_code));
+        .Error("OpenGL Error ", error_code, " (",
+               boost::format("0x%02x") % error_code,
+               "): ", glewGetErrorString(error_code));
   }
 
   window_->Update();
-  core::Engine::engine()->input_manager()->Update();
+  core::Engine::GetEngine().GetInputManager().Update();
   ++counter_;
 }
 
-const GlfwWindow *RenderingManager::window() const { return window_.get(); }
+const GlfwWindow* RenderingManager::GetWindow() const { return window_.get(); }
 }  // namespace rendering
 }  // namespace comet

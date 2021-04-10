@@ -31,6 +31,10 @@ class Event {
  public:
   static constexpr EventType kStaticType_ = EventType::Unknown;
 
+  Event(const Event&) = default;
+  Event(Event&&) = default;
+  Event& operator=(const Event&) = default;
+  Event& operator=(Event&&) = default;
   virtual ~Event() = default;
 
   template <typename T, typename... Targs>
@@ -60,6 +64,11 @@ class SpecificEvent : public Event {
   static constexpr EventType kStaticType_ = EventType::WindowResize;
 
   SpecificEvent(const std::string& data) { data_ = data; }
+  SpecificEvent(const SpecificEvent&) = delete;
+  SpecificEvent(SpecificEvent&&) = delete;
+  SpecificEvent& operator=(const SpecificEvent&) = delete;
+  SpecificEvent& operator=(SpecificEvent&&) = delete;
+  virtual ~SpecificEvent() = default;
 
   const std::string& GetString() const { return data_; }
 

@@ -21,8 +21,8 @@ void Engine::Initialize() {
   auto camera_container = game_object::GameObject::Create();
   main_camera_ = std::make_shared<game_object::PerspectiveCamera>();
   auto camera_controls = std::make_shared<game_object::CameraControls>();
-  main_camera_->position(0, 0, 3);
-  main_camera_->direction(0.715616, 0.691498, -0.098611);
+  main_camera_->SetPosition(0, 0, 3);
+  main_camera_->SetDirection(0.715616, 0.691498, -0.098611);
 
   rendering_manager_->Initialize();
   resource_manager_->Initialize();
@@ -42,7 +42,7 @@ void Engine::Run() {
     // To catch up time taken to render.
     double lag = 0.0;
 
-    Logger::Get(LoggerType::Core)->Info("Engine started");
+    Logger::Get(LoggerType::Core).Info("Engine started");
 
     while (is_running_) {
       if (is_exit_requested_) {
@@ -50,36 +50,36 @@ void Engine::Run() {
       }
 
       time_manager_->Update();
-      const auto time_delta = time_manager_->time_delta();
+      const auto time_delta = time_manager_->GetTimeDelta();
 
       lag += time_delta;
 
       // To render physics properly, we have to catch up with the lag.
       while (lag >= kMsPerUpdate_) {
         event_manager_->FireAllEvents();
-        physics_manager_->Update(game_object_manager());
+        physics_manager_->Update(GetGameObjectManager());
         lag -= kMsPerUpdate_;
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      rendering_manager_->Update(lag / kMsPerUpdate_, game_object_manager());
+      rendering_manager_->Update(lag / kMsPerUpdate_, GetGameObjectManager());
     }
   } catch (const std::runtime_error& runtime_error) {
     Logger::Get(LoggerType::Core)
-        ->Error("Runtime error: ", runtime_error.what());
+        .Error("Runtime error: ", runtime_error.what());
 
     Quit();
 
     std::cin.get();
   } catch (const std::exception& exception) {
-    Logger::Get(LoggerType::Core)->Error("Exception: ", exception.what());
+    Logger::Get(LoggerType::Core).Error("Exception: ", exception.what());
 
     Quit();
 
     std::cin.get();
   } catch (...) {
     Logger::Get(LoggerType::Core)
-        ->Error("Unknown failure occurred. Possible memory corruption");
+        .Error("Unknown failure occurred. Possible memory corruption");
 
     std::cin.get();
   }
@@ -90,7 +90,7 @@ void Engine::Run() {
 void Engine::Stop() {
   is_running_ = false;
 
-  Logger::Get(LoggerType::Core)->Info("Engine stopped");
+  Logger::Get(LoggerType::Core).Info("Engine stopped");
 }
 
 void Engine::Destroy() {
@@ -99,12 +99,12 @@ void Engine::Destroy() {
   rendering_manager_->Destroy();
   Engine::engine_ = nullptr;
 
-  Logger::Get(LoggerType::Core)->Info("Engine destroyed");
+  Logger::Get(LoggerType::Core).Info("Engine destroyed");
 }
 
 void Engine::Quit() {
   is_exit_requested_ = true;
-  Logger::Get(LoggerType::Core)->Info("Engine is required to quit");
+  Logger::Get(LoggerType::Core).Info("Engine is required to quit");
 }
 
 Engine::Engine() {
@@ -123,34 +123,30 @@ void Engine::Exit() {
   Stop();
   Destroy();
 
-  Logger::Get(LoggerType::Core)->Info("Engine quit");
+  Logger::Get(LoggerType::Core).Info("Engine quit");
 }
 
-Engine* const Engine::engine() { return Engine::engine_; }
+Engine& Engine::GetEngine() { return *Engine::engine_; }
 
-resource::ResourceManager* const Engine::resource_manager() {
-  return resource_manager_.get();
+resource::ResourceManager& Engine::GetResourceManager() {
+  return *resource_manager_;
 }
 
-rendering::RenderingManager* const Engine::rendering_manager() {
-  return rendering_manager_.get();
+rendering::RenderingManager& Engine::GetRenderingManager() {
+  return *rendering_manager_;
 }
 
-input::InputManager* const Engine::input_manager() {
-  return input_manager_.get();
+input::InputManager& Engine::GetInputManager() { return *input_manager_; }
+
+time::TimeManager& Engine::GetTimeManager() { return *time_manager_; }
+
+game_object::GameObjectManager& Engine::GetGameObjectManager() {
+  return *game_object_manager_;
 }
 
-time::TimeManager* const Engine::time_manager() { return time_manager_.get(); }
+event::EventManager& Engine::GetEventManager() { return *event_manager_; }
 
-game_object::GameObjectManager* const Engine::game_object_manager() {
-  return game_object_manager_.get();
-}
-
-event::EventManager* const Engine::event_manager() {
-  return event_manager_.get();
-}
-
-game_object::Camera* const Engine::main_camera() { return main_camera_.get(); }
+game_object::Camera& Engine::GetMainCamera() { return *main_camera_; }
 
 const bool Engine::is_running() const noexcept { return is_running_; }
 }  // namespace core

@@ -10,10 +10,29 @@
 
 namespace comet {
 namespace game_object {
+Component::Component(const Component& other)
+    : id_(boost::uuids::random_generator()()), game_object_(nullptr) {}
+
+Component::Component(Component&& other) noexcept : id_(std::move(other.id_)) {}
+
+Component& Component::operator=(const Component& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  id_ = boost::uuids::random_generator()();
+  return *this;
+}
+
+Component& Component::operator=(Component&& other) noexcept {
+  id_ = std::move(other.id_);
+  return *this;
+}
+
 void Component::Initialize() {
   if (game_object_ == nullptr) {
     core::Logger::Get(core::LoggerType::GameObject)
-        ->Error("Cannot initialize a component without a game object");
+        .Error("Cannot initialize a component without a game object");
 
     return;
   }
@@ -36,13 +55,13 @@ void Component::FixedUpdate() {
   // This function is called every logic frame computed.
 }
 
-const boost::uuids::uuid Component::kId() const noexcept { return kId_; }
+const boost::uuids::uuid& Component::GetId() const noexcept { return id_; }
 
-std::shared_ptr<GameObject> Component::game_object() noexcept {
+std::shared_ptr<GameObject> Component::GetGameObject() const noexcept {
   return game_object_;
 }
 
-void Component::game_object(std::shared_ptr<GameObject> game_object) {
+void Component::SetGameObject(std::shared_ptr<GameObject> game_object) {
   game_object_ = game_object;
 }
 }  // namespace game_object

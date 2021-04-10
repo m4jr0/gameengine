@@ -14,27 +14,33 @@ namespace comet {
 namespace game_object {
 class Camera : public Component {
  public:
+  Camera() = default;
+  Camera(const Camera&);
+  Camera(Camera&&) noexcept;
+  Camera& operator=(const Camera&);
+  Camera& operator=(Camera&&) noexcept;
+  virtual ~Camera() = default;
+
   virtual void Initialize() override;
   virtual void FixedUpdate() override;
-
   virtual void UpdateMatrices(int, int);
   virtual void UpdateProjectionMatrix(int, int) = 0;
   virtual void UpdateViewMatrix();
   virtual glm::mat4 GetMvp(const glm::mat4&) final;
 
-  void position(float, float, float);
-  void direction(float, float, float);
-  void orientation(float, float, float);
-  void position(const glm::vec3&);
-  void direction(const glm::vec3&);
-  void orientation(const glm::vec3&);
-  void nearest_point(float) noexcept;
-  void farthest_point(float) noexcept;
-  const glm::vec3 position() const noexcept;
-  const glm::vec3 direction() const noexcept;
-  const glm::vec3 orientation() const noexcept;
-  const float nearest_point() const noexcept;
-  const float farthest_point() const noexcept;
+  const glm::vec3& GetPosition() const noexcept;
+  const glm::vec3& GetDirection() const noexcept;
+  const glm::vec3& GetOrientation() const noexcept;
+  float GetNearestPoint() const noexcept;
+  float GetFarthestPoint() const noexcept;
+  void SetPosition(float, float, float);
+  void SetDirection(float, float, float);
+  void SetOrientation(float, float, float);
+  void SetPosition(const glm::vec3&);
+  void SetDirection(const glm::vec3&);
+  void SetOrientation(const glm::vec3&);
+  void SetNearestPoint(float) noexcept;
+  void SetFarthestPoint(float) noexcept;
 
  protected:
   glm::vec3 position_ = glm::vec3(0, 0, 0);

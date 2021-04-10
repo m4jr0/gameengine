@@ -18,31 +18,37 @@ namespace comet {
 namespace game_object {
 class Model : public Component {
  public:
-  Model(const std::string &,
+  Model(const std::string&,
         std::shared_ptr<rendering::ShaderProgram> = nullptr);
+  Model(const Model&);
+  Model(Model&&) noexcept;
+  Model& operator=(const Model&);
+  Model& operator=(Model&&) noexcept;
+  virtual ~Model() = default;
 
+  virtual std::shared_ptr<Component> Clone() const override;
   void Initialize() override;
   void Destroy() override;
   void Update() override;
   void Draw(std::shared_ptr<rendering::ShaderProgram>);
 
   template <class Archive>
-  void Serialize(Archive &archive, const unsigned int file_version) {
-    archive &meshes_;
-    archive &path_;
-    archive &directory_;
-    archive &transform_;
-    archive &shader_program_;
-    archive &loaded_textures_;
+  void Serialize(Archive& archive, const unsigned int file_version) {
+    archive& meshes_;
+    archive& path_;
+    archive& directory_;
+    archive& transform_;
+    archive& shader_program_;
+    archive& loaded_textures_;
   }
 
  private:
   void LoadModel();
-  void LoadNode(const aiNode *, const aiScene *);
-  Mesh LoadMesh(const aiMesh *, const aiScene *);
+  void LoadNode(const aiNode*, const aiScene*);
+  Mesh LoadMesh(const aiMesh*, const aiScene*);
 
-  std::vector<Texture> LoadMaterialTextures(aiMaterial *, aiTextureType,
-                                            const std::string &);
+  std::vector<Texture> LoadMaterialTextures(aiMaterial*, aiTextureType,
+                                            const std::string&);
 
   std::vector<Mesh> meshes_;
   std::string path_;
