@@ -2,7 +2,7 @@
 
 ## Description
 
-The **Comet Game Engine** is a simple software to help building video games in C++. Currently, Comet is being developed in my free time as an experimental project: to put it simply, it helps me learn game engine programming in an interesting way.
+The **Comet Game Engine** is a simple software to help create video games in C++. Currently, Comet is being developed in my free time as an experimental project: to put it simply, it helps me learn game engine programming in an interesting way.
 
 ## Quick start
 
@@ -30,7 +30,7 @@ These should be available on other Linux distributions as well.
 
 To use **Visual Studio** with **Vcpkg**, you have to set the `VCPKG_ROOT` environment variable to the desired location of your **Vcpkg directory**.
 
-Then, after making sure via the **Visual Studio Installer** that the **C++ CMake tools for Windows** are correctly installed, open the cloned project directly on **Visual Studio**.
+Then, after making sure via the **Visual Studio Installer** that the **C++ CMake tools for Windows** are correctly installed, open the cloned project directly from **Visual Studio**.
 
 #### With Visual Studio Code
 
