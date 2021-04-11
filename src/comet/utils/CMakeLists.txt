@@ -12,6 +12,7 @@
 add_library(${UTILS_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/utils/date.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/file_system.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/hash.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/exception.h"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/ring_queue.h"

@@ -32,6 +32,7 @@
 #include <windows.h>
 #endif  // _WIN32
 
+#include "comet/core/id/string_id.h"
 #include "comet/core/logger.h"
 
 #endif  // COMET_COMET_PRECOMPILE_H_
