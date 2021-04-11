@@ -15,35 +15,7 @@ class Engine;
 }  // namespace core
 
 namespace event {
-class CallbackBase {
- public:
-  virtual void Call(Event* event) = 0;
-  virtual ~CallbackBase() = default;
-
-  CallbackBase(const CallbackBase&) = delete;
-  CallbackBase(CallbackBase&&) = delete;
-  CallbackBase& operator=(const CallbackBase&) = delete;
-  CallbackBase& operator=(CallbackBase&&) = delete;
-};
-
-template <typename T, typename F>
-class Callback : public CallbackBase {
- public:
-  Callback(const F& function) : function_(function) {}
-
-  Callback(const Callback&) = delete;
-  Callback(Callback&&) = delete;
-  Callback& operator=(const Callback&) = delete;
-  Callback& operator=(Callback&&) = delete;
-  virtual ~Callback() = default;
-
-  virtual void Call(Event* event) override {
-    function_(dynamic_cast<T&>(*event));
-  }
-
- private:
-  const F& function_;
-};
+using EventListener = std::function<void(Event&)>;
 
 class EventManager {
  public:
@@ -54,24 +26,15 @@ class EventManager {
   EventManager& operator=(EventManager&&) = delete;
   virtual ~EventManager() = default;
 
-  template <typename T, typename F>
-  bool Register(const F& function) {
-    if (!std::is_base_of<Event, T>::value) {
-      return false;
-    }
-
-    std::scoped_lock<std::mutex> lock(mutex_);
-    auto& listeners = listeners_[static_cast<int>(T::kStaticType_)];
-    listeners.emplace_back(
-        std::move(std::make_unique<Callback<T, F>>(function)));
-
-    return true;
-  }
+  void Register(const EventListener& function,
+                const core::StringId& event_type);
 
   template <typename T, typename... Targs>
   void FireEventNow(Targs... args) {
     Dispatch(Event::Create<T>(args...));
   }
+
+  void FireEventNow(std::unique_ptr<Event> event);
 
   template <typename T, typename... Targs>
   void FireEvent(Targs... args) {
@@ -79,11 +42,12 @@ class EventManager {
     event_queue_.push(Event::Create<T>(args...));
   }
 
+  void FireEvent(std::unique_ptr<Event> event);
+
  private:
   friend core::Engine;
   mutable std::mutex mutex_;
-  std::unordered_map<int, std::vector<std::unique_ptr<CallbackBase>>>
-      listeners_;
+  std::unordered_map<core::StringId, std::vector<EventListener>> listeners_;
   comet::utils::structure::ring_queue<std::unique_ptr<event::Event>>
       event_queue_;
 

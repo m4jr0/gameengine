@@ -8,13 +8,28 @@ namespace comet {
 namespace event {
 EventManager::EventManager(std::size_t queue_size) : event_queue_(queue_size) {}
 
+void EventManager::Register(const EventListener& function,
+                            const core::StringId& event_type) {
+  std::scoped_lock<std::mutex> lock(mutex_);
+  auto& listeners = listeners_[event_type];
+  listeners.emplace_back(function);
+}
+
+void EventManager::FireEventNow(std::unique_ptr<Event> event) {
+  Dispatch(std::move(event));
+}
+
+void EventManager::FireEvent(std::unique_ptr<Event> event) {
+  std::scoped_lock<std::mutex> lock(mutex_);
+  event_queue_.push(std::move(event));
+}
+
 void EventManager::Dispatch(std::unique_ptr<Event> event) {
-  const int event_type = static_cast<int>(event->GetType());
-  const auto& listeners = listeners_[event_type];
+  const auto& listeners = listeners_[event->GetType()];
   const auto event_pointer = event.get();
 
   for (const auto& listener : listeners) {
-    listener->Call(event_pointer);
+    listener(*event_pointer);
   }
 }
 
