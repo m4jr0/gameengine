@@ -39,6 +39,7 @@ target_link_libraries(${RENDERING_LIBRARY_NAME}
   PUBLIC
     ${ZLIB_LIBRARY_RELEASE}
     ${Boost_LIBRARIES}
+    glad
 )
 
 if(WIN32)
@@ -48,7 +49,6 @@ if(WIN32)
       bcrypt
       opengl32
       glfw3dll
-      glew32
   )
 endif()
 
@@ -58,7 +58,6 @@ if(LINUX)
       ${OPENGL_opengl_LIBRARY}
       assimp::assimp
       glfw3
-      GLEW
       pthread
       ${CMAKE_DL_LIBS}
       ${X11_X11_LIB}

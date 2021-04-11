@@ -5,10 +5,12 @@
 #ifndef COMET_COMET_INPUT_INPUT_MANAGER_H_
 #define COMET_COMET_INPUT_INPUT_MANAGER_H_
 
-#include "GL/glew.h"
+#define GLFW_INCLUDE_NONE  // glad will include gl.
+
 #include "GLFW/glfw3.h"
 #include "comet/core/manager.h"
 #include "comet_precompile.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 
 namespace comet {

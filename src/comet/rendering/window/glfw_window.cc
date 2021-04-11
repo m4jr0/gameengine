@@ -9,12 +9,12 @@
 
 namespace comet {
 namespace rendering {
-GlfwWindow::GlfwWindow(const std::string& name, unsigned int width,
-                       unsigned int height) {
-  name_ = name;
-  width_ = width;
-  height_ = height;
-}
+GlfwWindow::GlfwWindow(int openGlMajorVersion, int openGlMinorVersion,
+                       unsigned int width, unsigned int height,
+                       const std::string& name)
+    : Window(width, height, name),
+      openGlMajorVersion_(openGlMajorVersion),
+      openGlMinorVersion_(openGlMinorVersion) {}
 
 GlfwWindow::GlfwWindow(const GlfwWindow& other)
     : is_vsync_(other.is_vsync_), window_(nullptr) {}
@@ -43,6 +43,15 @@ void GlfwWindow::Initialize() {
       throw std::runtime_error(
           "An error occurred during rendering initialization");
     }
+
+    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, openGlMajorVersion_);
+    glfwWindowHint(GLFW_VERSION_MINOR, openGlMinorVersion_);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+    // Fix compilation on Mac OS X.
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif  //  __APPLE__
 
     glfwSetErrorCallback([](int error_code, const char* description) {
       core::Logger::Get(core::LoggerType::Rendering)

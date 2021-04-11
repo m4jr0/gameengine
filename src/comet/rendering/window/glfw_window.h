@@ -5,17 +5,20 @@
 #ifndef COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
 
-#include "GL/glew.h"
+#define GLFW_INCLUDE_NONE  // glad will include gl.
+
 #include "GLFW/glfw3.h"
 #include "comet_precompile.h"
+#include "glad/glad.h"
 #include "window.h"
 
 namespace comet {
 namespace rendering {
 class GlfwWindow : public Window {
  public:
-  GlfwWindow(const std::string& = Window::kDefaultName_,
-             unsigned int = kDefaultWidth_, unsigned int = kDefaultHeight_);
+  GlfwWindow(int, int, unsigned int = kDefaultWidth_,
+             unsigned int = kDefaultHeight_,
+             const std::string& = Window::kDefaultName_);
   GlfwWindow(const GlfwWindow&);
   GlfwWindow(GlfwWindow&&) = default;
   GlfwWindow& operator=(const GlfwWindow&);
@@ -35,6 +38,8 @@ class GlfwWindow : public Window {
   inline static std::size_t window_count_ = 0;
   GLFWwindow* window_ = nullptr;
   bool is_vsync_ = true;
+  int openGlMajorVersion_;
+  int openGlMinorVersion_;
 };
 }  // namespace rendering
 }  // namespace comet

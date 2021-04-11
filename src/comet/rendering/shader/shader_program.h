@@ -5,8 +5,8 @@
 #ifndef COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
 #define COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
 
-#include "GL/glew.h"
 #include "comet_precompile.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 
 namespace comet {

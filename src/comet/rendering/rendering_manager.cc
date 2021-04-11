@@ -4,8 +4,12 @@
 
 #include "rendering_manager.h"
 
+#define GLFW_INCLUDE_NONE  // glad will include gl.
+
+#include "GLFW/glfw3.h"
 #include "boost/format.hpp"
 #include "comet/core/engine.h"
+#include "glad/glad.h"
 
 #ifdef _WIN32
 #include "debug_windows.h"
@@ -18,31 +22,13 @@
 namespace comet {
 namespace rendering {
 void RenderingManager::Initialize() {
-  const auto& logger = core::Logger::Get(core::LoggerType::Rendering);
-
-  if (!glfwInit()) {
-    logger.Error("Failed to initialize GLFW");
-
-    throw std::runtime_error(
-        "An error occurred during rendering initialization");
-  }
-
-  glfwWindowHint(GLFW_SAMPLES, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, kOpenGLMajorVersion_);
-  glfwWindowHint(GLFW_VERSION_MINOR, kOpenGLMinorVersion_);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-  // Fix compilation on Mac OS X.
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif  //  __APPLE__
-
-  window_ = std::make_unique<GlfwWindow>();
+  window_ =
+      std::make_unique<GlfwWindow>(kOpenGLMajorVersion_, kOpenGLMinorVersion_);
   window_->Initialize();
-  glewExperimental = true;
 
-  if (glewInit() != GLEW_OK) {
-    logger.Error("Failed to initialize GLEW");
+  if (!gladLoadGLLoader((GLADloadproc)(glfwGetProcAddress))) {
+    core::Logger::Get(core::LoggerType::Rendering)
+        .Error("Failed to initialize glad");
 
     throw std::runtime_error(
         "An error occurred during rendering initialization");
@@ -85,15 +71,6 @@ void RenderingManager::Update(
 
   // TODO(m4jr0): Remove this line when 3D objects are properly handled.
   UpdateTmp();
-
-  const auto error_code = glGetError();
-
-  if (error_code != GL_NO_ERROR) {
-    core::Logger::Get(core::LoggerType::Rendering)
-        .Error("OpenGL Error ", error_code, " (",
-               boost::format("0x%02x") % error_code,
-               "): ", glewGetErrorString(error_code));
-  }
 
   window_->Update();
   core::Engine::GetEngine().GetInputManager().Update();

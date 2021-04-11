@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RENDERING_TEMPORARY_CODE_H_
 #define COMET_COMET_RENDERING_TEMPORARY_CODE_H_
 
-#include "GL/glew.h"
-#include "GLFW/glfw3.h"
 #include "comet_precompile.h"
 
 namespace comet {

@@ -4,7 +4,7 @@
 
 #include "mesh.h"
 
-#include "GL/glew.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 
 #ifdef _WIN32

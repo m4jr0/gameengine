@@ -15,8 +15,8 @@ class Window {
   static constexpr unsigned int kDefaultHeight_ = 720;
   static constexpr char kDefaultName_[] = "Comet Game Engine";
 
-  Window(const std::string & = Window::kDefaultName_,
-         unsigned int = kDefaultWidth_, unsigned int = kDefaultHeight_);
+  Window(unsigned int = kDefaultWidth_, unsigned int = kDefaultHeight_,
+         const std::string & = Window::kDefaultName_);
   Window(const Window &) = default;
   Window(Window &&) = default;
   Window &operator=(const Window &) = default;

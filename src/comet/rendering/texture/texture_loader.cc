@@ -6,7 +6,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 
-#include "GL/glew.h"
+#include "glad/glad.h"
 #include "stb_image.h"
 
 #ifdef _WIN32

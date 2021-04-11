@@ -19,8 +19,8 @@ Install **[Windows 10 SDK](https://developer.microsoft.com/en-us/windows/downloa
 #### Linux
 
 You need to install the following packages:
-* **Fedora**: `sudo dnf install mesa-libGL-devel libXxf86vm-devel libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel libglew-dev perl cmake`
-* **Ubuntu**: `sudo apt install libgl1-mesa-dev libxxf86vm-dev libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev libxrandr-dev libxi-dev libglew-dev perl cmake`
+* **Fedora**: `sudo dnf install mesa-libGL-devel libXxf86vm-devel libXinerama-devel libXcursor-devel libXrandr-devel libXi-devel perl cmake`
+* **Ubuntu**: `sudo apt install libgl1-mesa-dev libxxf86vm-dev libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev libxrandr-dev libxi-dev perl cmake`
 
 These should be available on other Linux distributions as well.
 

@@ -4,7 +4,6 @@
 
 #include "temporary_code.h"
 
-#include "GL/glew.h"
 #include "comet/core/engine.h"
 #include "comet/game_object/game_object.h"
 #include "comet/game_object/model/model.h"
@@ -13,6 +12,7 @@
 #include "comet/rendering/texture/texture_loader.h"
 #include "comet/resource/model_resource.h"
 #include "comet_precompile.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
