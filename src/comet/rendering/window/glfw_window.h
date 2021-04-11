@@ -28,8 +28,8 @@ class GlfwWindow : public Window {
   virtual void SetSize(unsigned int, unsigned int) override;
 
   virtual GLFWwindow* GetGlfwWindow() const noexcept;
-  virtual bool IsVsync() const noexcept;
-  virtual void SetVsync(bool);
+  virtual bool IsVSync() const noexcept;
+  virtual void SetVSync(bool);
 
  protected:
   inline static std::size_t window_count_ = 0;

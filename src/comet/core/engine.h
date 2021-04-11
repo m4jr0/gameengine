@@ -45,10 +45,12 @@ class Engine {
   const bool is_running() const noexcept;
 
  protected:
-  Engine();
-  virtual void Exit();
-
   inline static Engine* engine_;
+
+  Engine();
+
+  virtual void Exit();
+  void OnEvent(const event::Event&);
 
   std::unique_ptr<resource::ResourceManager> resource_manager_ = nullptr;
   std::unique_ptr<input::InputManager> input_manager_ = nullptr;
