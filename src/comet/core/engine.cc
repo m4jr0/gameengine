@@ -4,6 +4,9 @@
 
 #include "engine.h"
 
+#include "comet/event/event.h"
+#include "comet/event/event_manager.h"
+#include "comet/event/window_event.h"
 #include "comet/game_object/camera/camera_controls.h"
 #include "comet/game_object/camera/perspective_camera.h"
 #include "comet/input/input_manager.h"
@@ -28,6 +31,11 @@ void Engine::Initialize() {
   resource_manager_->Initialize();
   physics_manager_->Initialize();
   input_manager_->Initialize();
+
+  const auto event_function = COMET_EVENT_BIND_FUNCTION(Engine::OnEvent);
+
+  event_manager_->Register(event_function,
+                           event::WindowCloseEvent::kStaticType_);
 
   // TODO(m4jr0): Move these lines as well (see TODO(m4jr0) above).
   camera_container->AddComponent(main_camera_);
@@ -103,6 +111,10 @@ void Engine::Destroy() {
 }
 
 void Engine::Quit() {
+  if (is_exit_requested_) {
+    return;
+  }
+
   is_exit_requested_ = true;
   Logger::Get(LoggerType::Core).Info("Engine is required to quit");
 }
@@ -124,6 +136,15 @@ void Engine::Exit() {
   Destroy();
 
   Logger::Get(LoggerType::Core).Info("Engine quit");
+}
+
+void Engine::OnEvent(const event::Event& event) {
+  const auto& event_type = event.GetType();
+
+  if (event_type == event::WindowCloseEvent::kStaticType_) {
+    Logger::Get(LoggerType::Core).Debug("Close event.");
+    Quit();
+  }
 }
 
 Engine& Engine::GetEngine() { return *Engine::engine_; }

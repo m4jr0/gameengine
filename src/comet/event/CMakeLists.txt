@@ -10,8 +10,9 @@
 
 # Source files #################################################################
 add_library(${EVENT_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/event/event.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/event/event.h"
   "${PROJECT_SOURCE_DIR}/src/comet/event/event_manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/event/window_event.cc"
 )
 
 # Compiling ####################################################################

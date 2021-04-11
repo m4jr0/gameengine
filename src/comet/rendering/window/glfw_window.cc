@@ -4,6 +4,9 @@
 
 #include "glfw_window.h"
 
+#include "comet/core/engine.h"
+#include "comet/event/window_event.h"
+
 namespace comet {
 namespace rendering {
 GlfwWindow::GlfwWindow(const std::string& name, unsigned int width,
@@ -40,6 +43,11 @@ void GlfwWindow::Initialize() {
       throw std::runtime_error(
           "An error occurred during rendering initialization");
     }
+
+    glfwSetErrorCallback([](int error_code, const char* description) {
+      core::Logger::Get(core::LoggerType::Rendering)
+          .Error("GLFW Error (", error_code, ")", description);
+    });
   }
 
   window_ =
@@ -55,7 +63,20 @@ void GlfwWindow::Initialize() {
 
   window_count_++;
   glfwMakeContextCurrent(window_);
-  SetVsync(is_vsync_);
+  SetVSync(is_vsync_);
+
+  glfwSetWindowCloseCallback(window_, [](GLFWwindow* window) {
+    core::Engine::GetEngine()
+        .GetEventManager()
+        .FireEvent<event::WindowCloseEvent>();
+  });
+
+  glfwSetWindowSizeCallback(
+      window_, [](GLFWwindow* window, int width, int height) {
+        core::Engine::GetEngine()
+            .GetEventManager()
+            .FireEvent<event::WindowResizeEvent>(width, height);
+      });
 }
 
 void GlfwWindow::Destroy() {
@@ -87,10 +108,11 @@ void GlfwWindow::SetSize(unsigned int width, unsigned int height) {
 
 GLFWwindow* GlfwWindow::GetGlfwWindow() const noexcept { return window_; }
 
-bool GlfwWindow::IsVsync() const noexcept { return is_vsync_; }
+bool GlfwWindow::IsVSync() const noexcept { return is_vsync_; }
 
-void GlfwWindow::SetVsync(bool is_vsync) {
+void GlfwWindow::SetVSync(bool is_vsync) {
   is_vsync_ = is_vsync;
+
   if (window_ == nullptr) {
     return;
   }
