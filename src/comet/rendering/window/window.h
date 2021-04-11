@@ -31,6 +31,9 @@ class Window {
   virtual const std::string GetName() const noexcept;
   virtual const unsigned int GetWidth() const noexcept;
   virtual const unsigned int GetHeight() const noexcept;
+  virtual void SetName(std::string);
+  virtual void SetWidth(unsigned int);
+  virtual void SetHeight(unsigned int);
 
  protected:
   unsigned int width_ = 0;
