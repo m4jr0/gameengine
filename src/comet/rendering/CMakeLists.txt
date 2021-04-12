@@ -40,6 +40,7 @@ target_link_libraries(${RENDERING_LIBRARY_NAME}
     ${ZLIB_LIBRARY_RELEASE}
     ${Boost_LIBRARIES}
     glad
+    imgui::imgui
 )
 
 if(WIN32)

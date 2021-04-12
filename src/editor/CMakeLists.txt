@@ -38,4 +38,5 @@ target_link_directories(${EXECUTABLE_NAME}
 target_link_libraries(${EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARIES}
+    imgui::imgui
 )

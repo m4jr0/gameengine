@@ -26,6 +26,13 @@
       "name": "glm"
     },
     {
+      "name": "imgui",
+      "features": [
+        "opengl3-glad-binding",
+        "glfw-binding"
+      ]
+    },
+    {
       "name": "opengl"
     },
     {
