@@ -11,6 +11,7 @@
 # Source files #################################################################
 list(APPEND EXECUTABLE_SOURCES
   "${PROJECT_SOURCE_DIR}/src/editor/editor.cc"
+  "${PROJECT_SOURCE_DIR}/src/editor/ui/imgui_opengl_renderer.cc"
 )
 
 # Executable ###################################################################

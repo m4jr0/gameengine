@@ -9,5 +9,6 @@
 #include "comet/core/entry_point.h"
 #include "comet/game_object/component.h"
 #include "comet/game_object/game_object.h"
+#include "comet/rendering/rendering_manager.h"
 
 #endif  // COMET_COMET_COMET_COMET_H_

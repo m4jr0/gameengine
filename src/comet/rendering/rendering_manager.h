@@ -24,15 +24,15 @@ class RenderingManager : public core::Manager {
   RenderingManager& operator=(RenderingManager&&) = delete;
   virtual ~RenderingManager() = default;
 
-  void Initialize() override;
-  void Destroy() override;
-  void Update(double, game_object::GameObjectManager&);
+  virtual void Initialize() override;
+  virtual void Destroy() override;
+  virtual void Update(double, game_object::GameObjectManager&);
 
   void IncrementSomething() { something_++; }
 
   const GlfwWindow* GetWindow() const;
 
- private:
+ protected:
   int something_ = 0;
   int counter_ = 0;
   double current_time_ = 0;

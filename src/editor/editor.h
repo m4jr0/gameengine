@@ -12,20 +12,12 @@ namespace comet {
 namespace editor {
 class CometEditor : public core::Engine {
  public:
-  CometEditor() = default;
+  CometEditor();
   CometEditor(const CometEditor&) = delete;
   CometEditor(CometEditor&&) = delete;
   CometEditor& operator=(const CometEditor&) = delete;
   CometEditor& operator=(CometEditor&&) = delete;
   virtual ~CometEditor() = default;
-
-  void Initialize() override;
-
- protected:
-  void Exit() override;
-#ifdef _WIN32
-  static BOOL WINAPI HandleConsole(DWORD);
-#endif  // _WIN32
 };
 }  // namespace editor
 }  // namespace comet

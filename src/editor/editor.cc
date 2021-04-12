@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include "editor.h"
+#include "editor/ui/imgui_opengl_renderer.h"
 
 #ifdef _WIN32
 // Allow debugging memory leaks on Windows.
@@ -11,43 +12,17 @@
 
 namespace comet {
 namespace editor {
-void CometEditor::Initialize() {
-#ifdef _WIN32
-  if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)HandleConsole, TRUE)) {
-    std::cout
-        << "Could not set console handler. This could result in "
-        << "memory leaks as the engine would not shut down properly if the "
-        << "console window is closed." << std::endl;
-  }
-#endif  // _WIN32
+CometEditor::CometEditor() {
+  resource_manager_ = std::make_unique<resource::ResourceManager>();
+  physics_manager_ = std::make_unique<physics::PhysicsManager>();
+  rendering_manager_ = std::make_unique<ui::ImguiOpenGlRenderer>();
+  game_object_manager_ = std::make_unique<game_object::GameObjectManager>();
+  time_manager_ = std::make_unique<time::TimeManager>();
+  input_manager_ = std::make_unique<input::InputManager>();
+  event_manager_ = std::make_unique<event::EventManager>();
 
-  core::Engine::Initialize();
+  Engine::engine_ = this;
 }
-
-void CometEditor::Exit() {
-  core::Engine::Exit();
-
-#ifdef _WIN32
-  _CrtDumpMemoryLeaks();
-#endif  // _WIN32
-}
-
-#ifdef _WIN32
-BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
-  switch (window_event) {
-    case CTRL_CLOSE_EVENT:
-    case CTRL_LOGOFF_EVENT:
-    case CTRL_SHUTDOWN_EVENT:
-      CometEditor::GetEngine().Quit();
-      return TRUE;
-
-    default:
-      break;
-  }
-
-  return FALSE;
-}
-#endif  // _WIN32
 }  // namespace editor
 
 std::unique_ptr<core::Engine> core::CreateEngine() {

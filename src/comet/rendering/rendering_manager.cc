@@ -15,10 +15,6 @@
 #include "debug_windows.h"
 #endif  // _WIN32
 
-// TODO(m4jr0): Remove this include (and its uses) when a proper game object
-// handling will be added.
-#include "comet/rendering/temporary_code.h"
-
 namespace comet {
 namespace rendering {
 void RenderingManager::Initialize() {
@@ -39,14 +35,9 @@ void RenderingManager::Initialize() {
   glDepthFunc(GL_LESS);
   glEnable(GL_CULL_FACE);
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-  // TODO(m4jr0): Remove this line when 3D objects are properly handled.
-  InitializeTmp();
 }
 
 void RenderingManager::Destroy() {
-  // TODO(m4jr0): Remove this line when 3D objects are properly handled.
-  DestroyTmp();
   window_->Destroy();
 }
 
@@ -68,9 +59,6 @@ void RenderingManager::Update(
   }
 
   game_object_manager.Update();
-
-  // TODO(m4jr0): Remove this line when 3D objects are properly handled.
-  UpdateTmp();
 
   window_->Update();
   core::Engine::GetEngine().GetInputManager().Update();
