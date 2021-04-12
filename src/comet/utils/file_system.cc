@@ -291,7 +291,6 @@ bool IsDirectory(const std::string& path) {
 }
 
 bool IsFile(const std::string& path) {
-  std::cout << GetCurrentDirectory() << std::endl;
   return boost::filesystem::is_regular_file(path);
 }
 
