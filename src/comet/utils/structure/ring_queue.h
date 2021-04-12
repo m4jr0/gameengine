@@ -267,14 +267,14 @@ inline concurrent_ring_queue<T>& concurrent_ring_queue<T>::operator=(
   std::lock(this_lock, other_lock);
 
   const auto old_size = size_;
-  const auto old_capacity = capacity_;
+  const auto old_capacity = this->capacity_;
   abstract_ring_queue<T>::operator=(other);
   head_ = other.head_;
   size_ = other.size_;
   elements_ = other.elements_;
 
   if ((old_size == 0 && size_ > 0) ||
-      (old_size == old_capacity && size_ < capacity_)) {
+      (old_size == old_capacity && size_ < this->capacity_)) {
     has_data_.notify_one();
   }
 
@@ -292,13 +292,15 @@ inline concurrent_ring_queue<T>& concurrent_ring_queue<T>::operator=(
   auto other_lock = std::unique_lock<std::mutex>(other.mutex_, std::defer_lock);
   std::lock(this_lock, other_lock);
 
+  const auto old_size = size_;
+  const auto old_capacity = this->capacity_;
   abstract_ring_queue<T>::operator=(std::move(other));
   head_ = std::move(other.head_);
   size_ = std::move(other.size_);
   elements_ = std::move(other.elements_);
 
   if ((old_size == 0 && size_ > 0) ||
-      (old_size == old_capacity && size_ < capacity_)) {
+      (old_size == old_capacity && size_ < this->capacity_)) {
     has_data_.notify_one();
   }
 

@@ -47,19 +47,3 @@ std::shared_ptr<comet::game_object::Component> DummyComponent::Clone() const {
 
 int DummyComponent::GetValue() const { return dummy_object_.GetValue(); }
 }  // namespace comettests
-
-TEST_CASE("Game object initialization", "[comet::game_object]") {
-  SECTION("A cloned game object does not share the same components.") {
-    const auto game_object = comet::game_object::GameObject::Create();
-    auto dummy_component = std::make_shared<comettests::DummyComponent>(1);
-
-    game_object->AddComponent(dummy_component);
-
-    const auto clone = game_object->Clone();
-    const auto original_addr =
-        &game_object->GetComponent<comettests::DummyComponent>();
-    const auto copy_addr = &clone->GetComponent<comettests::DummyComponent>();
-
-    REQUIRE(original_addr != copy_addr);
-  }
-}

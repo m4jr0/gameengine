@@ -58,7 +58,9 @@
                 "command": "rm",
                 "args": [
                     "-rf",
-                    "./build/"
+                    "./build/",
+                    "||", // For whatever reason, the exit code can be 1 if the 
+                    "true" // directory is not empty. So we ignore it.
                 ]
             },
             "windows": {
