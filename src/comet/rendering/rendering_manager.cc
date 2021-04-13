@@ -77,6 +77,10 @@ void RenderingManager::Update(
   ++counter_;
 }
 
+RenderingApi& RenderingManager::GetRenderingApi() const {
+  return *rendering_api_;
+}
+
 const GlfwWindow* RenderingManager::GetWindow() const { return window_.get(); }
 }  // namespace rendering
 }  // namespace comet
