@@ -19,7 +19,7 @@ namespace game_object {
 class Model : public Component {
  public:
   Model(const std::string&,
-        std::shared_ptr<rendering::ShaderProgram> = nullptr);
+        std::shared_ptr<rendering::ShaderProgram> shader_program = nullptr);
   Model(const Model&);
   Model(Model&&) noexcept;
   Model& operator=(const Model&);
@@ -30,7 +30,7 @@ class Model : public Component {
   void Initialize() override;
   void Destroy() override;
   void Update() override;
-  void Draw(std::shared_ptr<rendering::ShaderProgram>);
+  void Draw(std::shared_ptr<rendering::ShaderProgram> shader_program);
 
   template <class Archive>
   void Serialize(Archive& archive, const unsigned int file_version) {
@@ -47,8 +47,9 @@ class Model : public Component {
   void LoadNode(const aiNode*, const aiScene*);
   Mesh LoadMesh(const aiMesh*, const aiScene*);
 
-  std::vector<Texture> LoadMaterialTextures(aiMaterial*, aiTextureType,
-                                            const std::string&);
+  std::vector<Texture> LoadMaterialTextures(
+      aiMaterial* material, aiTextureType texture_type,
+      const std::string& texture_type_name);
 
   std::vector<Mesh> meshes_;
   std::string path_;

@@ -26,7 +26,7 @@ class Window {
   virtual void Initialize() = 0;
   virtual void Destroy(){};
   virtual void Update(){};
-  virtual void SetSize(unsigned int, unsigned int) = 0;
+  virtual void SetSize(unsigned int width, unsigned int height) = 0;
 
   virtual const std::string GetName() const noexcept;
   virtual const unsigned int GetWidth() const noexcept;

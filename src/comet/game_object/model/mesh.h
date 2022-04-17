@@ -29,14 +29,15 @@ struct Texture {
 
 class Mesh {
  public:
-  Mesh(std::vector<Vertex>, std::vector<unsigned int>, std::vector<Texture>);
+  Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
+       std::vector<Texture> textures);
   Mesh(const Mesh&);
   Mesh(Mesh&&) noexcept;
   Mesh& operator=(const Mesh&);
   Mesh& operator=(Mesh&&) noexcept;
   virtual ~Mesh() = default;
 
-  void Draw(std::shared_ptr<rendering::ShaderProgram>);
+  void Draw(std::shared_ptr<rendering::ShaderProgram> shader_program);
 
   template <class Archive>
   void Serialize(Archive& archive, const unsigned int file_version) {

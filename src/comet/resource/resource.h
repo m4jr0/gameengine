@@ -19,7 +19,7 @@ class Resource : public game_object::Component {
  public:
   friend ResourceManager;
 
-  Resource(const std::string&);
+  Resource(const std::string& path);
   Resource(const Resource&);
   Resource(Resource&&) noexcept;
   Resource& operator=(const Resource&);

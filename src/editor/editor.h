@@ -24,7 +24,7 @@ class CometEditor : public core::Engine {
  protected:
   void Exit() override;
 #ifdef _WIN32
-  static BOOL WINAPI HandleConsole(DWORD);
+  static BOOL WINAPI HandleConsole(DWORD window_event);
 #endif  // _WIN32
 };
 }  // namespace editor

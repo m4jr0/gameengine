@@ -65,7 +65,8 @@ void RenderingManager::Destroy() {
 }
 
 void RenderingManager::Update(
-    double interpolation, game_object::GameObjectManager& game_object_manager) {
+    Interpolation interpolation,
+    game_object::GameObjectManager& game_object_manager) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   if (glfwWindowShouldClose(window_->GetGlfwWindow()) != 0) {

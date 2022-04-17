@@ -20,7 +20,7 @@ class PerspectiveCamera : public Camera {
   virtual ~PerspectiveCamera() = default;
 
   virtual std::shared_ptr<Component> Clone() const override;
-  virtual void UpdateProjectionMatrix(int, int) override;
+  virtual void UpdateProjectionMatrix(int width, int height) override;
 
   float GetFov() const noexcept;
   void SetFov(float) noexcept;

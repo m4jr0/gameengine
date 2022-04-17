@@ -50,7 +50,7 @@ class Engine {
   Engine();
 
   virtual void Exit();
-  void OnEvent(const event::Event&);
+  void OnEvent(const event::Event& event);
 
   std::unique_ptr<resource::ResourceManager> resource_manager_ = nullptr;
   std::unique_ptr<input::InputManager> input_manager_ = nullptr;

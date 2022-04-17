@@ -31,7 +31,7 @@ class DummyObject {
   void IsVerbose(bool) noexcept;
 
  private:
-  void Print(const std::string&) const;
+  void Print(const std::string& message) const;
 
   static std::size_t counter_;
   std::size_t id_ = 0;

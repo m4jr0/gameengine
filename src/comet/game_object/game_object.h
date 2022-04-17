@@ -27,9 +27,10 @@ class GameObject final : public std::enable_shared_from_this<GameObject> {
   void Destroy();
   void Update();
   void FixedUpdate();
-  void AddComponent(std::shared_ptr<Component>);
-  void RemoveComponent(std::shared_ptr<Component>);
-  std::shared_ptr<Component> GetComponent(const boost::uuids::uuid&);
+  void AddComponent(std::shared_ptr<Component> component);
+  void RemoveComponent(std::shared_ptr<Component> component);
+  std::shared_ptr<Component> GetComponent(
+      const boost::uuids::uuid& component_id);
 
   template <typename ComponentType>
   auto GetComponent() {

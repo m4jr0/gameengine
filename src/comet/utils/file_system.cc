@@ -15,9 +15,9 @@
 namespace comet {
 namespace utils {
 namespace filesystem {
-bool WriteToFile(const std::string& file_path, const std::string& buffer,
+bool WriteToFile(const std::string& path, const std::string& buffer,
                  bool is_append) {
-  std::string directory_path = GetParentPath(file_path);
+  std::string directory_path = GetParentPath(path);
 
   if (!IsExist(directory_path) || !IsDirectory(directory_path)) {
     return false;
@@ -36,7 +36,7 @@ bool WriteToFile(const std::string& file_path, const std::string& buffer,
     mode |= boost::filesystem::ofstream::app;
   }
 
-  auto file = boost::filesystem::ofstream(file_path, mode);
+  auto file = boost::filesystem::ofstream(path, mode);
 
   file << buffer;
   file.close();
@@ -44,21 +44,20 @@ bool WriteToFile(const std::string& file_path, const std::string& buffer,
   return true;
 }
 
-bool ReadFile(const std::string& file_path, std::string* buffer) {
+bool ReadFile(const std::string& path, std::string* buffer) {
   std::ifstream input_stream;
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   auto is_open = false;
 
   try {
-    input_stream.open(file_path, std::ios::in);
+    input_stream.open(path, std::ios::in);
     is_open = input_stream.is_open();
   } catch (std::ifstream::failure& failure) {
     is_open = false;
   }
 
   if (!is_open) {
-    core::Logger::Get(core::LoggerType::Utils)
-        .Error("Unable to open ", file_path);
+    core::Logger::Get(core::LoggerType::Utils).Error("Unable to open ", path);
 
     return false;
   }
@@ -130,13 +129,12 @@ bool Move(const std::string& previous_name, const std::string& new_name) {
   return true;
 }
 
-bool Remove(const std::string& to_delete, bool is_recursive) {
-  const auto path = boost::filesystem::path(to_delete);
-
-  if (!is_recursive && IsDirectory(to_delete) && !IsEmpty(to_delete)) {
+bool Remove(const std::string& path, bool is_recursive) {
+  if (!is_recursive && IsDirectory(path) && !IsEmpty(path)) {
     return false;
   } else {
-    return boost::filesystem::remove_all(path);
+    const auto path_obj = boost::filesystem::path(path);
+    return boost::filesystem::remove_all(path_obj);
   }
 }
 
@@ -226,19 +224,19 @@ std::string GetRelativePath(const std::string& absolute_path) {
   return GetRelativePath(absolute_path, GetCurrentDirectory());
 }
 
-std::string GetDirectoryPath(const std::string& file_path) {
-  const bool is_directory = IsDirectory(file_path);
-  const bool is_file = IsFile(file_path);
+std::string GetDirectoryPath(const std::string& path) {
+  const bool is_directory = IsDirectory(path);
+  const bool is_file = IsFile(path);
 
   if (!is_directory && !is_file) {
     return "";
   }
 
   if (is_directory) {
-    return file_path;
+    return path;
   }
 
-  return GetParentPath(file_path);
+  return GetParentPath(path);
 }
 
 std::string GetName(const std::string& path) {
@@ -249,9 +247,8 @@ std::string GetName(const std::string& path) {
   return path.substr(path.find_last_of("/") + 1, path.length());
 }
 
-std::string GetExtension(const std::string& file_path) {
-  auto extension =
-      boost::filesystem::path(file_path).extension().generic_string();
+std::string GetExtension(const std::string& path) {
+  auto extension = boost::filesystem::path(path).extension().generic_string();
 
   extension.erase(0, 1);
   boost::algorithm::to_lower(extension);
@@ -311,9 +308,9 @@ bool IsEmpty(const std::string& path) {
   return boost::filesystem::is_empty(path);
 }
 
-std::string Append(const std::string& a, const std::string& b) {
-  auto formatted_a = std::string(a);
-  auto formatted_b = std::string(b);
+std::string Append(const std::string& path_a, const std::string& path_b) {
+  auto formatted_a = std::string(path_a);
+  auto formatted_b = std::string(path_b);
 
   RemoveTrailingSlashes(formatted_a);
   RemoveLeadingSlashes(formatted_b);
@@ -325,11 +322,12 @@ std::string GetNormalizedPath(const std::string& path) {
   return boost::filesystem::path(path).lexically_normal().generic_string();
 }
 
-std::string GetRelativePath(const std::string& from, const std::string& to) {
-  const auto from_path = boost::filesystem::path(from);
-  const auto to_path = boost::filesystem::path(to);
+std::string GetRelativePath(const std::string& from_path,
+                            const std::string& to_path) {
+  const auto from_path_obj = boost::filesystem::path(from_path);
+  const auto to_path_obj = boost::filesystem::path(to_path);
 
-  return from_path.lexically_relative(to).generic_string();
+  return from_path_obj.lexically_relative(to_path_obj).generic_string();
 }
 
 void RemoveTrailingSlashes(std::string& path) {

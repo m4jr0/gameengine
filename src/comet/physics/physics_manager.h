@@ -22,7 +22,7 @@ class PhysicsManager : public core::Manager {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(game_object::GameObjectManager&);
+  void Update(game_object::GameObjectManager& game_object_manager);
 
   unsigned int GetCounter() const noexcept;
 

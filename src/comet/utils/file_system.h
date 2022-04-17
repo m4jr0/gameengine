@@ -12,36 +12,41 @@
 namespace comet {
 namespace utils {
 namespace filesystem {
-bool WriteToFile(const std::string &, const std::string &, bool = false);
-bool ReadFile(const std::string &, std::string *);
-bool CreateFile(const std::string &, bool = false);
-bool CreateDirectory(const std::string &, bool = false);
-bool Move(const std::string &, const std::string &);
-bool Remove(const std::string &, bool = false);
-std::vector<std::string> ListDirectories(const std::string &, bool = false);
-std::vector<std::string> ListFiles(const std::string &, bool = false);
-std::vector<std::string> ListAll(const std::string &, bool = false);
+bool WriteToFile(const std::string& path, const std::string& buffer,
+                 bool is_append = false);
+bool ReadFile(const std::string& path, std::string*);
+bool CreateFile(const std::string& path, bool is_recursive = false);
+bool CreateDirectory(const std::string& path, bool is_recursive = false);
+bool Move(const std::string& previous_name, const std::string& new_name);
+bool Remove(const std::string& path, bool = false);
+std::vector<std::string> ListDirectories(const std::string& path,
+                                         bool is_recursive = false);
+std::vector<std::string> ListFiles(const std::string& directory_path,
+                                   bool is_sorted = false);
+std::vector<std::string> ListAll(const std::string& path,
+                                 bool is_sorted = false);
 std::string GetCurrentDirectory();
-std::string GetAbsolutePath(const std::string &);
-std::string GetRelativePath(const std::string &);
-std::string GetDirectoryPath(const std::string &);
-std::string GetName(const std::string &);
-std::string GetExtension(const std::string &);
-std::string GetParentPath(const std::string &);
-std::string GetNativePath(const std::string &);
-bool IsDirectory(const std::string &);
-bool IsFile(const std::string &);
-bool IsRelative(const std::string &);
-bool IsAbsolute(const std::string &);
-bool IsExist(const std::string &);
-bool IsEmpty(const std::string &);
-std::string Append(const std::string &, const std::string &);
-std::string GetNormalizedPath(const std::string &);
-std::string GetRelativePath(const std::string &, const std::string &);
-void RemoveTrailingSlashes(std::string &);
-void RemoveLeadingSlashes(std::string &);
-double GetLastModificationTime(const std::string &);
-std::string GetChecksum(const std::string &);
+std::string GetAbsolutePath(const std::string& path);
+std::string GetRelativePath(const std::string& path);
+std::string GetDirectoryPath(const std::string& path);
+std::string GetName(const std::string& path);
+std::string GetExtension(const std::string& path);
+std::string GetParentPath(const std::string& path);
+std::string GetNativePath(const std::string& path);
+bool IsDirectory(const std::string& path);
+bool IsFile(const std::string& path);
+bool IsRelative(const std::string& path);
+bool IsAbsolute(const std::string& path);
+bool IsExist(const std::string& path);
+bool IsEmpty(const std::string& path);
+std::string Append(const std::string& path_a, const std::string& path_b);
+std::string GetNormalizedPath(const std::string& path);
+std::string GetRelativePath(const std::string& from_path,
+                            const std::string& to_path);
+void RemoveTrailingSlashes(std::string& path);
+void RemoveLeadingSlashes(std::string& path);
+double GetLastModificationTime(const std::string& path);
+std::string GetChecksum(const std::string& path);
 }  // namespace filesystem
 }  // namespace utils
 }  // namespace comet

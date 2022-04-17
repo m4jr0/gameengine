@@ -27,8 +27,8 @@ class Transform : public Component,
 
   const glm::mat4 GetTransformMatrix() const;
   const glm::vec3& GetPosition() const noexcept;
-  void SetPosition(float, float, float);
-  void SetPosition(glm::vec3);
+  void SetPosition(float x, float y, float z);
+  void SetPosition(glm::vec3 position);
   std::shared_ptr<Transform> GetParent() noexcept;
   std::shared_ptr<Transform> GetRootParent() noexcept;
 

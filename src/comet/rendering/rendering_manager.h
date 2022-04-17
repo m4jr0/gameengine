@@ -12,6 +12,8 @@
 
 namespace comet {
 namespace rendering {
+using Interpolation = double;
+
 class RenderingManager : public core::Manager {
  public:
   static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
@@ -26,9 +28,8 @@ class RenderingManager : public core::Manager {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(double, game_object::GameObjectManager&);
-
-  void IncrementSomething() { something_++; }
+  void Update(Interpolation interpolation,
+              game_object::GameObjectManager& game_object_manager);
 
   const GlfwWindow* GetWindow() const;
 

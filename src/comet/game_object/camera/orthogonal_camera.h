@@ -19,7 +19,7 @@ class OrthogonalCamera : public Camera {
   virtual ~OrthogonalCamera() = default;
 
   virtual std::shared_ptr<Component> Clone() const override;
-  virtual void UpdateProjectionMatrix(int, int) override;
+  virtual void UpdateProjectionMatrix(int width, int height) override;
 };
 }  // namespace game_object
 }  // namespace comet

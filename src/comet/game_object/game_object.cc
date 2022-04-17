@@ -59,8 +59,8 @@ void GameObject::RemoveComponent(std::shared_ptr<Component> component) {
 }
 
 std::shared_ptr<Component> GameObject::GetComponent(
-    const boost::uuids::uuid& id) {
-  return components_[boost::uuids::to_string(id)];
+    const boost::uuids::uuid& component_id) {
+  return components_[boost::uuids::to_string(component_id)];
 }
 
 const boost::uuids::uuid GameObject::GetId() const noexcept { return id_; }

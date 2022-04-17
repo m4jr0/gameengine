@@ -26,13 +26,14 @@ class ResourceManager : public core::Manager, public efsw::FileWatchListener {
   void Initialize() override;
   void Destroy() override;
   void Refresh();
-  void Refresh(const std::string&);
-  void SetFolderMetaFile(const std::string&);
+  void Refresh(const std::string& path);
+  void SetFolderMetaFile(const std::string& path);
   void SetResourceMetaFile();
 
   // Override esfw::FileWatchListener's method.
-  void handleFileAction(efsw::WatchID, const std::string&, const std::string&,
-                        efsw::Action, std::string = "") override;
+  void handleFileAction(efsw::WatchID watch_id, const std::string& directory,
+                        const std::string& file_name, efsw::Action action,
+                        std::string old_file_name = "") override;
 
   const std::string& GetAssetsRootPath() const noexcept;
   const std::string& GetResourcesRootPath() const noexcept;
@@ -44,11 +45,12 @@ class ResourceManager : public core::Manager, public efsw::FileWatchListener {
   std::unique_ptr<efsw::FileWatcher> assets_watcher_ = nullptr;
   efsw::WatchID assets_watch_id_ = -1;
 
-  void RefreshFolder(const std::string&);
-  void RefreshAsset(const std::string&);
+  void RefreshFolder(const std::string& path);
+  void RefreshAsset(const std::string& path);
   void Watch();
   void Unwatch();
-  bool IsRefreshFolder(const std::string&, const std::string&);
+  bool IsRefreshFolder(const std::string& path,
+                       const std::string& meta_file_path);
   void InitializeAssetsDirectory();
   void InitializeResourcesDirectory();
   void InitializeWatcher();

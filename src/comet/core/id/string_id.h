@@ -11,8 +11,8 @@ namespace comet {
 namespace core {
 class StringId {
  public:
-  static StringId Generate(const std::string&);
-  static const std::string& GetString(const StringId&);
+  static StringId Generate(const std::string& string_id);
+  static const std::string& GetString(const StringId& string_id);
 
   StringId(const StringId&);
   StringId(StringId&&) noexcept;

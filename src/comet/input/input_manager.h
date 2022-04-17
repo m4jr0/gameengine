@@ -171,13 +171,15 @@ class NullInputManager : public InputManager {
   NullInputManager& operator=(NullInputManager&&) = delete;
   virtual ~NullInputManager() = default;
 
-  virtual bool IsKeyBeingPressed(KeyCode) const override { return false; };
-  virtual bool IsKeyUp(KeyCode) const override { return false; };
-  virtual bool IsKeyDown(KeyCode) const override { return false; };
+  virtual bool IsKeyBeingPressed(KeyCode key_code) const override {
+    return false;
+  };
+  virtual bool IsKeyUp(KeyCode key_code) const override { return false; };
+  virtual bool IsKeyDown(KeyCode key_code) const override { return false; };
   virtual glm::vec2 GetMousePosition() const override {
     return glm::vec2(0.0f, 0.0f);
   };
-  virtual void SetMousePosition(float, float) override{};
+  virtual void SetMousePosition(float x, float y) override{};
 };
 }  // namespace input
 }  // namespace comet

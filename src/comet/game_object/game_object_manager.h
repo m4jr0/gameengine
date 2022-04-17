@@ -23,8 +23,8 @@ class GameObjectManager : public core::Manager {
   void Destroy() override;
   void Update() override;
   void FixedUpdate();
-  void AddGameObject(std::shared_ptr<GameObject>);
-  void RemoveGameObject(std::shared_ptr<GameObject>);
+  void AddGameObject(std::shared_ptr<GameObject> game_object);
+  void RemoveGameObject(std::shared_ptr<GameObject> game_object);
 
  private:
   std::unordered_map<std::string, std::shared_ptr<GameObject>> game_objects_;

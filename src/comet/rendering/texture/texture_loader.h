@@ -9,7 +9,8 @@
 
 namespace comet {
 namespace rendering {
-unsigned int Load2DTextureFromFile(const std::string &, bool = false);
+unsigned int Load2DTextureFromFile(const std::string& texture_path,
+                                   bool is_gamma = false);
 }  // namespace rendering
 }  // namespace comet
 

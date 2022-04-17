@@ -10,7 +10,7 @@
 namespace comet {
 namespace utils {
 namespace hash {
-unsigned int HashCrC32(const std::string&);
+unsigned int HashCrC32(const std::string& string);
 }  // namespace hash
 }  // namespace utils
 }  // namespace comet

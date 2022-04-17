@@ -13,7 +13,7 @@ namespace comet {
 namespace resource {
 class ModelResource : public Resource {
  public:
-  ModelResource(const std::string&);
+  ModelResource(const std::string& path);
   ModelResource(const ModelResource&);
   ModelResource(ModelResource&&) noexcept;
   ModelResource& operator=(const ModelResource&);

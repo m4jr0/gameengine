@@ -77,7 +77,7 @@ class Logger final {
     GetString(string_stream, args...);
   }
 
-  static std::shared_ptr<Logger> Create(LoggerType);
+  static std::shared_ptr<Logger> Create(LoggerType logger_type);
 
   static std::unordered_map<LoggerType, std::shared_ptr<Logger>> loggers_;
 
