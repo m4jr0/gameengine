@@ -9,14 +9,16 @@
 
 namespace comet {
 namespace rendering {
+struct WindowDescr {
+  unsigned int width = 1280;
+  unsigned int height = 720;
+  std::string name = "Comet Game Engine";
+};
+
 class Window {
  public:
-  static constexpr unsigned int kDefaultWidth_ = 1280;
-  static constexpr unsigned int kDefaultHeight_ = 720;
-  static constexpr char kDefaultName_[] = "Comet Game Engine";
-
-  Window(const std::string & = Window::kDefaultName_,
-         unsigned int = kDefaultWidth_, unsigned int = kDefaultHeight_);
+  Window() = default;
+  Window(const WindowDescr &descr);
   Window(const Window &) = default;
   Window(Window &&) = default;
   Window &operator=(const Window &) = default;
@@ -28,14 +30,15 @@ class Window {
   virtual void Update(){};
   virtual void SetSize(unsigned int width, unsigned int height) = 0;
 
+  virtual bool IsInitialized() const = 0;
   virtual const std::string GetName() const noexcept;
   virtual const unsigned int GetWidth() const noexcept;
   virtual const unsigned int GetHeight() const noexcept;
 
  protected:
-  unsigned int width_ = 0;
-  unsigned int height_ = 0;
-  std::string name_ = kDefaultName_;
+  unsigned int width_;
+  unsigned int height_;
+  std::string name_;
 };
 }  // namespace rendering
 }  // namespace comet

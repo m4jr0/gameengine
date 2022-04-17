@@ -88,9 +88,8 @@ void Resource::SetMetaFile() {
   meta_data_["data"] = GetMetaData();
 
   if (!utils::filesystem::WriteToFile(file_system_path_, meta_data_.dump(2))) {
-    core::Logger::Get(core::LoggerType::Resource)
-        .Error("Could not write the resource meta file at path ",
-               file_system_path_);
+    COMET_LOG_RESOURCE_ERROR("Could not write the resource meta file at path ",
+                             file_system_path_);
   }
 }
 

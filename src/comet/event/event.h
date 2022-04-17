@@ -38,7 +38,7 @@ namespace event {
 //   };
 
 // In the .cc file:
-//   ExplosionEvent::kStaticType_ = core::StringId::Generate("event_explosion");
+//   ExplosionEvent::kStaticType_ = COMET_STRING_ID("event_explosion");
 //
 //   ExplosionEvent::ExplosionEvent(const unsigned int radius,
 //                                  const unsigned int damage) {

@@ -7,7 +7,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "comet/core/engine.h"
-#include "comet/rendering/texture/texture_loader.h"
+#include "comet/rendering/driver/opengl/texture/texture_loader.h"
 #include "comet/utils/file_system.h"
 
 #ifdef _WIN32
@@ -17,7 +17,7 @@
 namespace comet {
 namespace game_object {
 Model::Model(const std::string& model_path,
-             std::shared_ptr<rendering::ShaderProgram> shader_program) {
+             std::shared_ptr<rendering::gl::ShaderProgram> shader_program) {
   path_ = model_path;
   shader_program_ = shader_program;
 }
@@ -31,7 +31,7 @@ Model::Model(const Model& other)
   transform_ = std::make_shared<Transform>(*other.transform_);
 
   shader_program_ =
-      std::make_shared<rendering::ShaderProgram>(*other.shader_program_);
+      std::make_shared<rendering::gl::ShaderProgram>(*other.shader_program_);
 }
 
 Model::Model(Model&& other) noexcept
@@ -75,10 +75,9 @@ void Model::Initialize() {
   Component::Initialize();
 
   if ((transform_ = game_object_->GetComponent<Transform>()) == nullptr) {
-    core::Logger::Get(core::LoggerType::GameObject)
-        .Error(
-            "A 'Transform' component is required when adding a Model "
-            "component");
+    COMET_LOG_GAME_OBJECT_ERROR(
+        "A 'Transform' component is required when adding a Model "
+        "component");
 
     return;
   }
@@ -106,7 +105,7 @@ void Model::Update() {
   Draw(shader_program_);
 }
 
-void Model::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
+void Model::Draw(std::shared_ptr<rendering::gl::ShaderProgram> shader_program) {
   const auto meshes_number = meshes_.size();
 
   for (std::size_t index = 0; index < meshes_number; ++index) {
@@ -123,8 +122,7 @@ void Model::LoadModel() {
 
   if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       scene->mRootNode == nullptr) {
-    core::Logger::Get(core::LoggerType::GameObject)
-        .Error("Assimp error: ", importer.GetErrorString());
+    COMET_LOG_GAME_OBJECT_ERROR("Assimp error: ", importer.GetErrorString());
 
     return;
   }
@@ -255,8 +253,8 @@ std::vector<Texture> Model::LoadMaterialTextures(
     }
 
     Texture texture;
-    texture.id = rendering::Load2DTextureFromFile(directory_ + "/" +
-                                                  texture_path.C_Str());
+    texture.id = rendering::gl::Load2DTextureFromFile(directory_ + "/" +
+                                                      texture_path.C_Str());
     texture.type = texture_type_name;
     texture.path = texture_path.C_Str();
 

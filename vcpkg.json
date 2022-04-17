@@ -17,13 +17,19 @@
       "name": "efsw"
     },
     {
-      "name": "glew"
+      "name": "glad"
     },
     {
       "name": "glfw3"
     },
     {
       "name": "glm"
+    },
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding"
+      ]
     },
     {
       "name": "opengl"
@@ -36,6 +42,15 @@
     },
     {
       "name": "stb"
+    },
+    {
+      "name": "tinyobjloader"
+    },
+    {
+      "name": "vulkan"
+    },
+    {
+      "name": "vulkan-memory-allocator"
     }
   ]
 }

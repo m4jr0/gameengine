@@ -8,57 +8,106 @@
 #
 ################################################################################
 
+# Packages #####################################################################
+# OpenGL Mathematics.
+find_package(glm REQUIRED)
+
+# GLFW.
+find_package(glfw3 REQUIRED)
+
+# OpenGL.
+find_package(glad REQUIRED)
+find_package(OpenGL REQUIRED)
+
+# Vulkan.
+find_package(Vulkan)
+find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
+
+# ImGui.
+find_package(imgui CONFIG REQUIRED)
+
+# Misc.
+find_package(Stb REQUIRED COMPONENTS stb_image)
+find_package(tinyobjloader CONFIG REQUIRED)
+find_package(assimp REQUIRED)
+
+if(LINUX)
+# X11.
+  find_package(X11 REQUIRED)
+endif()
+
 # Source files #################################################################
 add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/shader/shader_program.cc"
+    # OpenGL.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_driver.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/shader/shader_program.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/texture/texture_loader.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/texture/texture_loader.cc"
+    #Vulkan.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_driver.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_initializers.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_types.h"
 
+    # Windows.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw_window.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/opengl/opengl_glfw_window.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cc"
-
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/temporary_code.cc" # To delete.
 )
 
 # Compiling ####################################################################
 target_include_directories(${RENDERING_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
+    ${STB_INCLUDE_DIRS}
 )
+
+if(WIN32)
+  target_include_directories(${RENDERING_LIBRARY_NAME}
+    PRIVATE
+    "${VULKAN_SDK}/Include"
+  )
+endif()
 
 # Linking ######################################################################
 target_link_directories(${RENDERING_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_LIBRARY_DIR}
 )
 
 target_link_libraries(${RENDERING_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${ZLIB_LIBRARY_RELEASE}
     ${Boost_LIBRARIES}
+    glad
+
+  PRIVATE
+    assimp::assimp
+    tinyobjloader::tinyobjloader
+    unofficial::vulkan-memory-allocator::vulkan-memory-allocator
+    glm::glm
+    imgui::imgui
+    glfw
 )
 
 if(WIN32)
   target_link_libraries(${RENDERING_LIBRARY_NAME}
-    PUBLIC
-      assimp::assimp
+    PRIVATE
+      "${VULKAN_SDK}/Lib/vulkan-1.lib"
       bcrypt
       opengl32
       glfw3dll
-      glew32
   )
 endif()
 
 if(LINUX)
   target_link_libraries(${RENDERING_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       ${OPENGL_opengl_LIBRARY}
-      assimp::assimp
       glfw3
-      GLEW
       pthread
       ${CMAKE_DL_LIBS}
       ${X11_X11_LIB}

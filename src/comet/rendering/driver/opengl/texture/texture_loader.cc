@@ -6,7 +6,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 
-#include "GL/glew.h"
+#include "glad/glad.h"
 #include "stb_image.h"
 
 #ifdef _WIN32
@@ -15,6 +15,7 @@
 
 namespace comet {
 namespace rendering {
+namespace gl {
 unsigned int Load2DTextureFromFile(const std::string& texture_path,
                                    bool is_gamma) {
   unsigned int texture_id;
@@ -35,8 +36,8 @@ unsigned int Load2DTextureFromFile(const std::string& texture_path,
     } else if (components_number == 4) {
       format = GL_RGBA;
     } else {
-      core::Logger::Get(core::LoggerType::Rendering)
-          .Error("Unsupported texture type at path: ", texture_path);
+      COMET_LOG_RENDERING_ERROR("Unsupported texture type at path: ",
+                                texture_path);
 
       return 0;
     }
@@ -56,13 +57,13 @@ unsigned int Load2DTextureFromFile(const std::string& texture_path,
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   } else {
-    core::Logger::Get(core::LoggerType::Rendering)
-        .Error("Texture failed to load at path: ", texture_path);
+    COMET_LOG_RENDERING_ERROR("Texture failed to load at path: ", texture_path);
   }
 
   stbi_image_free(data);
 
   return texture_id;
 }
+}  // namespace gl
 }  // namespace rendering
 }  // namespace comet

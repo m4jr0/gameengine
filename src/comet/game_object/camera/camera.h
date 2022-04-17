@@ -50,9 +50,9 @@ class Camera : public Component {
   float nearest_point_ = 0.1f;
   float farthest_point_ = 100.0f;
 
-  glm::mat4 projection_matrix_;
-  glm::mat4 view_matrix_;
-  glm::mat4 model_matrix_;
+  glm::mat4 projection_matrix_{};
+  glm::mat4 view_matrix_{};
+  glm::mat4 model_matrix_{};
 };
 }  // namespace game_object
 }  // namespace comet

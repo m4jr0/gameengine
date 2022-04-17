@@ -31,8 +31,8 @@ Component& Component::operator=(Component&& other) noexcept {
 
 void Component::Initialize() {
   if (game_object_ == nullptr) {
-    core::Logger::Get(core::LoggerType::GameObject)
-        .Error("Cannot initialize a component without a game object");
+    COMET_LOG_GAME_OBJECT_ERROR(
+        "Cannot initialize a component without a game object");
 
     return;
   }

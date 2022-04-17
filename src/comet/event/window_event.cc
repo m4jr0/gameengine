@@ -6,8 +6,8 @@
 
 namespace comet {
 namespace event {
-core::StringId WindowResizeEvent::kStaticType_ =
-    core::StringId::Generate("event_window_resize");
+const core::StringId WindowResizeEvent::kStaticType_ =
+    COMET_STRING_ID("event_window_resize");
 
 WindowResizeEvent::WindowResizeEvent(unsigned int width, unsigned int height)
     : width_(width), height_(height) {}
@@ -20,8 +20,8 @@ unsigned int WindowResizeEvent::GetWidth() const noexcept { return width_; }
 
 unsigned int WindowResizeEvent::GetHeight() const noexcept { return height_; }
 
-core::StringId WindowCloseEvent::kStaticType_ =
-    core::StringId::Generate("event_window_close");
+const core::StringId WindowCloseEvent::kStaticType_ =
+    COMET_STRING_ID("event_window_close");
 
 const core::StringId& WindowCloseEvent::GetType() const noexcept {
   return kStaticType_;

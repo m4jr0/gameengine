@@ -12,21 +12,20 @@
 
 namespace comet {
 namespace rendering {
+namespace gl {
 ShaderProgram::ShaderProgram(const char* vertex_shader_path,
                              const char* fragment_shader_path) {
   if (!utils::filesystem::ReadFile(vertex_shader_path, &vertex_shader_code_)) {
-    core::Logger::Get(core::LoggerType::Rendering)
-        .Error(
-            "An error occurred while reading the vertex shader program file");
+    COMET_LOG_RENDERING_ERROR(
+        "An error occurred while reading the vertex shader program file");
 
     return;
   }
 
   if (!utils::filesystem::ReadFile(fragment_shader_path,
                                    &fragment_shader_code_)) {
-    core::Logger::Get(core::LoggerType::Rendering)
-        .Error(
-            "An error occurred while reading the fragment shader program file");
+    COMET_LOG_RENDERING_ERROR(
+        "An error occurred while reading the fragment shader program file");
 
     return;
   }
@@ -57,10 +56,9 @@ ShaderProgram& ShaderProgram::operator=(const ShaderProgram& other) {
 
 void ShaderProgram::Initialize() {
   if (!can_be_initialized_) {
-    core::Logger::Get(core::LoggerType::Rendering)
-        .Error(
-            "An error occurred while creating the shader program. It can't be "
-            "initialized");
+    COMET_LOG_RENDERING_ERROR(
+        "An error occurred while creating the shader program. It can't be "
+        "initialized");
 
     return;
   }
@@ -83,13 +81,10 @@ void ShaderProgram::Initialize() {
   glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    const auto& logger = core::Logger::Get(core::LoggerType::Rendering);
     std::vector<GLchar> error_message(info_log_len + 1);
-
     glGetProgramInfoLog(id_, info_log_len, nullptr, &error_message[0]);
-
-    logger.Error("Error while creating the shader program");
-    logger.Error(std::string(error_message.data()));
+    COMET_LOG_RENDERING_ERROR("Error while creating the shader program");
+    COMET_LOG_RENDERING_ERROR(std::string(error_message.data()));
   }
 
   glDetachShader(id_, vertex_shader_id_);
@@ -117,21 +112,20 @@ bool ShaderProgram::CompileShader(unsigned int* shader_id,
   glGetShaderiv(*shader_id, GL_INFO_LOG_LENGTH, &info_log_len);
 
   if (info_log_len > 0) {
-    const auto& logger = core::Logger::Get(core::LoggerType::Rendering);
-
     std::vector<char> error_message(info_log_len + 1);
 
     glGetShaderInfoLog(*shader_id, info_log_len, nullptr, &error_message[0]);
 
-    logger.Error("Error while compiling shader for shader program");
-    logger.Error(std::string(error_message.data()));
+    COMET_LOG_RENDERING_ERROR(
+        "Error while compiling shader for shader program");
+    COMET_LOG_RENDERING_ERROR(std::string(error_message.data()));
 
     return false;
   }
 
   if (result == GL_FALSE) {
-    core::Logger::Get(core::LoggerType::Rendering)
-        .Error("Error while compiling shader for shader program");
+    COMET_LOG_RENDERING_ERROR(
+        "Error while compiling shader for shader program");
 
     return false;
   }
@@ -317,5 +311,6 @@ void ShaderProgram::SetMatrix4x3(const std::string& name,
   glUniformMatrix4x3fv(glGetUniformLocation(id_, name.c_str()), 1, is_transpose,
                        &matrix[0][0]);
 }
+}  // namespace gl
 }  // namespace rendering
 }  // namespace comet

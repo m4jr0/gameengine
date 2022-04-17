@@ -15,32 +15,32 @@ add_library(${PHYSICS_LIBRARY_NAME}
 
 # Compiling ####################################################################
 target_include_directories(${PHYSICS_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
 target_link_directories(${PHYSICS_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_LIBRARY_DIR}
 )
 
 target_link_libraries(${PHYSICS_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     # Put libraries here.
 )
 
 if(WIN32)
   target_link_libraries(${PHYSICS_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()
 
 if(LINUX)
   target_link_libraries(${PHYSICS_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()

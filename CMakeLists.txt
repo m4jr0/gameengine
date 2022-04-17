@@ -144,27 +144,6 @@ project("Comet Game Engine"
   LANGUAGES CXX
 )
 
-# Packages #####################################################################
-set(Boost_USE_STATIC_LIBS ON)
-
-find_package(assimp REQUIRED)
-find_package(Boost REQUIRED COMPONENTS
-  filesystem
-  serialization
-)
-find_package(Catch2 REQUIRED)
-find_package(efsw REQUIRED)
-find_package(glew REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
-find_package(OpenGL REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(Stb REQUIRED COMPONENTS stb_image)
-
-if(LINUX)
-  find_package(X11 REQUIRED)
-endif()
-
 # Vcpkg variables ##############################################################
 set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
@@ -180,13 +159,5 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
 file(COPY "./src/editor/assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-
-if(WIN32) # Workaround for missing DLL (should be fixed in a proper way).
-  message(STATUS "${MESSAGE_PREFIX}Copying missing \"glew32.dll\" library...")
-  file(
-    COPY "${VCPKG_BASE_DIR}/bin/glew32.dll"
-    DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
-  )
-endif()
 
 message(STATUS "${MESSAGE_PREFIX}Done.")

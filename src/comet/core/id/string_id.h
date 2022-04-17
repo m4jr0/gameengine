@@ -47,4 +47,6 @@ class hash<comet::core::StringId> {
 
 std::ostream& operator<<(std::ostream&, const comet::core::StringId&);
 
+#define COMET_STRING_ID(string) core::StringId::Generate(string)
+
 #endif  // COMET_COMET_CORE_ID_STRING_ID_H_

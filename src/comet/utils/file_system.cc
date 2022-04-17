@@ -57,7 +57,7 @@ bool ReadFile(const std::string& path, std::string* buffer) {
   }
 
   if (!is_open) {
-    core::Logger::Get(core::LoggerType::Utils).Error("Unable to open ", path);
+    COMET_LOG_UTILS_ERROR("Unable to open ", path);
 
     return false;
   }

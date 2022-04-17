@@ -8,6 +8,16 @@
 #
 ################################################################################
 
+# Packages #####################################################################
+set(Boost_USE_STATIC_LIBS ON)
+
+find_package(Boost REQUIRED COMPONENTS
+  serialization
+)
+
+# OpenGL Mathematics.
+find_package(glm REQUIRED)
+
 # Source files #################################################################
 add_library(${GAME_OBJECT_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/game_object/component.cc"
@@ -27,32 +37,33 @@ add_library(${GAME_OBJECT_LIBRARY_NAME}
 
 # Compiling ####################################################################
 target_include_directories(${GAME_OBJECT_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
 target_link_directories(${GAME_OBJECT_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_LIBRARY_DIR}
+    glm::glm
 )
 
 target_link_libraries(${GAME_OBJECT_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     # Put libraries here.
 )
 
 if(WIN32)
   target_link_libraries(${GAME_OBJECT_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()
 
 if(LINUX)
   target_link_libraries(${GAME_OBJECT_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()

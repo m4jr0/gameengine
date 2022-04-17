@@ -4,7 +4,7 @@
 
 #include "model_resource.h"
 
-#include "comet/rendering/shader/shader_program.h"
+#include "comet/rendering/driver/opengl/shader/shader_program.h"
 #include "nlohmann/json.hpp"
 
 #ifdef _WIN32
@@ -49,9 +49,9 @@ std::shared_ptr<comet::game_object::Component> ModelResource::Clone() const {
 void ModelResource::Destroy() {}
 
 bool ModelResource::Import() {
-  core::Logger::Get(core::LoggerType::Resource).Debug("Import");
+  COMET_LOG_RESOURCE_DEBUG("Import");
 
-  const auto shader_program = std::make_shared<rendering::ShaderProgram>(
+  const auto shader_program = std::make_shared<rendering::gl::ShaderProgram>(
       "assets/shaders/model_shader.vs", "assets/shaders/model_shader.fs");
 
   shader_program->Initialize();
@@ -62,7 +62,7 @@ bool ModelResource::Import() {
 }
 
 bool ModelResource::Export() {
-  core::Logger::Get(core::LoggerType::Resource).Debug("Export");
+  COMET_LOG_RESOURCE_DEBUG("Export");
   return true;
 }
 

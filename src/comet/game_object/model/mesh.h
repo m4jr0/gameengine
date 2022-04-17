@@ -6,7 +6,7 @@
 #define COMET_COMET_GAME_OBJECT_MODEL_MESH_H_
 
 #include "boost/serialization/vector.hpp"
-#include "comet/rendering/shader/shader_program.h"
+#include "comet/rendering/driver/opengl/shader/shader_program.h"
 #include "comet_precompile.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -37,7 +37,7 @@ class Mesh {
   Mesh& operator=(Mesh&&) noexcept;
   virtual ~Mesh() = default;
 
-  void Draw(std::shared_ptr<rendering::ShaderProgram> shader_program);
+  void Draw(std::shared_ptr<rendering::gl::ShaderProgram> shader_program);
 
   template <class Archive>
   void Serialize(Archive& archive, const unsigned int file_version) {

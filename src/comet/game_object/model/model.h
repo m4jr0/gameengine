@@ -9,7 +9,7 @@
 #include "comet/game_object/component.h"
 #include "comet/game_object/model/mesh.h"
 #include "comet/game_object/physics/transform.h"
-#include "comet/rendering/shader/shader_program.h"
+#include "comet/rendering/driver/opengl/shader/shader_program.h"
 #include "comet_precompile.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -19,7 +19,7 @@ namespace game_object {
 class Model : public Component {
  public:
   Model(const std::string&,
-        std::shared_ptr<rendering::ShaderProgram> shader_program = nullptr);
+        std::shared_ptr<rendering::gl::ShaderProgram> shader_program = nullptr);
   Model(const Model&);
   Model(Model&&) noexcept;
   Model& operator=(const Model&);
@@ -30,7 +30,7 @@ class Model : public Component {
   void Initialize() override;
   void Destroy() override;
   void Update() override;
-  void Draw(std::shared_ptr<rendering::ShaderProgram> shader_program);
+  void Draw(std::shared_ptr<rendering::gl::ShaderProgram> shader_program);
 
   template <class Archive>
   void Serialize(Archive& archive, const unsigned int file_version) {
@@ -55,7 +55,7 @@ class Model : public Component {
   std::string path_;
   std::string directory_;
   std::shared_ptr<Transform> transform_ = nullptr;
-  std::shared_ptr<rendering::ShaderProgram> shader_program_ = nullptr;
+  std::shared_ptr<rendering::gl::ShaderProgram> shader_program_ = nullptr;
   std::vector<Texture> loaded_textures_;
 };
 }  // namespace game_object

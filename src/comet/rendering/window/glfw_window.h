@@ -5,7 +5,8 @@
 #ifndef COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
 
-#include "GL/glew.h"
+#define GLFW_INCLUDE_NONE
+
 #include "GLFW/glfw3.h"
 #include "comet_precompile.h"
 #include "window.h"
@@ -14,27 +15,26 @@ namespace comet {
 namespace rendering {
 class GlfwWindow : public Window {
  public:
-  GlfwWindow(const std::string& = Window::kDefaultName_,
-             unsigned int = kDefaultWidth_, unsigned int = kDefaultHeight_);
+  GlfwWindow() = default;
+  GlfwWindow(const WindowDescr& descr);
   GlfwWindow(const GlfwWindow&);
-  GlfwWindow(GlfwWindow&&) = default;
+  GlfwWindow(GlfwWindow&&) noexcept;
   GlfwWindow& operator=(const GlfwWindow&);
-  GlfwWindow& operator=(GlfwWindow&&) = default;
-  virtual ~GlfwWindow() override;
+  GlfwWindow& operator=(GlfwWindow&&) noexcept;
+  virtual ~GlfwWindow() = default;
 
   virtual void Initialize() override;
   virtual void Destroy() override;
-  virtual void Update() override;
+  virtual void SetGlfwHints();
   virtual void SetSize(unsigned int width, unsigned int height) override;
 
-  virtual GLFWwindow* GetGlfwWindow() const noexcept;
-  virtual bool IsVSync() const noexcept;
-  virtual void SetVSync(bool is_vsync);
+  virtual bool IsInitialized() const override;
+  virtual const GLFWwindow* GetHandle() const noexcept;
 
  protected:
   inline static std::size_t window_count_ = 0;
-  GLFWwindow* window_ = nullptr;
-  bool is_vsync_ = true;
+  GLFWwindow* handle_ = nullptr;
+  bool is_initialized_ = false;
 };
 }  // namespace rendering
 }  // namespace comet

@@ -3,7 +3,7 @@
     {
       "name": "comet_x64-Debug",
       "buildRoot": "${projectDir}\\build",
-      "cmakeCommandArgs": "-DVCPKG_ROOT=${projectDir}\\vcpkg -DIS_VCPKG_CLONE=ON",
+      "cmakeCommandArgs": "-DVCPKG_ROOT=${projectDir}\\vcpkg -DIS_VCPKG_CLONE=ON -DVULKAN_SDK=C:\\VulkanSDK\\1.2.182.0\\",
       "cmakeExecutable": "C:\\Program Files\\CMake\\bin\\cmake.exe",
       "generator": "Visual Studio 17 2022 Win64",
       "inheritEnvironments": [ "msvc_x64" ]

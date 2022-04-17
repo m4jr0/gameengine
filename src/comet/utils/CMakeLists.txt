@@ -7,6 +7,11 @@
 # Comet utils library CMake file
 #
 ################################################################################
+set(Boost_USE_STATIC_LIBS ON)
+
+find_package(Boost REQUIRED COMPONENTS
+  filesystem
+)
 
 # Source files #################################################################
 add_library(${UTILS_LIBRARY_NAME}
@@ -20,20 +25,20 @@ add_library(${UTILS_LIBRARY_NAME}
 
 # Compiling ####################################################################
 target_include_directories(${UTILS_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
 target_link_directories(${UTILS_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_LIBRARY_DIR}
 )
 
 target_link_libraries(${UTILS_LIBRARY_NAME}
-  PUBLIC
-    # Put libraries here.
+  PRIVATE
+    ${Boost_FILESYSTEM_LIBRARY}
 )
 
 # Internal libraries.

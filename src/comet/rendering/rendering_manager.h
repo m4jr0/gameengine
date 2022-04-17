@@ -7,18 +7,14 @@
 
 #include "comet/core/manager.h"
 #include "comet/game_object/game_object_manager.h"
-#include "comet/rendering/window/glfw_window.h"
+#include "comet/rendering/driver/driver.h"
+#include "comet/time/time_manager.h"
 #include "comet_precompile.h"
 
 namespace comet {
 namespace rendering {
-using Interpolation = double;
-
 class RenderingManager : public core::Manager {
  public:
-  static constexpr unsigned short int kOpenGLMajorVersion_ = 3;
-  static constexpr unsigned short int kOpenGLMinorVersion_ = 3;
-
   RenderingManager() = default;
   RenderingManager(const RenderingManager&) = delete;
   RenderingManager(RenderingManager&&) = delete;
@@ -28,16 +24,19 @@ class RenderingManager : public core::Manager {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(Interpolation interpolation,
+  void Update(time::Interpolation interpolation,
               game_object::GameObjectManager& game_object_manager);
 
-  const GlfwWindow* GetWindow() const;
+  const Window* GetWindow() const;
 
  private:
-  int something_ = 0;
   int counter_ = 0;
   double current_time_ = 0;
-  std::unique_ptr<GlfwWindow> window_ = nullptr;
+  std::unique_ptr<Driver> driver_ = nullptr;
+
+  void GenerateOpenGlDriver();
+  void GenerateVulkanDriver();
+  void GenerateDirect3D12Driver();
 };
 }  // namespace rendering
 }  // namespace comet

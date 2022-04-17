@@ -8,6 +8,10 @@
 #
 ################################################################################
 
+# Packages #####################################################################
+find_package(efsw REQUIRED)
+find_package(nlohmann_json REQUIRED)
+
 # Source files #################################################################
 add_library(${RESOURCE_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cc"
@@ -17,32 +21,33 @@ add_library(${RESOURCE_LIBRARY_NAME}
 
 # Compiling ####################################################################
 target_include_directories(${RESOURCE_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
 target_link_directories(${RESOURCE_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_LIBRARY_DIR}
+    target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 )
 
 target_link_libraries(${RESOURCE_LIBRARY_NAME}
-  PUBLIC
-    efsw
+  PRIVATE
+    efsw::efsw
 )
 
 if(WIN32)
   target_link_libraries(${RESOURCE_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()
 
 if(LINUX)
   target_link_libraries(${RESOURCE_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()

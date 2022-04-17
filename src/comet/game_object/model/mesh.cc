@@ -4,7 +4,7 @@
 
 #include "mesh.h"
 
-#include "GL/glew.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 
 #ifdef _WIN32
@@ -66,7 +66,7 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept {
   return *this;
 }
 
-void Mesh::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
+void Mesh::Draw(std::shared_ptr<rendering::gl::ShaderProgram> shader_program) {
   std::size_t diffuse_index = 0;
   std::size_t specular_index = 0;
   std::size_t normal_index = 0;
@@ -88,8 +88,7 @@ void Mesh::Draw(std::shared_ptr<rendering::ShaderProgram> shader_program) {
     } else if (texture_type == "texture_height") {
       texture_number = std::to_string(height_index++);
     } else {
-      core::Logger::Get(core::LoggerType::GameObject)
-          .Warning("Unknown texture type: ", texture_type);
+      COMET_LOG_GAME_OBJECT_WARNING("Unknown texture type: ", texture_type);
 
       continue;
     }

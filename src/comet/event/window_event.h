@@ -12,9 +12,9 @@ namespace comet {
 namespace event {
 class WindowResizeEvent : public Event {
  public:
-  static core::StringId kStaticType_;
+  const static core::StringId kStaticType_;
 
-  WindowResizeEvent(unsigned int, unsigned int);
+  WindowResizeEvent(unsigned int width, unsigned int height);
   WindowResizeEvent(const WindowResizeEvent&) = default;
   WindowResizeEvent(WindowResizeEvent&&) noexcept = default;
   WindowResizeEvent& operator=(const WindowResizeEvent&) = default;
@@ -32,7 +32,7 @@ class WindowResizeEvent : public Event {
 
 class WindowCloseEvent : public Event {
  public:
-  static core::StringId kStaticType_;
+  const static core::StringId kStaticType_;
 
   WindowCloseEvent() = default;
   WindowCloseEvent(const WindowCloseEvent&) = default;

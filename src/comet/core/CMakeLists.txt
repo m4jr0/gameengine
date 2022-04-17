@@ -10,6 +10,7 @@
 
 # Source files #################################################################
 add_library(${CORE_LIBRARY_NAME}
+  "${PROJECT_SOURCE_DIR}/src/comet/core/configuration_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/engine.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/entry_point.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/id/string_id.cc"
@@ -19,32 +20,32 @@ add_library(${CORE_LIBRARY_NAME}
 
 # Compiling ####################################################################
 target_include_directories(${CORE_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
 target_link_directories(${CORE_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     "${VCPKG_LIBRARY_DIR}"
 )
 
 target_link_libraries(${CORE_LIBRARY_NAME}
-  PUBLIC
+  PRIVATE
     # Put libraries here.
 )
 
 if(WIN32)
   target_link_libraries(${CORE_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()
 
 if(LINUX)
   target_link_libraries(${CORE_LIBRARY_NAME}
-    PUBLIC
+    PRIVATE
       # Put libraries here.
   )
 endif()

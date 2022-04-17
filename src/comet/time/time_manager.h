@@ -10,6 +10,8 @@
 
 namespace comet {
 namespace time {
+using Interpolation = double;
+
 class TimeManager : public core::Manager {
  public:
   TimeManager() = default;

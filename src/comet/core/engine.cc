@@ -27,6 +27,7 @@ void Engine::Initialize() {
   main_camera_->SetPosition(0, 0, 3);
   main_camera_->SetDirection(0.715616, 0.691498, -0.098611);
 
+  configuration_manager_->Initialize();
   rendering_manager_->Initialize();
   resource_manager_->Initialize();
   physics_manager_->Initialize();
@@ -41,6 +42,8 @@ void Engine::Initialize() {
   camera_container->AddComponent(main_camera_);
   camera_container->AddComponent(camera_controls);
   game_object_manager_->AddGameObject(camera_container);
+
+  msPerUpdate_ = configuration_manager_->Get<double>("engine_ms_per_update");
 }
 
 void Engine::Run() {
@@ -49,8 +52,7 @@ void Engine::Run() {
     time_manager_->Initialize();
     // To catch up time taken to render.
     double lag = 0.0;
-
-    Logger::Get(LoggerType::Core).Info("Engine started");
+    COMET_LOG_CORE_INFO("Engine started");
 
     while (is_running_) {
       if (is_exit_requested_) {
@@ -63,32 +65,28 @@ void Engine::Run() {
       lag += time_delta;
 
       // To render physics properly, we have to catch up with the lag.
-      while (lag >= kMsPerUpdate_) {
+      while (lag >= msPerUpdate_) {
         event_manager_->FireAllEvents();
         physics_manager_->Update(GetGameObjectManager());
-        lag -= kMsPerUpdate_;
+        lag -= msPerUpdate_;
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      rendering_manager_->Update(lag / kMsPerUpdate_, GetGameObjectManager());
+      rendering_manager_->Update(lag / msPerUpdate_, GetGameObjectManager());
     }
   } catch (const std::runtime_error& runtime_error) {
-    Logger::Get(LoggerType::Core)
-        .Error("Runtime error: ", runtime_error.what());
-
+    COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
     Quit();
 
     std::cin.get();
   } catch (const std::exception& exception) {
-    Logger::Get(LoggerType::Core).Error("Exception: ", exception.what());
-
+    COMET_LOG_CORE_ERROR("Exception: ", exception.what());
     Quit();
 
     std::cin.get();
   } catch (...) {
-    Logger::Get(LoggerType::Core)
-        .Error("Unknown failure occurred. Possible memory corruption");
-
+    COMET_LOG_CORE_ERROR(
+        "Unknown failure occurred. Possible memory corruption");
     std::cin.get();
   }
 
@@ -97,17 +95,16 @@ void Engine::Run() {
 
 void Engine::Stop() {
   is_running_ = false;
-
-  Logger::Get(LoggerType::Core).Info("Engine stopped");
+  COMET_LOG_CORE_INFO("Engine stopped");
 }
 
 void Engine::Destroy() {
   game_object_manager_->Destroy();
   physics_manager_->Destroy();
   rendering_manager_->Destroy();
+  configuration_manager_->Destroy();
   Engine::engine_ = nullptr;
-
-  Logger::Get(LoggerType::Core).Info("Engine destroyed");
+  COMET_LOG_CORE_INFO("Engine destroyed");
 }
 
 void Engine::Quit() {
@@ -116,10 +113,11 @@ void Engine::Quit() {
   }
 
   is_exit_requested_ = true;
-  Logger::Get(LoggerType::Core).Info("Engine is required to quit");
+  COMET_LOG_CORE_INFO("Engine is required to quit");
 }
 
 Engine::Engine() {
+  configuration_manager_ = std::make_unique<ConfigurationManager>();
   resource_manager_ = std::make_unique<resource::ResourceManager>();
   physics_manager_ = std::make_unique<physics::PhysicsManager>();
   rendering_manager_ = std::make_unique<rendering::RenderingManager>();
@@ -134,20 +132,23 @@ Engine::Engine() {
 void Engine::Exit() {
   Stop();
   Destroy();
-
-  Logger::Get(LoggerType::Core).Info("Engine quit");
+  COMET_LOG_CORE_INFO("Engine quit");
 }
 
 void Engine::OnEvent(const event::Event& event) {
   const auto& event_type = event.GetType();
 
   if (event_type == event::WindowCloseEvent::kStaticType_) {
-    Logger::Get(LoggerType::Core).Debug("Close event.");
+    COMET_LOG_CORE_DEBUG("Close event.");
     Quit();
   }
 }
 
 Engine& Engine::GetEngine() { return *Engine::engine_; }
+
+ConfigurationManager& Engine::GetConfigurationManager() {
+  return *configuration_manager_;
+}
 
 resource::ResourceManager& Engine::GetResourceManager() {
   return *resource_manager_;

@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_CORE_ENGINE_H_
 #define COMET_COMET_CORE_ENGINE_H_
 
+#include "comet/core/configuration_manager.h"
 #include "comet/event/event_manager.h"
 #include "comet/game_object/camera/camera.h"
 #include "comet/game_object/game_object_manager.h"
@@ -19,8 +20,6 @@ namespace comet {
 namespace core {
 class Engine {
  public:
-  static constexpr double kMsPerUpdate_ = 16.66;  // 60 Hz refresh.
-
   Engine(const Engine&) = delete;
   Engine(Engine&&) = delete;
   Engine& operator=(const Engine&) = delete;
@@ -34,6 +33,7 @@ class Engine {
   virtual void Quit();
 
   static Engine& GetEngine();
+  ConfigurationManager& GetConfigurationManager();
   resource::ResourceManager& GetResourceManager();
   rendering::RenderingManager& GetRenderingManager();
   input::InputManager& GetInputManager();
@@ -52,6 +52,7 @@ class Engine {
   virtual void Exit();
   void OnEvent(const event::Event& event);
 
+  std::unique_ptr<ConfigurationManager> configuration_manager_ = nullptr;
   std::unique_ptr<resource::ResourceManager> resource_manager_ = nullptr;
   std::unique_ptr<input::InputManager> input_manager_ = nullptr;
   std::unique_ptr<physics::PhysicsManager> physics_manager_ = nullptr;
@@ -65,6 +66,7 @@ class Engine {
  private:
   bool is_running_ = false;
   bool is_exit_requested_ = false;
+  double msPerUpdate_ = 16.66;  // 60 Hz refresh.
 };
 
 std::unique_ptr<Engine> CreateEngine();

@@ -4,85 +4,93 @@
 
 #include "glfw_window.h"
 
+#ifdef _WIN32
+#include "debug_windows.h"
+#endif  // _WIN32
+
 #include "comet/core/engine.h"
 #include "comet/event/window_event.h"
 
 namespace comet {
 namespace rendering {
-GlfwWindow::GlfwWindow(const std::string& name, unsigned int width,
-                       unsigned int height) {
-  name_ = name;
-  width_ = width;
-  height_ = height;
-}
+GlfwWindow::GlfwWindow(const WindowDescr& descr) : Window(descr) {}
 
 GlfwWindow::GlfwWindow(const GlfwWindow& other)
-    : is_vsync_(other.is_vsync_), window_(nullptr) {}
+    : Window(other), handle_(nullptr) {}
+
+GlfwWindow::GlfwWindow(GlfwWindow&& other) noexcept
+    : Window(std::move(other)), handle_(std::move(other.handle_)) {}
 
 GlfwWindow& GlfwWindow::operator=(const GlfwWindow& other) {
   if (this == &other) {
     return *this;
   }
 
-  is_vsync_ = other.is_vsync_;
-  window_ = nullptr;
+  Window::operator=(other);
+  handle_ = nullptr;
   return *this;
 }
 
-GlfwWindow::~GlfwWindow() { Destroy(); }
+GlfwWindow& GlfwWindow::operator=(GlfwWindow&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  Window::operator=(std::move(other));
+  handle_ = std::move(other.handle_);
+  return *this;
+}
 
 void GlfwWindow::Initialize() {
-  const auto& logger = core::Logger::Get(core::LoggerType::Rendering);
-
   if (window_count_ == 0) {
-    const bool is_glfw_initialized = glfwInit() == GLFW_TRUE;
-
-    if (!is_glfw_initialized) {
-      logger.Error("Failed to initialize GLFW");
+    if (glfwInit() != GLFW_TRUE) {
+      COMET_LOG_RENDERING_ERROR("Failed to initialize GLFW");
 
       throw std::runtime_error(
           "An error occurred during rendering initialization");
     }
 
+    SetGlfwHints();
+
     glfwSetErrorCallback([](int error_code, const char* description) {
-      core::Logger::Get(core::LoggerType::Rendering)
-          .Error("GLFW Error (", error_code, ")", description);
+      COMET_LOG_RENDERING_ERROR("GLFW Error (", error_code, ")", description);
     });
   }
 
-  window_ =
+  handle_ =
       glfwCreateWindow(static_cast<int>(width_), static_cast<int>(height_),
                        name_.c_str(), nullptr, nullptr);
 
-  if (window_ == nullptr) {
-    logger.Error("Failed to initialize a GLFW window.");
+  if (handle_ == nullptr) {
+    COMET_LOG_RENDERING_ERROR("Failed to initialize a GLFW window.");
 
     throw std::runtime_error(
         "An error occurred during rendering initialization");
   }
 
   window_count_++;
-  glfwMakeContextCurrent(window_);
-  SetVSync(is_vsync_);
+  glfwMakeContextCurrent(handle_);
 
-  glfwSetWindowCloseCallback(window_, [](GLFWwindow* window) {
+  glfwSetWindowCloseCallback(handle_, [](GLFWwindow* window) {
     core::Engine::GetEngine()
         .GetEventManager()
         .FireEvent<event::WindowCloseEvent>();
   });
 
   glfwSetWindowSizeCallback(
-      window_, [](GLFWwindow* window, int width, int height) {
+      handle_, [](GLFWwindow* window, int width, int height) {
         core::Engine::GetEngine()
             .GetEventManager()
             .FireEvent<event::WindowResizeEvent>(width, height);
       });
+
+  is_initialized_ = true;
 }
 
 void GlfwWindow::Destroy() {
-  if (window_ != nullptr) {
-    glfwDestroyWindow(window_);
-    window_ = nullptr;
+  if (handle_ != nullptr) {
+    glfwDestroyWindow(handle_);
+    handle_ = nullptr;
     window_count_--;
 
     if (window_count_ <= 0) {
@@ -91,37 +99,22 @@ void GlfwWindow::Destroy() {
   }
 }
 
-void GlfwWindow::Update() {
-  if (window_ != nullptr) {
-    glfwSwapBuffers(window_);
-  }
+void GlfwWindow::SetGlfwHints() {
+  // By default, a GLFW Window is API-less.
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
 void GlfwWindow::SetSize(unsigned int width, unsigned int height) {
   width_ = width;
   height_ = height;
 
-  if (window_ != nullptr) {
-    glfwSetWindowSize(window_, width_, height_);
+  if (handle_ != nullptr) {
+    glfwSetWindowSize(handle_, width_, height_);
   }
 }
 
-GLFWwindow* GlfwWindow::GetGlfwWindow() const noexcept { return window_; }
+bool GlfwWindow::IsInitialized() const { return is_initialized_; }
 
-bool GlfwWindow::IsVSync() const noexcept { return is_vsync_; }
-
-void GlfwWindow::SetVSync(bool is_vsync) {
-  is_vsync_ = is_vsync;
-
-  if (window_ == nullptr) {
-    return;
-  }
-
-  if (is_vsync_) {
-    glfwSwapInterval(1);
-  } else {
-    glfwSwapInterval(0);
-  }
-}
+const GLFWwindow* GlfwWindow::GetHandle() const noexcept { return handle_; }
 }  // namespace rendering
 }  // namespace comet

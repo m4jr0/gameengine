@@ -2,15 +2,16 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
-#define COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
+#ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_SHADER_OPENGL_SHADER_PROGRAM_H_
+#define COMET_COMET_RENDERING_DRIVER_OPENGL_SHADER_OPENGL_SHADER_PROGRAM_H_
 
-#include "GL/glew.h"
 #include "comet_precompile.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 
 namespace comet {
 namespace rendering {
+namespace gl {
 class ShaderProgram {
  public:
   ShaderProgram(const char*, const char*);
@@ -100,7 +101,8 @@ class ShaderProgram {
   std::string fragment_shader_code_;
   bool can_be_initialized_ = false;
 };
+}  // namespace gl
 }  // namespace rendering
 }  // namespace comet
 
-#endif  // COMET_COMET_RENDERING_SHADER_SHADER_PROGRAM_H_
+#endif  // COMET_COMET_RENDERING_DRIVER_OPENGL_SHADER_OPENGL_SHADER_PROGRAM_H_

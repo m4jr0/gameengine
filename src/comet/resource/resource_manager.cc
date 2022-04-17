@@ -19,8 +19,8 @@ void ResourceManager::Initialize() {
   InitializeResourcesDirectory();
   InitializeAssetsDirectory();
 
-  core::Logger::Get(core::LoggerType::Resource)
-      .Debug("Resource manager listening to '", assets_root_path_, "'...");
+  COMET_LOG_RESOURCE_DEBUG("Resource manager listening to '", assets_root_path_,
+                           "'...");
 
   Refresh();
   InitializeWatcher();
@@ -63,31 +63,31 @@ void ResourceManager::handleFileAction(efsw::WatchID watch_id,
                                        const std::string& file_name,
                                        efsw::Action action,
                                        std::string old_file_name) {
-  const auto& logger = core::Logger::Get(core::LoggerType::Resource);
-
   auto path = utils::filesystem::GetNormalizedPath(directory);
   path = utils::filesystem::Append(
       path, utils::filesystem::GetNormalizedPath(file_name));
 
   switch (action) {
     case efsw::Actions::Add:
-      logger.Debug("Change detected: add ", path);
+      COMET_LOG_RESOURCE_DEBUG("Change detected: add ", path);
       break;
 
     case efsw::Actions::Delete:
-      logger.Debug("Change detected: delete ", path);
+      COMET_LOG_RESOURCE_DEBUG("Change detected: delete ", path);
       return;
 
     case efsw::Actions::Modified:
-      logger.Debug("Change detected: modify ", path);
+      COMET_LOG_RESOURCE_DEBUG("Change detected: modify ", path);
       break;
 
     case efsw::Actions::Moved:
-      logger.Debug("Change detected: move ", path, " from ", old_file_name);
+      COMET_LOG_RESOURCE_DEBUG("Change detected: move ", path, " from ",
+                               old_file_name);
       break;
 
     default:
-      logger.Error("Odd action '", action, "' detected with ", path);
+      COMET_LOG_RESOURCE_ERROR("Odd action '", action, "' detected with ",
+                               path);
       return;
   }
 
@@ -104,8 +104,7 @@ void ResourceManager::Refresh(const std::string& path) {
   } else if (utils::filesystem::IsFile(path)) {
     RefreshAsset(path);
   } else {
-    core::Logger::Get(core::LoggerType::Resource)
-        .Error("Bad path given: ", path);
+    COMET_LOG_RESOURCE_ERROR("Bad path given: ", path);
 
     Watch();
 
@@ -129,9 +128,8 @@ void ResourceManager::SetResourceMetaFile() {
 
   if (!utils::filesystem::WriteToFile(library_meta_file_path,
                                       lirary_raw_meta_data)) {
-    core::Logger::Get(core::LoggerType::Resource)
-        .Error("Could not write the resource meta file at path ",
-               library_meta_file_path);
+    COMET_LOG_RESOURCE_ERROR("Could not write the resource meta file at path ",
+                             library_meta_file_path);
   }
 }
 
@@ -150,8 +148,8 @@ void ResourceManager::SetFolderMetaFile(const std::string& path) {
   }
 
   if (!utils::filesystem::WriteToFile(path, folder_meta_data.dump(2))) {
-    core::Logger::Get(core::LoggerType::Resource)
-        .Error("Could not write the folder meta file at path ", path);
+    COMET_LOG_RESOURCE_ERROR("Could not write the folder meta file at path ",
+                             path);
   }
 }
 
@@ -191,7 +189,7 @@ void ResourceManager::RefreshFolder(const std::string& path) {
     RefreshAsset(resource);
   }
 
-  core::Logger::Get(core::LoggerType::Resource).Debug(path, " refreshed");
+  COMET_LOG_RESOURCE_DEBUG(path, " refreshed");
 }
 
 void ResourceManager::RefreshAsset(const std::string& path) {
@@ -199,7 +197,7 @@ void ResourceManager::RefreshAsset(const std::string& path) {
     return;
   }
 
-  core::Logger::Get(core::LoggerType::Resource).Debug(path, " refreshed");
+  COMET_LOG_RESOURCE_DEBUG(path, " refreshed");
 }
 
 void ResourceManager::InitializeWatcher() {

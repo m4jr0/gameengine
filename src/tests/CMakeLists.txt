@@ -8,6 +8,9 @@
 #
 ################################################################################
 
+# Packages #####################################################################
+find_package(Catch2 REQUIRED)
+
 # Source files #################################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
   "${PROJECT_SOURCE_DIR}/src/tests/tests.cc"
@@ -36,6 +39,7 @@ target_include_directories(${TESTS_EXECUTABLE_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
     ${VCPKG_INCLUDE_DIR}
+    ${PICOSHA2_INCLUDE_DIRS}
 )
 
 # Linking ######################################################################
@@ -47,4 +51,5 @@ target_link_directories(${TESTS_EXECUTABLE_NAME}
 target_link_libraries(${TESTS_EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARIES}
+    Catch2::Catch2
 )

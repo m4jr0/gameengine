@@ -5,9 +5,8 @@
 #ifndef COMET_COMET_INPUT_INPUT_MANAGER_H_
 #define COMET_COMET_INPUT_INPUT_MANAGER_H_
 
-#include "GL/glew.h"
-#include "GLFW/glfw3.h"
 #include "comet/core/manager.h"
+#include "comet/rendering//window//glfw_window.h"
 #include "comet_precompile.h"
 #include "glm/glm.hpp"
 
