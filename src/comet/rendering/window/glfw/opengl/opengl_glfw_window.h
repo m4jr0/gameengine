@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_RENDERING_WINDOW_OPENGL_OPENGL_GLFW_WINDOW_H_
-#define COMET_COMET_RENDERING_WINDOW_OPENGL_OPENGL_GLFW_WINDOW_H_
+#ifndef COMET_COMET_RENDERING_WINDOW_GLFW_OPENGL_OPENGL_GLFW_WINDOW_H_
+#define COMET_COMET_RENDERING_WINDOW_GLFW_OPENGL_OPENGL_GLFW_WINDOW_H_
 
 #define GLFW_INCLUDE_NONE
 
@@ -11,7 +11,7 @@
 
 #include "glad/glad.h"
 
-#include "comet/rendering/window/glfw_window.h"
+#include "comet/rendering/window/glfw/glfw_window.h"
 
 namespace comet {
 namespace rendering {
@@ -48,4 +48,4 @@ class OpenGlGlfwWindow : public GlfwWindow {
 }  // namespace rendering
 }  // namespace comet
 
-#endif  // COMET_COMET_RENDERING_WINDOW_OPENGL_OPENGL_GLFW_WINDOW_H_
+#endif  // COMET_COMET_RENDERING_WINDOW_GLFW_OPENGL_OPENGL_GLFW_WINDOW_H_

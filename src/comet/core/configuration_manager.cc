@@ -27,6 +27,7 @@ void ConfigurationManager::Initialize() {
   Set<unsigned int>("rendering_vulkan_minor_version", 2);
   Set<unsigned int>("rendering_vulkan_patch_version", 0);
   Set<bool>("rendering_vulkan_is_specific_transfer_queue_requested", true);
+  Set<unsigned int>("rendering_vulkan_max_frames_in_flight", 2);
   Set<std::string>("rendering_driver", "vulkan");
 }
 }  // namespace core

@@ -51,11 +51,12 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_mesh.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_initializers.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_utils.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_types.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_types.cc"
 
     # Windows.
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw_window.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/opengl/opengl_glfw_window.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/glfw_window.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/opengl/opengl_glfw_window.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/vulkan/vulkan_glfw_window.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cc"
 )
 

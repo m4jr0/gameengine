@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
-#define COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
+#ifndef COMET_COMET_RENDERING_WINDOW_GLFW_GLFW_WINDOW_H_
+#define COMET_COMET_RENDERING_WINDOW_GLFW_GLFW_WINDOW_H_
 
 #define GLFW_INCLUDE_NONE
 
@@ -11,7 +11,7 @@
 
 #include "GLFW/glfw3.h"
 
-#include "window.h"
+#include "comet/rendering/window/window.h"
 
 namespace comet {
 namespace rendering {
@@ -41,4 +41,4 @@ class GlfwWindow : public Window {
 }  // namespace rendering
 }  // namespace comet
 
-#endif  // COMET_COMET_RENDERING_WINDOW_GLFW_WINDOW_H_
+#endif  // COMET_COMET_RENDERING_WINDOW_GLFW_GLFW_WINDOW_H_

@@ -89,6 +89,14 @@ void RenderingManager::GenerateVulkanDriver() {
   descr.width = conf.Get<unsigned int>("rendering_window_width");
   descr.height = conf.Get<unsigned int>("rendering_window_height");
 
+  descr.is_specific_transfer_queue_requested =
+      core::Engine::GetEngine().GetConfigurationManager().Get<bool>(
+          "rendering_vulkan_is_specific_transfer_queue_requested");
+
+  descr.max_frames_in_flight =
+      core::Engine::GetEngine().GetConfigurationManager().Get<unsigned int>(
+          "rendering_vulkan_max_frames_in_flight");
+
   driver_ = std::make_unique<vk::VulkanDriver>(descr);
 }
 

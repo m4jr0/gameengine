@@ -11,7 +11,7 @@
 
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
-#include "comet/rendering/window/opengl/opengl_glfw_window.h"
+#include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {
 namespace rendering {

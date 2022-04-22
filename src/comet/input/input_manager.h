@@ -10,7 +10,7 @@
 #include "glm/glm.hpp"
 
 #include "comet/core/manager.h"
-#include "comet/rendering/window//glfw_window.h"
+#include "comet/rendering/window/glfw/glfw_window.h"
 
 namespace comet {
 namespace input {
