@@ -5,11 +5,12 @@
 #ifndef COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 #define COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 
+#include "comet_precompile.h"
+
 #include "comet/core/manager.h"
 #include "comet/game_object/game_object_manager.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/time/time_manager.h"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace rendering {

@@ -5,9 +5,10 @@
 #ifndef COMET_TESTS_TESTS_ENGINE_H_
 #define COMET_TESTS_TESTS_ENGINE_H_
 
+#include "comet_precompile.h"
+
 #include "catch.hpp"
 #include "comet/comet.h"
-#include "comet_precompile.h"
 #include "tests/dummies/dummy_object.h"
 
 namespace comettests {

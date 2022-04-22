@@ -5,8 +5,9 @@
 #ifndef COMET_COMET_TIME_TIME_MANAGER_H_
 #define COMET_COMET_TIME_TIME_MANAGER_H_
 
-#include "comet/core/manager.h"
 #include "comet_precompile.h"
+
+#include "comet/core/manager.h"
 
 namespace comet {
 namespace time {

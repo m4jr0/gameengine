@@ -5,9 +5,10 @@
 #ifndef COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 #define COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 
+#include "comet_precompile.h"
+
 #include "comet/core/manager.h"
 #include "comet/game_object/game_object_manager.h"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace physics {

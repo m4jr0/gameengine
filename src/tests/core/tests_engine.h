@@ -5,9 +5,11 @@
 #ifndef COMET_TESTS_TESTS_ENGINE_H_
 #define COMET_TESTS_TESTS_ENGINE_H_
 
-#include "catch.hpp"
-#include "comet/comet.h"
 #include "comet_precompile.h"
+
+#include "comet/comet.h"
+
+#include "catch.hpp"
 
 namespace comettests {
 class CometTester : public comet::core::Engine {

@@ -5,11 +5,13 @@
 #ifndef COMET_COMET_GAME_OBJECT_MODEL_MESH_H_
 #define COMET_COMET_GAME_OBJECT_MODEL_MESH_H_
 
-#include "boost/serialization/vector.hpp"
-#include "comet/rendering/driver/opengl/shader/shader_program.h"
 #include "comet_precompile.h"
+
+#include "boost/serialization/vector.hpp"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+
+#include "comet/rendering/driver/opengl/shader/shader_program.h"
 
 namespace comet {
 namespace game_object {

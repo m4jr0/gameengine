@@ -5,9 +5,11 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
 #define COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
 
-#include "comet/core/manager.h"
 #include "comet_precompile.h"
+
 #include "efsw/efsw.hpp"
+
+#include "comet/core/manager.h"
 
 namespace comet {
 namespace resource {

@@ -5,11 +5,13 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_DRIVER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_DRIVER_H_
 
+#include "comet_precompile.h"
+
+#include "glad/glad.h"
+
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/window/opengl/opengl_glfw_window.h"
-#include "comet_precompile.h"
-#include "glad/glad.h"
 
 namespace comet {
 namespace rendering {
@@ -30,7 +32,6 @@ class OpenGlDriver : public Driver {
 
   virtual void Initialize() override;
   virtual void Destroy() override;
-  virtual void Start() override;
   virtual void Update(
       time::Interpolation interpolation,
       game_object::GameObjectManager& game_object_manager) override;

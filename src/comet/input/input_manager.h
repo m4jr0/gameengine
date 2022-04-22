@@ -5,10 +5,12 @@
 #ifndef COMET_COMET_INPUT_INPUT_MANAGER_H_
 #define COMET_COMET_INPUT_INPUT_MANAGER_H_
 
-#include "comet/core/manager.h"
-#include "comet/rendering//window//glfw_window.h"
 #include "comet_precompile.h"
+
 #include "glm/glm.hpp"
+
+#include "comet/core/manager.h"
+#include "comet/rendering/window//glfw_window.h"
 
 namespace comet {
 namespace input {

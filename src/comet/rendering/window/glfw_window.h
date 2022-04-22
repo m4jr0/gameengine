@@ -7,8 +7,10 @@
 
 #define GLFW_INCLUDE_NONE
 
-#include "GLFW/glfw3.h"
 #include "comet_precompile.h"
+
+#include "GLFW/glfw3.h"
+
 #include "window.h"
 
 namespace comet {

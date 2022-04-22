@@ -7,9 +7,11 @@
 
 #define GLFW_INCLUDE_NONE
 
-#include "comet/rendering/window/glfw_window.h"
 #include "comet_precompile.h"
+
 #include "glad/glad.h"
+
+#include "comet/rendering/window/glfw_window.h"
 
 namespace comet {
 namespace rendering {

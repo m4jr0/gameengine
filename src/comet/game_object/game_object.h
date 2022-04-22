@@ -5,11 +5,13 @@
 #ifndef COMET_COMET_GAME_OBJECT_GAME_OBJECT_H_
 #define COMET_COMET_GAME_OBJECT_GAME_OBJECT_H_
 
+#include "comet_precompile.h"
+
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+
 #include "comet/game_object/component.h"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace game_object {

@@ -36,9 +36,9 @@ class Window {
   virtual const unsigned int GetHeight() const noexcept;
 
  protected:
-  unsigned int width_;
-  unsigned int height_;
-  std::string name_;
+  unsigned int width_ = 0;
+  unsigned int height_ = 0;
+  std::string name_{};
 };
 }  // namespace rendering
 }  // namespace comet

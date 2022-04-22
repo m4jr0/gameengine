@@ -48,7 +48,9 @@ add_library(${RENDERING_LIBRARY_NAME}
 
     #Vulkan.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_driver.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_mesh.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_initializers.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_utils.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_types.h"
 
     # Windows.

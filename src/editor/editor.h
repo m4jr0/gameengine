@@ -5,8 +5,9 @@
 #ifndef COMET_EDITOR_EDITOR_H_
 #define COMET_EDITOR_EDITOR_H_
 
-#include "comet/comet.h"
 #include "comet_precompile.h"
+
+#include "comet/comet.h"
 
 namespace comet {
 namespace editor {

@@ -5,8 +5,9 @@
 #ifndef COMET_COMET_EVENT_WINDOW_EVENT_H_
 #define COMET_COMET_EVENT_WINDOW_EVENT_H_
 
-#include "comet/event/event.h"
 #include "comet_precompile.h"
+
+#include "comet/event/event.h"
 
 namespace comet {
 namespace event {

@@ -5,9 +5,10 @@
 #ifndef COMET_COMET_EVENT_EVENT_MANAGER_H_
 #define COMET_COMET_EVENT_EVENT_MANAGER_H_
 
+#include "comet_precompile.h"
+
 #include "comet/event/event.h"
 #include "comet/utils/structure/ring_queue.h"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace core {

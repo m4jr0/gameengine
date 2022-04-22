@@ -6,15 +6,15 @@
 
 #include "boost/format.hpp"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 #include "comet/core/engine.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/input_event.h"
 #include "comet/event/runtime_event.h"
 #include "comet/event/window_event.h"
+
+#ifdef _WIN32
+#include "debug_windows.h"
+#endif  // _WIN32
 
 namespace comet {
 namespace rendering {
@@ -31,6 +31,7 @@ OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr)
 }
 
 void OpenGlDriver::Initialize() {
+  COMET_LOG_RENDERING_DEBUG("Initializing OpenGL driver.");
   window_.Initialize();
 
   if (!window_.IsInitialized()) {
@@ -53,8 +54,6 @@ void OpenGlDriver::Initialize() {
 }
 
 void OpenGlDriver::Destroy() { window_.Destroy(); }
-
-void OpenGlDriver::Start() {}
 
 void OpenGlDriver::Update(time::Interpolation interpolation,
                           game_object::GameObjectManager& game_object_manager) {

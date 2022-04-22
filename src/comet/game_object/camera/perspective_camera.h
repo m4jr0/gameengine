@@ -5,8 +5,9 @@
 #ifndef COMET_COMET_GAME_OBJECT_CAMERA_PERSPECTIVE_CAMERA_H_
 #define COMET_COMET_GAME_OBJECT_CAMERA_PERSPECTIVE_CAMERA_H_
 
-#include "comet/game_object/camera/camera.h"
 #include "comet_precompile.h"
+
+#include "comet/game_object/camera/camera.h"
 
 namespace comet {
 namespace game_object {

@@ -5,14 +5,16 @@
 #ifndef COMET_COMET_GAME_OBJECT_MODEL_MODEL_H_
 #define COMET_COMET_GAME_OBJECT_MODEL_MODEL_H_
 
+#include "comet_precompile.h"
+
 #include "assimp/scene.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
 #include "comet/game_object/component.h"
 #include "comet/game_object/model/mesh.h"
 #include "comet/game_object/physics/transform.h"
 #include "comet/rendering/driver/opengl/shader/shader_program.h"
-#include "comet_precompile.h"
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 
 namespace comet {
 namespace game_object {

@@ -5,8 +5,9 @@
 #ifndef COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 #define COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 
-#include "comet/game_object/model/model.h"
 #include "comet_precompile.h"
+
+#include "comet/game_object/model/model.h"
 #include "resource.h"
 
 namespace comet {

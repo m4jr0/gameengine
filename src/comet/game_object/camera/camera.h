@@ -5,10 +5,12 @@
 #ifndef COMET_COMET_GAME_OBJECT_CAMERA_CAMERA_H_
 #define COMET_COMET_GAME_OBJECT_CAMERA_CAMERA_H_
 
-#include "comet/game_object/component.h"
 #include "comet_precompile.h"
+
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+
+#include "comet/game_object/component.h"
 
 namespace comet {
 namespace game_object {

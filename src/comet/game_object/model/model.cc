@@ -6,6 +6,7 @@
 
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
+
 #include "comet/core/engine.h"
 #include "comet/rendering/driver/opengl/texture/texture_loader.h"
 #include "comet/utils/file_system.h"

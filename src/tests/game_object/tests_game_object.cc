@@ -2,13 +2,16 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_precompile.h"
+
 #include "tests_game_object.h"
+
+#include "comet/game_object/component.h"
+#include "comet/game_object/game_object.h"
 
 #include "boost/algorithm/string/find.hpp"
 #include "catch.hpp"
-#include "comet/game_object/component.h"
-#include "comet/game_object/game_object.h"
-#include "comet_precompile.h"
+
 
 namespace comettests {
 DummyComponent::DummyComponent(int value) : dummy_object_(value) {}

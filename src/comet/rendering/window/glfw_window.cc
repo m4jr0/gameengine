@@ -4,12 +4,12 @@
 
 #include "glfw_window.h"
 
+#include "comet/core/engine.h"
+#include "comet/event/window_event.h"
+
 #ifdef _WIN32
 #include "debug_windows.h"
 #endif  // _WIN32
-
-#include "comet/core/engine.h"
-#include "comet/event/window_event.h"
 
 namespace comet {
 namespace rendering {
@@ -69,7 +69,6 @@ void GlfwWindow::Initialize() {
   }
 
   window_count_++;
-  glfwMakeContextCurrent(handle_);
 
   glfwSetWindowCloseCallback(handle_, [](GLFWwindow* window) {
     core::Engine::GetEngine()

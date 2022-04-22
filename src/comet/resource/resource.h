@@ -5,13 +5,15 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_RESOURCE_H_
 
+#include "comet_precompile.h"
+
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+#include "nlohmann/json.hpp"
+
 #include "comet/game_object/component.h"
 #include "comet/resource/resource_manager.h"
-#include "comet_precompile.h"
-#include "nlohmann/json.hpp"
 
 namespace comet {
 namespace resource {

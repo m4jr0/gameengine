@@ -56,6 +56,7 @@ OpenGlGlfwWindow& OpenGlGlfwWindow::operator=(
 
 void OpenGlGlfwWindow::Initialize() {
   GlfwWindow::Initialize();
+  glfwMakeContextCurrent(handle_);
   SetVSync(is_vsync_);
 }
 

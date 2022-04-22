@@ -4,8 +4,9 @@
 
 #include "model_resource.h"
 
-#include "comet/rendering/driver/opengl/shader/shader_program.h"
 #include "nlohmann/json.hpp"
+
+#include "comet/rendering/driver/opengl/shader/shader_program.h"
 
 #ifdef _WIN32
 #include "debug_windows.h"

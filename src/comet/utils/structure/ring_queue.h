@@ -6,6 +6,7 @@
 #define COMET_COMET_UTILS_STRUCTURE_RING_QUEUE_H_
 
 #include "comet_precompile.h"
+
 #include "exception.h"
 
 namespace comet {

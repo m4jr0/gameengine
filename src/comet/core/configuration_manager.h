@@ -5,10 +5,11 @@
 #ifndef COMET_COMET_CORE_CONFIGURATION_MANAGER_H_
 #define COMET_COMET_CORE_CONFIGURATION_MANAGER_H_
 
+#include "comet_precompile.h"
+
 #include <any>
 
 #include "comet/core/manager.h"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace core {

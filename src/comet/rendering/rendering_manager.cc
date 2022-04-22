@@ -5,6 +5,7 @@
 #include "rendering_manager.h"
 
 #include "boost/format.hpp"
+
 #include "comet/core/engine.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
@@ -67,7 +68,7 @@ void RenderingManager::GenerateOpenGlDriver() {
   const auto& conf = core::Engine::GetEngine().GetConfigurationManager();
 
   gl::OpenGlDriverDescr descr{};
-  descr.name = conf.Get<std::string>("rendering_window_name");
+  descr.name = conf.Get<std::string>("application_name");
   descr.width = conf.Get<unsigned int>("rendering_window_width");
   descr.height = conf.Get<unsigned int>("rendering_window_height");
   descr.major_version =
@@ -84,7 +85,7 @@ void RenderingManager::GenerateVulkanDriver() {
   const auto& conf = core::Engine::GetEngine().GetConfigurationManager();
 
   vk::VulkanDriverDescr descr{};
-  descr.name = conf.Get<std::string>("rendering_window_name");
+  descr.name = conf.Get<std::string>("application_name");
   descr.width = conf.Get<unsigned int>("rendering_window_width");
   descr.height = conf.Get<unsigned int>("rendering_window_height");
 

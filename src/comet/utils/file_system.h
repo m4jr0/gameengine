@@ -5,9 +5,10 @@
 #ifndef COMET_COMET_UTILS_FILE_SYSTEM_H_
 #define COMET_COMET_UTILS_FILE_SYSTEM_H_
 
+#include "comet_precompile.h"
+
 #include "boost/filesystem.hpp"
 #include "boost/filesystem/fstream.hpp"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace utils {

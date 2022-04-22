@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_SHADER_OPENGL_SHADER_PROGRAM_H_
 
 #include "comet_precompile.h"
+
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 

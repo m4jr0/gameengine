@@ -2,9 +2,11 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "catch.hpp"
 #include "comet/utils/structure/exception.h"
 #include "comet/utils/structure/ring_queue.h"
+
+#include "catch.hpp"
+
 #include "tests/dummies/dummy_object.h"
 
 TEST_CASE("Ring queue creation with specific capacity",

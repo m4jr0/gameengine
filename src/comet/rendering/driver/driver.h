@@ -5,10 +5,11 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_DRIVER_H_
 #define COMET_COMET_RENDERING_DRIVER_DRIVER_H_
 
+#include "comet_precompile.h"
+
 #include "comet/game_object/game_object_manager.h"
 #include "comet/rendering/window/window.h"
 #include "comet/time/time_manager.h"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace rendering {
@@ -29,7 +30,6 @@ class Driver {
 
   virtual void Initialize() = 0;
   virtual void Destroy() = 0;
-  virtual void Start() = 0;
   virtual void Update(time::Interpolation interpolation,
                       game_object::GameObjectManager& game_object_manager) = 0;
 
