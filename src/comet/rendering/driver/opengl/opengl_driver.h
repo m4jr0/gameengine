@@ -17,8 +17,8 @@ namespace comet {
 namespace rendering {
 namespace gl {
 struct OpenGlDriverDescr : DriverDescr {
-  unsigned int major_version;
-  unsigned int minor_version;
+  u8 major_version;
+  u8 minor_version;
 };
 
 class OpenGlDriver : public Driver {
@@ -28,24 +28,23 @@ class OpenGlDriver : public Driver {
   OpenGlDriver(OpenGlDriver&&) = delete;
   OpenGlDriver& operator=(const OpenGlDriver&) = delete;
   OpenGlDriver& operator=(OpenGlDriver&&) = delete;
-  virtual ~OpenGlDriver() = default;
+  ~OpenGlDriver() = default;
 
-  virtual void Initialize() override;
-  virtual void Destroy() override;
-  virtual void Update(
-      time::Interpolation interpolation,
-      game_object::GameObjectManager& game_object_manager) override;
+  void Initialize() override;
+  void Destroy() override;
+  void Update(time::Interpolation interpolation,
+              entity::EntityManager& entity_manager) override;
 
-  void SetSize(unsigned int width, unsigned int height);
+  void SetSize(u16 width, u16 height);
   void OnEvent(const event::Event&);
 
-  virtual bool IsInitialized() const override;
-  virtual Window& GetWindow() override;
+  bool IsInitialized() const override;
+  Window& GetWindow() override;
 
  private:
-  unsigned int major_version_ = 0;
-  unsigned int minor_version_ = 0;
-  bool is_initialized_ = false;
+  u8 major_version_{0};
+  u8 minor_version_{0};
+  bool is_initialized_{false};
   OpenGlGlfwWindow window_;
 };
 }  // namespace gl

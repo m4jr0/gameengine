@@ -10,14 +10,13 @@
 namespace comet {
 namespace utils {
 namespace date {
-double GetNow();
+f64 GetNow();
 
 std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
     const std::time_t&);
 
-double GetDouble(
-    const std::chrono::time_point<std::chrono::system_clock>& time);
-double GetDouble(const std::time_t& time);
+f64 GetDouble(const std::chrono::time_point<std::chrono::system_clock>& time);
+f64 GetDouble(const std::time_t& time);
 }  // namespace date
 }  // namespace utils
 }  // namespace comet

@@ -9,7 +9,7 @@
 ################################################################################
 
 # Packages #####################################################################
-find_package(Catch2 REQUIRED)
+find_package(Catch2 3 REQUIRED)
 
 # Source files #################################################################
 list(APPEND TESTS_EXECUTABLE_SOURCES
@@ -17,9 +17,7 @@ list(APPEND TESTS_EXECUTABLE_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/tests/core/tests_engine.cc"
-
-  "${PROJECT_SOURCE_DIR}/src/tests/game_object/tests_game_object.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/entity/tests_entity.cc"
 
   "${PROJECT_SOURCE_DIR}/src/tests/utils/tests_file_system.cc"
 
@@ -28,6 +26,8 @@ list(APPEND TESTS_EXECUTABLE_SOURCES
 
 # Executable ###################################################################
 add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
+
+set_target_properties(${TESTS_EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 
 # Compiling ####################################################################
 target_precompile_headers(${TESTS_EXECUTABLE_NAME}
@@ -51,5 +51,5 @@ target_link_directories(${TESTS_EXECUTABLE_NAME}
 target_link_libraries(${TESTS_EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARIES}
-    Catch2::Catch2
+    Catch2::Catch2WithMain
 )

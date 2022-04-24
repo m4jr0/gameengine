@@ -4,20 +4,16 @@
 
 #include "vulkan_glfw_window.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 namespace vk {
 VulkanGlfwWindow::VulkanGlfwWindow(WindowDescr& descr) : GlfwWindow(descr) {}
 
 VulkanGlfwWindow::VulkanGlfwWindow(const VulkanGlfwWindow& other)
-    : GlfwWindow(other) {}
+    : GlfwWindow{other} {}
 
 VulkanGlfwWindow::VulkanGlfwWindow(VulkanGlfwWindow&& other) noexcept
-    : GlfwWindow(std::move(other)) {}
+    : GlfwWindow{std::move(other)} {}
 
 VulkanGlfwWindow& VulkanGlfwWindow::operator=(const VulkanGlfwWindow& other) {
   if (this == &other) {

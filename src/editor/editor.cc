@@ -4,41 +4,51 @@
 
 #include "editor.h"
 
-#ifdef _WIN32
-// Allow debugging memory leaks on Windows.
-#include "debug_windows.h"
-#endif  // _WIN32
+#include "comet/entity/entity.h"
+#include "comet/entity/factory/model_entity.h"
 
 namespace comet {
 namespace editor {
 void CometEditor::Initialize() {
-#ifdef _WIN32
-  if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)HandleConsole, TRUE)) {
+#ifdef COMET_WINDOWS
+  if (!SetConsoleCtrlHandler(static_cast<PHANDLER_ROUTINE>(HandleConsole),
+                             TRUE)) {
     std::cout
         << "Could not set console handler. This could result in "
         << "memory leaks as the engine would not shut down properly if the "
-        << "console window is closed." << std::endl;
+        << "console window is closed." << '\n';
   }
-#endif  // _WIN32
+#endif  // COMET_WINDOWS
 
-  core::Engine::Initialize();
+#ifdef COMET_UNIX
+  struct sigaction sig_handler;
+  sig_handler.sa_handler = [](int signal) { CometEditor::Get().Quit(); };
+
+  sigemptyset(&sig_handler.sa_mask);
+  sig_handler.sa_flags = 0;
+
+  sigaction(SIGINT, &sig_handler, NULL);
+#endif  // COMET_UNIX
+
+  Engine::Initialize();
+  asset_manager_.Initialize();
+
+  // TODO(m4jr0): Remove temporary code.
+  entity::CreateModelEntity("models/nanosuit/model.obj");
 }
 
 void CometEditor::Exit() {
-  core::Engine::Exit();
-
-#ifdef _WIN32
-  _CrtDumpMemoryLeaks();
-#endif  // _WIN32
+  asset_manager_.Destroy();
+  Engine::Exit();
 }
 
-#ifdef _WIN32
+#ifdef COMET_WINDOWS
 BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
   switch (window_event) {
     case CTRL_CLOSE_EVENT:
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
-      CometEditor::GetEngine().Quit();
+      CometEditor::Get().Quit();
       return TRUE;
 
     default:
@@ -47,10 +57,10 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 
   return FALSE;
 }
-#endif  // _WIN32
+#endif  // COMET_WINDOWS
 }  // namespace editor
 
-std::unique_ptr<core::Engine> core::CreateEngine() {
+std::unique_ptr<Engine> CreateEngine() {
   return std::make_unique<editor::CometEditor>();
 }
 }  // namespace comet

@@ -4,22 +4,17 @@
 
 #include "rendering_manager.h"
 
-#include "boost/format.hpp"
-
+#include "comet/core/configuration_manager.h"
 #include "comet/core/engine.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 void RenderingManager::Initialize() {
-  const auto rendering_driver =
-      core::Engine::GetEngine().GetConfigurationManager().Get<std::string>(
-          "rendering_driver");
+  const auto rendering_driver{
+      Engine::Get().GetConfigurationManager().Get<std::string>(
+          "rendering_driver")};
 
   if (rendering_driver == "opengl") {
     GenerateOpenGlDriver();
@@ -38,18 +33,17 @@ void RenderingManager::Initialize() {
 
 void RenderingManager::Destroy() { driver_->Destroy(); }
 
-void RenderingManager::Update(
-    time::Interpolation interpolation,
-    game_object::GameObjectManager& game_object_manager) {
-  current_time_ += core::Engine::GetEngine().GetTimeManager().GetTimeDelta();
+void RenderingManager::Update(time::Interpolation interpolation,
+                              entity::EntityManager& entity_manager) {
+  current_time_ += Engine::Get().GetTimeManager().GetTimeDelta();
 
   if (current_time_ > 1000) {
     current_time_ = 0;
     counter_ = 0;
   }
 
-  driver_->Update(interpolation, game_object_manager);
-  core::Engine::GetEngine().GetInputManager().Update();
+  driver_->Update(interpolation, entity_manager);
+  Engine::Get().GetInputManager().Update();
   ++counter_;
 }
 
@@ -65,16 +59,14 @@ void RenderingManager::GenerateOpenGlDriver() {
   COMET_LOG_RENDERING_DEBUG("Initializing OpenGL driver...");
   COMET_LOG_RENDERING_WARNING("OpenGL implementation is not ready yet.");
 
-  const auto& conf = core::Engine::GetEngine().GetConfigurationManager();
+  const auto& conf{Engine::Get().GetConfigurationManager()};
 
   gl::OpenGlDriverDescr descr{};
   descr.name = conf.Get<std::string>("application_name");
-  descr.width = conf.Get<unsigned int>("rendering_window_width");
-  descr.height = conf.Get<unsigned int>("rendering_window_height");
-  descr.major_version =
-      conf.Get<unsigned int>("rendering_opengl_major_version");
-  descr.minor_version =
-      conf.Get<unsigned int>("rendering_opengl_minor_version");
+  descr.width = conf.Get<u16>("rendering_window_width");
+  descr.height = conf.Get<u16>("rendering_window_height");
+  descr.major_version = conf.Get<u8>("rendering_opengl_major_version");
+  descr.minor_version = conf.Get<u8>("rendering_opengl_minor_version");
 
   driver_ = std::make_unique<gl::OpenGlDriver>(descr);
 }
@@ -82,20 +74,19 @@ void RenderingManager::GenerateOpenGlDriver() {
 void RenderingManager::GenerateVulkanDriver() {
   COMET_LOG_RENDERING_DEBUG("Initializing Vulkan driver...");
 
-  const auto& conf = core::Engine::GetEngine().GetConfigurationManager();
+  const auto& conf{Engine::Get().GetConfigurationManager()};
 
   vk::VulkanDriverDescr descr{};
   descr.name = conf.Get<std::string>("application_name");
-  descr.width = conf.Get<unsigned int>("rendering_window_width");
-  descr.height = conf.Get<unsigned int>("rendering_window_height");
+  descr.width = conf.Get<u16>("rendering_window_width");
+  descr.height = conf.Get<u16>("rendering_window_height");
 
   descr.is_specific_transfer_queue_requested =
-      core::Engine::GetEngine().GetConfigurationManager().Get<bool>(
+      Engine::Get().GetConfigurationManager().Get<bool>(
           "rendering_vulkan_is_specific_transfer_queue_requested");
 
-  descr.max_frames_in_flight =
-      core::Engine::GetEngine().GetConfigurationManager().Get<unsigned int>(
-          "rendering_vulkan_max_frames_in_flight");
+  descr.max_frames_in_flight = Engine::Get().GetConfigurationManager().Get<u8>(
+      "rendering_vulkan_max_frames_in_flight");
 
   driver_ = std::make_unique<vk::VulkanDriver>(descr);
 }

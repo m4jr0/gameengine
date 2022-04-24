@@ -17,40 +17,38 @@ namespace event {
 // In the .h file:
 //   class ExplosionEvent : public Event {
 //    public:
-//     static const core::StringId kStaticType_;
-//     ExplosionEvent(const unsigned int, const unsigned int);
+//     static const stringid::StringId kStaticType_;
+//     ExplosionEvent(const u32 radius, const u32 damage);
 //     ExplosionEvent(const ExplosionEvent&) = default;
 //     ExplosionEvent(ExplosionEvent&&) noexcept = default;
 //     ExplosionEvent& operator=(const ExplosionEvent&) = default;
 //     ExplosionEvent& operator=(ExplosionEvent&&) noexcept = default;
-//     virtual ~ExplosionEvent() = default;
+//     ~ExplosionEvent() = default;
 //
-//     virtual const core::StringId& GetType() const noexcept;
-//     unsigned int GetRadius() const noexcept;
-//     unsigned int GetDamage() const noexcept;
+//     const stringid::StringId& GetType() const noexcept;
+//     u32 GetRadius() const noexcept;
+//     u32 GetDamage() const noexcept;
 //
 //    private:
 //     // For performance purposes, we do not want to generate the string ID
 //     // every time. The static type CANNOT be inline.
 //
-//     unsigned int radius_ = 0;
-//     unsigned int damage_ = 0;
+//     u32 radius_{0};
+//     u32 damage_{0};
 //   };
 
 // In the .cc file:
 //   ExplosionEvent::kStaticType_ = COMET_STRING_ID("event_explosion");
 //
-//   ExplosionEvent::ExplosionEvent(const unsigned int radius,
-//                                  const unsigned int damage) {
-//     radius_ = radius;
-//     damage_ = damage;
-//   }
+//    ExplosionEvent::ExplosionEvent(const u32 radius,
+//                                   const u32 damage)
+//        : radius_{radius}, damage_{damage} {}
 //
-//   unsigned int ExplosionEvent::GetRadius() const noexcept { return radius_; }
+//   u32 ExplosionEvent::GetRadius() const noexcept { return radius_; }
 //
-//   unsigned int ExplosionEvent::GetDamage() const noexcept { return damage_; }
+//   u32 ExplosionEvent::GetDamage() const noexcept { return damage_; }
 //
-//   const core::StringId& ExplosionEvent::GetType() const noexcept {
+//   const stringid::StringId& ExplosionEvent::GetType() const noexcept {
 //     return kStaticType_;
 //   };
 
@@ -72,7 +70,7 @@ class Event {
     return std::make_unique<T>(args...);
   }
 
-  virtual const core::StringId& GetType() const noexcept = 0;
+  virtual stringid::StringId GetType() const noexcept = 0;
 };
 }  // namespace event
 }  // namespace comet

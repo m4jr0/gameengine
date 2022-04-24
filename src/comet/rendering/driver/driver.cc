@@ -4,10 +4,6 @@
 
 #include "driver.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {}  // namespace rendering
 }  // namespace comet

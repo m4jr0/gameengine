@@ -14,6 +14,7 @@ cmake_minimum_required(VERSION 3.18)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_VERBOSE_MAKEFILE on)
 
 # Generic builds.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -36,7 +37,7 @@ set(TESTS_EXECUTABLE_NAME "comet_tests")
 # Internal library names.
 set(CORE_LIBRARY_NAME "core")
 set(EVENT_LIBRARY_NAME "event")
-set(GAME_OBJECT_LIBRARY_NAME "game_object")
+set(ENTITY_LIBRARY_NAME "entity")
 set(INPUT_LIBRARY_NAME "input")
 set(PHYSICS_LIBRARY_NAME "physics")
 set(RENDERING_LIBRARY_NAME "rendering")
@@ -48,7 +49,7 @@ set(UTILS_LIBRARY_NAME "utils")
 list(APPEND COMET_LIBRARIES
   ${CORE_LIBRARY_NAME}
   ${EVENT_LIBRARY_NAME}
-  ${GAME_OBJECT_LIBRARY_NAME}
+  ${ENTITY_LIBRARY_NAME}
   ${INPUT_LIBRARY_NAME}
   ${PHYSICS_LIBRARY_NAME}
   ${RENDERING_LIBRARY_NAME}
@@ -144,6 +145,11 @@ project("Comet Game Engine"
   LANGUAGES CXX
 )
 
+# Disable any non-conformant code with Microsoft Visual C++.
+if(MSVC)
+    add_compile_options(/permissive-)
+endif()
+
 # Vcpkg variables ##############################################################
 set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
@@ -158,6 +164,6 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
 # Copying necessary files.
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
-file(COPY "./src/editor/assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(COPY "./assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 message(STATUS "${MESSAGE_PREFIX}Done.")

@@ -7,10 +7,8 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
-
-#include "comet/core/manager.h"
 #include "comet/rendering/window/glfw/glfw_window.h"
+#include "glm/glm.hpp"
 
 namespace comet {
 namespace input {
@@ -141,7 +139,7 @@ enum class KeyCode {
   LAST = GLFW_KEY_LAST
 };
 
-class InputManager : public core::Manager {
+class InputManager {
  public:
   InputManager() = default;
   InputManager(const InputManager&) = delete;
@@ -150,17 +148,17 @@ class InputManager : public core::Manager {
   InputManager& operator=(InputManager&&) = delete;
   virtual ~InputManager() = default;
 
-  virtual void Initialize() override;
-  virtual void Update() override;
+  virtual void Initialize();
+  virtual void Update();
   virtual bool IsKeyBeingPressed(KeyCode) const;
   virtual bool IsKeyUp(KeyCode) const;
   virtual bool IsKeyDown(KeyCode) const;
+  void AttachGlfwWindow(GLFWwindow* window_handle_);
   virtual glm::vec2 GetMousePosition() const;
-  virtual void SetMousePosition(float, float);
+  virtual void SetMousePosition(f32, f32);
 
  private:
-  mutable std::atomic<GLFWwindow*> cached_window_ = nullptr;
-  virtual GLFWwindow* GetCachedWindow() const;
+  mutable std::atomic<GLFWwindow*> window_handle_{nullptr};
 };
 
 class NullInputManager : public InputManager {
@@ -180,7 +178,7 @@ class NullInputManager : public InputManager {
   virtual glm::vec2 GetMousePosition() const override {
     return glm::vec2(0.0f, 0.0f);
   };
-  virtual void SetMousePosition(float x, float y) override{};
+  virtual void SetMousePosition(f32 x, f32 y) override{};
 };
 }  // namespace input
 }  // namespace comet

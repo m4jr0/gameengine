@@ -4,76 +4,194 @@
 
 #include "model_resource.h"
 
-#include "nlohmann/json.hpp"
-
-#include "comet/rendering/driver/opengl/shader/shader_program.h"
-
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace resource {
-ModelResource::ModelResource(const std::string& path) : Resource(path){};
+namespace model {
+const ResourceTypeId ModelResource::kResourceTypeId{
+    GenerateResourceTypeId("model")};
 
-ModelResource::ModelResource(const ModelResource& other) : Resource(other) {
-  model_ = std::make_shared<game_object::Model>(*other.model_);
+uindex ModelHandler::GetMeshSize(const MeshResource& mesh) const {
+  constexpr uindex kModelIdSize{sizeof(stringid::StringId)};
+  const uindex kVertexCount{mesh.vertices.size()};
+  const uindex kIndexCount{mesh.indices.size()};
+  const uindex kTextureTuplesCount{mesh.textures.size()};
+
+  const auto kVertexCountSize{sizeof(kVertexCount)};
+  const auto kIndexCountSize{sizeof(kIndexCount)};
+  const auto kTextureTupleCountSize{sizeof(kTextureTuplesCount)};
+
+  constexpr auto kVertexSize{sizeof(Vertex)};
+  constexpr auto kIndexSize{sizeof(Index)};
+  constexpr auto kTextureTupleSize{sizeof(TextureTuple)};
+
+  return kModelIdSize + kVertexCountSize + kVertexCount * kVertexSize +
+         kIndexCountSize + kIndexCount * kIndexSize + kTextureTupleCountSize +
+         kTextureTuplesCount * kTextureTupleSize;
 }
 
-ModelResource::ModelResource(ModelResource&& other) noexcept
-    : Resource(std::move(other)), model_(std::move(other.model_)) {}
+uindex ModelHandler::GetModelSize(const ModelResource& model) const {
+  uindex size{sizeof(ResourceId) + sizeof(ResourceTypeId)};
 
-ModelResource& ModelResource::operator=(const ModelResource& other) {
-  if (this == &other) {
-    return *this;
+  for (const auto& mesh : model.meshes) {
+    size += GetMeshSize(mesh);
   }
 
-  Resource::operator=(other);
-  model_ = std::make_shared<game_object::Model>(*other.model_);
-  return *this;
+  return size;
 }
 
-ModelResource& ModelResource::operator=(ModelResource&& other) noexcept {
-  if (this == &other) {
-    return *this;
+ResourceFile ModelHandler::Pack(const Resource& resource,
+                                CompressionMode compression_mode) const {
+  const auto& model{static_cast<const ModelResource&>(resource)};
+  ResourceFile file{};
+  file.resource_type_id = ModelResource::kResourceTypeId;
+  file.compression_mode = compression_mode;
+
+  std::vector<char> data(GetModelSize(model));
+  uindex cursor{0};
+  auto* buffer{data.data()};
+  constexpr auto kResourceIdSize{sizeof(stringid::StringId)};
+  constexpr auto kResourceTypeIdSize{sizeof(stringid::StringId)};
+  constexpr auto kVertexCountSize{sizeof(uindex)};
+  constexpr auto kIndexCountSize{sizeof(uindex)};
+  constexpr auto kTextureTupleCountSize{sizeof(uindex)};
+  constexpr auto kVertexSize{sizeof(Vertex)};
+  constexpr auto kIndexSize{sizeof(Index)};
+  constexpr auto kTextureTuplesSize{sizeof(TextureTuple)};
+
+  std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&model.id),
+              kResourceIdSize);
+  cursor += kResourceIdSize;
+
+  std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&model.type_id),
+              kResourceTypeIdSize);
+  cursor += kResourceTypeIdSize;
+
+  for (const auto& mesh : model.meshes) {
+    std::memcpy(&buffer[cursor],
+                reinterpret_cast<const void*>(&mesh.resource_id),
+                kResourceIdSize);
+    cursor += kResourceIdSize;
+
+    const auto vertex_count{mesh.vertices.size()};
+    const auto index_count{mesh.indices.size()};
+
+    std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&vertex_count),
+                kVertexCountSize);
+
+    cursor += kVertexCountSize;
+    const auto vertex_total_size{kVertexSize * vertex_count};
+
+    std::memcpy(&buffer[cursor], mesh.vertices.data(), vertex_total_size);
+
+    cursor += vertex_total_size;
+
+    std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&index_count),
+                kIndexCountSize);
+
+    cursor += kIndexCountSize;
+    const auto index_total_size{kIndexSize * index_count};
+
+    std::memcpy(&buffer[cursor], mesh.indices.data(), index_total_size);
+    cursor += index_total_size;
+
+    const auto texture_tuple_count{mesh.textures.size()};
+    std::memcpy(&buffer[cursor],
+                reinterpret_cast<const void*>(&texture_tuple_count),
+                kTextureTupleCountSize);
+
+    cursor += kTextureTupleCountSize;
+    const auto texture_tuple_total_size{kTextureTuplesSize *
+                                        texture_tuple_count};
+
+    std::memcpy(&buffer[cursor], mesh.textures.data(),
+                texture_tuple_total_size);
+    cursor += texture_tuple_total_size;
   }
 
-  Resource::operator=(std::move(other));
-  model_ = std::make_shared<game_object::Model>(*other.model_);
-  return *this;
+  PackResourceDescr(model.descr, file);
+  PackResourceData(data, file);
+  return file;
 }
 
-std::shared_ptr<comet::game_object::Component> ModelResource::Clone() const {
-  return std::make_shared<ModelResource>(*this);
+std::unique_ptr<Resource> ModelHandler::Unpack(const ResourceFile& file) const {
+  ModelResource&& model{};
+  model.descr = UnpackResourceDescr<ModelResourceDescr>(file);
+
+  const auto data{UnpackResourceData(file)};
+  auto data_size{sizeof(char) * data.size()};
+  const auto* buffer{data.data()};
+  uindex cursor{0};
+  constexpr auto kResourceIdSize{sizeof(stringid::StringId)};
+  constexpr auto kResourceTypeIdSize{sizeof(stringid::StringId)};
+  constexpr auto kVertexCountSize{sizeof(uindex)};
+  constexpr auto kIndexCountSize{sizeof(uindex)};
+  constexpr auto kTextureTupleCountSize{sizeof(uindex)};
+  constexpr auto kVertexSize{sizeof(Vertex)};
+  constexpr auto kIndexSize{sizeof(Index)};
+  constexpr auto kTextureTupleSize{sizeof(TextureTuple)};
+
+  std::memcpy(reinterpret_cast<void*>(&model.id),
+              reinterpret_cast<const void*>(&buffer[cursor]), kResourceIdSize);
+  cursor += kResourceIdSize;
+
+  std::memcpy(reinterpret_cast<void*>(&model.type_id),
+              reinterpret_cast<const void*>(&buffer[cursor]),
+              kResourceTypeIdSize);
+  cursor += kResourceTypeIdSize;
+
+  while (cursor < data_size) {
+    MeshResource&& mesh{};
+
+    std::memcpy(reinterpret_cast<void*>(&mesh.resource_id),
+                reinterpret_cast<const void*>(&buffer[cursor]),
+                kResourceIdSize);
+    cursor += kResourceIdSize;
+
+    uindex vertex_count{0};
+    std::memcpy(reinterpret_cast<void*>(&vertex_count),
+                reinterpret_cast<const void*>(&buffer[cursor]),
+                kVertexCountSize);
+    cursor += kVertexCountSize;
+
+    mesh.vertices.resize(vertex_count);
+    const auto vertex_total_size{kVertexSize * vertex_count};
+    std::memcpy(reinterpret_cast<void*>(mesh.vertices.data()),
+                reinterpret_cast<const void*>(&buffer[cursor]),
+                vertex_total_size);
+    cursor += vertex_total_size;
+
+    uindex index_count{0};
+    std::memcpy(reinterpret_cast<void*>(&index_count),
+                reinterpret_cast<const void*>(&buffer[cursor]),
+                kIndexCountSize);
+    cursor += kIndexCountSize;
+
+    mesh.indices.resize(index_count);
+    const auto index_total_size{kIndexSize * index_count};
+    std::memcpy(reinterpret_cast<void*>(mesh.indices.data()),
+                reinterpret_cast<const void*>(&buffer[cursor]),
+                index_total_size);
+    cursor += index_total_size;
+
+    uindex texture_tuple_count{0};
+    std::memcpy(reinterpret_cast<void*>(&texture_tuple_count),
+                reinterpret_cast<const void*>(&buffer[cursor]),
+                kTextureTupleCountSize);
+    cursor += kTextureTupleCountSize;
+
+    mesh.textures.resize(texture_tuple_count);
+    const auto texture_tuple_total_size{kTextureTupleSize *
+                                        texture_tuple_count};
+    std::memcpy(reinterpret_cast<void*>(mesh.textures.data()),
+                reinterpret_cast<const void*>(&buffer[cursor]),
+                texture_tuple_total_size);
+    cursor += texture_tuple_total_size;
+
+    model.meshes.emplace_back(mesh);
+  }
+
+  return std::make_unique<ModelResource>(std::move(model));
 }
-
-void ModelResource::Destroy() {}
-
-bool ModelResource::Import() {
-  COMET_LOG_RESOURCE_DEBUG("Import");
-
-  const auto shader_program = std::make_shared<rendering::gl::ShaderProgram>(
-      "assets/shaders/model_shader.vs", "assets/shaders/model_shader.fs");
-
-  shader_program->Initialize();
-  model_ =
-      std::make_shared<game_object::Model>(file_system_path_, shader_program);
-
-  return true;
-}
-
-bool ModelResource::Export() {
-  COMET_LOG_RESOURCE_DEBUG("Export");
-  return true;
-}
-
-bool ModelResource::Dump() {
-  // if (model_ == nullptr) return false;
-  return true;
-}
-
-bool ModelResource::Load() { return true; }
-
-std::shared_ptr<game_object::Model> ModelResource::GetModel() { return model_; }
+}  // namespace model
 }  // namespace resource
 }  // namespace comet

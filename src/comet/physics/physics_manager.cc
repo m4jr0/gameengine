@@ -6,28 +6,22 @@
 
 #include "comet/core/engine.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace physics {
 void PhysicsManager::Initialize(){};
 void PhysicsManager::Destroy(){};
 
-void PhysicsManager::Update(
-    game_object::GameObjectManager& game_object_manager) {
-  current_time_ += core::Engine::GetEngine().GetTimeManager().GetTimeDelta();
+void PhysicsManager::Update(entity::EntityManager& entity_manager) {
+  current_time_ += Engine::Get().GetTimeManager().GetTimeDelta();
 
   if (current_time_ > 1000) {
     current_time_ = 0;
     counter_ = 0;
   }
 
-  game_object_manager.FixedUpdate();
   ++counter_;
 }
 
-unsigned int PhysicsManager::GetCounter() const noexcept { return counter_; }
+u8 PhysicsManager::GetCounter() const noexcept { return counter_; }
 }  // namespace physics
 }  // namespace comet

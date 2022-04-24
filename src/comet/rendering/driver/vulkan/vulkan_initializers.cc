@@ -4,10 +4,6 @@
 
 #include "vulkan_initializers.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -29,7 +25,7 @@ VkDebugUtilsMessengerCreateInfoEXT GetDebugUtilsMessengerCreateInfo(
 }
 
 VkCommandPoolCreateInfo GetCommandPoolCreateInfo(
-    std::uint32_t queue_family_index, VkCommandPoolCreateFlags flags) {
+    u32 queue_family_index, VkCommandPoolCreateFlags flags) {
   VkCommandPoolCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   info.pNext = nullptr;
@@ -39,7 +35,7 @@ VkCommandPoolCreateInfo GetCommandPoolCreateInfo(
 }
 
 VkCommandBufferAllocateInfo GetCommandBufferAllocateInfo(
-    VkCommandPool pool, std::uint32_t count, VkCommandBufferLevel level) {
+    VkCommandPool pool, u32 count, VkCommandBufferLevel level) {
   VkCommandBufferAllocateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   info.pNext = nullptr;
@@ -61,8 +57,8 @@ VkCommandBufferBeginInfo GetCommandBufferBeginInfo(
   return info;
 }
 
-VkDeviceQueueCreateInfo GetDeviceQueueCreateInfo(
-    std::uint32_t queue_family_index, const float& queue_priority) {
+VkDeviceQueueCreateInfo GetDeviceQueueCreateInfo(u32 queue_family_index,
+                                                 const f32& queue_priority) {
   VkDeviceQueueCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
   info.queueFamilyIndex = queue_family_index;
@@ -78,13 +74,11 @@ VkDeviceCreateInfo GetDeviceCreateInfo(
     const std::vector<const char*>& device_extensions) {
   VkDeviceCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  info.queueCreateInfoCount =
-      static_cast<std::uint32_t>(queue_create_info.size());
+  info.queueCreateInfoCount = static_cast<u32>(queue_create_info.size());
   info.pQueueCreateInfos = queue_create_info.data();
   info.pEnabledFeatures = &physical_device_features;
 
-  info.enabledExtensionCount =
-      static_cast<std::uint32_t>(device_extensions.size());
+  info.enabledExtensionCount = static_cast<u32>(device_extensions.size());
   info.ppEnabledExtensionNames = device_extensions.data();
 
   return info;
@@ -107,8 +101,7 @@ VkSwapchainCreateInfoKHR GetSwapchainCreateInfo(
     const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surface_format,
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
     const SwapChainSupportDetails& details,
-    const std::vector<std::uint32_t>& queue_family_unique_indices,
-    std::uint32_t image_count) {
+    const std::vector<u32>& queue_family_unique_indices, u32 image_count) {
   VkSwapchainCreateInfoKHR info{};
   info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   info.surface = surface;
@@ -126,7 +119,7 @@ VkSwapchainCreateInfoKHR GetSwapchainCreateInfo(
   } else {
     info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     info.queueFamilyIndexCount =
-        static_cast<std::uint32_t>(queue_family_unique_indices.size());
+        static_cast<u32>(queue_family_unique_indices.size());
     info.pQueueFamilyIndices = queue_family_unique_indices.data();
   }
 
@@ -309,19 +302,18 @@ VkPipelineDepthStencilStateCreateInfo GetPipelineDepthStencilStateCreateInfo(
   return info;
 }
 
-VkImageCreateInfo GetImageCreateInfo(std::uint32_t width, std::uint32_t height,
-                                     std::uint32_t mip_levels,
+VkImageCreateInfo GetImageCreateInfo(u32 width, u32 height, u32 mip_levels,
                                      VkSampleCountFlagBits num_samples,
                                      VkFormat format, VkImageTiling tiling,
                                      VkImageUsageFlags usage_flags,
                                      VkSharingMode sharing_mode,
-                                     const std::uint32_t* queue_family_indices,
-                                     std::uint32_t queue_family_index_count) {
+                                     const u32* queue_family_indices,
+                                     u32 queue_family_index_count) {
   VkImageCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   info.imageType = VK_IMAGE_TYPE_2D;
-  info.extent.width = static_cast<std::uint32_t>(width);
-  info.extent.height = static_cast<std::uint32_t>(height);
+  info.extent.width = width;
+  info.extent.height = height;
   info.extent.depth = 1;
   info.mipLevels = mip_levels;
   info.arrayLayers = 1;
@@ -340,7 +332,7 @@ VkImageCreateInfo GetImageCreateInfo(std::uint32_t width, std::uint32_t height,
 
 VkImageViewCreateInfo GetImageViewCreateInfo(VkImage image, VkFormat format,
                                              VkImageAspectFlags aspect_flags,
-                                             std::uint32_t mip_levels) {
+                                             u32 mip_levels) {
   VkImageViewCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   info.image = image;
@@ -362,8 +354,7 @@ VkImageViewCreateInfo GetImageViewCreateInfo(VkImage image, VkFormat format,
 }
 
 VkDescriptorSetLayoutBinding GetDescriptorSetLayoutBinding(
-    VkDescriptorType type, VkShaderStageFlags stage_flags,
-    std::uint32_t binding) {
+    VkDescriptorType type, VkShaderStageFlags stage_flags, u32 binding) {
   VkDescriptorSetLayoutBinding layout_binding{};
   layout_binding.binding = binding;
   layout_binding.descriptorCount = 1;
@@ -376,7 +367,7 @@ VkDescriptorSetLayoutBinding GetDescriptorSetLayoutBinding(
 
 VkWriteDescriptorSet GetBufferWriteDescriptorSet(
     VkDescriptorType type, VkDescriptorSet dst_set,
-    VkDescriptorBufferInfo* buffer_info, std::uint32_t binding) {
+    VkDescriptorBufferInfo* buffer_info, u32 binding) {
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.pNext = nullptr;
@@ -391,7 +382,7 @@ VkWriteDescriptorSet GetBufferWriteDescriptorSet(
 
 VkWriteDescriptorSet GetImageWriteDescriptorSet(
     VkDescriptorType type, VkDescriptorSet dst_set,
-    VkDescriptorImageInfo* image_info, std::uint32_t binding) {
+    VkDescriptorImageInfo* image_info, u32 binding) {
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.pNext = nullptr;

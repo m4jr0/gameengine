@@ -7,38 +7,37 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/manager.h"
-
 namespace comet {
 namespace time {
-using Interpolation = double;
+using Interpolation = f64;
 
-class TimeManager : public core::Manager {
+class TimeManager {
  public:
   TimeManager() = default;
   TimeManager(const TimeManager&) = delete;
   TimeManager(TimeManager&&) = delete;
   TimeManager& operator=(const TimeManager&) = delete;
   TimeManager& operator=(TimeManager&&) = delete;
-  virtual ~TimeManager() = default;
+  ~TimeManager() = default;
 
-  static double GetRealNow();
-  double GetNow();
-  void Initialize() override;
-  void Update() override;
+  static f64 GetRealNow();
+  f64 GetNow();
+  void Initialize();
+  void Update();
+  void Destroy();
   void Stop() noexcept;
   void Normalize() noexcept;
 
-  const double GetTimeDelta() const noexcept;
-  const double GetCurrentTime() const noexcept;
-  const float GetTimeScale() const noexcept;
-  void SetTimeScale(float time_scale) noexcept;
+  const f64 GetTimeDelta() const noexcept;
+  const f64 GetCurrentTime() const noexcept;
+  const f32 GetTimeScale() const noexcept;
+  void SetTimeScale(f32 time_scale) noexcept;
 
  private:
-  double current_time_ = 0.0;
-  double previous_time_ = 0.0;
-  double time_delta_ = 0.0;
-  float time_scale_ = 1.0f;
+  f64 current_time_{0.0};
+  f64 previous_time_{0.0};
+  f64 time_delta_{0.0};
+  f32 time_scale_{1.0f};
 };
 }  // namespace time
 }  // namespace comet

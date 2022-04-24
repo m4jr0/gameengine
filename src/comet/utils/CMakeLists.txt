@@ -7,17 +7,18 @@
 # Comet utils library CMake file
 #
 ################################################################################
-set(Boost_USE_STATIC_LIBS ON)
 
-find_package(Boost REQUIRED COMPONENTS
-  filesystem
-)
+# Packages #####################################################################
+find_package(lz4 REQUIRED)
 
 # Source files #################################################################
 add_library(${UTILS_LIBRARY_NAME}
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/compression.h"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/date.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/file_system.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/hash.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/memory/memory.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/exception.h"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/structure/ring_queue.h"
@@ -38,7 +39,7 @@ target_link_directories(${UTILS_LIBRARY_NAME}
 
 target_link_libraries(${UTILS_LIBRARY_NAME}
   PRIVATE
-    ${Boost_FILESYSTEM_LIBRARY}
+    lz4::lz4
 )
 
 # Internal libraries.

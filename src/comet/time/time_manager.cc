@@ -6,17 +6,13 @@
 
 #include "comet/utils/date.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace time {
-double TimeManager::GetRealNow() { return utils::date::GetNow(); }
+f64 TimeManager::GetRealNow() { return utils::date::GetNow(); }
 
-double TimeManager::GetNow() {
-  const auto time_delta = GetRealNow() - previous_time_;
-  const auto time_to_add = time_delta * time_scale_;
+f64 TimeManager::GetNow() {
+  const auto time_delta{GetRealNow() - previous_time_};
+  const auto time_to_add{time_delta * time_scale_};
 
   return previous_time_ + time_to_add;
 }
@@ -29,19 +25,19 @@ void TimeManager::Update() {
   previous_time_ = current_time_;
 }
 
+void TimeManager::Destroy() {}
+
 void TimeManager::Stop() noexcept { SetTimeScale(0.0f); }
 
 void TimeManager::Normalize() noexcept { SetTimeScale(1.0f); }
 
-const double TimeManager::GetTimeDelta() const noexcept { return time_delta_; }
+const f64 TimeManager::GetTimeDelta() const noexcept { return time_delta_; }
 
-const double TimeManager::GetCurrentTime() const noexcept {
-  return current_time_;
-}
+const f64 TimeManager::GetCurrentTime() const noexcept { return current_time_; }
 
-const float TimeManager::GetTimeScale() const noexcept { return time_scale_; }
+const f32 TimeManager::GetTimeScale() const noexcept { return time_scale_; }
 
-void TimeManager::SetTimeScale(float time_scale) noexcept {
+void TimeManager::SetTimeScale(f32 time_scale) noexcept {
   time_scale_ = time_scale;
 }
 }  // namespace time

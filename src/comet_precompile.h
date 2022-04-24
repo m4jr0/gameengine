@@ -5,11 +5,24 @@
 #ifndef COMET_COMET_PRECOMPILE_H_
 #define COMET_COMET_PRECOMPILE_H_
 
+#include "comet/core/type/os.h"
+
+#ifdef COMET_WINDOWS
+#define NOMINMAX
+#endif  // COMET_WINDOWS
+
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cassert>
 #include <chrono>
+#include <climits>
 #include <condition_variable>
+#include <csignal>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <filesystem>
 #include <functional>
@@ -29,11 +42,19 @@
 #include <utility>
 #include <vector>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif  // _WIN32
+#include <sys/stat.h>
+#include <sys/types.h>
 
-#include "comet/core/id/string_id.h"
+#ifdef COMET_WINDOWS
+#include <windows.h>
+#endif  // COMET_WINDOWS
+
+#include "comet/core/type/primitive.h"
+
+#include "comet/core/debug.h"
 #include "comet/core/logger.h"
+#include "comet/core/type/gid.h"
+#include "comet/core/type/string_id.h"
+#include "comet/core/version.h"
 
 #endif  // COMET_COMET_PRECOMPILE_H_

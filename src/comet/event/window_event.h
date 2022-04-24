@@ -13,36 +13,36 @@ namespace comet {
 namespace event {
 class WindowResizeEvent : public Event {
  public:
-  const static core::StringId kStaticType_;
+  const static stringid::StringId kStaticType_;
 
   WindowResizeEvent(unsigned int width, unsigned int height);
   WindowResizeEvent(const WindowResizeEvent&) = default;
   WindowResizeEvent(WindowResizeEvent&&) noexcept = default;
   WindowResizeEvent& operator=(const WindowResizeEvent&) = default;
   WindowResizeEvent& operator=(WindowResizeEvent&&) noexcept = default;
-  virtual ~WindowResizeEvent() = default;
+  ~WindowResizeEvent() = default;
 
-  virtual const core::StringId& GetType() const noexcept override;
+  stringid::StringId GetType() const noexcept override;
   unsigned int GetWidth() const noexcept;
   unsigned int GetHeight() const noexcept;
 
  private:
-  unsigned int width_ = 0;
-  unsigned int height_ = 0;
+  unsigned int width_{0};
+  unsigned int height_{0};
 };
 
 class WindowCloseEvent : public Event {
  public:
-  const static core::StringId kStaticType_;
+  const static stringid::StringId kStaticType_;
 
   WindowCloseEvent() = default;
   WindowCloseEvent(const WindowCloseEvent&) = default;
   WindowCloseEvent(WindowCloseEvent&&) noexcept = default;
   WindowCloseEvent& operator=(const WindowCloseEvent&) = default;
   WindowCloseEvent& operator=(WindowCloseEvent&&) noexcept = default;
-  virtual ~WindowCloseEvent() = default;
+  ~WindowCloseEvent() = default;
 
-  virtual const core::StringId& GetType() const noexcept override;
+  stringid::StringId GetType() const noexcept override;
 };
 }  // namespace event
 }  // namespace comet

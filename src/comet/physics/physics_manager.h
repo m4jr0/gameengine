@@ -7,29 +7,28 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/manager.h"
-#include "comet/game_object/game_object_manager.h"
+#include "comet/entity/entity_manager.h"
 
 namespace comet {
 namespace physics {
-class PhysicsManager : public core::Manager {
+class PhysicsManager {
  public:
   PhysicsManager() = default;
   PhysicsManager(const PhysicsManager&) = delete;
   PhysicsManager(PhysicsManager&&) = delete;
   PhysicsManager& operator=(const PhysicsManager&) = delete;
   PhysicsManager& operator=(PhysicsManager&&) = delete;
-  virtual ~PhysicsManager() = default;
+  ~PhysicsManager() = default;
 
-  void Initialize() override;
-  void Destroy() override;
-  void Update(game_object::GameObjectManager& game_object_manager);
+  void Initialize();
+  void Destroy();
+  void Update(entity::EntityManager& entity_manager);
 
-  unsigned int GetCounter() const noexcept;
+  u8 GetCounter() const noexcept;
 
  private:
-  unsigned int counter_ = 0;
-  double current_time_ = 0;
+  u8 counter_{0};
+  f64 current_time_{0};
 };
 }  // namespace physics
 }  // namespace comet

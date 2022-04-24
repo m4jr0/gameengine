@@ -7,19 +7,15 @@
 #include "comet/core/engine.h"
 #include "comet/event/window_event.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 GlfwWindow::GlfwWindow(const WindowDescr& descr) : Window(descr) {}
 
 GlfwWindow::GlfwWindow(const GlfwWindow& other)
-    : Window(other), handle_(nullptr) {}
+    : Window{other}, handle_{nullptr} {}
 
 GlfwWindow::GlfwWindow(GlfwWindow&& other) noexcept
-    : Window(std::move(other)), handle_(std::move(other.handle_)) {}
+    : Window{std::move(other)}, handle_{std::move(other.handle_)} {}
 
 GlfwWindow& GlfwWindow::operator=(const GlfwWindow& other) {
   if (this == &other) {
@@ -43,13 +39,7 @@ GlfwWindow& GlfwWindow::operator=(GlfwWindow&& other) noexcept {
 
 void GlfwWindow::Initialize() {
   if (window_count_ == 0) {
-    if (glfwInit() != GLFW_TRUE) {
-      COMET_LOG_RENDERING_ERROR("Failed to initialize GLFW");
-
-      throw std::runtime_error(
-          "An error occurred during rendering initialization");
-    }
-
+    COMET_ASSERT(glfwInit() == GLFW_TRUE, "Could not initialize GLFW!");
     SetGlfwHints();
 
     glfwSetErrorCallback([](int error_code, const char* description) {
@@ -57,30 +47,19 @@ void GlfwWindow::Initialize() {
     });
   }
 
-  handle_ =
-      glfwCreateWindow(static_cast<int>(width_), static_cast<int>(height_),
-                       name_.c_str(), nullptr, nullptr);
-
-  if (handle_ == nullptr) {
-    COMET_LOG_RENDERING_ERROR("Failed to initialize a GLFW window.");
-
-    throw std::runtime_error(
-        "An error occurred during rendering initialization");
-  }
-
+  handle_ = glfwCreateWindow(width_, height_, name_.c_str(), nullptr, nullptr);
+  COMET_ASSERT(handle_ != nullptr,
+               "Something bad happened while creating the GLFW window!");
   window_count_++;
 
   glfwSetWindowCloseCallback(handle_, [](GLFWwindow* window) {
-    core::Engine::GetEngine()
-        .GetEventManager()
-        .FireEvent<event::WindowCloseEvent>();
+    Engine::Get().GetEventManager().FireEvent<event::WindowCloseEvent>();
   });
 
   glfwSetWindowSizeCallback(
       handle_, [](GLFWwindow* window, int width, int height) {
-        core::Engine::GetEngine()
-            .GetEventManager()
-            .FireEvent<event::WindowResizeEvent>(width, height);
+        Engine::Get().GetEventManager().FireEvent<event::WindowResizeEvent>(
+            width, height);
       });
 
   is_initialized_ = true;
@@ -103,7 +82,7 @@ void GlfwWindow::SetGlfwHints() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
-void GlfwWindow::SetSize(unsigned int width, unsigned int height) {
+void GlfwWindow::SetSize(u16 width, u16 height) {
   width_ = width;
   height_ = height;
 

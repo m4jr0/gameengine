@@ -5,19 +5,18 @@
 #ifndef COMET_COMET_CORE_ENGINE_H_
 #define COMET_COMET_CORE_ENGINE_H_
 
+#include "comet_precompile.h"
+
 #include "comet/core/configuration_manager.h"
+#include "comet/entity/entity.h"
 #include "comet/event/event_manager.h"
-#include "comet/game_object/camera/camera.h"
-#include "comet/game_object/game_object_manager.h"
 #include "comet/input/input_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/rendering_manager.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/time/time_manager.h"
-#include "comet_precompile.h"
 
 namespace comet {
-namespace core {
 class Engine {
  public:
   Engine(const Engine&) = delete;
@@ -32,15 +31,14 @@ class Engine {
   virtual void Destroy();
   virtual void Quit();
 
-  static Engine& GetEngine();
-  ConfigurationManager& GetConfigurationManager();
+  static Engine& Get();
+  conf::ConfigurationManager& GetConfigurationManager();
   resource::ResourceManager& GetResourceManager();
   rendering::RenderingManager& GetRenderingManager();
   input::InputManager& GetInputManager();
   time::TimeManager& GetTimeManager();
-  game_object::GameObjectManager& GetGameObjectManager();
+  entity::EntityManager& GetEntityManager();
   event::EventManager& GetEventManager();
-  game_object::Camera& GetMainCamera();
 
   const bool is_running() const noexcept;
 
@@ -52,25 +50,22 @@ class Engine {
   virtual void Exit();
   void OnEvent(const event::Event& event);
 
-  std::unique_ptr<ConfigurationManager> configuration_manager_ = nullptr;
-  std::unique_ptr<resource::ResourceManager> resource_manager_ = nullptr;
-  std::unique_ptr<input::InputManager> input_manager_ = nullptr;
-  std::unique_ptr<physics::PhysicsManager> physics_manager_ = nullptr;
-  std::unique_ptr<rendering::RenderingManager> rendering_manager_ = nullptr;
-  std::unique_ptr<game_object::GameObjectManager> game_object_manager_ =
-      nullptr;
-  std::unique_ptr<time::TimeManager> time_manager_ = nullptr;
-  std::unique_ptr<event::EventManager> event_manager_ = nullptr;
-  std::shared_ptr<game_object::Camera> main_camera_ = nullptr;
+  conf::ConfigurationManager configuration_manager_{};
+  resource::ResourceManager resource_manager_{};
+  input::InputManager input_manager_{};
+  physics::PhysicsManager physics_manager_{};
+  rendering::RenderingManager rendering_manager_{};
+  entity::EntityManager entity_manager_{};
+  time::TimeManager time_manager_{};
+  event::EventManager event_manager_{};
 
  private:
-  bool is_running_ = false;
-  bool is_exit_requested_ = false;
-  double msPerUpdate_ = 16.66;  // 60 Hz refresh.
+  bool is_running_{false};
+  bool is_exit_requested_{false};
+  f64 msPerUpdate_{16.66};  // 60 Hz refresh.
 };
 
 std::unique_ptr<Engine> CreateEngine();
-}  // namespace core
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_ENGINE_H_

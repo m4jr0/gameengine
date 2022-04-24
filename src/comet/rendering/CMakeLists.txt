@@ -43,14 +43,16 @@ add_library(${RENDERING_LIBRARY_NAME}
 
     # OpenGL.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_driver.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/shader/shader_program.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/texture/texture_loader.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_mesh.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_shader.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_texture.cc"
 
     #Vulkan.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_driver.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_mesh.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_initializers.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_texture.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_types.cc"
 
     # Windows.
@@ -58,7 +60,7 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/opengl/opengl_glfw_window.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/vulkan/vulkan_glfw_window.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cc"
-)
+ "driver/opengl/opengl_mesh.h")
 
 # Compiling ####################################################################
 target_include_directories(${RENDERING_LIBRARY_NAME}
@@ -84,7 +86,6 @@ target_link_directories(${RENDERING_LIBRARY_NAME}
 target_link_libraries(${RENDERING_LIBRARY_NAME}
   PRIVATE
     ${ZLIB_LIBRARY_RELEASE}
-    ${Boost_LIBRARIES}
     glad
 
   PRIVATE
@@ -112,6 +113,7 @@ if(LINUX)
       ${OPENGL_opengl_LIBRARY}
       glfw3
       pthread
+      ${Vulkan_LIBRARIES}
       ${CMAKE_DL_LIBS}
       ${X11_X11_LIB}
   )
@@ -125,9 +127,3 @@ target_link_libraries(${RENDERING_LIBRARY_NAME}
   PRIVATE
     ${COMET_LIBRARIES}
 )
-
-# Should be uncommented when removing temporary code.
-# target_link_libraries(${RENDERING_LIBRARY_NAME}
-#   PRIVATE
-#     # Put internal libraries here.
-# )

@@ -8,15 +8,12 @@
 #
 ################################################################################
 
-# Packages #####################################################################
-find_package(efsw REQUIRED)
-find_package(nlohmann_json REQUIRED)
-
 # Source files #################################################################
 add_library(${RESOURCE_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/texture_resource.cc"
 )
 
 # Compiling ####################################################################
@@ -30,12 +27,11 @@ target_include_directories(${RESOURCE_LIBRARY_NAME}
 target_link_directories(${RESOURCE_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
-    target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 )
 
 target_link_libraries(${RESOURCE_LIBRARY_NAME}
   PRIVATE
-    efsw::efsw
+    # Put internal libraries here.
 )
 
 if(WIN32)

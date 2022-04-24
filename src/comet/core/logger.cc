@@ -1,25 +1,21 @@
 // Copyright 2022 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
-// license that can be found in the LICENSE file.
+// license that can be it in the LICENSE file.
 
 #include "logger.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
-namespace core {
+namespace log {
 Logger& Logger::Get(LoggerType logger_type) {
-  const auto found = Logger::loggers_.find(logger_type);
+  const auto it{Logger::loggers_.find(logger_type)};
 
   // If the logger does not exist, we create it.
-  if (found == Logger::loggers_.end()) {
+  if (it == Logger::loggers_.end()) {
     return *Logger::loggers_.insert({logger_type, Logger::Create(logger_type)})
                 .first->second;
   }
 
-  return *found->second;
+  return *it->second;
 }
 
 Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
@@ -35,5 +31,5 @@ std::shared_ptr<Logger> Logger::Create(LoggerType logger_type) {
 }
 
 std::unordered_map<LoggerType, std::shared_ptr<Logger>> Logger::loggers_;
-}  // namespace core
+}  // namespace log
 }  // namespace comet

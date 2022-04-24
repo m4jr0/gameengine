@@ -4,30 +4,26 @@
 
 #include "opengl_glfw_window.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 namespace gl {
 OpenGlGlfwWindow::OpenGlGlfwWindow(OpenGlGlfwWindowDescr& descr)
-    : GlfwWindow(descr),
-      is_vsync_(descr.is_vsync),
-      opengl_major_version_(descr.opengl_major_version),
-      opengl_minor_version_(descr.opengl_minor_version) {}
+    : GlfwWindow{descr},
+      is_vsync_{descr.is_vsync},
+      opengl_major_version_{descr.opengl_major_version},
+      opengl_minor_version_{descr.opengl_minor_version} {}
 
 OpenGlGlfwWindow::OpenGlGlfwWindow(const OpenGlGlfwWindow& other)
-    : GlfwWindow(other),
-      is_vsync_(other.is_vsync_),
-      opengl_major_version_(other.opengl_major_version_),
-      opengl_minor_version_(other.opengl_minor_version_) {}
+    : GlfwWindow{other},
+      is_vsync_{other.is_vsync_},
+      opengl_major_version_{other.opengl_major_version_},
+      opengl_minor_version_{other.opengl_minor_version_} {}
 
 OpenGlGlfwWindow::OpenGlGlfwWindow(OpenGlGlfwWindow&& other) noexcept
-    : GlfwWindow(std::move(other)),
-      is_vsync_(std::move(other.is_vsync_)),
-      opengl_major_version_(std::move(other.opengl_major_version_)),
-      opengl_minor_version_(std::move(other.opengl_minor_version_)) {}
+    : GlfwWindow{std::move(other)},
+      is_vsync_{std::move(other.is_vsync_)},
+      opengl_major_version_{std::move(other.opengl_major_version_)},
+      opengl_minor_version_{std::move(other.opengl_minor_version_)} {}
 
 OpenGlGlfwWindow& OpenGlGlfwWindow::operator=(const OpenGlGlfwWindow& other) {
   if (this == &other) {

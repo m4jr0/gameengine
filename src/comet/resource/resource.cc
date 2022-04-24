@@ -4,110 +4,138 @@
 
 #include "resource.h"
 
-#include "comet/utils/date.h"
-#include "comet/utils/file_system.h"
+#include <fstream>
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
+#include "comet/utils/file_system.h"
 
 namespace comet {
 namespace resource {
-Resource::Resource(const std::string& path) {
-  file_system_path_ = path;
-  file_system_name_ = utils::filesystem::GetName(path);
-}
+void PackResourceData(const std::vector<char>& data, ResourceFile& file) {
+  file.data_size = sizeof(char) * data.size();
 
-Resource::Resource(const Resource& other)
-    : comet::game_object::Component(other),
-      creation_time_(other.creation_time_),
-      modification_time_(other.modification_time_),
-      file_system_path_(other.file_system_path_),
-      file_system_name_(other.file_system_name_),
-      id_(boost::uuids::random_generator()()),
-      meta_data_(other.meta_data_) {}
-
-Resource::Resource(Resource&& other) noexcept
-    : comet::game_object::Component(std::move(other)),
-      creation_time_(std::move(other.creation_time_)),
-      modification_time_(std::move(other.modification_time_)),
-      file_system_path_(std::move(other.file_system_path_)),
-      file_system_name_(std::move(other.file_system_name_)),
-      id_(boost::uuids::random_generator()()),
-      meta_data_(std::move(other.meta_data_)) {}
-
-Resource& Resource::operator=(const Resource& other) {
-  if (this == &other) {
-    return *this;
-  }
-
-  Component::operator=(other);
-  creation_time_ = other.creation_time_;
-  modification_time_ = other.modification_time_;
-  file_system_path_ = other.file_system_path_;
-  file_system_name_ = other.file_system_name_;
-  id_ = boost::uuids::random_generator()();
-  meta_data_ = other.meta_data_;
-  return *this;
-}
-
-Resource& Resource::operator=(Resource&& other) noexcept {
-  if (this == &other) {
-    return *this;
-  }
-
-  Component::operator=(other);
-  creation_time_ = std::move(other.creation_time_);
-  modification_time_ = std::move(other.modification_time_);
-  file_system_path_ = std::move(other.file_system_path_);
-  file_system_name_ = std::move(other.file_system_name_);
-  id_ = boost::uuids::random_generator()();
-  meta_data_ = std::move(other.meta_data_);
-  return *this;
-}
-
-void Resource::SetMetaFile() {
-  meta_data_.empty();
-  const auto now = utils::date::GetNow();
-
-  if (utils::filesystem::IsExist(file_system_path_)) {
-    std::string raw_meta_data;
-
-    meta_data_ = utils::filesystem::ReadFile(file_system_path_, &raw_meta_data);
-
-    meta_data_ = nlohmann::json::parse(raw_meta_data);
-    meta_data_["id"] = id_;
-    meta_data_["modification_time"] = now;
-  } else {
-    meta_data_["id"] = id_;
-    meta_data_["creation_time"] = now;
-    meta_data_["modification_time"] = now;
-  }
-
-  meta_data_["checksum"] = utils::filesystem::GetChecksum(file_system_path_);
-  meta_data_["data"] = GetMetaData();
-
-  if (!utils::filesystem::WriteToFile(file_system_path_, meta_data_.dump(2))) {
-    COMET_LOG_RESOURCE_ERROR("Could not write the resource meta file at path ",
-                             file_system_path_);
+  switch (file.compression_mode) {
+    case CompressionMode::Lz4: {
+      utils::compression::CompressLz4(data, file.data_size, file.data);
+      file.packed_data_size = sizeof(file.data[0]) * file.data.size();
+      break;
+    }
+    case CompressionMode::None: {
+      file.data = {data.data(), data.data() + data.size()};
+      file.packed_data_size = file.data_size;
+      break;
+    }
+    default: {
+      throw std::runtime_error(
+          "Unknown compression mode: " +
+          std::to_string(
+              static_cast<std::underlying_type_t<resource::CompressionMode>>(
+                  file.compression_mode)));
+    }
   }
 }
 
-void Resource::Initialize() {
-  creation_time_ = utils::date::GetNow();
-  modification_time_ = creation_time_;
-  SetMetaFile();
+std::vector<char> UnpackResourceData(const ResourceFile& file) {
+  std::vector<char> data;
+
+  switch (file.compression_mode) {
+    case CompressionMode::Lz4: {
+      utils::compression::DecompressLz4(file.data, file.data_size, data);
+      break;
+    }
+    case CompressionMode::None: {
+      data.resize(file.data_size);
+      std::memcpy(reinterpret_cast<void*>(data.data()),
+                  reinterpret_cast<const void*>(file.data.data()),
+                  file.data_size);
+      break;
+    }
+    default: {
+      throw std::runtime_error(
+          "Unknown compression mode: " +
+          std::to_string(
+              static_cast<std::underlying_type_t<resource::CompressionMode>>(
+                  file.compression_mode)));
+    }
+  }
+
+  return data;
 }
 
-void Resource::Update() {
-  modification_time_ = utils::date::GetNow();
-  SetMetaFile();
+bool SaveResourceFile(const std::string& path, const ResourceFile& file) {
+  std::ofstream out_file;
+
+  if (!utils::filesystem::OpenBinaryFileToWriteTo(path, out_file, false)) {
+    COMET_LOG_RESOURCE_ERROR("Unable to write resource file: ", path);
+    return false;
+  }
+
+  out_file.write(reinterpret_cast<const char*>(&file.resource_type_id),
+                 static_cast<std::streamsize>(sizeof(file.resource_type_id)));
+
+  out_file.write(reinterpret_cast<const char*>(&file.compression_mode),
+                 static_cast<std::streamsize>(sizeof(file.compression_mode)));
+
+  out_file.write(reinterpret_cast<const char*>(&file.packed_descr_size),
+                 static_cast<std::streamsize>(sizeof(file.packed_descr_size)));
+
+  out_file.write(reinterpret_cast<const char*>(&file.packed_data_size),
+                 static_cast<std::streamsize>(sizeof(file.packed_data_size)));
+
+  out_file.write(reinterpret_cast<const char*>(&file.descr_size),
+                 static_cast<std::streamsize>(sizeof(file.descr_size)));
+
+  out_file.write(reinterpret_cast<const char*>(&file.data_size),
+                 static_cast<std::streamsize>(sizeof(file.data_size)));
+
+  out_file.write(reinterpret_cast<const char*>(file.descr.data()),
+                 file.packed_descr_size);
+
+  out_file.write(reinterpret_cast<const char*>(file.data.data()),
+                 file.packed_data_size);
+
+  utils::filesystem::CloseFile(out_file);
+  return true;
 }
 
-bool Resource::Delete() { return true; }
+bool LoadResourceFile(const std::string& path, ResourceFile& file) {
+  std::ifstream in_file;
 
-const boost::uuids::uuid& Resource::GetId() const noexcept { return id_; }
+  if (!utils::filesystem::OpenBinaryFileToReadFrom(path, in_file)) {
+    COMET_LOG_RESOURCE_ERROR("Unable to open resource file: ", path);
+    return false;
+  }
 
-const nlohmann::json& Resource::GetMetaData() const { return meta_data_; }
+  in_file.seekg(0);
+  in_file.read(reinterpret_cast<char*>(&file.resource_type_id),
+               sizeof(ResourceId));
+
+  in_file.read(reinterpret_cast<char*>(&file.compression_mode),
+               sizeof(file.compression_mode));
+
+  in_file.read(reinterpret_cast<char*>(&file.packed_descr_size),
+               sizeof(file.packed_descr_size));
+
+  in_file.read(reinterpret_cast<char*>(&file.packed_data_size),
+               sizeof(file.packed_data_size));
+
+  in_file.read(reinterpret_cast<char*>(&file.descr_size),
+               sizeof(file.descr_size));
+
+  in_file.read(reinterpret_cast<char*>(&file.data_size),
+               sizeof(file.data_size));
+
+  file.descr.resize(file.packed_descr_size);
+  in_file.read(file.descr.data(), file.packed_descr_size);
+
+  file.data.resize(file.packed_data_size);
+  in_file.read(file.data.data(), file.packed_data_size);
+
+  return true;
+}
+
+ResourceFile ResourceHandler::GetResourceFile(
+    const Resource& resource, CompressionMode compression_mode) const {
+  return Pack(resource, compression_mode);
+}
 }  // namespace resource
 }  // namespace comet

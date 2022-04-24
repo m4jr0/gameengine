@@ -4,10 +4,6 @@
 
 #include "vulkan_types.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -24,22 +20,22 @@ bool QueueFamilyIndices::IsSpecificTransferFamily() {
   return graphics_family.value() != transfer_family.value();
 }
 
-std::vector<std::uint32_t> QueueFamilyIndices::GetUniqueIndices() {
+std::vector<u32> QueueFamilyIndices::GetUniqueIndices() {
   if (!IsComplete()) {
     throw std::runtime_error("Queue Family Indices is not complete");
   }
 
-  auto graphics_fam_index = graphics_family.value();
-  auto present_fam_index = present_family.value();
-  auto transfer_fam_index = transfer_family.value();
+  const auto graphics_fam_index{graphics_family.value()};
+  const auto present_fam_index{present_family.value()};
+  const auto transfer_fam_index{transfer_family.value()};
 
-  std::set<std::uint32_t> set = {
-      graphics_family.value(), present_family.value(), transfer_family.value()};
+  std::set<u32> set{graphics_family.value(), present_family.value(),
+                    transfer_family.value()};
 
-  std::vector<std::uint32_t> list{};
+  std::vector<u32> list{};
   list.reserve(set.size());
 
-  for (auto it = set.begin(); it != set.end();) {
+  for (auto it{set.begin()}; it != set.end();) {
     list.push_back(std::move(set.extract(it++).value()));
   }
 
@@ -48,9 +44,9 @@ std::vector<std::uint32_t> QueueFamilyIndices::GetUniqueIndices() {
 
 CommandBuffer::CommandBuffer(VkDevice device, VkCommandPool command_pool,
                              VkCommandBuffer command_buffer)
-    : device_(device),
-      command_pool_(command_pool),
-      command_buffer_(command_buffer) {}
+    : device_{device},
+      command_pool_{command_pool},
+      command_buffer_{command_buffer} {}
 
 CommandBuffer::~CommandBuffer() {
   if (is_allocated_) {

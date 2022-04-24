@@ -5,12 +5,25 @@
 #ifndef COMET_COMET_UTILS_HASH_H_
 #define COMET_COMET_UTILS_HASH_H_
 
-#include "comet_precompile.h"
+#include <string>
+
+#include "picosha2.h"
+
+#include "comet/core/type/primitive.h"
 
 namespace comet {
 namespace utils {
 namespace hash {
-unsigned int HashCrC32(const std::string& string);
+u32 HashCrC32(const void* data, uindex length);
+u32 HashCrC32(const std::string& string);
+
+std::string HashSha256(std::ifstream& stream);
+std::string HashSha256(const s8* data, const s8* end);
+
+template <typename Container>
+std::string HashSha256(const Container& data) {
+  return HashSha256(data.data(), data.data() + data.size());
+}
 }  // namespace hash
 }  // namespace utils
 }  // namespace comet

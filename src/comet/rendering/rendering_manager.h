@@ -7,33 +7,32 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/manager.h"
-#include "comet/game_object/game_object_manager.h"
+#include "comet/entity/entity_manager.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
-class RenderingManager : public core::Manager {
+class RenderingManager {
  public:
   RenderingManager() = default;
   RenderingManager(const RenderingManager&) = delete;
   RenderingManager(RenderingManager&&) = delete;
   RenderingManager& operator=(const RenderingManager&) = delete;
   RenderingManager& operator=(RenderingManager&&) = delete;
-  virtual ~RenderingManager() = default;
+  ~RenderingManager() = default;
 
-  void Initialize() override;
-  void Destroy() override;
+  void Initialize();
+  void Destroy();
   void Update(time::Interpolation interpolation,
-              game_object::GameObjectManager& game_object_manager);
+              entity::EntityManager& entity_manager);
 
   const Window* GetWindow() const;
 
  private:
-  int counter_ = 0;
-  double current_time_ = 0;
-  std::unique_ptr<Driver> driver_ = nullptr;
+  u32 counter_{0};
+  f64 current_time_{0};
+  std::unique_ptr<Driver> driver_{nullptr};
 
   void GenerateOpenGlDriver();
   void GenerateVulkanDriver();

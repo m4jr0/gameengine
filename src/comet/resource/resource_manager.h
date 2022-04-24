@@ -7,55 +7,109 @@
 
 #include "comet_precompile.h"
 
-#include "efsw/efsw.hpp"
-
-#include "comet/core/manager.h"
+#include "comet/resource/model_resource.h"
+#include "comet/resource/resource.h"
+#include "comet/resource/texture_resource.h"
+#include "comet/utils/file_system.h"
 
 namespace comet {
 namespace resource {
-class ResourceManager : public core::Manager, public efsw::FileWatchListener {
+class ResourceCache {
  public:
-  static constexpr char kDefaultAssetsRootDirectory_[] = "assets";
-  static constexpr char kDefaultResourcesRootDirectory_[] = "resources";
+  ResourceCache() = default;
+  ResourceCache(const ResourceCache&) = delete;
+  ResourceCache(ResourceCache&&) = delete;
+  ResourceCache& operator=(const ResourceCache&) = delete;
+  ResourceCache& operator=(ResourceCache&&) = delete;
+  ~ResourceCache() = default;
 
+  void Set(std::unique_ptr<Resource> resource);
+  const Resource* Get(ResourceId resource_id);
+
+ private:
+  std::unordered_map<ResourceId, std::unique_ptr<Resource>> cache_;
+};
+
+class ResourceManager {
+ public:
   ResourceManager() = default;
   ResourceManager(const ResourceManager&) = delete;
   ResourceManager(ResourceManager&&) = delete;
   ResourceManager& operator=(const ResourceManager&) = delete;
   ResourceManager& operator=(ResourceManager&&) = delete;
-  virtual ~ResourceManager() = default;
+  ~ResourceManager() = default;
 
-  void Initialize() override;
-  void Destroy() override;
-  void Refresh();
-  void Refresh(const std::string& path);
-  void SetFolderMetaFile(const std::string& path);
-  void SetResourceMetaFile();
-
-  // Override esfw::FileWatchListener's method.
-  void handleFileAction(efsw::WatchID watch_id, const std::string& directory,
-                        const std::string& file_name, efsw::Action action,
-                        std::string old_file_name = "") override;
-
-  const std::string& GetAssetsRootPath() const noexcept;
-  const std::string& GetResourcesRootPath() const noexcept;
-
- protected:
-  double last_update_time_;
-  std::string assets_root_path_;
-  std::string resources_root_path_;
-  std::unique_ptr<efsw::FileWatcher> assets_watcher_ = nullptr;
-  efsw::WatchID assets_watch_id_ = -1;
-
-  void RefreshFolder(const std::string& path);
-  void RefreshAsset(const std::string& path);
-  void Watch();
-  void Unwatch();
-  bool IsRefreshFolder(const std::string& path,
-                       const std::string& meta_file_path);
-  void InitializeAssetsDirectory();
+  void Initialize();
+  void Destroy();
   void InitializeResourcesDirectory();
-  void InitializeWatcher();
+
+  const std::string& GetRootResourcePath();
+
+  template <typename ResourceHandlerType>
+  void AddHandler(ResourceId resource_id) {
+    if (handlers_.find(resource_id) != handlers_.cend()) {
+      COMET_LOG_RESOURCE_ERROR(
+          "Adding handler to an already known resource ID: ", resource_id,
+          ". Aborting.");
+      return;
+    }
+
+    handlers_[resource_id] = std::make_unique<ResourceHandlerType>();
+  }
+
+  template <typename ResourceType>
+  const ResourceType* LoadFromResourceId(
+      ResourceId resource_id,
+      ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
+    const auto* resource{cache_.Get(resource_id)};
+
+    if (resource != nullptr) {
+      if (resource->type_id != ResourceType::kResourceTypeId) {
+        COMET_LOG_RESOURCE_ERROR(
+            "Invalid resource type provided. ID of expected type is ",
+            resource->type_id, ", ID of type provided is ",
+            ResourceType::kResourceTypeId);
+        return nullptr;
+      }
+
+      return static_cast<const ResourceType*>(resource);
+    }
+
+    if (handlers_.find(ResourceType::kResourceTypeId) == handlers_.cend()) {
+      COMET_LOG_RESOURCE_ERROR("Unknown resource ID: ", resource_id,
+                               ". Aborting.");
+      return nullptr;
+    }
+
+    const auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
+    cache_.Set(handler->Load(root_resource_path_, std::to_string(resource_id)));
+    return static_cast<const ResourceType*>(cache_.Get(resource_id));
+  }
+
+  template <typename ResourceType, typename AssetPath>
+  const ResourceType* Load(
+      AssetPath&& asset_path,
+      ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
+    return LoadFromResourceId<ResourceType>(GenerateResourceId(asset_path),
+                                            life_span);
+  }
+
+  template <typename ResourceType>
+  ResourceFile GetResourceFile(const ResourceType& resource,
+                               CompressionMode compression_mode) {
+    if (handlers_.find(resource.kResourceTypeId) == handlers_.cend()) {
+      throw std::runtime_error("Unknown resource ID: " +
+                               std::to_string(resource.kResourceTypeId));
+    }
+
+    auto* handler{handlers_.at(resource.kResourceTypeId).get()};
+    return handler->GetResourceFile(resource, compression_mode);
+  }
+
+ private:
+  std::string root_resource_path_;
+  std::unordered_map<ResourceId, std::unique_ptr<ResourceHandler>> handlers_;
+  ResourceCache cache_;
 };
 }  // namespace resource
 }  // namespace comet

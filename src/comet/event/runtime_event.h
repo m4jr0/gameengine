@@ -13,7 +13,7 @@ namespace comet {
 namespace event {
 class UnrecoverableErrorEvent : public Event {
  public:
-  const static core::StringId kStaticType_;
+  const static stringid::StringId kStaticType_;
 
   UnrecoverableErrorEvent() = default;
   UnrecoverableErrorEvent(const UnrecoverableErrorEvent&) = default;
@@ -21,9 +21,9 @@ class UnrecoverableErrorEvent : public Event {
   UnrecoverableErrorEvent& operator=(const UnrecoverableErrorEvent&) = default;
   UnrecoverableErrorEvent& operator=(UnrecoverableErrorEvent&&) noexcept =
       default;
-  virtual ~UnrecoverableErrorEvent() = default;
+  ~UnrecoverableErrorEvent() = default;
 
-  virtual const core::StringId& GetType() const noexcept override;
+  stringid::StringId GetType() const noexcept override;
 };
 }  // namespace event
 }  // namespace comet

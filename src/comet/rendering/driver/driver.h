@@ -7,15 +7,15 @@
 
 #include "comet_precompile.h"
 
-#include "comet/game_object/game_object_manager.h"
+#include "comet/entity/entity_manager.h"
 #include "comet/rendering/window/window.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
 struct DriverDescr {
-  unsigned int width;
-  unsigned int height;
+  u16 width;
+  u16 height;
   std::string name;
 };
 
@@ -31,7 +31,7 @@ class Driver {
   virtual void Initialize() = 0;
   virtual void Destroy() = 0;
   virtual void Update(time::Interpolation interpolation,
-                      game_object::GameObjectManager& game_object_manager) = 0;
+                      entity::EntityManager& entity_manager) = 0;
 
   virtual bool IsInitialized() const = 0;
   virtual Window& GetWindow() = 0;

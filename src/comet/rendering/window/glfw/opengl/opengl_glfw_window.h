@@ -17,9 +17,9 @@ namespace comet {
 namespace rendering {
 namespace gl {
 struct OpenGlGlfwWindowDescr : WindowDescr {
-  bool is_vsync = true;
-  unsigned int opengl_major_version = 0;
-  unsigned int opengl_minor_version = 0;
+  bool is_vsync{true};
+  u8 opengl_major_version{0};
+  u8 opengl_minor_version{0};
 };
 
 class OpenGlGlfwWindow : public GlfwWindow {
@@ -30,19 +30,19 @@ class OpenGlGlfwWindow : public GlfwWindow {
   OpenGlGlfwWindow(OpenGlGlfwWindow&&) noexcept;
   OpenGlGlfwWindow& operator=(const OpenGlGlfwWindow&);
   OpenGlGlfwWindow& operator=(OpenGlGlfwWindow&&) noexcept;
-  virtual ~OpenGlGlfwWindow() = default;
+  ~OpenGlGlfwWindow() = default;
 
-  virtual void Initialize() override;
-  virtual void SetGlfwHints() override;
+  void Initialize() override;
+  void SetGlfwHints() override;
   void SwapBuffers() const;
 
-  virtual bool IsVSync() const noexcept;
-  virtual void SetVSync(bool is_vsync);
+  bool IsVSync() const noexcept;
+  void SetVSync(bool is_vsync);
 
  private:
-  bool is_vsync_ = true;
-  unsigned int opengl_major_version_ = 0;
-  unsigned int opengl_minor_version_ = 0;
+  bool is_vsync_{true};
+  u8 opengl_major_version_{0};
+  u8 opengl_minor_version_{0};
 };
 }  // namespace gl
 }  // namespace rendering

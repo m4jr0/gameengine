@@ -28,15 +28,15 @@ class GlfwWindow : public Window {
   virtual void Initialize() override;
   virtual void Destroy() override;
   virtual void SetGlfwHints();
-  virtual void SetSize(unsigned int width, unsigned int height) override;
+  virtual void SetSize(u16 width, u16 height) override;
 
   virtual bool IsInitialized() const override;
   virtual const GLFWwindow* GetHandle() const noexcept;
 
  protected:
-  inline static std::size_t window_count_ = 0;
-  GLFWwindow* handle_ = nullptr;
-  bool is_initialized_ = false;
+  inline static uindex window_count_{0};
+  GLFWwindow* handle_{nullptr};
+  bool is_initialized_{false};
 };
 }  // namespace rendering
 }  // namespace comet

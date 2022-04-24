@@ -8,10 +8,6 @@
 
 #include "comet/rendering/driver/vulkan/vulkan_initializers.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -20,8 +16,8 @@ VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info,
     const VkAllocationCallbacks* allocator,
     VkDebugUtilsMessengerEXT* messenger) {
-  const auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkCreateDebugUtilsMessengerEXT");
+  const auto func{(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkCreateDebugUtilsMessengerEXT")};
 
   if (func == nullptr) {
     return VK_ERROR_EXTENSION_NOT_PRESENT;
@@ -33,8 +29,8 @@ VkResult CreateDebugUtilsMessengerEXT(
 void DestroyDebugUtilsMessengerEXT(VkInstance instance,
                                    VkDebugUtilsMessengerEXT messenger,
                                    const VkAllocationCallbacks* allocator) {
-  const auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkDestroyDebugUtilsMessengerEXT");
+  const auto func{(PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkDestroyDebugUtilsMessengerEXT")};
 
   if (func == nullptr) {
     return;
@@ -49,7 +45,7 @@ bool AreDeviceExtensionAvailable(VkPhysicalDevice device,
     return true;
   }
 
-  std::uint32_t extension_count;
+  u32 extension_count;
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extension_count,
                                        nullptr);
 
@@ -72,9 +68,8 @@ VkSampleCountFlagBits GetMaxUsableSampleCount(
   VkPhysicalDeviceProperties physical_device_properties;
   vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
 
-  VkSampleCountFlags counts =
-      physical_device_properties.limits.framebufferColorSampleCounts &
-      physical_device_properties.limits.framebufferDepthSampleCounts;
+  auto counts{physical_device_properties.limits.framebufferColorSampleCounts &
+              physical_device_properties.limits.framebufferDepthSampleCounts};
 
   if (counts & VK_SAMPLE_COUNT_64_BIT) return VK_SAMPLE_COUNT_64_BIT;
   if (counts & VK_SAMPLE_COUNT_32_BIT) return VK_SAMPLE_COUNT_32_BIT;

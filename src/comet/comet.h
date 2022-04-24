@@ -6,8 +6,6 @@
 #define COMET_COMET_COMET_COMET_H_
 
 #include "comet/core/engine.h"
-#include "comet/core/entry_point.h"
-#include "comet/game_object/component.h"
-#include "comet/game_object/game_object.h"
+#include "comet/entity/entity.h"
 
 #endif  // COMET_COMET_COMET_COMET_H_

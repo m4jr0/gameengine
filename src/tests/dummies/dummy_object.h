@@ -2,30 +2,31 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_TESTS_DUMMIES_H_
-#define COMET_TESTS_DUMMIES_H_
+#ifndef COMET_TESTS_DUMMY_OBJECT_H_
+#define COMET_TESTS_DUMMY_OBJECT_H_
 
 #include "comet_precompile.h"
 
+namespace comet {
 namespace comettests {
 class DummyObject {
  public:
-  static constexpr bool kDefaultVerbose_ = false;
+  static constexpr bool kDefaultVerbose_{false};
 
-  DummyObject(int = 0, bool = kDefaultVerbose_);
+  DummyObject(s32 value = 0, bool is_verbose = kDefaultVerbose_);
   DummyObject(const DummyObject&);
   DummyObject(DummyObject&&) noexcept;
   DummyObject& operator=(const DummyObject&);
   DummyObject& operator=(DummyObject&&) noexcept;
-  virtual ~DummyObject();
+  ~DummyObject();
 
   bool operator==(const DummyObject&) const;
   bool operator!=(const DummyObject&) const;
 
   std::string ToString() const;
 
-  static std::size_t GetCounter() noexcept;
-  std::size_t GetId() const noexcept;
+  static uindex GetCounter() noexcept;
+  uindex GetId() const noexcept;
   int GetValue() const noexcept;
   bool IsVerbose() const noexcept;
   void IsVerbose(bool) noexcept;
@@ -33,13 +34,14 @@ class DummyObject {
  private:
   void Print(const std::string& message) const;
 
-  static std::size_t counter_;
-  std::size_t id_ = 0;
-  int value_ = 0;
-  bool is_verbose_ = false;
+  static uindex counter_;
+  u64 id_{0};
+  s32 value_{0};
+  bool is_verbose_{false};
 };
 
-std::ostream& operator<<(std::ostream&, const comettests::DummyObject&);
+std::ostream& operator<<(std::ostream&, const DummyObject&);
 }  // namespace comettests
+}  // namespace comet
 
-#endif  // COMET_TESTS_DUMMIES_H_
+#endif  // COMET_TESTS_DUMMY_OBJECT_H_

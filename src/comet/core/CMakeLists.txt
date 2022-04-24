@@ -12,10 +12,14 @@
 add_library(${CORE_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/core/configuration_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/engine.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/entry_point.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/id/string_id.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/debug.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/logger.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/version.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/os.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/primitive.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/string_id.cc"
 )
 
 # Compiling ####################################################################

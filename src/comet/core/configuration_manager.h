@@ -9,35 +9,34 @@
 
 #include <any>
 
-#include "comet/core/manager.h"
-
 namespace comet {
-namespace core {
-class ConfigurationManager : public core::Manager {
+namespace conf {
+class ConfigurationManager {
  public:
   ConfigurationManager() = default;
   ConfigurationManager(const ConfigurationManager&) = delete;
   ConfigurationManager(ConfigurationManager&&) = delete;
   ConfigurationManager& operator=(const ConfigurationManager&) = delete;
   ConfigurationManager& operator=(ConfigurationManager&&) = delete;
-  virtual ~ConfigurationManager() = default;
+  ~ConfigurationManager() = default;
 
-  virtual void Initialize() override;
+  void Initialize();
+  void Destroy();
 
-  template <typename T>
-  static void Set(const std::string entry, T value) {
-    values_[entry] = value;
+  template <typename T, typename String>
+  void Set(String&& entry, T&& value) {
+    values_[std::forward<String>(entry)] = std::forward<T>(value);
   }
 
-  template <typename T>
-  static T Get(const std::string entry) {
-    return std::any_cast<T>(values_[entry]);
+  template <typename T, typename String>
+  T Get(String&& entry) const {
+    return std::any_cast<T>(values_.at(std::forward<String>(entry)));
   }
 
  private:
-  static std::unordered_map<std::string, std::any> values_;
+  std::unordered_map<std::string, std::any> values_;
 };
-}  // namespace core
+}  // namespace conf
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_CONFIGURATION_MANAGER_H_

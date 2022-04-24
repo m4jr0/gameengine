@@ -10,17 +10,35 @@
 
 # Source files #################################################################
 list(APPEND EXECUTABLE_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/comet/entry_point.cc"
   "${PROJECT_SOURCE_DIR}/src/editor/editor.cc"
 )
 
 # Executable ###################################################################
 add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
 
+set_target_properties(${EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+
+# Global variables #############################################################
+# Executables.
+set(EXECUTABLE_NAME "comet_editor")
+set(TESTS_EXECUTABLE_NAME "comet_tests")
+
+# Internal library names.
+set(ASSET_LIBRARY_NAME "asset")
+
+# Internal libraries container.
+list(APPEND COMET_EDITOR_LIBRARIES
+  ${ASSET_LIBRARY_NAME}
+)
+
+# Subdirectories ###############################################################
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor/asset")
+
 # Compiling ####################################################################
 target_precompile_headers(${EXECUTABLE_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet_precompile.h"
-    "${PROJECT_SOURCE_DIR}/src/debug_windows.h"
 )
 
 target_include_directories(${EXECUTABLE_NAME}
@@ -38,4 +56,5 @@ target_link_directories(${EXECUTABLE_NAME}
 target_link_libraries(${EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARIES}
+    ${COMET_EDITOR_LIBRARIES}
 )

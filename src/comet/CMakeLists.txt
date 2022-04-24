@@ -11,7 +11,7 @@
 # Subdirectories ###############################################################
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/core")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/event")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/game_object")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/entity")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/input")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/physics")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/rendering")

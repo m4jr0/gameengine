@@ -6,10 +6,10 @@
 
 namespace comet {
 namespace event {
-const core::StringId UnrecoverableErrorEvent::kStaticType_ =
-    COMET_STRING_ID("event_unrecoverable_error");
+const stringid::StringId UnrecoverableErrorEvent::kStaticType_{
+    COMET_STRING_ID("event_unrecoverable_error")};
 
-const core::StringId& UnrecoverableErrorEvent::GetType() const noexcept {
+stringid::StringId UnrecoverableErrorEvent::GetType() const noexcept {
   return kStaticType_;
 }
 }  // namespace event

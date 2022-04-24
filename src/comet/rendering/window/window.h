@@ -10,9 +10,9 @@
 namespace comet {
 namespace rendering {
 struct WindowDescr {
-  unsigned int width = 1280;
-  unsigned int height = 720;
-  std::string name = "Comet Game Engine";
+  u16 width{1280};
+  u16 height{720};
+  std::string name{"Comet Game Engine"};
 };
 
 class Window {
@@ -28,16 +28,16 @@ class Window {
   virtual void Initialize() = 0;
   virtual void Destroy(){};
   virtual void Update(){};
-  virtual void SetSize(unsigned int width, unsigned int height) = 0;
+  virtual void SetSize(u16 width, u16 height) = 0;
 
   virtual bool IsInitialized() const = 0;
   virtual const std::string GetName() const noexcept;
-  virtual const unsigned int GetWidth() const noexcept;
-  virtual const unsigned int GetHeight() const noexcept;
+  virtual const u16 GetWidth() const noexcept;
+  virtual const u16 GetHeight() const noexcept;
 
  protected:
-  unsigned int width_ = 0;
-  unsigned int height_ = 0;
+  u16 width_{0};
+  u16 height_{0};
   std::string name_{};
 };
 }  // namespace rendering

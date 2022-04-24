@@ -8,13 +8,7 @@
       "name": "assimp"
     },
     {
-      "name": "boost"
-    },
-    {
       "name": "catch2"
-    },
-    {
-      "name": "efsw"
     },
     {
       "name": "glad"
@@ -51,6 +45,9 @@
     },
     {
       "name": "vulkan-memory-allocator"
+    },
+    {
+      "name": "lz4"
     }
   ]
 }

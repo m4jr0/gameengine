@@ -18,16 +18,16 @@ namespace init {
 VkDebugUtilsMessengerCreateInfoEXT GetDebugUtilsMessengerCreateInfo(
     PFN_vkDebugUtilsMessengerCallbackEXT callback);
 VkCommandPoolCreateInfo GetCommandPoolCreateInfo(
-    std::uint32_t queue_family_index, VkCommandPoolCreateFlags flags = 0);
+    u32 queue_family_index, VkCommandPoolCreateFlags flags = 0);
 VkCommandBufferAllocateInfo GetCommandBufferAllocateInfo(
-    VkCommandPool pool, std::uint32_t count = 1,
+    VkCommandPool pool, u32 count = 1,
     VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 VkCommandBufferBeginInfo GetCommandBufferBeginInfo(
     VkCommandBufferUsageFlags flags = 0);
 VkFramebufferCreateInfo GetFrameBufferCreateInfo(VkRenderPass render_pass,
                                                  VkExtent2D extent);
-VkDeviceQueueCreateInfo GetDeviceQueueCreateInfo(
-    std::uint32_t queue_family_index, const float& queue_priority);
+VkDeviceQueueCreateInfo GetDeviceQueueCreateInfo(u32 queue_family_index,
+                                                 const f32& queue_priority);
 VkDeviceCreateInfo GetDeviceCreateInfo(
     const std::vector<VkDeviceQueueCreateInfo>& queue_create_info,
     const VkPhysicalDeviceFeatures& physical_device_features,
@@ -36,8 +36,7 @@ VkSwapchainCreateInfoKHR GetSwapchainCreateInfo(
     const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surface_format,
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
     const SwapChainSupportDetails& details,
-    const std::vector<std::uint32_t>& queue_family_unique_indices,
-    std::uint32_t image_count);
+    const std::vector<u32>& queue_family_unique_indices, u32 image_count);
 VkFenceCreateInfo GetFenceCreateInfo(VkFenceCreateFlags flags = 0);
 VkSemaphoreCreateInfo GetSemaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
 VkSubmitInfo GetSubmitInfo(VkCommandBuffer* command_buffer);
@@ -58,24 +57,22 @@ VkPipelineLayoutCreateInfo GetPipelineLayoutCreateInfo();
 VkPipelineDepthStencilStateCreateInfo GetPipelineDepthStencilStateCreateInfo(
     bool is_depth_test, bool is_depth_write, VkCompareOp compare_op);
 VkImageCreateInfo GetImageCreateInfo(
-    std::uint32_t width, std::uint32_t height, std::uint32_t mip_levels,
-    VkSampleCountFlagBits num_samples, VkFormat format, VkImageTiling tiling,
-    VkImageUsageFlags usage_flags,
+    u32 width, u32 height, u32 mip_levels, VkSampleCountFlagBits num_samples,
+    VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags,
     VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
-    const std::uint32_t* queue_family_indices = nullptr,
-    std::uint32_t queue_family_index_count = 0);
+    const u32* queue_family_indices = nullptr,
+    u32 queue_family_index_count = 0);
 VkImageViewCreateInfo GetImageViewCreateInfo(VkImage image, VkFormat format,
                                              VkImageAspectFlags aspect_flags,
-                                             std::uint32_t mip_levels);
+                                             u32 mip_levels);
 VkDescriptorSetLayoutBinding GetDescriptorSetLayoutBinding(
-    VkDescriptorType type, VkShaderStageFlags stage_flags,
-    std::uint32_t binding);
+    VkDescriptorType type, VkShaderStageFlags stage_flags, u32 binding);
 VkWriteDescriptorSet GetBufferWriteDescriptorSet(
     VkDescriptorType type, VkDescriptorSet dst_set,
-    VkDescriptorBufferInfo* buffer_info, std::uint32_t binding);
+    VkDescriptorBufferInfo* buffer_info, u32 binding);
 VkWriteDescriptorSet GetImageWriteDescriptorSet(
     VkDescriptorType type, VkDescriptorSet dst_set,
-    VkDescriptorImageInfo* image_info, std::uint32_t binding);
+    VkDescriptorImageInfo* image_info, u32 binding);
 VkSamplerCreateInfo GetSamplerCreateInfo(
     VkFilter filters,
     VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_REPEAT);

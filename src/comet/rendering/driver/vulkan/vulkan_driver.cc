@@ -8,8 +8,7 @@
 
 #include <set>
 
-#include "boost/format.hpp"
-
+#include "comet/core/configuration_manager.h"
 #include "comet/core/engine.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/input_event.h"
@@ -17,20 +16,16 @@
 #include "comet/event/window_event.h"
 #include "comet/rendering/driver/vulkan/vulkan_utils.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 namespace vk {
-const std::vector<const char*> VulkanDriver::kDeviceExtensions_ = {
+const std::vector<const char*> VulkanDriver::kDeviceExtensions_{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
-    : is_specific_transfer_queue_requested_(
-          descr.is_specific_transfer_queue_requested),
-      max_frames_in_flight_(descr.max_frames_in_flight) {
+    : is_specific_transfer_queue_requested_{descr
+                                                .is_specific_transfer_queue_requested},
+      max_frames_in_flight_{descr.max_frames_in_flight} {
   WindowDescr window_descr{};
   window_descr.width = descr.width;
   window_descr.height = descr.height;
@@ -47,16 +42,15 @@ void VulkanDriver::Initialize() {
     return;
   }
 
-  event::EventManager& event_manager =
-      core::Engine::GetEngine().GetEventManager();
+  auto& event_manager{Engine::Get().GetEventManager()};
 
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(VulkanDriver::OnEvent),
                          event::WindowResizeEvent::kStaticType_);
 
   InitializeVulkanInstance();
-#ifndef NDEBUG
+#ifdef COMET_DEBUG
   InitializeDebugMessenger();
-#endif  // !NDEBUG
+#endif  // COMET_DEBUG
   InitializeSurface();
   ChoosePhysicalDevice();
   InitializeDevice();
@@ -89,9 +83,9 @@ void VulkanDriver::Destroy() {
   DestroyAllocator();
   DestroyDevice();
   DestroySurface();
-#ifndef NDEBUG
+#ifdef COMET_DEBUG
   DestroyDebugMessenger();
-#endif  // !NDEBUG
+#endif  // COMET_DEBUG
   DestroyInstance();
 
   if (window_.IsInitialized()) {
@@ -100,7 +94,7 @@ void VulkanDriver::Destroy() {
 }
 
 void VulkanDriver::Update(time::Interpolation interpolation,
-                          game_object::GameObjectManager& game_object_manager) {
+                          entity::EntityManager& entity_manager) {
   // Code.
 }
 
@@ -120,18 +114,18 @@ void VulkanDriver::UploadMesh(Mesh& mesh) {
   // Code.
 }
 
-void VulkanDriver::SetSize(unsigned int width, unsigned int height) {
+void VulkanDriver::SetSize(u16 width, u16 height) {
   window_.SetSize(width, height);
 
   // Code.
 }
 
 void VulkanDriver::OnEvent(const event::Event& event) {
-  const auto& event_type = event.GetType();
+  const auto& event_type{event.GetType()};
 
   if (event_type == event::WindowResizeEvent::kStaticType_) {
-    const auto& window_event =
-        static_cast<const event::WindowResizeEvent&>(event);
+    const auto& window_event{
+        static_cast<const event::WindowResizeEvent&>(event)};
     SetSize(window_event.GetWidth(), window_event.GetHeight());
   }
 }
@@ -141,16 +135,16 @@ bool VulkanDriver::IsInitialized() const { return is_initialized_; }
 Window& VulkanDriver::GetWindow() { return window_; }
 
 std::vector<const char*> VulkanDriver::GetRequiredExtensions() {
-  std::uint32_t glfw_extension_count = 0;
-  const char** glfw_extensions =
-      glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+  u32 glfw_extension_count{0};
+  const char** glfw_extensions{
+      glfwGetRequiredInstanceExtensions(&glfw_extension_count)};
 
   std::vector<const char*> extensions(glfw_extensions,
                                       glfw_extensions + glfw_extension_count);
 
-#ifndef NDEBUG
+#ifdef COMET_DEBUG
   extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif  // !NDEBUG
+#endif  // COMET_DEBUG
 
   return extensions;
 }
@@ -158,7 +152,7 @@ std::vector<const char*> VulkanDriver::GetRequiredExtensions() {
 QueueFamilyIndices VulkanDriver::FindQueueFamilies(VkPhysicalDevice device) {
   QueueFamilyIndices indices;
 
-  std::uint32_t queue_family_count = 0;
+  u32 queue_family_count{0};
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count,
                                            nullptr);
 
@@ -170,10 +164,10 @@ QueueFamilyIndices VulkanDriver::FindQueueFamilies(VkPhysicalDevice device) {
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count,
                                            queue_families.data());
 
-  std::size_t queue_index = 0;
+  u32 queue_index{0};
 
   for (const auto& queue_family : queue_families) {
-    VkBool32 is_present_support = false;
+    VkBool32 is_present_support{false};
     vkGetPhysicalDeviceSurfaceSupportKHR(device, queue_index, surface_,
                                          &is_present_support);
     // At first, we explicitly try to find a queue family specialized for
@@ -223,7 +217,7 @@ SwapChainSupportDetails VulkanDriver::QuerySwapChainSupportDetails(
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_,
                                             &details.capabilities);
 
-  std::uint32_t format_count;
+  u32 format_count;
   vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_count,
                                        nullptr);
 
@@ -233,7 +227,7 @@ SwapChainSupportDetails VulkanDriver::QuerySwapChainSupportDetails(
                                          details.formats.data());
   }
 
-  std::uint32_t present_mode_count;
+  u32 present_mode_count;
   vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_,
                                             &present_mode_count, nullptr);
 
@@ -246,22 +240,21 @@ SwapChainSupportDetails VulkanDriver::QuerySwapChainSupportDetails(
   return details;
 }
 
-void VulkanDriver::CreateImage(std::uint32_t width, std::uint32_t height,
-                               std::uint32_t mip_levels,
+void VulkanDriver::CreateImage(u32 width, u32 height, u32 mip_levels,
                                VkSampleCountFlagBits num_samples,
                                VkFormat format, VkImageTiling tiling,
                                VkImageUsageFlags usage_flags,
                                VkMemoryPropertyFlags properties,
                                AllocatedImage& allocated_image) {
-  const std::vector<std::uint32_t> family_indices{
+  const std::vector<u32> family_indices{
       queue_family_indices_.transfer_family.value(),
       queue_family_indices_.graphics_family.value()};
 
-  VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE;
-  std::uint32_t queue_family_index_count = 0;
-  const std::uint32_t* queue_family_indices_pointer = nullptr;
+  auto sharing_mode{VK_SHARING_MODE_EXCLUSIVE};
+  u32 queue_family_index_count{0};
+  const u32* queue_family_indices_pointer{nullptr};
 
-  const std::vector<std::uint32_t> queue_family_indices{
+  const std::vector<u32> queue_family_indices{
       queue_family_indices_.transfer_family.value(),
       queue_family_indices_.graphics_family.value()};
 
@@ -271,11 +264,11 @@ void VulkanDriver::CreateImage(std::uint32_t width, std::uint32_t height,
     queue_family_indices_pointer = queue_family_indices.data();
   }
 
-  auto create_info = init::GetImageCreateInfo(
+  auto create_info{init::GetImageCreateInfo(
       width, height, mip_levels, num_samples, format, tiling, usage_flags,
-      sharing_mode, queue_family_indices_pointer, queue_family_index_count);
+      sharing_mode, queue_family_indices_pointer, queue_family_index_count)};
 
-  VmaAllocationCreateInfo alloc_info = {};
+  VmaAllocationCreateInfo alloc_info{};
   alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
   alloc_info.requiredFlags = properties;
 
@@ -288,10 +281,10 @@ void VulkanDriver::CreateImage(std::uint32_t width, std::uint32_t height,
 
 VkImageView VulkanDriver::CreateImageView(VkImage image, VkFormat format,
                                           VkImageAspectFlags aspect_flags,
-                                          std::uint32_t mip_levels) {
-  auto create_info =
-      init::GetImageViewCreateInfo(image, format, aspect_flags, 1);
-  VkImageView image_view;
+                                          u32 mip_levels) {
+  auto create_info{
+      init::GetImageViewCreateInfo(image, format, aspect_flags, 1)};
+  VkImageView image_view{VK_NULL_HANDLE};
 
   if (vkCreateImageView(device_, &create_info, nullptr, &image_view) !=
       VK_SUCCESS) {
@@ -322,13 +315,13 @@ PhysicalDeviceDescr VulkanDriver::GetPhysicalDeviceDescription(
     return descr;
   }
 
-  auto indices = FindQueueFamilies(device);
+  auto indices{FindQueueFamilies(device)};
 
   if (!indices.IsComplete()) {
     return descr;
   }
 
-  auto swapchain_support_details = QuerySwapChainSupportDetails(device);
+  auto swapchain_support_details{QuerySwapChainSupportDetails(device)};
 
   if (swapchain_support_details.formats.empty() ||
       swapchain_support_details.present_modes.empty()) {
@@ -341,7 +334,7 @@ PhysicalDeviceDescr VulkanDriver::GetPhysicalDeviceDescription(
   }
 
   descr.msaa_samples = utils::GetMaxUsableSampleCount(descr.device);
-  descr.score += 5 * static_cast<PhysicalDeviceScore>(descr.msaa_samples);
+  descr.score += 5 * descr.msaa_samples;
   descr.score += descr.properties.limits.maxImageDimension2D;
 
   return descr;
@@ -352,9 +345,9 @@ void VulkanDriver::InitializeSurface() {
 }
 
 void VulkanDriver::InitializeDevice() {
-  auto unique_queue_family_indices = queue_family_indices_.GetUniqueIndices();
+  auto unique_queue_family_indices{queue_family_indices_.GetUniqueIndices()};
   std::vector<VkDeviceQueueCreateInfo> queue_create_info{};
-  auto queue_priority = 1.0f;
+  auto queue_priority{1.0f};
 
   for (auto queue_family_index : unique_queue_family_indices) {
     queue_create_info.push_back(
@@ -389,7 +382,7 @@ void VulkanDriver::InitializeDevice() {
 
 void VulkanDriver::InitializeVulkanInstance() {
   COMET_LOG_RENDERING_DEBUG("Initializing Vulkan instance.");
-  unsigned int extension_count = 0;
+  u32 extension_count{0};
   vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
   std::vector<VkExtensionProperties> extensions(extension_count);
   vkEnumerateInstanceExtensionProperties(nullptr, &extension_count,
@@ -401,43 +394,33 @@ void VulkanDriver::InitializeVulkanInstance() {
     COMET_LOG_RENDERING_DEBUG("\t", extension.extensionName);
   }
 
-  const auto& conf = core::Engine::GetEngine().GetConfigurationManager();
+  const auto& conf{Engine::Get().GetConfigurationManager()};
   VkApplicationInfo app_info{};
 
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
-  auto app_name = conf.Get<std::string>("application_name");
-  auto app_major_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("application_major_version"));
-  auto app_minor_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("application_minor_version"));
-  auto app_patch_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("application_patch_version"));
+  auto app_name{conf.Get<std::string>("application_name")};
+  auto app_major_version{conf.Get<u8>("application_major_version")};
+  auto app_minor_version{conf.Get<u8>("application_minor_version")};
+  auto app_patch_version{conf.Get<u8>("application_patch_version")};
 
   app_info.pApplicationName = app_name.c_str();
   app_info.applicationVersion = VK_MAKE_API_VERSION(
       0, app_major_version, app_minor_version, app_patch_version);
 
-  auto engine_name = conf.Get<std::string>("engine_name");
-  auto engine_major_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("engine_major_version"));
-  auto engine_minor_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("engine_minor_version"));
-  auto engine_patch_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("engine_patch_version"));
+  auto engine_name{conf.Get<std::string>("engine_name")};
+  auto engine_major_version{conf.Get<u8>("engine_major_version")};
+  auto engine_minor_version{conf.Get<u8>("engine_minor_version")};
+  auto engine_patch_version{conf.Get<u8>("engine_patch_version")};
 
   app_info.pEngineName = engine_name.c_str();
   app_info.engineVersion = VK_MAKE_API_VERSION(
       0, engine_major_version, engine_minor_version, engine_patch_version);
 
-  auto vk_variant_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_variant_version"));
-  auto vk_major_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_major_version"));
-  auto vk_minor_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_minor_version"));
-  auto vk_patch_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_patch_version"));
+  auto vk_variant_version{conf.Get<u8>("rendering_vulkan_variant_version")};
+  auto vk_major_version{conf.Get<u8>("rendering_vulkan_major_version")};
+  auto vk_minor_version{conf.Get<u8>("rendering_vulkan_minor_version")};
+  auto vk_patch_version{conf.Get<u8>("rendering_vulkan_patch_version")};
 
   app_info.apiVersion = VK_MAKE_API_VERSION(
       vk_variant_version, vk_major_version, vk_minor_version, vk_patch_version);
@@ -445,26 +428,26 @@ void VulkanDriver::InitializeVulkanInstance() {
   VkInstanceCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   create_info.pApplicationInfo = &app_info;
-#ifndef NDEBUG
-  VkValidationFeatureEnableEXT enabled_validation_features[] = {
+#ifdef COMET_DEBUG
+  VkValidationFeatureEnableEXT enabled_validation_features[]{
       VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
-  VkValidationFeaturesEXT validation_features = {};
+  VkValidationFeaturesEXT validation_features{};
   validation_features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
   validation_features.enabledValidationFeatureCount = 1;
   validation_features.pEnabledValidationFeatures = enabled_validation_features;
   create_info.pNext = &validation_features;
-#endif  // !NDEBUG
+#endif  // COMET_DEBUG
 
-  const auto required_extensions = GetRequiredExtensions();
-  const std::uint32_t required_extension_count =
-      static_cast<std::uint32_t>(required_extensions.size());
+  const auto required_extensions{GetRequiredExtensions()};
+  const u32 required_extension_count{
+      static_cast<u32>(required_extensions.size())};
 
   COMET_LOG_RENDERING_DEBUG("Required extensions:");
 
-  for (std::size_t i = 0; i < required_extension_count; ++i) {
-    const char* required_extension = required_extensions[i];
+  for (uindex i{0}; i < required_extension_count; ++i) {
+    const char* required_extension{required_extensions[i]};
     COMET_LOG_RENDERING_DEBUG("\t", required_extension);
-    bool is_found = false;
+    auto is_found{false};
 
     for (const auto& extension : extensions) {
       if (std::strcmp(required_extension, extension.extensionName) == 0) {
@@ -483,7 +466,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.enabledExtensionCount = required_extension_count;
   create_info.ppEnabledExtensionNames = required_extensions.data();
 
-#ifdef NDEBUG
+#ifndef COMET_DEBUG
   create_info.enabledLayerCount = 0;
   create_info.pNext = nullptr;
 #else
@@ -491,14 +474,13 @@ void VulkanDriver::InitializeVulkanInstance() {
     throw std::runtime_error("At least one validation layer is not available");
   }
 
-  create_info.enabledLayerCount =
-      static_cast<std::uint32_t>(kValidationLayers_.size());
+  create_info.enabledLayerCount = static_cast<u32>(kValidationLayers_.size());
   create_info.ppEnabledLayerNames = kValidationLayers_.data();
-  auto debug_create_info = init::GetDebugUtilsMessengerCreateInfo(
-      VulkanDriver::LogVulkanValidationMessage);
+  auto debug_create_info{init::GetDebugUtilsMessengerCreateInfo(
+      VulkanDriver::LogVulkanValidationMessage)};
   create_info.pNext =
       static_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debug_create_info);
-#endif
+#endif  // !COMET_DEBUG
 
   if (vkCreateInstance(&create_info, nullptr, &instance_) != VK_SUCCESS) {
     Destroy();
@@ -507,18 +489,14 @@ void VulkanDriver::InitializeVulkanInstance() {
 }
 
 void VulkanDriver::InitializeAllocator() {
-  const auto& conf = core::Engine::GetEngine().GetConfigurationManager();
+  const auto& conf{Engine::Get().GetConfigurationManager()};
 
-  auto vk_variant_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_variant_version"));
-  auto vk_major_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_major_version"));
-  auto vk_minor_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_minor_version"));
-  auto vk_patch_version = static_cast<std::uint32_t>(
-      conf.Get<unsigned int>("rendering_vulkan_patch_version"));
+  auto vk_variant_version{conf.Get<u8>("rendering_vulkan_variant_version")};
+  auto vk_major_version{conf.Get<u8>("rendering_vulkan_major_version")};
+  auto vk_minor_version{conf.Get<u8>("rendering_vulkan_minor_version")};
+  auto vk_patch_version{conf.Get<u8>("rendering_vulkan_patch_version")};
 
-  VmaAllocatorCreateInfo allocatorCreateInfo = {};
+  VmaAllocatorCreateInfo allocatorCreateInfo{};
   allocatorCreateInfo.vulkanApiVersion = VK_MAKE_API_VERSION(
       vk_variant_version, vk_major_version, vk_minor_version, vk_patch_version);
   allocatorCreateInfo.physicalDevice = physical_device_descr_.device;
@@ -529,28 +507,28 @@ void VulkanDriver::InitializeAllocator() {
 }
 
 void VulkanDriver::InitializeSwapchain() {
-  auto details = QuerySwapChainSupportDetails(physical_device_descr_.device);
+  auto details{QuerySwapChainSupportDetails(physical_device_descr_.device)};
 
-  auto surface_format = ChooseSwapSurfaceFormat(details.formats);
-  auto present_mode = ChooseSwapPresentMode(details.present_modes);
-  auto extent = ChooseSwapExtent(details.capabilities);
+  auto surface_format{ChooseSwapSurfaceFormat(details.formats)};
+  auto present_mode{ChooseSwapPresentMode(details.present_modes)};
+  auto extent{ChooseSwapExtent(details.capabilities)};
 
   if (extent.width == 0 || extent.height == 0) {
     return;
   }
 
-  auto image_count = details.capabilities.minImageCount + 1;
+  auto image_count{details.capabilities.minImageCount + 1};
 
   if (details.capabilities.maxImageCount > 0 &&
       image_count > details.capabilities.maxImageCount) {
     image_count = details.capabilities.maxImageCount;
   }
 
-  auto queue_family_unique_indices = queue_family_indices_.GetUniqueIndices();
+  auto queue_family_unique_indices{queue_family_indices_.GetUniqueIndices()};
 
-  auto create_info = init::GetSwapchainCreateInfo(
+  auto create_info{init::GetSwapchainCreateInfo(
       surface_, surface_format, extent, present_mode, details,
-      queue_family_unique_indices, image_count);
+      queue_family_unique_indices, image_count)};
 
   if (vkCreateSwapchainKHR(device_, &create_info, nullptr, &swapchain_) !=
       VK_SUCCESS) {
@@ -571,7 +549,7 @@ void VulkanDriver::InitializeSwapchain() {
 void VulkanDriver::InitializeSwapchainImageViews() {
   swapchain_image_views_.resize(swapchain_images_.size());
 
-  for (std::size_t i = 0; i < swapchain_images_.size(); ++i) {
+  for (uindex i{0}; i < swapchain_images_.size(); ++i) {
     swapchain_image_views_[i] =
         CreateImageView(swapchain_images_[i], swapchain_image_format_,
                         VK_IMAGE_ASPECT_COLOR_BIT, 1);
@@ -642,13 +620,12 @@ void VulkanDriver::InitializeDefaultRenderPass() {
   dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
                              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-  std::array<VkAttachmentDescription, 3> attachments = {
+  std::array<VkAttachmentDescription, 3> attachments{
       color_attachment, depth_attachment, color_attachment_resolve};
 
   VkRenderPassCreateInfo render_pass_info{};
   render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  render_pass_info.attachmentCount =
-      static_cast<std::uint32_t>(attachments.size());
+  render_pass_info.attachmentCount = static_cast<u32>(attachments.size());
   render_pass_info.pAttachments = attachments.data();
   render_pass_info.subpassCount = 1;
   render_pass_info.pSubpasses = &subpass;
@@ -662,18 +639,18 @@ void VulkanDriver::InitializeDefaultRenderPass() {
 }
 
 void VulkanDriver::InitializeCommands() {
-  auto pool_info = init::GetCommandPoolCreateInfo(
+  auto pool_info{init::GetCommandPoolCreateInfo(
       queue_family_indices_.graphics_family.value(),
-      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)};
 
-  for (std::size_t i = 0; i < max_frames_in_flight_; ++i) {
+  for (uindex i = 0; i < max_frames_in_flight_; ++i) {
     if (vkCreateCommandPool(device_, &pool_info, nullptr,
                             &frame_data_[i].command_pool) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create frame command pool");
     }
 
-    auto allocate_info =
-        init::GetCommandBufferAllocateInfo(frame_data_[i].command_pool, 1);
+    auto allocate_info{
+        init::GetCommandBufferAllocateInfo(frame_data_[i].command_pool, 1)};
 
     if (vkAllocateCommandBuffers(device_, &allocate_info,
                                  &frame_data_[i].command_buffer) !=
@@ -704,7 +681,7 @@ void VulkanDriver::InitializeCommands() {
 }
 
 void VulkanDriver::InitializeColorResources() {
-  VkFormat color_format = swapchain_image_format_;
+  auto color_format{swapchain_image_format_};
 
   CreateImage(swapchain_extent_.width, swapchain_extent_.height, 1,
               physical_device_descr_.msaa_samples, color_format,
@@ -720,7 +697,7 @@ void VulkanDriver::InitializeColorResources() {
 }
 
 void VulkanDriver::InitializeDepthResources() {
-  auto depth_format = ChooseDepthFormat();
+  auto depth_format{ChooseDepthFormat()};
 
   CreateImage(swapchain_extent_.width, swapchain_extent_.height, 1,
               physical_device_descr_.msaa_samples, depth_format,
@@ -747,18 +724,17 @@ void VulkanDriver::InitializeDepthResources() {
 void VulkanDriver::InitializeFrameBuffers() {
   swapchain_frame_buffers_.resize(swapchain_images_.size());
 
-  auto create_info =
-      init::GetFrameBufferCreateInfo(render_pass_, swapchain_extent_);
+  auto create_info{
+      init::GetFrameBufferCreateInfo(render_pass_, swapchain_extent_)};
   create_info.width = swapchain_extent_.width;
   create_info.height = swapchain_extent_.height;
   create_info.layers = 1;
 
-  for (std::size_t i = 0; i < swapchain_images_.size(); ++i) {
+  for (uindex i{0}; i < swapchain_images_.size(); ++i) {
     std::array<VkImageView, 3> attachments = {
         color_image_view_, depth_image_view_, swapchain_image_views_[i]};
 
-    create_info.attachmentCount =
-        static_cast<std::uint32_t>(attachments.size());
+    create_info.attachmentCount = static_cast<u32>(attachments.size());
     create_info.pAttachments = attachments.data();
 
     if (vkCreateFramebuffer(device_, &create_info, nullptr,
@@ -769,9 +745,9 @@ void VulkanDriver::InitializeFrameBuffers() {
 }
 
 void VulkanDriver::InitializeSyncStructures() {
-  auto fence_create_info =
-      init::GetFenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-  auto semaphore_create_info = init::GetSemaphoreCreateInfo();
+  auto fence_create_info{
+      init::GetFenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT)};
+  auto semaphore_create_info{init::GetSemaphoreCreateInfo()};
 
   for (auto& frame_data : frame_data_) {
     if (vkCreateFence(device_, &fence_create_info, nullptr,
@@ -978,7 +954,7 @@ void VulkanDriver::ChoosePhysicalDevice() {
     throw std::runtime_error("Instance is null");
   }
 
-  std::uint32_t device_count = 0;
+  u32 device_count{0};
   vkEnumeratePhysicalDevices(instance_, &device_count, nullptr);
 
   if (device_count == 0) {
@@ -991,7 +967,7 @@ void VulkanDriver::ChoosePhysicalDevice() {
   std::multimap<PhysicalDeviceScore, PhysicalDeviceDescr> candidates;
 
   for (const auto& device : devices) {
-    auto descr = GetPhysicalDeviceDescription(device);
+    auto descr{GetPhysicalDeviceDescription(device)};
     candidates.insert(std::make_pair(descr.score, descr));
   }
 
@@ -1032,14 +1008,10 @@ VkPresentModeKHR VulkanDriver::ChooseSwapPresentMode(
 
 VkExtent2D VulkanDriver::ChooseSwapExtent(
     const VkSurfaceCapabilitiesKHR& capabilities) {
-  if (capabilities.currentExtent.width !=
-      std::numeric_limits<std::uint32_t>::max()) {
+  if (capabilities.currentExtent.width != std::numeric_limits<u32>::max()) {
     return capabilities.currentExtent;
   } else {
-    VkExtent2D actual_extent = {
-        static_cast<std::uint32_t>(window_.GetWidth()),
-        static_cast<std::uint32_t>(window_.GetHeight()),
-    };
+    VkExtent2D actual_extent{window_.GetWidth(), window_.GetHeight()};
 
     actual_extent.width =
         std::clamp(actual_extent.width, capabilities.minImageExtent.width,
@@ -1081,18 +1053,15 @@ VkFormat VulkanDriver::ChooseDepthFormat() {
                       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-void VulkanDriver::TransitionImageLayout(const CommandBuffer& command_buffer,
-                                         VkImage image, VkFormat format,
-                                         VkImageLayout old_layout,
-                                         VkImageLayout new_layout,
-                                         std::uint32_t mip_levels,
-                                         std::uint32_t src_queue_family_index,
-                                         std::uint32_t dst_queue_family_index) {
+void VulkanDriver::TransitionImageLayout(
+    const CommandBuffer& command_buffer, VkImage image, VkFormat format,
+    VkImageLayout old_layout, VkImageLayout new_layout, u32 mip_levels,
+    u32 src_queue_family_index, u32 dst_queue_family_index) {
   VkImageMemoryBarrier barrier{};
   VkPipelineStageFlags source_stage;
   VkPipelineStageFlags destination_stage;
-  VkCommandPool command_pool = VK_NULL_HANDLE;
-  VkQueue queue = VK_NULL_HANDLE;
+  VkCommandPool command_pool{VK_NULL_HANDLE};
+  VkQueue queue{VK_NULL_HANDLE};
 
   if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
       new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
@@ -1166,10 +1135,10 @@ VkCommandPool VulkanDriver::GetTransferCommandPool() {
   return transfer_command_pool_;
 }
 
-#ifndef NDEBUG
+#ifdef COMET_DEBUG
 void VulkanDriver::InitializeDebugMessenger() {
-  auto create_info = init::GetDebugUtilsMessengerCreateInfo(
-      VulkanDriver::LogVulkanValidationMessage);
+  auto create_info{init::GetDebugUtilsMessengerCreateInfo(
+      VulkanDriver::LogVulkanValidationMessage)};
 
   if (utils::CreateDebugUtilsMessengerEXT(instance_, &create_info, nullptr,
                                           &debug_messenger_) != VK_SUCCESS) {
@@ -1186,17 +1155,17 @@ void VulkanDriver::DestroyDebugMessenger() {
   debug_messenger_ = VK_NULL_HANDLE;
 }
 
-const std::vector<const char*> VulkanDriver::kValidationLayers_ = {
-    "VK_LAYER_KHRONOS_validation"};
+const std::vector<const char*> VulkanDriver::kValidationLayers_{
+    {"VK_LAYER_KHRONOS_validation"}};
 
 bool VulkanDriver::AreValidationLayersSupported() {
-  unsigned int layer_count;
+  u32 layer_count;
   vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
   std::vector<VkLayerProperties> available_layers(layer_count);
   vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
 
   for (const char* layer_name : kValidationLayers_) {
-    bool is_layer_found = false;
+    auto is_layer_found{false};
 
     for (const auto& layer_properties : available_layers) {
       if (std::strcmp(layer_name, layer_properties.layerName) == 0) {

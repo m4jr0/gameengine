@@ -7,10 +7,6 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -80,36 +76,31 @@ bool Mesh::LoadFromObj(const std::string& path) {
     COMET_LOG_RENDERING_ERROR("tinyobjloader: ", error_msg);
     return false;
   }
-  std::unordered_map<Vertex, std::uint32_t> unique_vertices{};
+  std::unordered_map<Vertex, u32> unique_vertices{};
 
   for (const auto& shape : shapes) {
-    for (const auto& index : shape.mesh.indices) {
+    for (const auto& uindex : shape.mesh.indices) {
       Vertex vertex{};
 
       vertex.position = {
-          static_cast<std::uint32_t>(attrib.vertices[3 * index.vertex_index]),
-          static_cast<std::uint32_t>(
-              attrib.vertices[3 * index.vertex_index + 1]),
-          static_cast<std::uint32_t>(
-              attrib.vertices[3 * index.vertex_index + 2])};
+          static_cast<u32>(attrib.vertices[3 * uindex.vertex_index]),
+          static_cast<u32>(attrib.vertices[3 * uindex.vertex_index + 1]),
+          static_cast<u32>(attrib.vertices[3 * uindex.vertex_index + 2])};
 
       vertex.normal = {
-          static_cast<std::uint32_t>(attrib.normals[3 * index.normal_index]),
-          static_cast<std::uint32_t>(
-              attrib.normals[3 * index.normal_index + 1]),
-          static_cast<std::uint32_t>(
-              attrib.normals[3 * index.normal_index + 2])};
+          static_cast<u32>(attrib.normals[3 * uindex.normal_index]),
+          static_cast<u32>(attrib.normals[3 * uindex.normal_index + 1]),
+          static_cast<u32>(attrib.normals[3 * uindex.normal_index + 2])};
 
-      vertex.uv = {static_cast<std::uint32_t>(
-                       attrib.texcoords[3 * index.texcoord_index]),
-                   static_cast<std::uint32_t>(
-                       1 -  // Set Y coordinate according to Vulkan.
-                       attrib.texcoords[3 * index.texcoord_index + 1])};
+      vertex.uv = {
+          static_cast<u32>(attrib.texcoords[3 * uindex.texcoord_index]),
+          static_cast<u32>(1 -  // Set Y coordinate according to Vulkan.
+                           attrib.texcoords[3 * uindex.texcoord_index + 1])};
 
       vertex.color = {1.0f, 1.0f, 1.0f};
 
       if (unique_vertices.count(vertex) == 0) {
-        unique_vertices[vertex] = static_cast<std::uint32_t>(vertices.size());
+        unique_vertices[vertex] = static_cast<u32>(vertices.size());
         vertices.push_back(vertex);
       }
 

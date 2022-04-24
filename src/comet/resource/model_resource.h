@@ -7,32 +7,65 @@
 
 #include "comet_precompile.h"
 
-#include "comet/game_object/model/model.h"
-#include "resource.h"
+#include "glm/glm.hpp"
+
+#include "comet/resource/resource.h"
+#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace resource {
-class ModelResource : public Resource {
+namespace model {
+struct ModelResourceDescr {
+  // TODO(m4jr0): Add description.
+  u8 empty{0};
+};
+
+struct TextureTuple {
+  ResourceId texture_id{kInvalidResourceId};
+  texture::TextureType type{texture::TextureType::Unknown};
+};
+
+struct Vertex {
+  glm::vec3 position;
+  glm::vec3 normal;
+  glm::vec3 tangent;
+  glm::vec3 bitangent;
+  glm::vec2 uv;
+};
+
+using Index = u32;
+
+struct MeshResource : InternalResource {
+  std::vector<Vertex> vertices;
+  std::vector<Index> indices;
+  std::vector<TextureTuple> textures;
+};
+
+struct ModelResource : Resource {
+  static const ResourceTypeId kResourceTypeId;
+
+  std::vector<MeshResource> meshes;
+  ModelResourceDescr descr;
+};
+
+class ModelHandler : public ResourceHandler {
  public:
-  ModelResource(const std::string& path);
-  ModelResource(const ModelResource&);
-  ModelResource(ModelResource&&) noexcept;
-  ModelResource& operator=(const ModelResource&);
-  ModelResource& operator=(ModelResource&&) noexcept;
-  virtual ~ModelResource() = default;
-
-  virtual std::shared_ptr<Component> Clone() const override;
-  virtual void Destroy() override;
-  virtual bool Import() override;
-  virtual bool Export() override;
-  virtual bool Dump() override;
-  virtual bool Load() override;
-
-  virtual std::shared_ptr<game_object::Model> GetModel();
+  ModelHandler() = default;
+  ModelHandler(const ModelHandler&) = delete;
+  ModelHandler(ModelHandler&&) = delete;
+  ModelHandler& operator=(const ModelHandler&) = delete;
+  ModelHandler& operator=(ModelHandler&&) = delete;
+  ~ModelHandler() = default;
 
  protected:
-  std::shared_ptr<game_object::Model> model_ = nullptr;
+  uindex GetMeshSize(const MeshResource& mesh) const;
+  uindex GetModelSize(const ModelResource& model) const;
+
+  ResourceFile Pack(const Resource& resource,
+                    CompressionMode compression_mode) const override;
+  std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
 };
+}  // namespace model
 }  // namespace resource
 }  // namespace comet
 

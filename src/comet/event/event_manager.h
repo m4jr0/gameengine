@@ -11,24 +11,21 @@
 #include "comet/utils/structure/ring_queue.h"
 
 namespace comet {
-namespace core {
 class Engine;
-}  // namespace core
 
 namespace event {
 using EventListener = std::function<void(Event&)>;
 
 class EventManager {
  public:
-  EventManager(std::size_t = 200);
+  EventManager(uindex queue_size = 200);
   EventManager(const EventManager&) = delete;
   EventManager(EventManager&&) = delete;
   EventManager& operator=(const EventManager&) = delete;
   EventManager& operator=(EventManager&&) = delete;
-  virtual ~EventManager() = default;
+  ~EventManager() = default;
 
-  void Register(const EventListener& function,
-                const core::StringId& event_type);
+  void Register(const EventListener& function, stringid::StringId event_type);
 
   template <typename T, typename... Targs>
   void FireEventNow(Targs... args) {
@@ -46,9 +43,9 @@ class EventManager {
   void FireEvent(std::unique_ptr<Event> event);
 
  private:
-  friend core::Engine;
+  friend Engine;
   mutable std::mutex mutex_;
-  std::unordered_map<core::StringId, std::vector<EventListener>> listeners_;
+  std::unordered_map<stringid::StringId, std::vector<EventListener>> listeners_;
   comet::utils::structure::ring_queue<std::unique_ptr<event::Event>>
       event_queue_;
 

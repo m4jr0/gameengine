@@ -8,25 +8,30 @@
 #include "comet_precompile.h"
 
 #include "comet/comet.h"
+#include "comet/entry_point.h"
+#include "editor/asset/asset_manager.h"
 
 namespace comet {
 namespace editor {
-class CometEditor : public core::Engine {
+class CometEditor : public Engine {
  public:
   CometEditor() = default;
   CometEditor(const CometEditor&) = delete;
   CometEditor(CometEditor&&) = delete;
   CometEditor& operator=(const CometEditor&) = delete;
   CometEditor& operator=(CometEditor&&) = delete;
-  virtual ~CometEditor() = default;
+  ~CometEditor() = default;
 
   void Initialize() override;
 
  protected:
   void Exit() override;
-#ifdef _WIN32
+#ifdef COMET_WINDOWS
   static BOOL WINAPI HandleConsole(DWORD window_event);
-#endif  // _WIN32
+#endif  // COMET_WINDOWS
+
+ private:
+  asset::AssetManager asset_manager_{};
 };
 }  // namespace editor
 }  // namespace comet

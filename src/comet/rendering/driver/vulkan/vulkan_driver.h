@@ -20,8 +20,8 @@ namespace comet {
 namespace rendering {
 namespace vk {
 struct VulkanDriverDescr : DriverDescr {
-  bool is_specific_transfer_queue_requested = true;
-  unsigned int max_frames_in_flight = 2;
+  bool is_specific_transfer_queue_requested{true};
+  u8 max_frames_in_flight{2};
 };
 
 class VulkanDriver : public Driver {
@@ -31,32 +31,31 @@ class VulkanDriver : public Driver {
   VulkanDriver(VulkanDriver&&) = delete;
   VulkanDriver& operator=(const VulkanDriver&) = delete;
   VulkanDriver& operator=(VulkanDriver&&) = delete;
-  virtual ~VulkanDriver() = default;
+  ~VulkanDriver() = default;
 
-  virtual void Initialize() override;
-  virtual void Destroy() override;
-  virtual void Update(
-      time::Interpolation interpolation,
-      game_object::GameObjectManager& game_object_manager) override;
+  void Initialize() override;
+  void Destroy() override;
+  void Update(time::Interpolation interpolation,
+              entity::EntityManager& entity_manager) override;
 
   void LoadShaderModule(std::string& path, VkShaderModule* out);
   void LoadMeshes();
   void LoadImages();
   void UploadMesh(Mesh& mesh);
 
-  void SetSize(unsigned int width, unsigned int height);
+  void SetSize(u16 width, u16 height);
   void OnEvent(const event::Event&);
 
-  virtual bool IsInitialized() const override;
-  virtual Window& GetWindow() override;
+  bool IsInitialized() const override;
+  Window& GetWindow() override;
 
  private:
   static const std::vector<const char*> kDeviceExtensions_;
 
   bool is_initialized_{false};
   bool is_specific_transfer_queue_requested_{true};
-  unsigned int max_frames_in_flight_{2};
-  unsigned int current_frame_{0};
+  u8 max_frames_in_flight_{2};
+  u8 current_frame_{0};
   VulkanGlfwWindow window_;
   VkInstance instance_{VK_NULL_HANDLE};
   VkDevice device_{VK_NULL_HANDLE};
@@ -86,14 +85,13 @@ class VulkanDriver : public Driver {
   QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
   PhysicalDeviceDescr GetPhysicalDeviceDescription(VkPhysicalDevice device);
   SwapChainSupportDetails QuerySwapChainSupportDetails(VkPhysicalDevice device);
-  void CreateImage(std::uint32_t width, std::uint32_t height,
-                   std::uint32_t mip_levels, VkSampleCountFlagBits num_samples,
-                   VkFormat format, VkImageTiling tiling,
-                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+  void CreateImage(u32 width, u32 height, u32 mip_levels,
+                   VkSampleCountFlagBits num_samples, VkFormat format,
+                   VkImageTiling tiling, VkImageUsageFlags usage,
+                   VkMemoryPropertyFlags properties,
                    AllocatedImage& allocated_image);
   VkImageView CreateImageView(VkImage image, VkFormat format,
-                              VkImageAspectFlags aspect_flags,
-                              std::uint32_t mip_levels);
+                              VkImageAspectFlags aspect_flags, u32 mip_levels);
 
   void InitializeSurface();
   void InitializeDevice();
@@ -137,15 +135,14 @@ class VulkanDriver : public Driver {
   VkFormat ChooseDepthFormat();
   void TransitionImageLayout(
       const CommandBuffer& command_buffer, VkImage image, VkFormat format,
-      VkImageLayout old_layout, VkImageLayout new_layout,
-      std::uint32_t mip_levels,
-      std::uint32_t src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
-      std::uint32_t dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
+      VkImageLayout old_layout, VkImageLayout new_layout, u32 mip_levels,
+      u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+      u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
 
   VkQueue GetTransferQueue();
   VkCommandPool GetTransferCommandPool();
 
-#ifndef NDEBUG
+#ifdef COMET_DEBUG
   static const std::vector<const char*> kValidationLayers_;
   VkDebugUtilsMessengerEXT debug_messenger_{VK_NULL_HANDLE};
 
@@ -157,7 +154,7 @@ class VulkanDriver : public Driver {
       VkDebugUtilsMessageTypeFlagsEXT message_type,
       const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
       void* user_data);
-#endif  // !NDEBUG
+#endif  // COMET_DEBUG
 };
 }  // namespace vk
 }  // namespace rendering

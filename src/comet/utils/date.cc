@@ -4,15 +4,11 @@
 
 #include "date.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
 namespace utils {
 namespace date {
-double GetNow() {
-  const auto current_time = std::chrono::system_clock::now();
+f64 GetNow() {
+  const auto current_time{std::chrono::system_clock::now()};
 
   return GetDouble(current_time);
 }
@@ -22,15 +18,14 @@ std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
   return std::chrono::system_clock::from_time_t(time);
 }
 
-double GetDouble(
-    const std::chrono::time_point<std::chrono::system_clock>& time) {
-  const auto duration_in_seconds =
-      std::chrono::duration<double>(time.time_since_epoch());
+f64 GetDouble(const std::chrono::time_point<std::chrono::system_clock>& time) {
+  const auto duration_in_seconds{
+      std::chrono::duration<f64>(time.time_since_epoch())};
 
   return duration_in_seconds.count() * 1000;
 }
 
-double GetDouble(const std::time_t& time) {
+f64 GetDouble(const std::time_t& time) {
   return GetDouble(GetChronoTimePoint(time));
 }
 }  // namespace date

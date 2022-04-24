@@ -34,7 +34,7 @@ struct Vertex {
 
 struct Mesh {
   std::vector<Vertex> vertices;
-  std::vector<std::uint32_t> indices;
+  std::vector<u32> indices;
   AllocatedBuffer vertex_buffer;
   bool LoadFromObj(const std::string& path);
 };

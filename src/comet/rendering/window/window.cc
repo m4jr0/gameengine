@@ -7,12 +7,12 @@
 namespace comet {
 namespace rendering {
 Window::Window(const WindowDescr& descr)
-    : name_(descr.name), width_(descr.width), height_(descr.height) {}
+    : name_{descr.name}, width_{descr.width}, height_{descr.height} {}
 
 const std::string Window::GetName() const noexcept { return name_; }
 
-const unsigned int Window::GetWidth() const noexcept { return width_; }
+const u16 Window::GetWidth() const noexcept { return width_; }
 
-const unsigned int Window::GetHeight() const noexcept { return height_; }
+const u16 Window::GetHeight() const noexcept { return height_; }
 }  // namespace rendering
 }  // namespace comet

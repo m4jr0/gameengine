@@ -12,7 +12,7 @@ namespace utils {
 namespace structure {
 class maximum_capacity_reached_error : public std::runtime_error {
  public:
-  maximum_capacity_reached_error(std::size_t capacity)
+  maximum_capacity_reached_error(uindex capacity)
       : runtime_error("Structure instance is full (" +
                       std::to_string(capacity) + ")") {}
 };

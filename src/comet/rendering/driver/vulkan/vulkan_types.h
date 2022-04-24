@@ -12,12 +12,10 @@
 #include "vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
-#include "comet/rendering/driver/vulkan/vulkan_types.h"
-
 namespace comet {
 namespace rendering {
 namespace vk {
-using PhysicalDeviceScore = std::uint32_t;
+using PhysicalDeviceScore = u32;
 
 struct AllocatedBuffer {
   VkBuffer buffer{VK_NULL_HANDLE};
@@ -51,13 +49,13 @@ struct SwapChainSupportDetails {
 };
 
 struct QueueFamilyIndices {
-  std::optional<std::uint32_t> graphics_family;
-  std::optional<std::uint32_t> present_family;
-  std::optional<std::uint32_t> transfer_family;
+  std::optional<u32> graphics_family;
+  std::optional<u32> present_family;
+  std::optional<u32> transfer_family;
 
   bool IsComplete();
   bool IsSpecificTransferFamily();
-  std::vector<std::uint32_t> GetUniqueIndices();
+  std::vector<u32> GetUniqueIndices();
 };
 
 struct PhysicalDeviceDescr {
@@ -77,7 +75,7 @@ class CommandBuffer {
   CommandBuffer(CommandBuffer&&) noexcept = default;
   CommandBuffer& operator=(const CommandBuffer&) = delete;
   CommandBuffer& operator=(CommandBuffer&&) noexcept = default;
-  virtual ~CommandBuffer();
+  ~CommandBuffer();
 
   void Allocate();
   void Record();

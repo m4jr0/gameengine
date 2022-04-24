@@ -7,72 +7,59 @@
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
-#include "comet/game_object/camera/camera_controls.h"
-#include "comet/game_object/camera/perspective_camera.h"
 #include "comet/input/input_manager.h"
 
-#ifdef _WIN32
-#include "debug_windows.h"
-#endif  // _WIN32
-
 namespace comet {
-namespace core {
 void Engine::Initialize() {
-  // TODO(m4jr0): Move the lines about the main camera elsewere, when a
-  // configuration file (of some sort) will be available for default/saved
-  // settings.
-  auto camera_container = game_object::GameObject::Create();
-  main_camera_ = std::make_shared<game_object::PerspectiveCamera>();
-  auto camera_controls = std::make_shared<game_object::CameraControls>();
-  main_camera_->SetPosition(0, 0, 3);
-  main_camera_->SetDirection(0.715616, 0.691498, -0.098611);
+  configuration_manager_.Initialize();
+  rendering_manager_.Initialize();
+  resource_manager_.Initialize();
+  physics_manager_.Initialize();
 
-  configuration_manager_->Initialize();
-  rendering_manager_->Initialize();
-  resource_manager_->Initialize();
-  physics_manager_->Initialize();
-  input_manager_->Initialize();
+  input_manager_.AttachGlfwWindow(const_cast<GLFWwindow*>(
+      static_cast<const rendering::GlfwWindow*>(
+          Engine::Get().GetRenderingManager().GetWindow())
+          ->GetHandle()));
 
-  const auto event_function = COMET_EVENT_BIND_FUNCTION(Engine::OnEvent);
+  input_manager_.Initialize();
 
-  event_manager_->Register(event_function,
-                           event::WindowCloseEvent::kStaticType_);
+  const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
 
-  // TODO(m4jr0): Move these lines as well (see TODO(m4jr0) above).
-  camera_container->AddComponent(main_camera_);
-  camera_container->AddComponent(camera_controls);
-  game_object_manager_->AddGameObject(camera_container);
+  event_manager_.Register(event_function,
+                          event::WindowCloseEvent::kStaticType_);
 
-  msPerUpdate_ = configuration_manager_->Get<double>("engine_ms_per_update");
+  msPerUpdate_ = configuration_manager_.Get<f64>("engine_ms_per_update");
+
+  entity_manager_.Initialize();
 }
 
 void Engine::Run() {
   try {
     is_running_ = true;
-    time_manager_->Initialize();
+    time_manager_.Initialize();
     // To catch up time taken to render.
-    double lag = 0.0;
-    COMET_LOG_CORE_INFO("Engine started");
+    f64 lag{0.0};
+    COMET_LOG_CORE_INFO("Comet started");
 
     while (is_running_) {
       if (is_exit_requested_) {
         break;
       }
 
-      time_manager_->Update();
-      const auto time_delta = time_manager_->GetTimeDelta();
+      time_manager_.Update();
+      const auto time_delta{time_manager_.GetTimeDelta()};
 
       lag += time_delta;
 
       // To render physics properly, we have to catch up with the lag.
       while (lag >= msPerUpdate_) {
-        event_manager_->FireAllEvents();
-        physics_manager_->Update(GetGameObjectManager());
+        event_manager_.FireAllEvents();
+        physics_manager_.Update(GetEntityManager());
         lag -= msPerUpdate_;
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      rendering_manager_->Update(lag / msPerUpdate_, GetGameObjectManager());
+      rendering_manager_.Update(lag / msPerUpdate_, GetEntityManager());
     }
   } catch (const std::runtime_error& runtime_error) {
     COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
@@ -95,16 +82,16 @@ void Engine::Run() {
 
 void Engine::Stop() {
   is_running_ = false;
-  COMET_LOG_CORE_INFO("Engine stopped");
+  COMET_LOG_CORE_INFO("Comet stopped");
 }
 
 void Engine::Destroy() {
-  game_object_manager_->Destroy();
-  physics_manager_->Destroy();
-  rendering_manager_->Destroy();
-  configuration_manager_->Destroy();
+  entity_manager_.Destroy();
+  physics_manager_.Destroy();
+  rendering_manager_.Destroy();
+  configuration_manager_.Destroy();
   Engine::engine_ = nullptr;
-  COMET_LOG_CORE_INFO("Engine destroyed");
+  COMET_LOG_CORE_INFO("Comet destroyed");
 }
 
 void Engine::Quit() {
@@ -113,30 +100,18 @@ void Engine::Quit() {
   }
 
   is_exit_requested_ = true;
-  COMET_LOG_CORE_INFO("Engine is required to quit");
+  COMET_LOG_CORE_INFO("Comet is required to quit");
 }
 
-Engine::Engine() {
-  configuration_manager_ = std::make_unique<ConfigurationManager>();
-  resource_manager_ = std::make_unique<resource::ResourceManager>();
-  physics_manager_ = std::make_unique<physics::PhysicsManager>();
-  rendering_manager_ = std::make_unique<rendering::RenderingManager>();
-  game_object_manager_ = std::make_unique<game_object::GameObjectManager>();
-  time_manager_ = std::make_unique<time::TimeManager>();
-  input_manager_ = std::make_unique<input::InputManager>();
-  event_manager_ = std::make_unique<event::EventManager>();
-
-  Engine::engine_ = this;
-}
+Engine::Engine() { Engine::engine_ = this; }
 
 void Engine::Exit() {
   Stop();
-  Destroy();
-  COMET_LOG_CORE_INFO("Engine quit");
+  COMET_LOG_CORE_INFO("Comet quit");
 }
 
 void Engine::OnEvent(const event::Event& event) {
-  const auto& event_type = event.GetType();
+  const auto& event_type{event.GetType()};
 
   if (event_type == event::WindowCloseEvent::kStaticType_) {
     COMET_LOG_CORE_DEBUG("Close event.");
@@ -144,32 +119,27 @@ void Engine::OnEvent(const event::Event& event) {
   }
 }
 
-Engine& Engine::GetEngine() { return *Engine::engine_; }
+Engine& Engine::Get() { return *Engine::engine_; }
 
-ConfigurationManager& Engine::GetConfigurationManager() {
-  return *configuration_manager_;
+conf::ConfigurationManager& Engine::GetConfigurationManager() {
+  return configuration_manager_;
 }
 
 resource::ResourceManager& Engine::GetResourceManager() {
-  return *resource_manager_;
+  return resource_manager_;
 }
 
 rendering::RenderingManager& Engine::GetRenderingManager() {
-  return *rendering_manager_;
+  return rendering_manager_;
 }
 
-input::InputManager& Engine::GetInputManager() { return *input_manager_; }
+input::InputManager& Engine::GetInputManager() { return input_manager_; }
 
-time::TimeManager& Engine::GetTimeManager() { return *time_manager_; }
+time::TimeManager& Engine::GetTimeManager() { return time_manager_; }
 
-game_object::GameObjectManager& Engine::GetGameObjectManager() {
-  return *game_object_manager_;
-}
+entity::EntityManager& Engine::GetEntityManager() { return entity_manager_; }
 
-event::EventManager& Engine::GetEventManager() { return *event_manager_; }
-
-game_object::Camera& Engine::GetMainCamera() { return *main_camera_; }
+event::EventManager& Engine::GetEventManager() { return event_manager_; }
 
 const bool Engine::is_running() const noexcept { return is_running_; }
-}  // namespace core
 }  // namespace comet

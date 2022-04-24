@@ -24,9 +24,9 @@ class VulkanGlfwWindow : public GlfwWindow {
   VulkanGlfwWindow(VulkanGlfwWindow&&) noexcept;
   VulkanGlfwWindow& operator=(const VulkanGlfwWindow&);
   VulkanGlfwWindow& operator=(VulkanGlfwWindow&&) noexcept;
-  virtual ~VulkanGlfwWindow() = default;
+  ~VulkanGlfwWindow() = default;
 
-  virtual void InitializeSurface(VkInstance instance, VkSurfaceKHR& surface);
+  void InitializeSurface(VkInstance instance, VkSurfaceKHR& surface);
 };
 }  // namespace vk
 }  // namespace rendering
