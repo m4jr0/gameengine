@@ -9,7 +9,7 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-GLuint Load2DTexture(const resource::texture::TextureResourceDescr& descr,
+GLuint Load2DTexture(const resource::TextureResourceDescr& descr,
                      const void* pixel_data, bool is_gamma) {
   GLuint texture_id{0};
 

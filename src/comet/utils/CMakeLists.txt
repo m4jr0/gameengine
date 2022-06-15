@@ -17,6 +17,9 @@ add_library(${UTILS_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/utils/date.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/file_system.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/hash.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/string.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/math/math_commons.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/utils/memory/memory.cc"
 

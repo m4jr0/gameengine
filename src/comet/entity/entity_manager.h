@@ -240,7 +240,7 @@ class EntityManager {
   }
 
   template <typename ComponentType>
-  ComponentType* const GetComponent(EntityId entity_id) {
+  ComponentType* GetComponent(EntityId entity_id) {
     COMET_ASSERT(IsEntity(entity_id), "Trying to get a ",
                  COMET_STRING_ID_LABEL(ComponentType::kComponentTypeId),
                  " component from a dead entity #", entity_id, "!");
@@ -250,7 +250,7 @@ class EntityManager {
 
     for (uindex i{0}; i < entity_type.size(); ++i) {
       if (ComponentType::kComponentTypeId == entity_type[i]) {
-        return reinterpret_cast<ComponentType* const>(
+        return reinterpret_cast<ComponentType*>(
                    record.archetype->components[i].first) +
                record.row;
       }

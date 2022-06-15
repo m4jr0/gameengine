@@ -7,40 +7,47 @@
 
 #include "comet_precompile.h"
 
-#include "comet/entity/component/mesh_component.h"
+#include "glm/glm.hpp"
+
+#include "comet/entity/component/component.h"
 #include "comet/entity/entity.h"
 #include "comet/rendering/driver/opengl/opengl_shader.h"
+#include "comet/rendering/rendering_common.h"
+#include "comet/resource/model_resource.h"
+#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-static ShaderProgram shader_program{"assets/shaders/model_shader.vs",
-                                    "assets/shaders/model_shader.fs"};
+extern ShaderProgram& GetShaderProgram();
 
-struct MeshProxy {
-  std::vector<entity::Vertex> vertices;
+struct RenderProxy {
+  std::vector<rendering::Vertex> vertices;
   std::vector<u32> indices;
-  std::vector<resource::model::TextureTuple> texture_tuples;
+  std::vector<resource::TextureTuple> texture_tuples;
   std::vector<u32> texture_ids;
+  glm::mat4 transform;
 
   u32 vao{0};
   u32 vbo{0};
   u32 ebo{0};
 };
 
-MeshProxy& GenerateMeshProxy(entity::EntityId entity_id, entity::Mesh mesh,
-                             const entity::Texture textures[],
-                             uindex texture_count);
-void DrawMeshProxy(MeshProxy proxy);
-std::string GetTextureLabel(resource::texture::TextureType texture_type,
+RenderProxy& GenerateRenderProxy(entity::EntityId entity_id,
+                                 const resource::MeshResource& mesh_resource,
+                                 const glm::mat4& transform,
+                                 const resource::MaterialResource& material);
+void DrawRenderProxy(RenderProxy proxy);
+std::string GetTextureLabel(rendering::TextureType texture_type,
                             uindex texture_index);
-bool IsMeshProxy(entity::EntityId entity_id);
-void ClearMeshProxies();
-void DrawMeshProxies();
+bool IsRenderProxy(entity::EntityId entity_id);
+RenderProxy* TryGetRenderProxy(entity::EntityId entity_id);
+void ClearRenderProxies();
+void DrawRenderProxies();
 void InitializeShader();
-u32 LoadTexture(entity::Texture texture);
+u32 LoadTexture(const resource::TextureResource* resource);
 
-static std::unordered_map<entity::ComponentTypeId, MeshProxy> proxies;
+static std::unordered_map<entity::ComponentTypeId, RenderProxy> proxies;
 static std::vector<u32> loaded_texture_ids;
 static std::vector<resource::ResourceId> loaded_texture_resource_ids;
 }  // namespace gl

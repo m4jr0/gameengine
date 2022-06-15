@@ -35,11 +35,18 @@ bool OpenBinaryFileToWriteTo(const std::string& path, std::ofstream& out_file,
   return OpenBinaryFileToWriteTo(path.c_str(), out_file, is_append);
 }
 
-bool OpenBinaryFileToReadFrom(const char* path, std::ifstream& in_file) {
+bool OpenBinaryFileToReadFrom(const char* path, std::ifstream& in_file,
+                              bool is_at_end) {
   in_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
   try {
-    in_file.open(path, std::ios::binary);
+    auto mode{static_cast<s32>(std::ios::binary)};
+
+    if (is_at_end) {
+      mode |= std::ios::ate;
+    }
+
+    in_file.open(path, mode);
     return in_file.is_open();
   } catch (std::runtime_error& error) {
     COMET_LOG_UTILS_ERROR("Could not open file at path: ", path,
@@ -48,8 +55,9 @@ bool OpenBinaryFileToReadFrom(const char* path, std::ifstream& in_file) {
   }
 }
 
-bool OpenBinaryFileToReadFrom(const std::string& path, std::ifstream& in_file) {
-  return OpenBinaryFileToReadFrom(path.c_str(), in_file);
+bool OpenBinaryFileToReadFrom(const std::string& path, std::ifstream& in_file,
+                              bool is_at_end) {
+  return OpenBinaryFileToReadFrom(path.c_str(), in_file, is_at_end);
 }
 
 void CloseFile(std::ofstream& file) { file.close(); }
@@ -72,16 +80,18 @@ bool WriteBinaryToFile(const std::string& path, const char* buffer,
   return WriteBinaryToFile(path.c_str(), buffer, buffer_size, is_append);
 }
 
-bool ReadBinaryFromFile(const std::string& path, char* buffer,
-                        uindex buffer_size) {
+bool ReadBinaryFromFile(const std::string& path, std::vector<char>& buffer) {
   std::ifstream input_stream;
 
-  if (!OpenBinaryFileToReadFrom(path, input_stream)) {
+  if (!OpenBinaryFileToReadFrom(path, input_stream, true)) {
     return false;
   }
 
+  const auto file_size{input_stream.tellg()};
+  buffer.resize(file_size);
   input_stream.seekg(0);
-  input_stream.read(buffer, buffer_size);
+  input_stream.read(buffer.data(), file_size);
+
   CloseFile(input_stream);
   return true;
 }

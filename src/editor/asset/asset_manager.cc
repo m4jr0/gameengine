@@ -12,6 +12,7 @@
 #include "comet/utils/file_system.h"
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model_exporter.h"
+#include "editor/asset/exporter/shader_exporter.h"
 #include "editor/asset/exporter/texture_exporter.h"
 
 namespace comet {
@@ -30,8 +31,9 @@ void AssetManager::Initialize() {
   root_resource_path_ =
       Engine::Get().GetResourceManager().GetRootResourcePath();
 
-  exporters_.emplace_back(std::make_unique<model::ModelExporter>());
-  exporters_.emplace_back(std::make_unique<texture::TextureExporter>());
+  exporters_.emplace_back(std::make_unique<ModelExporter>());
+  exporters_.emplace_back(std::make_unique<TextureExporter>());
+  exporters_.emplace_back(std::make_unique<ShaderExporter>());
 
   for (const auto& exporter : exporters_) {
     exporter->SetRootResourcePath(root_resource_path_);
@@ -40,9 +42,6 @@ void AssetManager::Initialize() {
   }
 
   Refresh();
-
-  COMET_LOG_GLOBAL_DEBUG("Asset manager listening to '", root_asset_path_,
-                         "'...");
 }
 
 void AssetManager::RefreshLibraryMetadataFile() {
@@ -130,7 +129,7 @@ bool AssetManager::IsRefreshNeeded(const std::string& asset_abs_path,
   const auto asset_path{
       utils::filesystem::GetRelativePath(asset_abs_path, root_asset_path_)};
 
-  const auto resource_id{resource::GenerateResourceId(asset_path)};
+  const auto resource_id{resource::GenerateResourceIdFromPath(asset_path)};
 
   if (!utils::filesystem::Exists(utils::filesystem::Append(
           root_resource_path_, std::to_string(resource_id)))) {

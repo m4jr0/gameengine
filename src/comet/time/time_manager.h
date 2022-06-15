@@ -28,15 +28,18 @@ class TimeManager {
   void Stop() noexcept;
   void Normalize() noexcept;
 
-  const f64 GetTimeDelta() const noexcept;
+  const f64 GetFixedDeltaTime() const noexcept;
+  const f64 GetDeltaTime() const noexcept;
   const f64 GetCurrentTime() const noexcept;
   const f32 GetTimeScale() const noexcept;
+  void SetFixedDeltaTime(f64 fixed_delta_time) noexcept;
   void SetTimeScale(f32 time_scale) noexcept;
 
  private:
+  f64 fixed_delta_time_{16.66};  // 60 Hz refresh by default.
   f64 current_time_{0.0};
   f64 previous_time_{0.0};
-  f64 time_delta_{0.0};
+  f64 delta_time_{0.0};
   f32 time_scale_{1.0f};
 };
 }  // namespace time

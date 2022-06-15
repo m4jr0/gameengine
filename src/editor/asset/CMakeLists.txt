@@ -17,6 +17,12 @@ find_package(assimp REQUIRED)
 # Textures.
 find_package(Stb REQUIRED COMPONENTS stb_image)
 
+# Shaders.
+find_package(SPIRV-Tools-opt CONFIG REQUIRED)
+find_package(glslang CONFIG REQUIRED)
+find_package(unofficial-shaderc_util CONFIG REQUIRED)
+find_package(unofficial-shaderc CONFIG REQUIRED)
+
 # Misc.
 find_package(Threads REQUIRED)
 
@@ -29,6 +35,7 @@ add_library(${ASSET_LIBRARY_NAME}
   # Exporters.
   "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
   "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model_exporter.cc"
+  "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_exporter.cc"
   "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture_exporter.cc"
 )
 
@@ -49,6 +56,10 @@ target_link_directories(${ASSET_LIBRARY_NAME}
 target_link_libraries(${ASSET_LIBRARY_NAME}
   PRIVATE
     assimp::assimp
+    SPIRV-Tools-opt
+    glslang
+    unofficial::shaderc_util::shaderc_util
+    unofficial::shaderc::shaderc
 )
 
 if(WIN32)

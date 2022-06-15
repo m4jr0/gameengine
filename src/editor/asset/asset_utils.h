@@ -18,9 +18,8 @@ namespace editor {
 namespace asset {
 template <typename AssetFilePath>
 std::string GetAssetMetadataFilePath(AssetFilePath&& asset_file_path) {
-  return utils::filesystem::ReplaceExtension(
-      std::forward<AssetFilePath>(asset_file_path),
-      kCometEditorAssetMetadataFileExtension);
+  return std::forward<AssetFilePath>(asset_file_path) + "." +
+         kCometEditorAssetMetadataFileExtension;
 }
 
 template <typename MetadataFilePath>

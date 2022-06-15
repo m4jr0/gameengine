@@ -9,8 +9,7 @@ namespace utils {
 namespace date {
 f64 GetNow() {
   const auto current_time{std::chrono::system_clock::now()};
-
-  return GetDouble(current_time);
+  return GetMilliseconds(current_time);
 }
 
 std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
@@ -18,15 +17,16 @@ std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
   return std::chrono::system_clock::from_time_t(time);
 }
 
-f64 GetDouble(const std::chrono::time_point<std::chrono::system_clock>& time) {
+f64 GetMilliseconds(
+    const std::chrono::time_point<std::chrono::system_clock>& time) {
   const auto duration_in_seconds{
       std::chrono::duration<f64>(time.time_since_epoch())};
 
   return duration_in_seconds.count() * 1000;
 }
 
-f64 GetDouble(const std::time_t& time) {
-  return GetDouble(GetChronoTimePoint(time));
+f64 GetMilliseconds(const std::time_t& time) {
+  return GetMilliseconds(GetChronoTimePoint(time));
 }
 }  // namespace date
 }  // namespace utils

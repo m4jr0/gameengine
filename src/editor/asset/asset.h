@@ -30,11 +30,9 @@ constexpr char kCometEditorAssetMetadataKeyCompressionMode[]{
     "compression_mode"};
 
 struct AssetDescr {
-  resource::ResourceId resource_id;
   std::string asset_abs_path;
   std::string asset_path;
   std::string metadata_path;
-  resource::ResourceFile resource;
   nlohmann::json metadata;
 };
 }  // namespace asset

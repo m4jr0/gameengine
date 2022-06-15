@@ -4,30 +4,63 @@
 
 #include "configuration_manager.h"
 
+#include "comet/rendering/rendering_common.h"
+
 namespace comet {
 namespace conf {
 void ConfigurationManager::Initialize() {
+  // TODO(m4jr0): Implement parser and read from configuration file properly.
+
+  // Application. //////////////////////////////////////////////////////////////
   Set<std::string>("application_name", "Comet Editor");
   Set<u8>("application_major_version", 0);
   Set<u8>("application_minor_version", 1);
   Set<u8>("application_patch_version", 0);
-  Set<std::string>("engine_name", "Comet Game Engine");
-  Set<u8>("engine_major_version", 0);
-  Set<u8>("engine_minor_version", 1);
-  Set<u8>("engine_patch_version", 0);
-  Set<f64>("engine_ms_per_update", 16.66 / 1000);
-  Set<u16>("rendering_window_width", 800);
-  Set<u16>("rendering_window_height", 600);
+
+  // Core. /////////////////////////////////////////////////////////////////////
+  Set<f64>("core_ms_per_update", 16.66);
+
+  // Entity. ///////////////////////////////////////////////////////////////////
+  // *
+
+  // Event. ////////////////////////////////////////////////////////////////////
+  // *
+
+  // Input. ////////////////////////////////////////////////////////////////////
+  // *
+
+  // Physics. //////////////////////////////////////////////////////////////////
+  // *
+
+  // Rendering. ////////////////////////////////////////////////////////////////
+  // Common.
+  Set<std::string>("rendering_driver", "vulkan");
+  Set<rendering::WindowSize>("rendering_window_width", 800);
+  Set<rendering::WindowSize>("rendering_window_height", 600);
+  Set<f32>("rendering_clear_color_r", 0.5f);
+  Set<f32>("rendering_clear_color_g", 0.5f);
+  Set<f32>("rendering_clear_color_b", 0.5f);
+  Set<f32>("rendering_clear_color_a", 1.0f);
+  Set<bool>("rendering_is_vsync", true);
+  Set<bool>("rendering_is_sampler_anisotropy", true);
+  Set<bool>("rendering_is_sample_rate_shading", true);
+
+  // OpenGL.
   Set<u8>("rendering_opengl_major_version", 4);
   Set<u8>("rendering_opengl_minor_version", 6);
+
+  // Vulkan.
   Set<u8>("rendering_vulkan_variant_version", 0);
   Set<u8>("rendering_vulkan_major_version", 1);
   Set<u8>("rendering_vulkan_minor_version", 2);
   Set<u8>("rendering_vulkan_patch_version", 0);
-  Set<bool>("rendering_vulkan_is_specific_transfer_queue_requested", true);
   Set<u8>("rendering_vulkan_max_frames_in_flight", 2);
-  Set<std::string>("rendering_driver", "vulkan");
+
+  // Resource. /////////////////////////////////////////////////////////////////
   Set<std::string>("resource_root_path", "resources");
+
+  // Time. /////////////////////////////////////////////////////////////////////
+  // *
 }
 
 void ConfigurationManager::Destroy() {}

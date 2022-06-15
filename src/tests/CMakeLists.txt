@@ -29,6 +29,11 @@ add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
 
 set_target_properties(${TESTS_EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 
+
+if(MSVC)
+  target_link_options(${TESTS_EXECUTABLE_NAME} PRIVATE /NODEFAULTLIB:MSVCRT)
+endif()
+
 # Compiling ####################################################################
 target_precompile_headers(${TESTS_EXECUTABLE_NAME}
   PRIVATE

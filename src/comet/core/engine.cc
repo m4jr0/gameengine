@@ -11,31 +11,15 @@
 
 namespace comet {
 void Engine::Initialize() {
-  configuration_manager_.Initialize();
-  rendering_manager_.Initialize();
-  resource_manager_.Initialize();
-  physics_manager_.Initialize();
-
-  input_manager_.AttachGlfwWindow(const_cast<GLFWwindow*>(
-      static_cast<const rendering::GlfwWindow*>(
-          Engine::Get().GetRenderingManager().GetWindow())
-          ->GetHandle()));
-
-  input_manager_.Initialize();
-
-  const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
-
-  event_manager_.Register(event_function,
-                          event::WindowCloseEvent::kStaticType_);
-
-  msPerUpdate_ = configuration_manager_.Get<f64>("engine_ms_per_update");
-
-  entity_manager_.Initialize();
+  PreLoad();
+  Load();
+  PostLoad();
 }
 
 void Engine::Run() {
   try {
     is_running_ = true;
+    time_manager_.SetFixedDeltaTime(COMET_CONF_CORE(f64, "ms_per_update"));
     time_manager_.Initialize();
     // To catch up time taken to render.
     f64 lag{0.0};
@@ -47,19 +31,20 @@ void Engine::Run() {
       }
 
       time_manager_.Update();
-      const auto time_delta{time_manager_.GetTimeDelta()};
+      const auto fixed_delta_time{time_manager_.GetFixedDeltaTime()};
+      const auto delta_time{time_manager_.GetDeltaTime()};
 
-      lag += time_delta;
+      lag += delta_time;
 
       // To render physics properly, we have to catch up with the lag.
-      while (lag >= msPerUpdate_) {
+      while (lag >= fixed_delta_time) {
         event_manager_.FireAllEvents();
         physics_manager_.Update(GetEntityManager());
-        lag -= msPerUpdate_;
+        lag -= fixed_delta_time;
       }
 
       // Rendering a frame can take quite a huge amount of time.
-      rendering_manager_.Update(lag / msPerUpdate_, GetEntityManager());
+      rendering_manager_.Update(lag / fixed_delta_time, GetEntityManager());
     }
   } catch (const std::runtime_error& runtime_error) {
     COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
@@ -86,11 +71,10 @@ void Engine::Stop() {
 }
 
 void Engine::Destroy() {
-  entity_manager_.Destroy();
-  physics_manager_.Destroy();
-  rendering_manager_.Destroy();
-  configuration_manager_.Destroy();
-  Engine::engine_ = nullptr;
+  PreUnload();
+  Unload();
+  PostUnload();
+
   COMET_LOG_CORE_INFO("Comet destroyed");
 }
 
@@ -102,6 +86,46 @@ void Engine::Quit() {
   is_exit_requested_ = true;
   COMET_LOG_CORE_INFO("Comet is required to quit");
 }
+
+void Engine::PreLoad() {
+  configuration_manager_.Initialize();
+  resource_manager_.Initialize();
+}
+
+void Engine::Load() {
+  rendering_manager_.Initialize();
+  physics_manager_.Initialize();
+
+  input_manager_.AttachGlfwWindow(const_cast<GLFWwindow*>(
+      static_cast<const rendering::GlfwWindow*>(
+          Engine::Get().GetRenderingManager().GetWindow())
+          ->GetHandle()));
+
+  input_manager_.Initialize();
+
+  const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
+
+  event_manager_.Register(event_function,
+                          event::WindowCloseEvent::kStaticType_);
+
+  entity_manager_.Initialize();
+}
+
+void Engine::PostLoad() {}
+
+void Engine::PreUnload() {
+  entity_manager_.Destroy();
+  physics_manager_.Destroy();
+  rendering_manager_.Destroy();
+  COMET_STRING_ID_DESTROY();
+}
+
+void Engine::Unload() {
+  resource_manager_.Destroy();
+  configuration_manager_.Destroy();
+}
+
+void Engine::PostUnload() { Engine::engine_ = nullptr; }
 
 Engine::Engine() { Engine::engine_ = this; }
 

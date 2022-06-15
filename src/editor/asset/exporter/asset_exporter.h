@@ -45,7 +45,8 @@ class AssetExporter {
   std::string root_resource_path_;
   resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
 
-  virtual bool AttachResourceToAssetDescr(AssetDescr& asset_descr) = 0;
+  virtual std::vector<resource::ResourceFile> GetResourceFiles(
+      AssetDescr& asset_descr) = 0;
 };
 }  // namespace asset
 }  // namespace editor

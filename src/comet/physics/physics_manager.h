@@ -27,7 +27,7 @@ class PhysicsManager {
   u8 GetCounter() const noexcept;
 
  private:
-  u8 counter_{0};
+  uindex counter_{0};
   f64 current_time_{0};
 };
 }  // namespace physics

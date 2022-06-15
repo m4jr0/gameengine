@@ -29,7 +29,8 @@ enum class ResourceLifeSpan : u8 {
 };
 
 struct ResourceFile {
-  ResourceId resource_type_id;
+  ResourceId resource_id{kInvalidResourceId};
+  ResourceId resource_type_id{kInvalidResourceTypeId};
   CompressionMode compression_mode{CompressionMode::None};
   uindex descr_size{0};
   uindex data_size{0};
@@ -47,11 +48,12 @@ struct Resource {
 };
 
 struct InternalResource {
-  ResourceId resource_id;
+  ResourceId resource_id{kInvalidResourceId};
+  ResourceId internal_id{kInvalidResourceId};
 };
 
 template <typename ResourcePath>
-ResourceId GenerateResourceId(ResourcePath&& resource_path) {
+ResourceId GenerateResourceIdFromPath(ResourcePath&& resource_path) {
   return utils::hash::HashCrC32(std::forward<ResourcePath>(resource_path));
 }
 
@@ -89,7 +91,7 @@ void PackResourceDescr(const ResourceDescrType& descr, ResourceFile& file) {
   }
 }
 
-void PackResourceData(const std::vector<char>& data, ResourceFile& file);
+void PackResourceData(const std::vector<u8>& data, ResourceFile& file);
 
 template <typename ResourceDescrType>
 ResourceDescrType UnpackResourceDescr(const ResourceFile& file) {
@@ -116,7 +118,7 @@ ResourceDescrType UnpackResourceDescr(const ResourceFile& file) {
   return descr;
 }
 
-std::vector<char> UnpackResourceData(const ResourceFile& file);
+std::vector<u8> UnpackResourceData(const ResourceFile& file);
 bool SaveResourceFile(const std::string& path, const ResourceFile& file);
 bool LoadResourceFile(const std::string& path, ResourceFile& file);
 
@@ -132,15 +134,17 @@ class ResourceHandler {
   template <typename AbsolutePath, typename ResourcePath>
   const std::unique_ptr<Resource> Load(AbsolutePath&& root_resource_path,
                                        ResourcePath&& resource_path) const {
-    const auto resource_id = GenerateResourceId(resource_path);
+    const auto resource_id = GenerateResourceIdFromPath(resource_path);
     ResourceFile file{};
 
     const auto resource_abs_path = utils::filesystem::Append(
         std::forward<AbsolutePath>(root_resource_path),
         std::forward<ResourcePath>(resource_path));
 
-    COMET_ASSERT(LoadResourceFile(resource_abs_path, file),
-                 "Unable to get resource at path: ", resource_path, ".");
+    const auto result{LoadResourceFile(resource_abs_path, file)};
+
+    COMET_ASSERT(result, "Unable to get resource at path: ", resource_path,
+                 ".");
 
     return Unpack(file);
   }

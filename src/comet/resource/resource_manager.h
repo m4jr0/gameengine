@@ -7,9 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "comet/resource/model_resource.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/texture_resource.h"
 #include "comet/utils/file_system.h"
 
 namespace comet {
@@ -64,22 +62,18 @@ class ResourceManager {
     const auto* resource{cache_.Get(resource_id)};
 
     if (resource != nullptr) {
-      if (resource->type_id != ResourceType::kResourceTypeId) {
-        COMET_LOG_RESOURCE_ERROR(
-            "Invalid resource type provided. ID of expected type is ",
-            resource->type_id, ", ID of type provided is ",
-            ResourceType::kResourceTypeId);
-        return nullptr;
-      }
+      COMET_ASSERT(resource->type_id == ResourceType::kResourceTypeId,
+                   "Invalid resource type provided. ID of expected type is ",
+                   resource->type_id, ", ID of type provided is ",
+                   ResourceType::kResourceTypeId);
 
       return static_cast<const ResourceType*>(resource);
     }
 
-    if (handlers_.find(ResourceType::kResourceTypeId) == handlers_.cend()) {
-      COMET_LOG_RESOURCE_ERROR("Unknown resource ID: ", resource_id,
-                               ". Aborting.");
-      return nullptr;
-    }
+    COMET_ASSERT(
+        handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
+        "Unknown resource type ID: ", ResourceType::kResourceTypeId,
+        ". Aborting.");
 
     const auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
     cache_.Set(handler->Load(root_resource_path_, std::to_string(resource_id)));
@@ -90,17 +84,15 @@ class ResourceManager {
   const ResourceType* Load(
       AssetPath&& asset_path,
       ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
-    return LoadFromResourceId<ResourceType>(GenerateResourceId(asset_path),
-                                            life_span);
+    return LoadFromResourceId<ResourceType>(
+        GenerateResourceIdFromPath(asset_path), life_span);
   }
 
   template <typename ResourceType>
   ResourceFile GetResourceFile(const ResourceType& resource,
                                CompressionMode compression_mode) {
-    if (handlers_.find(resource.kResourceTypeId) == handlers_.cend()) {
-      throw std::runtime_error("Unknown resource ID: " +
-                               std::to_string(resource.kResourceTypeId));
-    }
+    COMET_ASSERT(handlers_.find(resource.kResourceTypeId) != handlers_.cend(),
+                 "Unknown resource ID: ", resource.kResourceTypeId);
 
     auto* handler{handlers_.at(resource.kResourceTypeId).get()};
     return handler->GetResourceFile(resource, compression_mode);

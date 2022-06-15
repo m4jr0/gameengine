@@ -8,16 +8,15 @@
 #include "comet_precompile.h"
 
 #include "comet/entity/entity_manager.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/window.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
-struct DriverDescr {
-  u16 width;
-  u16 height;
-  std::string name;
-};
+enum class DriverType : u8 { Unknown = 0, OpenGl, Vulkan, Direct3d12 };
+
+DriverType GetDriverTypeFromTypeName(const std::string& name);
 
 class Driver {
  public:

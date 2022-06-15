@@ -12,7 +12,6 @@
 namespace comet {
 namespace editor {
 namespace asset {
-namespace texture {
 constexpr char kCometEditorTextureMetadataKeyFormat[]{"format"};
 constexpr char kCometEditorTextureMetadataKeyWidth[]{"width"};
 constexpr char kCometEditorTextureMetadataKeyHeight[]{"height"};
@@ -32,9 +31,9 @@ class TextureExporter : public AssetExporter {
   bool IsCompatible(const std::string& extension) override;
 
  protected:
-  bool AttachResourceToAssetDescr(AssetDescr& asset_descr) override;
+  std::vector<resource::ResourceFile> GetResourceFiles(
+      AssetDescr& asset_descr) override;
 };
-}  // namespace texture
 }  // namespace asset
 }  // namespace editor
 }  // namespace comet

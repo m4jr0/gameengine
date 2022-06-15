@@ -2,46 +2,13 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "vulkan_types.h"
+#include "vulkan_common_types.h"
+
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-bool QueueFamilyIndices::IsComplete() {
-  return graphics_family.has_value() && present_family.has_value() &&
-         transfer_family.has_value();
-}
-
-bool QueueFamilyIndices::IsSpecificTransferFamily() {
-  if (!graphics_family.has_value() || !transfer_family.has_value()) {
-    return false;
-  }
-
-  return graphics_family.value() != transfer_family.value();
-}
-
-std::vector<u32> QueueFamilyIndices::GetUniqueIndices() {
-  if (!IsComplete()) {
-    throw std::runtime_error("Queue Family Indices is not complete");
-  }
-
-  const auto graphics_fam_index{graphics_family.value()};
-  const auto present_fam_index{present_family.value()};
-  const auto transfer_fam_index{transfer_family.value()};
-
-  std::set<u32> set{graphics_family.value(), present_family.value(),
-                    transfer_family.value()};
-
-  std::vector<u32> list{};
-  list.reserve(set.size());
-
-  for (auto it{set.begin()}; it != set.end();) {
-    list.push_back(std::move(set.extract(it++).value()));
-  }
-
-  return list;
-}
-
 CommandBuffer::CommandBuffer(VkDevice device, VkCommandPool command_pool,
                              VkCommandBuffer command_buffer)
     : device_{device},
@@ -61,10 +28,9 @@ void CommandBuffer::Allocate() {
   alloc_info.commandPool = command_pool_;
   alloc_info.commandBufferCount = 1;
 
-  if (vkAllocateCommandBuffers(device_, &alloc_info, &command_buffer_) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("Failed to allocate command buffer");
-  }
+  COMET_CHECK_VK(
+      vkAllocateCommandBuffers(device_, &alloc_info, &command_buffer_),
+      "Failed to allocate command buffer");
 
   is_allocated_ = true;
 }
@@ -76,9 +42,8 @@ void CommandBuffer::Record() {
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;  // For now, it's a one-time
                                                     // command.
 
-  if (vkBeginCommandBuffer(command_buffer_, &begin_info) != VK_SUCCESS) {
-    throw std::runtime_error("Failed to begin recording command buffer");
-  }
+  COMET_CHECK_VK(vkBeginCommandBuffer(command_buffer_, &begin_info),
+                 "Failed to begin recording command buffer");
 }
 
 void CommandBuffer::Submit(VkQueue queue) {

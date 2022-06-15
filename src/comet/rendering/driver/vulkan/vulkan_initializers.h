@@ -9,7 +9,8 @@
 
 #include "vulkan/vulkan.h"
 
-#include "comet/rendering/driver/vulkan/vulkan_types.h"
+#include "comet/rendering/driver/vulkan/vulkan_common_types.h"
+#include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
 
 namespace comet {
 namespace rendering {
@@ -35,7 +36,7 @@ VkDeviceCreateInfo GetDeviceCreateInfo(
 VkSwapchainCreateInfoKHR GetSwapchainCreateInfo(
     const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surface_format,
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
-    const SwapChainSupportDetails& details,
+    const SwapchainSupportDetails& details,
     const std::vector<u32>& queue_family_unique_indices, u32 image_count);
 VkFenceCreateInfo GetFenceCreateInfo(VkFenceCreateFlags flags = 0);
 VkSemaphoreCreateInfo GetSemaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
@@ -46,16 +47,25 @@ VkRenderPassBeginInfo GetRenderPassBeginInfo(VkRenderPass render_pass,
                                              VkFramebuffer frame_buffer);
 VkPipelineShaderStageCreateInfo GetPipelineShaderStageCreateInfo(
     VkShaderStageFlagBits stage, VkShaderModule shader_module);
-VkPipelineVertexInputStateCreateInfo GetPipelineVertexInputStateCreateInfo();
+VkPipelineVertexInputStateCreateInfo GetPipelineVertexInputStateCreateInfo(
+    const VkVertexInputBindingDescription* binding_descriptions = nullptr,
+    u32 binding_description_count = 0,
+    const VkVertexInputAttributeDescription*
+        attribute_descriptionsbinding_descriptions = nullptr,
+    u32 attribute_description_count = 0);
 VkPipelineInputAssemblyStateCreateInfo GetPipelineInputAssemblyStateCreateInfo(
-    VkPrimitiveTopology topology);
+    VkPrimitiveTopology topology, bool is_primitive_restart_enabled = VK_FALSE);
 VkPipelineRasterizationStateCreateInfo GetPipelineRasterizationStateCreateInfo(
     VkPolygonMode polygon_mode);
 VkPipelineMultisampleStateCreateInfo GetPipelineMultisampleStateCreateInfo();
 VkPipelineColorBlendAttachmentState GetPipelineColorBlendAttachmentState();
+VkPipelineColorBlendStateCreateInfo GetPipelineColorBlendStateCreateInfo(
+    const VkPipelineColorBlendAttachmentState* color_blend_attachments,
+    uindex color_blend_attachment_count);
 VkPipelineLayoutCreateInfo GetPipelineLayoutCreateInfo();
 VkPipelineDepthStencilStateCreateInfo GetPipelineDepthStencilStateCreateInfo(
-    bool is_depth_test, bool is_depth_write, VkCompareOp compare_op);
+    bool is_depth_test, bool is_depth_write,
+    VkCompareOp compare_op = VK_COMPARE_OP_ALWAYS);
 VkImageCreateInfo GetImageCreateInfo(
     u32 width, u32 height, u32 mip_levels, VkSampleCountFlagBits num_samples,
     VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags,

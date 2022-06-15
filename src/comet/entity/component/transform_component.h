@@ -22,6 +22,7 @@ struct TransformComponent {
   EntityId next{kInvalidEntityId};
   EntityId parent{kInvalidEntityId};
   glm::mat4x4 local{};
+  glm::mat4x4 global{};
 };
 }  // namespace entity
 }  // namespace comet

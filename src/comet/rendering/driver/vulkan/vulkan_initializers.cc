@@ -19,7 +19,7 @@ VkDebugUtilsMessengerCreateInfoEXT GetDebugUtilsMessengerCreateInfo(
                      VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                      VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   info.pfnUserCallback = callback;
-  info.pUserData = nullptr;
+  info.pUserData = VK_NULL_HANDLE;
 
   return info;
 }
@@ -28,7 +28,7 @@ VkCommandPoolCreateInfo GetCommandPoolCreateInfo(
     u32 queue_family_index, VkCommandPoolCreateFlags flags) {
   VkCommandPoolCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.flags = flags;
 
   return info;
@@ -38,7 +38,7 @@ VkCommandBufferAllocateInfo GetCommandBufferAllocateInfo(
     VkCommandPool pool, u32 count, VkCommandBufferLevel level) {
   VkCommandBufferAllocateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.commandPool = pool;
   info.commandBufferCount = count;
   info.level = level;
@@ -50,8 +50,8 @@ VkCommandBufferBeginInfo GetCommandBufferBeginInfo(
     VkCommandBufferUsageFlags flags) {
   VkCommandBufferBeginInfo info{};
   info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  info.pNext = nullptr;
-  info.pInheritanceInfo = nullptr;
+  info.pNext = VK_NULL_HANDLE;
+  info.pInheritanceInfo = VK_NULL_HANDLE;
   info.flags = flags;
 
   return info;
@@ -88,7 +88,7 @@ VkFramebufferCreateInfo GetFrameBufferCreateInfo(VkRenderPass render_pass,
                                                  VkExtent2D extent) {
   VkFramebufferCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.renderPass = render_pass;
   info.attachmentCount = 1;
   info.width = extent.width;
@@ -100,7 +100,7 @@ VkFramebufferCreateInfo GetFrameBufferCreateInfo(VkRenderPass render_pass,
 VkSwapchainCreateInfoKHR GetSwapchainCreateInfo(
     const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& surface_format,
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
-    const SwapChainSupportDetails& details,
+    const SwapchainSupportDetails& details,
     const std::vector<u32>& queue_family_unique_indices, u32 image_count) {
   VkSwapchainCreateInfoKHR info{};
   info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -114,8 +114,8 @@ VkSwapchainCreateInfoKHR GetSwapchainCreateInfo(
 
   if (queue_family_unique_indices.size() == 1) {
     info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.queueFamilyIndexCount = 0;      // Optional.
-    info.pQueueFamilyIndices = nullptr;  // Optional.
+    info.queueFamilyIndexCount = 0;             // Optional.
+    info.pQueueFamilyIndices = VK_NULL_HANDLE;  // Optional.
   } else {
     info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     info.queueFamilyIndexCount =
@@ -137,7 +137,7 @@ VkSwapchainCreateInfoKHR GetSwapchainCreateInfo(
 VkFenceCreateInfo GetFenceCreateInfo(VkFenceCreateFlags flags) {
   VkFenceCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.flags = flags;
 
   return info;
@@ -146,7 +146,7 @@ VkFenceCreateInfo GetFenceCreateInfo(VkFenceCreateFlags flags) {
 VkSemaphoreCreateInfo GetSemaphoreCreateInfo(VkSemaphoreCreateFlags flags) {
   VkSemaphoreCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.flags = flags;
 
   return info;
@@ -155,14 +155,14 @@ VkSemaphoreCreateInfo GetSemaphoreCreateInfo(VkSemaphoreCreateFlags flags) {
 VkSubmitInfo GetSubmitInfo(VkCommandBuffer* command_buffer) {
   VkSubmitInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.waitSemaphoreCount = 0;
-  info.pWaitSemaphores = nullptr;
-  info.pWaitDstStageMask = nullptr;
+  info.pWaitSemaphores = VK_NULL_HANDLE;
+  info.pWaitDstStageMask = VK_NULL_HANDLE;
   info.commandBufferCount = 1;
   info.pCommandBuffers = command_buffer;
   info.signalSemaphoreCount = 0;
-  info.pSignalSemaphores = nullptr;
+  info.pSignalSemaphores = VK_NULL_HANDLE;
 
   return info;
 }
@@ -170,12 +170,12 @@ VkSubmitInfo GetSubmitInfo(VkCommandBuffer* command_buffer) {
 VkPresentInfoKHR GetPresentInfo() {
   VkPresentInfoKHR info{};
   info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.swapchainCount = 0;
-  info.pSwapchains = nullptr;
-  info.pWaitSemaphores = nullptr;
+  info.pSwapchains = VK_NULL_HANDLE;
+  info.pWaitSemaphores = VK_NULL_HANDLE;
   info.waitSemaphoreCount = 0;
-  info.pImageIndices = nullptr;
+  info.pImageIndices = VK_NULL_HANDLE;
 
   return info;
 }
@@ -185,13 +185,13 @@ VkRenderPassBeginInfo GetRenderPassBeginInfo(VkRenderPass render_pass,
                                              VkFramebuffer frame_buffer) {
   VkRenderPassBeginInfo info{};
   info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.renderPass = render_pass;
   info.renderArea.offset.x = 0;
   info.renderArea.offset.y = 0;
   info.renderArea.extent = extent;
   info.clearValueCount = 1;
-  info.pClearValues = nullptr;
+  info.pClearValues = VK_NULL_HANDLE;
   info.framebuffer = frame_buffer;
 
   return info;
@@ -201,7 +201,7 @@ VkPipelineShaderStageCreateInfo GetPipelineShaderStageCreateInfo(
     VkShaderStageFlagBits stage, VkShaderModule shader_module) {
   VkPipelineShaderStageCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.stage = stage;
   info.module = shader_module;
   info.pName = "main";
@@ -209,23 +209,29 @@ VkPipelineShaderStageCreateInfo GetPipelineShaderStageCreateInfo(
   return info;
 }
 
-VkPipelineVertexInputStateCreateInfo GetPipelineVertexInputStateCreateInfo() {
+VkPipelineVertexInputStateCreateInfo GetPipelineVertexInputStateCreateInfo(
+    const VkVertexInputBindingDescription* binding_descriptions,
+    u32 binding_description_count,
+    const VkVertexInputAttributeDescription* attribute_descriptions,
+    u32 attribute_description_count) {
   VkPipelineVertexInputStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  info.pNext = nullptr;
-  info.vertexBindingDescriptionCount = 0;
-  info.vertexAttributeDescriptionCount = 0;
+  info.pNext = VK_NULL_HANDLE;
+  info.pVertexBindingDescriptions = binding_descriptions;
+  info.vertexBindingDescriptionCount = binding_description_count;
+  info.pVertexAttributeDescriptions = attribute_descriptions;
+  info.vertexAttributeDescriptionCount = attribute_description_count;
 
   return info;
 }
 
 VkPipelineInputAssemblyStateCreateInfo GetPipelineInputAssemblyStateCreateInfo(
-    VkPrimitiveTopology topology) {
+    VkPrimitiveTopology topology, bool is_primitive_restart_enabled) {
   VkPipelineInputAssemblyStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.topology = topology;
-  info.primitiveRestartEnable = VK_FALSE;
+  info.primitiveRestartEnable = is_primitive_restart_enabled;
 
   return info;
 }
@@ -234,7 +240,7 @@ VkPipelineRasterizationStateCreateInfo GetPipelineRasterizationStateCreateInfo(
     VkPolygonMode polygon_mode) {
   VkPipelineRasterizationStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.depthClampEnable = VK_FALSE;
   info.rasterizerDiscardEnable = VK_FALSE;
   info.polygonMode = polygon_mode;
@@ -252,11 +258,11 @@ VkPipelineRasterizationStateCreateInfo GetPipelineRasterizationStateCreateInfo(
 VkPipelineMultisampleStateCreateInfo GetPipelineMultisampleStateCreateInfo() {
   VkPipelineMultisampleStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.sampleShadingEnable = VK_FALSE;
   info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
   info.minSampleShading = 1.0f;
-  info.pSampleMask = nullptr;
+  info.pSampleMask = VK_NULL_HANDLE;
   info.alphaToCoverageEnable = VK_FALSE;
   info.alphaToOneEnable = VK_FALSE;
 
@@ -269,19 +275,43 @@ VkPipelineColorBlendAttachmentState GetPipelineColorBlendAttachmentState() {
       VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
   attachment.blendEnable = VK_FALSE;
+  attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+  attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+  attachment.colorBlendOp = VK_BLEND_OP_ADD;
+  attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+  attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
   return attachment;
+}
+
+VkPipelineColorBlendStateCreateInfo GetPipelineColorBlendStateCreateInfo(
+    const VkPipelineColorBlendAttachmentState* color_blend_attachments,
+    uindex color_blend_attachment_count) {
+  VkPipelineColorBlendStateCreateInfo info{};
+  info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+  info.logicOpEnable = VK_FALSE;
+  info.logicOp = VK_LOGIC_OP_COPY;
+  info.attachmentCount = static_cast<u32>(color_blend_attachment_count);
+  info.pAttachments = color_blend_attachments;
+  info.blendConstants[0] = 0.0f;
+  info.blendConstants[1] = 0.0f;
+  info.blendConstants[2] = 0.0f;
+  info.blendConstants[3] = 0.0f;
+  info.pNext = VK_NULL_HANDLE;
+
+  return info;
 }
 
 VkPipelineLayoutCreateInfo GetPipelineLayoutCreateInfo() {
   VkPipelineLayoutCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.flags = 0;
   info.setLayoutCount = 0;
-  info.pSetLayouts = nullptr;
+  info.pSetLayouts = VK_NULL_HANDLE;
   info.pushConstantRangeCount = 0;
-  info.pPushConstantRanges = nullptr;
+  info.pPushConstantRanges = VK_NULL_HANDLE;
 
   return info;
 }
@@ -290,14 +320,16 @@ VkPipelineDepthStencilStateCreateInfo GetPipelineDepthStencilStateCreateInfo(
     bool is_depth_test, bool is_depth_write, VkCompareOp compare_op) {
   VkPipelineDepthStencilStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  info.pNext = nullptr;
-  info.depthTestEnable = is_depth_test ? VK_TRUE : VK_FALSE;
-  info.depthWriteEnable = is_depth_write ? VK_TRUE : VK_FALSE;
+  info.pNext = VK_NULL_HANDLE;
+  info.depthTestEnable = is_depth_test;
+  info.depthWriteEnable = is_depth_write;
   info.depthCompareOp = is_depth_test ? compare_op : VK_COMPARE_OP_ALWAYS;
   info.depthBoundsTestEnable = VK_FALSE;
   info.minDepthBounds = 0.0f;
   info.maxDepthBounds = 1.0f;
   info.stencilTestEnable = VK_FALSE;
+  info.front = {};
+  info.back = {};
 
   return info;
 }
@@ -359,7 +391,7 @@ VkDescriptorSetLayoutBinding GetDescriptorSetLayoutBinding(
   layout_binding.binding = binding;
   layout_binding.descriptorCount = 1;
   layout_binding.descriptorType = type;
-  layout_binding.pImmutableSamplers = nullptr;
+  layout_binding.pImmutableSamplers = VK_NULL_HANDLE;
   layout_binding.stageFlags = stage_flags;
 
   return layout_binding;
@@ -370,7 +402,7 @@ VkWriteDescriptorSet GetBufferWriteDescriptorSet(
     VkDescriptorBufferInfo* buffer_info, u32 binding) {
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.pNext = nullptr;
+  write.pNext = VK_NULL_HANDLE;
   write.dstBinding = binding;
   write.dstSet = dst_set;
   write.descriptorCount = 1;
@@ -385,7 +417,7 @@ VkWriteDescriptorSet GetImageWriteDescriptorSet(
     VkDescriptorImageInfo* image_info, u32 binding) {
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  write.pNext = nullptr;
+  write.pNext = VK_NULL_HANDLE;
   write.dstBinding = binding;
   write.dstSet = dst_set;
   write.descriptorCount = 1;
@@ -399,7 +431,7 @@ VkSamplerCreateInfo GetSamplerCreateInfo(VkFilter filters,
                                          VkSamplerAddressMode address_mode) {
   VkSamplerCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  info.pNext = nullptr;
+  info.pNext = VK_NULL_HANDLE;
   info.magFilter = filters;
   info.minFilter = filters;
   info.addressModeU = address_mode;

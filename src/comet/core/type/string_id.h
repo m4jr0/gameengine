@@ -31,13 +31,13 @@ class StringIdHandler {
   std::unordered_map<StringId, char*> string_id_table;
 };
 
-extern StringIdHandler& GetStringIdHandler();
+extern StringIdHandler* SetHandler(bool is_destroy = false);
 }  // namespace stringid
 }  // namespace comet
 
-#define COMET_STRING_ID(string) \
-  comet::stringid::GetStringIdHandler().Generate(string)
+#define COMET_STRING_ID(string) comet::stringid::SetHandler()->Generate(string)
 #define COMET_STRING_ID_LABEL(string_id) \
-  comet::stringid::GetStringIdHandler().Labelize(string_id)
+  comet::stringid::SetHandler()->Labelize(string_id)
+#define COMET_STRING_ID_DESTROY() comet::stringid::SetHandler(true)
 
 #endif  // COMET_COMET_CORE_TYPE_STRING_ID_H_

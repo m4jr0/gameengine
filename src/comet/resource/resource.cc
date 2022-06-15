@@ -10,7 +10,7 @@
 
 namespace comet {
 namespace resource {
-void PackResourceData(const std::vector<char>& data, ResourceFile& file) {
+void PackResourceData(const std::vector<u8>& data, ResourceFile& file) {
   file.data_size = sizeof(char) * data.size();
 
   switch (file.compression_mode) {
@@ -34,8 +34,8 @@ void PackResourceData(const std::vector<char>& data, ResourceFile& file) {
   }
 }
 
-std::vector<char> UnpackResourceData(const ResourceFile& file) {
-  std::vector<char> data;
+std::vector<u8> UnpackResourceData(const ResourceFile& file) {
+  std::vector<u8> data;
 
   switch (file.compression_mode) {
     case CompressionMode::Lz4: {

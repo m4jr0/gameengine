@@ -10,15 +10,18 @@
 #include "stb_image.h"
 
 #include "comet/core/engine.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/texture_resource.h"
 #include "comet/utils/file_system.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-namespace texture {
-bool TextureExporter::AttachResourceToAssetDescr(AssetDescr& asset_descr) {
+std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
+    AssetDescr& asset_descr) {
+  std::vector<resource::ResourceFile> resource_files{};
   s32 tex_width{0};
   s32 tex_height{0};
   s32 tex_channels{0};
@@ -27,19 +30,18 @@ bool TextureExporter::AttachResourceToAssetDescr(AssetDescr& asset_descr) {
 
   if (pixel_data == nullptr) {
     COMET_LOG_GLOBAL_ERROR("Failed to load texture image");
-    return false;
+    return resource_files;
   }
 
-  resource::texture::TextureResource texture{};
-  texture.id = asset_descr.resource_id;
-  texture.type_id = resource::texture::TextureResource::kResourceTypeId;
+  resource::TextureResource texture{};
+  texture.id = resource::GenerateResourceIdFromPath(asset_descr.asset_path);
+  texture.type_id = resource::TextureResource::kResourceTypeId;
   texture.descr.size = static_cast<comet::u64>(tex_width) * tex_height * 4;
   texture.descr.resolution[0] = tex_width;
   texture.descr.resolution[1] = tex_height;
   texture.descr.resolution[2] = 0;
   texture.descr.channel_number = tex_channels;
-  texture.descr.format = resource::texture::TextureFormat::Rgba8;
-
+  texture.descr.format = rendering::TextureFormat::Rgba8;
   texture.data = {pixel_data, pixel_data + texture.descr.size};
 
   asset_descr.metadata[kCometEditorTextureMetadataKeyFormat] =
@@ -50,18 +52,16 @@ bool TextureExporter::AttachResourceToAssetDescr(AssetDescr& asset_descr) {
       texture.descr.resolution[1];
   asset_descr.metadata[kCometEditorTextureMetadataKeySize] = texture.descr.size;
 
-  asset_descr.resource = Engine::Get().GetResourceManager().GetResourceFile(
-      texture, compression_mode_);
-
+  resource_files.emplace_back(
+      Engine::Get().GetResourceManager().GetResourceFile(texture,
+                                                         compression_mode_));
   stbi_image_free(pixel_data);
-
-  return true;
+  return resource_files;
 }
 
 bool TextureExporter::IsCompatible(const std::string& extension) {
   return extension == "png" || extension == "jpg";
 }
-}  // namespace texture
 }  // namespace asset
 }  // namespace editor
 }  // namespace comet

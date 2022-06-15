@@ -8,6 +8,8 @@
 #include <climits>
 #include <cstdint>
 
+#include "comet/core/type/os.h"
+
 namespace comet {
 constexpr auto kCharBit{CHAR_BIT};
 
@@ -33,6 +35,16 @@ using f64 = double;
 using uindex = std::size_t;
 using uptr = std::uintptr_t;
 using sptrdiff = std::ptrdiff_t;
+
+#ifdef COMET_64
+using ux = u64;
+using sx = s64;
+using fx = f64;
+#else
+using ux = u32;
+using sx = s32;
+using fx = f32;
+#endif  // COMET_64
 
 constexpr auto kInvalidIndex{static_cast<uindex>(-1)};
 }  // namespace comet

@@ -6,7 +6,6 @@
 
 namespace comet {
 namespace resource {
-namespace texture {
 const ResourceTypeId TextureResource::kResourceTypeId{
     GenerateResourceTypeId("texture")};
 
@@ -14,14 +13,15 @@ ResourceFile TextureHandler::Pack(const Resource& resource,
                                   CompressionMode compression_mode) const {
   const auto& texture{static_cast<const TextureResource&>(resource)};
   ResourceFile file{};
+  file.resource_id = texture.id;
   file.resource_type_id = TextureResource::kResourceTypeId;
   file.compression_mode = compression_mode;
 
-  constexpr auto kResourceIdSize{sizeof(stringid::StringId)};
-  constexpr auto kResourceTypeIdSize{sizeof(stringid::StringId)};
-  const auto data_size{sizeof(char) * texture.data.size()};
+  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
+  const auto data_size{sizeof(u8) * texture.data.size()};
 
-  std::vector<char> data(kResourceIdSize + kResourceTypeIdSize + data_size);
+  std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize + data_size);
   uindex cursor{0};
   auto* buffer{data.data()};
 
@@ -39,7 +39,6 @@ ResourceFile TextureHandler::Pack(const Resource& resource,
 
   PackResourceDescr(texture.descr, file);
   PackResourceData(data, file);
-
   return file;
 }
 
@@ -51,9 +50,9 @@ std::unique_ptr<Resource> TextureHandler::Unpack(
 
   const auto* buffer{data.data()};
   uindex cursor{0};
-  constexpr auto kResourceIdSize{sizeof(stringid::StringId)};
-  constexpr auto kResourceTypeIdSize{sizeof(stringid::StringId)};
-  const auto data_size{sizeof(char) * data.size() - kResourceIdSize -
+  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
+  const auto data_size{sizeof(u8) * data.size() - kResourceIdSize -
                        kResourceTypeIdSize};
 
   std::memcpy(reinterpret_cast<void*>(&texture.id),
@@ -72,6 +71,5 @@ std::unique_ptr<Resource> TextureHandler::Unpack(
 
   return std::make_unique<TextureResource>(std::move(texture));
 }
-}  // namespace texture
 }  // namespace resource
 }  // namespace comet

@@ -25,11 +25,19 @@ class Engine {
   Engine& operator=(Engine&&) = delete;
   virtual ~Engine() = default;
 
-  virtual void Initialize();
-  virtual void Run();
-  virtual void Stop();
-  virtual void Destroy();
-  virtual void Quit();
+  void Initialize();
+  void Run();
+  void Stop();
+  void Destroy();
+  void Quit();
+
+  virtual void PreLoad();
+  virtual void Load();
+  virtual void PostLoad();
+
+  virtual void PreUnload();
+  virtual void Unload();
+  virtual void PostUnload();
 
   static Engine& Get();
   conf::ConfigurationManager& GetConfigurationManager();
@@ -47,7 +55,7 @@ class Engine {
 
   Engine();
 
-  virtual void Exit();
+  void Exit();
   void OnEvent(const event::Event& event);
 
   conf::ConfigurationManager configuration_manager_{};
@@ -62,7 +70,6 @@ class Engine {
  private:
   bool is_running_{false};
   bool is_exit_requested_{false};
-  f64 msPerUpdate_{16.66};  // 60 Hz refresh.
 };
 
 std::unique_ptr<Engine> CreateEngine();

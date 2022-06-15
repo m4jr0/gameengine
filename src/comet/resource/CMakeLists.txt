@@ -10,9 +10,11 @@
 
 # Source files #################################################################
 add_library(${RESOURCE_LIBRARY_NAME}
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/material_resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/shader_resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/texture_resource.cc"
 )
 

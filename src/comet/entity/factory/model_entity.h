@@ -19,7 +19,7 @@ template <typename ResourcePath>
 EntityId CreateModelEntity(ResourcePath&& model_path) {
   auto& resource_manager{Engine::Get().GetResourceManager()};
 
-  const auto* model{resource_manager.Load<resource::model::ModelResource>(
+  const auto* model{resource_manager.Load<resource::ModelResource>(
       std::forward<ResourcePath>(model_path))};
 
   if (model == nullptr) {
@@ -34,25 +34,13 @@ EntityId CreateModelEntity(ResourcePath&& model_path) {
   EntityId prev_entity{kInvalidEntityId};
 
   for (const auto& mesh : model->meshes) {
-    auto child_entity_id{entity_manager.CreateEntity(
-        MeshComponent{&mesh, mesh.textures.size()},
+    const auto child_entity_id{entity_manager.CreateEntity(
+        MeshComponent{
+            &mesh,
+            resource_manager.LoadFromResourceId<resource::MaterialResource>(
+                mesh.material_id)},
         TransformComponent{first_entity, prev_entity, kInvalidEntityId,
                            root_entity_id})};
-
-    auto* mesh_cmp{entity_manager.GetComponent<MeshComponent>(child_entity_id)};
-
-    COMET_ASSERT(mesh_cmp->texture_count <= kTextureCount,
-                 "Too many textures on mesh! ", mesh_cmp->texture_count, " > ",
-                 kTextureCount, ".");
-
-    const auto max{mesh_cmp->texture_count};
-
-    for (uindex i{0}; i < max; ++i) {
-      mesh_cmp->textures[i] =
-          resource_manager
-              .LoadFromResourceId<resource::texture::TextureResource>(
-                  mesh.textures[i].texture_id);
-    }
 
     // Case: first child entity added.
     if (first_entity == kInvalidEntityId) {

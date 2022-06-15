@@ -38,9 +38,6 @@
       "name": "stb"
     },
     {
-      "name": "tinyobjloader"
-    },
-    {
       "name": "vulkan"
     },
     {
@@ -48,6 +45,12 @@
     },
     {
       "name": "lz4"
+    },
+    {
+      "name": "shaderc"
+    },
+    {
+      "name": "spirv-reflect"
     }
   ]
 }

@@ -11,6 +11,7 @@
 
 namespace comet {
 namespace version {
+constexpr char kCometName[]{"Comet Game Engine"};
 constexpr u16 kCometVersionMajor{0};
 constexpr u16 kCometVersionMinor{0};
 constexpr u16 kCometVersionPatch{1};

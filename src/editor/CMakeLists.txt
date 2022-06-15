@@ -19,11 +19,11 @@ add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
 
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 
-# Global variables #############################################################
-# Executables.
-set(EXECUTABLE_NAME "comet_editor")
-set(TESTS_EXECUTABLE_NAME "comet_tests")
+if(MSVC)
+  target_link_options(${EXECUTABLE_NAME} PRIVATE /NODEFAULTLIB:MSVCRT)
+endif()
 
+# Global variables #############################################################
 # Internal library names.
 set(ASSET_LIBRARY_NAME "asset")
 

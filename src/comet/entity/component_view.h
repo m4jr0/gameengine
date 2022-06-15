@@ -24,6 +24,11 @@ class ComponentView {
    public:
     ConstIterator(std::vector<Archetype*> archetypes,
                   uindex archetype_index = 0, uindex entity_index = 0);
+    ConstIterator(const ConstIterator&) = default;
+    ConstIterator(ConstIterator&&) = default;
+    ConstIterator& operator=(const ConstIterator&) = default;
+    ConstIterator& operator=(ConstIterator&&) = default;
+    ~ConstIterator() = default;
 
     const reference operator*() const;
     const pointer operator->();
@@ -52,6 +57,11 @@ class ComponentView {
   const ConstIterator cend() const;
   ComponentView(ComponentTypeId component_type_ids[], uindex component_count,
                 const std::vector<Archetype*>& archetypes);
+  ComponentView(const ComponentView&) = delete;
+  ComponentView(ComponentView&&) = delete;
+  ComponentView& operator=(const ComponentView&) = delete;
+  ComponentView& operator=(ComponentView&&) = delete;
+  ~ComponentView() = default;
 
  private:
   std::vector<Archetype*> archetypes_{};

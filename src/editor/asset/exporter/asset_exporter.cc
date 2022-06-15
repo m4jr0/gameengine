@@ -30,19 +30,11 @@ bool AssetExporter::Process(const std::string& asset_abs_path) {
   descr.asset_path = utils::filesystem::GetRelativePath(descr.asset_abs_path,
                                                         root_asset_path_);
   descr.metadata_path = GetAssetMetadataFilePath(descr.asset_abs_path);
-  descr.resource_id = resource::GenerateResourceId(descr.asset_path);
   auto is_metadata_error{false};
   descr.metadata = SetAndGetMetadata(descr.metadata_path);
-
-  if (!AttachResourceToAssetDescr(descr)) {
-    COMET_LOG_GLOBAL_ERROR("Could not process asset at ", descr.asset_abs_path);
-    return false;
-  }
-
-  const auto compression_mode{descr.resource.compression_mode};
   const char* compression_mode_label{nullptr};
 
-  switch (compression_mode) {
+  switch (compression_mode_) {
     case resource::CompressionMode::Lz4:
       compression_mode_label = kCometResourceCompressionModeLz4;
       break;
@@ -53,7 +45,7 @@ bool AssetExporter::Process(const std::string& asset_abs_path) {
       COMET_LOG_GLOBAL_ERROR(
           "Unknown compression mode: ",
           static_cast<std::underlying_type_t<resource::CompressionMode>>(
-              compression_mode),
+              compression_mode_),
           " for asset at path ", descr.asset_path, ". Ignoring compression.");
       compression_mode_label = kCometResourceCompressionModeNone;
       break;
@@ -63,13 +55,21 @@ bool AssetExporter::Process(const std::string& asset_abs_path) {
       compression_mode_label;
 
   SaveMetadata(descr.metadata_path, descr.metadata);
+  auto resource_files{GetResourceFiles(descr)};
 
-  if (!resource::SaveResourceFile(
-          utils::filesystem::Append(root_resource_path_,
-                                    std::to_string(descr.resource_id)),
-          descr.resource)) {
-    COMET_LOG_GLOBAL_ERROR("Unable to save resource file: ", descr.resource_id);
+  if (resource_files.size() == 0) {
+    COMET_LOG_GLOBAL_ERROR("Could not process asset at ", descr.asset_abs_path);
     return false;
+  }
+
+  for (const auto& resource_file : resource_files) {
+    if (!resource::SaveResourceFile(
+            utils::filesystem::Append(
+                root_resource_path_, std::to_string(resource_file.resource_id)),
+            resource_file)) {
+      COMET_LOG_GLOBAL_ERROR("Unable to save resource file: ",
+                             resource_file.resource_id);
+    }
   }
 
   return true;

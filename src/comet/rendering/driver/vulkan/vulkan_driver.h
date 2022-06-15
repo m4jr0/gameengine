@@ -7,26 +7,36 @@
 
 #include "comet_precompile.h"
 
+// Add specific debug header first to log VMA's messages.
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+
 #include "vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/driver/vulkan/vulkan_buffer.h"
+#include "comet/rendering/driver/vulkan/vulkan_common_types.h"
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/rendering/driver/vulkan/vulkan_descriptor.h"
+#include "comet/rendering/driver/vulkan/vulkan_device.h"
 #include "comet/rendering/driver/vulkan/vulkan_initializers.h"
+#include "comet/rendering/driver/vulkan/vulkan_image.h"
+#include "comet/rendering/driver/vulkan/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/vulkan_mesh.h"
+#include "comet/rendering/driver/vulkan/vulkan_proxy.h"
+#include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/resource/model_resource.h"
+#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-struct VulkanDriverDescr : DriverDescr {
-  bool is_specific_transfer_queue_requested{true};
-  u8 max_frames_in_flight{2};
-};
-
 class VulkanDriver : public Driver {
  public:
-  explicit VulkanDriver(const VulkanDriverDescr& descr);
+  VulkanDriver();
   VulkanDriver(const VulkanDriver&) = delete;
   VulkanDriver(VulkanDriver&&) = delete;
   VulkanDriver& operator=(const VulkanDriver&) = delete;
@@ -35,43 +45,34 @@ class VulkanDriver : public Driver {
 
   void Initialize() override;
   void Destroy() override;
+
   void Update(time::Interpolation interpolation,
               entity::EntityManager& entity_manager) override;
 
-  void LoadShaderModule(std::string& path, VkShaderModule* out);
-  void LoadMeshes();
-  void LoadImages();
-  void UploadMesh(Mesh& mesh);
-
-  void SetSize(u16 width, u16 height);
-  void OnEvent(const event::Event&);
+  void SetSize(WindowSize width, WindowSize height);
 
   bool IsInitialized() const override;
   Window& GetWindow() override;
+  VkRenderPass GetDefaultRenderPass() const noexcept;
+  const VulkanDevice& GetDevice() const noexcept;
 
  private:
+  f32 clear_color_[4]{0.0f, 0.0f, 0.0f, 1.0f};
   static const std::vector<const char*> kDeviceExtensions_;
+  static constexpr auto kDefaultMaxObjectCount_{10000};
 
   bool is_initialized_{false};
-  bool is_specific_transfer_queue_requested_{true};
+  bool is_vsync_{false};
   u8 max_frames_in_flight_{2};
   u8 current_frame_{0};
+  uindex max_object_count_{kDefaultMaxObjectCount_};
   VulkanGlfwWindow window_;
+  VulkanDevice device_{};
   VkInstance instance_{VK_NULL_HANDLE};
-  VkDevice device_{VK_NULL_HANDLE};
   VmaAllocator allocator_{VK_NULL_HANDLE};
-  PhysicalDeviceDescr physical_device_descr_;
-  QueueFamilyIndices queue_family_indices_;
-  VkQueue graphics_queue_{VK_NULL_HANDLE};  // Will be destroyed automatically.
-  VkQueue present_queue_{VK_NULL_HANDLE};   // Will be destroyed automatically.
-  VkQueue transfer_queue_{VK_NULL_HANDLE};  // Will be destroyed automatically.
-  VkSurfaceKHR surface_{VK_NULL_HANDLE};
-  VkSwapchainKHR swapchain_{VK_NULL_HANDLE};
-  std::vector<VkImage> swapchain_images_{};  // Will be destroyed automatically.
-  VkFormat swapchain_image_format_;
-  VkExtent2D swapchain_extent_{};
-  std::vector<VkFramebuffer> swapchain_frame_buffers_;
-  std::vector<VkImageView> swapchain_image_views_;
+  VulkanSwapchain swapchain_{};
+  VulkanDescriptorSetLayoutHandler descriptor_set_layout_handler_{};
+  std::vector<VkFramebuffer> frame_buffers_;
   AllocatedImage allocated_color_image_{};
   VkImageView color_image_view_{VK_NULL_HANDLE};
   AllocatedImage allocated_depth_image_{};
@@ -80,70 +81,84 @@ class VulkanDriver : public Driver {
   std::vector<FrameData> frame_data_{};
   UploadContext upload_context_{};
   VkCommandPool transfer_command_pool_{VK_NULL_HANDLE};
+  VulkanDescriptorAllocator descriptor_allocator_{};
+  VkDescriptorSetLayout global_descriptor_set_layout_{VK_NULL_HANDLE};
+  VkDescriptorSetLayout object_descriptor_set_layout_{VK_NULL_HANDLE};
+  VkDescriptorSetLayout single_texture_descriptor_set_layout_{VK_NULL_HANDLE};
+  SceneData scene_data_;
+  VkPipelineLayout pipeline_layout_{VK_NULL_HANDLE};
+  VkPipeline graphics_pipeline_{VK_NULL_HANDLE};
+  VkSampler texture_sampler_{VK_NULL_HANDLE};
+  VulkanMaterialHandler material_handler_{};
 
-  std::vector<const char*> GetRequiredExtensions();
-  QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
-  PhysicalDeviceDescr GetPhysicalDeviceDescription(VkPhysicalDevice device);
-  SwapChainSupportDetails QuerySwapChainSupportDetails(VkPhysicalDevice device);
-  void CreateImage(u32 width, u32 height, u32 mip_levels,
-                   VkSampleCountFlagBits num_samples, VkFormat format,
-                   VkImageTiling tiling, VkImageUsageFlags usage,
-                   VkMemoryPropertyFlags properties,
-                   AllocatedImage& allocated_image);
-  VkImageView CreateImageView(VkImage image, VkFormat format,
-                              VkImageAspectFlags aspect_flags, u32 mip_levels);
+  std::vector<VulkanRenderProxy> proxies_{};
+  std::unordered_map<VulkanMaterialId, VulkanMaterial> materials_{};
+  std::unordered_map<VulkanMeshId, VulkanMesh> meshes_{};
+  std::unordered_map<VulkanTextureId, VulkanTexture> textures_{};
 
-  void InitializeSurface();
-  void InitializeDevice();
   void InitializeVulkanInstance();
   void InitializeAllocator();
-  void InitializeSwapchain();
-  void InitializeSwapchainImageViews();
   void InitializeDefaultRenderPass();
   void InitializeCommands();
+  void InitializeSamplers();
   void InitializeColorResources();
   void InitializeDepthResources();
   void InitializeFrameBuffers();
   void InitializeSyncStructures();
-  void InitializeGraphicsPipeline();
-  void InitializePipelines();
-  void InitializeScene();
   void InitializeDescriptors();
+  void InitializePipelines();
 
-  void DestroyGraphicsPipeline();
+  void DestroyRenderProxies();
+  void DestroyTextures();
+  void DestroyPipelines();
+  void DestroyDescriptors();
   void DestroySyncStructures();
   void DestroyFrameBuffers();
   void DestroyDepthResources();
   void DestroyColorResources();
+  void DestroySamplers();
   void DestroyCommands();
   void DestroyDefaultRenderPass();
-  void DestroyImageViews();
-  void DestroySwapchain();
   void DestroyAllocator();
-  void DestroyDevice();
-  void DestroySurface();
   void DestroyInstance();
 
-  void ChoosePhysicalDevice();
-  VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
-      const std::vector<VkSurfaceFormatKHR>& formats);
-  VkPresentModeKHR ChooseSwapPresentMode(
-      const std::vector<VkPresentModeKHR>& present_modes);
-  VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-  VkFormat ChooseFormat(const std::vector<VkFormat>& candidates,
-                        VkImageTiling tiling, VkFormatFeatureFlags features);
-  VkFormat ChooseDepthFormat();
+  void OnEvent(const event::Event&);
+  void ApplyWindowResize();
+
+  bool PreDraw();
+  void PostDraw();
+  void Draw();
+  void DrawRenderProxies(VkCommandBuffer command_buffer);
+
+  VulkanMesh* AddVulkanMesh(const resource::MeshResource* resource);
+
+  VulkanMesh* TryGetVulkanMesh(VulkanMeshId mesh_id);
+  VulkanMesh* GetVulkanMesh(VulkanMeshId mesh_id);
+  VulkanTexture* UploadVulkanTexture(const resource::TextureResource* resource);
+  void GenerateMipmaps(const VulkanTexture& texture);
+
+  VulkanRenderProxy* TryGetVulkanRenderProxy(
+      const resource::MeshResource* resource);
+
+  std::vector<const char*> GetRequiredExtensions();
+  void UploadVulkanMesh(VulkanMesh& mesh);
+  void CopyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
+  void CopyBufferToImage(CommandBuffer& command_buffer, VkBuffer buffer,
+                         VkImage image, u32 width, u32 height);
   void TransitionImageLayout(
       const CommandBuffer& command_buffer, VkImage image, VkFormat format,
       VkImageLayout old_layout, VkImageLayout new_layout, u32 mip_levels,
       u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
       u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
+  VulkanMaterialDescr GenerateVulkanMaterial(
+      const resource::MaterialResource& resource);
 
-  VkQueue GetTransferQueue();
+  bool IsVulkanMesh(const resource::MeshResource* resource);
   VkCommandPool GetTransferCommandPool();
 
-#ifdef COMET_DEBUG
-  static const std::vector<const char*> kValidationLayers_;
+#ifdef COMET_VULKAN_DEBUG_MODE
+  static constexpr std::array<const char*, 1> kValidationLayers_{
+      "VK_LAYER_KHRONOS_validation"};
   VkDebugUtilsMessengerEXT debug_messenger_{VK_NULL_HANDLE};
 
   void InitializeDebugMessenger();
@@ -154,7 +169,7 @@ class VulkanDriver : public Driver {
       VkDebugUtilsMessageTypeFlagsEXT message_type,
       const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
       void* user_data);
-#endif  // COMET_DEBUG
+#endif  // COMET_VULKAN_DEBUG_MODE
 };
 }  // namespace vk
 }  // namespace rendering

@@ -11,19 +11,15 @@
 
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-struct OpenGlDriverDescr : DriverDescr {
-  u8 major_version;
-  u8 minor_version;
-};
-
 class OpenGlDriver : public Driver {
  public:
-  explicit OpenGlDriver(const OpenGlDriverDescr& descr);
+  OpenGlDriver();
   OpenGlDriver(const OpenGlDriver&) = delete;
   OpenGlDriver(OpenGlDriver&&) = delete;
   OpenGlDriver& operator=(const OpenGlDriver&) = delete;
@@ -35,7 +31,7 @@ class OpenGlDriver : public Driver {
   void Update(time::Interpolation interpolation,
               entity::EntityManager& entity_manager) override;
 
-  void SetSize(u16 width, u16 height);
+  void SetSize(WindowSize width, WindowSize height);
   void OnEvent(const event::Event&);
 
   bool IsInitialized() const override;
@@ -45,6 +41,7 @@ class OpenGlDriver : public Driver {
   u8 major_version_{0};
   u8 minor_version_{0};
   bool is_initialized_{false};
+  f32 clear_color_[4]{0.0f, 0.0f, 0.0f, 1.0f};
   OpenGlGlfwWindow window_;
 };
 }  // namespace gl

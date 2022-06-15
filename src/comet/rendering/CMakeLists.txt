@@ -20,25 +20,23 @@ find_package(glad REQUIRED)
 find_package(OpenGL REQUIRED)
 
 # Vulkan.
-find_package(Vulkan)
+find_package(Vulkan REQUIRED)
 find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
 
 # ImGui.
 find_package(imgui CONFIG REQUIRED)
 
-# Misc.
-find_package(Stb REQUIRED COMPONENTS stb_image)
-find_package(tinyobjloader CONFIG REQUIRED)
-find_package(assimp REQUIRED)
-
 if(LINUX)
-# X11.
+  # X11.
   find_package(X11 REQUIRED)
 endif()
 
 # Source files #################################################################
 add_library(${RENDERING_LIBRARY_NAME}
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_common.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cc"
+
+    # Driver.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"
 
     # OpenGL.
@@ -48,26 +46,33 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_texture.cc"
 
     #Vulkan.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_buffer.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_common_types.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_debug.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_descriptor.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_device.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_driver.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_image.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_material.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_mesh.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_initializers.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_utils.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_texture.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_types.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_pipeline.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_proxy.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_shader.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_swapchain.cc"
 
     # Windows.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/glfw_window.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/opengl/opengl_glfw_window.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/vulkan/vulkan_glfw_window.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cc"
- "driver/opengl/opengl_mesh.h")
+)
 
 # Compiling ####################################################################
 target_include_directories(${RENDERING_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
-    ${STB_INCLUDE_DIRS}
 )
 
 if(WIN32)
@@ -87,14 +92,11 @@ target_link_libraries(${RENDERING_LIBRARY_NAME}
   PRIVATE
     ${ZLIB_LIBRARY_RELEASE}
     glad
-
-  PRIVATE
-    assimp::assimp
-    tinyobjloader::tinyobjloader
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator
     glm::glm
     imgui::imgui
     glfw
+    spirv-reflect
 )
 
 if(WIN32)

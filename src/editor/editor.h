@@ -22,10 +22,13 @@ class CometEditor : public Engine {
   CometEditor& operator=(CometEditor&&) = delete;
   ~CometEditor() = default;
 
-  void Initialize() override;
+  void PreLoad() override;
+  // TODO(m4jr0): Remove temporary code (PostLoad is used to generate (a)
+  // model(s) onto the scene).
+  void PostLoad() override;
+  void PostUnload() override;
 
  protected:
-  void Exit() override;
 #ifdef COMET_WINDOWS
   static BOOL WINAPI HandleConsole(DWORD window_event);
 #endif  // COMET_WINDOWS

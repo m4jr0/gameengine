@@ -14,13 +14,16 @@ bool OpenBinaryFileToWriteTo(const char* path, std::ofstream& out_file,
                              bool is_append = false);
 bool OpenBinaryFileToWriteTo(const std::string& path, std::ofstream& out_file,
                              bool is_append = false);
-bool OpenBinaryFileToReadFrom(const char* path, std::ifstream& in_file);
-bool OpenBinaryFileToReadFrom(const std::string& path, std::ifstream& in_file);
+bool OpenBinaryFileToReadFrom(const char* path, std::ifstream& in_file,
+                              bool is_at_end = false);
+bool OpenBinaryFileToReadFrom(const std::string& path, std::ifstream& in_file,
+                              bool is_at_end = false);
 void CloseFile(std::ofstream& file);
 bool WriteBinaryToFile(const char* path, const char* buffer, uindex buffer_size,
                        bool is_append = false);
 bool WriteBinaryToFile(const std::string& path, const char* buffer,
                        uindex buffer_size, bool is_append = false);
+bool ReadBinaryFromFile(const std::string& path, std::vector<char>& buffer);
 void CloseFile(std::ifstream& file);
 bool WriteStrToFile(const char* path, const char* buffer,
                     bool is_append = false);

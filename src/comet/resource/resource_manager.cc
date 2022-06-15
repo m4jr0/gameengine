@@ -5,6 +5,10 @@
 #include "resource_manager.h"
 
 #include "comet/core/engine.h"
+#include "comet/resource/material_resource.h"
+#include "comet/resource/model_resource.h"
+#include "comet/resource/shader_resource.h"
+#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace resource {
@@ -21,16 +25,16 @@ const Resource* ResourceCache::Get(ResourceId resource_id) {
 }
 
 void ResourceManager::Initialize() {
-  root_resource_path_ = utils::filesystem::Append(
-      utils::filesystem::GetCurrentDirectory(),
-      Engine::Get().GetConfigurationManager().Get<std::string>(
-          "resource_root_path"));
+  root_resource_path_ =
+      utils::filesystem::Append(utils::filesystem::GetCurrentDirectory(),
+                                COMET_CONF_RESOURCE(std::string, "root_path"));
 
   InitializeResourcesDirectory();
 
-  AddHandler<texture::TextureHandler>(
-      texture::TextureResource::kResourceTypeId);
-  AddHandler<model::ModelHandler>(model::ModelResource::kResourceTypeId);
+  AddHandler<ModelHandler>(ModelResource::kResourceTypeId);
+  AddHandler<MaterialHandler>(MaterialResource::kResourceTypeId);
+  AddHandler<TextureHandler>(TextureResource::kResourceTypeId);
+  AddHandler<ShaderHandler>(ShaderResource::kResourceTypeId);
 }
 
 void ResourceManager::Destroy() {}

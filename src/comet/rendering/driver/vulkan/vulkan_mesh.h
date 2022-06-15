@@ -11,46 +11,51 @@
 #include "glm/gtx/hash.hpp"
 #include "vulkan/vulkan.h"
 
-#include "comet/rendering/driver/vulkan/vulkan_types.h"
+#include "comet/rendering/driver/vulkan/vulkan_common_types.h"
+#include "comet/resource/model_resource.h"
+#include "comet/utils/hash.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
+using VulkanMeshId = u64;
+constexpr auto kInvalidVulkanMeshId{static_cast<VulkanMeshId>(-1)};
+
 struct VertexInputDescription {
   std::vector<VkVertexInputBindingDescription> bindings;
   std::vector<VkVertexInputAttributeDescription> attributes;
   VkPipelineVertexInputStateCreateFlags flags = 0;
 };
 
-struct Vertex {
+struct VulkanVertex {
   glm::vec3 position;
   glm::vec3 normal;
   glm::vec3 color;
   glm::vec2 uv;
-  static VertexInputDescription GetVertexDescription();
+  static VertexInputDescription GetVertexDescr();
 
-  bool operator==(const Vertex& other) const;
+  bool operator==(const VulkanVertex& other) const;
 };
 
-struct Mesh {
-  std::vector<Vertex> vertices;
-  std::vector<u32> indices;
+using VulkanIndex = u32;
+
+struct VulkanMesh {
+  std::vector<VulkanVertex> vertices;
+  std::vector<VulkanIndex> indices;
   AllocatedBuffer vertex_buffer;
-  bool LoadFromObj(const std::string& path);
+  VulkanMeshId id{kInvalidVulkanMeshId};
 };
+
+VulkanMeshId GenerateMeshId(const resource::MeshResource* resource);
+VulkanMesh GenerateMesh(const resource::MeshResource* resource);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet
 
 namespace std {
 template <>
-struct hash<comet::rendering::vk::Vertex> {
-  size_t operator()(comet::rendering::vk::Vertex const& vertex) const {
-    return ((hash<glm::vec3>()(vertex.position) ^
-             (hash<glm::vec3>()(vertex.color) << 1)) >>
-            1) ^
-           (hash<glm::vec2>()(vertex.uv) << 1);
-  }
+struct hash<comet::rendering::vk::VulkanVertex> {
+  size_t operator()(comet::rendering::vk::VulkanVertex const& vertex) const;
 };
 }  // namespace std
 

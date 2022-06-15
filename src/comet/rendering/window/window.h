@@ -7,11 +7,13 @@
 
 #include "comet_precompile.h"
 
+#include "comet/rendering/rendering_common.h"
+
 namespace comet {
 namespace rendering {
 struct WindowDescr {
-  u16 width{1280};
-  u16 height{720};
+  WindowSize width{1280};
+  WindowSize height{720};
   std::string name{"Comet Game Engine"};
 };
 
@@ -28,16 +30,16 @@ class Window {
   virtual void Initialize() = 0;
   virtual void Destroy(){};
   virtual void Update(){};
-  virtual void SetSize(u16 width, u16 height) = 0;
+  virtual void SetSize(WindowSize width, WindowSize height) = 0;
 
   virtual bool IsInitialized() const = 0;
   virtual const std::string GetName() const noexcept;
-  virtual const u16 GetWidth() const noexcept;
-  virtual const u16 GetHeight() const noexcept;
+  virtual const WindowSize GetWidth() const noexcept;
+  virtual const WindowSize GetHeight() const noexcept;
 
  protected:
-  u16 width_{0};
-  u16 height_{0};
+  WindowSize width_{0};
+  WindowSize height_{0};
   std::string name_{};
 };
 }  // namespace rendering

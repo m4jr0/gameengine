@@ -23,7 +23,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Multi-config builds.
 foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-    string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+    string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
@@ -68,6 +68,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # Vcpkg setup ##################################################################
+set(VCPKG_BUILD_TYPE "debug")
 set(ENV{VCPKG_FEATURE_FLAGS} "versions")
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -164,6 +165,19 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
 # Copying necessary files.
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
-file(COPY "./assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+if(EXISTS "${PROJECT_SOURCE_DIR}/assets")
+  file(
+    COPY "${PROJECT_SOURCE_DIR}/assets"
+    DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
+  )
+endif()
+
+# Copy "default" resources if necessary (useful for debugging).
+if(EXISTS "${PROJECT_SOURCE_DIR}/resources")
+  file(
+    COPY "${PROJECT_SOURCE_DIR}/resources"
+    DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
+  )
+endif()
 
 message(STATUS "${MESSAGE_PREFIX}Done.")

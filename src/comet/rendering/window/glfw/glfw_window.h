@@ -11,6 +11,7 @@
 
 #include "GLFW/glfw3.h"
 
+#include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/window.h"
 
 namespace comet {
@@ -28,7 +29,7 @@ class GlfwWindow : public Window {
   virtual void Initialize() override;
   virtual void Destroy() override;
   virtual void SetGlfwHints();
-  virtual void SetSize(u16 width, u16 height) override;
+  virtual void SetSize(WindowSize width, WindowSize height) override;
 
   virtual bool IsInitialized() const override;
   virtual const GLFWwindow* GetHandle() const noexcept;

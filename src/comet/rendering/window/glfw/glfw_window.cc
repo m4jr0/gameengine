@@ -39,7 +39,8 @@ GlfwWindow& GlfwWindow::operator=(GlfwWindow&& other) noexcept {
 
 void GlfwWindow::Initialize() {
   if (window_count_ == 0) {
-    COMET_ASSERT(glfwInit() == GLFW_TRUE, "Could not initialize GLFW!");
+    const auto result{glfwInit()};
+    COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
     SetGlfwHints();
 
     glfwSetErrorCallback([](int error_code, const char* description) {
@@ -82,7 +83,7 @@ void GlfwWindow::SetGlfwHints() {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
-void GlfwWindow::SetSize(u16 width, u16 height) {
+void GlfwWindow::SetSize(WindowSize width, WindowSize height) {
   width_ = width;
   height_ = height;
 

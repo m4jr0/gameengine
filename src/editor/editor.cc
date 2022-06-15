@@ -9,7 +9,9 @@
 
 namespace comet {
 namespace editor {
-void CometEditor::Initialize() {
+void CometEditor::PreLoad() {
+  Engine::PreLoad();
+
 #ifdef COMET_WINDOWS
   if (!SetConsoleCtrlHandler(static_cast<PHANDLER_ROUTINE>(HandleConsole),
                              TRUE)) {
@@ -30,16 +32,18 @@ void CometEditor::Initialize() {
   sigaction(SIGINT, &sig_handler, NULL);
 #endif  // COMET_UNIX
 
-  Engine::Initialize();
   asset_manager_.Initialize();
+}
 
-  // TODO(m4jr0): Remove temporary code.
+// TODO(m4jr0): Remove temporary code.
+void CometEditor::PostLoad() {
+  Engine::PostLoad();
   entity::CreateModelEntity("models/nanosuit/model.obj");
 }
 
-void CometEditor::Exit() {
+void CometEditor::PostUnload() {
   asset_manager_.Destroy();
-  Engine::Exit();
+  Engine::PostUnload();
 }
 
 #ifdef COMET_WINDOWS

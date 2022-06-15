@@ -2,10 +2,10 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "vulkan_texture.h"
+#include "math_commons.h"
 
 namespace comet {
-namespace rendering {
-namespace vk {}  // namespace vk
-}  // namespace rendering
+namespace utils {
+namespace math {}  // namespace math
+}  // namespace utils
 }  // namespace comet

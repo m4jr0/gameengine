@@ -7,38 +7,21 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
-
+#include "comet/rendering/rendering_common.h"
+#include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace resource {
-namespace model {
 struct ModelResourceDescr {
   // TODO(m4jr0): Add description.
   u8 empty{0};
 };
 
-struct TextureTuple {
-  ResourceId texture_id{kInvalidResourceId};
-  texture::TextureType type{texture::TextureType::Unknown};
-};
-
-struct Vertex {
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec3 tangent;
-  glm::vec3 bitangent;
-  glm::vec2 uv;
-};
-
-using Index = u32;
-
 struct MeshResource : InternalResource {
-  std::vector<Vertex> vertices;
-  std::vector<Index> indices;
-  std::vector<TextureTuple> textures;
+  resource::MaterialId material_id{resource::kInvalidMaterialId};
+  std::vector<rendering::Vertex> vertices;
+  std::vector<rendering::Index> indices;
 };
 
 struct ModelResource : Resource {
@@ -65,7 +48,6 @@ class ModelHandler : public ResourceHandler {
                     CompressionMode compression_mode) const override;
   std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
 };
-}  // namespace model
 }  // namespace resource
 }  // namespace comet
 

@@ -17,6 +17,12 @@ inline uptr AlignAddress(uptr address, uindex alignment) {
                "! Must be a power of 2.");
   return (address + mask) & ~mask;
 }
+inline uindex AlignSize(uindex size, uindex alignment) {
+  const uindex mask{alignment - 1};
+  COMET_ASSERT((alignment & mask) == 0, "Bad alignment provided for size ",
+               size, ": ", alignment, "! Must be a power of 2.");
+  return (size + mask) & ~mask;
+}
 
 template <typename T>
 inline T* AlignPointer(T* ptr, uindex alignment) {

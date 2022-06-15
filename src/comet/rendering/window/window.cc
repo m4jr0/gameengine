@@ -11,8 +11,8 @@ Window::Window(const WindowDescr& descr)
 
 const std::string Window::GetName() const noexcept { return name_; }
 
-const u16 Window::GetWidth() const noexcept { return width_; }
+const WindowSize Window::GetWidth() const noexcept { return width_; }
 
-const u16 Window::GetHeight() const noexcept { return height_; }
+const WindowSize Window::GetHeight() const noexcept { return height_; }
 }  // namespace rendering
 }  // namespace comet

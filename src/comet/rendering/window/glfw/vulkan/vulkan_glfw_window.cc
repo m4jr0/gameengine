@@ -4,6 +4,8 @@
 
 #include "vulkan_glfw_window.h"
 
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -34,13 +36,26 @@ VulkanGlfwWindow& VulkanGlfwWindow::operator=(
   return *this;
 }
 
-void VulkanGlfwWindow::InitializeSurface(VkInstance instance,
-                                         VkSurfaceKHR& surface) {
-  if (glfwCreateWindowSurface(instance, handle_, nullptr, &surface) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("Failed to create window surface");
-  }
+void VulkanGlfwWindow::AttachSurface(VkInstance instance) {
+  COMET_CHECK_VK(glfwCreateWindowSurface(instance, handle_, nullptr, &surface_),
+                 "Failed to create window surface");
 }
+
+void VulkanGlfwWindow::DetachSurface(VkInstance instance) {
+  COMET_ASSERT(instance != VK_NULL_HANDLE,
+               "Trying to detach surface, but Vulkan instance is null!");
+
+  if (surface_ == VK_NULL_HANDLE) {
+    return;
+  }
+
+  vkDestroySurfaceKHR(instance, surface_, VK_NULL_HANDLE);
+  surface_ = VK_NULL_HANDLE;
+}
+
+VulkanGlfwWindow::operator VkSurfaceKHR() const noexcept { return surface_; }
+
+VkSurfaceKHR VulkanGlfwWindow::GetSurface() const noexcept { return surface_; }
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

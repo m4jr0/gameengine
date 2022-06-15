@@ -12,6 +12,7 @@
 #endif  // COMET_WINDOWS
 
 #include <algorithm>
+#include <any>
 #include <array>
 #include <atomic>
 #include <cassert>
@@ -33,6 +34,7 @@
 #include <mutex>
 #include <optional>
 #include <queue>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>

@@ -5,6 +5,7 @@
 #include "comet_precompile.h"
 
 #include "comet/utils/file_system.h"
+#include "comet/utils/string.h"
 
 #include "catch.hpp"
 
@@ -21,19 +22,14 @@ std::string FormatAbsolutePath(const std::string& absolute_path,
     return absolute_path;
   }
 
-  uindex occurrence_counter{0};
-  uindex index_to_cut{absolute_path.size()};
+  uindex index_to_cut{
+      utils::string::GetSubStrNthPos(absolute_path, to_search, count)};
 
-  while (index_to_cut != std::string::npos && occurrence_counter < count) {
-    index_to_cut = absolute_path.find_last_of(to_search, index_to_cut - 1);
-    ++occurrence_counter;
-  }
-
-  if (index_to_cut == std::string::npos) {
+  if (index_to_cut == kInvalidIndex) {
     return "";
   }
 
-  return absolute_path.substr(index_to_cut, absolute_path.length());
+  return absolute_path.substr(index_to_cut, absolute_path.size());
 }
 }  // namespace comettests
 }  // namespace comet

@@ -16,14 +16,20 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr)
-    : major_version_{descr.major_version}, minor_version_{descr.minor_version} {
+OpenGlDriver::OpenGlDriver()
+    : major_version_{COMET_CONF_RENDERING(u8, "opengl_major_version")},
+      minor_version_{COMET_CONF_RENDERING(u8, "opengl_minor_version")},
+      clear_color_{COMET_CONF_RENDERING(f32, "clear_color_r"),
+                   COMET_CONF_RENDERING(f32, "clear_color_g"),
+                   COMET_CONF_RENDERING(f32, "clear_color_b"),
+                   COMET_CONF_RENDERING(f32, "clear_color_a")} {
   OpenGlGlfwWindowDescr window_descr{};
-  window_descr.width = descr.width;
-  window_descr.height = descr.height;
-  window_descr.name = descr.name;
-  window_descr.opengl_major_version = descr.major_version;
-  window_descr.opengl_minor_version = descr.minor_version;
+  window_descr.width = COMET_CONF_RENDERING(WindowSize, "window_width");
+  window_descr.height = COMET_CONF_RENDERING(WindowSize, "window_height");
+  window_descr.name = COMET_CONF_APP(std::string, "name");
+  window_descr.opengl_major_version = major_version_;
+  window_descr.opengl_minor_version = minor_version_;
+  window_descr.is_vsync = COMET_CONF_RENDERING(bool, "is_vsync");
   window_ = OpenGlGlfwWindow(window_descr);
 }
 
@@ -40,9 +46,10 @@ void OpenGlDriver::Initialize() {
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
                          event::WindowResizeEvent::kStaticType_);
 
-  COMET_ASSERT(
-      gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)),
-      "Could not load GL Loader!");
+  const auto result{
+      gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
+
+  COMET_ASSERT(result, "Could not load GL Loader!");
   glEnable(GL_DEPTH_TEST);
   InitializeShader();
   is_initialized_ = true;
@@ -52,32 +59,42 @@ void OpenGlDriver::Destroy() { window_.Destroy(); }
 
 void OpenGlDriver::Update(time::Interpolation interpolation,
                           entity::EntityManager& entity_manager) {
-  glClearColor(0.5f, 0.5f, 0.5f, 1.000f);
+  glClearColor(clear_color_[0], clear_color_[1], clear_color_[2],
+               clear_color_[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // TODO(m4jr0): Remove temporary code.
   // Proxies should be managed with proper memory management and occlusion
   // culling.
-  const auto view{
+  static auto view{
       entity_manager
           .GetView<entity::MeshComponent, entity::TransformComponent>()};
 
   for (const auto entity_id : view) {
-    if (IsMeshProxy(entity_id)) {
+    auto* transform_cmp{
+        entity_manager.GetComponent<entity::TransformComponent>(entity_id)};
+
+    auto* proxy{TryGetRenderProxy(entity_id)};
+
+    if (proxy != nullptr) {
+      proxy->transform += (transform_cmp->global - proxy->transform) *
+                          static_cast<f32>(interpolation);
       continue;
     }
 
     auto* mesh_cmp{
         entity_manager.GetComponent<entity::MeshComponent>(entity_id)};
-    GenerateMeshProxy(entity_id, mesh_cmp->mesh, mesh_cmp->textures,
-                      mesh_cmp->texture_count);
+
+    GenerateRenderProxy(entity_id, *mesh_cmp->mesh,
+                        transform_cmp->global * static_cast<f32>(interpolation),
+                        *mesh_cmp->material);
   }
 
-  DrawMeshProxies();
+  DrawRenderProxies();
   window_.SwapBuffers();
 }
 
-void OpenGlDriver::SetSize(u16 width, u16 height) {
+void OpenGlDriver::SetSize(WindowSize width, WindowSize height) {
   glViewport(0, 0, window_.GetWidth(), window_.GetHeight());
 }
 

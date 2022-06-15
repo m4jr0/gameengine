@@ -7,24 +7,14 @@
 
 #include "comet_precompile.h"
 
+#include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
 namespace comet {
 namespace resource {
-namespace texture {
-enum class TextureType : u32 {
-  Unknown = 0,
-  Ambient,
-  Diffuse,
-  Specular,
-  Height
-};
-
-enum class TextureFormat : u32 { Unknown = 0, Rgba8, Rgb8 };
-
 struct TextureResourceDescr {
   u64 size{0};
-  TextureFormat format{TextureFormat::Unknown};
+  rendering::TextureFormat format{rendering::TextureFormat::Unknown};
   u32 resolution[3]{0, 0, 0};
   u8 channel_number{0};
 };
@@ -33,7 +23,7 @@ struct TextureResource : public Resource {
   static const ResourceTypeId kResourceTypeId;
 
   TextureResourceDescr descr;
-  std::vector<char> data;
+  std::vector<u8> data;
 };
 
 class TextureHandler : public ResourceHandler {
@@ -50,7 +40,6 @@ class TextureHandler : public ResourceHandler {
                     CompressionMode compression_mode) const override;
   std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
 };
-}  // namespace texture
 }  // namespace resource
 }  // namespace comet
 
