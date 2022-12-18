@@ -4,7 +4,6 @@
 
 #include "driver.h"
 
-#include "comet/core/configuration_manager.h"
 #include "comet/core/engine.h"
 
 namespace comet {

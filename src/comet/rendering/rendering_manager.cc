@@ -4,7 +4,7 @@
 
 #include "rendering_manager.h"
 
-#include "comet/core/configuration_manager.h"
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/engine.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
@@ -15,7 +15,7 @@ namespace comet {
 namespace rendering {
 void RenderingManager::Initialize() {
   const auto driver_type{
-      GetDriverTypeFromTypeName(COMET_CONF_RENDERING(std::string, "driver"))};
+      GetDriverTypeFromTypeName(COMET_CONF_STR(conf::kRenderingDriver))};
 
   COMET_ASSERT(driver_type != DriverType::Unknown,
                "Unknown rendering driver type!");

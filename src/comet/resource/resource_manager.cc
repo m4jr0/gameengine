@@ -27,7 +27,7 @@ const Resource* ResourceCache::Get(ResourceId resource_id) {
 void ResourceManager::Initialize() {
   root_resource_path_ =
       utils::filesystem::Append(utils::filesystem::GetCurrentDirectory(),
-                                COMET_CONF_RESOURCE(std::string, "root_path"));
+                                COMET_CONF_STR(conf::kResourceRootPath));
 
   InitializeResourcesDirectory();
 

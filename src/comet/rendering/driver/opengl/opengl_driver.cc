@@ -4,6 +4,7 @@
 
 #include "opengl_driver.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/engine.h"
 #include "comet/entity/component/mesh_component.h"
 #include "comet/entity/component/transform_component.h"
@@ -17,19 +18,21 @@ namespace comet {
 namespace rendering {
 namespace gl {
 OpenGlDriver::OpenGlDriver()
-    : major_version_{COMET_CONF_RENDERING(u8, "opengl_major_version")},
-      minor_version_{COMET_CONF_RENDERING(u8, "opengl_minor_version")},
-      clear_color_{COMET_CONF_RENDERING(f32, "clear_color_r"),
-                   COMET_CONF_RENDERING(f32, "clear_color_g"),
-                   COMET_CONF_RENDERING(f32, "clear_color_b"),
-                   COMET_CONF_RENDERING(f32, "clear_color_a")} {
+    : major_version_{COMET_CONF_U8(conf::kRenderingOpenGlMajorVersion)},
+      minor_version_{COMET_CONF_U8(conf::kRenderingOpenGlMinorVersion)},
+      clear_color_{COMET_CONF_F32(conf::kRenderingClearColorR),
+                   COMET_CONF_F32(conf::kRenderingClearColorG),
+                   COMET_CONF_F32(conf::kRenderingClearColorB),
+                   COMET_CONF_F32(conf::kRenderingClearColorA)} {
   OpenGlGlfwWindowDescr window_descr{};
-  window_descr.width = COMET_CONF_RENDERING(WindowSize, "window_width");
-  window_descr.height = COMET_CONF_RENDERING(WindowSize, "window_height");
-  window_descr.name = COMET_CONF_APP(std::string, "name");
+  window_descr.width =
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth));
+  window_descr.height =
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight));
+  window_descr.name = COMET_CONF_STR(conf::kApplicationName);
   window_descr.opengl_major_version = major_version_;
   window_descr.opengl_minor_version = minor_version_;
-  window_descr.is_vsync = COMET_CONF_RENDERING(bool, "is_vsync");
+  window_descr.is_vsync = COMET_CONF_BOOL(conf::kRenderingIsVsync);
   window_ = OpenGlGlfwWindow(window_descr);
 }
 

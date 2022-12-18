@@ -7,7 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/configuration_manager.h"
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/entity/entity.h"
 #include "comet/event/event_manager.h"
 #include "comet/input/input_manager.h"

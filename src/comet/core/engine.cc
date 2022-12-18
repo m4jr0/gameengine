@@ -4,6 +4,7 @@
 
 #include "engine.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
@@ -19,7 +20,7 @@ void Engine::Initialize() {
 void Engine::Run() {
   try {
     is_running_ = true;
-    time_manager_.SetFixedDeltaTime(COMET_CONF_CORE(f64, "ms_per_update"));
+    time_manager_.SetFixedDeltaTime(COMET_CONF_F64(conf::kCoreMsPerUpdate));
     time_manager_.Initialize();
     // To catch up time taken to render.
     f64 lag{0.0};

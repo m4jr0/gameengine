@@ -162,7 +162,17 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
 
 # Post-configure operations ####################################################
-# Copying necessary files.
+# Copy configuration file.
+message(STATUS
+  "${MESSAGE_PREFIX}Copying configuration file to ${CMAKE_CURRENT_BINARY_DIR}...")
+if(EXISTS "${PROJECT_SOURCE_DIR}/comet_config.cfg")
+  file(
+    COPY "${PROJECT_SOURCE_DIR}/comet_config.cfg"
+    DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
+  )
+endif()
+
+# Copy necessary files.
 message(STATUS
   "${MESSAGE_PREFIX}Copying assets to ${CMAKE_CURRENT_BINARY_DIR}...")
 if(EXISTS "${PROJECT_SOURCE_DIR}/assets")

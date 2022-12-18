@@ -51,7 +51,7 @@ std::string StringIdHandler::Labelize(StringId string_id) {
   const auto it{string_id_table.find(string_id)};
 
   if (it == string_id_table.end()) {
-    return "???";
+    return std::to_string(string_id);
   }
 
   return string_id_table[string_id];

@@ -10,11 +10,13 @@
 
 # Source files #################################################################
 add_library(${CORE_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/core/configuration_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/debug.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/engine.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/logger.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/version.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/os.h"

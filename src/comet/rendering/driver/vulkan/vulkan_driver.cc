@@ -9,7 +9,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#include "comet/core/configuration_manager.h"
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/engine.h"
 #include "comet/entity/component/mesh_component.h"
 #include "comet/entity/component/transform_component.h"
@@ -25,18 +25,20 @@ namespace comet {
 namespace rendering {
 namespace vk {
 VulkanDriver::VulkanDriver()
-    : max_frames_in_flight_{COMET_CONF_RENDERING(
-          u8, "vulkan_max_frames_in_flight")},
-      is_vsync_{COMET_CONF_RENDERING(bool, "is_vsync")},
-      clear_color_{COMET_CONF_RENDERING(f32, "clear_color_r"),
-                   COMET_CONF_RENDERING(f32, "clear_color_g"),
-                   COMET_CONF_RENDERING(f32, "clear_color_b"),
-                   COMET_CONF_RENDERING(f32, "clear_color_a")},
+    : max_frames_in_flight_{COMET_CONF_U8(
+          conf::kRenderingVulkanMaxFramesInFlight)},
+      is_vsync_{COMET_CONF_BOOL(conf::kRenderingIsVsync)},
+      clear_color_{COMET_CONF_F32(conf::kRenderingClearColorR),
+                   COMET_CONF_F32(conf::kRenderingClearColorG),
+                   COMET_CONF_F32(conf::kRenderingClearColorB),
+                   COMET_CONF_F32(conf::kRenderingClearColorA)},
       frame_data_{max_frames_in_flight_} {
   WindowDescr window_descr{};
-  window_descr.width = COMET_CONF_RENDERING(WindowSize, "window_width");
-  window_descr.height = COMET_CONF_RENDERING(WindowSize, "window_height");
-  window_descr.name = COMET_CONF_APP(std::string, "name");
+  window_descr.width =
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth));
+  window_descr.height =
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight));
+  window_descr.name = COMET_CONF_STR(conf::kApplicationName);
   window_ = VulkanGlfwWindow(window_descr);
 
   material_handler_.SetDevice(GetDevice());
@@ -68,9 +70,9 @@ void VulkanDriver::Initialize() {
 
   VulkanDeviceDescr device_descr{};
   device_descr.is_sampler_anisotropy =
-      COMET_CONF_RENDERING(bool, "is_sampler_anisotropy");
+      COMET_CONF_BOOL(conf::kRenderingIsSamplerAnisotropy);
   device_descr.is_sample_rate_shading =
-      COMET_CONF_RENDERING(bool, "is_sample_rate_shading");
+      COMET_CONF_BOOL(conf::kRenderingIsSampleRateShading);
   device_descr.physical_device =
       GetBestPhysicalDevice(instance_, window_, required_extensions);
   device_descr.surface = window_;
@@ -234,10 +236,10 @@ void VulkanDriver::InitializeVulkanInstance() {
   VkApplicationInfo app_info{};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
-  auto app_name{COMET_CONF_APP(std::string, "name")};
-  auto app_major_version{COMET_CONF_APP(u8, "major_version")};
-  auto app_minor_version{COMET_CONF_APP(u8, "minor_version")};
-  auto app_patch_version{COMET_CONF_APP(u8, "patch_version")};
+  auto app_name{COMET_CONF_STR(conf::kApplicationName)};
+  auto app_major_version{COMET_CONF_U8(conf::kRenderingVulkanMajorVersion)};
+  auto app_minor_version{COMET_CONF_U8(conf::kRenderingVulkanMinorVersion)};
+  auto app_patch_version{COMET_CONF_U8(conf::kRenderingVulkanPatchVersion)};
 
   app_info.pApplicationName = app_name.c_str();
   app_info.applicationVersion = VK_MAKE_API_VERSION(
@@ -248,10 +250,10 @@ void VulkanDriver::InitializeVulkanInstance() {
                                                version::kCometVersionMinor,
                                                version::kCometVersionPatch);
 
-  auto vk_variant_version{COMET_CONF_RENDERING(u8, "vulkan_variant_version")};
-  auto vk_major_version{COMET_CONF_RENDERING(u8, "vulkan_major_version")};
-  auto vk_minor_version{COMET_CONF_RENDERING(u8, "vulkan_minor_version")};
-  auto vk_patch_version{COMET_CONF_RENDERING(u8, "vulkan_patch_version")};
+  auto vk_variant_version{COMET_CONF_U8(conf::kRenderingVulkanVariantVersion)};
+  auto vk_major_version{COMET_CONF_U8(conf::kRenderingVulkanMajorVersion)};
+  auto vk_minor_version{COMET_CONF_U8(conf::kRenderingVulkanMinorVersion)};
+  auto vk_patch_version{COMET_CONF_U8(conf::kRenderingVulkanPatchVersion)};
 
   app_info.apiVersion = VK_MAKE_API_VERSION(
       vk_variant_version, vk_major_version, vk_minor_version, vk_patch_version);
@@ -314,10 +316,10 @@ void VulkanDriver::InitializeVulkanInstance() {
 }
 
 void VulkanDriver::InitializeAllocator() {
-  auto vk_variant_version{COMET_CONF_RENDERING(u8, "vulkan_variant_version")};
-  auto vk_major_version{COMET_CONF_RENDERING(u8, "vulkan_major_version")};
-  auto vk_minor_version{COMET_CONF_RENDERING(u8, "vulkan_minor_version")};
-  auto vk_patch_version{COMET_CONF_RENDERING(u8, "vulkan_patch_version")};
+  auto vk_variant_version{COMET_CONF_U8(conf::kRenderingVulkanVariantVersion)};
+  auto vk_major_version{COMET_CONF_U8(conf::kRenderingVulkanMajorVersion)};
+  auto vk_minor_version{COMET_CONF_U8(conf::kRenderingVulkanMinorVersion)};
+  auto vk_patch_version{COMET_CONF_U8(conf::kRenderingVulkanPatchVersion)};
 
   VmaAllocatorCreateInfo allocatorCreateInfo{};
   allocatorCreateInfo.vulkanApiVersion = VK_MAKE_API_VERSION(

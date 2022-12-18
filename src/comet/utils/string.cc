@@ -32,6 +32,156 @@ uindex GetSubStrNthPos(const std::string& str, const std::string& to_search,
                        uindex count) {
   return GetSubStrNthPos(str, to_search.c_str(), count);
 }
+
+std::string& TrimLeft(std::string& str) {
+  str.erase(str.begin(),
+            std::find_if(str.begin(), str.end(),
+                         [](unsigned char c) { return !std::isspace(c); }));
+
+  return str;
+}
+
+std::string& TrimRight(std::string& str) {
+  str.erase(std::find_if(str.rbegin(), str.rend(),
+                         [](unsigned char c) { return !std::isspace(c); })
+                .base(),
+            str.end());
+
+  return str;
+}
+
+std::string& Trim(std::string& str) {
+  TrimLeft(str);
+  TrimRight(str);
+  return str;
+}
+
+std::string GetLeftTrimmedCopy(std::string str) {
+  TrimLeft(str);
+  return str;
+}
+
+std::string GetRightTrimmedCopy(std::string str) {
+  TrimRight(str);
+  return str;
+}
+
+std::string GetTrimmedCopy(std::string str) {
+  Trim(str);
+  return str;
+}
+
+u8 ParseU8(const std::string& str) { return ParseU8(str.c_str()); }
+
+u8 ParseU8(const char* str) { return static_cast<u8>(std::stoul(str)); }
+
+u16 ParseU16(const std::string& str) { return ParseU16(str.c_str()); }
+
+u16 ParseU16(const char* str) { return static_cast<u16>(std::stoul(str)); }
+
+u32 ParseU32(const std::string& str) { return ParseU32(str.c_str()); }
+
+u32 ParseU32(const char* str) { return static_cast<u32>(std::stoul(str)); }
+
+u64 ParseU64(const std::string& str) { return ParseU64(str.c_str()); }
+
+u64 ParseU64(const char* str) { return static_cast<u64>(std::stoull(str)); }
+
+s8 ParseS8(const std::string& str) { return ParseS8(str.c_str()); }
+
+s8 ParseS8(const char* str) { return static_cast<s8>(std::stoi(str)); }
+
+s16 ParseS16(const std::string& str) { return ParseS16(str.c_str()); }
+
+s16 ParseS16(const char* str) { return static_cast<s16>(std::stoi(str)); }
+
+s32 ParseS32(const std::string& str) { return ParseS32(str.c_str()); }
+
+s32 ParseS32(const char* str) { return static_cast<s32>(std::stoi(str)); }
+
+s64 ParseS64(const std::string& str) { return ParseS64(str.c_str()); }
+
+s64 ParseS64(const char* str) { return static_cast<s64>(std::stol(str)); }
+
+f32 ParseF32(const std::string& str) { return ParseF32(str.c_str()); }
+
+f32 ParseF32(const char* str) { return static_cast<f32>(std::stod(str)); }
+
+f64 ParseF64(const std::string& str) { return ParseF64(str.c_str()); }
+
+f64 ParseF64(const char* str) { return static_cast<f32>(std::stold(str)); }
+
+uindex ParseIndex(const std::string& str) { return ParseIndex(str.c_str()); }
+
+uindex ParseIndex(const char* str) {
+  return static_cast<uindex>(std::stoull(str));
+}
+
+ux ParseUx(const std::string& str) { return ParseUx(str.c_str()); }
+
+ux ParseUx(const char* str) {
+#ifdef COMET_64
+  return static_cast<u64>(std::stoull(str));
+#else
+  return static_cast<u32>(std::stoul(str));
+#endif  // COMET_64
+}
+
+sx ParseSx(const std::string& str) { return ParseSx(str.c_str()); }
+
+sx ParseSx(const char* str) {
+#ifdef COMET_64
+  return static_cast<s64>(std::stol(str));
+#else
+  return static_cast<s32>(std::stoi(str));
+#endif  // COMET_64
+}
+
+fx ParseFx(const std::string& str) { return ParseFx(str.c_str()); }
+
+fx ParseFx(const char* str) {
+#ifdef COMET_64
+  return static_cast<f32>(std::stold(str));
+#else
+  return static_cast<f32>(std::stod(str));
+#endif  // COMET_64
+}
+
+bool ParseBool(const std::string& str) { return ParseBool(str.c_str()); }
+
+bool ParseBool(const char* str) {
+  if (str == nullptr) {
+    return false;
+  }
+
+  const auto length{strlen(str)};
+
+  if (length == 0) {
+    return false;
+  }
+
+  char c{str[0]};
+  uindex i{1};
+
+  while (i < length && std::isspace(c)) {
+    c = str[i];
+    ++i;
+  }
+
+  if (c != '1') {
+    return false;
+  }
+
+  while (i < length) {
+    if (!std::isspace(c)) {
+      return false;
+    }
+
+    ++i;
+  }
+
+  return true;
+}
 }  // namespace string
 }  // namespace utils
 }  // namespace comet
