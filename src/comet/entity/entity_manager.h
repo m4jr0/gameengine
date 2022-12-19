@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/manager.h"
 #include "comet/entity/component/component.h"
 #include "comet/entity/component_view.h"
 #include "comet/entity/entity.h"
@@ -15,26 +16,26 @@
 
 namespace comet {
 namespace entity {
-class EntityManager {
+class EntityManager : public Manager {
  public:
   EntityManager() = default;
   EntityManager(const EntityManager&) = delete;
   EntityManager(EntityManager&&) = delete;
   EntityManager& operator=(const EntityManager&) = delete;
   EntityManager& operator=(EntityManager&&) = delete;
-  ~EntityManager() = default;
+  virtual ~EntityManager() = default;
 
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Shutdown() override;
 
-  EntityId CreateEntity();
+  EntityId Generate();
 
   template <typename... ComponentTypes>
-  EntityId CreateEntity(ComponentTypes&&... components) {
+  EntityId Generate(ComponentTypes&&... components) {
     static_assert((std::is_trivially_copyable<ComponentTypes>::value, ...),
                   "Component type must be trivially copyable.");
 
-    EntityId entity_id{entity_id_manager_.CreateBreed()};
+    EntityId entity_id{entity_id_handler_.Generate()};
 
     (RegisterComponentIfNeeded<ComponentTypes>(), ...);
     auto* archetype{GetArchetype(GenerateEntityType<ComponentTypes...>())};
@@ -54,12 +55,12 @@ class EntityManager {
   }
 
   bool IsEntity(const EntityId& entity) const;
-  void DestroyEntity(EntityId entity);
+  void Destroy(EntityId entity);
 
   template <typename ComponentTypeId>
-  bool HasComponent(EntityId entity_id) {
+  bool HasComponent(EntityId entity_id) const {
     const auto kComponentTypeId{ComponentTypeId::kComponentTypeId};
-    const auto& entity_type = records_[entity_id].archetype->entity_type;
+    const auto& entity_type{records_.at(entity_id).archetype->entity_type};
 
     for (const auto& other_component_id : entity_type) {
       if (kComponentTypeId == other_component_id) {
@@ -71,7 +72,7 @@ class EntityManager {
   }
 
   template <typename ComponentType>
-  bool IsComponentRegistered() {
+  bool IsComponentRegistered() const {
     return component_descrs_.find(ComponentType::kComponentTypeId) !=
            component_descrs_.cend();
   }
@@ -260,23 +261,16 @@ class EntityManager {
   }
 
   template <typename... ComponentTypes>
-  ComponentView GetView() {
+  ComponentView GetView() const {
     ComponentTypeId component_type_ids[] = {
         ComponentTypes::kComponentTypeId...};
     return ComponentView{component_type_ids, sizeof...(ComponentTypes),
                          archetypes_};
   }
 
-  ComponentView GetView() { return ComponentView{nullptr, 0, archetypes_}; }
+  ComponentView GetView() const;
 
  private:
-  Archetype* root_archetype_{nullptr};
-  std::unordered_map<ComponentTypeId, ComponentDescr> component_descrs_{};
-  std::vector<Archetype*> archetypes_{};
-  gid::BreedManager entity_id_manager_{};
-  gid::BreedManager component_id_manager_{};
-  std::unordered_map<EntityId, Record> records_;
-
   template <typename EntityType>
   Archetype* GetArchetype(EntityType&& entity_type) {
     for (auto* archetype : archetypes_) {
@@ -287,10 +281,10 @@ class EntityManager {
 
     auto* archetype{new Archetype{}};
     archetype->entity_type = std::forward<EntityType>(entity_type);
-    archetypes_.emplace_back(archetype);
+    archetypes_.push_back(archetype);
 
     for (const auto component_type_id : archetype->entity_type) {
-      archetype->components.emplace_back(ComponentArray{nullptr, nullptr, 0});
+      archetype->components.push_back(ComponentArray{nullptr, nullptr, 0});
     }
 
     return archetype;
@@ -301,7 +295,6 @@ class EntityManager {
   bool DoesEntityTypeContain(const EntityType& entity_type,
                              ComponentTypeId component_type_id);
 
- private:
   template <typename ComponentType>
   void CopyComponent(EntityId entity_id, Archetype* new_archetype,
                      uindex new_entity_index, ComponentType&& component) {
@@ -327,9 +320,15 @@ class EntityManager {
     auto new_cmp{ComponentType{std::forward<ComponentType>(component)}};
 
     // Add new component.
-    std::memcpy(new_cmp_array.first + new_cmp_offset,
-                reinterpret_cast<void*>(&new_cmp), cmp_size);
+    std::memcpy(new_cmp_array.first + new_cmp_offset, &new_cmp, cmp_size);
   }
+
+  Archetype* root_archetype_{nullptr};
+  std::unordered_map<ComponentTypeId, ComponentDescr> component_descrs_{};
+  std::vector<Archetype*> archetypes_{};
+  gid::BreedHandler entity_id_handler_{};
+  gid::BreedHandler component_id_handler_{};
+  std::unordered_map<EntityId, Record> records_{};
 };
 }  // namespace entity
 }  // namespace comet

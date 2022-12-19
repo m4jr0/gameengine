@@ -2,7 +2,9 @@
     "vcpkgRoot": "${workspaceFolder}/vcpkg",
     "cmake.configureSettings": { 
         "VCPKG_ROOT": "${workspaceFolder}/vcpkg",
-        "IS_VCPKG_CLONE": true
+        "IS_VCPKG_CLONE": true,
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VULKAN_SDK": "${env:VULKAN_SDK}"
     },
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "editor.rulers": [
@@ -95,5 +97,6 @@
         "variant": "cpp",
         "numbers": "cpp",
         "semaphore": "cpp"
-    }
+    },
+    "C_Cpp.clang_format_style": "Google"
 }

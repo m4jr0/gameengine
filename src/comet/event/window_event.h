@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 #include "comet/event/event.h"
+#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace event {
@@ -15,20 +16,20 @@ class WindowResizeEvent : public Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  WindowResizeEvent(unsigned int width, unsigned int height);
+  WindowResizeEvent(rendering::WindowSize width, rendering::WindowSize height);
   WindowResizeEvent(const WindowResizeEvent&) = default;
   WindowResizeEvent(WindowResizeEvent&&) noexcept = default;
   WindowResizeEvent& operator=(const WindowResizeEvent&) = default;
   WindowResizeEvent& operator=(WindowResizeEvent&&) noexcept = default;
-  ~WindowResizeEvent() = default;
+  virtual ~WindowResizeEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
-  unsigned int GetWidth() const noexcept;
-  unsigned int GetHeight() const noexcept;
+  rendering::WindowSize GetWidth() const noexcept;
+  rendering::WindowSize GetHeight() const noexcept;
 
  private:
-  unsigned int width_{0};
-  unsigned int height_{0};
+  rendering::WindowSize width_{0};
+  rendering::WindowSize height_{0};
 };
 
 class WindowCloseEvent : public Event {
@@ -40,7 +41,7 @@ class WindowCloseEvent : public Event {
   WindowCloseEvent(WindowCloseEvent&&) noexcept = default;
   WindowCloseEvent& operator=(const WindowCloseEvent&) = default;
   WindowCloseEvent& operator=(WindowCloseEvent&&) noexcept = default;
-  ~WindowCloseEvent() = default;
+  virtual ~WindowCloseEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
 };

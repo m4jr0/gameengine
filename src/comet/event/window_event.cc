@@ -9,16 +9,21 @@ namespace event {
 const stringid::StringId WindowResizeEvent::kStaticType_{
     COMET_STRING_ID("event_window_resize")};
 
-WindowResizeEvent::WindowResizeEvent(unsigned int width, unsigned int height)
+WindowResizeEvent::WindowResizeEvent(rendering::WindowSize width,
+                                     rendering::WindowSize height)
     : width_{width}, height_{height} {}
 
 stringid::StringId WindowResizeEvent::GetType() const noexcept {
   return kStaticType_;
 }
 
-unsigned int WindowResizeEvent::GetWidth() const noexcept { return width_; }
+rendering::WindowSize WindowResizeEvent::GetWidth() const noexcept {
+  return width_;
+}
 
-unsigned int WindowResizeEvent::GetHeight() const noexcept { return height_; }
+rendering::WindowSize WindowResizeEvent::GetHeight() const noexcept {
+  return height_;
+}
 
 const stringid::StringId WindowCloseEvent::kStaticType_{
     COMET_STRING_ID("event_window_close")};

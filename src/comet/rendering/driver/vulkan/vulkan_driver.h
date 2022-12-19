@@ -7,168 +7,126 @@
 
 #include "comet_precompile.h"
 
-// Add specific debug header first to log VMA's messages.
+// Add specific debug header first to log VMA's messages. //////////////////////
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
+////////////////////////////////////////////////////////////////////////////////
 
-#include "vk_mem_alloc.h"
-#include "vulkan/vulkan.h"
+#ifdef COMET_VULKAN_DEBUG_MODE
+// According to the Vulkan spec, it is better to enable the validation layers
+// individually to prevent a significant performance degradation.
+// #define COMET_VALIDATION_GPU_ASSISTED_EXT
+// #define COMET_VALIDATION_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
+// #define COMET_VALIDATION_BEST_PRACTICES_EXT
+// #define COMET_VALIDATION_DEBUG_PRINTF_EXT
+// #define COMET_VALIDATION_SYNCHRONIZATION_VALIDATION_EXT
+#endif  // COMET_VULKAN_DEBUG_MODE
 
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
-#include "comet/rendering/driver/vulkan/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/vulkan_common_types.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/driver/vulkan/vulkan_descriptor.h"
-#include "comet/rendering/driver/vulkan/vulkan_device.h"
-#include "comet/rendering/driver/vulkan/vulkan_initializers.h"
-#include "comet/rendering/driver/vulkan/vulkan_image.h"
-#include "comet/rendering/driver/vulkan/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/vulkan_mesh.h"
-#include "comet/rendering/driver/vulkan/vulkan_proxy.h"
-#include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_shader_module_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_view_handler.h"
+#include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
-#include "comet/resource/model_resource.h"
-#include "comet/resource/texture_resource.h"
+#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
+struct VulkanDriverDescr : DriverDescr {
+  u8 vulkan_major_version{0};
+  u8 vulkan_minor_version{0};
+  u8 vulkan_patch_version{0};
+  u8 vulkan_variant_version{0};
+  u8 max_frames_in_flight{0};
+};
+
 class VulkanDriver : public Driver {
  public:
-  VulkanDriver();
+  explicit VulkanDriver(const VulkanDriverDescr& descr);
   VulkanDriver(const VulkanDriver&) = delete;
   VulkanDriver(VulkanDriver&&) = delete;
   VulkanDriver& operator=(const VulkanDriver&) = delete;
   VulkanDriver& operator=(VulkanDriver&&) = delete;
-  ~VulkanDriver() = default;
+  virtual ~VulkanDriver() = default;
 
   void Initialize() override;
-  void Destroy() override;
-
-  void Update(time::Interpolation interpolation,
-              entity::EntityManager& entity_manager) override;
+  void Shutdown() override;
+  void Update(time::Interpolation interpolation) override;
 
   void SetSize(WindowSize width, WindowSize height);
-
-  bool IsInitialized() const override;
-  Window& GetWindow() override;
-  VkRenderPass GetDefaultRenderPass() const noexcept;
-  const VulkanDevice& GetDevice() const noexcept;
+  Window* GetWindow() override;
 
  private:
-  f32 clear_color_[4]{0.0f, 0.0f, 0.0f, 1.0f};
-  static const std::vector<const char*> kDeviceExtensions_;
-  static constexpr auto kDefaultMaxObjectCount_{10000};
-
-  bool is_initialized_{false};
-  bool is_vsync_{false};
-  u8 max_frames_in_flight_{2};
-  u8 current_frame_{0};
-  uindex max_object_count_{kDefaultMaxObjectCount_};
-  VulkanGlfwWindow window_;
-  VulkanDevice device_{};
-  VkInstance instance_{VK_NULL_HANDLE};
-  VmaAllocator allocator_{VK_NULL_HANDLE};
-  VulkanSwapchain swapchain_{};
-  VulkanDescriptorSetLayoutHandler descriptor_set_layout_handler_{};
-  std::vector<VkFramebuffer> frame_buffers_;
-  AllocatedImage allocated_color_image_{};
-  VkImageView color_image_view_{VK_NULL_HANDLE};
-  AllocatedImage allocated_depth_image_{};
-  VkImageView depth_image_view_{VK_NULL_HANDLE};
-  VkRenderPass render_pass_{VK_NULL_HANDLE};
-  std::vector<FrameData> frame_data_{};
-  UploadContext upload_context_{};
-  VkCommandPool transfer_command_pool_{VK_NULL_HANDLE};
-  VulkanDescriptorAllocator descriptor_allocator_{};
-  VkDescriptorSetLayout global_descriptor_set_layout_{VK_NULL_HANDLE};
-  VkDescriptorSetLayout object_descriptor_set_layout_{VK_NULL_HANDLE};
-  VkDescriptorSetLayout single_texture_descriptor_set_layout_{VK_NULL_HANDLE};
-  SceneData scene_data_;
-  VkPipelineLayout pipeline_layout_{VK_NULL_HANDLE};
-  VkPipeline graphics_pipeline_{VK_NULL_HANDLE};
-  VkSampler texture_sampler_{VK_NULL_HANDLE};
-  VulkanMaterialHandler material_handler_{};
-
-  std::vector<VulkanRenderProxy> proxies_{};
-  std::unordered_map<VulkanMaterialId, VulkanMaterial> materials_{};
-  std::unordered_map<VulkanMeshId, VulkanMesh> meshes_{};
-  std::unordered_map<VulkanTextureId, VulkanTexture> textures_{};
-
   void InitializeVulkanInstance();
-  void InitializeAllocator();
-  void InitializeDefaultRenderPass();
-  void InitializeCommands();
-  void InitializeSamplers();
-  void InitializeColorResources();
-  void InitializeDepthResources();
-  void InitializeFrameBuffers();
-  void InitializeSyncStructures();
-  void InitializeDescriptors();
-  void InitializePipelines();
+  void InitializeHandlers();
 
-  void DestroyRenderProxies();
-  void DestroyTextures();
-  void DestroyPipelines();
-  void DestroyDescriptors();
-  void DestroySyncStructures();
-  void DestroyFrameBuffers();
-  void DestroyDepthResources();
-  void DestroyColorResources();
-  void DestroySamplers();
-  void DestroyCommands();
-  void DestroyDefaultRenderPass();
-  void DestroyAllocator();
+  void DestroyHandlers();
   void DestroyInstance();
 
-  void OnEvent(const event::Event&);
+  void OnEvent(const event::Event& event);
   void ApplyWindowResize();
 
   bool PreDraw();
   void PostDraw();
-  void Draw();
-  void DrawRenderProxies(VkCommandBuffer command_buffer);
+  void Draw(time::Interpolation interpolation);
+  void DrawViews(time::Interpolation interpolation);
 
-  VulkanMesh* AddVulkanMesh(const resource::MeshResource* resource);
+  std::vector<const schar*> GetRequiredExtensions();
 
-  VulkanMesh* TryGetVulkanMesh(VulkanMeshId mesh_id);
-  VulkanMesh* GetVulkanMesh(VulkanMeshId mesh_id);
-  VulkanTexture* UploadVulkanTexture(const resource::TextureResource* resource);
-  void GenerateMipmaps(const VulkanTexture& texture);
+  static const std::vector<const schar*> kDeviceExtensions_;
+  static constexpr auto kDefaultMaxObjectCount_{10000};
 
-  VulkanRenderProxy* TryGetVulkanRenderProxy(
-      const resource::MeshResource* resource);
+  u8 vulkan_major_version_{0};
+  u8 vulkan_minor_version_{0};
+  u8 vulkan_patch_version_{0};
+  u8 vulkan_variant_version_{0};
+  u8 max_frames_in_flight_{2};
 
-  std::vector<const char*> GetRequiredExtensions();
-  void UploadVulkanMesh(VulkanMesh& mesh);
-  void CopyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
-  void CopyBufferToImage(CommandBuffer& command_buffer, VkBuffer buffer,
-                         VkImage image, u32 width, u32 height);
-  void TransitionImageLayout(
-      const CommandBuffer& command_buffer, VkImage image, VkFormat format,
-      VkImageLayout old_layout, VkImageLayout new_layout, u32 mip_levels,
-      u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
-      u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
-  VulkanMaterialDescr GenerateVulkanMaterial(
-      const resource::MaterialResource& resource);
+  std::unique_ptr<VulkanGlfwWindow> window_{nullptr};
+  std::unique_ptr<Swapchain> swapchain_{nullptr};
+  std::unique_ptr<Context> context_{nullptr};
 
-  bool IsVulkanMesh(const resource::MeshResource* resource);
-  VkCommandPool GetTransferCommandPool();
+  VkInstance instance_handle_{VK_NULL_HANDLE};
+  std::unique_ptr<Device> device_{nullptr};
+  std::unique_ptr<MaterialHandler> material_handler_{nullptr};
+  std::unique_ptr<MeshHandler> mesh_handler_{nullptr};
+  std::unique_ptr<PipelineHandler> pipeline_handler_{nullptr};
+  std::unique_ptr<RenderPassHandler> render_pass_handler_{nullptr};
+  std::unique_ptr<RenderProxyHandler> render_proxy_handler_{nullptr};
+  std::unique_ptr<ShaderHandler> shader_handler_{nullptr};
+  std::unique_ptr<ShaderModuleHandler> shader_module_handler_{nullptr};
+  std::unique_ptr<TextureHandler> texture_handler_{nullptr};
+  std::unique_ptr<ViewHandler> view_handler_{nullptr};
 
 #ifdef COMET_VULKAN_DEBUG_MODE
-  static constexpr std::array<const char*, 1> kValidationLayers_{
-      "VK_LAYER_KHRONOS_validation"};
-  VkDebugUtilsMessengerEXT debug_messenger_{VK_NULL_HANDLE};
-
   void InitializeDebugMessenger();
   void DestroyDebugMessenger();
+  void InitializeDebugReportCallback();
+  void DestroyDebugReportCallback();
   bool AreValidationLayersSupported();
   static VKAPI_ATTR VkBool32 VKAPI_CALL LogVulkanValidationMessage(
       VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
       VkDebugUtilsMessageTypeFlagsEXT message_type,
       const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
       void* user_data);
+  static VKAPI_ATTR VkBool32 VKAPI_CALL LogVulkanDebugReportMessage(
+      VkFlags message_flags, VkDebugReportObjectTypeEXT object_type,
+      u64 source_object, uindex location, int32_t message_code,
+      const schar* layer_prefix, const schar* message, void* user_data);
+
+  static constexpr std::array<const schar*, 1> kValidationLayers_{
+      "VK_LAYER_KHRONOS_validation"};
+  VkDebugUtilsMessengerEXT debug_messenger_handle_{VK_NULL_HANDLE};
+  VkDebugReportCallbackEXT debug_report_callback_handle_{VK_NULL_HANDLE};
 #endif  // COMET_VULKAN_DEBUG_MODE
 };
 }  // namespace vk

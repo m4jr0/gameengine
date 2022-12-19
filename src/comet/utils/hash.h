@@ -24,7 +24,7 @@ u32 HashCrC32(const void* data, uindex length);
 u32 HashCrC32(const std::string& string);
 
 std::string HashSha256(std::ifstream& stream);
-std::string HashSha256(const s8* data, const s8* end);
+std::string HashSha256(const u8* data, const u8* end);
 
 template <typename Container>
 std::string HashSha256(const Container& data) {

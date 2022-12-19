@@ -136,7 +136,7 @@ ComponentView::ComponentView(ComponentTypeId component_type_ids[],
       continue;
     }
 
-    archetypes_.emplace_back(archetype);
+    archetypes_.push_back(archetype);
   }
 }
 }  // namespace entity

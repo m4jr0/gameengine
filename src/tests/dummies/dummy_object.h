@@ -27,12 +27,12 @@ class DummyObject {
 
   static uindex GetCounter() noexcept;
   uindex GetId() const noexcept;
-  int GetValue() const noexcept;
+  s32 GetValue() const noexcept;
   bool IsVerbose() const noexcept;
   void IsVerbose(bool) noexcept;
 
  private:
-  void Print(const std::string& message) const;
+  void Print(std::string_view message) const;
 
   static uindex counter_;
   u64 id_{0};

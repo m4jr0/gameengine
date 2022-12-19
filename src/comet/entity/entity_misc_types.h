@@ -23,9 +23,9 @@ struct ComponentArray {
 };
 
 struct Archetype {
-  EntityType entity_type;
-  std::vector<EntityId> entity_ids;
-  std::vector<ComponentArray> components;
+  EntityType entity_type{};
+  std::vector<EntityId> entity_ids{};
+  std::vector<ComponentArray> components{};
 };
 
 struct Record {
@@ -45,15 +45,14 @@ EntityType GenerateEntityType() {
 }
 
 template <typename AddedEntityType>
-EntityType AddToEntityType(EntityType from_entity_type,
-                           AddedEntityType&& to_add) {
-  auto entity_type(std::move(from_entity_type));
+EntityType AddToEntityType(EntityType entity_type, AddedEntityType&& to_add) {
   const auto old_size{entity_type.size()};
-  const auto to_add_size{to_add.size()};
-  entity_type.resize(old_size + to_add_size);
+  const auto to_append{std::forward<AddedEntityType>(to_add)};
+  const auto to_append_size{to_append.size()};
+  entity_type.resize(old_size + to_append_size);
 
-  for (uindex i{0}; i < to_add_size; ++i) {
-    entity_type[old_size + i] = to_add[i];
+  for (uindex i{0}; i < to_append_size; ++i) {
+    entity_type[old_size + i] = std::move(to_append[i]);
   }
 
   CleanEntityType(entity_type);
@@ -61,14 +60,14 @@ EntityType AddToEntityType(EntityType from_entity_type,
 }
 
 template <typename... ComponentTypes>
-EntityType AddToEntityType(EntityType from_entity_type) {
-  return AddToEntityType(std::move(from_entity_type),
+EntityType AddToEntityType(EntityType entity_type) {
+  return AddToEntityType(std::move(entity_type),
                          GenerateEntityType<ComponentTypes...>());
 }
 
 template <typename RemovedEntityType>
 EntityType RemoveFromEntityType(const EntityType& from_entity_type,
-                                RemovedEntityType&& to_remove) {
+                                const RemovedEntityType& to_remove) {
   const auto from_size{from_entity_type.size()};
   const auto to_remove_size{to_remove.size()};
 

@@ -11,29 +11,33 @@
 
 #include "comet/resource/resource.h"
 
+using namespace std::literals;
+
 namespace comet {
 namespace editor {
 namespace asset {
 constexpr unsigned short kCometEditorAssetMetadataIndent{2};
 
-constexpr char kCometEditorAssetMetadataFileExtension[]{"meta"};
-constexpr char kCometEditorAssetFolderMetadataFileExtension[]{"dir.meta"};
+static constexpr auto kCometEditorAssetMetadataFileExtension{"meta"sv};
+static constexpr auto kCometEditorAssetFolderMetadataFileExtension{
+    "dir.meta"sv};
 
-constexpr char kCometResourceCompressionModeNone[]{"none"};
-constexpr char kCometResourceCompressionModeLz4[]{"lz4"};
+static constexpr auto kCometResourceCompressionModeNone{"none"sv};
+static constexpr auto kCometResourceCompressionModeLz4{"lz4"sv};
 
-constexpr char kCometEditorAssetCometVersion[]{"comet_version"};
-constexpr char kCometEditorAssetMetadataKeyVersion[]{"asset_version"};
-constexpr char kCometEditorAssetMetadataKeyCreationTime[]{"creation_time"};
-constexpr char kCometEditorAssetMetadataKeyUpdateTime[]{"update_time"};
-constexpr char kCometEditorAssetMetadataKeyCompressionMode[]{
-    "compression_mode"};
+static constexpr auto kCometEditorAssetCometVersion{"comet_version"sv};
+static constexpr auto kCometEditorAssetMetadataKeyVersion{"asset_version"sv};
+static constexpr auto kCometEditorAssetMetadataKeyCreationTime{
+    "creation_time"sv};
+static constexpr auto kCometEditorAssetMetadataKeyUpdateTime{"update_time"sv};
+static constexpr auto kCometEditorAssetMetadataKeyCompressionMode{
+    "compression_mode"sv};
 
 struct AssetDescr {
-  std::string asset_abs_path;
-  std::string asset_path;
-  std::string metadata_path;
-  nlohmann::json metadata;
+  std::string asset_abs_path{};
+  std::string asset_path{};
+  std::string metadata_path{};
+  nlohmann::json metadata{};
 };
 }  // namespace asset
 }  // namespace editor

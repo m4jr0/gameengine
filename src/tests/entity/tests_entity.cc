@@ -27,9 +27,9 @@ const entity::ComponentTypeId DummyHpComponent::kComponentTypeId{
 TEST_CASE("Components management", "[comet::entity]") {
   auto& entity_manager{comet::comettests::entity_manager};
   entity_manager.Initialize();
-  const comet::entity::EntityId entity_id1{entity_manager.CreateEntity()};
-  const comet::entity::EntityId entity_id2{entity_manager.CreateEntity()};
-  const comet::entity::EntityId entity_id3{entity_manager.CreateEntity()};
+  const comet::entity::EntityId entity_id1{entity_manager.Generate()};
+  const comet::entity::EntityId entity_id2{entity_manager.Generate()};
+  const comet::entity::EntityId entity_id3{entity_manager.Generate()};
 
   SECTION("Create operations.") {
     entity_manager.AddComponent<comet::comettests::DummyEmptyComponent>(
@@ -173,19 +173,19 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(entity_manager.IsEntity(entity_id2));
     REQUIRE(entity_manager.IsEntity(entity_id3));
 
-    entity_manager.DestroyEntity(entity_id1);
+    entity_manager.Destroy(entity_id1);
 
     REQUIRE(!entity_manager.IsEntity(entity_id1));
     REQUIRE(entity_manager.IsEntity(entity_id2));
     REQUIRE(entity_manager.IsEntity(entity_id3));
 
-    entity_manager.DestroyEntity(entity_id2);
+    entity_manager.Destroy(entity_id2);
 
     REQUIRE(!entity_manager.IsEntity(entity_id1));
     REQUIRE(!entity_manager.IsEntity(entity_id2));
     REQUIRE(entity_manager.IsEntity(entity_id3));
 
-    entity_manager.DestroyEntity(entity_id3);
+    entity_manager.Destroy(entity_id3);
 
     REQUIRE(!entity_manager.IsEntity(entity_id1));
     REQUIRE(!entity_manager.IsEntity(entity_id2));
@@ -193,9 +193,9 @@ TEST_CASE("Components management", "[comet::entity]") {
   }
 
   SECTION("View operations.") {
-    bool is_entity_id1{false};
-    bool is_entity_id2{false};
-    bool is_entity_id3{false};
+    auto is_entity_id1{false};
+    auto is_entity_id2{false};
+    auto is_entity_id3{false};
 
     entity_manager.AddComponents(entity_id1,
                                  comet::comettests::DummyTransformComponent{},
@@ -308,5 +308,5 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(is_entity_id3);
   }
 
-  entity_manager.Destroy();
+  entity_manager.Shutdown();
 }

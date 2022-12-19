@@ -31,22 +31,24 @@ constexpr Gid GetIndex(Gid id) noexcept { return id & kIdMask; }
 constexpr Gid GetGeneration(Gid id) noexcept { return id & kGenerationMask; }
 Gid GenerateNewGeneration(Gid id) noexcept;
 
-class BreedManager {
+class BreedHandler {
  public:
-  BreedManager() = default;
-  BreedManager(const BreedManager&) = delete;
-  BreedManager(BreedManager&&) = delete;
-  BreedManager& operator=(const BreedManager&) = delete;
-  BreedManager& operator=(BreedManager&&) = delete;
-  ~BreedManager() = default;
+  BreedHandler() = default;
+  BreedHandler(const BreedHandler&) = delete;
+  BreedHandler(BreedHandler&& other) noexcept;
+  BreedHandler& operator=(const BreedHandler&) = delete;
+  BreedHandler& operator=(BreedHandler&& other) noexcept;
+  ~BreedHandler() = default;
 
-  Gid CreateBreed();
+  void Shutdown();
+
+  Gid Generate();
   bool IsAlive(Gid breed_id) const;
-  void DestroyBreed(Gid breed_id);
+  void Destroy(Gid breed_id);
 
  private:
-  std::vector<gid::IdGeneration> generations_;
-  std::deque<Gid> free_ids_;
+  std::vector<gid::IdGeneration> generations_{};
+  std::deque<Gid> free_ids_{};
 };
 }  // namespace gid
 }  // namespace comet

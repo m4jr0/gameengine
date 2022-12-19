@@ -7,31 +7,45 @@
 
 #include "comet_precompile.h"
 
+#include "glm/glm.hpp"
+
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
 namespace comet {
 namespace resource {
-using MaterialId = stringid::StringId;
-constexpr auto kInvalidMaterialId{static_cast<stringid::StringId>(-1)};
-
-struct MaterialResourceDescr {};
-
-struct TextureTuple {
+struct TextureMap {
   ResourceId texture_id{kInvalidResourceId};
   rendering::TextureType type{rendering::TextureType::Unknown};
+  rendering::TextureRepeatMode u_repeat_mode{
+      rendering::TextureRepeatMode::Unknown};
+  rendering::TextureRepeatMode v_repeat_mode{
+      rendering::TextureRepeatMode::Unknown};
+  rendering::TextureRepeatMode w_repeat_mode{
+      rendering::TextureRepeatMode::Unknown};
+  rendering::TextureFilterMode min_filter_mode{
+      rendering::TextureFilterMode::Unknown};
+  rendering::TextureFilterMode mag_filter_mode{
+      rendering::TextureFilterMode::Unknown};
+};
+
+struct MaterialResourceDescr {
+  f32 shininess{.0f};
+  glm::vec4 diffuse_color{};
+  TextureMap diffuse_map{};
+  TextureMap specular_map{};
+  TextureMap normal_map{};
+  ResourceId shader_id{kInvalidResourceId};
 };
 
 struct MaterialResource : public Resource {
   static const ResourceTypeId kResourceTypeId;
 
-  std::vector<TextureTuple> texture_tuples;
-
-  MaterialResourceDescr descr;
+  MaterialResourceDescr descr{};
 };
 
-resource::MaterialId GenerateMaterialId(const std::string& material_name);
-resource::MaterialId GenerateMaterialId(const char* material_name);
+ResourceId GenerateMaterialId(const std::string& material_name);
+ResourceId GenerateMaterialId(const schar* material_name);
 
 class MaterialHandler : public ResourceHandler {
  public:
@@ -40,12 +54,17 @@ class MaterialHandler : public ResourceHandler {
   MaterialHandler(MaterialHandler&&) = delete;
   MaterialHandler& operator=(const MaterialHandler&) = delete;
   MaterialHandler& operator=(MaterialHandler&&) = delete;
-  ~MaterialHandler() = default;
+  virtual ~MaterialHandler() = default;
+
+  const Resource* GetDefaultResource() override;
 
  protected:
   ResourceFile Pack(const Resource& resource,
                     CompressionMode compression_mode) const override;
   std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
+
+ private:
+  std::unique_ptr<MaterialResource> default_material_{nullptr};
 };
 }  // namespace resource
 }  // namespace comet

@@ -8,12 +8,11 @@
 #
 ################################################################################
 
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.21)
 
 # CMake setup ##################################################################
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_VERBOSE_MAKEFILE on)
 
 # Generic builds.
@@ -27,7 +26,7 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
-endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
+endforeach()
 
 # Global variables #############################################################
 # Executables.
@@ -62,13 +61,25 @@ list(APPEND COMET_LIBRARIES
 set(MESSAGE_PREFIX "[Comet] ")
 set(VCPKG_REPO "https://github.com/Microsoft/vcpkg.git")
 
+# Build type.
+if (NOT DEFINED CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+message(STATUS "${MESSAGE_PREFIX}Build type: ${CMAKE_BUILD_TYPE}")
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_compile_definitions(COMET_DEBUG)
+endif()
+
 # OS specifics #################################################################
 if(UNIX AND NOT APPLE)
-    set(LINUX TRUE)
+  set(LINUX TRUE)
 endif()
 
 # Vcpkg setup ##################################################################
-set(VCPKG_BUILD_TYPE "debug")
+string(TOLOWER ${CMAKE_BUILD_TYPE} VCPKG_BUILD_TYPE)
+message(STATUS "${MESSAGE_PREFIX}Vcpkg Build type: ${CMAKE_BUILD_TYPE}")
 set(ENV{VCPKG_FEATURE_FLAGS} "versions")
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -186,6 +197,14 @@ endif()
 if(EXISTS "${PROJECT_SOURCE_DIR}/resources")
   file(
     COPY "${PROJECT_SOURCE_DIR}/resources"
+    DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
+  )
+endif()
+
+# Copy "vk_layer_settings.txt" file if necessary.
+if(EXISTS "${PROJECT_SOURCE_DIR}/vk_layer_settings.txt")
+  file(
+    COPY "${PROJECT_SOURCE_DIR}/vk_layer_settings.txt"
     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
   )
 endif()

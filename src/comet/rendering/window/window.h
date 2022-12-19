@@ -19,25 +19,26 @@ struct WindowDescr {
 
 class Window {
  public:
-  Window() = default;
-  Window(const WindowDescr &descr);
+  Window() = delete;
+  explicit Window(const WindowDescr &descr);
   Window(const Window &) = default;
-  Window(Window &&) = default;
+  Window(Window &&) noexcept;
   Window &operator=(const Window &) = default;
-  Window &operator=(Window &&) = default;
-  virtual ~Window() = default;
+  Window &operator=(Window &&) noexcept;
+  virtual ~Window();
 
-  virtual void Initialize() = 0;
-  virtual void Destroy(){};
-  virtual void Update(){};
+  virtual void Initialize();
+  virtual void Destroy();
+  virtual void Update();
   virtual void SetSize(WindowSize width, WindowSize height) = 0;
 
-  virtual bool IsInitialized() const = 0;
-  virtual const std::string GetName() const noexcept;
+  bool IsInitialized() const noexcept;
+  virtual const std::string &GetName() const noexcept;
   virtual const WindowSize GetWidth() const noexcept;
   virtual const WindowSize GetHeight() const noexcept;
 
  protected:
+  bool is_initialized_{false};
   WindowSize width_{0};
   WindowSize height_{0};
   std::string name_{};

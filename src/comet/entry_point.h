@@ -5,10 +5,11 @@
 #ifndef COMET_COMET_ENTRY_POINT_H_
 #define COMET_COMET_ENTRY_POINT_H_
 
-#include "comet/core/engine.h"
 #include "comet_precompile.h"
 
-extern std::unique_ptr<comet::Engine> comet::CreateEngine();
+#include "comet/core/engine.h"
+
+extern std::unique_ptr<comet::Engine> comet::GenerateEngine();
 
 namespace comet {}  // namespace comet
 

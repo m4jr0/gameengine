@@ -15,13 +15,13 @@ namespace comet {
 namespace rendering {
 namespace gl {
 struct Texture {
-  GLuint id{0};
-  std::string type;
-  std::string path;
+  u32 id{0};
+  std::string type{};
+  std::string path{};
 };
 
-GLuint Load2DTexture(const resource::TextureResourceDescr& descr,
-                     const void* pixel_data, bool is_gamma);
+u32 Load2DTexture(const resource::TextureResourceDescr& descr,
+                  const void* pixel_data, bool is_gamma);
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

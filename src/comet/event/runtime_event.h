@@ -21,7 +21,7 @@ class UnrecoverableErrorEvent : public Event {
   UnrecoverableErrorEvent& operator=(const UnrecoverableErrorEvent&) = default;
   UnrecoverableErrorEvent& operator=(UnrecoverableErrorEvent&&) noexcept =
       default;
-  ~UnrecoverableErrorEvent() = default;
+  virtual ~UnrecoverableErrorEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
 };

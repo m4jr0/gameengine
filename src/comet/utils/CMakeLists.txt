@@ -13,7 +13,7 @@ find_package(lz4 REQUIRED)
 
 # Source files #################################################################
 add_library(${UTILS_LIBRARY_NAME}
-    "${PROJECT_SOURCE_DIR}/src/comet/utils/compression.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/utils/compression.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/date.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/file_system.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/utils/hash.cc"

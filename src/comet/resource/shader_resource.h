@@ -8,23 +8,24 @@
 #include "comet_precompile.h"
 
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace resource {
-enum class ShaderType : u8 { Unknown = 0, Vertex, Fragment };
-
 struct ShaderResourceDescr {
-  ShaderType shader_type{ShaderType::Unknown};
-  rendering::DriverType driver_type{rendering::DriverType::Unknown};
+  bool is_wireframe{false};
+  rendering::CullMode cull_mode{rendering::CullMode::Unknown};
+  std::vector<std::string> shader_module_paths{};
+  std::vector<rendering::ShaderVertexAttributeDescr> vertex_attributes{};
+  std::vector<rendering::ShaderUniformDescr> uniforms{};
 };
 
 struct ShaderResource : Resource {
   static const ResourceTypeId kResourceTypeId;
 
-  ShaderResourceDescr descr;
-  std::vector<u8> data;
+  ShaderResourceDescr descr{};
 };
 
 class ShaderHandler : public ResourceHandler {
@@ -34,12 +35,14 @@ class ShaderHandler : public ResourceHandler {
   ShaderHandler(ShaderHandler&&) = delete;
   ShaderHandler& operator=(const ShaderHandler&) = delete;
   ShaderHandler& operator=(ShaderHandler&&) = delete;
-  ~ShaderHandler() = default;
+  virtual ~ShaderHandler() = default;
 
  protected:
   ResourceFile Pack(const Resource& resource,
                     CompressionMode compression_mode) const override;
   std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
+  std::vector<u8> DumpDescr(const ShaderResourceDescr& descr) const;
+  ShaderResourceDescr ParseDescr(const std::vector<u8>& dumped_descr) const;
 };
 }  // namespace resource
 }  // namespace comet

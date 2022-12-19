@@ -9,20 +9,23 @@ namespace event {
 const stringid::StringId KeyboardEvent::kStaticType_{
     COMET_STRING_ID("event_keyboard")};
 
-KeyboardEvent::KeyboardEvent(int key, int scan_code, int action, int mods)
+KeyboardEvent::KeyboardEvent(input::KeyCode key, input::ScanCode scan_code,
+                             input::Action action, input::Mods mods)
     : key_{key}, scan_code_{scan_code}, action_{action}, mods_{mods} {}
 
 stringid::StringId KeyboardEvent::GetType() const noexcept {
   return kStaticType_;
 }
 
-int KeyboardEvent::GetKey() const noexcept { return key_; }
+input::KeyCode KeyboardEvent::GetKey() const noexcept { return key_; }
 
-int KeyboardEvent::GetScanCode() const noexcept { return scan_code_; }
+input::ScanCode KeyboardEvent::GetScanCode() const noexcept {
+  return scan_code_;
+}
 
-int KeyboardEvent::GetAction() const noexcept { return action_; }
+input::Action KeyboardEvent::GetAction() const noexcept { return action_; }
 
-int KeyboardEvent::GetMods() const noexcept { return mods_; }
+input::Mods KeyboardEvent::GetMods() const noexcept { return mods_; }
 
 const stringid::StringId MouseMoveEvent::kStaticType_{
     COMET_STRING_ID("event_mouse_move")};

@@ -4,10 +4,20 @@
 
 #include "material_resource.h"
 
+#include "comet/resource/texture_resource.h"
+
 namespace comet {
 namespace resource {
 const ResourceTypeId MaterialResource::kResourceTypeId{
-    GenerateResourceTypeId("material")};
+    COMET_STRING_ID("material")};
+
+ResourceId GenerateMaterialId(const std::string& material_name) {
+  return GenerateMaterialId(material_name.c_str());
+}
+
+ResourceId GenerateMaterialId(const schar* material_name) {
+  return COMET_STRING_ID(material_name);
+}
 
 ResourceFile MaterialHandler::Pack(const Resource& resource,
                                    CompressionMode compression_mode) const {
@@ -17,75 +27,56 @@ ResourceFile MaterialHandler::Pack(const Resource& resource,
   file.resource_type_id = MaterialResource::kResourceTypeId;
   file.compression_mode = compression_mode;
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  constexpr auto kTextureTupleTypeSize{sizeof(resource::TextureTuple)};
-  const auto texture_tuples_size{kTextureTupleTypeSize *
-                                 material.texture_tuples.size()};
+  constexpr auto kResourceIdSize{sizeof(ResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
-  std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize +
-                       texture_tuples_size);
+  std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize);
   uindex cursor{0};
   auto* buffer{data.data()};
 
-  std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&material.id),
-              kResourceIdSize);
+  std::memcpy(&buffer[cursor], &material.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&material.type_id),
-              kResourceTypeIdSize);
+  std::memcpy(&buffer[cursor], &material.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  std::memcpy(&buffer[cursor],
-              reinterpret_cast<const void*>(material.texture_tuples.data()),
-              texture_tuples_size);
-  cursor += texture_tuples_size;
-
-  PackResourceDescr(material.descr, file);
+  PackPodResourceDescr(material.descr, file);
   PackResourceData(data, file);
   return file;
 }
 
 std::unique_ptr<Resource> MaterialHandler::Unpack(
     const ResourceFile& file) const {
-  MaterialResource&& material{};
-  material.descr = UnpackResourceDescr<MaterialResourceDescr>(file);
+  MaterialResource material{};
+  material.descr = UnpackPodResourceDescr<MaterialResourceDescr>(file);
   const auto data{UnpackResourceData(file)};
 
   const auto* buffer{data.data()};
   uindex cursor{0};
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  constexpr auto kTextureTupleTypeSize{sizeof(resource::TextureTuple)};
-  const auto texture_tuples_size{sizeof(u8) * data.size() - kResourceIdSize -
-                                 kResourceTypeIdSize};
-  const uindex texture_tuples_count{texture_tuples_size /
-                                    kTextureTupleTypeSize};
+  constexpr auto kResourceIdSize{sizeof(ResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
-  std::memcpy(reinterpret_cast<void*>(&material.id),
-              reinterpret_cast<const void*>(&buffer[cursor]), kResourceIdSize);
+  std::memcpy(&material.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(reinterpret_cast<void*>(&material.type_id),
-              reinterpret_cast<const void*>(&buffer[cursor]),
-              kResourceTypeIdSize);
+  std::memcpy(&material.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  material.texture_tuples.resize(texture_tuples_count);
-  std::memcpy(reinterpret_cast<void*>(material.texture_tuples.data()),
-              reinterpret_cast<const void*>(&buffer[cursor]),
-              texture_tuples_size);
-  cursor += texture_tuples_size;
-
-  return std::make_unique<MaterialResource>(std::move(material));
+  return std::make_unique<MaterialResource>(material);
 }
 
-resource::MaterialId GenerateMaterialId(const std::string& material_name) {
-  return GenerateMaterialId(material_name.c_str());
-}
+const Resource* MaterialHandler::GetDefaultResource() {
+  if (default_material_ == nullptr) {
+    default_material_ = std::make_unique<MaterialResource>();
+    default_material_->id = kDefaultResourceId;
+    default_material_->type_id = MaterialResource::kResourceTypeId;
 
-resource::MaterialId GenerateMaterialId(const char* material_name) {
-  return COMET_STRING_ID(material_name);
+    auto& descr{default_material_->descr};
+    descr.diffuse_map.texture_id = kFlatTextureResourceId;
+    descr.diffuse_map.type = rendering::TextureType::Diffuse;
+  }
+
+  return default_material_.get();
 }
 }  // namespace resource
 }  // namespace comet

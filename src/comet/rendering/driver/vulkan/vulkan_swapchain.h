@@ -9,84 +9,92 @@
 
 #include "vulkan/vulkan.h"
 
+#include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
+#include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
 struct SwapchainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities{};
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> present_modes;
+  std::vector<VkSurfaceFormatKHR> formats{};
+  std::vector<VkPresentModeKHR> present_modes{};
 };
 
-SwapchainSupportDetails QuerySwapchainSupportDetails(VkPhysicalDevice device,
-                                                     VkSurfaceKHR surface);
+SwapchainSupportDetails QuerySwapchainSupportDetails(
+    VkPhysicalDevice physical_device_handle, VkSurfaceKHR surface_handle);
 VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
     const std::vector<VkSurfaceFormatKHR>& formats);
 VkPresentModeKHR ChooseSwapPresentMode(
-    const std::vector<VkPresentModeKHR>& present_modes);
+    const std::vector<VkPresentModeKHR>& present_modes, bool is_vsync = true,
+    bool is_triple_buffering = true);
 VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
                             WindowSize current_width,
                             WindowSize current_height);
 
-struct VulkanSwapchainDescr {
-  VkInstance instance{VK_NULL_HANDLE};
-  VkPhysicalDevice physical_device{VK_NULL_HANDLE};
-  VkDevice device{VK_NULL_HANDLE};
-  VkSurfaceKHR surface{VK_NULL_HANDLE};
-  WindowSize width{0};
-  WindowSize height{0};
+struct SwapchainDescr {
   bool is_vsync{false};
+  bool is_triple_buffering{false};
+  const VulkanGlfwWindow* window{nullptr};
+  Context* context{nullptr};
 };
 
-class VulkanSwapchain {
+class Swapchain {
  public:
-  VulkanSwapchain() = default;
-  VulkanSwapchain(const VulkanSwapchain&) = delete;
-  VulkanSwapchain(VulkanSwapchain&&) = delete;
-  VulkanSwapchain& operator=(const VulkanSwapchain&) = delete;
-  VulkanSwapchain& operator=(VulkanSwapchain&&) = delete;
-  ~VulkanSwapchain() = default;
+  Swapchain() = delete;
+  explicit Swapchain(const SwapchainDescr& descr);
+  Swapchain(const Swapchain&) = delete;
+  Swapchain(Swapchain&& other) = delete;
+  Swapchain& operator=(const Swapchain&) = delete;
+  Swapchain& operator=(Swapchain&& other) = delete;
+  ~Swapchain();
 
-  void Set(const VulkanSwapchainDescr& descr);
-  void SetSize(WindowSize width, WindowSize height);
   void Initialize();
   void Destroy();
+
   bool Reload();
-  VkResult AcquireNextImage(VkSemaphore semaphore);
-  u32 GetCurrentImageIndex() const noexcept;
-  VkResult QueuePresent(VkQueue present_queue, VkSemaphore semaphore,
-                        u32 image_index);
+  VkResult AcquireNextImage(VkSemaphore semaphore_handle);
+  VkResult QueuePresent();
+  void HandlePreSwapchainReload();
+  void HandlePostSwapchainReload();
   bool IsPresentationAvailable() const noexcept;
 
   bool IsInitialized() const noexcept;
+  VkSwapchainKHR GetHandle() const noexcept;
+  operator VkSwapchainKHR() const noexcept;
   bool IsReloadNeeded() const noexcept;
   VkFormat GetFormat() const noexcept;
   VkExtent2D GetExtent() const noexcept;
-  const std::vector<VkImage>& GetImages() const noexcept;
-  const std::vector<VkImageView>& GetImageViews() const noexcept;
+  u32 GetImageCount() const;
+  const std::vector<Image>& GetImages() const noexcept;
+  const Image& GetColorImage() const noexcept;
+  const Image& GetDepthImage() const noexcept;
 
  private:
+  void InitializeImageViews();
+  void InitializeColorResources();
+  void InitializeDepthResources();
+  void DestroyImageViews();
+  void DestroyDepthResources();
+  void DestroyColorResources();
+
   bool is_initialized_{false};
   bool is_reload_needed_{false};
-  VkInstance instance_{VK_NULL_HANDLE};
-  VkPhysicalDevice physical_device_{VK_NULL_HANDLE};
-  VkDevice device_{VK_NULL_HANDLE};
-  WindowSize width_{0};
-  WindowSize height_{0};
-  u32 current_image_index_{0};
   bool is_vsync_{false};
-  VkSwapchainKHR swapchain_{VK_NULL_HANDLE};
-  VkSwapchainKHR old_swapchain_{VK_NULL_HANDLE};
-  VkSurfaceKHR surface_{VK_NULL_HANDLE};
+  bool is_triple_buffering_{false};
+  ImageData image_data_{};
   VkFormat format_{VK_FORMAT_UNDEFINED};
   VkExtent2D extent_{0, 0};
-  std::vector<VkImage> images_{};  // Will be destroyed automatically.
-  std::vector<VkImageView> image_views_;
-
-  void CreateImageViews();
-  void DestroyImageViews();
+  std::vector<Image> images_{};
+  Image color_image_{};
+  Image depth_image_{};
+  VkSwapchainKHR handle_{VK_NULL_HANDLE};
+  VkSwapchainKHR old_handle_{VK_NULL_HANDLE};
+  const VulkanGlfwWindow* window_{nullptr};
+  Context* context_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

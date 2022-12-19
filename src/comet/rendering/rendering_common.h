@@ -11,20 +11,34 @@
 
 namespace comet {
 namespace rendering {
+using FrameCount = u32;
+constexpr auto kInvalidFrameCount{static_cast<FrameCount>(-1)};
+
+enum class AntiAliasingType : u16 {
+  None = 0,
+  Msaa,
+  MsaaX2,
+  MsaaX4,
+  MsaaX8,
+  MsaaX16,
+  MsaaX32,
+  MsaaX64
+};
+
 using WindowSize = u16;
 
 struct Vertex {
-  glm::vec3 position;
-  glm::vec3 normal;
-  glm::vec3 tangent;
-  glm::vec3 bitangent;
-  glm::vec2 uv;
-  glm::vec3 color;
+  glm::vec3 position{};
+  glm::vec3 normal{};
+  glm::vec3 tangent{};
+  glm::vec3 bitangent{};
+  glm::vec2 uv{};
+  glm::vec3 color{};
 };
 
 using Index = u32;
 
-enum class TextureType : u32 {
+enum class TextureType : u8 {
   Unknown = 0,
   Ambient,
   Diffuse,
@@ -33,7 +47,137 @@ enum class TextureType : u32 {
   Color
 };
 
+enum class TextureRepeatMode : u8 {
+  Unknown = 0,
+  Repeat,
+  MirroredRepeat,
+  ClampToEdge,
+  ClampToBorder
+};
+
+enum class TextureFilterMode : u8 { Unknown = 0, Nearest, Linear };
+
+std::string GetTextureTypeLabel(TextureType texture_type);
+std::string GetTextureFilterModeLabel(TextureFilterMode filter_mode);
+std::string GetTextureRepeatModeLabel(TextureRepeatMode repeat_mode);
+
 enum class TextureFormat : u32 { Unknown = 0, Rgba8, Rgb8 };
+
+enum class RenderingViewType : u16 {
+  Unknown = 0,
+  World,
+  Skybox,
+  SimpleWorld,
+  ImGui
+};
+
+enum class RenderingViewMatrixSource : u8 {
+  Unknown = 0,
+  SceneCamera,
+  UiCamera,
+  LightCamera
+};
+
+using RenderingViewId = stringid::StringId;
+constexpr auto kInvalidRenderingViewId{static_cast<RenderingViewId>(-1)};
+
+struct RenderingViewDescr {
+  bool is_first{false};
+  bool is_last{false};
+  RenderingViewMatrixSource matrix_source{RenderingViewMatrixSource::Unknown};
+  RenderingViewType type{RenderingViewType::Unknown};
+  WindowSize width{0};
+  WindowSize height{0};
+  f32 clear_color[4]{0.0f, 0.0f, 0.0f, 1.0f};
+  RenderingViewId id{kInvalidRenderingViewId};
+};
+
+enum class ShaderModuleType : u8 { Unknown = 0, Vertex, Fragment };
+
+using ShaderVertexAttributeSize = u32;
+constexpr auto kInvalidShaderVertexAttributeSize{
+    static_cast<ShaderVertexAttributeSize>(-1)};
+
+enum class ShaderVertexAttributeType : u8 {
+  Unknown = 0,
+  F16,
+  F32,
+  F64,
+  Vec2,
+  Vec3,
+  Vec4,
+  S8,
+  S16,
+  S32,
+  U8,
+  U16,
+  U32
+};
+
+enum class ShaderUniformType : u8 {
+  Unknown = 0,
+  B32,
+  S32,
+  U32,
+  F32,
+  F64,
+  B32Vec2,
+  B32Vec3,
+  B32Vec4,
+  S32Vec2,
+  S32Vec3,
+  S32Vec4,
+  U32Vec2,
+  U32Vec3,
+  U32Vec4,
+  Vec2,
+  Vec3,
+  Vec4,
+  F64Vec2,
+  F64Vec3,
+  F64Vec4,
+  Mat2x2,
+  Mat2x3,
+  Mat2x4,
+  Mat3x2,
+  Mat3x3,
+  Mat3x4,
+  Mat4x2,
+  Mat4x3,
+  Mat4x4,
+  Sampler,
+  Image,
+  Atomic
+};
+
+using Alignment = uindex;
+constexpr auto kInvalidAlignment{static_cast<Alignment>(-1)};
+
+Alignment GetScalarAlignment(ShaderUniformType type);
+Alignment GetStd140Alignment(ShaderUniformType type);
+Alignment GetStd430Alignment(ShaderUniformType type);
+
+struct ShaderVertexAttributeDescr {
+  ShaderVertexAttributeType type{ShaderVertexAttributeType::Unknown};
+  std::string name{};
+};
+
+using ShaderUniformSize = u32;
+constexpr auto kInvalidShaderUniformSize{static_cast<ShaderUniformSize>(-1)};
+
+enum class ShaderUniformScope : u8 { Unknown = 0, Global, Instance, Local };
+
+struct ShaderUniformDescr {
+  ShaderUniformType type{ShaderUniformType::Unknown};
+  ShaderUniformScope scope{ShaderUniformScope::Unknown};
+  std::string name{};
+};
+
+constexpr auto kMaxShaderCount{256};
+constexpr auto kMaxShaderUniformCount{128};
+constexpr auto kMaxShaderTextureMapCount{32};
+
+enum class CullMode { Unknown = 0, None, Front, Back, FrontAndBack };
 }  // namespace rendering
 }  // namespace comet
 

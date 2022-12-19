@@ -7,28 +7,33 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/manager.h"
 #include "comet/entity/entity_manager.h"
 
 namespace comet {
 namespace physics {
-class PhysicsManager {
+class PhysicsManager : public Manager {
  public:
   PhysicsManager() = default;
   PhysicsManager(const PhysicsManager&) = delete;
   PhysicsManager(PhysicsManager&&) = delete;
   PhysicsManager& operator=(const PhysicsManager&) = delete;
   PhysicsManager& operator=(PhysicsManager&&) = delete;
-  ~PhysicsManager() = default;
+  virtual ~PhysicsManager() = default;
 
-  void Initialize();
-  void Destroy();
-  void Update(entity::EntityManager& entity_manager);
+  void Initialize() override;
+  void Shutdown() override;
+  void Update(f64& lag);
 
-  u8 GetCounter() const noexcept;
+  u32 GetFrameRate() const noexcept;
+  f32 GetFrameTime() const noexcept;
 
  private:
-  uindex counter_{0};
+  u32 frame_rate_{0};
+  u32 counter_{0};
+  u32 max_frame_rate_{60};  // 60 Hz refresh by default.
   f64 current_time_{0};
+  f64 fixed_delta_time_{16.66};  // 60 Hz refresh by default.
 };
 }  // namespace physics
 }  // namespace comet

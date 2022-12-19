@@ -9,20 +9,20 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-GLuint Load2DTexture(const resource::TextureResourceDescr& descr,
-                     const void* pixel_data, bool is_gamma) {
-  GLuint texture_id{0};
+u32 Load2DTexture(const resource::TextureResourceDescr& descr,
+                  const void* pixel_data, bool is_gamma) {
+  u32 texture_id{0};
 
   glGenTextures(1, &texture_id);
 
   if (pixel_data != nullptr) {
     GLenum format;
 
-    if (descr.channel_number == 1) {
+    if (descr.channel_count == 1) {
       format = GL_RED;
-    } else if (descr.channel_number == 3) {
+    } else if (descr.channel_count == 3) {
       format = GL_RGB;
-    } else if (descr.channel_number == 4) {
+    } else if (descr.channel_count == 4) {
       format = GL_RGBA;
     } else {
       COMET_LOG_RENDERING_ERROR("Unsupported texture type at path.");

@@ -4,6 +4,8 @@
 
 #include "time_manager.h"
 
+#include "comet/core/conf/configuration_manager.h"
+#include "comet/core/engine.h"
 #include "comet/utils/date.h"
 
 namespace comet {
@@ -17,15 +19,29 @@ f64 TimeManager::GetNow() {
   return previous_time_ + time_to_add;
 }
 
-void TimeManager::Initialize() { previous_time_ = GetRealNow(); }
+void TimeManager::Initialize() {
+  Manager::Initialize();
+  previous_time_ = GetRealNow();
+
+  // Round up to two decimal places.
+  fixed_delta_time_ =
+      std::ceil(COMET_CONF_F64(conf::kCoreMsPerUpdate) * 100.0) / 100.0;
+}
+
+void TimeManager::Shutdown() {
+  fixed_delta_time_ = 16.66;
+  current_time_ = 0.0;
+  previous_time_ = 0.0;
+  delta_time_ = 0.0;
+  time_scale_ = 1.0f;
+  Manager::Shutdown();
+}
 
 void TimeManager::Update() {
   current_time_ = GetNow();
   delta_time_ = current_time_ - previous_time_;
   previous_time_ = current_time_;
 }
-
-void TimeManager::Destroy() {}
 
 void TimeManager::Stop() noexcept { SetTimeScale(0.0f); }
 
@@ -40,10 +56,6 @@ const f64 TimeManager::GetDeltaTime() const noexcept { return delta_time_; }
 const f64 TimeManager::GetCurrentTime() const noexcept { return current_time_; }
 
 const f32 TimeManager::GetTimeScale() const noexcept { return time_scale_; }
-
-void TimeManager::SetFixedDeltaTime(f64 fixed_delta_time) noexcept {
-  fixed_delta_time_ = fixed_delta_time;
-}
 
 void TimeManager::SetTimeScale(f32 time_scale) noexcept {
   time_scale_ = time_scale;

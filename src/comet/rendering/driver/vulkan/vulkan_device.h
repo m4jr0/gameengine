@@ -9,113 +9,121 @@
 
 #include "vulkan/vulkan.h"
 
+#include "comet/rendering/rendering_common.h"
+
 namespace comet {
 namespace rendering {
 namespace vk {
+struct QueueFamilyIndices {
+  std::optional<u32> graphics_family{};
+  std::optional<u32> present_family{};
+  std::optional<u32> transfer_family{};
+};
+
 // Useful for debugging purposes.
 constexpr auto kIsSpecificTransferQueue{true};
 
-struct QueueFamilyIndices {
-  std::optional<u32> graphics_family;
-  std::optional<u32> present_family;
-  std::optional<u32> transfer_family;
+bool AreQueueFamilyIndicesComplete(const QueueFamilyIndices& indices);
+bool IsTransferFamilyInQueueFamilyIndices(const QueueFamilyIndices& indices);
+std::vector<u32> GetUniqueIndices(const QueueFamilyIndices& indices);
 
-  bool IsComplete() const;
-  bool IsSpecificTransferFamily() const;
-  std::vector<u32> GetUniqueIndices() const;
-};
+QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device_handle,
+                                     VkSurfaceKHR surface_handle);
 
-QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device,
-                                     VkSurfaceKHR surface);
-
-VkSampleCountFlagBits GetMaxUsableSampleCount(VkPhysicalDevice physical_device);
+VkSampleCountFlagBits GetMaxUsableSampleCount(
+    VkPhysicalDevice physical_device_handle);
 
 using PhysicalDeviceScore = u32;
 
-PhysicalDeviceScore GetPhysicalDeviceScore(
-    VkPhysicalDevice physical_device, VkSurfaceKHR surface,
-    const std::vector<const char*>& required_extensions);
-
-VkPhysicalDevice GetBestPhysicalDevice(
-    VkInstance instance, VkSurfaceKHR surface,
-    const std::vector<const char*>& required_extensions);
-
-bool AreDeviceExtensionsAvailable(VkPhysicalDevice physical_device,
-                                  const std::vector<const char*>& extensions);
-
-struct VulkanDeviceDescr {
-  VkPhysicalDevice physical_device{VK_NULL_HANDLE};
-  VkSurfaceKHR surface{VK_NULL_HANDLE};
+struct DeviceDescr {
+  VkInstance instance_handle{VK_NULL_HANDLE};
+  VkSurfaceKHR surface_handle{VK_NULL_HANDLE};
   bool is_sampler_anisotropy{false};
   bool is_sample_rate_shading{false};
+  AntiAliasingType anti_aliasing_type{AntiAliasingType::None};
 };
 
-class VulkanDevice {
+class Device {
  public:
-  explicit VulkanDevice() = default;
-  VulkanDevice(const VulkanDevice&) = delete;
-  VulkanDevice(VulkanDevice&&) = delete;
-  VulkanDevice& operator=(const VulkanDevice&) = delete;
-  VulkanDevice& operator=(VulkanDevice&&) = delete;
-  ~VulkanDevice() = default;
+  Device() = delete;
+  explicit Device(const DeviceDescr& descr);
+  Device(const Device&) = delete;
+  Device(Device&& other) = delete;
+  Device& operator=(const Device&) = delete;
+  Device& operator=(Device&& other) = delete;
+  ~Device();
 
-  void Initialize(const VulkanDeviceDescr& descr);
+  void Initialize();
   void Destroy();
 
-  template <typename... ExtensionNames>
-  void SetRequiredExtensions(ExtensionNames&&... extension_names) {
-    required_extensions_ = {extension_names...};
-  }
-
-  template <typename ExtensionNames>
-  void SetRequiredExtensions(ExtensionNames&& extension_names) {
-    required_extensions_ = std::forward<ExtensionNames>(extension_names);
-  }
-
+  void WaitIdle() const;
   VkFormat ChooseFormat(VkImageTiling tiling, VkFormatFeatureFlags features,
-                        const std::vector<VkFormat>& candidates);
+                        const std::vector<VkFormat>& candidates) const;
 
-  VkFormat ChooseDepthFormat();
+  VkFormat ChooseDepthFormat() const;
 
+  VkDevice GetHandle() const noexcept;
   operator VkDevice() const noexcept;
-  VkDevice GetDevice() const noexcept;
-  VkPhysicalDevice GetPhysicalDevice() const noexcept;
+  VkPhysicalDevice GetPhysicalDeviceHandle() const noexcept;
   const VkPhysicalDeviceProperties& GetProperties() const noexcept;
   const VkPhysicalDeviceFeatures& GetFeatures() const noexcept;
   const VkPhysicalDeviceMemoryProperties& GetMemoryProperties() const noexcept;
   const QueueFamilyIndices& GetQueueFamilyIndices() const noexcept;
-  VkQueue GetGraphicsQueue() const noexcept;
-  VkQueue GetPresentQueue() const noexcept;
-  VkQueue GetTransferQueue() const noexcept;
+  VkQueue GetGraphicsQueueHandle() const noexcept;
+  VkQueue GetPresentQueueHandle() const noexcept;
+  VkQueue GetTransferQueueHandle() const noexcept;
   VkSampleCountFlagBits GetMsaaSamples() const noexcept;
+  bool IsMsaa() const noexcept;
+  bool IsInitialized() const noexcept;
 
  private:
-  // Handles.
-  VkPhysicalDevice physical_device_{VK_NULL_HANDLE};
-  VkDevice device_{VK_NULL_HANDLE};
+  PhysicalDeviceScore GetPhysicalDeviceScore(
+      VkPhysicalDevice physical_device_handle) const;
+  void ResolvePhysicalDeviceHandle();
+  bool AreDeviceExtensionsAvailable(
+      VkPhysicalDevice physical_device_handle) const;
 
-  // Properties and features.
+#ifdef COMET_DEBUG
+  void CheckRequiredExtensions() const;
+#endif  // COMET_DEBUG
+
+  static constexpr std::array<const schar*, 1> kExtensionsToCheck_{
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+  bool is_initialized_{false};
+  bool is_sampler_anisotropy_{false};
+  bool is_sample_rate_shading_{false};
+  AntiAliasingType anti_aliasing_type_{AntiAliasingType::None};
   VkPhysicalDeviceProperties properties_{};
   VkPhysicalDeviceFeatures features_{};
   VkPhysicalDeviceMemoryProperties memory_properties_{};
-
-  // Queues.
-  std::vector<VkQueueFamilyProperties> queue_family_properties_;
+  std::vector<VkQueueFamilyProperties> queue_family_properties_{};
   QueueFamilyIndices queue_family_indices_{};
-  VkQueue graphics_queue_{VK_NULL_HANDLE};  // Will be destroyed automatically.
-  VkQueue present_queue_{VK_NULL_HANDLE};   // Will be destroyed automatically.
-  VkQueue transfer_queue_{VK_NULL_HANDLE};  // Will be destroyed automatically.
+  VkInstance instance_handle_{VK_NULL_HANDLE};
+  VkPhysicalDevice physical_device_handle_{VK_NULL_HANDLE};
+  VkDevice handle_{VK_NULL_HANDLE};
+  VkSurfaceKHR surface_handle_{VK_NULL_HANDLE};
+  VkQueue graphics_queue_handle_{
+      VK_NULL_HANDLE};  // Will be destroyed automatically.
+  VkQueue present_queue_handle_{
+      VK_NULL_HANDLE};  // Will be destroyed automatically.
+  VkQueue transfer_queue_handle_{
+      VK_NULL_HANDLE};  // Will be destroyed automatically.
+  static constexpr std::array<const schar*,
+#ifdef COMET_VULKAN_DEBUG_MODE
+                              2
+#else
+                              1
+#endif  // COMET_VULKAN_DEBUG_MODE
+                              >
+      kRequiredExtensions_{VK_KHR_SWAPCHAIN_EXTENSION_NAME
+#ifdef COMET_VULKAN_DEBUG_MODE
+                           ,
+                           VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+#endif  // COMET_VULKAN_DEBUG_MODE
+      };
 
-  // Misc.
-  static constexpr std::array<const char*, 1> kExtensionsToCheck_{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  std::vector<const char*> required_extensions_;
   VkSampleCountFlagBits msaa_samples_{VK_SAMPLE_COUNT_1_BIT};
-
-#ifdef COMET_DEBUG
-  // Debug.
-  void CheckRequiredExtensions();
-#endif  // COMET_DEBUG
 };
 }  // namespace vk
 }  // namespace rendering

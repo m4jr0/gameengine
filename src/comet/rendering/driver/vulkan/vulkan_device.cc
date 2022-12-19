@@ -4,69 +4,74 @@
 
 #include "vulkan_device.h"
 
+#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/driver/vulkan/vulkan_initializers.h"
+#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-bool QueueFamilyIndices::IsComplete() const {
-  return graphics_family.has_value() && present_family.has_value() &&
-         transfer_family.has_value();
+bool AreQueueFamilyIndicesComplete(const QueueFamilyIndices& indices) {
+  return indices.graphics_family.has_value() &&
+         indices.present_family.has_value() &&
+         indices.transfer_family.has_value();
 }
 
-bool QueueFamilyIndices::IsSpecificTransferFamily() const {
-  if (!graphics_family.has_value() || !transfer_family.has_value()) {
+bool IsTransferFamilyInQueueFamilyIndices(const QueueFamilyIndices& indices) {
+  if (!indices.graphics_family.has_value() ||
+      !indices.transfer_family.has_value()) {
     return false;
   }
 
-  return graphics_family.value() != transfer_family.value();
+  return indices.graphics_family.value() != indices.transfer_family.value();
 }
 
-std::vector<u32> QueueFamilyIndices::GetUniqueIndices() const {
-  COMET_ASSERT(IsComplete(), "Queue Family Indices is not complete");
+std::vector<u32> GetUniqueIndices(const QueueFamilyIndices& indices) {
+  COMET_ASSERT(AreQueueFamilyIndicesComplete(indices),
+               "Queue family indices are not complete");
 
-  const auto graphics_fam_index{graphics_family.value()};
-  const auto present_fam_index{present_family.value()};
-  const auto transfer_fam_index{transfer_family.value()};
+  const auto graphics_fam_index{indices.graphics_family.value()};
+  const auto present_fam_index{indices.present_family.value()};
+  const auto transfer_fam_index{indices.transfer_family.value()};
 
-  std::set<u32> set{graphics_family.value(), present_family.value(),
-                    transfer_family.value()};
+  std::set<u32> set{indices.graphics_family.value(),
+                    indices.present_family.value(),
+                    indices.transfer_family.value()};
 
   std::vector<u32> list{};
   list.reserve(set.size());
 
   for (auto it{set.begin()}; it != set.end();) {
-    list.push_back(std::move(set.extract(it++).value()));
+    list.push_back(set.extract(it++).value());
   }
 
   return list;
 }
 
-QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device,
-                                     VkSurfaceKHR surface) {
+QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device_handle,
+                                     VkSurfaceKHR surface_handle) {
   QueueFamilyIndices indices{};
 
   u32 queue_family_count{0};
-  vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
-                                           VK_NULL_HANDLE);
+  vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle,
+                                           &queue_family_count, VK_NULL_HANDLE);
 
   if (queue_family_count == 0) {
     return indices;
   }
 
   std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
-  vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
-                                           queue_families.data());
+  vkGetPhysicalDeviceQueueFamilyProperties(
+      physical_device_handle, &queue_family_count, queue_families.data());
 
   u32 queue_index{0};
 
   for (const auto& queue_family : queue_families) {
     VkBool32 is_present_support;
-    COMET_CHECK_VK(
-        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, queue_index,
-                                             surface, &is_present_support),
-        "Unable to get physical device surface support!");
+    COMET_CHECK_VK(vkGetPhysicalDeviceSurfaceSupportKHR(
+                       physical_device_handle, queue_index, surface_handle,
+                       &is_present_support),
+                   "Unable to get physical device surface support!");
     // At first, we explicitly try to find a queue family specialized for
     // transfer operations.
     if (kIsSpecificTransferQueue && !indices.transfer_family.has_value() &&
@@ -88,7 +93,7 @@ QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device,
       indices.present_family = queue_index;
     }
 
-    if (indices.IsComplete()) {
+    if (AreQueueFamilyIndicesComplete(indices)) {
       break;
     }
 
@@ -106,9 +111,10 @@ QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device,
 }
 
 VkSampleCountFlagBits GetMaxUsableSampleCount(
-    VkPhysicalDevice physical_device) {
+    VkPhysicalDevice physical_device_handle) {
   VkPhysicalDeviceProperties physical_device_properties;
-  vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
+  vkGetPhysicalDeviceProperties(physical_device_handle,
+                                &physical_device_properties);
 
   auto counts{physical_device_properties.limits.framebufferColorSampleCounts &
               physical_device_properties.limits.framebufferDepthSampleCounts};
@@ -123,16 +129,273 @@ VkSampleCountFlagBits GetMaxUsableSampleCount(
   return VK_SAMPLE_COUNT_1_BIT;
 }
 
-PhysicalDeviceScore GetPhysicalDeviceScore(
-    VkPhysicalDevice physical_device, VkSurfaceKHR surface,
-    const std::vector<const char*>& required_extensions) {
+Device::Device(const DeviceDescr& descr)
+    : instance_handle_{descr.instance_handle},
+      surface_handle_{descr.surface_handle},
+      anti_aliasing_type_{descr.anti_aliasing_type},
+      is_sampler_anisotropy_{descr.is_sampler_anisotropy},
+      is_sample_rate_shading_{descr.is_sample_rate_shading} {
+  COMET_ASSERT(instance_handle_ != VK_NULL_HANDLE,
+               "Instance handle provided is null!");
+
+  COMET_ASSERT(surface_handle_ != VK_NULL_HANDLE,
+               "Surface handle provided is null!");
+}
+
+Device::~Device() {
+  COMET_ASSERT(!is_initialized_,
+               "Destructor called for device, but it is still initialized!");
+}
+
+void Device::Initialize() {
+  COMET_ASSERT(!is_initialized_,
+               "Tried to initialize device, but it is already done!");
+  ResolvePhysicalDeviceHandle();
+  vkGetPhysicalDeviceProperties(physical_device_handle_, &properties_);
+  vkGetPhysicalDeviceFeatures(physical_device_handle_, &features_);
+  vkGetPhysicalDeviceMemoryProperties(physical_device_handle_,
+                                      &memory_properties_);
+  auto max_samples{GetMaxUsableSampleCount(physical_device_handle_)};
+
+  switch (anti_aliasing_type_) {
+    case AntiAliasingType::None:
+      msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
+      break;
+    case AntiAliasingType::Msaa:
+      msaa_samples_ = max_samples;
+      break;
+    case AntiAliasingType::MsaaX2:
+      msaa_samples_ = VK_SAMPLE_COUNT_2_BIT;
+      break;
+    case AntiAliasingType::MsaaX4:
+      msaa_samples_ = VK_SAMPLE_COUNT_4_BIT;
+      break;
+    case AntiAliasingType::MsaaX8:
+      msaa_samples_ = VK_SAMPLE_COUNT_8_BIT;
+      break;
+    case AntiAliasingType::MsaaX16:
+      msaa_samples_ = VK_SAMPLE_COUNT_16_BIT;
+      break;
+    case AntiAliasingType::MsaaX32:
+      msaa_samples_ = VK_SAMPLE_COUNT_32_BIT;
+      break;
+    case AntiAliasingType::MsaaX64:
+      msaa_samples_ = VK_SAMPLE_COUNT_64_BIT;
+      break;
+    default:
+      COMET_LOG_RENDERING_ERROR(
+          "Unsupported anti-aliasing type: ",
+          static_cast<std::underlying_type_t<AntiAliasingType>>(
+              anti_aliasing_type_),
+          ". Setting it to none.");
+      msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
+      break;
+  }
+
+  auto max_samples_cast{static_cast<u32>(max_samples)};
+
+  if (static_cast<u32>(msaa_samples_) > max_samples_cast) {
+    COMET_LOG_RENDERING_ERROR(
+        "Choosen MSAA (x",
+        static_cast<std::underlying_type_t<AntiAliasingType>>(
+            anti_aliasing_type_),
+        ") is too high for current GPU. Setting it to x", max_samples_cast,
+        ".");
+
+    msaa_samples_ = max_samples;
+  }
+
+  COMET_LOG_RENDERING_DEBUG("Selected GPU: ", properties_.deviceName, ".");
+  COMET_LOG_RENDERING_DEBUG("\t- Minimum alignment: ",
+                            properties_.limits.minUniformBufferOffsetAlignment);
+
+  u32 queue_family_count;
+  vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle_,
+                                           &queue_family_count, VK_NULL_HANDLE);
+  COMET_ASSERT(queue_family_count > 0, "No queue family found!");
+
+  queue_family_properties_.resize(queue_family_count);
+  vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle_,
+                                           &queue_family_count,
+                                           queue_family_properties_.data());
+
+#ifdef COMET_DEBUG
+  CheckRequiredExtensions();
+#endif  // COMET_DEBUG
+
+  COMET_ASSERT(AreDeviceExtensionsAvailable(physical_device_handle_),
+               "At least one required extension is not supported!");
+
+  queue_family_indices_ =
+      FindQueueFamilies(physical_device_handle_, surface_handle_);
+
+  auto unique_queue_family_indices{GetUniqueIndices(queue_family_indices_)};
+  std::vector<VkDeviceQueueCreateInfo> queue_create_info{};
+  auto queue_priority{1.0f};
+
+  for (auto queue_family_index : unique_queue_family_indices) {
+    queue_create_info.push_back(init::GenerateDeviceQueueCreateInfo(
+        queue_family_index, queue_priority));
+  }
+
+  VkPhysicalDeviceFeatures physical_device_features{};
+  physical_device_features.samplerAnisotropy =
+      is_sampler_anisotropy_ ? VK_TRUE : VK_FALSE;
+  physical_device_features.sampleRateShading =
+      is_sample_rate_shading_ ? VK_TRUE : VK_FALSE;
+  physical_device_features.fillModeNonSolid = VK_TRUE;
+
+  auto create_info = init::GenerateDeviceCreateInfo(
+      queue_create_info, physical_device_features, kRequiredExtensions_.data(),
+      static_cast<u32>(kRequiredExtensions_.size()));
+
+  COMET_CHECK_VK(vkCreateDevice(physical_device_handle_, &create_info,
+                                VK_NULL_HANDLE, &handle_),
+                 "Failed to create logical device!");
+
+  vkGetDeviceQueue(handle_, queue_family_indices_.graphics_family.value(), 0,
+                   &graphics_queue_handle_);
+
+  vkGetDeviceQueue(handle_, queue_family_indices_.present_family.value(), 0,
+                   &present_queue_handle_);
+
+  if (!IsTransferFamilyInQueueFamilyIndices(queue_family_indices_)) {
+    is_initialized_ = true;
+    return;
+  }
+
+  vkGetDeviceQueue(handle_, queue_family_indices_.transfer_family.value(), 0,
+                   &transfer_queue_handle_);
+  COMET_ASSERT(transfer_queue_handle_ != VK_NULL_HANDLE,
+               "Could not get transfer queue handle!");
+  is_initialized_ = true;
+}
+
+void Device::Destroy() {
+  COMET_ASSERT(is_initialized_,
+               "Tried to destroy device, but it is not initialized!");
+  if (handle_ != VK_NULL_HANDLE) {
+    vkDestroyDevice(handle_, VK_NULL_HANDLE);
+    handle_ = VK_NULL_HANDLE;
+  }
+
+  is_sampler_anisotropy_ = false;
+  is_sample_rate_shading_ = false;
+  anti_aliasing_type_ = AntiAliasingType::None;
+  properties_ = {};
+  features_ = {};
+  memory_properties_ = {};
+  queue_family_properties_.clear();
+  queue_family_indices_ = {};
+  instance_handle_ = VK_NULL_HANDLE;
+  physical_device_handle_ = VK_NULL_HANDLE;
+  handle_ = VK_NULL_HANDLE;
+  surface_handle_ = VK_NULL_HANDLE;
+  graphics_queue_handle_ = VK_NULL_HANDLE;
+  present_queue_handle_ = VK_NULL_HANDLE;
+  transfer_queue_handle_ = VK_NULL_HANDLE;
+  msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
+
+  is_initialized_ = false;
+}
+
+void Device::WaitIdle() const {
+  if (handle_ == VK_NULL_HANDLE) {
+    return;
+  }
+
+  vkDeviceWaitIdle(handle_);
+}
+
+VkFormat Device::ChooseFormat(VkImageTiling tiling,
+                              VkFormatFeatureFlags features,
+                              const std::vector<VkFormat>& candidates) const {
+  for (auto format : candidates) {
+    VkFormatProperties properties;
+    vkGetPhysicalDeviceFormatProperties(physical_device_handle_, format,
+                                        &properties);
+
+    if (tiling == VK_IMAGE_TILING_LINEAR &&
+        (properties.linearTilingFeatures & features) == features) {
+      return format;
+    } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+               (properties.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+
+  COMET_ASSERT(false, "Failed to find supported format");
+  return VK_FORMAT_UNDEFINED;
+}
+
+VkFormat Device::ChooseDepthFormat() const {
+  // TODO(m4jr0): Retrieve settings from configuration.
+  return ChooseFormat(VK_IMAGE_TILING_OPTIMAL,
+                      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+                       VK_FORMAT_D24_UNORM_S8_UINT});
+}
+
+VkDevice Device::GetHandle() const noexcept { return handle_; }
+
+Device::operator VkDevice() const noexcept { return GetHandle(); };
+
+VkPhysicalDevice Device::GetPhysicalDeviceHandle() const noexcept {
+  return physical_device_handle_;
+}
+
+const VkPhysicalDeviceProperties& Device::GetProperties() const noexcept {
+  return properties_;
+}
+
+const VkPhysicalDeviceFeatures& Device::GetFeatures() const noexcept {
+  return features_;
+}
+
+const VkPhysicalDeviceMemoryProperties& Device::GetMemoryProperties()
+    const noexcept {
+  return memory_properties_;
+}
+
+VkSampleCountFlagBits Device::GetMsaaSamples() const noexcept {
+  return msaa_samples_;
+}
+
+bool Device::IsMsaa() const noexcept {
+  return (msaa_samples_ & VK_SAMPLE_COUNT_1_BIT) != VK_SAMPLE_COUNT_1_BIT;
+}
+
+bool Device::IsInitialized() const noexcept { return is_initialized_; }
+
+const QueueFamilyIndices& Device::GetQueueFamilyIndices() const noexcept {
+  return queue_family_indices_;
+}
+
+VkQueue Device::GetGraphicsQueueHandle() const noexcept {
+  return graphics_queue_handle_;
+}
+
+VkQueue Device::GetPresentQueueHandle() const noexcept {
+  return present_queue_handle_;
+}
+
+VkQueue Device::GetTransferQueueHandle() const noexcept {
+  if (transfer_queue_handle_ != VK_NULL_HANDLE) {
+    return transfer_queue_handle_;
+  }
+
+  return graphics_queue_handle_;
+}
+
+PhysicalDeviceScore Device::GetPhysicalDeviceScore(
+    VkPhysicalDevice physical_device_handle) const {
   PhysicalDeviceScore score{0};
 
   VkPhysicalDeviceProperties properties;
   VkPhysicalDeviceFeatures features;
 
-  vkGetPhysicalDeviceProperties(physical_device, &properties);
-  vkGetPhysicalDeviceFeatures(physical_device, &features);
+  vkGetPhysicalDeviceProperties(physical_device_handle, &properties);
+  vkGetPhysicalDeviceFeatures(physical_device_handle, &features);
 
   // First, mandatory properties and features.
   if (!features.samplerAnisotropy) {
@@ -143,18 +406,18 @@ PhysicalDeviceScore GetPhysicalDeviceScore(
     return score;
   }
 
-  if (!AreDeviceExtensionsAvailable(physical_device, required_extensions)) {
+  if (!AreDeviceExtensionsAvailable(physical_device_handle)) {
     return score;
   }
 
-  auto indices{FindQueueFamilies(physical_device, surface)};
+  auto indices{FindQueueFamilies(physical_device_handle, surface_handle_)};
 
-  if (!indices.IsComplete()) {
+  if (!AreQueueFamilyIndicesComplete(indices)) {
     return score;
   }
 
   auto swapchain_support_details{
-      QuerySwapchainSupportDetails(physical_device, surface)};
+      QuerySwapchainSupportDetails(physical_device_handle, surface_handle_)};
 
   if (swapchain_support_details.formats.empty() ||
       swapchain_support_details.present_modes.empty()) {
@@ -166,21 +429,21 @@ PhysicalDeviceScore GetPhysicalDeviceScore(
     score += 1000;
   }
 
-  const auto msaa_samples{GetMaxUsableSampleCount(physical_device)};
+  const auto msaa_samples{GetMaxUsableSampleCount(physical_device_handle)};
   score += 5 * msaa_samples;
   score += properties.limits.maxImageDimension2D;
 
   return score;
 }
 
-bool AreDeviceExtensionsAvailable(VkPhysicalDevice physical_device,
-                                  const std::vector<const char*>& extensions) {
-  if (extensions.empty()) {
+bool Device::AreDeviceExtensionsAvailable(
+    VkPhysicalDevice physical_device_handle) const {
+  if (kRequiredExtensions_.empty()) {
     return true;
   }
 
   u32 extension_count;
-  vkEnumerateDeviceExtensionProperties(physical_device, VK_NULL_HANDLE,
+  vkEnumerateDeviceExtensionProperties(physical_device_handle, VK_NULL_HANDLE,
                                        &extension_count, VK_NULL_HANDLE);
 
   if (extension_count == 0) {
@@ -193,12 +456,12 @@ bool AreDeviceExtensionsAvailable(VkPhysicalDevice physical_device,
   std::vector<VkExtensionProperties> extensions_properties(extension_count);
 
   COMET_CHECK_VK(vkEnumerateDeviceExtensionProperties(
-                     physical_device, VK_NULL_HANDLE, &extension_count,
+                     physical_device_handle, VK_NULL_HANDLE, &extension_count,
                      extensions_properties.data()),
                  "Failed to enumerate physical device extension properties!");
 
-  for (auto& extension_name : extensions) {
-    bool is_found{false};
+  for (auto& extension_name : kRequiredExtensions_) {
+    auto is_found{false};
 
     for (auto& extension_properties : extensions_properties) {
       if (std::strncmp(extension_name, extension_properties.extensionName,
@@ -220,194 +483,38 @@ bool AreDeviceExtensionsAvailable(VkPhysicalDevice physical_device,
   return true;
 }
 
-VkPhysicalDevice GetBestPhysicalDevice(
-    VkInstance instance, VkSurfaceKHR surface,
-    const std::vector<const char*>& required_extensions) {
-  COMET_ASSERT(instance != VK_NULL_HANDLE, "Vulkan instance is null!");
+void Device::ResolvePhysicalDeviceHandle() {
+  COMET_ASSERT(instance_handle_ != VK_NULL_HANDLE,
+               "Vulkan instance handle is null!");
 
-  u32 device_count{0};
-  vkEnumeratePhysicalDevices(instance, &device_count, VK_NULL_HANDLE);
-  COMET_ASSERT(device_count != 0, "Failed to find GPUs with Vulkan support!");
-  std::vector<VkPhysicalDevice> devices(device_count);
-  vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
+  u32 physical_device_count{0};
+  vkEnumeratePhysicalDevices(instance_handle_, &physical_device_count,
+                             VK_NULL_HANDLE);
+  COMET_ASSERT(physical_device_count != 0,
+               "Failed to find GPUs with Vulkan support!");
+  std::vector<VkPhysicalDevice> physical_device_handles(physical_device_count);
+  vkEnumeratePhysicalDevices(instance_handle_, &physical_device_count,
+                             physical_device_handles.data());
 
-  VkPhysicalDevice physical_device{VK_NULL_HANDLE};
   PhysicalDeviceScore best_score{0};
 
-  for (const auto& device : devices) {
-    const auto score{
-        GetPhysicalDeviceScore(device, surface, required_extensions)};
+  for (const auto& physical_device_handle : physical_device_handles) {
+    const auto score{GetPhysicalDeviceScore(physical_device_handle)};
 
-    if (score > best_score || physical_device == VK_NULL_HANDLE) {
-      physical_device = device;
+    if (score > best_score || physical_device_handle_ == VK_NULL_HANDLE) {
+      physical_device_handle_ = physical_device_handle;
     }
   }
 
-  COMET_ASSERT(physical_device != VK_NULL_HANDLE,
+  COMET_ASSERT(physical_device_handle_ != VK_NULL_HANDLE,
                "Failed to find a suitable GPU!");
-
-  return physical_device;
-}
-
-void VulkanDevice::Initialize(const VulkanDeviceDescr& descr) {
-  COMET_ASSERT(descr.physical_device != VK_NULL_HANDLE,
-               "Physical device provided is null!");
-
-  COMET_ASSERT(descr.surface != VK_NULL_HANDLE, "Surface provided is null!");
-
-  physical_device_ = descr.physical_device;
-
-  vkGetPhysicalDeviceProperties(physical_device_, &properties_);
-  vkGetPhysicalDeviceFeatures(physical_device_, &features_);
-  vkGetPhysicalDeviceMemoryProperties(physical_device_, &memory_properties_);
-
-  msaa_samples_ = GetMaxUsableSampleCount(physical_device_);
-
-  COMET_LOG_RENDERING_DEBUG("Selected GPU: ", properties_.deviceName, ".");
-  COMET_LOG_RENDERING_DEBUG("\t- Minimum alignment: ",
-                            properties_.limits.minUniformBufferOffsetAlignment);
-
-  u32 queue_family_count;
-  vkGetPhysicalDeviceQueueFamilyProperties(physical_device_,
-                                           &queue_family_count, VK_NULL_HANDLE);
-  COMET_ASSERT(queue_family_count > 0, "No queue family found!");
-
-  queue_family_properties_.resize(queue_family_count);
-  vkGetPhysicalDeviceQueueFamilyProperties(
-      physical_device_, &queue_family_count, queue_family_properties_.data());
-
-#ifdef COMET_DEBUG
-  CheckRequiredExtensions();
-#endif  // COMET_DEBUG
-
-  COMET_ASSERT(
-      AreDeviceExtensionsAvailable(physical_device_, required_extensions_),
-      "At least one required extension is not supported!");
-
-  queue_family_indices_ = FindQueueFamilies(physical_device_, descr.surface);
-
-  auto unique_queue_family_indices{queue_family_indices_.GetUniqueIndices()};
-  std::vector<VkDeviceQueueCreateInfo> queue_create_info{};
-  auto queue_priority{1.0f};
-
-  for (auto queue_family_index : unique_queue_family_indices) {
-    queue_create_info.push_back(
-        init::GetDeviceQueueCreateInfo(queue_family_index, queue_priority));
-  }
-
-  VkPhysicalDeviceFeatures device_features{};
-  device_features.samplerAnisotropy =
-      descr.is_sampler_anisotropy ? VK_TRUE : VK_FALSE;
-  device_features.sampleRateShading =
-      descr.is_sample_rate_shading ? VK_TRUE : VK_FALSE;
-  device_features.fillModeNonSolid = VK_TRUE;
-
-  auto create_info = init::GetDeviceCreateInfo(
-      queue_create_info, device_features, required_extensions_);
-
-  COMET_CHECK_VK(
-      vkCreateDevice(physical_device_, &create_info, VK_NULL_HANDLE, &device_),
-      "Failed to create logical device!");
-
-  vkGetDeviceQueue(device_, queue_family_indices_.graphics_family.value(), 0,
-                   &graphics_queue_);
-
-  vkGetDeviceQueue(device_, queue_family_indices_.present_family.value(), 0,
-                   &present_queue_);
-
-  if (!queue_family_indices_.IsSpecificTransferFamily()) {
-    return;
-  }
-
-  vkGetDeviceQueue(device_, queue_family_indices_.transfer_family.value(), 0,
-                   &transfer_queue_);
-}
-
-void VulkanDevice::Destroy() {
-  if (device_ != VK_NULL_HANDLE) {
-    vkDestroyDevice(device_, VK_NULL_HANDLE);
-    device_ = VK_NULL_HANDLE;
-  }
-}
-
-VkFormat VulkanDevice::ChooseFormat(VkImageTiling tiling,
-                                    VkFormatFeatureFlags features,
-                                    const std::vector<VkFormat>& candidates) {
-  for (auto format : candidates) {
-    VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(physical_device_, format, &properties);
-
-    if (tiling == VK_IMAGE_TILING_LINEAR &&
-        (properties.linearTilingFeatures & features) == features) {
-      return format;
-    } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
-               (properties.optimalTilingFeatures & features) == features) {
-      return format;
-    }
-  }
-
-  COMET_ASSERT(false, "Failed to find supported format");
-  return VK_FORMAT_UNDEFINED;
-}
-
-VkFormat VulkanDevice::ChooseDepthFormat() {
-  // TODO(m4jr0): Retrieve settings from configuration.
-  return ChooseFormat(VK_IMAGE_TILING_OPTIMAL,
-                      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
-                       VK_FORMAT_D24_UNORM_S8_UINT});
-}
-
-VulkanDevice::operator VkDevice() const noexcept { return device_; };
-
-VkDevice VulkanDevice::GetDevice() const noexcept { return device_; }
-
-VkPhysicalDevice VulkanDevice::GetPhysicalDevice() const noexcept {
-  return physical_device_;
-}
-
-const VkPhysicalDeviceProperties& VulkanDevice::GetProperties() const noexcept {
-  return properties_;
-}
-
-const VkPhysicalDeviceFeatures& VulkanDevice::GetFeatures() const noexcept {
-  return features_;
-}
-
-const VkPhysicalDeviceMemoryProperties& VulkanDevice::GetMemoryProperties()
-    const noexcept {
-  return memory_properties_;
-}
-
-VkSampleCountFlagBits VulkanDevice::GetMsaaSamples() const noexcept {
-  return msaa_samples_;
-}
-
-const QueueFamilyIndices& VulkanDevice::GetQueueFamilyIndices() const noexcept {
-  return queue_family_indices_;
-}
-
-VkQueue VulkanDevice::GetGraphicsQueue() const noexcept {
-  return graphics_queue_;
-}
-
-VkQueue VulkanDevice::GetPresentQueue() const noexcept {
-  return present_queue_;
-}
-
-VkQueue VulkanDevice::GetTransferQueue() const noexcept {
-  if (transfer_queue_ != VK_NULL_HANDLE) {
-    return transfer_queue_;
-  }
-
-  return graphics_queue_;
 }
 
 #ifdef COMET_DEBUG
-void VulkanDevice::CheckRequiredExtensions() {
+void Device::CheckRequiredExtensions() const {
   uindex found_extensions_count{0};
 
-  for (const auto* extension_name : required_extensions_) {
+  for (const auto* extension_name : kRequiredExtensions_) {
     for (const auto* to_check_name : kExtensionsToCheck_) {
       if (strncmp(extension_name, to_check_name, VK_MAX_EXTENSION_NAME_SIZE) ==
           0) {

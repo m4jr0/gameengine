@@ -7,8 +7,10 @@
 
 #include "comet_precompile.h"
 
-#include "comet/event/event.h"
 #include "glm/glm.hpp"
+
+#include "comet/event/event.h"
+#include "comet/input/input_manager.h"
 
 namespace comet {
 namespace event {
@@ -16,43 +18,44 @@ class KeyboardEvent : public Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  KeyboardEvent(int key, int scan_code, int action, int mods);
+  KeyboardEvent(input::KeyCode key, input::ScanCode scan_code,
+                input::Action action, input::Mods mods);
   KeyboardEvent(const KeyboardEvent&) = default;
   KeyboardEvent(KeyboardEvent&&) noexcept = default;
   KeyboardEvent& operator=(const KeyboardEvent&) = default;
   KeyboardEvent& operator=(KeyboardEvent&&) noexcept = default;
-  ~KeyboardEvent() = default;
+  virtual ~KeyboardEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
 
-  int GetKey() const noexcept;
-  int GetScanCode() const noexcept;
-  int GetAction() const noexcept;
-  int GetMods() const noexcept;
+  input::KeyCode GetKey() const noexcept;
+  input::ScanCode GetScanCode() const noexcept;
+  input::Action GetAction() const noexcept;
+  input::Mods GetMods() const noexcept;
 
  private:
-  int key_{-1};
-  int scan_code_{-1};
-  int action_{-1};
-  int mods_{-1};
+  input::KeyCode key_{input::KeyCode::Unknown};
+  input::ScanCode scan_code_{input::kInvalidScanCode};
+  input::Action action_{input::kInvalidAction};
+  input::Mods mods_{input::kInvalidMods};
 };
 
 class MouseMoveEvent : public Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  MouseMoveEvent(glm::vec2 position);
+  explicit MouseMoveEvent(glm::vec2 position);
   MouseMoveEvent(const MouseMoveEvent&) = default;
   MouseMoveEvent(MouseMoveEvent&&) noexcept = default;
   MouseMoveEvent& operator=(const MouseMoveEvent&) = default;
   MouseMoveEvent& operator=(MouseMoveEvent&&) noexcept = default;
-  ~MouseMoveEvent() = default;
+  virtual ~MouseMoveEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
   glm::vec2 GetPosition() const noexcept;
 
  private:
-  glm::vec2 position_{glm::vec2(0.0f, 0.0f)};
+  glm::vec2 position_{0.0f, 0.0f};
 };
 
 class MouseScrollEvent : public Event {
@@ -64,7 +67,7 @@ class MouseScrollEvent : public Event {
   MouseScrollEvent(MouseScrollEvent&&) noexcept = default;
   MouseScrollEvent& operator=(const MouseScrollEvent&) = default;
   MouseScrollEvent& operator=(MouseScrollEvent&&) noexcept = default;
-  ~MouseScrollEvent() = default;
+  virtual ~MouseScrollEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
   f64 GetXOffset() const noexcept;
@@ -85,7 +88,7 @@ class MouseClickEvent : public Event {
   MouseClickEvent(MouseClickEvent&&) noexcept = default;
   MouseClickEvent& operator=(const MouseClickEvent&) = default;
   MouseClickEvent& operator=(MouseClickEvent&&) noexcept = default;
-  ~MouseClickEvent() = default;
+  virtual ~MouseClickEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
   bool IsLeftButton() const noexcept;
@@ -108,7 +111,7 @@ class MouseReleaseEvent : public Event {
   MouseReleaseEvent(MouseReleaseEvent&&) noexcept = default;
   MouseReleaseEvent& operator=(const MouseReleaseEvent&) = default;
   MouseReleaseEvent& operator=(MouseReleaseEvent&&) noexcept = default;
-  ~MouseReleaseEvent() = default;
+  virtual ~MouseReleaseEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
   bool IsLeftButton() const noexcept;

@@ -7,17 +7,20 @@
 
 #include "comet_precompile.h"
 
+#include "comet/rendering/rendering_common.h"
 #include "editor/asset/exporter/asset_exporter.h"
+
+using namespace std::literals;
 
 namespace comet {
 namespace editor {
 namespace asset {
-constexpr char kCometEditorTextureMetadataKeyFormat[]{"format"};
-constexpr char kCometEditorTextureMetadataKeyWidth[]{"width"};
-constexpr char kCometEditorTextureMetadataKeyHeight[]{"height"};
-constexpr char kCometEditorTextureMetadataKeySize[]{"size"};
+static constexpr auto kCometEditorTextureMetadataKeyFormat{"format"sv};
+static constexpr auto kCometEditorTextureMetadataKeyWidth{"width"sv};
+static constexpr auto kCometEditorTextureMetadataKeyHeight{"height"sv};
+static constexpr auto kCometEditorTextureMetadataKeySize{"size"sv};
 
-constexpr char kCometEditorTextureFormatRgba8[]{"rgba8"};
+static constexpr auto kCometEditorTextureFormatRgba8{"rgba8"sv};
 
 class TextureExporter : public AssetExporter {
  public:
@@ -26,13 +29,13 @@ class TextureExporter : public AssetExporter {
   TextureExporter(TextureExporter&&) = delete;
   TextureExporter& operator=(const TextureExporter&) = delete;
   TextureExporter& operator=(TextureExporter&&) = delete;
-  ~TextureExporter() = default;
+  virtual ~TextureExporter() = default;
 
-  bool IsCompatible(const std::string& extension) override;
+  bool IsCompatible(std::string_view extension) const override;
 
  protected:
   std::vector<resource::ResourceFile> GetResourceFiles(
-      AssetDescr& asset_descr) override;
+      AssetDescr& asset_descr) const override;
 };
 }  // namespace asset
 }  // namespace editor

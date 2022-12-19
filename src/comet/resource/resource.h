@@ -9,17 +9,18 @@
 
 #include "comet/utils/compression.h"
 #include "comet/utils/file_system.h"
-#include "comet/utils/hash.h"
 
 namespace comet {
 namespace resource {
 using ResourceId = stringid::StringId;
 constexpr auto kInvalidResourceId{static_cast<ResourceId>(-1)};
 using ResourceTypeId = stringid::StringId;
+constexpr auto kDefaultResourceId{0};
 constexpr auto kInvalidResourceTypeId{static_cast<ResourceTypeId>(-1)};
 using ResourcePath = std::string;
 
 enum class CompressionMode : u8 { None = 0, Lz4 };
+
 enum class ResourceLifeSpan : u8 {
   Unknown = 0,
   Frame,
@@ -36,8 +37,8 @@ struct ResourceFile {
   uindex data_size{0};
   uindex packed_descr_size{0};
   uindex packed_data_size{0};
-  std::vector<char> descr{};
-  std::vector<char> data{};
+  std::vector<u8> descr{};
+  std::vector<u8> data{};
 };
 
 struct Resource {
@@ -52,73 +53,54 @@ struct InternalResource {
   ResourceId internal_id{kInvalidResourceId};
 };
 
-template <typename ResourcePath>
-ResourceId GenerateResourceIdFromPath(ResourcePath&& resource_path) {
-  return utils::hash::HashCrC32(std::forward<ResourcePath>(resource_path));
-}
+class ResourceCache {
+ public:
+  ResourceCache() = default;
+  ResourceCache(const ResourceCache&) = delete;
+  ResourceCache(ResourceCache&&) = delete;
+  ResourceCache& operator=(const ResourceCache&) = delete;
+  ResourceCache& operator=(ResourceCache&&) = delete;
+  ~ResourceCache() = default;
 
-template <typename ResourceTypeName>
-ResourceId GenerateResourceTypeId(ResourceTypeName&& resource_type_name) {
-  return utils::hash::HashCrC32(
-      std::forward<ResourceTypeName>(resource_type_name));
-}
+  const Resource* Set(std::unique_ptr<Resource> resource);
+  const Resource* Get(ResourceId resource_id) const;
 
-template <typename ResourceDescrType>
-void PackResourceDescr(const ResourceDescrType& descr, ResourceFile& file) {
-  file.descr_size = sizeof(descr);
+ private:
+  std::unordered_map<ResourceId, std::unique_ptr<Resource>> cache_{};
+};
 
-  switch (file.compression_mode) {
-    case CompressionMode::Lz4: {
-      utils::compression::CompressLz4(
-          descr, static_cast<uindex>(file.descr_size), file.descr);
-      file.packed_descr_size =
-          static_cast<uindex>(sizeof(char) * file.descr.size());
-      break;
-    }
-    case CompressionMode::None: {
-      const auto* descr_buffer{reinterpret_cast<const char*>(&descr)};
-      file.descr = {descr_buffer, descr_buffer + file.descr_size};
-      file.packed_descr_size = file.descr_size;
-      break;
-    }
-    default: {
-      throw std::runtime_error(
-          "Unknown compression mode: " +
-          std::to_string(
-              static_cast<std::underlying_type_t<resource::CompressionMode>>(
-                  file.compression_mode)));
-    }
-  }
-}
-
+ResourceId GenerateResourceIdFromPath(const std::string& resource_path);
+ResourceId GenerateResourceIdFromPath(const schar* resource_path);
+void PackBytes(const u8* bytes, uindex bytes_size,
+               CompressionMode compression_mode, std::vector<u8>* packed_bytes,
+               uindex* packed_bytes_size);
+void PackBytes(const std::vector<u8>& bytes, CompressionMode compression_mode,
+               std::vector<u8>* packed_bytes, uindex* packed_bytes_size);
 void PackResourceData(const std::vector<u8>& data, ResourceFile& file);
 
 template <typename ResourceDescrType>
-ResourceDescrType UnpackResourceDescr(const ResourceFile& file) {
-  ResourceDescrType descr{};
-
-  switch (file.compression_mode) {
-    case CompressionMode::Lz4: {
-      utils::compression::DecompressLz4(file.descr, file.descr_size, descr);
-      break;
-    }
-    case CompressionMode::None: {
-      descr = *reinterpret_cast<const ResourceDescrType*>(file.descr.data());
-      break;
-    }
-    default: {
-      throw std::runtime_error(
-          "Unknown compression mode: " +
-          std::to_string(
-              static_cast<std::underlying_type_t<resource::CompressionMode>>(
-                  file.compression_mode)));
-    }
-  }
-
-  return descr;
+void PackPodResourceDescr(const ResourceDescrType& descr, ResourceFile& file) {
+  file.descr_size = sizeof(descr);
+  PackBytes(reinterpret_cast<const u8*>(&descr), file.descr_size,
+            file.compression_mode, &file.descr, &file.packed_descr_size);
 }
 
+std::vector<u8> UnpackBytes(CompressionMode compression_mode,
+                            const u8* packed_bytes, uindex packed_bytes_size,
+                            uindex decompressed_size);
+std::vector<u8> UnpackBytes(CompressionMode compression_mode,
+                            const std::vector<u8>& packed_bytes,
+                            uindex decompressed_size);
+
 std::vector<u8> UnpackResourceData(const ResourceFile& file);
+
+template <typename ResourceDescrType>
+ResourceDescrType UnpackPodResourceDescr(const ResourceFile& file) {
+  const auto raw_descr{
+      UnpackBytes(file.compression_mode, file.descr, file.descr_size)};
+  return *reinterpret_cast<const ResourceDescrType*>(raw_descr.data());
+}
+
 bool SaveResourceFile(const std::string& path, const ResourceFile& file);
 bool LoadResourceFile(const std::string& path, ResourceFile& file);
 
@@ -131,24 +113,14 @@ class ResourceHandler {
   ResourceHandler& operator=(ResourceHandler&&) = delete;
   virtual ~ResourceHandler() = default;
 
-  template <typename AbsolutePath, typename ResourcePath>
-  const std::unique_ptr<Resource> Load(AbsolutePath&& root_resource_path,
-                                       ResourcePath&& resource_path) const {
-    const auto resource_id = GenerateResourceIdFromPath(resource_path);
-    ResourceFile file{};
-
-    const auto resource_abs_path = utils::filesystem::Append(
-        std::forward<AbsolutePath>(root_resource_path),
-        std::forward<ResourcePath>(resource_path));
-
-    const auto result{LoadResourceFile(resource_abs_path, file)};
-
-    COMET_ASSERT(result, "Unable to get resource at path: ", resource_path,
-                 ".");
-
-    return Unpack(file);
-  }
-
+  const Resource* Load(std::string_view root_resource_path,
+                       const std::string& resource_path);
+  const Resource* Load(std::string_view root_resource_path,
+                       const schar* resource_path);
+  const Resource* Load(std::string_view root_resource_path,
+                       ResourceId resource_id);
+  virtual const Resource* Get(ResourceId resource_id);
+  virtual const Resource* GetDefaultResource();
   ResourceFile GetResourceFile(const Resource& resource,
                                CompressionMode compression_mode) const;
 
@@ -156,6 +128,8 @@ class ResourceHandler {
   virtual ResourceFile Pack(const Resource& resource,
                             CompressionMode compression_mode) const = 0;
   virtual std::unique_ptr<Resource> Unpack(const ResourceFile& file) const = 0;
+
+  ResourceCache cache_{};
 };
 }  // namespace resource
 }  // namespace comet

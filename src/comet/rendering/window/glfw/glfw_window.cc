@@ -15,7 +15,16 @@ GlfwWindow::GlfwWindow(const GlfwWindow& other)
     : Window{other}, handle_{nullptr} {}
 
 GlfwWindow::GlfwWindow(GlfwWindow&& other) noexcept
-    : Window{std::move(other)}, handle_{std::move(other.handle_)} {}
+    : Window{std::move(other)},
+      handle_{other.handle_},
+      new_width_{other.new_width_},
+      new_height_{other.new_height_},
+      is_resize_event_{other.is_resize_event_} {
+  other.handle_ = nullptr;
+  other.new_width_ = 0;
+  other.new_height_ = 0;
+  other.is_resize_event_ = false;
+}
 
 GlfwWindow& GlfwWindow::operator=(const GlfwWindow& other) {
   if (this == &other) {
@@ -24,6 +33,9 @@ GlfwWindow& GlfwWindow::operator=(const GlfwWindow& other) {
 
   Window::operator=(other);
   handle_ = nullptr;
+  new_width_ = other.new_width_;
+  new_height_ = other.new_height_;
+  is_resize_event_ = other.is_resize_event_;
   return *this;
 }
 
@@ -33,17 +45,26 @@ GlfwWindow& GlfwWindow::operator=(GlfwWindow&& other) noexcept {
   }
 
   Window::operator=(std::move(other));
-  handle_ = std::move(other.handle_);
+  handle_ = other.handle_;
+  new_width_ = other.new_width_;
+  new_height_ = other.new_height_;
+  is_resize_event_ = other.is_resize_event_;
+  other.handle_ = nullptr;
+  other.new_width_ = 0;
+  other.new_height_ = 0;
+  other.is_resize_event_ = false;
   return *this;
 }
 
 void GlfwWindow::Initialize() {
+  Window::Initialize();
+
   if (window_count_ == 0) {
     const auto result{glfwInit()};
     COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
     SetGlfwHints();
 
-    glfwSetErrorCallback([](int error_code, const char* description) {
+    glfwSetErrorCallback([](s32 error_code, const schar* description) {
       COMET_LOG_RENDERING_ERROR("GLFW Error (", error_code, ")", description);
     });
   }
@@ -53,17 +74,19 @@ void GlfwWindow::Initialize() {
                "Something bad happened while creating the GLFW window!");
   window_count_++;
 
+  glfwSetWindowUserPointer(handle_, static_cast<void*>(this));
+  glfwSetWindowAspectRatio(handle_, width_, height_);
+
   glfwSetWindowCloseCallback(handle_, [](GLFWwindow* window) {
     Engine::Get().GetEventManager().FireEvent<event::WindowCloseEvent>();
   });
 
   glfwSetWindowSizeCallback(
-      handle_, [](GLFWwindow* window, int width, int height) {
-        Engine::Get().GetEventManager().FireEvent<event::WindowResizeEvent>(
-            width, height);
+      handle_, [](GLFWwindow* window, s32 width, s32 height) {
+        auto* self = static_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
+        self->SetUpResizeEvent(static_cast<WindowSize>(width),
+                               static_cast<WindowSize>(height));
       });
-
-  is_initialized_ = true;
 }
 
 void GlfwWindow::Destroy() {
@@ -76,6 +99,26 @@ void GlfwWindow::Destroy() {
       glfwTerminate();
     }
   }
+
+  is_resize_event_ = false;
+  new_width_ = 0;
+  new_height_ = 0;
+  Window::Destroy();
+}
+
+void GlfwWindow::Update() {
+  if (!is_resize_event_ ||
+      Engine::Get().GetInputManager().IsMousePressed(input::MouseCode::Left)) {
+    return;
+  }
+
+  if (new_width_ != width_ || new_height_ != height_) {
+    Engine::Get().GetEventManager().FireEvent<event::WindowResizeEvent>(
+        new_width_, new_height_);
+  }
+
+  new_width_ = new_height_ = 0;
+  is_resize_event_ = false;
 }
 
 void GlfwWindow::SetGlfwHints() {
@@ -89,11 +132,21 @@ void GlfwWindow::SetSize(WindowSize width, WindowSize height) {
 
   if (handle_ != nullptr) {
     glfwSetWindowSize(handle_, width_, height_);
+
+    if (width_ > 0 && height_ > 0) {
+      glfwSetWindowAspectRatio(handle_, width_, height_);
+    }
   }
 }
 
-bool GlfwWindow::IsInitialized() const { return is_initialized_; }
+void GlfwWindow::SetUpResizeEvent(WindowSize width, WindowSize height) {
+  new_width_ = width;
+  new_height_ = height;
+  is_resize_event_ = true;
+}
 
-const GLFWwindow* GlfwWindow::GetHandle() const noexcept { return handle_; }
+GLFWwindow* GlfwWindow::GetHandle() noexcept { return handle_; }
+
+GlfwWindow::operator GLFWwindow*() noexcept { return GetHandle(); }
 }  // namespace rendering
 }  // namespace comet

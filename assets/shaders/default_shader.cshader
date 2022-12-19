@@ -1,0 +1,78 @@
+{
+  "is_wireframe": false,
+  "cull_mode": "front",
+  "shader_module_paths": [
+    "shaders/vulkan/default.vk.vert",
+    "shaders/vulkan/default.vk.frag"
+  ],
+  "vertex_attributes": [
+    {
+      "name": "inPosition",
+      "type": "vec3"
+    },
+    {
+      "name": "inNormals",
+      "type": "vec3"
+    },
+    {
+      "name": "inColor",
+      "type": "vec4"
+    },
+    {
+      "name": "inTexCoord",
+      "type": "vec2"
+    }
+  ],
+  "uniforms": [
+    {
+      "name": "projection",
+      "type": "mat4",
+      "scope": "global"
+    },
+    {
+      "name": "view",
+      "type": "mat4",
+      "scope": "global"
+    },
+    {
+      "name": "ambientColor",
+      "type": "vec4",
+      "scope": "global"
+    },
+    {
+      "name": "viewPos",
+      "type": "vec3",
+      "scope": "global"
+    },
+    {
+      "name": "diffuseColor",
+      "type": "vec4",
+      "scope": "instance"
+    },
+    {
+      "name": "diffuseMap",
+      "type": "sampler",
+      "scope": "instance"
+    },
+    {
+      "name": "specularMap",
+      "type": "sampler",
+      "scope": "instance"
+    },
+    {
+      "name": "normalMap",
+      "type": "sampler",
+      "scope": "instance"
+    },
+    {
+      "name": "shininess",
+      "type": "f32",
+      "scope": "instance"
+    },
+    {
+      "name": "model",
+      "type": "mat4",
+      "scope": "local"
+    }
+  ]
+}

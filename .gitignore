@@ -37,6 +37,9 @@
 .vs/
 Debug/
 x64/
+enc_temp_folder/
+*.user
+TestResults/
 
 # Assets
 !**/assets/**

@@ -37,6 +37,7 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <string>
 #include <thread>
 #include <unordered_map>

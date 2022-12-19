@@ -17,32 +17,31 @@
 namespace comet {
 namespace rendering {
 namespace gl {
+struct OpenGlDriverDescr : DriverDescr {
+  u8 opengl_major_version{0};
+  u8 opengl_minor_version{0};
+};
+
 class OpenGlDriver : public Driver {
  public:
-  OpenGlDriver();
+  explicit OpenGlDriver(const OpenGlDriverDescr& descr);
   OpenGlDriver(const OpenGlDriver&) = delete;
   OpenGlDriver(OpenGlDriver&&) = delete;
   OpenGlDriver& operator=(const OpenGlDriver&) = delete;
   OpenGlDriver& operator=(OpenGlDriver&&) = delete;
-  ~OpenGlDriver() = default;
+  virtual ~OpenGlDriver() = default;
 
   void Initialize() override;
-  void Destroy() override;
-  void Update(time::Interpolation interpolation,
-              entity::EntityManager& entity_manager) override;
+  void Shutdown() override;
+  void Update(time::Interpolation interpolation) override;
 
   void SetSize(WindowSize width, WindowSize height);
   void OnEvent(const event::Event&);
 
-  bool IsInitialized() const override;
-  Window& GetWindow() override;
+  Window* GetWindow() override;
 
  private:
-  u8 major_version_{0};
-  u8 minor_version_{0};
-  bool is_initialized_{false};
-  f32 clear_color_[4]{0.0f, 0.0f, 0.0f, 1.0f};
-  OpenGlGlfwWindow window_;
+  std::unique_ptr<OpenGlGlfwWindow> window_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

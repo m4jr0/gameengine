@@ -21,11 +21,8 @@ class AssetExporter {
   AssetExporter& operator=(AssetExporter&&) = delete;
   virtual ~AssetExporter() = default;
 
-  virtual void Initialize();
-  virtual void Destroy();
-
-  virtual bool IsCompatible(const std::string& extension) = 0;
-  bool Process(const std::string& asset_path);
+  virtual bool IsCompatible(std::string_view extension) const = 0;
+  bool Process(std::string_view asset_path);
 
   template <typename ResourcePath>
   void SetRootResourcePath(ResourcePath&& path) {
@@ -37,16 +34,16 @@ class AssetExporter {
     root_asset_path_ = std::forward<AssetPath>(path);
   };
 
-  const std::string& GetRootResourcePath();
-  const std::string& GetRootAssetPath();
+  const std::string& GetRootResourcePath() const;
+  const std::string& GetRootAssetPath() const;
 
  protected:
-  std::string root_asset_path_;
-  std::string root_resource_path_;
-  resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
-
   virtual std::vector<resource::ResourceFile> GetResourceFiles(
-      AssetDescr& asset_descr) = 0;
+      AssetDescr& asset_descr) const = 0;
+
+  resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
+  std::string root_asset_path_{};
+  std::string root_resource_path_{};
 };
 }  // namespace asset
 }  // namespace editor

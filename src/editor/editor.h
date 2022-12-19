@@ -20,7 +20,7 @@ class CometEditor : public Engine {
   CometEditor(CometEditor&&) = delete;
   CometEditor& operator=(const CometEditor&) = delete;
   CometEditor& operator=(CometEditor&&) = delete;
-  ~CometEditor() = default;
+  virtual ~CometEditor() = default;
 
   void PreLoad() override;
   // TODO(m4jr0): Remove temporary code (PostLoad is used to generate (a)

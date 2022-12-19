@@ -13,7 +13,30 @@ Gid GenerateNewGeneration(Gid id) noexcept {
   return generation | GetIndex(id);
 }
 
-Gid BreedManager::CreateBreed() {
+BreedHandler::BreedHandler(BreedHandler&& other) noexcept
+    : generations_{std::move(other.generations_)},
+      free_ids_{std::move(other.free_ids_)} {
+  other.generations_.clear();
+  other.free_ids_.clear();
+}
+
+BreedHandler& BreedHandler::operator=(BreedHandler&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+  generations_ = std::move(other.generations_);
+  free_ids_ = std::move(other.free_ids_);
+  other.generations_.clear();
+  other.free_ids_.clear();
+  return *this;
+}
+
+void BreedHandler::Shutdown() {
+  generations_.clear();
+  free_ids_.clear();
+}
+
+Gid BreedHandler::Generate() {
   Gid breed_id{gid::kInvalidId};
 
   if (free_ids_.size() > gid::kMinFreeIndices) {
@@ -30,14 +53,14 @@ Gid BreedManager::CreateBreed() {
   return breed_id;
 }
 
-bool BreedManager::IsAlive(Gid breed_id) const {
+bool BreedHandler::IsAlive(Gid breed_id) const {
   const auto breed_index{GetIndex(breed_id)};
   COMET_ASSERT(breed_index < generations_.size(), "Breed with ID ", breed_id,
                " is malformed.");
   return generations_[breed_index] == GetGeneration(breed_id);
 }
 
-void BreedManager::DestroyBreed(Gid breed_id) {
+void BreedHandler::Destroy(Gid breed_id) {
   COMET_ASSERT(IsAlive(breed_id), "Breed with ID ", breed_id,
                " is already destroyed.");
   const auto breed_index{GetIndex(breed_id)};

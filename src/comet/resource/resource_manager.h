@@ -7,38 +7,23 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/manager.h"
 #include "comet/resource/resource.h"
 #include "comet/utils/file_system.h"
 
 namespace comet {
 namespace resource {
-class ResourceCache {
- public:
-  ResourceCache() = default;
-  ResourceCache(const ResourceCache&) = delete;
-  ResourceCache(ResourceCache&&) = delete;
-  ResourceCache& operator=(const ResourceCache&) = delete;
-  ResourceCache& operator=(ResourceCache&&) = delete;
-  ~ResourceCache() = default;
-
-  void Set(std::unique_ptr<Resource> resource);
-  const Resource* Get(ResourceId resource_id);
-
- private:
-  std::unordered_map<ResourceId, std::unique_ptr<Resource>> cache_;
-};
-
-class ResourceManager {
+class ResourceManager : public Manager {
  public:
   ResourceManager() = default;
   ResourceManager(const ResourceManager&) = delete;
   ResourceManager(ResourceManager&&) = delete;
   ResourceManager& operator=(const ResourceManager&) = delete;
   ResourceManager& operator=(ResourceManager&&) = delete;
-  ~ResourceManager() = default;
+  virtual ~ResourceManager() = default;
 
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Shutdown() override;
   void InitializeResourcesDirectory();
 
   const std::string& GetRootResourcePath();
@@ -56,36 +41,47 @@ class ResourceManager {
   }
 
   template <typename ResourceType>
-  const ResourceType* LoadFromResourceId(
+  const ResourceType* Load(
       ResourceId resource_id,
       ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
-    const auto* resource{cache_.Get(resource_id)};
+    COMET_ASSERT(
+        handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
+        "Unknown resource type ID: ", ResourceType::kResourceTypeId,
+        ". Aborting.");
+    auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
+
+#ifdef COMET_DEBUG
+    const auto* resource{static_cast<const ResourceType*>(
+        handler->Load(root_resource_path_, resource_id))};
 
     if (resource != nullptr) {
       COMET_ASSERT(resource->type_id == ResourceType::kResourceTypeId,
                    "Invalid resource type provided. ID of expected type is ",
                    resource->type_id, ", ID of type provided is ",
                    ResourceType::kResourceTypeId);
-
-      return static_cast<const ResourceType*>(resource);
     }
 
-    COMET_ASSERT(
-        handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
-        "Unknown resource type ID: ", ResourceType::kResourceTypeId,
-        ". Aborting.");
-
-    const auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
-    cache_.Set(handler->Load(root_resource_path_, std::to_string(resource_id)));
-    return static_cast<const ResourceType*>(cache_.Get(resource_id));
+    return resource;
+#else
+    return static_cast<const ResourceType*>(
+        handler->Load(root_resource_path_, resource_id));
+#endif  // COMET_DEBUG
   }
 
-  template <typename ResourceType, typename AssetPath>
+  template <typename ResourceType>
   const ResourceType* Load(
-      AssetPath&& asset_path,
+      const schar* asset_path,
       ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
-    return LoadFromResourceId<ResourceType>(
-        GenerateResourceIdFromPath(asset_path), life_span);
+    return Load<ResourceType>(GenerateResourceIdFromPath(asset_path),
+                              life_span);
+  }
+
+  template <typename ResourceType>
+  const ResourceType* Load(
+      const std::string& asset_path,
+      ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
+    return Load<ResourceType>(GenerateResourceIdFromPath(asset_path),
+                              life_span);
   }
 
   template <typename ResourceType>
@@ -99,9 +95,8 @@ class ResourceManager {
   }
 
  private:
-  std::string root_resource_path_;
-  std::unordered_map<ResourceId, std::unique_ptr<ResourceHandler>> handlers_;
-  ResourceCache cache_;
+  std::string root_resource_path_{};
+  std::unordered_map<ResourceId, std::unique_ptr<ResourceHandler>> handlers_{};
 };
 }  // namespace resource
 }  // namespace comet

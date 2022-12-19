@@ -8,46 +8,50 @@
 #include "comet_precompile.h"
 
 #include "comet/core/conf/configuration_value.h"
+#include "comet/core/manager.h"
 #include "comet/utils/string.h"
+
+using namespace std::literals;
 
 namespace comet {
 namespace conf {
-class ConfigurationManager {
+class ConfigurationManager : public Manager {
  public:
   ConfigurationManager() = default;
   ConfigurationManager(const ConfigurationManager&) = delete;
   ConfigurationManager(ConfigurationManager&&) = delete;
   ConfigurationManager& operator=(const ConfigurationManager&) = delete;
   ConfigurationManager& operator=(ConfigurationManager&&) = delete;
-  ~ConfigurationManager() = default;
+  virtual ~ConfigurationManager() = default;
 
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Shutdown() override;
   void ParseConfFile();
 
   ConfValue& Get(ConfKey key);
-  std::string GetStr(ConfKey key);
-  u8 GetU8(ConfKey key);
-  u16 GetU16(ConfKey key);
-  u32 GetU32(ConfKey key);
-  u64 GetU64(ConfKey key);
-  s8 GetS8(ConfKey key);
-  s16 GetS16(ConfKey key);
-  s32 GetS32(ConfKey key);
-  s64 GetS64(ConfKey key);
-  f32 GetF32(ConfKey key);
-  f64 GetF64(ConfKey key);
-  uindex GetIndex(ConfKey key);
-  ux GetUx(ConfKey key);
-  sx GetSx(ConfKey key);
-  fx GetFx(ConfKey key);
-  bool GetBool(ConfKey key);
+  ConfValue Get(ConfKey key) const;
+  std::string GetStr(ConfKey key) const;
+  u8 GetU8(ConfKey key) const;
+  u16 GetU16(ConfKey key) const;
+  u32 GetU32(ConfKey key) const;
+  u64 GetU64(ConfKey key) const;
+  s8 GetS8(ConfKey key) const;
+  s16 GetS16(ConfKey key) const;
+  s32 GetS32(ConfKey key) const;
+  s64 GetS64(ConfKey key) const;
+  f32 GetF32(ConfKey key) const;
+  f64 GetF64(ConfKey key) const;
+  uindex GetIndex(ConfKey key) const;
+  ux GetUx(ConfKey key) const;
+  sx GetSx(ConfKey key) const;
+  fx GetFx(ConfKey key) const;
+  bool GetBool(ConfKey key) const;
 
-  void Set(ConfKey key, ConfValue value);
+  void Set(ConfKey key, const ConfValue& value);
 
   void SetStr(ConfKey key, const std::string& value);
-  void SetStr(ConfKey key, const char* value);
-  void SetStr(ConfKey key, const char* value, uindex length);
+  void SetStr(ConfKey key, const schar* value);
+  void SetStr(ConfKey key, const schar* value, uindex length);
   void SetU8(ConfKey key, u8 value);
   void SetU16(ConfKey key, u16 value);
   void SetU32(ConfKey key, u32 value);
@@ -65,9 +69,6 @@ class ConfigurationManager {
   void SetBool(ConfKey key, bool value);
 
  private:
-  static constexpr const char* kConfigFilePath_{"./comet_config.cfg"};
-  std::unordered_map<ConfKey, ConfValue> values_{};
-
   template <typename KeyString, typename ValueString>
   void ParseKeyValuePair(KeyString&& raw_key, ValueString&& raw_value) {
     auto key{COMET_STRING_ID(
@@ -76,13 +77,13 @@ class ConfigurationManager {
         utils::string::GetTrimmedCopy(std::forward<KeyString>(raw_value))};
 
     if (key == kApplicationName || key == kRenderingDriver ||
-        key == kResourceRootPath) {
+        key == kRenderingAntiAliasing || key == kResourceRootPath) {
       SetStr(key, str_value);
     } else if (key == kApplicationMajorVersion ||
                key == kApplicationMinorVersion ||
                key == kApplicationPatchVersion ||
                key == kRenderingWindowWidth || key == kRenderingWindowHeight ||
-               key == kRenderingOpenGlMajorVersion ||
+               key == kRenderingFpsCap || key == kRenderingOpenGlMajorVersion ||
                key == kRenderingOpenGlMinorVersion ||
                key == kRenderingVulkanVariantVersion ||
                key == kRenderingVulkanMajorVersion ||
@@ -95,7 +96,7 @@ class ConfigurationManager {
       SetF32(key, utils::string::ParseF32(str_value));
     } else if (key == kCoreMsPerUpdate) {
       SetF64(key, utils::string::ParseF64(str_value));
-    } else if (key == kRenderingIsVsync ||
+    } else if (key == kRenderingIsVsync || key == kRenderingIsTripleBuffering ||
                key == kRenderingIsSamplerAnisotropy ||
                key == kRenderingIsSampleRateShading) {
       SetBool(key, utils::string::ParseBool(str_value));
@@ -104,6 +105,9 @@ class ConfigurationManager {
                              COMET_STRING_ID_LABEL(key), "\". Ignoring.");
     }
   }
+
+  static constexpr auto kConfigFilePath_{"./comet_config.cfg"sv};
+  std::unordered_map<ConfKey, ConfValue> values_{};
 };
 }  // namespace conf
 }  // namespace comet

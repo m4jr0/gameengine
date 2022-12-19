@@ -10,10 +10,11 @@
 namespace comet {
 namespace entity {
 void EntityManager::Initialize() {
+  Manager::Initialize();
   root_archetype_ = GetArchetype(EntityType{});
 }
 
-void EntityManager::Destroy() {
+void EntityManager::Shutdown() {
   for (auto* archetype : archetypes_) {
     for (auto& cmp_array : archetype->components) {
       if (cmp_array.size == 0) {
@@ -29,14 +30,20 @@ void EntityManager::Destroy() {
   }
 
   archetypes_.clear();
+  component_id_handler_.Shutdown();
+  root_archetype_ = nullptr;
+  component_descrs_.clear();
+  entity_id_handler_.Shutdown();
+  records_.clear();
+  Manager::Shutdown();
 }
 
-EntityId EntityManager::CreateEntity() {
-  EntityId entity_id{entity_id_manager_.CreateBreed()};
+EntityId EntityManager::Generate() {
+  auto entity_id{entity_id_handler_.Generate()};
 
   // Special case: adding the entity to the root archetype (which does not
   // contain any components).
-  root_archetype_->entity_ids.emplace_back(entity_id);
+  root_archetype_->entity_ids.push_back(entity_id);
   records_.emplace(std::make_pair(
       entity_id,
       Record{root_archetype_, root_archetype_->entity_ids.size() - 1}));
@@ -44,10 +51,10 @@ EntityId EntityManager::CreateEntity() {
 }
 
 bool EntityManager::IsEntity(const EntityId& entity_id) const {
-  return entity_id_manager_.IsAlive(entity_id);
+  return entity_id_handler_.IsAlive(entity_id);
 }
 
-void EntityManager::DestroyEntity(EntityId entity_id) {
+void EntityManager::Destroy(EntityId entity_id) {
   COMET_ASSERT(IsEntity(entity_id), "Trying to destroy dead entity #",
                entity_id, "!");
 
@@ -55,7 +62,7 @@ void EntityManager::DestroyEntity(EntityId entity_id) {
   PreRemoveEntityFromArchetype(record.row, record.archetype);
   ResizeArchetype(record.archetype, -1);
   records_.erase(entity_id);
-  entity_id_manager_.DestroyBreed(entity_id);
+  entity_id_handler_.Destroy(entity_id);
 }
 
 void EntityManager::ResizeArchetype(Archetype* archetype, s16 delta) {
@@ -140,6 +147,10 @@ bool EntityManager::DoesEntityTypeContain(const EntityType& entity_type,
   }
 
   return false;
+}
+
+ComponentView EntityManager::GetView() const {
+  return ComponentView{nullptr, 0, archetypes_};
 }
 }  // namespace entity
 }  // namespace comet

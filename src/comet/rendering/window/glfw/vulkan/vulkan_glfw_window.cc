@@ -15,7 +15,9 @@ VulkanGlfwWindow::VulkanGlfwWindow(const VulkanGlfwWindow& other)
     : GlfwWindow{other} {}
 
 VulkanGlfwWindow::VulkanGlfwWindow(VulkanGlfwWindow&& other) noexcept
-    : GlfwWindow{std::move(other)} {}
+    : GlfwWindow{std::move(other)}, surface_handle_{other.surface_handle_} {
+  other.surface_handle_ = VK_NULL_HANDLE;
+}
 
 VulkanGlfwWindow& VulkanGlfwWindow::operator=(const VulkanGlfwWindow& other) {
   if (this == &other) {
@@ -33,29 +35,36 @@ VulkanGlfwWindow& VulkanGlfwWindow::operator=(
   }
 
   GlfwWindow::operator=(std::move(other));
+  surface_handle_ = other.surface_handle_;
+  other.surface_handle_ = VK_NULL_HANDLE;
   return *this;
 }
 
-void VulkanGlfwWindow::AttachSurface(VkInstance instance) {
-  COMET_CHECK_VK(glfwCreateWindowSurface(instance, handle_, nullptr, &surface_),
+void VulkanGlfwWindow::AttachSurface(VkInstance instance_handle) {
+  COMET_CHECK_VK(glfwCreateWindowSurface(instance_handle, handle_, nullptr,
+                                         &surface_handle_),
                  "Failed to create window surface");
 }
 
-void VulkanGlfwWindow::DetachSurface(VkInstance instance) {
-  COMET_ASSERT(instance != VK_NULL_HANDLE,
+void VulkanGlfwWindow::DetachSurface(VkInstance instance_handle) {
+  COMET_ASSERT(instance_handle != VK_NULL_HANDLE,
                "Trying to detach surface, but Vulkan instance is null!");
 
-  if (surface_ == VK_NULL_HANDLE) {
+  if (surface_handle_ == VK_NULL_HANDLE) {
     return;
   }
 
-  vkDestroySurfaceKHR(instance, surface_, VK_NULL_HANDLE);
-  surface_ = VK_NULL_HANDLE;
+  vkDestroySurfaceKHR(instance_handle, surface_handle_, VK_NULL_HANDLE);
+  surface_handle_ = VK_NULL_HANDLE;
 }
 
-VulkanGlfwWindow::operator VkSurfaceKHR() const noexcept { return surface_; }
+VulkanGlfwWindow::operator VkSurfaceKHR() const noexcept {
+  return surface_handle_;
+}
 
-VkSurfaceKHR VulkanGlfwWindow::GetSurface() const noexcept { return surface_; }
+VkSurfaceKHR VulkanGlfwWindow::GetSurfaceHandle() const noexcept {
+  return surface_handle_;
+}
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

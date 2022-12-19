@@ -7,24 +7,26 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/manager.h"
+
 namespace comet {
 namespace time {
 using Interpolation = f64;
 
-class TimeManager {
+class TimeManager : public Manager {
  public:
   TimeManager() = default;
   TimeManager(const TimeManager&) = delete;
   TimeManager(TimeManager&&) = delete;
   TimeManager& operator=(const TimeManager&) = delete;
   TimeManager& operator=(TimeManager&&) = delete;
-  ~TimeManager() = default;
+  virtual ~TimeManager() = default;
 
   static f64 GetRealNow();
   f64 GetNow();
-  void Initialize();
+  void Initialize() override;
+  void Shutdown() override;
   void Update();
-  void Destroy();
   void Stop() noexcept;
   void Normalize() noexcept;
 

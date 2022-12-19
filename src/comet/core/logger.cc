@@ -11,7 +11,7 @@ Logger& Logger::Get(LoggerType logger_type) {
 
   // If the logger does not exist, we create it.
   if (it == Logger::loggers_.end()) {
-    return *Logger::loggers_.insert({logger_type, Logger::Create(logger_type)})
+    return *Logger::loggers_.emplace(logger_type, Logger::Generate(logger_type))
                 .first->second;
   }
 
@@ -20,7 +20,7 @@ Logger& Logger::Get(LoggerType logger_type) {
 
 Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
 
-std::shared_ptr<Logger> Logger::Create(LoggerType logger_type) {
+std::shared_ptr<Logger> Logger::Generate(LoggerType logger_type) {
   // Because the constructor is private, we have to separate the initialization
   // from the shared pointer construction.
   // It should be safe though, as this line does nothing else than initializing

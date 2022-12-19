@@ -49,7 +49,9 @@ inline abstract_ring_queue<T>::abstract_ring_queue(
 template <class T>
 inline abstract_ring_queue<T>::abstract_ring_queue(
     abstract_ring_queue<T>&& other) noexcept
-    : capacity_{std::move(other.capacity_)} {}
+    : capacity_{other.capacity_} {
+  other.capacity_ = 0;
+}
 
 template <class T>
 inline abstract_ring_queue<T>& abstract_ring_queue<T>::operator=(
@@ -69,7 +71,8 @@ inline abstract_ring_queue<T>& abstract_ring_queue<T>::operator=(
     return *this;
   }
 
-  this->capacity_ = std::move(capacity_);
+  this->capacity_ = capacity_;
+  other.capacity_ = 0;
   return *this;
 }
 
@@ -88,7 +91,7 @@ class ring_queue : public abstract_ring_queue<T> {
   ring_queue(ring_queue&&) noexcept;
   ring_queue& operator=(const ring_queue&);
   ring_queue& operator=(ring_queue&&) noexcept;
-  ~ring_queue() = default;
+  virtual ~ring_queue() = default;
 
   void push(T&& element) override;
   T& front() override;
@@ -101,7 +104,7 @@ class ring_queue : public abstract_ring_queue<T> {
  private:
   uindex head_{0};
   uindex size_{0};
-  std::vector<T> elements_;
+  std::vector<T> elements_{};
 };
 
 template <class T>
@@ -118,9 +121,13 @@ inline ring_queue<T>::ring_queue(const ring_queue<T>& other)
 template <class T>
 inline ring_queue<T>::ring_queue(ring_queue<T>&& other) noexcept
     : abstract_ring_queue<T>{std::move(other)},
-      head_{std::move(other.head_)},
-      size_{std::move(other.size_)},
-      elements_{std::move(other.elements_)} {}
+      head_{other.head_},
+      size_{other.size_},
+      elements_{std::move(other.elements_)} {
+  other.head_ = 0;
+  other.size_ = 0;
+  other.elements_.clear();
+}
 
 template <class T>
 inline ring_queue<T>& ring_queue<T>::operator=(const ring_queue<T>& other) {
@@ -143,9 +150,12 @@ inline ring_queue<T>& ring_queue<T>::operator=(ring_queue<T>&& other) noexcept {
   }
 
   abstract_ring_queue<T>::operator=(std::move(other));
-  this->head_ = std::move(other.head_);
-  this->size_ = std::move(other.size_);
+  this->head_ = other.head_;
+  this->size_ = other.size_;
   this->elements_ = std::move(other.elements_);
+  other.head_ = 0;
+  other.size_ = 0;
+  other.elements_.clear();
 
   return *this;
 }
@@ -205,7 +215,7 @@ class concurrent_ring_queue : public abstract_ring_queue<T> {
   concurrent_ring_queue(concurrent_ring_queue&&) noexcept;
   concurrent_ring_queue& operator=(const concurrent_ring_queue&);
   concurrent_ring_queue& operator=(concurrent_ring_queue&&) noexcept;
-  ~concurrent_ring_queue() = default;
+  virtual ~concurrent_ring_queue() = default;
 
   void push(T&& element) override;
   void wait_and_push(T&& element);
@@ -220,11 +230,11 @@ class concurrent_ring_queue : public abstract_ring_queue<T> {
   uindex size() const noexcept override;
 
  private:
-  mutable std::mutex mutex_;
-  std::condition_variable has_data_;
+  mutable std::mutex mutex_{};
+  std::condition_variable has_data_{};
   uindex head_{0};
   uindex size_{0};
-  std::vector<T> elements_;
+  std::vector<T> elements_{};
 };
 
 template <class T>
@@ -246,15 +256,18 @@ inline concurrent_ring_queue<T>::concurrent_ring_queue(
 
 template <class T>
 inline concurrent_ring_queue<T>::concurrent_ring_queue(
-    concurrent_ring_queue<T>&& other) noexcept {
+    concurrent_ring_queue<T>&& other) noexcept
+    : abstract_ring_queue<T>{std::move(other)},
+      head_{other.head_},
+      size_{other.size_},
+      elements_{std::move(other.elements_)} {
   auto this_lock{std::unique_lock<std::mutex>(this->mutex_, std::defer_lock)};
   auto other_lock{std::unique_lock<std::mutex>(other.mutex_, std::defer_lock)};
   std::lock(this_lock, other_lock);
 
-  this->capacity_ = std::move(other.capacity_);
-  this->head_ = std::move(other.head_);
-  this->size_ = std::move(other.size_);
-  this->elements_ = std::move(other.elements_);
+  other.head_ = 0;
+  other.size_ = 0;
+  other.elements_clear();
 }
 
 template <class T>
@@ -297,9 +310,12 @@ inline concurrent_ring_queue<T>& concurrent_ring_queue<T>::operator=(
   const auto old_size{this->size_};
   const auto old_capacity{this->capacity_};
   abstract_ring_queue<T>::operator=(std::move(other));
-  this->head_ = std::move(other.head_);
-  this->size_ = std::move(other.size_);
+  this->head_ = other.head_;
+  this->size_ = other.size_;
   this->elements_ = std::move(other.elements_);
+  other.head_ = 0;
+  other.size_ = 0;
+  other.elements_.clear();
 
   if ((old_size == 0 && this->size_ > 0) ||
       (old_size == old_capacity && this->size_ < this->capacity_)) {

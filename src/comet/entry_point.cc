@@ -6,12 +6,12 @@
 
 int main(int argc, char* argv[]) {
   {
-    auto engine{comet::CreateEngine()};
+    auto engine{comet::GenerateEngine()};
 
     if (engine != nullptr) {
       engine->Initialize();
       engine->Run();
-      engine->Destroy();
+      engine->Shutdown();
     }
   }
 

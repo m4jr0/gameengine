@@ -62,7 +62,7 @@ class Event {
   virtual ~Event() = default;
 
   template <typename T, typename... Targs>
-  static std::unique_ptr<T> Create(Targs... args) {
+  static std::unique_ptr<T> Generate(Targs... args) {
     if (!std::is_base_of<Event, T>::value) {
       return nullptr;
     }

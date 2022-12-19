@@ -20,17 +20,18 @@ struct OpenGlGlfwWindowDescr : WindowDescr {
   bool is_vsync{true};
   u8 opengl_major_version{0};
   u8 opengl_minor_version{0};
+  AntiAliasingType anti_aliasing_type{AntiAliasingType::None};
 };
 
 class OpenGlGlfwWindow : public GlfwWindow {
  public:
-  OpenGlGlfwWindow() = default;
+  OpenGlGlfwWindow() = delete;
   explicit OpenGlGlfwWindow(OpenGlGlfwWindowDescr& descr);
   OpenGlGlfwWindow(const OpenGlGlfwWindow&);
   OpenGlGlfwWindow(OpenGlGlfwWindow&&) noexcept;
   OpenGlGlfwWindow& operator=(const OpenGlGlfwWindow&);
   OpenGlGlfwWindow& operator=(OpenGlGlfwWindow&&) noexcept;
-  ~OpenGlGlfwWindow() = default;
+  virtual ~OpenGlGlfwWindow() = default;
 
   void Initialize() override;
   void SetGlfwHints() override;
@@ -43,6 +44,7 @@ class OpenGlGlfwWindow : public GlfwWindow {
   bool is_vsync_{true};
   u8 opengl_major_version_{0};
   u8 opengl_minor_version_{0};
+  AntiAliasingType anti_aliasing_type_{AntiAliasingType::None};
 };
 }  // namespace gl
 }  // namespace rendering

@@ -16,12 +16,12 @@
 namespace comet {
 namespace editor {
 namespace asset {
-bool ModelExporter::IsCompatible(const std::string& extension) {
+bool ModelExporter::IsCompatible(std::string_view extension) const {
   return extension == "obj";
 }
 
 std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
-    AssetDescr& asset_descr) {
+    AssetDescr& asset_descr) const {
   std::vector<resource::ResourceFile> resource_files{};
   Assimp::Importer importer;
 
@@ -43,9 +43,8 @@ std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
   model.type_id = resource::ModelResource::kResourceTypeId;
   LoadNode(model, scene->mRootNode, scene);
 
-  resource_files.emplace_back(
-      Engine::Get().GetResourceManager().GetResourceFile(model,
-                                                         compression_mode_));
+  resource_files.push_back(Engine::Get().GetResourceManager().GetResourceFile(
+      model, compression_mode_));
 
   LoadMaterials(utils::filesystem::GetDirectoryPath(asset_descr.asset_abs_path),
                 scene, resource_files);
@@ -54,7 +53,8 @@ std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
 }
 
 void ModelExporter::LoadNode(resource::ModelResource& model,
-                             const aiNode* current_node, const aiScene* scene) {
+                             const aiNode* current_node,
+                             const aiScene* scene) const {
   for (uindex index{0}; index < current_node->mNumMeshes; ++index) {
     const auto* mesh{scene->mMeshes[current_node->mMeshes[index]]};
     LoadMesh(model, mesh, scene);
@@ -66,7 +66,8 @@ void ModelExporter::LoadNode(resource::ModelResource& model,
 }
 
 void ModelExporter::LoadMesh(resource::ModelResource& model,
-                             const aiMesh* current_mesh, const aiScene* scene) {
+                             const aiMesh* current_mesh,
+                             const aiScene* scene) const {
   std::vector<rendering::Vertex> vertices;
   std::vector<rendering::Index> indices;
 
@@ -116,47 +117,100 @@ void ModelExporter::LoadMesh(resource::ModelResource& model,
     }
   }
 
-  resource::MeshResource&& mesh_resource{};
+  resource::MeshResource mesh_resource{};
   mesh_resource.resource_id = model.id;
   mesh_resource.internal_id = model.meshes.size();
   mesh_resource.vertices = std::move(vertices);
   mesh_resource.indices = std::move(indices);
 
   auto* raw_material{scene->mMaterials[current_mesh->mMaterialIndex]};
-  // TODO(m4jr0): Handle better material IDs (names are easilly
-  // duplicated...).
   mesh_resource.material_id =
       resource::GenerateMaterialId(raw_material->GetName().C_Str());
 
   model.meshes.push_back(std::move(mesh_resource));
 }
 
-void ModelExporter::LoadMaterialTextures(const std::string& resource_path,
+void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
                                          resource::MaterialResource& material,
                                          aiMaterial* raw_material,
-                                         aiTextureType raw_texture_type) {
-  std::vector<resource::TextureTuple> textures;
+                                         aiTextureType raw_texture_type) const {
   const auto texture_count{raw_material->GetTextureCount(raw_texture_type)};
 
   if (texture_count == 0) {
     return;
   }
 
-  rendering::TextureType texture_type{GetTextureType(raw_texture_type)};
+  auto texture_type{GetTextureType(raw_texture_type)};
 
-  for (uindex i{0}; i < texture_count; ++i) {
-    aiString texture_path;
-    raw_material->GetTexture(raw_texture_type, i, &texture_path);
-    material.texture_tuples.emplace_back(resource::TextureTuple{
-        resource::GenerateResourceIdFromPath(
-            utils::filesystem::Append(resource_path, texture_path.C_Str())),
-        texture_type});
+  if (texture_count > 1) {
+    COMET_LOG_GLOBAL_WARNING("Texture count for type \"",
+                             rendering::GetTextureTypeLabel(texture_type),
+                             "\" is greater than 1. This is not supported. "
+                             "Ignoring excess textures.");
   }
+
+  aiString texture_path;
+  raw_material->GetTexture(raw_texture_type, 0, &texture_path);
+
+  resource::TextureMap* map{nullptr};
+
+  switch (texture_type) {
+    case rendering::TextureType::Diffuse:
+      map = &material.descr.diffuse_map;
+      break;
+    case rendering::TextureType::Specular:
+      map = &material.descr.specular_map;
+      break;
+      // TODO(m4jr0): Check behavior. Apparently, Assimp might process normal
+      // textures as height ones. See
+      // https://github.com/assimp/assimp/issues/430
+    case rendering::TextureType::Height:
+      map = &material.descr.normal_map;
+      break;
+    default:
+      COMET_LOG_GLOBAL_WARNING("Unsupported texture type: ",
+                               rendering::GetTextureTypeLabel(texture_type),
+                               ". Ignoring.");
+      break;
+  }
+
+  if (map == nullptr) {
+    return;
+  }
+
+  map->texture_id = resource::GenerateResourceIdFromPath(
+      utils::filesystem::Append(resource_path, texture_path.C_Str()));
+  map->type = texture_type;
+
+  aiTextureMapMode raw_texture_repeat_mode;
+
+  if (raw_material->Get(AI_MATKEY_MAPPINGMODE_U(raw_texture_type, 0),
+                        raw_texture_repeat_mode) != AI_SUCCESS) {
+    COMET_LOG_GLOBAL_DEBUG(
+        "Could not get texture repeat mode for U. Setting it to repeat mode.");
+    raw_texture_repeat_mode = aiTextureMapMode_Wrap;
+  }
+
+  map->u_repeat_mode = GetTextureRepeatMode(raw_texture_repeat_mode);
+
+  if (raw_material->Get(AI_MATKEY_MAPPINGMODE_V(raw_texture_type, 0),
+                        raw_texture_repeat_mode) != AI_SUCCESS) {
+    COMET_LOG_GLOBAL_DEBUG(
+        "Could not get texture repeat mode for V. Setting it to repeat "
+        "mode.");
+    raw_texture_repeat_mode = aiTextureMapMode_Wrap;
+  }
+
+  map->v_repeat_mode = GetTextureRepeatMode(raw_texture_repeat_mode);
+
+  // TODO(m4jr0): Handle filter modes better.
+  map->min_filter_mode = rendering::TextureFilterMode::Linear;
+  map->mag_filter_mode = rendering::TextureFilterMode::Linear;
 }
 
 void ModelExporter::LoadMaterials(
-    const std::string& directory_path, const aiScene* scene,
-    std::vector<resource::ResourceFile>& resource_files) {
+    std::string_view directory_path, const aiScene* scene,
+    std::vector<resource::ResourceFile>& resource_files) const {
   const auto resource_path{
       utils::filesystem::GetRelativePath(directory_path, root_asset_path_)};
   constexpr std::array<aiTextureType, 4> exported_texture_types{
@@ -165,24 +219,46 @@ void ModelExporter::LoadMaterials(
 
   for (uindex i{0}; i < scene->mNumMaterials; ++i) {
     const auto raw_material{scene->mMaterials[i]};
-    resource::MaterialResource material{};
 
-    COMET_LOG_GLOBAL_DEBUG("Material ", raw_material->GetName().C_Str(),
-                           " found.");
+    COMET_LOG_GLOBAL_DEBUG("Material \"", raw_material->GetName().C_Str(),
+                           "\" found.");
+
+    resource::MaterialResource material{};
+    material.descr.shader_id =
+        resource::GenerateResourceIdFromPath("shaders/default_shader.cshader");
+
+    if (aiGetMaterialFloat(raw_material, AI_MATKEY_SHININESS,
+                           &material.descr.shininess) != AI_SUCCESS) {
+      COMET_LOG_GLOBAL_WARNING(
+          "Could not retrieve shininess property from material. Setting it to ",
+          kDefaultMaterialShininess_);
+      material.descr.shininess = kDefaultMaterialShininess_;
+    }
+
+    aiColor3D color;
+
+    if (raw_material->Get(AI_MATKEY_COLOR_DIFFUSE, color) != AI_SUCCESS) {
+      COMET_LOG_GLOBAL_WARNING(
+          "Could not retrieve diffuse color property from material. Setting it "
+          "to (",
+          kDefaultColor_.r, ", ", kDefaultColor_.g, ", ", kDefaultColor_.b,
+          ").");
+
+      color = kDefaultColor_;
+    }
+
+    material.descr.diffuse_color = glm::vec4(color.r, color.b, color.g, 1.0f);
 
     for (auto raw_texture_type : exported_texture_types) {
       LoadMaterialTextures(resource_path, material, raw_material,
                            raw_texture_type);
     }
 
-    // TODO(m4jr0): Handle better material IDs (names are easilly
-    // duplicated...).
     material.id = resource::GenerateMaterialId(raw_material->GetName().C_Str());
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
-    resource_files.emplace_back(
-        Engine::Get().GetResourceManager().GetResourceFile(material,
-                                                           compression_mode_));
+    resource_files.push_back(Engine::Get().GetResourceManager().GetResourceFile(
+        material, compression_mode_));
   }
 }
 
@@ -207,6 +283,22 @@ rendering::TextureType ModelExporter::GetTextureType(
   }
 
   return rendering::TextureType::Unknown;
+}
+
+rendering::TextureRepeatMode ModelExporter::GetTextureRepeatMode(
+    aiTextureMapMode raw_texture_repeat_mode) {
+  switch (raw_texture_repeat_mode) {
+    case aiTextureMapMode_Wrap:
+      return rendering::TextureRepeatMode::Repeat;
+    case aiTextureMapMode_Mirror:
+      return rendering::TextureRepeatMode::MirroredRepeat;
+    case aiTextureMapMode_Clamp:
+      return rendering::TextureRepeatMode::ClampToEdge;
+    case aiTextureMapMode_Decal:
+      return rendering::TextureRepeatMode::ClampToBorder;
+  }
+
+  return rendering::TextureRepeatMode::Unknown;
 }
 }  // namespace asset
 }  // namespace editor

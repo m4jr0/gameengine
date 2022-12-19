@@ -10,36 +10,32 @@
 namespace comet {
 namespace editor {
 namespace asset {
-void AssetExporter::Initialize() {}
-
-void AssetExporter::Destroy() {}
-
-const std::string& AssetExporter::GetRootResourcePath() {
+const std::string& AssetExporter::GetRootResourcePath() const {
   return root_resource_path_;
 }
 
-const std::string& AssetExporter::GetRootAssetPath() {
+const std::string& AssetExporter::GetRootAssetPath() const {
   return root_asset_path_;
 }
 
-bool AssetExporter::Process(const std::string& asset_abs_path) {
+bool AssetExporter::Process(std::string_view asset_abs_path) {
   COMET_LOG_GLOBAL_INFO("Processing asset at path: ", asset_abs_path, ".");
 
   AssetDescr descr{};
-  descr.asset_abs_path = asset_abs_path;
+  descr.asset_abs_path = std::string{asset_abs_path};
   descr.asset_path = utils::filesystem::GetRelativePath(descr.asset_abs_path,
                                                         root_asset_path_);
   descr.metadata_path = GetAssetMetadataFilePath(descr.asset_abs_path);
   auto is_metadata_error{false};
   descr.metadata = SetAndGetMetadata(descr.metadata_path);
-  const char* compression_mode_label{nullptr};
+  const std::string_view* compression_mode_label{nullptr};
 
   switch (compression_mode_) {
     case resource::CompressionMode::Lz4:
-      compression_mode_label = kCometResourceCompressionModeLz4;
+      compression_mode_label = &kCometResourceCompressionModeLz4;
       break;
     case resource::CompressionMode::None:
-      compression_mode_label = kCometResourceCompressionModeNone;
+      compression_mode_label = &kCometResourceCompressionModeNone;
       break;
     default:
       COMET_LOG_GLOBAL_ERROR(
@@ -47,12 +43,12 @@ bool AssetExporter::Process(const std::string& asset_abs_path) {
           static_cast<std::underlying_type_t<resource::CompressionMode>>(
               compression_mode_),
           " for asset at path ", descr.asset_path, ". Ignoring compression.");
-      compression_mode_label = kCometResourceCompressionModeNone;
+      compression_mode_label = &kCometResourceCompressionModeNone;
       break;
   }
 
   descr.metadata[kCometEditorAssetMetadataKeyCompressionMode] =
-      compression_mode_label;
+      compression_mode_label->data();
 
   SaveMetadata(descr.metadata_path, descr.metadata);
   auto resource_files{GetResourceFiles(descr)};

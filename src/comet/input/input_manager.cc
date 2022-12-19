@@ -8,13 +8,14 @@
 
 namespace comet {
 namespace input {
-void InputManager::Initialize() {
-  // glfwSetInputMode(window_handle_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+void InputManager::Shutdown() {
+  window_handle_ = nullptr;
+  Manager::Shutdown();
 }
 
 void InputManager::Update() { glfwPollEvents(); }
 
-bool InputManager::IsKeyBeingPressed(KeyCode key_code) const {
+bool InputManager::IsKeyPressed(KeyCode key_code) const {
   return glfwGetKey(window_handle_,
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_REPEAT;
@@ -30,6 +31,24 @@ bool InputManager::IsKeyDown(KeyCode key_code) const {
   return glfwGetKey(window_handle_,
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_PRESS;
+}
+
+bool InputManager::IsMousePressed(MouseCode key_code) const {
+  return glfwGetMouseButton(window_handle_,
+                            static_cast<std::underlying_type_t<MouseCode>>(
+                                key_code)) == GLFW_REPEAT;
+}
+
+bool InputManager::IsMouseDown(MouseCode key_code) const {
+  return glfwGetMouseButton(window_handle_,
+                            static_cast<std::underlying_type_t<MouseCode>>(
+                                key_code)) == GLFW_PRESS;
+}
+
+bool InputManager::IsMouseUp(MouseCode key_code) const {
+  return glfwGetMouseButton(window_handle_,
+                            static_cast<std::underlying_type_t<MouseCode>>(
+                                key_code)) == GLFW_RELEASE;
 }
 
 void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {

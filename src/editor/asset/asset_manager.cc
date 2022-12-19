@@ -13,6 +13,7 @@
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model_exporter.h"
 #include "editor/asset/exporter/shader_exporter.h"
+#include "editor/asset/exporter/shader_module_exporter.h"
 #include "editor/asset/exporter/texture_exporter.h"
 
 namespace comet {
@@ -26,19 +27,20 @@ AssetManager::AssetManager()
           "library." + std::string(kCometEditorAssetMetadataFileExtension))} {}
 
 void AssetManager::Initialize() {
+  Manager::Initialize();
   RefreshLibraryMetadataFile();
 
   root_resource_path_ =
       Engine::Get().GetResourceManager().GetRootResourcePath();
 
-  exporters_.emplace_back(std::make_unique<ModelExporter>());
-  exporters_.emplace_back(std::make_unique<TextureExporter>());
-  exporters_.emplace_back(std::make_unique<ShaderExporter>());
+  exporters_.push_back(std::make_unique<ModelExporter>());
+  exporters_.push_back(std::make_unique<ShaderExporter>());
+  exporters_.push_back(std::make_unique<ShaderModuleExporter>());
+  exporters_.push_back(std::make_unique<TextureExporter>());
 
   for (const auto& exporter : exporters_) {
     exporter->SetRootResourcePath(root_resource_path_);
     exporter->SetRootAssetPath(root_asset_path_);
-    exporter->Initialize();
   }
 
   Refresh();
@@ -48,15 +50,19 @@ void AssetManager::RefreshLibraryMetadataFile() {
   SaveMetadata(library_meta_path_, SetAndGetMetadata(library_meta_path_));
 }
 
-void AssetManager::Destroy() {
-  for (const auto& exporter : exporters_) {
-    exporter->Destroy();
-  }
+void AssetManager::Shutdown() {
+  is_force_refresh_ = false;
+  last_update_time_ = 0;
+  root_asset_path_.clear();
+  root_resource_path_.clear();
+  library_meta_path_.clear();
+  exporters_.clear();
+  Manager::Shutdown();
 }
 
 void AssetManager::Refresh() { Refresh(root_asset_path_); }
 
-void AssetManager::Refresh(const std::string& asset_abs_path) {
+void AssetManager::Refresh(const schar* asset_abs_path) {
   if (utils::filesystem::IsDirectory(asset_abs_path)) {
     RefreshFolder(asset_abs_path);
   } else if (utils::filesystem::IsFile(asset_abs_path)) {
@@ -69,6 +75,10 @@ void AssetManager::Refresh(const std::string& asset_abs_path) {
   RefreshLibraryMetadataFile();
 }
 
+void AssetManager::Refresh(const std::string& asset_abs_path) {
+  Refresh(asset_abs_path.c_str());
+}
+
 const std::string& AssetManager::GetAssetsRootPath() const noexcept {
   return root_asset_path_;
 }
@@ -77,12 +87,20 @@ const std::string& AssetManager::GetResourcesRootPath() const noexcept {
   return root_resource_path_;
 }
 
-void AssetManager::RefreshFolder(const std::string& asset_abs_path) {
-  const auto folder_name{utils::filesystem::GetName(asset_abs_path)};
+void AssetManager::RefreshFolder(std::string_view asset_abs_path) {
+  const auto folder_name{utils::filesystem::GetNameView(asset_abs_path)};
+  std::string metadata_file_path{};
+  metadata_file_path.reserve(
+      folder_name.size() + kCometEditorAssetFolderMetadataFileExtension.size());
+  std::memcpy(metadata_file_path.data(), folder_name.data(),
+              folder_name.size());
+  std::memcpy(metadata_file_path.data() + folder_name.size(),
+              kCometEditorAssetFolderMetadataFileExtension.data(),
+              kCometEditorAssetFolderMetadataFileExtension.size());
 
-  const auto metadata_file_path{utils::filesystem::Append(
+  metadata_file_path = utils::filesystem::Append(
       utils::filesystem::GetParentPath(asset_abs_path),
-      folder_name + std::string(kCometEditorAssetFolderMetadataFileExtension))};
+      std::move(metadata_file_path));
 
   if (asset_abs_path != root_asset_path_) {
     SetAndGetMetadata(metadata_file_path);
@@ -101,7 +119,7 @@ void AssetManager::RefreshFolder(const std::string& asset_abs_path) {
   }
 }
 
-void AssetManager::RefreshAsset(const std::string& asset_abs_path) {
+void AssetManager::RefreshAsset(const schar* asset_abs_path) {
   if (!IsRefreshNeeded(asset_abs_path,
                        GetAssetMetadataFilePath(asset_abs_path))) {
     return;
@@ -119,8 +137,12 @@ void AssetManager::RefreshAsset(const std::string& asset_abs_path) {
   }
 }
 
-bool AssetManager::IsRefreshNeeded(const std::string& asset_abs_path,
-                                   const std::string& metadata_file_path) {
+void AssetManager::RefreshAsset(const std::string& asset_abs_path) {
+  return RefreshAsset(asset_abs_path.c_str());
+}
+
+bool AssetManager::IsRefreshNeeded(const schar* asset_abs_path,
+                                   const schar* metadata_file_path) const {
   if (is_force_refresh_ || asset_abs_path == root_asset_path_ ||
       !utils::filesystem::Exists(metadata_file_path)) {
     return true;
@@ -144,9 +166,25 @@ bool AssetManager::IsRefreshNeeded(const std::string& asset_abs_path,
       kCometEditorAssetMetadataKeyUpdateTime, static_cast<f64>(-1))};
 
   const auto modification_time{
-      utils::filesystem::GetLastModificationTime(asset_abs_path)};
+      utils::filesystem::GetLastModificationTime(std::string{asset_abs_path})};
 
   return update_time <= modification_time;
+}
+
+bool AssetManager::IsRefreshNeeded(
+    const schar* asset_abs_path, const std::string& metadata_file_path) const {
+  return IsRefreshNeeded(asset_abs_path, metadata_file_path.c_str());
+}
+
+bool AssetManager::IsRefreshNeeded(const std::string& asset_abs_path,
+                                   const schar* metadata_file_path) const {
+  return IsRefreshNeeded(asset_abs_path.c_str(), metadata_file_path);
+}
+
+bool AssetManager::IsRefreshNeeded(
+    const std::string& asset_abs_path,
+    const std::string& metadata_file_path) const {
+  return IsRefreshNeeded(asset_abs_path.c_str(), metadata_file_path);
 }
 }  // namespace asset
 }  // namespace editor

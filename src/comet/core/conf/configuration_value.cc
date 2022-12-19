@@ -10,7 +10,7 @@ ConfValue GetDefaultValue(const std::string& key) {
   return GetDefaultValue(key.c_str());
 }
 
-ConfValue GetDefaultValue(const char* key) {
+ConfValue GetDefaultValue(const schar* key) {
   return GetDefaultValue(COMET_STRING_ID(key));
 }
 
@@ -18,7 +18,7 @@ ConfValue GetDefaultValue(ConfKey key) {
   ConfValue default_value{};
 
   if (key == kApplicationName) {
-    std::memcpy(&default_value.str, "Comet Editor", 12);
+    std::memcpy(&default_value.str, "Comet Editor\0", 13);
   } else if (key == kApplicationMajorVersion) {
     default_value.ushort = 0;
   } else if (key == kApplicationMinorVersion) {
@@ -28,7 +28,8 @@ ConfValue GetDefaultValue(ConfKey key) {
   } else if (key == kCoreMsPerUpdate) {
     default_value.flong = 16.66;
   } else if (key == kRenderingDriver) {
-    std::memcpy(&default_value.str, "vulkan", 6);
+    std::memcpy(&default_value.str, kRenderingDriverVulkan.data(),
+                kRenderingDriverVulkan.size());
   } else if (key == kRenderingWindowWidth) {
     default_value.ushort = 800;
   } else if (key == kRenderingWindowHeight) {
@@ -43,6 +44,13 @@ ConfValue GetDefaultValue(ConfKey key) {
     default_value.f = 1.0f;
   } else if (key == kRenderingIsVsync) {
     default_value.flag = true;
+  } else if (key == kRenderingIsTripleBuffering) {
+    default_value.flag = true;
+  } else if (key == kRenderingFpsCap) {
+    default_value.ushort = 0;
+  } else if (key == kRenderingAntiAliasing) {
+    std::memcpy(&default_value.str, kRenderingAntiAliasingTypeNone.data(),
+                kRenderingAntiAliasingTypeNone.size());
   } else if (key == kRenderingIsSamplerAnisotropy) {
     default_value.flag = true;
   } else if (key == kRenderingIsSampleRateShading) {
@@ -62,7 +70,7 @@ ConfValue GetDefaultValue(ConfKey key) {
   } else if (key == kRenderingVulkanMaxFramesInFlight) {
     default_value.ushort = 2;
   } else if (key == kResourceRootPath) {
-    std::memcpy(&default_value.str, "resources", 9);
+    std::memcpy(&default_value.str, "resources\0", 10);
   }
 
   return default_value;

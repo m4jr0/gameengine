@@ -12,58 +12,12 @@
 namespace comet {
 namespace utils {
 namespace compression {
-template <typename T>
-void CompressLz4(const T& src, uindex size, std::vector<char>& dst) {
-  const auto compress_staging{LZ4_compressBound(size)};
-
-  dst.resize(compress_staging);
-
-  const auto compressed_size{LZ4_compress_default(
-      reinterpret_cast<const char*>(&src), dst.data(), size, compress_staging)};
-
-  dst.resize(compressed_size);
-}
-
-template <typename T>
-void CompressLz4(const std::vector<T>& src, uindex size,
-                 std::vector<char>& dst) {
-  dst = {};
-
-  if (src.size() <= 0) {
-    return;
-  }
-
-  const auto compress_staging{LZ4_compressBound(sizeof(src[0]) * src.size())};
-  dst.resize(compress_staging);
-
-  const auto compressed_size{
-      LZ4_compress_default(reinterpret_cast<const char*>(src.data()),
-                           dst.data(), size, compress_staging)};
-  dst.resize(compressed_size);
-}
-
-template <typename T>
-void DecompressLz4(const std::vector<char>& src, uindex size, T& dst) {
-  if (src.size() <= 0) {
-    return;
-  }
-
-  LZ4_decompress_safe(src.data(), reinterpret_cast<char*>(&dst),
-                      sizeof(src[0]) * src.size(), size);
-}
-
-template <typename T>
-void DecompressLz4(const std::vector<char>& src, uindex size,
-                   std::vector<T>& dst) {
-  if (src.size() <= 0) {
-    return;
-  }
-
-  dst.resize(size);
-
-  LZ4_decompress_safe(src.data(), reinterpret_cast<char*>(dst.data()),
-                      sizeof(src[0]) * src.size(), size);
-}
+void CompressLz4(const std::vector<u8>& src, std::vector<u8>& dst);
+void CompressLz4(const u8* src, uindex src_size, std::vector<u8>& dst);
+void DecompressLz4(const std::vector<u8>& src, uindex size,
+                   std::vector<u8>& dst);
+void DecompressLz4(const u8* src, uindex src_size, uindex size,
+                   std::vector<u8>& dst);
 }  // namespace compression
 }  // namespace utils
 }  // namespace comet

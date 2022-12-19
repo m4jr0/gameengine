@@ -75,9 +75,11 @@ std::string HashSha256(std::ifstream& stream) {
   return std::string{checksum.cbegin(), checksum.cend()};
 }
 
-std::string HashSha256(const s8* data, const s8* end) {
+std::string HashSha256(const u8* data, const u8* end) {
   auto checksum{std::vector<u8>(picosha2::k_digest_size)};
-  picosha2::hash256(data, end, checksum.begin(), checksum.end());
+  picosha2::hash256(reinterpret_cast<const s8*>(data),
+                    reinterpret_cast<const s8*>(end), checksum.begin(),
+                    checksum.end());
   return std::string{checksum.cbegin(), checksum.cend()};
 }
 }  // namespace hash

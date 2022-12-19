@@ -13,14 +13,27 @@
 namespace comet {
 namespace rendering {
 namespace gl {
+using ShaderHandle = u32;
+constexpr auto kInvalidShaderHandle{0};
+
+using ShaderModuleHandle = u32;
+constexpr auto kInvalidShaderModuleHandle{0};
+
 class ShaderProgram {
  public:
-  ShaderProgram(const char*, const char*);
+  ShaderProgram(const schar* vertex_shader_path,
+                const schar* fragment_shader_path);
+  ShaderProgram(const schar* vertex_shader_path,
+                const std::string& fragment_shader_path);
+  ShaderProgram(const std::string& vertex_shader_path,
+                const schar* fragment_shader_path);
+  ShaderProgram(const std::string& vertex_shader_path,
+                const std::string& fragment_shader_path);
   ShaderProgram(const ShaderProgram&);
   ShaderProgram(ShaderProgram&&) = default;
-  ShaderProgram& operator=(const ShaderProgram&);
+  ShaderProgram& operator=(const ShaderProgram&) = default;
   ShaderProgram& operator=(ShaderProgram&&) = default;
-  ~ShaderProgram() = default;
+  ~ShaderProgram();
 
   void Initialize();
   void Use();
@@ -71,17 +84,18 @@ class ShaderProgram {
                     bool is_transpose = GL_FALSE);
   void SetMatrix4x3(const std::string& name, const glm::mat4x3& matrix,
                     bool is_transpose = GL_FALSE);
-  const u32 GetId() const noexcept;
+  const ShaderHandle GetHandle() const noexcept;
 
  private:
-  bool CompileShader(u32* shader_id, const std::string* shader_code,
+  bool CompileShader(ShaderHandle* shader_id, const std::string* shader_code,
                      GLenum shader_type);
 
-  u32 id_{0};
-  u32 vertex_shader_id_{0};
-  u32 fragment_shader_id_{0};
-  std::string vertex_shader_code_;
-  std::string fragment_shader_code_;
+  bool is_initialized_{false};
+  ShaderHandle handle_{kInvalidShaderHandle};
+  ShaderModuleHandle vertex_shader_handle_{kInvalidShaderModuleHandle};
+  ShaderModuleHandle fragment_shader_handle_{kInvalidShaderModuleHandle};
+  std::string vertex_shader_code_{};
+  std::string fragment_shader_code_{};
   bool can_be_initialized_{false};
 };
 }  // namespace gl

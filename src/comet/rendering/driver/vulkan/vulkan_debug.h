@@ -10,6 +10,7 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+namespace debug {
 #define COMET_VULKAN_ABORT_ON_ERROR
 
 #ifndef COMET_DEBUG
@@ -28,22 +29,30 @@ namespace vk {
 #undef VMA_DEBUG_LOG
 
 // Print debug messages from VMA.
-#define VMA_DEBUG_LOG(format, ...)                                      \
-  do {                                                                  \
-    constexpr auto kMessageLength{255};                                 \
-    std::string message(kMessageLength, 0);                             \
+#define VMA_DEBUG_LOG(format, ...)                                        \
+  do {                                                                    \
+    constexpr auto kMessageLength{255};                                   \
+    std::string message(kMessageLength, 0);                               \
     std::snprintf(message.data(), kMessageLength, format, ##__VA_ARGS__); \
-    COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                       \
+    COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                         \
   } while (false)
 #endif  // COMET_VULKAN_DEBUG_MODE
 
 VkResult CreateDebugUtilsMessengerEXT(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info,
+    VkInstance instance_handle,
+    const VkDebugUtilsMessengerCreateInfoEXT* create_info,
     const VkAllocationCallbacks* allocator,
     VkDebugUtilsMessengerEXT* messenger);
-void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+void DestroyDebugUtilsMessengerEXT(VkInstance instance_handle,
                                    VkDebugUtilsMessengerEXT messenger,
                                    const VkAllocationCallbacks* allocator);
+VkResult CreateDebugReportCallback(const VkInstance instance_handle,
+                                   const VkDebugReportFlagsEXT flags,
+                                   const PFN_vkDebugReportCallbackEXT callback,
+                                   VkDebugReportCallbackEXT& report_callback);
+void DestroyDebugReportCallback(const VkInstance instance_handle,
+                                const VkDebugReportCallbackEXT report_callback);
+}  // namespace debug
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

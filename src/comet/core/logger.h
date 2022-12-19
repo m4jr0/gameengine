@@ -35,7 +35,8 @@
 namespace comet {
 namespace log {
 enum class LoggerType {
-  Global = 0,
+  Unknown = 0,
+  Global,
   Core,
   Event,
   GameObject,
@@ -59,36 +60,36 @@ class Logger final {
   ~Logger() = default;
 
   template <typename... Targs>
-  void Error(Targs&&... args) const {
+  void Error(const Targs&... args) const {
     std::stringstream string_stream;
-    GetString(string_stream, std::forward<Targs>(args)...);
+    GetString(string_stream, args...);
     std::cerr << COMET_ASCII_CATEGORY(COMET_ASCII_ERROR_COL) << "[ERROR]"
               << COMET_ASCII(COMET_ASCII_ERROR_COL) << " "
               << string_stream.str() << COMET_ASCII_RESET << '\n';
   }
 
   template <typename... Targs>
-  void Info(Targs&&... args) const {
+  void Info(const Targs&... args) const {
     std::stringstream string_stream;
-    GetString(string_stream, std::forward<Targs>(args)...);
+    GetString(string_stream, args...);
     std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_INFO_COL) << "[INFO]"
               << COMET_ASCII(COMET_ASCII_INFO_COL) << " " << string_stream.str()
               << COMET_ASCII_RESET << '\n';
   }
 
   template <typename... Targs>
-  void Debug(Targs&&... args) const {
+  void Debug(const Targs&... args) const {
     std::stringstream string_stream;
-    GetString(string_stream, std::forward<Targs>(args)...);
+    GetString(string_stream, args...);
     std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_DEBUG_COL) << "[DEBUG]"
               << COMET_ASCII(COMET_ASCII_DEBUG_COL) << " "
               << string_stream.str() << COMET_ASCII_RESET << '\n';
   }
 
   template <typename... Targs>
-  void Warning(Targs&&... args) const {
+  void Warning(const Targs&... args) const {
     std::stringstream string_stream;
-    GetString(string_stream, std::forward<Targs>(args)...);
+    GetString(string_stream, args...);
     std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_WARNING_COL) << "[WARNING]"
               << COMET_ASCII(COMET_ASCII_WARNING_COL) << " "
               << string_stream.str() << COMET_ASCII_RESET << '\n';
@@ -97,25 +98,24 @@ class Logger final {
   const LoggerType GetType() const { return type_; };
 
  private:
-  Logger(LoggerType);
+  explicit Logger(LoggerType logger_type);
 
   template <typename T>
-  void GetString(std::stringstream& string_stream, T&& arg) const {
-    string_stream << std::forward<T>(arg);
+  void GetString(std::stringstream& string_stream, const T& arg) const {
+    string_stream << arg;
   }
 
   template <typename T, typename... Targs>
-  void GetString(std::stringstream& string_stream, T&& arg,
-                 Targs&&... args) const {
-    GetString(string_stream, std::forward<T>(arg));
-    GetString(string_stream, std::forward<Targs>(args)...);
+  void GetString(std::stringstream& string_stream, const T& arg,
+                 const Targs&... args) const {
+    GetString(string_stream, arg);
+    GetString(string_stream, args...);
   }
 
-  static std::shared_ptr<Logger> Create(LoggerType logger_type);
+  static std::shared_ptr<Logger> Generate(LoggerType logger_type);
 
   static std::unordered_map<LoggerType, std::shared_ptr<Logger>> loggers_;
-
-  LoggerType type_;
+  LoggerType type_{LoggerType::Unknown};
 };
 
 #ifndef COMET_DEBUG

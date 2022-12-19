@@ -7,10 +7,6 @@
 
 #include <stdio.h>
 
-//#ifndef NDEBUG
-#define COMET_DEBUG
-//#endif  // !NDEBUG
-
 #if defined(_MSC_VER)
 #if defined(_CPPRTTI)
 #define COMET_RTTI

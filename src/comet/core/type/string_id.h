@@ -22,13 +22,13 @@ class StringIdHandler {
   StringIdHandler& operator=(StringIdHandler&&) = delete;
   ~StringIdHandler();
 
-  StringId Generate(const char* string, uindex length);
-  StringId Generate(const char* string);
+  StringId Generate(const schar* string, uindex length);
+  StringId Generate(const schar* string);
   StringId Generate(const std::string& string);
-  std::string Labelize(StringId string_id);
+  std::string Labelize(StringId string_id) const;
 
  private:
-  std::unordered_map<StringId, char*> string_id_table;
+  std::unordered_map<StringId, schar*> string_id_table{};
 };
 
 extern StringIdHandler* SetHandler(bool is_destroy = false);

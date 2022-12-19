@@ -7,12 +7,13 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/manager.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-class AssetManager {
+class AssetManager : public Manager {
  public:
   AssetManager();
   AssetManager(const AssetManager&) = delete;
@@ -21,28 +22,35 @@ class AssetManager {
   AssetManager& operator=(AssetManager&&) = delete;
   ~AssetManager() = default;
 
-  void Initialize();
+  void Initialize() override;
+  void Shutdown() override;
   void RefreshLibraryMetadataFile();
-  void Destroy();
   void Refresh();
+  void Refresh(const schar* asset_abs_path);
   void Refresh(const std::string& asset_abs_path);
 
   const std::string& GetAssetsRootPath() const noexcept;
   const std::string& GetResourcesRootPath() const noexcept;
 
  private:
-  f64 last_update_time_{0};
-  std::string root_asset_path_;
-  std::string root_resource_path_;
-  std::string library_meta_path_;
-  bool is_force_refresh_{false};
-
-  std::vector<std::unique_ptr<AssetExporter>> exporters_;
-
-  void RefreshFolder(const std::string& asset_abs_path);
+  void RefreshFolder(std::string_view asset_abs_path);
+  void RefreshAsset(const schar* asset_abs_path);
   void RefreshAsset(const std::string& asset_abs_path);
+  bool IsRefreshNeeded(const schar* asset_abs_path,
+                       const schar* meta_file_path) const;
+  bool IsRefreshNeeded(const schar* asset_abs_path,
+                       const std::string& meta_file_path) const;
   bool IsRefreshNeeded(const std::string& asset_abs_path,
-                       const std::string& meta_file_path);
+                       const schar* meta_file_path) const;
+  bool IsRefreshNeeded(const std::string& asset_abs_path,
+                       const std::string& meta_file_path) const;
+
+  bool is_force_refresh_{false};
+  f64 last_update_time_{0};
+  std::string root_asset_path_{};
+  std::string root_resource_path_{};
+  std::string library_meta_path_{};
+  std::vector<std::unique_ptr<AssetExporter>> exporters_;
 };
 }  // namespace asset
 }  // namespace editor

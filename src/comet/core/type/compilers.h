@@ -18,4 +18,10 @@
 #define COMET_MSVC
 #endif  // __clang__
 
+#ifdef __cplusplus
+#define COMET_CPP
+#else
+#define COMET_C
+#endif  // __cplusplus
+
 #endif  // COMET_COMET_CORE_TYPE_COMPILERS_H_

@@ -10,15 +10,10 @@
 namespace comet {
 namespace utils {
 namespace filesystem {
-bool OpenBinaryFileToWriteTo(const char* path, std::ofstream& out_file,
+bool OpenBinaryFileToWriteTo(const schar* path, std::ofstream& out_file,
                              bool is_append) {
-  auto directory_path{GetParentPath(path)};
-
-  if (!Exists(directory_path) || !IsDirectory(directory_path)) {
-    return false;
-  }
-
-  auto mode{std::ios::binary | std::ios::out};
+  auto mode{static_cast<std::ios_base::openmode>(
+      std::ios::binary | std::ios::out | std::ios::failbit)};
 
   if (!is_append) {
     mode |= std::ios::trunc;
@@ -35,7 +30,7 @@ bool OpenBinaryFileToWriteTo(const std::string& path, std::ofstream& out_file,
   return OpenBinaryFileToWriteTo(path.c_str(), out_file, is_append);
 }
 
-bool OpenBinaryFileToReadFrom(const char* path, std::ifstream& in_file,
+bool OpenBinaryFileToReadFrom(const schar* path, std::ifstream& in_file,
                               bool is_at_end) {
   in_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
@@ -67,7 +62,7 @@ bool OpenBinaryFileToReadFrom(const std::string& path, std::ifstream& in_file,
 
 void CloseFile(std::ofstream& file) { file.close(); }
 
-bool WriteBinaryToFile(const char* path, const char* buffer, uindex buffer_size,
+bool WriteBinaryToFile(const schar* path, const u8* buffer, uindex buffer_size,
                        bool is_append) {
   std::ofstream file;
 
@@ -75,17 +70,17 @@ bool WriteBinaryToFile(const char* path, const char* buffer, uindex buffer_size,
     return false;
   }
 
-  file.write(buffer, buffer_size);
+  file.write(reinterpret_cast<const schar*>(buffer), buffer_size);
   CloseFile(file);
   return true;
 }
 
-bool WriteBinaryToFile(const std::string& path, const char* buffer,
+bool WriteBinaryToFile(const std::string& path, const u8* buffer,
                        uindex buffer_size, bool is_append) {
   return WriteBinaryToFile(path.c_str(), buffer, buffer_size, is_append);
 }
 
-bool ReadBinaryFromFile(const std::string& path, std::vector<char>& buffer) {
+bool ReadBinaryFromFile(const schar* path, std::vector<u8>& buffer) {
   std::ifstream input_stream;
 
   if (!OpenBinaryFileToReadFrom(path, input_stream, true)) {
@@ -95,21 +90,20 @@ bool ReadBinaryFromFile(const std::string& path, std::vector<char>& buffer) {
   const auto file_size{input_stream.tellg()};
   buffer.resize(file_size);
   input_stream.seekg(0);
-  input_stream.read(buffer.data(), file_size);
+  input_stream.read(reinterpret_cast<schar*>(buffer.data()), file_size);
 
   CloseFile(input_stream);
   return true;
 }
 
+bool ReadBinaryFromFile(const std::string& path, std::vector<u8>& buffer) {
+  return ReadBinaryFromFile(path.c_str(), buffer);
+}
+
 void CloseFile(std::ifstream& file) { file.close(); }
 
-bool WriteStrToFile(const char* path, const char* buffer, bool is_append) {
-  auto directory_path{GetParentPath(path)};
-
-  if (!Exists(directory_path) || !IsDirectory(directory_path)) {
-    return false;
-  }
-
+bool WriteStrToFile(const schar* path, std::string_view buffer,
+                    bool is_append) {
   auto mode{std::ios::binary | std::ios::out};
 
   if (!is_append) {
@@ -126,21 +120,12 @@ bool WriteStrToFile(const char* path, const char* buffer, bool is_append) {
   return true;
 }
 
-bool WriteStrToFile(const char* path, std::string& buffer, bool is_append) {
-  return WriteStrToFile(path, buffer.c_str(), is_append);
-}
-
-bool WriteStrToFile(const std::string& path, const char* buffer,
+bool WriteStrToFile(const std::string& path, std::string_view buffer,
                     bool is_append) {
   return WriteStrToFile(path.c_str(), buffer, is_append);
 }
 
-bool WriteStrToFile(const std::string& path, const std::string& buffer,
-                    bool is_append) {
-  return WriteStrToFile(path.c_str(), buffer.c_str(), is_append);
-}
-
-bool ReadStrFromFile(const char* path, std::string& buffer) {
+bool ReadStrFromFile(const schar* path, std::string& buffer) {
   std::ifstream input_stream;
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   auto is_open{false};
@@ -169,33 +154,35 @@ bool ReadStrFromFile(const std::string& path, std::string& buffer) {
   return ReadStrFromFile(path.c_str(), buffer);
 }
 
-bool CreateFile(const char* create_path, bool is_recursive) {
-  if (!create_path) {
+bool CreateFile(const schar* create_path, bool is_recursive) {
+  const auto str_len{strlen(create_path)};
+
+  if (str_len == 0) {
     return false;
   }
 
-  const auto last_character{create_path[std::strlen(create_path) - 1]};
+  const auto last_character{create_path[str_len - 1]};
 
-  if (last_character == '/' || last_character == '\\') {
+  if (last_character == '/') {
     return false;
   }
+
+  const auto str_directory_path{GetParentPath(create_path)};
 
   if (is_recursive) {
-    std::filesystem::path parent_path{GetParentPath(create_path)};
-
-    if (!std::filesystem::create_directories(parent_path)) {
+    if (!std::filesystem::create_directories(str_directory_path)) {
       return false;
     }
   }
 
-  const auto directory_path{GetParentPath(create_path)};
+  // Save one allocation.
+  std::filesystem::path directory_path{str_directory_path};
 
   if (!IsDirectory(directory_path) || !Exists(directory_path)) {
     return false;
   }
 
-  WriteStrToFile(create_path, "");
-
+  WriteStrToFile(str_directory_path, "");
   return true;
 }
 
@@ -203,13 +190,13 @@ bool CreateFile(const std::string& create_path, bool is_recursive) {
   return CreateFile(create_path.c_str(), is_recursive);
 }
 
-bool CreateDirectory(const char* create_path, bool is_recursive) {
+bool CreateDirectory(std::string_view create_path, bool is_recursive) {
   const std::filesystem::path path{create_path};
 
   if (is_recursive) {
     return std::filesystem::create_directories(path);
   } else {
-    if (!IsDirectory(GetParentPath(create_path))) {
+    if (!IsDirectory(GetParentPathView(create_path))) {
       return false;
     }
 
@@ -217,56 +204,34 @@ bool CreateDirectory(const char* create_path, bool is_recursive) {
   }
 }
 
-bool CreateDirectory(const std::string& create_path, bool is_recursive) {
-  return CreateDirectory(create_path.c_str(), is_recursive);
-}
+bool Move(std::string_view previous_name, std::string_view new_name) {
+  std::filesystem::path previous_name_path{previous_name};
+  std::filesystem::path new_name_path{new_name};
 
-bool Move(const char* previous_name, const char* new_name) {
-  if (!Exists(previous_name) ||
-      (Exists(new_name)) && std::strcmp(previous_name, new_name) != 0) {
+  if (!Exists(previous_name_path) ||
+      (Exists(new_name_path)) && previous_name != new_name) {
     return false;
   }
 
-  const std::filesystem::path previous_path{previous_name};
-  const std::filesystem::path new_path{new_name};
-  std::filesystem::rename(previous_path, new_path);
-
+  std::filesystem::rename(previous_name_path, new_name_path);
   return true;
 }
 
-bool Move(const char* previous_name, const std::string& new_name) {
-  return Move(previous_name, new_name.c_str());
-}
-
-bool Move(const std::string& previous_name, const char* new_name) {
-  return Move(previous_name.c_str(), new_name);
-}
-
-bool Move(const std::string& previous_name, const std::string& new_name) {
-  return Move(previous_name.c_str(), new_name.c_str());
-}
-
-bool Remove(const char* path, bool is_recursive) {
+bool Remove(const std::filesystem::path& path, bool is_recursive) {
   if (!is_recursive && IsDirectory(path) && !IsEmpty(path)) {
     return false;
   } else {
-    const std::filesystem::path path_obj{path};
-    return std::filesystem::remove_all(path_obj);
+    return std::filesystem::remove_all(path);
   }
 }
 
-bool Remove(const std::string& path, bool is_recursive) {
-  return Remove(path.c_str(), is_recursive);
-}
-
-std::vector<std::string> ListDirectories(const char* directory,
+std::vector<std::string> ListDirectories(const std::filesystem::path& path,
                                          bool is_sorted) {
-  if (!Exists(directory) || IsFile(directory)) {
+  if (!Exists(path) || IsFile(path)) {
     return std::vector<std::string>();
   }
 
   std::vector<std::string> list;
-  const std::filesystem::path path{directory};
   std::filesystem::directory_iterator end_it;
 
   for (std::filesystem::directory_iterator it{path}; it != end_it; ++it) {
@@ -282,25 +247,19 @@ std::vector<std::string> ListDirectories(const char* directory,
   return list;
 }
 
-std::vector<std::string> ListDirectories(const std::string& directory,
-                                         bool is_sorted) {
-  return ListDirectories(directory.c_str(), is_sorted);
-}
-
-std::vector<std::string> ListFiles(const char* directory, bool is_sorted) {
-  if (!Exists(directory)) {
+std::vector<std::string> ListFiles(const std::filesystem::path& path,
+                                   bool is_sorted) {
+  if (!Exists(path)) {
     return std::vector<std::string>();
   }
 
   std::vector<std::string> list;
 
-  if (IsFile(directory)) {
-    list.push_back(directory);
-
+  if (IsFile(path)) {
+    list.push_back(path.string());
     return list;
   }
 
-  const std::filesystem::path path{directory};
   std::filesystem::directory_iterator end_it;
 
   for (std::filesystem::directory_iterator it{path}; it != end_it; ++it) {
@@ -316,18 +275,13 @@ std::vector<std::string> ListFiles(const char* directory, bool is_sorted) {
   return list;
 }
 
-std::vector<std::string> ListFiles(const std::string& directory,
-                                   bool is_sorted) {
-  return ListFiles(directory.c_str(), is_sorted);
-}
-
-std::vector<std::string> ListAll(const char* directory, bool is_sorted) {
-  if (!Exists(directory)) {
+std::vector<std::string> ListAll(const std::filesystem::path& path,
+                                 bool is_sorted) {
+  if (!Exists(path)) {
     return std::vector<std::string>();
   }
 
   std::vector<std::string> list;
-  const auto path{std::filesystem::path(directory)};
   std::filesystem::directory_iterator end_it;
 
   for (std::filesystem::directory_iterator it{path}; it != end_it; ++it) {
@@ -341,15 +295,15 @@ std::vector<std::string> ListAll(const char* directory, bool is_sorted) {
   return list;
 }
 
-std::vector<std::string> ListAll(const std::string& directory, bool is_sorted) {
-  return ListAll(directory.c_str(), is_sorted);
+std::filesystem::path GetCurrentDirectoryAsPath() {
+  return std::filesystem::current_path();
 }
 
 std::string GetCurrentDirectory() {
   return std::filesystem::current_path().generic_string();
 }
 
-std::string GetDirectoryPath(const char* path) {
+std::string GetDirectoryPath(const std::filesystem::path& path) {
   const auto is_directory{IsDirectory(path)};
   const auto is_file{IsFile(path)};
 
@@ -358,27 +312,23 @@ std::string GetDirectoryPath(const char* path) {
   }
 
   if (is_directory) {
-    return path;
+    return path.string();
   }
 
   return GetParentPath(path);
 }
 
-std::string GetDirectoryPath(const std::string& path) {
-  return GetDirectoryPath(path.c_str());
+std::string GetName(std::string_view path) {
+  return std::string{GetNameView(path)};
 }
 
-std::string GetName(const std::string& path) {
-  if (!IsFile(path) && !IsDirectory(path)) {
-    return "";
-  }
-
-  return path.substr(path.find_last_of("/") + 1, path.length());
+std::string_view GetNameView(std::string_view path) {
+  return path.substr(path.find_last_of('/') + 1, path.size());
 }
 
-std::string GetExtension(const std::string& path, bool is_force_lowercase) {
-  auto extension{std::filesystem::path(path).extension().generic_string()};
-
+std::string GetExtension(const std::filesystem::path& path,
+                         bool is_force_lowercase) {
+  auto extension{path.extension().generic_string()};
   extension.erase(0, 1);
 
   if (is_force_lowercase) {
@@ -389,111 +339,184 @@ std::string GetExtension(const std::string& path, bool is_force_lowercase) {
   return extension;
 }
 
-std::string ReplaceExtension(const std::string& path, std::string extension,
-                             bool is_force_lowercase) {
-  std::string new_path{path};
-  const auto old_extension{
-      std::filesystem::path(path).extension().generic_string()};
-  new_path.erase(new_path.size() - old_extension.size(), old_extension.size());
+void ReplaceExtension(std::string_view extension, std::string& path,
+                      bool is_force_lowercase) {
+  if (path.empty()) {
+    return;
+  }
+
+  auto dot_pos{string::GetLastNthPos(path, '.', 1)};
+
+  if (dot_pos == kInvalidIndex) {
+    return;
+  }
+
+  if (extension.empty()) {
+    path.resize(dot_pos);
+    return;
+  }
+
+  auto anchor{dot_pos + 1};
+  std::string_view path_view{path};
+  path_view = path_view.substr(0, anchor);
+  auto new_size{path_view.size() + extension.size()};
+
+  if (new_size != path.size()) {
+    path.resize(new_size);
+  }
 
   if (is_force_lowercase) {
-    std::transform(extension.begin(), extension.end(), extension.begin(),
-                   [](u8 c) { return std::tolower(c); });
+    for (uindex i{0}; i < extension.size(); ++i) {
+      path[anchor + i] = std::tolower(extension[i]);
+    }
+  } else {
+    for (uindex i{0}; i < extension.size(); ++i) {
+      path[anchor + i] = extension[i];
+    }
   }
-
-  if (extension.size() > 0 && extension[0] != '.') {
-    extension.insert(0, 1, '.');
-  }
-
-  new_path = new_path.append(extension);
-  return new_path;
 }
 
-std::string GetParentPath(const std::string& current_path) {
-  auto absolute_path{GetAbsolutePath(current_path)};
-  const auto path_size{absolute_path.length()};
-
-  if (path_size <= 0) {
-    return "";
-  }
-
-  const auto last_character{std::string(&absolute_path.back())};
-
-  if (last_character == "/") {
-    absolute_path = absolute_path.substr(0, path_size - 1);
-  }
-
-  const auto last_index{absolute_path.find_last_of("/")};
-
-  if (last_index == std::string::npos) {
-    return absolute_path;
-  }
-
-  return absolute_path.substr(0, last_index);
+std::string ReplaceExtensionToCopy(std::string_view extension,
+                                   std::string_view path,
+                                   bool is_force_lowercase) {
+  std::string copy{path};
+  ReplaceExtension(extension, copy, is_force_lowercase);
+  return copy;
 }
 
-std::string GetNativePath(const std::string& path) {
-  return std::filesystem::path(path).string();
+std::string GetNormalizedPath(const std::filesystem::path& path) {
+  return path.lexically_normal().generic_string();
 }
 
-bool IsDirectory(const std::string& path) {
+std::string GetAbsolutePath(const std::filesystem::path& relative_path) {
+  return relative_path.generic_string();
+}
+
+std::string GetRelativePath(const std::filesystem::path& from_path,
+                            const std::filesystem::path& to_path) {
+  return from_path.lexically_relative(to_path).generic_string();
+}
+
+std::string GetRelativePath(const std::filesystem::path& absolute_path) {
+  return GetRelativePath(absolute_path,
+                         std::filesystem::path{GetCurrentDirectory()});
+}
+
+std::string GetNativePath(const std::filesystem::path& path) {
+  return path.string();
+}
+
+std::string_view GetParentPathView(std::string_view current_path) {
+  if (current_path.empty()) {
+    return std::string_view{};
+  }
+
+  uindex index{current_path.size() - 1};
+
+  if (index > 0 && current_path[index] == '/') {
+    current_path = current_path.substr(0, index);
+    --index;
+  }
+
+  while (index > 0 && current_path[index] != '/') {
+    --index;
+  }
+
+  if (index == 0) {
+    if (current_path[0] == '/') {
+      return current_path.substr(0, 1);
+    }
+
+    return current_path;
+  }
+
+  return current_path.substr(0, index);
+}
+
+bool IsDirectory(const std::filesystem::path& path) {
   return std::filesystem::is_directory(path);
 }
 
-bool IsFile(const std::string& path) {
+bool IsFile(const std::filesystem::path& path) {
   return std::filesystem::is_regular_file(path);
 }
 
-bool IsAbsolute(const std::string& path) {
-  return std::filesystem::path(path).is_absolute();
+bool IsAbsolute(const std::filesystem::path& path) {
+  return path.is_absolute();
 }
 
-bool IsRelative(const std::string& path) {
-  return std::filesystem::path(path).is_relative();
+bool IsRelative(const std::filesystem::path& path) {
+  return path.is_relative();
 }
 
-bool Exists(const std::string& path) { return std::filesystem::exists(path); }
+bool Exists(const std::filesystem::path& path) {
+  return std::filesystem::exists(path);
+}
 
-bool IsEmpty(const std::string& path) {
+bool IsEmpty(const std::filesystem::path& path) {
   return std::filesystem::is_empty(path);
 }
 
-std::string Append(const std::string& path_a, const std::string& path_b) {
-  auto formatted_a{std::string(path_a)};
-  auto formatted_b{std::string(path_b)};
+std::string Append(std::string_view path_a, std::string_view path_b) {
+  // Error cases: empty strings.
+  if (path_a.empty()) {
+    if (path_b.empty()) {
+      return std::string{};
+    }
 
-  RemoveTrailingSlashes(formatted_a);
-  RemoveLeadingSlashes(formatted_b);
+    return std::string{path_b};
+  }
 
-  return formatted_a + "/" + formatted_b;
+  auto anchor{string::GetLastNonCharacterIndex(path_a, '/')};
+
+  // Case: first character of path_a is /.
+  if (anchor == kInvalidIndex) {
+    anchor = 0;
+  }
+
+  path_a = path_a.substr(0, anchor + 1);
+  anchor = string::GetFirstDifferentCharacterIndex(path_b, '/');
+
+  // Case: path_b is root.
+  if (anchor == kInvalidIndex) {
+    // Return copy of path_a without trailing /.
+    return std::string{path_a};
+  }
+
+  path_b = path_b.substr(anchor, path_b.size() - anchor);
+  std::string path{};
+
+  // Add 1 extra for added /.
+  path.resize(path_a.size() + path_b.size() + 1);
+  uindex path_index{0};
+
+  for (uindex i{0}; i < path_a.size(); ++i) {
+    path[path_index++] = path_a[i];
+  }
+
+  path[path_index++] = '/';
+
+  for (uindex i{0}; i < path_b.size(); ++i) {
+    path[path_index++] = path_b[i];
+  }
+
+  return path;
 }
 
-std::string GetNormalizedPath(const std::string& path) {
-  return std::filesystem::path(path).lexically_normal().generic_string();
+void RemoveTrailingSlashes(std::string& str) {
+  str.erase(std::find_if(str.rbegin(), str.rend(),
+                         [](schar character) { return character != '/'; })
+                .base(),
+            str.end());
 }
 
-std::string GetRelativePath(const std::string& from_path,
-                            const std::string& to_path) {
-  const auto from_path_obj{std::filesystem::path(from_path)};
-  const auto to_path_obj{std::filesystem::path(to_path)};
-
-  return from_path_obj.lexically_relative(to_path_obj).generic_string();
+void RemoveLeadingSlashes(std::string& str) {
+  str.erase(str.begin(),
+            std::find_if(str.begin(), str.end(),
+                         [](schar character) { return character != '/'; }));
 }
 
-void RemoveTrailingSlashes(std::string& path) {
-  path.erase(std::find_if(path.rbegin(), path.rend(),
-                          [](s8 character) { return character != '/'; })
-                 .base(),
-             path.end());
-}
-
-void RemoveLeadingSlashes(std::string& path) {
-  path.erase(path.begin(),
-             std::find_if(path.begin(), path.end(),
-                          [](s8 character) { return character != '/'; }));
-}
-
-f64 GetLastModificationTime(const char* path) {
+f64 GetLastModificationTime(const schar* path) {
   if (!Exists(path)) {
     return -1;
   }
@@ -511,17 +534,13 @@ f64 GetLastModificationTime(const std::string& path) {
   return GetLastModificationTime(path.c_str());
 }
 
-std::string GetChecksum(const char* path) {
+std::string GetChecksum(std::string_view path) {
   if (!IsFile(path)) {
     return "";
   }
 
-  auto file{std::ifstream(path, std::ios::binary)};
+  auto file{std::ifstream(path.data(), std::ios::binary)};
   return hash::HashSha256(file);
-}
-
-std::string GetChecksum(const std::string& path) {
-  return GetChecksum(path.c_str());
 }
 }  // namespace filesystem
 }  // namespace utils

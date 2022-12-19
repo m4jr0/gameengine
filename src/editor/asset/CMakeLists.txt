@@ -36,6 +36,7 @@ add_library(${ASSET_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
   "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model_exporter.cc"
   "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_exporter.cc"
+  "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_module_exporter.cc"
   "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture_exporter.cc"
 )
 

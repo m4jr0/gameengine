@@ -19,16 +19,16 @@ struct ModelResourceDescr {
 };
 
 struct MeshResource : InternalResource {
-  resource::MaterialId material_id{resource::kInvalidMaterialId};
-  std::vector<rendering::Vertex> vertices;
-  std::vector<rendering::Index> indices;
+  ResourceId material_id{kInvalidResourceId};
+  std::vector<rendering::Vertex> vertices{};
+  std::vector<rendering::Index> indices{};
 };
 
 struct ModelResource : Resource {
   static const ResourceTypeId kResourceTypeId;
 
-  std::vector<MeshResource> meshes;
-  ModelResourceDescr descr;
+  std::vector<MeshResource> meshes{};
+  ModelResourceDescr descr{};
 };
 
 class ModelHandler : public ResourceHandler {
@@ -38,7 +38,7 @@ class ModelHandler : public ResourceHandler {
   ModelHandler(ModelHandler&&) = delete;
   ModelHandler& operator=(const ModelHandler&) = delete;
   ModelHandler& operator=(ModelHandler&&) = delete;
-  ~ModelHandler() = default;
+  virtual ~ModelHandler() = default;
 
  protected:
   uindex GetMeshSize(const MeshResource& mesh) const;

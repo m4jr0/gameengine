@@ -23,7 +23,9 @@ DummyObject::DummyObject(const DummyObject& other)
 }
 
 DummyObject::DummyObject(DummyObject&& other) noexcept
-    : id_{std::move(other.id_)}, value_{std::move(other.value_)} {
+    : id_{other.id_}, value_{other.value_} {
+  other.id_ = 0;
+  other.value_ = 0;
   if (is_verbose_) {
     Print("Move constructor");
   }
@@ -48,8 +50,10 @@ DummyObject& DummyObject::operator=(DummyObject&& other) noexcept {
     return *this;
   }
 
-  id_ = std::move(other.id_);
-  value_ = std::move(other.value_);
+  id_ = other.id_;
+  value_ = other.value_;
+  other.id_ = 0;
+  other.value_ = 0;
   return *this;
 }
 
@@ -84,7 +88,7 @@ void DummyObject::IsVerbose(bool is_verbose) noexcept {
   is_verbose_ = is_verbose;
 }
 
-void DummyObject::Print(const std::string& message) const {
+void DummyObject::Print(std::string_view message) const {
   std::cout << ToString() << ": " << message << '\n';
 }
 

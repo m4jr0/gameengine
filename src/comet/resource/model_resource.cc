@@ -6,13 +6,12 @@
 
 namespace comet {
 namespace resource {
-const ResourceTypeId ModelResource::kResourceTypeId{
-    GenerateResourceTypeId("model")};
+const ResourceTypeId ModelResource::kResourceTypeId{COMET_STRING_ID("model")};
 
 uindex ModelHandler::GetMeshSize(const MeshResource& mesh) const {
   constexpr uindex kModelIdSize{sizeof(ResourceId)};
   constexpr uindex kMeshIdSize{sizeof(ResourceId)};
-  constexpr uindex kMaterialIdSize{sizeof(MaterialId)};
+  constexpr uindex kMaterialIdSize{sizeof(ResourceId)};
   const uindex kVertexCount{mesh.vertices.size()};
   const uindex kIndexCount{mesh.indices.size()};
 
@@ -21,7 +20,7 @@ uindex ModelHandler::GetMeshSize(const MeshResource& mesh) const {
 
   constexpr auto kVertexSize{sizeof(rendering::Vertex)};
   constexpr auto kIndexSize{sizeof(rendering::Index)};
-  constexpr auto kTextureTupleSize{sizeof(TextureTuple)};
+  constexpr auto kTextureMapSize{sizeof(TextureMap)};
 
   return kModelIdSize + kMeshIdSize + kMaterialIdSize + kVertexCountSize +
          kVertexCount * kVertexSize + kIndexCountSize +
@@ -51,41 +50,32 @@ ResourceFile ModelHandler::Pack(const Resource& resource,
   auto* buffer{data.data()};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  constexpr auto kMaterialIdSize{sizeof(MaterialId)};
+  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
   constexpr auto kVertexCountSize{sizeof(uindex)};
   constexpr auto kIndexCountSize{sizeof(uindex)};
   constexpr auto kVertexSize{sizeof(rendering::Vertex)};
   constexpr auto kIndexSize{sizeof(rendering::Index)};
 
-  std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&model.id),
-              kResourceIdSize);
+  std::memcpy(&buffer[cursor], &model.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&model.type_id),
-              kResourceTypeIdSize);
+  std::memcpy(&buffer[cursor], &model.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   for (const auto& mesh : model.meshes) {
-    std::memcpy(&buffer[cursor],
-                reinterpret_cast<const void*>(&mesh.resource_id),
-                kResourceIdSize);
+    std::memcpy(&buffer[cursor], &mesh.resource_id, kResourceIdSize);
     cursor += kResourceIdSize;
 
-    std::memcpy(&buffer[cursor],
-                reinterpret_cast<const void*>(&mesh.internal_id),
-                kResourceIdSize);
+    std::memcpy(&buffer[cursor], &mesh.internal_id, kResourceIdSize);
     cursor += kResourceIdSize;
 
-    std::memcpy(&buffer[cursor],
-                reinterpret_cast<const void*>(&mesh.material_id),
-                kMaterialIdSize);
+    std::memcpy(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
     cursor += kMaterialIdSize;
 
     const auto vertex_count{mesh.vertices.size()};
     const auto index_count{mesh.indices.size()};
 
-    std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&vertex_count),
-                kVertexCountSize);
+    std::memcpy(&buffer[cursor], &vertex_count, kVertexCountSize);
 
     cursor += kVertexCountSize;
     const auto vertex_total_size{kVertexSize * vertex_count};
@@ -94,8 +84,7 @@ ResourceFile ModelHandler::Pack(const Resource& resource,
 
     cursor += vertex_total_size;
 
-    std::memcpy(&buffer[cursor], reinterpret_cast<const void*>(&index_count),
-                kIndexCountSize);
+    std::memcpy(&buffer[cursor], &index_count, kIndexCountSize);
 
     cursor += kIndexCountSize;
     const auto index_total_size{kIndexSize * index_count};
@@ -104,14 +93,14 @@ ResourceFile ModelHandler::Pack(const Resource& resource,
     cursor += index_total_size;
   }
 
-  PackResourceDescr(model.descr, file);
+  PackPodResourceDescr(model.descr, file);
   PackResourceData(data, file);
   return file;
 }
 
 std::unique_ptr<Resource> ModelHandler::Unpack(const ResourceFile& file) const {
-  ModelResource&& model{};
-  model.descr = UnpackResourceDescr<ModelResourceDescr>(file);
+  ModelResource model{};
+  model.descr = UnpackPodResourceDescr<ModelResourceDescr>(file);
 
   const auto data{UnpackResourceData(file)};
   auto data_size{sizeof(u8) * data.size()};
@@ -119,66 +108,49 @@ std::unique_ptr<Resource> ModelHandler::Unpack(const ResourceFile& file) const {
   uindex cursor{0};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  constexpr auto kMaterialIdSize{sizeof(resource::MaterialId)};
+  constexpr auto kMaterialIdSize{sizeof(resource::ResourceId)};
   constexpr auto kVertexCountSize{sizeof(uindex)};
   constexpr auto kIndexCountSize{sizeof(uindex)};
   constexpr auto kVertexSize{sizeof(rendering::Vertex)};
   constexpr auto kIndexSize{sizeof(rendering::Index)};
 
-  std::memcpy(reinterpret_cast<void*>(&model.id),
-              reinterpret_cast<const void*>(&buffer[cursor]), kResourceIdSize);
+  std::memcpy(&model.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(reinterpret_cast<void*>(&model.type_id),
-              reinterpret_cast<const void*>(&buffer[cursor]),
-              kResourceTypeIdSize);
+  std::memcpy(&model.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   while (cursor < data_size) {
-    MeshResource&& mesh{};
+    MeshResource mesh{};
 
-    std::memcpy(reinterpret_cast<void*>(&mesh.resource_id),
-                reinterpret_cast<const void*>(&buffer[cursor]),
-                kResourceIdSize);
+    std::memcpy(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
 
-    std::memcpy(reinterpret_cast<void*>(&mesh.internal_id),
-                reinterpret_cast<const void*>(&buffer[cursor]),
-                kResourceIdSize);
+    std::memcpy(&mesh.internal_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
 
-    std::memcpy(reinterpret_cast<void*>(&mesh.material_id),
-                reinterpret_cast<const void*>(&buffer[cursor]),
-                kMaterialIdSize);
+    std::memcpy(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
     cursor += kMaterialIdSize;
 
     uindex vertex_count{0};
-    std::memcpy(reinterpret_cast<void*>(&vertex_count),
-                reinterpret_cast<const void*>(&buffer[cursor]),
-                kVertexCountSize);
+    std::memcpy(&vertex_count, &buffer[cursor], kVertexCountSize);
     cursor += kVertexCountSize;
 
     mesh.vertices.resize(vertex_count);
     const auto vertex_total_size{kVertexSize * vertex_count};
-    std::memcpy(reinterpret_cast<void*>(mesh.vertices.data()),
-                reinterpret_cast<const void*>(&buffer[cursor]),
-                vertex_total_size);
+    std::memcpy(mesh.vertices.data(), &buffer[cursor], vertex_total_size);
     cursor += vertex_total_size;
 
     uindex index_count{0};
-    std::memcpy(reinterpret_cast<void*>(&index_count),
-                reinterpret_cast<const void*>(&buffer[cursor]),
-                kIndexCountSize);
+    std::memcpy(&index_count, &buffer[cursor], kIndexCountSize);
     cursor += kIndexCountSize;
 
     mesh.indices.resize(index_count);
     const auto index_total_size{kIndexSize * index_count};
-    std::memcpy(reinterpret_cast<void*>(mesh.indices.data()),
-                reinterpret_cast<const void*>(&buffer[cursor]),
-                index_total_size);
+    std::memcpy(mesh.indices.data(), &buffer[cursor], index_total_size);
     cursor += index_total_size;
 
-    model.meshes.emplace_back(mesh);
+    model.meshes.push_back(std::move(mesh));
   }
 
   return std::make_unique<ModelResource>(std::move(model));

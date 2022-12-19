@@ -18,23 +18,23 @@ namespace rendering {
 namespace vk {
 class VulkanGlfwWindow : public GlfwWindow {
  public:
-  VulkanGlfwWindow() = default;
+  VulkanGlfwWindow() = delete;
   explicit VulkanGlfwWindow(WindowDescr& descr);
   VulkanGlfwWindow(const VulkanGlfwWindow&);
   VulkanGlfwWindow(VulkanGlfwWindow&&) noexcept;
   VulkanGlfwWindow& operator=(const VulkanGlfwWindow&);
   VulkanGlfwWindow& operator=(VulkanGlfwWindow&&) noexcept;
-  ~VulkanGlfwWindow() = default;
+  virtual ~VulkanGlfwWindow() = default;
 
-  void AttachSurface(VkInstance instance);
-  void DetachSurface(VkInstance instance);
+  void AttachSurface(VkInstance instance_handle);
+  void DetachSurface(VkInstance instance_handle);
 
   operator VkSurfaceKHR() const noexcept;
 
-  VkSurfaceKHR GetSurface() const noexcept;
+  VkSurfaceKHR GetSurfaceHandle() const noexcept;
 
  private:
-  VkSurfaceKHR surface_{VK_NULL_HANDLE};
+  VkSurfaceKHR surface_handle_{VK_NULL_HANDLE};
 };
 }  // namespace vk
 }  // namespace rendering

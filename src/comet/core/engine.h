@@ -23,12 +23,12 @@ class Engine {
   Engine(Engine&&) = delete;
   Engine& operator=(const Engine&) = delete;
   Engine& operator=(Engine&&) = delete;
-  virtual ~Engine() = default;
+  virtual ~Engine();
 
   void Initialize();
   void Run();
   void Stop();
-  void Destroy();
+  void Shutdown();
   void Quit();
 
   virtual void PreLoad();
@@ -43,15 +43,17 @@ class Engine {
   conf::ConfigurationManager& GetConfigurationManager();
   resource::ResourceManager& GetResourceManager();
   rendering::RenderingManager& GetRenderingManager();
+  physics::PhysicsManager& GetPhysicsManager();
   input::InputManager& GetInputManager();
   time::TimeManager& GetTimeManager();
   entity::EntityManager& GetEntityManager();
   event::EventManager& GetEventManager();
 
-  const bool is_running() const noexcept;
+  bool IsRunning() const noexcept;
+  bool IsInitialized() const noexcept;
 
  protected:
-  inline static Engine* engine_;
+  inline static Engine* engine_{nullptr};
 
   Engine();
 
@@ -68,11 +70,12 @@ class Engine {
   event::EventManager event_manager_{};
 
  private:
+  bool is_initialized_{false};
   bool is_running_{false};
   bool is_exit_requested_{false};
 };
 
-std::unique_ptr<Engine> CreateEngine();
+std::unique_ptr<Engine> GenerateEngine();
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_ENGINE_H_

@@ -7,50 +7,54 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/manager.h"
 #include "comet/event/event.h"
 #include "comet/utils/structure/ring_queue.h"
 
 namespace comet {
+// TODO(m4jr0): Solve circular dependency in a proper way.
 class Engine;
 
 namespace event {
 using EventListener = std::function<void(Event&)>;
 
-class EventManager {
+class EventManager : public Manager {
  public:
-  EventManager(uindex queue_size = 200);
+  explicit EventManager(uindex queue_size = 200);
   EventManager(const EventManager&) = delete;
   EventManager(EventManager&&) = delete;
   EventManager& operator=(const EventManager&) = delete;
   EventManager& operator=(EventManager&&) = delete;
-  ~EventManager() = default;
+  virtual ~EventManager() = default;
+
+  void Shutdown() override;
 
   void Register(const EventListener& function, stringid::StringId event_type);
 
   template <typename T, typename... Targs>
-  void FireEventNow(Targs... args) {
-    Dispatch(Event::Create<T>(args...));
+  void FireEventNow(Targs... args) const {
+    Dispatch(Event::Generate<T>(args...));
   }
 
-  void FireEventNow(std::unique_ptr<Event> event);
+  void FireEventNow(std::unique_ptr<Event> event) const;
 
   template <typename T, typename... Targs>
   void FireEvent(Targs... args) {
     std::scoped_lock<std::mutex> lock(mutex_);
-    event_queue_.push(Event::Create<T>(args...));
+    event_queue_.push(Event::Generate<T>(args...));
   }
 
   void FireEvent(std::unique_ptr<Event> event);
+  void FireAllEvents();
 
  private:
-  friend Engine;
-  mutable std::mutex mutex_;
-  std::unordered_map<stringid::StringId, std::vector<EventListener>> listeners_;
-  comet::utils::structure::ring_queue<std::unique_ptr<event::Event>>
-      event_queue_;
+  void Dispatch(std::unique_ptr<Event> event) const;
 
-  void Dispatch(std::unique_ptr<Event>);
-  void FireAllEvents();
+  mutable std::mutex mutex_{};
+  std::unordered_map<stringid::StringId, std::vector<EventListener>>
+      listeners_{};
+  comet::utils::structure::ring_queue<std::unique_ptr<event::Event>>
+      event_queue_{0};
 };
 }  // namespace event
 }  // namespace comet

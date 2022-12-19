@@ -7,33 +7,35 @@
 
 #include "comet_precompile.h"
 
-#include "comet/rendering/window/glfw/glfw_window.h"
 #include "glm/glm.hpp"
+
+#include "comet/core/manager.h"
+#include "comet/rendering/window/glfw/glfw_window.h"
 
 namespace comet {
 namespace input {
 // Here, we wrap the GLFW "input manager" to make it easier if we want to
 // change it, some day.
 enum class KeyCode {
-  UNKNOWN = GLFW_KEY_UNKNOWN,
-  SPACE = GLFW_KEY_SPACE,
-  APOSTROPHE = GLFW_KEY_APOSTROPHE,
-  COMMA = GLFW_KEY_COMMA,
-  MINUS = GLFW_KEY_MINUS,
-  PERIOD = GLFW_KEY_PERIOD,
-  SLASH = GLFW_KEY_SLASH,
-  ZERO = GLFW_KEY_0,
-  ONE = GLFW_KEY_1,
-  TWO = GLFW_KEY_2,
-  THREE = GLFW_KEY_3,
-  FOUR = GLFW_KEY_4,
-  FIVE = GLFW_KEY_5,
-  SIX = GLFW_KEY_6,
-  SEVEN = GLFW_KEY_7,
-  EIGHT = GLFW_KEY_8,
-  NINE = GLFW_KEY_9,
-  SEMICOLON = GLFW_KEY_SEMICOLON,
-  EQUAL = GLFW_KEY_EQUAL,
+  Unknown = GLFW_KEY_UNKNOWN,
+  Space = GLFW_KEY_SPACE,
+  Apostrophe = GLFW_KEY_APOSTROPHE,
+  Comma = GLFW_KEY_COMMA,
+  Minus = GLFW_KEY_MINUS,
+  Period = GLFW_KEY_PERIOD,
+  Slash = GLFW_KEY_SLASH,
+  Zero = GLFW_KEY_0,
+  One = GLFW_KEY_1,
+  Two = GLFW_KEY_2,
+  Three = GLFW_KEY_3,
+  Four = GLFW_KEY_4,
+  Five = GLFW_KEY_5,
+  Six = GLFW_KEY_6,
+  Seven = GLFW_KEY_7,
+  Eight = GLFW_KEY_8,
+  Nine = GLFW_KEY_9,
+  Semicolon = GLFW_KEY_SEMICOLON,
+  Equal = GLFW_KEY_EQUAL,
   A = GLFW_KEY_A,
   B = GLFW_KEY_B,
   C = GLFW_KEY_C,
@@ -60,31 +62,31 @@ enum class KeyCode {
   X = GLFW_KEY_X,
   Y = GLFW_KEY_Y,
   Z = GLFW_KEY_Z,
-  LEFT_BRACKET = GLFW_KEY_LEFT_BRACKET,
-  BACKSLASH = GLFW_KEY_BACKSLASH,
-  RIGHT_BRACKET = GLFW_KEY_RIGHT_BRACKET,
-  GRAVE_ACCENT = GLFW_KEY_GRAVE_ACCENT,
-  WORLD_1 = GLFW_KEY_WORLD_1,
-  WORLD_2 = GLFW_KEY_WORLD_2,
-  ESCAPE = GLFW_KEY_ESCAPE,
-  ENTER = GLFW_KEY_ENTER,
-  TAB = GLFW_KEY_TAB,
-  BACKSPACE = GLFW_KEY_BACKSPACE,
-  INSERT = GLFW_KEY_INSERT,
-  DEL = GLFW_KEY_DELETE,
-  RIGHT = GLFW_KEY_RIGHT,
-  LEFT = GLFW_KEY_LEFT,
-  DOWN = GLFW_KEY_DOWN,
-  UP = GLFW_KEY_UP,
-  PAGE_UP = GLFW_KEY_PAGE_UP,
-  PAGE_DOWN = GLFW_KEY_PAGE_DOWN,
-  HOME = GLFW_KEY_HOME,
-  END = GLFW_KEY_END,
-  CAPS_LOCK = GLFW_KEY_CAPS_LOCK,
-  SCROLL_LOCK = GLFW_KEY_SCROLL_LOCK,
-  NUM_LOCK = GLFW_KEY_NUM_LOCK,
-  PRINT_SCREEN = GLFW_KEY_PRINT_SCREEN,
-  PAUSE = GLFW_KEY_PAUSE,
+  LeftBracket = GLFW_KEY_LEFT_BRACKET,
+  Backslash = GLFW_KEY_BACKSLASH,
+  RightBracket = GLFW_KEY_RIGHT_BRACKET,
+  GraveAcent = GLFW_KEY_GRAVE_ACCENT,
+  World1 = GLFW_KEY_WORLD_1,
+  World2 = GLFW_KEY_WORLD_2,
+  Escape = GLFW_KEY_ESCAPE,
+  Enter = GLFW_KEY_ENTER,
+  Tab = GLFW_KEY_TAB,
+  Backspace = GLFW_KEY_BACKSPACE,
+  Insert = GLFW_KEY_INSERT,
+  Del = GLFW_KEY_DELETE,
+  Right = GLFW_KEY_RIGHT,
+  Left = GLFW_KEY_LEFT,
+  Down = GLFW_KEY_DOWN,
+  Up = GLFW_KEY_UP,
+  PageUp = GLFW_KEY_PAGE_UP,
+  PageDown = GLFW_KEY_PAGE_DOWN,
+  Home = GLFW_KEY_HOME,
+  End = GLFW_KEY_END,
+  CapsLock = GLFW_KEY_CAPS_LOCK,
+  ScrollLock = GLFW_KEY_SCROLL_LOCK,
+  NumLock = GLFW_KEY_NUM_LOCK,
+  PrintScreen = GLFW_KEY_PRINT_SCREEN,
+  Pause = GLFW_KEY_PAUSE,
   F1 = GLFW_KEY_F1,
   F2 = GLFW_KEY_F2,
   F3 = GLFW_KEY_F3,
@@ -110,36 +112,57 @@ enum class KeyCode {
   F23 = GLFW_KEY_F23,
   F24 = GLFW_KEY_F24,
   F25 = GLFW_KEY_F25,
-  KP_0 = GLFW_KEY_KP_0,
-  KP_1 = GLFW_KEY_KP_1,
-  KP_2 = GLFW_KEY_KP_2,
-  KP_3 = GLFW_KEY_KP_3,
-  KP_4 = GLFW_KEY_KP_4,
-  KP_5 = GLFW_KEY_KP_5,
-  KP_6 = GLFW_KEY_KP_6,
-  KP_7 = GLFW_KEY_KP_7,
-  KP_8 = GLFW_KEY_KP_8,
-  KP_9 = GLFW_KEY_KP_9,
-  KP_DECIMAL = GLFW_KEY_KP_DECIMAL,
-  KP_DIVIDE = GLFW_KEY_KP_DIVIDE,
-  KP_MULTIPLY = GLFW_KEY_KP_MULTIPLY,
-  KP_SUBTRACT = GLFW_KEY_KP_SUBTRACT,
-  KP_ADD = GLFW_KEY_KP_ADD,
-  KP_ENTER = GLFW_KEY_KP_ENTER,
-  KP_EQUAL = GLFW_KEY_KP_EQUAL,
-  LEFT_SHIFT = GLFW_KEY_LEFT_SHIFT,
-  LEFT_CONTROL = GLFW_KEY_LEFT_CONTROL,
-  LEFT_ALT = GLFW_KEY_LEFT_ALT,
-  LEFT_SUPER = GLFW_KEY_LEFT_SUPER,
-  RIGHT_SHIFT = GLFW_KEY_RIGHT_SHIFT,
-  RIGHT_CONTROL = GLFW_KEY_RIGHT_CONTROL,
-  RIGHT_ALT = GLFW_KEY_RIGHT_ALT,
-  RIGHT_SUPER = GLFW_KEY_RIGHT_SUPER,
-  MENU = GLFW_KEY_MENU,
-  LAST = GLFW_KEY_LAST
+  KP0 = GLFW_KEY_KP_0,
+  KeyPad1 = GLFW_KEY_KP_1,
+  KeyPad2 = GLFW_KEY_KP_2,
+  KeyPad3 = GLFW_KEY_KP_3,
+  KeyPad4 = GLFW_KEY_KP_4,
+  KeyPad5 = GLFW_KEY_KP_5,
+  KeyPad6 = GLFW_KEY_KP_6,
+  KeyPad7 = GLFW_KEY_KP_7,
+  KeyPad8 = GLFW_KEY_KP_8,
+  KeyPad9 = GLFW_KEY_KP_9,
+  KeyPadDecimal = GLFW_KEY_KP_DECIMAL,
+  KeyPadDivide = GLFW_KEY_KP_DIVIDE,
+  KeyPadMultiply = GLFW_KEY_KP_MULTIPLY,
+  KeyPadSubtract = GLFW_KEY_KP_SUBTRACT,
+  KeyPadAdd = GLFW_KEY_KP_ADD,
+  KeyPadEnter = GLFW_KEY_KP_ENTER,
+  KeyPadEqual = GLFW_KEY_KP_EQUAL,
+  LeftShift = GLFW_KEY_LEFT_SHIFT,
+  LeftControl = GLFW_KEY_LEFT_CONTROL,
+  LeftAlt = GLFW_KEY_LEFT_ALT,
+  LeftSuper = GLFW_KEY_LEFT_SUPER,
+  RightShift = GLFW_KEY_RIGHT_SHIFT,
+  RightControl = GLFW_KEY_RIGHT_CONTROL,
+  RightAlt = GLFW_KEY_RIGHT_ALT,
+  RightSuper = GLFW_KEY_RIGHT_SUPER,
+  Menu = GLFW_KEY_MENU,
+  Last = GLFW_KEY_LAST
 };
 
-class InputManager {
+enum class MouseCode {
+  Unknown = -1,
+  Left = GLFW_MOUSE_BUTTON_1,
+  Right = GLFW_MOUSE_BUTTON_2,
+  Middle = GLFW_MOUSE_BUTTON_3,
+  Last = GLFW_MOUSE_BUTTON_8,
+  Other1 = GLFW_MOUSE_BUTTON_4,
+  Other2 = GLFW_MOUSE_BUTTON_5,
+  Other3 = GLFW_MOUSE_BUTTON_6,
+  Other4 = GLFW_MOUSE_BUTTON_7
+};
+
+using ScanCode = s32;
+constexpr auto kInvalidScanCode{static_cast<ScanCode>(-1)};
+
+using Action = s32;
+constexpr auto kInvalidAction{static_cast<Action>(-1)};
+
+using Mods = s32;
+constexpr auto kInvalidMods{static_cast<Mods>(-1)};
+
+class InputManager : public Manager {
  public:
   InputManager() = default;
   InputManager(const InputManager&) = delete;
@@ -148,14 +171,17 @@ class InputManager {
   InputManager& operator=(InputManager&&) = delete;
   virtual ~InputManager() = default;
 
-  virtual void Initialize();
+  virtual void Shutdown() override;
   virtual void Update();
-  virtual bool IsKeyBeingPressed(KeyCode) const;
+  virtual bool IsKeyPressed(KeyCode) const;
   virtual bool IsKeyUp(KeyCode) const;
   virtual bool IsKeyDown(KeyCode) const;
-  void AttachGlfwWindow(GLFWwindow* window_handle_);
+  virtual bool IsMousePressed(MouseCode key_code) const;
+  virtual bool IsMouseDown(MouseCode key_code) const;
+  virtual bool IsMouseUp(MouseCode key_code) const;
   virtual glm::vec2 GetMousePosition() const;
   virtual void SetMousePosition(f32, f32);
+  void AttachGlfwWindow(GLFWwindow* window_handle_);
 
  private:
   mutable std::atomic<GLFWwindow*> window_handle_{nullptr};
@@ -170,14 +196,20 @@ class NullInputManager : public InputManager {
   NullInputManager& operator=(NullInputManager&&) = delete;
   virtual ~NullInputManager() = default;
 
-  virtual bool IsKeyBeingPressed(KeyCode key_code) const override {
-    return false;
-  };
+  virtual bool IsKeyPressed(KeyCode key_code) const override { return false; };
+
   virtual bool IsKeyUp(KeyCode key_code) const override { return false; };
   virtual bool IsKeyDown(KeyCode key_code) const override { return false; };
-  virtual glm::vec2 GetMousePosition() const override {
-    return glm::vec2(0.0f, 0.0f);
+  virtual bool IsMousePressed(MouseCode key_code) const override {
+    return false;
   };
+  virtual bool IsMouseDown(MouseCode key_code) const override { return false; };
+  virtual bool IsMouseUp(MouseCode key_code) const override { return false; };
+
+  virtual glm::vec2 GetMousePosition() const override {
+    return glm::vec2{0.0f, 0.0f};
+  };
+
   virtual void SetMousePosition(f32 x, f32 y) override{};
 };
 }  // namespace input

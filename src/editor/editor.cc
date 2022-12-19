@@ -24,7 +24,7 @@ void CometEditor::PreLoad() {
 
 #ifdef COMET_UNIX
   struct sigaction sig_handler;
-  sig_handler.sa_handler = [](int signal) { CometEditor::Get().Quit(); };
+  sig_handler.sa_handler = [](s32 signal) { CometEditor::Get().Quit(); };
 
   sigemptyset(&sig_handler.sa_mask);
   sig_handler.sa_flags = 0;
@@ -38,11 +38,11 @@ void CometEditor::PreLoad() {
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::PostLoad() {
   Engine::PostLoad();
-  entity::CreateModelEntity("models/nanosuit/model.obj");
+  entity::GenerateModelEntity("models/nanosuit/model.obj");
 }
 
 void CometEditor::PostUnload() {
-  asset_manager_.Destroy();
+  asset_manager_.Shutdown();
   Engine::PostUnload();
 }
 
@@ -64,7 +64,7 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 #endif  // COMET_WINDOWS
 }  // namespace editor
 
-std::unique_ptr<Engine> CreateEngine() {
+std::unique_ptr<Engine> GenerateEngine() {
   return std::make_unique<editor::CometEditor>();
 }
 }  // namespace comet

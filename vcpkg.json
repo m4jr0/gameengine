@@ -22,7 +22,8 @@
     {
       "name": "imgui",
       "features": [
-        "glfw-binding"
+        "glfw-binding",
+        "vulkan-binding"
       ]
     },
     {
@@ -48,9 +49,6 @@
     },
     {
       "name": "shaderc"
-    },
-    {
-      "name": "spirv-reflect"
     }
   ]
 }

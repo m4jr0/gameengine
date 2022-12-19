@@ -7,6 +7,8 @@
 
 #include "comet_precompile.h"
 
+using namespace std::literals;
+
 namespace comet {
 namespace conf {
 using ConfKey = stringid::StringId;
@@ -52,18 +54,36 @@ static const ConfKey kRenderingClearColorB{
 static const ConfKey kRenderingClearColorA{
     COMET_STRING_ID("rendering_clear_color_a")};
 static const ConfKey kRenderingIsVsync{COMET_STRING_ID("rendering_is_vsync")};
+static const ConfKey kRenderingIsTripleBuffering{
+    COMET_STRING_ID("rendering_is_triple_buffering")};
+static const ConfKey kRenderingFpsCap{COMET_STRING_ID("rendering_fps_cap")};
+static const ConfKey kRenderingAntiAliasing{
+    COMET_STRING_ID("rendering_anti_aliasing")};
 static const ConfKey kRenderingIsSamplerAnisotropy{
     COMET_STRING_ID("rendering_is_sampler_anisotropy")};
 static const ConfKey kRenderingIsSampleRateShading{
     COMET_STRING_ID("rendering_is_sample_rate_shading")};
 
+static constexpr auto kRenderingAntiAliasingTypeNone{"none"sv};
+static constexpr auto kRenderingAntiAliasingTypeMsaaX64{"msaax64"sv};
+static constexpr auto kRenderingAntiAliasingTypeMsaaX32{"msaax32"sv};
+static constexpr auto kRenderingAntiAliasingTypeMsaaX16{"msaax16"sv};
+static constexpr auto kRenderingAntiAliasingTypeMsaaX8{"msaax8"sv};
+static constexpr auto kRenderingAntiAliasingTypeMsaaX4{"msaax4"sv};
+static constexpr auto kRenderingAntiAliasingTypeMsaaX2{"msaax2"sv};
+static constexpr auto kRenderingAntiAliasingTypeMsaa{"msaa"sv};
+
 // OpenGL.
+static constexpr auto kRenderingDriverOpengl{"opengl"sv};
+
 static const ConfKey kRenderingOpenGlMajorVersion{
     COMET_STRING_ID("rendering_opengl_major_version")};
 static const ConfKey kRenderingOpenGlMinorVersion{
     COMET_STRING_ID("rendering_opengl_minor_version")};
 
 // Vulkan.
+static constexpr auto kRenderingDriverVulkan{"vulkan"sv};
+
 static const ConfKey kRenderingVulkanVariantVersion{
     COMET_STRING_ID("rendering_vulkan_variant_version")};
 static const ConfKey kRenderingVulkanMajorVersion{
@@ -75,13 +95,16 @@ static const ConfKey kRenderingVulkanPatchVersion{
 static const ConfKey kRenderingVulkanMaxFramesInFlight{
     COMET_STRING_ID("rendering_vulkan_max_frames_in_flight")};
 
+// Direct3D 12.
+static constexpr auto kRenderingDriverDirect3d12{"direct3d12"sv};
+
 // Resource. /////////////////////////////////////////////////////////////
 static const ConfKey kResourceRootPath{COMET_STRING_ID("resource_root_path")};
 
 constexpr u16 kMaxStrValueLength{260};
 
 union ConfValue {
-  char str[kMaxStrValueLength];
+  schar str[kMaxStrValueLength];
   u8 ubyte;
   u16 ushort;
   u32 u;
@@ -100,7 +123,7 @@ union ConfValue {
 };
 
 ConfValue GetDefaultValue(const std::string& key);
-ConfValue GetDefaultValue(const char* key);
+ConfValue GetDefaultValue(const schar* key);
 ConfValue GetDefaultValue(ConfKey key);
 }  // namespace conf
 }  // namespace comet

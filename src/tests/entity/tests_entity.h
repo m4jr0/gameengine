@@ -25,9 +25,9 @@ struct DummyMeshComponent {
 struct DummyTransformComponent {
   static const entity::ComponentTypeId kComponentTypeId;
 
-  f64 position[3];
-  f64 rotation[3];
-  f64 scale[3];
+  f64 position[3]{};
+  f64 rotation[3]{};
+  f64 scale[3]{};
 
   entity::EntityId parent{entity::kInvalidEntityId};
   entity::EntityId first{entity::kInvalidEntityId};
