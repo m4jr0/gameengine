@@ -78,8 +78,6 @@ void OpenGlDriver::Update(time::Interpolation interpolation,
 }
 
 void OpenGlDriver::SetSize(u16 width, u16 height) {
-  window_.SetSize(width, height);
-
   glViewport(0, 0, window_.GetWidth(), window_.GetHeight());
 }
 
