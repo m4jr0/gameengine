@@ -1,4 +1,4 @@
-// Copyright 2022 m4jr0. All Rights Reserved.
+// Copyright 2023 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be it in the LICENSE file.
 
