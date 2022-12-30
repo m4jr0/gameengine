@@ -56,6 +56,7 @@
 
 #include "comet/core/debug.h"
 #include "comet/core/logger.h"
+#include "comet/core/type/compilers.h"
 #include "comet/core/type/gid.h"
 #include "comet/core/type/string_id.h"
 #include "comet/core/version.h"

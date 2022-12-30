@@ -40,7 +40,12 @@ bool OpenBinaryFileToReadFrom(const char* path, std::ifstream& in_file,
   in_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
   try {
+    // Weird case to keep MSVC happy.
+#ifdef COMET_MSVC
     auto mode{static_cast<s32>(std::ios::binary)};
+#else
+    auto mode{std::ios::binary};
+#endif  // COMET_MSVC
 
     if (is_at_end) {
       mode |= std::ios::ate;

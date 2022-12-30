@@ -32,7 +32,7 @@ namespace vk {
   do {                                                                  \
     constexpr auto kMessageLength{255};                                 \
     std::string message(kMessageLength, 0);                             \
-    std::snprintf(message.data(), kMessageLength, format, __VA_ARGS__); \
+    std::snprintf(message.data(), kMessageLength, format, ##__VA_ARGS__); \
     COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                       \
   } while (false)
 #endif  // COMET_VULKAN_DEBUG_MODE

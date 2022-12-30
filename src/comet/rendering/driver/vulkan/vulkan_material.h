@@ -104,8 +104,6 @@ VulkanMaterialId GenerateVulkanMaterialId(const std::string& material_name);
 }  // namespace comet
 
 namespace std {
-class comet::rendering::vk::VulkanMaterialDescr;
-
 template <>
 struct hash<comet::rendering::vk::VulkanMaterialDescr> {
   std::size_t operator()(

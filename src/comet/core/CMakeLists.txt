@@ -17,7 +17,8 @@ add_library(${CORE_LIBRARY_NAME}
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"
-
+  
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/compilers.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/os.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/primitive.h"
