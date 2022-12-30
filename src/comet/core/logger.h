@@ -7,6 +7,31 @@
 
 #include "comet_precompile.h"
 
+// If issues arise with current terminal, comment this line.
+#define COMET_TERMINAL_COLORS
+
+#define COMET_ASCII_PREFIX "\033["
+#define COMET_ASCII_SUFFIX "m"
+#define COMET_ASCII_ATTR_SUFFIX ";"
+#define COMET_ASCII_EMPHASIS_ATTR "1" COMET_ASCII_ATTR_SUFFIX
+
+#define COMET_ASCII_NORMAL_COL "0"  // Default terminal color.
+#define COMET_ASCII_INFO_COL COMET_ASCII_NORMAL_COL
+#define COMET_ASCII_ERROR_COL "31"    // Red color.
+#define COMET_ASCII_WARNING_COL "33"  // Yellow color.
+#define COMET_ASCII_DEBUG_COL "90"    // Dark gray color.
+
+#ifdef COMET_TERMINAL_COLORS
+#define COMET_ASCII_CATEGORY(COLOR) \
+  COMET_ASCII_PREFIX COMET_ASCII_EMPHASIS_ATTR COLOR COMET_ASCII_SUFFIX
+#define COMET_ASCII(COLOR) COMET_ASCII_PREFIX COLOR COMET_ASCII_SUFFIX
+#define COMET_ASCII_RESET COMET_ASCII(COMET_ASCII_NORMAL_COL)
+#else
+#define COMET_ASCII_CATEGORY(COLOR) ""
+#define COMET_ASCII(COLOR) ""
+#define COMET_ASCII_RESET ""
+#endif  // COMET_TERMINAL_COLORS
+
 namespace comet {
 namespace log {
 enum class LoggerType {
@@ -37,28 +62,36 @@ class Logger final {
   void Error(Targs&&... args) const {
     std::stringstream string_stream;
     GetString(string_stream, std::forward<Targs>(args)...);
-    std::cerr << "[ERROR] " << string_stream.str() << '\n';
+    std::cerr << COMET_ASCII_CATEGORY(COMET_ASCII_ERROR_COL) << "[ERROR]"
+              << COMET_ASCII(COMET_ASCII_ERROR_COL) << " "
+              << string_stream.str() << COMET_ASCII_RESET << '\n';
   }
 
   template <typename... Targs>
   void Info(Targs&&... args) const {
     std::stringstream string_stream;
     GetString(string_stream, std::forward<Targs>(args)...);
-    std::cout << "[INFO] " << string_stream.str() << '\n';
+    std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_INFO_COL) << "[INFO]"
+              << COMET_ASCII(COMET_ASCII_INFO_COL) << " " << string_stream.str()
+              << COMET_ASCII_RESET << '\n';
   }
 
   template <typename... Targs>
   void Debug(Targs&&... args) const {
     std::stringstream string_stream;
     GetString(string_stream, std::forward<Targs>(args)...);
-    std::cout << "[DEBUG] " << string_stream.str() << '\n';
+    std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_DEBUG_COL) << "[DEBUG]"
+              << COMET_ASCII(COMET_ASCII_DEBUG_COL) << " "
+              << string_stream.str() << COMET_ASCII_RESET << '\n';
   }
 
   template <typename... Targs>
   void Warning(Targs&&... args) const {
     std::stringstream string_stream;
     GetString(string_stream, std::forward<Targs>(args)...);
-    std::cout << "[WARNING] " << string_stream.str() << '\n';
+    std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_WARNING_COL) << "[WARNING]"
+              << COMET_ASCII(COMET_ASCII_WARNING_COL) << " "
+              << string_stream.str() << COMET_ASCII_RESET << '\n';
   }
 
   const LoggerType GetType() const { return type_; };
