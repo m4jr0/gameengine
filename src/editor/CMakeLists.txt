@@ -11,6 +11,7 @@
 # Source files #################################################################
 list(APPEND EXECUTABLE_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/entry_point.cc"
+  "${PROJECT_SOURCE_DIR}/src/editor/camera_handler.cc"
   "${PROJECT_SOURCE_DIR}/src/editor/editor.cc"
 )
 

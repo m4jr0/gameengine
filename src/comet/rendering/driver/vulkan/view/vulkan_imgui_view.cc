@@ -88,7 +88,7 @@ void ImGuiView::Initialize() {
       "Failed to create descriptor pool for ImGui!");
 
   ImGui::CreateContext();
-  ImGui_ImplGlfw_InitForVulkan(window_->GetHandle(), true);
+  ImGui_ImplGlfw_InitForVulkan(window_->GetHandle(), false);
   const auto& device{context_->GetDevice()};
 
   ImGui_ImplVulkan_InitInfo imgui_info{};
@@ -123,7 +123,6 @@ void ImGuiView::Destroy() {
     descriptor_pool_handle_ = VK_NULL_HANDLE;
   }
 
-  ImGui_ImplGlfw_RestoreCallbacks(window_->GetHandle());
   ImGui_ImplVulkan_Shutdown();
   ImGui::DestroyContext();
   View::Destroy();

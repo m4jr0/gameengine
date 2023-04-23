@@ -107,8 +107,8 @@ void GlfwWindow::Destroy() {
 }
 
 void GlfwWindow::Update() {
-  if (!is_resize_event_ ||
-      Engine::Get().GetInputManager().IsMousePressed(input::MouseCode::Left)) {
+  if (!is_resize_event_ || Engine::Get().GetInputManager().IsMousePressed(
+                               input::MouseButton::Left)) {
     return;
   }
 

@@ -25,7 +25,7 @@ struct ViewPacket {
   FrameInFlightIndex frame_in_flight_index{kInvalidFrameInFlightIndex};
   VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
   glm::mat4x4 projection_matrix{};
-  glm::mat4x4 view_matrix{};
+  const glm::mat4x4* view_matrix{nullptr};
 };
 
 struct ViewDescr {

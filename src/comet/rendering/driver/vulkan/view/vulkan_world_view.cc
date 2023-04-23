@@ -81,7 +81,7 @@ void WorldView::Update(const ViewPacket& packet) {
   shader_handler_->Bind(*shader_);
   ShaderPacket shader_packet{};
   shader_packet.projection_matrix = &packet.projection_matrix;
-  shader_packet.view_matrix = &packet.view_matrix;
+  shader_packet.view_matrix = packet.view_matrix;
   shader_handler_->UpdateGlobal(*shader_, shader_packet);
   render_proxy_handler_->DrawProxies(*shader_);
   render_pass_handler_->EndPass(packet.command_buffer_handle);

@@ -9,6 +9,11 @@
 
 namespace comet {
 namespace editor {
+void CometEditor::Update(f64& lag) {
+  Engine::Update(lag);
+  camera_handler_->Update();
+}
+
 void CometEditor::PreLoad() {
   Engine::PreLoad();
 
@@ -38,10 +43,11 @@ void CometEditor::PreLoad() {
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::PostLoad() {
   Engine::PostLoad();
-  entity::GenerateModelEntity("models/nanosuit/model.obj");
+  PostLoadTmpCode();
 }
 
 void CometEditor::PostUnload() {
+  PostUnloadTmpCode();
   asset_manager_.Shutdown();
   Engine::PostUnload();
 }
@@ -62,6 +68,16 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
   return FALSE;
 }
 #endif  // COMET_WINDOWS
+
+// TODO(m4jr0): Remove temporary code.
+void CometEditor::PostLoadTmpCode() {
+  entity::GenerateModelEntity("models/nanosuit/model.obj");
+  CameraHandlerDescr camera_handler_descr{};
+  camera_handler_ = std::make_unique<CameraHandler>(camera_handler_descr);
+  camera_handler_->Initialize();
+}
+
+void CometEditor::PostUnloadTmpCode() { camera_handler_->Shutdown(); }
 }  // namespace editor
 
 std::unique_ptr<Engine> GenerateEngine() {

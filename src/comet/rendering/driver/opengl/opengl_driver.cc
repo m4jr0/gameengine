@@ -120,9 +120,9 @@ void OpenGlDriver::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
   if (event_type == event::WindowResizeEvent::kStaticType_) {
-    const auto& window_event{
+    const auto& window_resize_event{
         static_cast<const event::WindowResizeEvent&>(event)};
-    SetSize(window_event.GetWidth(), window_event.GetHeight());
+    SetSize(window_resize_event.GetWidth(), window_resize_event.GetHeight());
   }
 }
 

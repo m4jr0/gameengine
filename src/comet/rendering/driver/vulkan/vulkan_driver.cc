@@ -10,6 +10,8 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #include "comet/event/window_event.h"
+#include "comet/rendering/camera/camera.h"
+#include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
@@ -445,27 +447,10 @@ void VulkanDriver::DrawViews(time::Interpolation interpolation) {
   ViewPacket packet{};
   packet.interpolation = interpolation;
 
-  // TODO(m4jr0): Remove temporary code. ///////////////////////////////////////
-  auto nearest_point{0.1f};
-  auto farthest_point{100.0f};
-  auto fov{45.0f};
-
-  auto width{Engine::Get().GetRenderingManager().GetWindow()->GetWidth()};
-  auto height{Engine::Get().GetRenderingManager().GetWindow()->GetHeight()};
-
-  packet.projection_matrix = glm::perspective(
-      glm::radians(fov), static_cast<f32>(width) / static_cast<f32>(height),
-      nearest_point, farthest_point);
-
+  auto* camera{Engine::Get().GetCameraManager().GetMainCamera()};
+  packet.projection_matrix = camera->GetProjectionMatrix();
   packet.projection_matrix[1][1] *= -1;  // Axis is inverted in Vulkan.
-
-  auto position{glm::vec3(0, 18, 15)};
-  auto direction{glm::vec3(0, 0, -15)};
-  auto orientation{glm::vec3(0, 1, 0)};
-
-  packet.view_matrix = glm::lookAt(position, direction, orientation);
-  //////////////////////////////////////////////////////////////////////////////
-
+  packet.view_matrix = &camera->GetViewMatrix();
   packet.command_buffer_handle = context_->GetFrameData().command_buffer_handle;
   packet.frame_in_flight_index = context_->GetFrameInFlightIndex();
   view_handler_->Update(packet);

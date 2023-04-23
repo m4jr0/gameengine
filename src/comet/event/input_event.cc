@@ -55,47 +55,34 @@ f64 MouseScrollEvent::GetYOffset() const noexcept { return y_offset_; }
 const stringid::StringId MouseClickEvent::kStaticType_{
     COMET_STRING_ID("event_mouse_click")};
 
-MouseClickEvent::MouseClickEvent(bool is_left_button, bool is_right_button,
-                                 bool is_middle_button)
-    : is_left_button_{is_left_button},
-      is_right_button_{is_right_button},
-      is_middle_button_{is_middle_button} {}
+MouseClickEvent::MouseClickEvent(input::MouseButton button, input::Mods mods)
+    : button_{button}, mods_{mods} {}
 
 stringid::StringId MouseClickEvent::GetType() const noexcept {
   return kStaticType_;
 }
-bool MouseClickEvent::IsLeftButton() const noexcept { return is_left_button_; }
 
-bool MouseClickEvent::IsRightButton() const noexcept {
-  return is_right_button_;
+input::MouseButton MouseClickEvent::GetButton() const noexcept {
+  return button_;
 }
 
-bool MouseClickEvent::IsMiddleButton() const noexcept {
-  return is_middle_button_;
-}
+input::Mods MouseClickEvent::GetMods() const noexcept { return mods_; }
 
 const stringid::StringId MouseReleaseEvent::kStaticType_{
     COMET_STRING_ID("event_mouse_release")};
 
-MouseReleaseEvent::MouseReleaseEvent(bool is_left_button, bool is_right_button,
-                                     bool is_middle_button)
-    : is_left_button_{is_left_button},
-      is_right_button_{is_right_button},
-      is_middle_button_{is_middle_button} {}
+MouseReleaseEvent::MouseReleaseEvent(input::MouseButton button,
+                                     input::Mods mods)
+    : button_{button}, mods_{mods} {}
 
 stringid::StringId MouseReleaseEvent::GetType() const noexcept {
   return kStaticType_;
 }
 
-bool MouseReleaseEvent::IsLeftButton() const noexcept {
-  return is_left_button_;
+input::MouseButton MouseReleaseEvent::GetButton() const noexcept {
+  return button_;
 }
 
-bool MouseReleaseEvent::IsRightButton() const noexcept {
-  return is_right_button_;
-}
-bool MouseReleaseEvent::IsMiddleButton() const noexcept {
-  return is_middle_button_;
-}
+input::Mods MouseReleaseEvent::GetMods() const noexcept { return mods_; }
 }  // namespace event
 }  // namespace comet

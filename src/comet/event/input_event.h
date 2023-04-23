@@ -10,7 +10,7 @@
 #include "glm/glm.hpp"
 
 #include "comet/event/event.h"
-#include "comet/input/input_manager.h"
+#include "comet/input/input.h"
 
 namespace comet {
 namespace event {
@@ -35,9 +35,9 @@ class KeyboardEvent : public Event {
 
  private:
   input::KeyCode key_{input::KeyCode::Unknown};
-  input::ScanCode scan_code_{input::kInvalidScanCode};
-  input::Action action_{input::kInvalidAction};
-  input::Mods mods_{input::kInvalidMods};
+  input::ScanCode scan_code_{0};
+  input::Action action_{input::Action::Unknown};
+  input::Mods mods_{input::Mods::Empty};
 };
 
 class MouseMoveEvent : public Event {
@@ -82,8 +82,7 @@ class MouseClickEvent : public Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  MouseClickEvent(bool is_left_button, bool is_right_button,
-                  bool is_middle_button);
+  MouseClickEvent(input::MouseButton button, input::Mods mods);
   MouseClickEvent(const MouseClickEvent&) = default;
   MouseClickEvent(MouseClickEvent&&) noexcept = default;
   MouseClickEvent& operator=(const MouseClickEvent&) = default;
@@ -91,22 +90,19 @@ class MouseClickEvent : public Event {
   virtual ~MouseClickEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
-  bool IsLeftButton() const noexcept;
-  bool IsRightButton() const noexcept;
-  bool IsMiddleButton() const noexcept;
+  input::MouseButton GetButton() const noexcept;
+  input::Mods GetMods() const noexcept;
 
  private:
-  bool is_left_button_{false};
-  bool is_right_button_{false};
-  bool is_middle_button_{false};
+  input::MouseButton button_{input::MouseButton::Unknown};
+  input::Mods mods_{input::Mods::Empty};
 };
 
 class MouseReleaseEvent : public Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  MouseReleaseEvent(bool is_left_button, bool is_right_button,
-                    bool is_middle_button);
+  MouseReleaseEvent(input::MouseButton button, input::Mods mods);
   MouseReleaseEvent(const MouseReleaseEvent&) = default;
   MouseReleaseEvent(MouseReleaseEvent&&) noexcept = default;
   MouseReleaseEvent& operator=(const MouseReleaseEvent&) = default;
@@ -114,14 +110,12 @@ class MouseReleaseEvent : public Event {
   virtual ~MouseReleaseEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
-  bool IsLeftButton() const noexcept;
-  bool IsRightButton() const noexcept;
-  bool IsMiddleButton() const noexcept;
+  input::MouseButton GetButton() const noexcept;
+  input::Mods GetMods() const noexcept;
 
  private:
-  bool is_left_button_{false};
-  bool is_right_button_{false};
-  bool is_middle_button_{false};
+  input::MouseButton button_{input::MouseButton::Unknown};
+  input::Mods mods_{input::Mods::Empty};
 };
 }  // namespace event
 }  // namespace comet

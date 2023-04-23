@@ -8,6 +8,8 @@
 namespace comet {
 namespace utils {
 namespace math {
+constexpr auto kPi{3.14159265358979323846};
+
 template <typename T>
 constexpr T CtSearchSqrt(T x, T low, T high) {
   if (low == high) {
@@ -28,6 +30,11 @@ constexpr T CtSearchSqrt(T x, T low, T high) {
 template <typename T>
 constexpr T CtSqrt(T x) {
   return CtSearchSqrt<T>(x, 0, x / 2 + 1);
+}
+
+template <typename T>
+constexpr T ConvertToRadiants(T x) {
+  return x * (kPi / 180);
 }
 }  // namespace math
 }  // namespace utils

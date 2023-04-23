@@ -47,6 +47,10 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_common.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cc"
 
+    # Camera.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/camera.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/camera_manager.cc"
+
     # Driver.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"
 

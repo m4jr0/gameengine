@@ -12,6 +12,7 @@
 #include "comet/event/event_manager.h"
 #include "comet/input/input_manager.h"
 #include "comet/physics/physics_manager.h"
+#include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/rendering_manager.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/time/time_manager.h"
@@ -27,6 +28,7 @@ class Engine {
 
   void Initialize();
   void Run();
+  virtual void Update(f64& lag);
   void Stop();
   void Shutdown();
   void Quit();
@@ -41,13 +43,14 @@ class Engine {
 
   static Engine& Get();
   conf::ConfigurationManager& GetConfigurationManager();
-  resource::ResourceManager& GetResourceManager();
-  rendering::RenderingManager& GetRenderingManager();
-  physics::PhysicsManager& GetPhysicsManager();
-  input::InputManager& GetInputManager();
-  time::TimeManager& GetTimeManager();
   entity::EntityManager& GetEntityManager();
   event::EventManager& GetEventManager();
+  input::InputManager& GetInputManager();
+  physics::PhysicsManager& GetPhysicsManager();
+  rendering::CameraManager& GetCameraManager();
+  rendering::RenderingManager& GetRenderingManager();
+  resource::ResourceManager& GetResourceManager();
+  time::TimeManager& GetTimeManager();
 
   bool IsRunning() const noexcept;
   bool IsInitialized() const noexcept;
@@ -61,13 +64,14 @@ class Engine {
   void OnEvent(const event::Event& event);
 
   conf::ConfigurationManager configuration_manager_{};
-  resource::ResourceManager resource_manager_{};
+  entity::EntityManager entity_manager_{};
+  event::EventManager event_manager_{};
   input::InputManager input_manager_{};
   physics::PhysicsManager physics_manager_{};
+  rendering::CameraManager camera_manager_{};
   rendering::RenderingManager rendering_manager_{};
-  entity::EntityManager entity_manager_{};
+  resource::ResourceManager resource_manager_{};
   time::TimeManager time_manager_{};
-  event::EventManager event_manager_{};
 
  private:
   bool is_initialized_{false};

@@ -18,6 +18,7 @@
 #include <cassert>
 #include <chrono>
 #include <climits>
+#include <cmath>
 #include <condition_variable>
 #include <csignal>
 #include <cstdint>

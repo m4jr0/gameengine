@@ -6,7 +6,9 @@
 
 #include "vulkan/vulkan.h"
 
+#ifdef COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"
+#endif  // COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_world_view.h"
 
 namespace comet {
@@ -97,15 +99,16 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       break;
     }
 
-      // TODO(m4jr0).
-      // case RenderingViewType::SimpleWorld: {
-      //   break;
-      // }
+    // TODO(m4jr0).
+    // case RenderingViewType::SimpleWorld: {
+    //   break;
+    // }
 
-      // case RenderingViewType::Skybox: {
-      //   break;
-      // }
+    // case RenderingViewType::Skybox: {
+    //   break;
+    // }
 
+#ifdef COMET_IMGUI
     case RenderingViewType::ImGui: {
       ImGuiViewDescr view_descr{};
       view_descr.id = descr.id;
@@ -121,6 +124,7 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view = std::make_unique<ImGuiView>(view_descr);
       break;
     }
+#endif  // COMET_IMGUI
 
     default: {
       COMET_ASSERT(

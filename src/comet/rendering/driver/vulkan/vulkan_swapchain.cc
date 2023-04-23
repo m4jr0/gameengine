@@ -294,7 +294,7 @@ bool Swapchain::IsReloadNeeded() const noexcept { return is_reload_needed_; }
 
 VkFormat Swapchain::GetFormat() const noexcept { return format_; }
 
-VkExtent2D Swapchain::GetExtent() const noexcept { return extent_; }
+const VkExtent2D& Swapchain::GetExtent() const noexcept { return extent_; }
 
 u32 Swapchain::GetImageCount() const {
   return static_cast<u32>(images_.size());

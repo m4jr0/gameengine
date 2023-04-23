@@ -37,10 +37,7 @@ void Engine::Run() {
         break;
       }
 
-      time_manager_.Update();
-      lag += time_manager_.GetDeltaTime();
-      physics_manager_.Update(lag);
-      rendering_manager_.Update(lag / time_manager_.GetFixedDeltaTime());
+      Update(lag);
     }
   } catch (const std::runtime_error& runtime_error) {
     COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
@@ -59,6 +56,13 @@ void Engine::Run() {
   }
 
   Exit();
+}
+
+void Engine::Update(f64& lag) {
+  time_manager_.Update();
+  lag += time_manager_.GetDeltaTime();
+  physics_manager_.Update(lag);
+  rendering_manager_.Update(lag / time_manager_.GetFixedDeltaTime());
 }
 
 void Engine::Stop() {
@@ -94,6 +98,7 @@ void Engine::PreLoad() {
 
 void Engine::Load() {
   rendering_manager_.Initialize();
+  camera_manager_.Initialize();
   physics_manager_.Initialize();
   input_manager_.Initialize();
 
@@ -111,6 +116,7 @@ void Engine::PreUnload() {
   entity_manager_.Shutdown();
   physics_manager_.Shutdown();
   input_manager_.Shutdown();
+  camera_manager_.Shutdown();
   rendering_manager_.Shutdown();
   time_manager_.Shutdown();
   COMET_STRING_ID_DESTROY();
@@ -148,25 +154,27 @@ conf::ConfigurationManager& Engine::GetConfigurationManager() {
   return configuration_manager_;
 }
 
-resource::ResourceManager& Engine::GetResourceManager() {
-  return resource_manager_;
-}
+entity::EntityManager& Engine::GetEntityManager() { return entity_manager_; }
 
-rendering::RenderingManager& Engine::GetRenderingManager() {
-  return rendering_manager_;
-}
+event::EventManager& Engine::GetEventManager() { return event_manager_; }
+
+input::InputManager& Engine::GetInputManager() { return input_manager_; }
 
 physics::PhysicsManager& Engine::GetPhysicsManager() {
   return physics_manager_;
 }
 
-input::InputManager& Engine::GetInputManager() { return input_manager_; }
+rendering::CameraManager& Engine::GetCameraManager() { return camera_manager_; }
+
+rendering::RenderingManager& Engine::GetRenderingManager() {
+  return rendering_manager_;
+}
+
+resource::ResourceManager& Engine::GetResourceManager() {
+  return resource_manager_;
+}
 
 time::TimeManager& Engine::GetTimeManager() { return time_manager_; }
-
-entity::EntityManager& Engine::GetEntityManager() { return entity_manager_; }
-
-event::EventManager& Engine::GetEventManager() { return event_manager_; }
 
 bool Engine::IsRunning() const noexcept { return is_running_; }
 

@@ -15,6 +15,7 @@ find_package(glm REQUIRED)
 # Source files #################################################################
 add_library(${INPUT_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/input/input_manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/input/input.h"
 )
 
 # Compiling ####################################################################

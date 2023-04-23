@@ -67,7 +67,7 @@ class Swapchain {
   operator VkSwapchainKHR() const noexcept;
   bool IsReloadNeeded() const noexcept;
   VkFormat GetFormat() const noexcept;
-  VkExtent2D GetExtent() const noexcept;
+  const VkExtent2D& GetExtent() const noexcept;
   u32 GetImageCount() const;
   const std::vector<Image>& GetImages() const noexcept;
   const Image& GetColorImage() const noexcept;

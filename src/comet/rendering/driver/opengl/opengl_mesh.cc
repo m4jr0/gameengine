@@ -140,24 +140,11 @@ void HandleTextureLabel(rendering::TextureType texture_type,
 }
 
 void DrawRenderProxy(RenderProxy proxy) {
-  auto nearest_point{0.1f};
-  auto farthest_point{100.0f};
-  auto fov{45.0f};
-
   auto width{Engine::Get().GetRenderingManager().GetWindow()->GetWidth()};
   auto height{Engine::Get().GetRenderingManager().GetWindow()->GetHeight()};
-
-  auto projection_matrix{glm::perspective(
-      glm::radians(fov), static_cast<f32>(width) / static_cast<f32>(height),
-      nearest_point, farthest_point)};
-
-  auto position{glm::vec3(0, 18, 15)};
-  auto direction{glm::vec3(0, 0, -15)};
-  auto orientation{glm::vec3(0, 1, 0)};
-
-  auto view_matrix{glm::lookAt(position, direction, orientation)};
-
-  const auto mvp{projection_matrix * view_matrix * proxy.transform};
+  auto* camera{Engine::Get().GetCameraManager().GetMainCamera()};
+  const auto mvp{camera->GetProjectionMatrix() * camera->GetViewMatrix() *
+                 proxy.transform};
   auto& shader_program{GetShaderProgram()};
 
   shader_program.SetMatrix4("mvp", mvp);
