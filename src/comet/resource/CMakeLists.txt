@@ -17,6 +17,8 @@ add_library(${RESOURCE_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/resource/shader_module_resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/shader_resource.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/resource/texture_resource.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/comet/resource/component/mesh_component.h"
 )
 
 # Compiling ####################################################################
@@ -54,5 +56,5 @@ endif()
 # Internal libraries.
 target_link_libraries(${RESOURCE_LIBRARY_NAME}
   PRIVATE
-    # Put internal libraries here.
+    ${CORE_LIBRARY_NAME}
 )

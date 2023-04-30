@@ -4,13 +4,17 @@
 
 #include "time_manager.h"
 
-#include "comet/core/conf/configuration_manager.h"
-#include "comet/core/engine.h"
-#include "comet/utils/date.h"
+#include "comet/core/date.h"
 
 namespace comet {
 namespace time {
-f64 TimeManager::GetRealNow() { return utils::date::GetNow(); }
+TimeManager::TimeManager(const TimeManagerDescr& descr)
+    : Manager{descr}, configuration_manager_{descr.configuration_manager} {
+  COMET_ASSERT(configuration_manager_ != nullptr,
+               "Configuration manager is null!");
+}
+
+f64 TimeManager::GetRealNow() { return comet::GetNow(); }
 
 f64 TimeManager::GetNow() {
   const auto delta_time{GetRealNow() - previous_time_};
@@ -25,7 +29,9 @@ void TimeManager::Initialize() {
 
   // Round up to two decimal places.
   fixed_delta_time_ =
-      std::ceil(COMET_CONF_F64(conf::kCoreMsPerUpdate) * 100.0) / 100.0;
+      std::ceil(configuration_manager_->GetF64(conf::kCoreMsPerUpdate) *
+                100.0) /
+      100.0;
 }
 
 void TimeManager::Shutdown() {

@@ -17,8 +17,6 @@ namespace debug {
 #define COMET_CHECK_VK(vk_expression, ...) vk_expression
 #else
 // Disable Vulkan's validation layers even in debug mode, if necessary.
-#define COMET_VULKAN_DEBUG_MODE
-
 #define COMET_CHECK_VK(vk_expression, ...)                  \
   do {                                                      \
     COMET_ASSERT(vk_expression == VK_SUCCESS, __VA_ARGS__); \
@@ -28,6 +26,7 @@ namespace debug {
 #ifdef COMET_VULKAN_DEBUG_MODE
 #undef VMA_DEBUG_LOG
 
+#ifdef COMET_VULKAN_DEBUG_VMA
 // Print debug messages from VMA.
 #define VMA_DEBUG_LOG(format, ...)                                        \
   do {                                                                    \
@@ -36,6 +35,7 @@ namespace debug {
     std::snprintf(message.data(), kMessageLength, format, ##__VA_ARGS__); \
     COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                         \
   } while (false)
+#endif  // COMET_VULKAN_DEBUG_VMA
 #endif  // COMET_VULKAN_DEBUG_MODE
 
 VkResult CreateDebugUtilsMessengerEXT(

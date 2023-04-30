@@ -7,15 +7,21 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/entity/entity_manager.h"
+#include "comet/event/event_manager.h"
+#include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/window.h"
+#include "comet/resource/resource_manager.h"
 #include "comet/time/time_manager.h"
+
+#ifdef COMET_DEBUG
+#include "comet/rendering/debugger/debugger_displayer_manager.h"
+#endif  // COMET_DEBUG
 
 namespace comet {
 namespace rendering {
-enum class DriverType : u8 { Unknown = 0, OpenGl, Vulkan, Direct3d12 };
-
 struct DriverDescr {
   DriverType type{DriverType::Unknown};
   bool is_vsync{false};
@@ -28,13 +34,18 @@ struct DriverDescr {
   AntiAliasingType anti_aliasing_type{AntiAliasingType::None};
   WindowSize window_width{0};
   WindowSize window_height{0};
-  f32 clear_color[4]{0.0f, 0.0f, 0.0f, 1.0f};
+  f32 clear_color[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
   std::string app_name{};
+  CameraManager* camera_manager{nullptr};
+  conf::ConfigurationManager* configuration_manager{nullptr};
+#ifdef COMET_DEBUG
+  DebuggerDisplayerManager* debugger_displayer_manager{nullptr};
+#endif  // COMET_DEBUG
+  entity::EntityManager* entity_manager{nullptr};
+  event::EventManager* event_manager{nullptr};
+  resource::ResourceManager* resource_manager{nullptr};
   std::vector<RenderingViewDescr> rendering_view_descrs{};
 };
-
-DriverType GetDriverTypeFromStr(std::string_view str);
-AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str);
 
 class Driver {
  public:
@@ -48,6 +59,8 @@ class Driver {
   virtual void Initialize();
   virtual void Shutdown();
   virtual void Update(time::Interpolation interpolation) = 0;
+  virtual DriverType GetType() const noexcept = 0;
+  virtual u32 GetDrawCount() const = 0;
 
   bool IsInitialized() const noexcept;
   virtual Window* GetWindow() = 0;
@@ -64,8 +77,16 @@ class Driver {
   AntiAliasingType anti_aliasing_type_{AntiAliasingType::None};
   WindowSize window_width_{0};
   WindowSize window_height_{0};
-  f32 clear_color_[4]{0.0f, 0.0f, 0.0f, 1.0f};
+  f32 clear_color_[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
   std::string app_name_{};
+  CameraManager* camera_manager_{nullptr};
+  conf::ConfigurationManager* configuration_manager_{nullptr};
+#ifdef COMET_DEBUG
+  DebuggerDisplayerManager* debugger_displayer_manager_{nullptr};
+#endif  // COMET_DEBUG
+  entity::EntityManager* entity_manager_{nullptr};
+  event::EventManager* event_manager_{nullptr};
+  resource::ResourceManager* resource_manager_{nullptr};
   std::vector<RenderingViewDescr> rendering_view_descrs_{};
 };
 }  // namespace rendering

@@ -22,9 +22,9 @@ class PipelineHandler : public Handler {
   PipelineHandler() = delete;
   explicit PipelineHandler(const PipelineHandlerDescr& descr);
   PipelineHandler(const PipelineHandler&) = delete;
-  PipelineHandler(PipelineHandler&& other) = delete;
+  PipelineHandler(PipelineHandler&&) = delete;
   PipelineHandler& operator=(const PipelineHandler&) = delete;
-  PipelineHandler& operator=(PipelineHandler&& other) = delete;
+  PipelineHandler& operator=(PipelineHandler&&) = delete;
   virtual ~PipelineHandler() = default;
 
   void Shutdown() override;

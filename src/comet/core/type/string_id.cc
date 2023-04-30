@@ -4,6 +4,8 @@
 
 #include "string_id.h"
 
+#include "comet/core/hash.h"
+
 namespace comet {
 namespace stringid {
 StringIdHandler::~StringIdHandler() {
@@ -26,7 +28,7 @@ StringId StringIdHandler::Generate(const schar* str, uindex length) {
   COMET_ASSERT(str != nullptr,
                "String provided is null! Cannot generate string ID.");
   COMET_ASSERT(length > 0, "Cannot generate ID from empty string.");
-  const auto string_id{utils::hash::HashCrC32(str, length)};
+  const auto string_id{HashCrC32(str, length)};
   const auto it{string_id_table.find(string_id)};
 
   if (it == string_id_table.end()) {

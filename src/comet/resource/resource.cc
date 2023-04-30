@@ -6,7 +6,8 @@
 
 #include <fstream>
 
-#include "comet/utils/file_system.h"
+#include "comet/core/compression.h"
+#include "comet/core/file_system.h"
 
 namespace comet {
 namespace resource {
@@ -37,7 +38,7 @@ void PackBytes(const u8* bytes, uindex bytes_size,
                uindex* packed_bytes_size) {
   switch (compression_mode) {
     case CompressionMode::Lz4: {
-      utils::compression::CompressLz4(bytes, bytes_size, *packed_bytes);
+      CompressLz4(bytes, bytes_size, *packed_bytes);
       *packed_bytes_size = packed_bytes->size();
       break;
     }
@@ -73,8 +74,7 @@ std::vector<u8> UnpackBytes(CompressionMode compression_mode,
 
   switch (compression_mode) {
     case CompressionMode::Lz4: {
-      utils::compression::DecompressLz4(packed_bytes, packed_bytes_size,
-                                        decompressed_size, data);
+      DecompressLz4(packed_bytes, packed_bytes_size, decompressed_size, data);
       break;
     }
     case CompressionMode::None: {
@@ -107,7 +107,7 @@ std::vector<u8> UnpackResourceData(const ResourceFile& file) {
 bool SaveResourceFile(const std::string& path, const ResourceFile& file) {
   std::ofstream out_file;
 
-  if (!utils::filesystem::OpenBinaryFileToWriteTo(path, out_file, false)) {
+  if (!OpenBinaryFileToWriteTo(path, out_file, false)) {
     COMET_LOG_RESOURCE_ERROR("Unable to write resource file: ", path);
     return false;
   }
@@ -136,14 +136,14 @@ bool SaveResourceFile(const std::string& path, const ResourceFile& file) {
   out_file.write(reinterpret_cast<const schar*>(file.data.data()),
                  file.packed_data_size);
 
-  utils::filesystem::CloseFile(out_file);
+  CloseFile(out_file);
   return true;
 }
 
 bool LoadResourceFile(const std::string& path, ResourceFile& file) {
   std::ifstream in_file;
 
-  if (!utils::filesystem::OpenBinaryFileToReadFrom(path, in_file)) {
+  if (!OpenBinaryFileToReadFrom(path, in_file)) {
     COMET_LOG_RESOURCE_ERROR("Unable to open resource file: ", path);
     return false;
   }
@@ -202,8 +202,8 @@ const Resource* ResourceHandler::Load(std::string_view root_resource_path,
 
   ResourceFile file{};
 
-  const auto resource_abs_path = utils::filesystem::Append(
-      root_resource_path, std::to_string(resource_id));
+  const auto resource_abs_path =
+      Append(root_resource_path, std::to_string(resource_id));
 
   const auto is_load{LoadResourceFile(resource_abs_path, file)};
 

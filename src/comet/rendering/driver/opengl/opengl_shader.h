@@ -2,13 +2,16 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_SHADER_OPENGL_SHADER_H_
-#define COMET_COMET_RENDERING_DRIVER_OPENGL_SHADER_OPENGL_SHADER_H_
+#ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_SHADER_H_
+#define COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_SHADER_H_
 
 #include "comet_precompile.h"
 
 #include "glad/glad.h"
-#include "glm/glm.hpp"
+
+#include "comet/math/matrix.h"
+#include "comet/math/vector.h"
+#include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -21,14 +24,8 @@ constexpr auto kInvalidShaderModuleHandle{0};
 
 class ShaderProgram {
  public:
-  ShaderProgram(const schar* vertex_shader_path,
-                const schar* fragment_shader_path);
-  ShaderProgram(const schar* vertex_shader_path,
-                const std::string& fragment_shader_path);
-  ShaderProgram(const std::string& vertex_shader_path,
-                const schar* fragment_shader_path);
-  ShaderProgram(const std::string& vertex_shader_path,
-                const std::string& fragment_shader_path);
+  ShaderProgram(const resource::ShaderModuleResource* vertex_shader_resource,
+                const resource::ShaderModuleResource* fragment_shader_resource);
   ShaderProgram(const ShaderProgram&);
   ShaderProgram(ShaderProgram&&) = default;
   ShaderProgram& operator=(const ShaderProgram&) = default;
@@ -66,23 +63,23 @@ class ShaderProgram {
                             const u32* value);
   void SetUnsignedIntArray4(const std::string& name, uindex count,
                             const u32* value);
-  void SetMatrix2(const std::string& name, const glm::mat2& matrix,
+  void SetMatrix2(const std::string& name, const math::Mat2& matrix,
                   bool is_transpose = GL_FALSE);
-  void SetMatrix3(const std::string& name, const glm::mat3& matrix,
+  void SetMatrix3(const std::string& name, const math::Mat3& matrix,
                   bool is_transpose = GL_FALSE);
-  void SetMatrix4(const std::string& name, const glm::mat4& matrix,
+  void SetMatrix4(const std::string& name, const math::Mat4& matrix,
                   bool is_transpose = GL_FALSE);
-  void SetMatrix2x3(const std::string& name, const glm::mat2x3& matrix,
+  void SetMatrix2x3(const std::string& name, const math::Mat2x3& matrix,
                     bool is_transpose = GL_FALSE);
-  void SetMatrix3x2(const std::string& name, const glm::mat3x2& matrix,
+  void SetMatrix3x2(const std::string& name, const math::Mat3x2& matrix,
                     bool is_transpose = GL_FALSE);
-  void SetMatrix2x4(const std::string& name, const glm::mat2x4& matrix,
+  void SetMatrix2x4(const std::string& name, const math::Mat2x4& matrix,
                     bool is_transpose = GL_FALSE);
-  void SetMatrix4x2(const std::string& name, const glm::mat4x2& matrix,
+  void SetMatrix4x2(const std::string& name, const math::Mat4x2& matrix,
                     bool is_transpose = GL_FALSE);
-  void SetMatrix3x4(const std::string& name, const glm::mat3x4& matrix,
+  void SetMatrix3x4(const std::string& name, const math::Mat3x4& matrix,
                     bool is_transpose = GL_FALSE);
-  void SetMatrix4x3(const std::string& name, const glm::mat4x3& matrix,
+  void SetMatrix4x3(const std::string& name, const math::Mat4x3& matrix,
                     bool is_transpose = GL_FALSE);
   const ShaderHandle GetHandle() const noexcept;
 
@@ -102,4 +99,4 @@ class ShaderProgram {
 }  // namespace rendering
 }  // namespace comet
 
-#endif  // COMET_COMET_RENDERING_DRIVER_OPENGL_SHADER_OPENGL_SHADER_H_
+#endif  // COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_SHADER_H_

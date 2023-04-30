@@ -22,9 +22,9 @@ class MeshHandler : public Handler {
   MeshHandler() = delete;
   explicit MeshHandler(const MeshHandlerDescr& descr);
   MeshHandler(const MeshHandler&) = delete;
-  MeshHandler(MeshHandler&& other) = delete;
+  MeshHandler(MeshHandler&&) = delete;
   MeshHandler& operator=(const MeshHandler&) = delete;
-  MeshHandler& operator=(MeshHandler&& other) = delete;
+  MeshHandler& operator=(MeshHandler&&) = delete;
   virtual ~MeshHandler() = default;
 
   void Shutdown() override;

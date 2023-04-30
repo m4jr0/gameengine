@@ -7,8 +7,8 @@
 
 #include "comet_precompile.h"
 
-#include "comet/utils/compression.h"
-#include "comet/utils/file_system.h"
+#include "comet/core/compression.h"
+#include "comet/core/file_system.h"
 
 namespace comet {
 namespace resource {

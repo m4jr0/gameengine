@@ -4,8 +4,8 @@
 
 #include "asset_utils.h"
 
-#include "comet/utils/date.h"
-#include "comet/utils/file_system.h"
+#include "comet/core/date.h"
+#include "comet/core/file_system.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
@@ -39,8 +39,8 @@ std::string GetAssetMetadataFilePath(std::string_view asset_file_path) {
 
 void SaveMetadata(const schar* metadata_file_path,
                   const nlohmann::json& metadata) {
-  utils::filesystem::WriteStrToFile(
-      metadata_file_path, metadata.dump(kCometEditorAssetMetadataIndent));
+  WriteStrToFile(metadata_file_path,
+                 metadata.dump(kCometEditorAssetMetadataIndent));
 }
 
 void SaveMetadata(const std::string& metadata_file_path,
@@ -49,7 +49,7 @@ void SaveMetadata(const std::string& metadata_file_path,
 }
 
 nlohmann::json GetMetadata(const schar* metadata_file_path) {
-  if (!utils::filesystem::IsFile(metadata_file_path)) {
+  if (!IsFile(metadata_file_path)) {
     // We have to use () here, with {} the wrong type (array) is set.
     return nlohmann::json(nlohmann::json::value_t::object);
   }
@@ -57,7 +57,7 @@ nlohmann::json GetMetadata(const schar* metadata_file_path) {
   std::string metadata_raw;
 
   try {
-    utils::filesystem::ReadStrFromFile(metadata_file_path, metadata_raw);
+    ReadStrFromFile(metadata_file_path, metadata_raw);
 
     if (metadata_raw.size() == 0) {
       // Same here.
@@ -83,7 +83,7 @@ nlohmann::json SetAndGetMetadata(const schar* metadata_file_path) {
   // type is an array (which is wrong).
   auto metadata = GetMetadata(metadata_file_path);
   const auto comet_version{version::GetFormattedVersion()};
-  const auto update_time{utils::date::GetNow()};
+  const auto update_time{GetNow()};
   f64 creation_time{0};
   uindex file_version{0};
 
@@ -115,8 +115,7 @@ bool IsMetadataFile(const std::string& file_path) {
 }
 
 bool IsMetadataFile(const schar* file_path) {
-  return utils::filesystem::GetExtension(file_path) ==
-         kCometEditorAssetMetadataFileExtension;
+  return GetExtension(file_path) == kCometEditorAssetMetadataFileExtension;
 }
 }  // namespace asset
 }  // namespace editor

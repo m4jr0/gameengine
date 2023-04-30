@@ -5,10 +5,13 @@
 #ifndef COMET_COMET_CORE_TYPE_PRIMITIVE_H_
 #define COMET_COMET_CORE_TYPE_PRIMITIVE_H_
 
+#include <float.h>
+
 #include <climits>
+#include <cstddef>
 #include <cstdint>
 
-#include "comet/core/type/os.h"
+#include "comet/core/os.h"
 
 namespace comet {
 constexpr auto kCharBit{CHAR_BIT};
@@ -45,6 +48,11 @@ using ux = u32;
 using sx = s32;
 using fx = f32;
 #endif  // COMET_64
+
+constexpr auto kF32Min{FLT_MIN};
+constexpr auto kF32Max{FLT_MAX};
+constexpr auto kF64Min{DBL_MIN};
+constexpr auto kF64Max{DBL_MAX};
 
 static_assert(sizeof(u8) * kCharBit == 8,
               "u8 is not 8 bits on this architecture.");

@@ -7,7 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "comet/comet.h"
+#include "comet/engine/engine.h"
 #include "comet/entry_point.h"
 #include "comet/event/event.h"
 #include "editor/asset/asset_manager.h"
@@ -39,7 +39,7 @@ class CometEditor : public Engine {
   void PostLoadTmpCode();
   void PostUnloadTmpCode();
 
-  asset::AssetManager asset_manager_{};
+  std::unique_ptr<asset::AssetManager> asset_manager_{nullptr};
   std::unique_ptr<CameraHandler> camera_handler_{nullptr};
 };
 }  // namespace editor

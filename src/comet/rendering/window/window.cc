@@ -4,10 +4,18 @@
 
 #include "window.h"
 
+#include "comet/event/window_event.h"
+
 namespace comet {
 namespace rendering {
 Window::Window(const WindowDescr& descr)
-    : name_{descr.name}, width_{descr.width}, height_{descr.height} {}
+    : name_{descr.name},
+      width_{descr.width},
+      height_{descr.height},
+      event_manager_{descr.event_manager} {
+  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
+  event_manager_->FireEvent<event::WindowInitializedEvent>(width_, height_);
+}
 
 Window::Window(Window&& other) noexcept
     : is_initialized_{other.is_initialized_},

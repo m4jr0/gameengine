@@ -7,6 +7,9 @@
 
 #include "comet_precompile.h"
 
+#include "comet/math/bounding_volume.h"
+#include "comet/math/matrix.h"
+#include "comet/math/vector.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
@@ -20,6 +23,10 @@ struct ModelResourceDescr {
 
 struct MeshResource : InternalResource {
   ResourceId material_id{kInvalidResourceId};
+  math::Mat4 transform{1.0f};
+  math::Vec3 local_center{0.0f};
+  math::Vec3 local_max_extents{0.0f};
+  ResourceId parent_id{kInvalidResourceId};
   std::vector<rendering::Vertex> vertices{};
   std::vector<rendering::Index> indices{};
 };

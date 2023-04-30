@@ -7,9 +7,9 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
 #include "vulkan/vulkan.h"
 
+#include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
@@ -18,20 +18,26 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
+#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
 struct ShaderPacket {
-  const glm::mat4* projection_matrix{nullptr};
-  const glm::mat4* view_matrix{nullptr};
+  const math::Mat4* projection_matrix{nullptr};
+  const math::Mat4* view_matrix{nullptr};
+};
+
+struct ShaderLocalPacket {
+  const math::Mat4* position{nullptr};
 };
 
 struct ShaderHandlerDescr : HandlerDescr {
   ShaderModuleHandler* shader_module_handler{nullptr};
   PipelineHandler* pipeline_handler{nullptr};
   TextureHandler* texture_handler{nullptr};
+  resource::ResourceManager* resource_manager{nullptr};
 };
 
 class ShaderHandler : public Handler {
@@ -39,9 +45,9 @@ class ShaderHandler : public Handler {
   ShaderHandler() = delete;
   explicit ShaderHandler(const ShaderHandlerDescr& descr);
   ShaderHandler(const ShaderHandler&) = delete;
-  ShaderHandler(ShaderHandler&& other) = delete;
+  ShaderHandler(ShaderHandler&&) = delete;
   ShaderHandler& operator=(const ShaderHandler&) = delete;
-  ShaderHandler& operator=(ShaderHandler&& other) = delete;
+  ShaderHandler& operator=(ShaderHandler&&) = delete;
   virtual ~ShaderHandler() = default;
 
   void Initialize() override;
@@ -57,6 +63,7 @@ class ShaderHandler : public Handler {
   void BindInstance(Shader& shader, MaterialId instance_id) const;
   void Reset();
   void UpdateGlobal(Shader& shader, const ShaderPacket& packet) const;
+  void UpdateLocal(const ShaderLocalPacket& packet, ShaderId shader_id);
   void SetUniform(Shader& shader, const ShaderUniform& uniform,
                   const void* value) const;
   void SetUniform(ShaderId id, const ShaderUniform& uniform, const void* value);
@@ -105,6 +112,7 @@ class ShaderHandler : public Handler {
   ShaderModuleHandler* shader_module_handler_{nullptr};
   PipelineHandler* pipeline_handler_{nullptr};
   TextureHandler* texture_handler_{nullptr};
+  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

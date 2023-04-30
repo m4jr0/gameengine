@@ -4,14 +4,11 @@
 
 #include "opengl_driver.h"
 
-#include "comet/core/engine.h"
-#include "comet/entity/component/mesh_component.h"
-#include "comet/entity/component/transform_component.h"
-#include "comet/event/event_manager.h"
 #include "comet/event/input_event.h"
 #include "comet/event/runtime_event.h"
 #include "comet/event/window_event.h"
-#include "comet/rendering/driver/opengl/opengl_mesh.h"
+#include "comet/physics/component/transform_component.h"
+#include "comet/resource/component/mesh_component.h"
 
 namespace comet {
 namespace rendering {
@@ -25,6 +22,7 @@ OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr) : Driver(descr) {
   window_descr.opengl_minor_version = descr.opengl_minor_version;
   window_descr.is_vsync = is_vsync_;
   window_descr.anti_aliasing_type = anti_aliasing_type_;
+  window_descr.event_manager = event_manager_;
   window_ = std::make_unique<OpenGlGlfwWindow>(window_descr);
 
   if (is_triple_buffering_) {
@@ -41,10 +39,8 @@ void OpenGlDriver::Initialize() {
   window_->Initialize();
   COMET_ASSERT(window_->IsInitialized(), "Window could not be initialized!");
 
-  auto& event_manager{Engine::Get().GetEventManager()};
-
-  event_manager.Register(COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
-                         event::WindowResizeEvent::kStaticType_);
+  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
+                           event::WindowResizeEvent::kStaticType_);
 
   const auto result{
       gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
@@ -61,11 +57,18 @@ void OpenGlDriver::Initialize() {
     }
   }
 
-  GetShaderProgram().Initialize();
+  TemporaryHandlerDescr tmp_handler_descr{};
+  tmp_handler_descr.camera_manager = camera_manager_;
+  tmp_handler_descr.debugger_displayer_manager = debugger_displayer_manager_;
+  tmp_handler_descr.resource_manager = resource_manager_;
+  tmp_handler_descr.window = window_.get();
+  tmp_handler_ = std::make_unique<TemporaryHandler>(tmp_handler_descr);
+  tmp_handler_->Initialize();
 }
 
 void OpenGlDriver::Shutdown() {
-  GetShaderProgram().Destroy();
+  tmp_handler_->Shutdown();
+  tmp_handler_ = nullptr;
   window_->Destroy();
   Driver::Shutdown();
 }
@@ -79,38 +82,40 @@ void OpenGlDriver::Update(time::Interpolation interpolation) {
                clear_color_[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  auto& entity_manager(Engine::Get().GetEntityManager());
-
   // TODO(m4jr0): Remove temporary code.
   // Proxies should be managed with proper memory management and occlusion
   // culling.
-  static auto view{
-      entity_manager
-          .GetView<entity::MeshComponent, entity::TransformComponent>()};
+  entity_manager_->Each<resource::MeshComponent, physics::TransformComponent>(
+      [&](auto entity_id) {
+        auto* transform_cmp{
+            entity_manager_->GetComponent<physics::TransformComponent>(
+                entity_id)};
 
-  for (const auto entity_id : view) {
-    auto* transform_cmp{
-        entity_manager.GetComponent<entity::TransformComponent>(entity_id)};
+        auto* proxy{tmp_handler_->TryGetRenderProxy(entity_id)};
 
-    auto* proxy{TryGetRenderProxy(entity_id)};
+        if (proxy != nullptr) {
+          proxy->transform += (transform_cmp->global - proxy->transform) *
+                              static_cast<f32>(interpolation);
+          return;
+        }
 
-    if (proxy != nullptr) {
-      proxy->transform += (transform_cmp->global - proxy->transform) *
-                          static_cast<f32>(interpolation);
-      continue;
-    }
+        auto* mesh_cmp{
+            entity_manager_->GetComponent<resource::MeshComponent>(entity_id)};
 
-    auto* mesh_cmp{
-        entity_manager.GetComponent<entity::MeshComponent>(entity_id)};
+        tmp_handler_->GenerateRenderProxy(
+            entity_id, *mesh_cmp->mesh,
+            transform_cmp->global * static_cast<f32>(interpolation),
+            *mesh_cmp->material, is_sampler_anisotropy_);
+      });
 
-    GenerateRenderProxy(entity_id, *mesh_cmp->mesh,
-                        transform_cmp->global * static_cast<f32>(interpolation),
-                        *mesh_cmp->material, is_sampler_anisotropy_);
-  }
-
-  DrawRenderProxies();
+  tmp_handler_->DrawRenderProxies();
+  tmp_handler_->DrawUi();
   window_->SwapBuffers();
 }
+
+DriverType OpenGlDriver::GetType() const noexcept { return DriverType::OpenGl; }
+
+u32 OpenGlDriver::GetDrawCount() const { return tmp_handler_->GetDrawCount(); }
 
 void OpenGlDriver::SetSize(WindowSize width, WindowSize height) {
   glViewport(0, 0, window_->GetWidth(), window_->GetHeight());

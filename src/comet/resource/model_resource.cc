@@ -9,11 +9,15 @@ namespace resource {
 const ResourceTypeId ModelResource::kResourceTypeId{COMET_STRING_ID("model")};
 
 uindex ModelHandler::GetMeshSize(const MeshResource& mesh) const {
-  constexpr uindex kModelIdSize{sizeof(ResourceId)};
-  constexpr uindex kMeshIdSize{sizeof(ResourceId)};
-  constexpr uindex kMaterialIdSize{sizeof(ResourceId)};
-  const uindex kVertexCount{mesh.vertices.size()};
-  const uindex kIndexCount{mesh.indices.size()};
+  constexpr auto kModelIdSize{sizeof(ResourceId)};
+  constexpr auto kMeshIdSize{sizeof(ResourceId)};
+  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
+  constexpr auto kTransformSize{sizeof(math::Mat4)};
+  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
+  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
+  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
+  const auto kVertexCount{mesh.vertices.size()};
+  const auto kIndexCount{mesh.indices.size()};
 
   const auto kVertexCountSize{sizeof(kVertexCount)};
   const auto kIndexCountSize{sizeof(kIndexCount)};
@@ -22,8 +26,9 @@ uindex ModelHandler::GetMeshSize(const MeshResource& mesh) const {
   constexpr auto kIndexSize{sizeof(rendering::Index)};
   constexpr auto kTextureMapSize{sizeof(TextureMap)};
 
-  return kModelIdSize + kMeshIdSize + kMaterialIdSize + kVertexCountSize +
-         kVertexCount * kVertexSize + kIndexCountSize +
+  return kModelIdSize + kMeshIdSize + kMaterialIdSize + kTransformSize +
+         kLocalCenterSize + kLocalMaxExtentsSize + kParentMeshIdSize +
+         kVertexCountSize + kVertexCount * kVertexSize + kIndexCountSize +
          kIndexCount * kIndexSize;
 }
 
@@ -51,6 +56,10 @@ ResourceFile ModelHandler::Pack(const Resource& resource,
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   constexpr auto kMaterialIdSize{sizeof(ResourceId)};
+  constexpr auto kTransformSize{sizeof(math::Mat4)};
+  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
+  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
+  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
   constexpr auto kVertexCountSize{sizeof(uindex)};
   constexpr auto kIndexCountSize{sizeof(uindex)};
   constexpr auto kVertexSize{sizeof(rendering::Vertex)};
@@ -71,6 +80,18 @@ ResourceFile ModelHandler::Pack(const Resource& resource,
 
     std::memcpy(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
     cursor += kMaterialIdSize;
+
+    std::memcpy(&buffer[cursor], &mesh.transform, kTransformSize);
+    cursor += kTransformSize;
+
+    std::memcpy(&buffer[cursor], &mesh.local_center, kLocalCenterSize);
+    cursor += kLocalCenterSize;
+
+    std::memcpy(&buffer[cursor], &mesh.local_max_extents, kLocalMaxExtentsSize);
+    cursor += kLocalMaxExtentsSize;
+
+    std::memcpy(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
+    cursor += kParentMeshIdSize;
 
     const auto vertex_count{mesh.vertices.size()};
     const auto index_count{mesh.indices.size()};
@@ -109,6 +130,10 @@ std::unique_ptr<Resource> ModelHandler::Unpack(const ResourceFile& file) const {
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   constexpr auto kMaterialIdSize{sizeof(resource::ResourceId)};
+  constexpr auto kTransformSize{sizeof(math::Mat4)};
+  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
+  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
+  constexpr auto kParentMeshIdSize{sizeof(resource::ResourceId)};
   constexpr auto kVertexCountSize{sizeof(uindex)};
   constexpr auto kIndexCountSize{sizeof(uindex)};
   constexpr auto kVertexSize{sizeof(rendering::Vertex)};
@@ -131,6 +156,18 @@ std::unique_ptr<Resource> ModelHandler::Unpack(const ResourceFile& file) const {
 
     std::memcpy(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
     cursor += kMaterialIdSize;
+
+    std::memcpy(&mesh.transform, &buffer[cursor], kTransformSize);
+    cursor += kTransformSize;
+
+    std::memcpy(&mesh.local_center, &buffer[cursor], kLocalCenterSize);
+    cursor += kLocalCenterSize;
+
+    std::memcpy(&mesh.local_max_extents, &buffer[cursor], kLocalMaxExtentsSize);
+    cursor += kLocalMaxExtentsSize;
+
+    std::memcpy(&mesh.parent_id, &buffer[cursor], kParentMeshIdSize);
+    cursor += kParentMeshIdSize;
 
     uindex vertex_count{0};
     std::memcpy(&vertex_count, &buffer[cursor], kVertexCountSize);

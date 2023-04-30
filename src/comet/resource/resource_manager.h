@@ -7,15 +7,20 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/manager.h"
 #include "comet/resource/resource.h"
-#include "comet/utils/file_system.h"
 
 namespace comet {
 namespace resource {
+struct ResourceManagerDescr : ManagerDescr {
+  conf::ConfigurationManager* configuration_manager{nullptr};
+};
+
 class ResourceManager : public Manager {
  public:
-  ResourceManager() = default;
+  ResourceManager() = delete;
+  explicit ResourceManager(const ResourceManagerDescr& descr);
   ResourceManager(const ResourceManager&) = delete;
   ResourceManager(ResourceManager&&) = delete;
   ResourceManager& operator=(const ResourceManager&) = delete;
@@ -96,6 +101,7 @@ class ResourceManager : public Manager {
 
  private:
   std::string root_resource_path_{};
+  conf::ConfigurationManager* configuration_manager_{nullptr};
   std::unordered_map<ResourceId, std::unique_ptr<ResourceHandler>> handlers_{};
 };
 }  // namespace resource

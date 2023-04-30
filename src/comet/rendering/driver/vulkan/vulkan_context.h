@@ -34,9 +34,9 @@ class Context {
   Context() = delete;
   explicit Context(const ContextDescr& descr);
   Context(const Context&) = delete;
-  Context(Context&& other) = delete;
+  Context(Context&&) = delete;
   Context& operator=(const Context&) = delete;
-  Context& operator=(Context&& other) = delete;
+  Context& operator=(Context&&) = delete;
   ~Context();
 
   void Initialize();

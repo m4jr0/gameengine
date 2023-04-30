@@ -30,13 +30,16 @@ input::Mods KeyboardEvent::GetMods() const noexcept { return mods_; }
 const stringid::StringId MouseMoveEvent::kStaticType_{
     COMET_STRING_ID("event_mouse_move")};
 
-MouseMoveEvent::MouseMoveEvent(glm::vec2 position) : position_{position} {}
+MouseMoveEvent::MouseMoveEvent(const math::Vec2& position)
+    : position_{position} {}
 
 stringid::StringId MouseMoveEvent::GetType() const noexcept {
   return kStaticType_;
 }
 
-glm::vec2 MouseMoveEvent::GetPosition() const noexcept { return position_; }
+const math::Vec2& MouseMoveEvent::GetPosition() const noexcept {
+  return position_;
+}
 
 MouseScrollEvent::MouseScrollEvent(f64 x_offset, f64 y_offset)
     : x_offset_{x_offset}, y_offset_{y_offset} {}

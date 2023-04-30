@@ -5,7 +5,6 @@
 #include "logger.h"
 
 namespace comet {
-namespace log {
 Logger& Logger::Get(LoggerType logger_type) {
   const auto it{Logger::loggers_.find(logger_type)};
 
@@ -31,5 +30,4 @@ std::shared_ptr<Logger> Logger::Generate(LoggerType logger_type) {
 }
 
 std::unordered_map<LoggerType, std::shared_ptr<Logger>> Logger::loggers_;
-}  // namespace log
 }  // namespace comet

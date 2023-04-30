@@ -8,8 +8,8 @@
 #include "comet_precompile.h"
 
 #include "comet/core/manager.h"
+#include "comet/core/type/structure/ring_queue.h"
 #include "comet/event/event.h"
-#include "comet/utils/structure/ring_queue.h"
 
 namespace comet {
 // TODO(m4jr0): Solve circular dependency in a proper way.
@@ -18,9 +18,14 @@ class Engine;
 namespace event {
 using EventListener = std::function<void(Event&)>;
 
+struct EventManagerDescr : ManagerDescr {
+  uindex queue_size{200};
+};
+
 class EventManager : public Manager {
  public:
-  explicit EventManager(uindex queue_size = 200);
+  EventManager() = delete;
+  explicit EventManager(const EventManagerDescr& descr);
   EventManager(const EventManager&) = delete;
   EventManager(EventManager&&) = delete;
   EventManager& operator=(const EventManager&) = delete;
@@ -53,8 +58,7 @@ class EventManager : public Manager {
   mutable std::mutex mutex_{};
   std::unordered_map<stringid::StringId, std::vector<EventListener>>
       listeners_{};
-  comet::utils::structure::ring_queue<std::unique_ptr<event::Event>>
-      event_queue_{0};
+  comet::ring_queue<std::unique_ptr<event::Event>> event_queue_{0};
 };
 }  // namespace event
 }  // namespace comet

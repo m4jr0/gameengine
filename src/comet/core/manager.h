@@ -8,9 +8,12 @@
 #include "comet_precompile.h"
 
 namespace comet {
+struct ManagerDescr {};
+
 class Manager {
  public:
-  Manager() = default;
+  Manager() = delete;
+  explicit Manager(const ManagerDescr& descr);
   Manager(const Manager&) = delete;
   Manager(Manager&&) = delete;
   Manager& operator=(const Manager&) = delete;

@@ -6,10 +6,8 @@
 
 #include "nlohmann/json.hpp"
 
-#include "comet/core/engine.h"
+#include "comet/core/file_system.h"
 #include "comet/resource/resource.h"
-#include "comet/utils/date.h"
-#include "comet/utils/file_system.h"
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model_exporter.h"
 #include "editor/asset/exporter/shader_exporter.h"
@@ -19,24 +17,39 @@
 namespace comet {
 namespace editor {
 namespace asset {
-AssetManager::AssetManager()
-    : root_asset_path_{utils::filesystem::Append(
-          utils::filesystem::GetCurrentDirectory(), "assets")},
-      library_meta_path_{utils::filesystem::Append(
+AssetManager::AssetManager(const AssetManagerDescr& descr)
+    : Manager{descr},
+      resource_manager_{descr.resource_manager},
+      root_asset_path_{Append(GetCurrentDirectory(), "assets")},
+      library_meta_path_{Append(
           root_asset_path_,
-          "library." + std::string(kCometEditorAssetMetadataFileExtension))} {}
+          "library." + std::string(kCometEditorAssetMetadataFileExtension))} {
+  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
+}
 
 void AssetManager::Initialize() {
   Manager::Initialize();
   RefreshLibraryMetadataFile();
 
-  root_resource_path_ =
-      Engine::Get().GetResourceManager().GetRootResourcePath();
+  root_resource_path_ = resource_manager_->GetRootResourcePath();
 
-  exporters_.push_back(std::make_unique<ModelExporter>());
-  exporters_.push_back(std::make_unique<ShaderExporter>());
-  exporters_.push_back(std::make_unique<ShaderModuleExporter>());
-  exporters_.push_back(std::make_unique<TextureExporter>());
+  ModelExporterDescr model_exporter_descr{};
+  model_exporter_descr.resource_manager = resource_manager_;
+  exporters_.push_back(std::make_unique<ModelExporter>(model_exporter_descr));
+
+  ShaderExporterDescr shader_exporter_descr{};
+  shader_exporter_descr.resource_manager = resource_manager_;
+  exporters_.push_back(std::make_unique<ShaderExporter>(shader_exporter_descr));
+
+  ShaderModuleExporterDescr shader_module_exporter_descr{};
+  shader_module_exporter_descr.resource_manager = resource_manager_;
+  exporters_.push_back(
+      std::make_unique<ShaderModuleExporter>(shader_module_exporter_descr));
+
+  TextureExporterDescr texture_exporter_descr{};
+  texture_exporter_descr.resource_manager = resource_manager_;
+  exporters_.push_back(
+      std::make_unique<TextureExporter>(texture_exporter_descr));
 
   for (const auto& exporter : exporters_) {
     exporter->SetRootResourcePath(root_resource_path_);
@@ -63,9 +76,9 @@ void AssetManager::Shutdown() {
 void AssetManager::Refresh() { Refresh(root_asset_path_); }
 
 void AssetManager::Refresh(const schar* asset_abs_path) {
-  if (utils::filesystem::IsDirectory(asset_abs_path)) {
+  if (IsDirectory(asset_abs_path)) {
     RefreshFolder(asset_abs_path);
-  } else if (utils::filesystem::IsFile(asset_abs_path)) {
+  } else if (IsFile(asset_abs_path)) {
     RefreshAsset(asset_abs_path);
   } else {
     COMET_LOG_GLOBAL_ERROR("Bad path given: ", asset_abs_path);
@@ -88,7 +101,7 @@ const std::string& AssetManager::GetResourcesRootPath() const noexcept {
 }
 
 void AssetManager::RefreshFolder(std::string_view asset_abs_path) {
-  const auto folder_name{utils::filesystem::GetNameView(asset_abs_path)};
+  const auto folder_name{GetNameView(asset_abs_path)};
   std::string metadata_file_path{};
   metadata_file_path.reserve(
       folder_name.size() + kCometEditorAssetFolderMetadataFileExtension.size());
@@ -98,21 +111,20 @@ void AssetManager::RefreshFolder(std::string_view asset_abs_path) {
               kCometEditorAssetFolderMetadataFileExtension.data(),
               kCometEditorAssetFolderMetadataFileExtension.size());
 
-  metadata_file_path = utils::filesystem::Append(
-      utils::filesystem::GetParentPath(asset_abs_path),
-      std::move(metadata_file_path));
+  metadata_file_path =
+      Append(GetParentPath(asset_abs_path), std::move(metadata_file_path));
 
   if (asset_abs_path != root_asset_path_) {
     SetAndGetMetadata(metadata_file_path);
   }
 
-  const auto folders{utils::filesystem::ListDirectories(asset_abs_path)};
+  const auto folders{ListDirectories(asset_abs_path)};
 
   for (const auto& folder : folders) {
     RefreshFolder(folder);
   }
 
-  const auto assets{utils::filesystem::ListFiles(asset_abs_path)};
+  const auto assets{ListFiles(asset_abs_path)};
 
   for (const auto& asset : assets) {
     RefreshAsset(asset);
@@ -130,8 +142,7 @@ void AssetManager::RefreshAsset(const schar* asset_abs_path) {
   }
 
   for (const auto& exporter : exporters_) {
-    if (exporter->IsCompatible(
-            utils::filesystem::GetExtension(asset_abs_path))) {
+    if (exporter->IsCompatible(GetExtension(asset_abs_path))) {
       exporter->Process(asset_abs_path);
     }
   }
@@ -144,17 +155,15 @@ void AssetManager::RefreshAsset(const std::string& asset_abs_path) {
 bool AssetManager::IsRefreshNeeded(const schar* asset_abs_path,
                                    const schar* metadata_file_path) const {
   if (is_force_refresh_ || asset_abs_path == root_asset_path_ ||
-      !utils::filesystem::Exists(metadata_file_path)) {
+      !Exists(metadata_file_path)) {
     return true;
   }
 
-  const auto asset_path{
-      utils::filesystem::GetRelativePath(asset_abs_path, root_asset_path_)};
+  const auto asset_path{GetRelativePath(asset_abs_path, root_asset_path_)};
 
   const auto resource_id{resource::GenerateResourceIdFromPath(asset_path)};
 
-  if (!utils::filesystem::Exists(utils::filesystem::Append(
-          root_resource_path_, std::to_string(resource_id)))) {
+  if (!Exists(Append(root_resource_path_, std::to_string(resource_id)))) {
     return true;
   }
 
@@ -166,7 +175,7 @@ bool AssetManager::IsRefreshNeeded(const schar* asset_abs_path,
       kCometEditorAssetMetadataKeyUpdateTime, static_cast<f64>(-1))};
 
   const auto modification_time{
-      utils::filesystem::GetLastModificationTime(std::string{asset_abs_path})};
+      GetLastModificationTime(std::string{asset_abs_path})};
 
   return update_time <= modification_time;
 }

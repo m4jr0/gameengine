@@ -5,26 +5,18 @@
 #ifndef COMET_TESTS_ENTITY_TESTS_ENTITY_H_
 #define COMET_TESTS_ENTITY_TESTS_ENTITY_H_
 
-#include "comet/entity/component/component.h"
-#include "comet/entity/entity.h"
-#include "comet/entity/entity_manager.h"
+#include "comet/entity/entity_id.h"
 
 namespace comet {
 namespace comettests {
-struct DummyEmptyComponent {
-  static const entity::ComponentTypeId kComponentTypeId;
-};
+struct DummyTagComponent {};
 
 struct DummyMeshComponent {
-  static const entity::ComponentTypeId kComponentTypeId;
-
   void* mesh{nullptr};
   void* material{nullptr};
 };
 
 struct DummyTransformComponent {
-  static const entity::ComponentTypeId kComponentTypeId;
-
   f64 position[3]{};
   f64 rotation[3]{};
   f64 scale[3]{};
@@ -36,8 +28,6 @@ struct DummyTransformComponent {
 };
 
 struct DummyHpComponent {
-  static const entity::ComponentTypeId kComponentTypeId;
-
   u16 hit_points{0};
   u16 shield_points{0};
   u16 max_hit_points{0};

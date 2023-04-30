@@ -5,6 +5,8 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_HANDLER_H_
 
+#include "comet_precompile.h"
+
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 
 namespace comet {
@@ -19,9 +21,9 @@ class Handler {
   Handler() = delete;
   explicit Handler(const HandlerDescr& descr);
   Handler(const Handler&) = delete;
-  Handler(Handler&& other) = delete;
+  Handler(Handler&&) = delete;
   Handler& operator=(const Handler&) = delete;
-  Handler& operator=(Handler&& other) = delete;
+  Handler& operator=(Handler&&) = delete;
   virtual ~Handler();
 
   virtual void Initialize();

@@ -11,16 +11,6 @@
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef COMET_VULKAN_DEBUG_MODE
-// According to the Vulkan spec, it is better to enable the validation layers
-// individually to prevent a significant performance degradation.
-// #define COMET_VALIDATION_GPU_ASSISTED_EXT
-// #define COMET_VALIDATION_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
-// #define COMET_VALIDATION_BEST_PRACTICES_EXT
-// #define COMET_VALIDATION_DEBUG_PRINTF_EXT
-// #define COMET_VALIDATION_SYNCHRONIZATION_VALIDATION_EXT
-#endif  // COMET_VULKAN_DEBUG_MODE
-
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
@@ -61,6 +51,8 @@ class VulkanDriver : public Driver {
   void Initialize() override;
   void Shutdown() override;
   void Update(time::Interpolation interpolation) override;
+  DriverType GetType() const noexcept override;
+  u32 GetDrawCount() const override;
 
   void SetSize(WindowSize width, WindowSize height);
   Window* GetWindow() override;

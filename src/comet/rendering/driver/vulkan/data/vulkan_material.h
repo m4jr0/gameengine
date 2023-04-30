@@ -7,10 +7,10 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
 #include "vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
+#include "comet/math/vector.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
@@ -26,7 +26,7 @@ constexpr auto kInvalidMaterialId{static_cast<MaterialId>(-1)};
 struct MaterialDescr {
   MaterialId id{kInvalidMaterialId};
   ShaderId shader_id{kInvalidShaderId};
-  glm::vec4 diffuse_color{};
+  math::Vec4 diffuse_color{kColorWhite, 1.0f};
   TextureMap diffuse_map{};
   TextureMap specular_map{};
   TextureMap normal_map{};
@@ -39,7 +39,7 @@ struct Material {
   MaterialId id{kInvalidMaterialId};
   MaterialInstanceId instance_id{kInvalidMaterialInstanceId};
   ShaderId shader_id{kInvalidShaderId};
-  glm::vec4 diffuse_color{1.0f, 1.0f, 1.0f, 1.0f};
+  math::Vec4 diffuse_color{kColorWhite, 1.0f};
   TextureMap diffuse_map{};
   TextureMap specular_map{};
   TextureMap normal_map{};

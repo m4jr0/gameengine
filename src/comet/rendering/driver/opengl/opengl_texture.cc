@@ -4,8 +4,6 @@
 
 #include "opengl_texture.h"
 
-#include "glad/glad.h"
-
 namespace comet {
 namespace rendering {
 namespace gl {

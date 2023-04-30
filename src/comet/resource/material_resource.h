@@ -7,8 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
-
+#include "comet/math/vector.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
@@ -31,7 +30,7 @@ struct TextureMap {
 
 struct MaterialResourceDescr {
   f32 shininess{.0f};
-  glm::vec4 diffuse_color{};
+  math::Vec4 diffuse_color{};
   TextureMap diffuse_map{};
   TextureMap specular_map{};
   TextureMap normal_map{};

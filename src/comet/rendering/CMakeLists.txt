@@ -9,9 +9,6 @@
 ################################################################################
 
 # Packages #####################################################################
-# OpenGL Mathematics.
-find_package(glm REQUIRED)
-
 # GLFW.
 find_package(glfw3 REQUIRED)
 
@@ -46,18 +43,23 @@ endif()
 add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_common.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_utils.cc"
 
     # Camera.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/camera.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/camera_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/frustum.cc"
+
+    # Debugger.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/debugger_displayer_manager.cc"
 
     # Driver.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"
 
     # OpenGL.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_driver.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_mesh.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_shader.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_temporary_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_texture.cc"
 
     #Vulkan.
@@ -95,6 +97,7 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_material_utils.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_view.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_debug_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_imgui_view.cc"  
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_shader_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_world_view.cc"
@@ -138,7 +141,6 @@ target_link_libraries(${RENDERING_LIBRARY_NAME}
     ${ZLIB_LIBRARY_RELEASE}
     glad
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator
-    glm::glm
     imgui::imgui
     glfw
 )
@@ -165,11 +167,12 @@ if(LINUX)
   )
 endif()
 
-# Internal libraries.
-# Temporary. For temporary code files.
-list(FILTER COMET_LIBRARIES EXCLUDE REGEX "${RENDERING_LIBRARY_NAME}")
-
 target_link_libraries(${RENDERING_LIBRARY_NAME}
   PRIVATE
-    ${COMET_LIBRARIES}
+    ${CORE_LIBRARY_NAME}
+    ${ENTITY_LIBRARY_NAME}
+    ${EVENT_LIBRARY_NAME}
+    ${INPUT_LIBRARY_NAME}
+    ${RESOURCE_LIBRARY_NAME}
+    ${TIME_LIBRARY_NAME}
 )

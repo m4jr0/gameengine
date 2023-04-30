@@ -7,8 +7,6 @@
 #include "comet/core/logger.h"
 
 namespace comet {
-namespace debug {
 // TODO(m4jr0): Handle critical error properly.
 void HandleCriticalError() { COMET_LOG_GLOBAL_ERROR("Aborting."); }
-}  // namespace debug
 }  // namespace comet

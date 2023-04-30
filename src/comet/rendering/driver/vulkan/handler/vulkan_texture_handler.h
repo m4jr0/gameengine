@@ -24,9 +24,9 @@ class TextureHandler : public Handler {
   TextureHandler() = delete;
   explicit TextureHandler(const TextureHandlerDescr& descr);
   TextureHandler(const TextureHandler&) = delete;
-  TextureHandler(TextureHandler&& other) = delete;
+  TextureHandler(TextureHandler&&) = delete;
   TextureHandler& operator=(const TextureHandler&) = delete;
-  TextureHandler& operator=(TextureHandler&& other) = delete;
+  TextureHandler& operator=(TextureHandler&&) = delete;
   virtual ~TextureHandler() = default;
 
   void Shutdown() override;

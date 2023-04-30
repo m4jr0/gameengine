@@ -9,7 +9,7 @@
 namespace comet {
 namespace rendering {
 namespace vk {
-VulkanGlfwWindow::VulkanGlfwWindow(WindowDescr& descr) : GlfwWindow(descr) {}
+VulkanGlfwWindow::VulkanGlfwWindow(WindowDescr& descr) : GlfwWindow{descr} {}
 
 VulkanGlfwWindow::VulkanGlfwWindow(const VulkanGlfwWindow& other)
     : GlfwWindow{other} {}

@@ -6,6 +6,7 @@
 
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {
@@ -38,7 +39,7 @@ Mesh* MeshHandler::Generate(const resource::MeshResource* resource) {
     vertex.uv.x = vertex_res.uv.x;
     vertex.uv.y = vertex_res.uv.y;
 
-    vertex.color = {1.0f, 1.0f, 1.0f, 1.0f};
+    vertex.color = {kColorWhite, 1.0f};
   }
 
   const auto index_count{resource->indices.size()};

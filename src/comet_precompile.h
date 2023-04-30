@@ -5,7 +5,8 @@
 #ifndef COMET_COMET_PRECOMPILE_H_
 #define COMET_COMET_PRECOMPILE_H_
 
-#include "comet/core/type/os.h"
+#include "comet/core/define.h"
+#include "comet/core/os.h"
 
 #ifdef COMET_WINDOWS
 #define NOMINMAX
@@ -27,6 +28,7 @@
 #include <cstring>
 #include <ctime>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <future>
 #include <iostream>
@@ -56,9 +58,9 @@
 
 #include "comet/core/type/primitive.h"
 
+#include "comet/core/compiler.h"
 #include "comet/core/debug.h"
 #include "comet/core/logger.h"
-#include "comet/core/type/compilers.h"
 #include "comet/core/type/gid.h"
 #include "comet/core/type/string_id.h"
 #include "comet/core/version.h"

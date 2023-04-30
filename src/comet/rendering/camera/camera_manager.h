@@ -8,13 +8,20 @@
 #include "comet_precompile.h"
 
 #include "comet/core/manager.h"
+#include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 #include "comet/rendering/camera/camera.h"
 
 namespace comet {
 namespace rendering {
+struct CameraManagerDescr : ManagerDescr {
+  event::EventManager* event_manager{nullptr};
+};
+
 class CameraManager : public Manager {
  public:
-  CameraManager() = default;
+  CameraManager() = delete;
+  explicit CameraManager(const CameraManagerDescr& descr);
   CameraManager(const CameraManager&) = delete;
   CameraManager(CameraManager&&) = delete;
   CameraManager& operator=(const CameraManager&) = delete;
@@ -26,9 +33,11 @@ class CameraManager : public Manager {
   Camera* GetMainCamera();
 
  private:
+  void OnEvent(const event::Event& event);
   void GenerateMainCamera();
 
   std::unique_ptr<Camera> main_camera_{nullptr};
+  event::EventManager* event_manager_{nullptr};
 };
 }  // namespace rendering
 }  // namespace comet

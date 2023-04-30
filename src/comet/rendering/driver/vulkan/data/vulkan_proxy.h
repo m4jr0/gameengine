@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_PROXY_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_PROXY_H_
 
-#include "glm/glm.hpp"
-
+#include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
 
@@ -16,7 +15,7 @@ namespace vk {
 struct RenderProxy {
   Mesh* mesh{nullptr};
   Material* material{nullptr};
-  glm::mat4 transform{};
+  math::Mat4 transform{};
 };
 }  // namespace vk
 }  // namespace rendering

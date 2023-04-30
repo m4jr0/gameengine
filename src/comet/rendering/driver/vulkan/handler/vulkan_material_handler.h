@@ -7,8 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "vulkan/vulkan.h"
-
+#include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
@@ -16,17 +15,15 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/resource/material_resource.h"
+#include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-struct MaterialLocalPacket {
-  const glm::mat4* position{nullptr};
-};
-
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
   ShaderHandler* shader_handler{nullptr};
+  resource::ResourceManager* resource_manager{nullptr};
 };
 
 class MaterialHandler : public Handler {
@@ -34,9 +31,9 @@ class MaterialHandler : public Handler {
   MaterialHandler() = delete;
   explicit MaterialHandler(const MaterialHandlerDescr& descr);
   MaterialHandler(const MaterialHandler&) = delete;
-  MaterialHandler(MaterialHandler&& other) = delete;
+  MaterialHandler(MaterialHandler&&) = delete;
   MaterialHandler& operator=(const MaterialHandler&) = delete;
-  MaterialHandler& operator=(MaterialHandler&& other) = delete;
+  MaterialHandler& operator=(MaterialHandler&&) = delete;
   virtual ~MaterialHandler() = default;
 
   void Shutdown() override;
@@ -50,8 +47,6 @@ class MaterialHandler : public Handler {
   void Destroy(MaterialId material_id);
   void Destroy(Material& material);
   void UpdateInstance(Material& material, ShaderId shader_id);
-  void UpdateLocal(Material& material, const MaterialLocalPacket& packet,
-                   ShaderId shader_id);
 
  private:
   Material* GenerateInternal(const MaterialDescr& descr);
@@ -68,6 +63,7 @@ class MaterialHandler : public Handler {
   std::unordered_map<SamplerId, Sampler> samplers_{};
   TextureHandler* texture_handler_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
+  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

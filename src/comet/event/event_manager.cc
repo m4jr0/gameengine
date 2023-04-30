@@ -6,7 +6,8 @@
 
 namespace comet {
 namespace event {
-EventManager::EventManager(uindex queue_size) : event_queue_{queue_size} {}
+EventManager::EventManager(const EventManagerDescr& descr)
+    : Manager{descr}, event_queue_{descr.queue_size} {}
 
 void EventManager::Shutdown() {
   listeners_.clear();
@@ -41,7 +42,13 @@ void EventManager::FireAllEvents() {
 }
 
 void EventManager::Dispatch(std::unique_ptr<Event> event) const {
-  const auto& listeners{listeners_.at(event->GetType())};
+  auto it{listeners_.find(event->GetType())};
+
+  if (it == listeners_.end()) {
+    return;
+  }
+
+  const auto& listeners{it->second};
   const auto event_pointer{event.get()};
 
   for (const auto& listener : listeners) {

@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_TEXTURE_H_
-#define COMET_COMET_RENDERING_DRIVER_OPENGL_TEXTURE_H_
+#ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_TEXTURE_H_
+#define COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_TEXTURE_H_
 
 #include "comet_precompile.h"
 

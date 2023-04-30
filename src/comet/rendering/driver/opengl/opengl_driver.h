@@ -10,7 +10,9 @@
 #include "glad/glad.h"
 
 #include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/driver/opengl/opengl_temporary_handler.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
@@ -34,6 +36,8 @@ class OpenGlDriver : public Driver {
   void Initialize() override;
   void Shutdown() override;
   void Update(time::Interpolation interpolation) override;
+  DriverType GetType() const noexcept override;
+  u32 GetDrawCount() const override;
 
   void SetSize(WindowSize width, WindowSize height);
   void OnEvent(const event::Event&);
@@ -42,6 +46,7 @@ class OpenGlDriver : public Driver {
 
  private:
   std::unique_ptr<OpenGlGlfwWindow> window_{nullptr};
+  std::unique_ptr<TemporaryHandler> tmp_handler_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

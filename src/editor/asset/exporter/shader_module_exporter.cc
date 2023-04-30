@@ -6,27 +6,30 @@
 
 #include "shaderc/shaderc.hpp"
 
-#include "comet/core/engine.h"
+#include "comet/core/file_system.h"
+#include "comet/core/string.h"
 #include "comet/resource/shader_module_resource.h"
-#include "comet/utils/file_system.h"
-#include "comet/utils/string.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
+ShaderModuleExporter::ShaderModuleExporter(
+    const ShaderModuleExporterDescr& descr)
+    : AssetExporter{descr} {}
+
 bool ShaderModuleExporter::IsCompatible(std::string_view extension) const {
   return extension == "vert" || extension == "frag";
 }
 
 std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
     AssetDescr& asset_descr) const {
-  const auto driver_keyword_pos{utils::string::GetLastNthPos(
-      asset_descr.asset_path, std::string("."), 2)};
+  const auto driver_keyword_pos{
+      GetLastNthPos(asset_descr.asset_path, std::string("."), 2)};
 
   std::string driver_keyword;
 
   if (driver_keyword_pos != kInvalidIndex) {
-    driver_keyword = utils::filesystem::ReplaceExtensionToCopy(
+    driver_keyword = ReplaceExtensionToCopy(
         "", asset_descr.asset_path.substr(driver_keyword_pos + 1,
                                           asset_descr.asset_path.size()));
   } else {
@@ -35,7 +38,7 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
         asset_descr.asset_path, ".");
   }
 
-  auto shader_keyword{utils::filesystem::GetExtension(asset_descr.asset_path)};
+  auto shader_keyword{GetExtension(asset_descr.asset_path)};
 
   rendering::ShaderModuleType shader_type{rendering::ShaderModuleType::Unknown};
   rendering::DriverType driver_type{rendering::DriverType::Unknown};
@@ -69,7 +72,7 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
   shader.descr.driver_type = driver_type;
 
   std::string shader_code;
-  utils::filesystem::ReadStrFromFile(asset_descr.asset_abs_path, shader_code);
+  ReadStrFromFile(asset_descr.asset_abs_path, shader_code);
 
   switch (driver_type) {
     case rendering::DriverType::Vulkan: {
@@ -96,8 +99,7 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
 
       const auto result{compiler.CompileGlslToSpv(
           shader_code.c_str(), shader_kind,
-          utils::filesystem::GetNameView(asset_descr.asset_abs_path).data(),
-          options)};
+          GetNameView(asset_descr.asset_abs_path).data(), options)};
 
       if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
         COMET_LOG_GLOBAL_ERROR("Shaderc compilation error! At ",
@@ -118,8 +120,7 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
   }
 
   return std::vector<resource::ResourceFile>{
-      Engine::Get().GetResourceManager().GetResourceFile(shader,
-                                                         compression_mode_)};
+      resource_manager_->GetResourceFile(shader, compression_mode_)};
 }
 }  // namespace asset
 }  // namespace editor

@@ -4,7 +4,6 @@
 
 #include "vulkan_texture_handler.h"
 
-#include "comet/core/engine.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"

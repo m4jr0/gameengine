@@ -4,45 +4,22 @@
 
 #include "opengl_shader.h"
 
-#include "comet/core/engine.h"
-#include "comet/resource/shader_module_resource.h"
-#include "comet/utils/file_system.h"
-
 namespace comet {
 namespace rendering {
 namespace gl {
-ShaderProgram::ShaderProgram(const schar* vertex_shader_path,
-                             const schar* fragment_shader_path) {
-  const auto* vertex_shader{
-      Engine::Get().GetResourceManager().Load<resource::ShaderModuleResource>(
-          vertex_shader_path)};
+ShaderProgram::ShaderProgram(
+    const resource::ShaderModuleResource* vertex_shader_resource,
+    const resource::ShaderModuleResource* fragment_shader_resource) {
+  vertex_shader_code_ = std::string{
+      reinterpret_cast<const schar*>(vertex_shader_resource->data.data()),
+      vertex_shader_resource->data.size()};
 
-  vertex_shader_code_ =
-      std::string{reinterpret_cast<const schar*>(vertex_shader->data.data()),
-                  vertex_shader->data.size()};
-
-  const auto* fragment_shader{
-      Engine::Get().GetResourceManager().Load<resource::ShaderModuleResource>(
-          fragment_shader_path)};
-
-  fragment_shader_code_ =
-      std::string{reinterpret_cast<const schar*>(fragment_shader->data.data()),
-                  fragment_shader->data.size()};
+  fragment_shader_code_ = std::string{
+      reinterpret_cast<const schar*>(fragment_shader_resource->data.data()),
+      fragment_shader_resource->data.size()};
 
   can_be_initialized_ = true;
 }
-
-ShaderProgram::ShaderProgram(const schar* vertex_shader_path,
-                             const std::string& fragment_shader_path)
-    : ShaderProgram{vertex_shader_path, fragment_shader_path.c_str()} {}
-
-ShaderProgram::ShaderProgram(const std::string& vertex_shader_path,
-                             const schar* fragment_shader_path)
-    : ShaderProgram{vertex_shader_path.c_str(), fragment_shader_path} {}
-
-ShaderProgram::ShaderProgram(const std::string& vertex_shader_path,
-                             const std::string& fragment_shader_path)
-    : ShaderProgram{vertex_shader_path.c_str(), fragment_shader_path.c_str()} {}
 
 ShaderProgram::ShaderProgram(const ShaderProgram& other)
     : vertex_shader_code_{other.vertex_shader_code_},
@@ -259,56 +236,62 @@ void ShaderProgram::SetUnsignedIntArray4(const std::string& name, uindex count,
   glUniform4uiv(glGetUniformLocation(handle_, name.c_str()), count, value);
 }
 
-void ShaderProgram::SetMatrix2(const std::string& name, const glm::mat2& matrix,
-                               bool is_transpose) {
+void ShaderProgram::SetMatrix2(const std::string& name,
+                               const math::Mat2& matrix, bool is_transpose) {
   glUniformMatrix2fv(glGetUniformLocation(handle_, name.c_str()), 1,
                      is_transpose, &matrix[0][0]);
 }
 
-void ShaderProgram::SetMatrix3(const std::string& name, const glm::mat3& matrix,
-                               bool is_transpose) {
+void ShaderProgram::SetMatrix3(const std::string& name,
+                               const math::Mat3& matrix, bool is_transpose) {
   glUniformMatrix3fv(glGetUniformLocation(handle_, name.c_str()), 1,
                      is_transpose, &matrix[0][0]);
 }
 
-void ShaderProgram::SetMatrix4(const std::string& name, const glm::mat4& matrix,
-                               bool is_transpose) {
+void ShaderProgram::SetMatrix4(const std::string& name,
+                               const math::Mat4& matrix, bool is_transpose) {
   glUniformMatrix4fv(glGetUniformLocation(handle_, name.c_str()), 1,
                      is_transpose, &matrix[0][0]);
 }
 
 void ShaderProgram::SetMatrix2x3(const std::string& name,
-                                 const glm::mat2x3& matrix, bool is_transpose) {
+                                 const math::Mat2x3& matrix,
+                                 bool is_transpose) {
   glUniformMatrix2x3fv(glGetUniformLocation(handle_, name.c_str()), 1,
                        is_transpose, &matrix[0][0]);
 }
 
 void ShaderProgram::SetMatrix3x2(const std::string& name,
-                                 const glm::mat3x2& matrix, bool is_transpose) {
+                                 const math::Mat3x2& matrix,
+                                 bool is_transpose) {
   glUniformMatrix3x2fv(glGetUniformLocation(handle_, name.c_str()), 1,
                        is_transpose, &matrix[0][0]);
 }
 
 void ShaderProgram::SetMatrix2x4(const std::string& name,
-                                 const glm::mat2x4& matrix, bool is_transpose) {
+                                 const math::Mat2x4& matrix,
+                                 bool is_transpose) {
   glUniformMatrix2x4fv(glGetUniformLocation(handle_, name.c_str()), 1,
                        is_transpose, &matrix[0][0]);
 }
 
 void ShaderProgram::SetMatrix4x2(const std::string& name,
-                                 const glm::mat4x2& matrix, bool is_transpose) {
+                                 const math::Mat4x2& matrix,
+                                 bool is_transpose) {
   glUniformMatrix4x2fv(glGetUniformLocation(handle_, name.c_str()), 1,
                        is_transpose, &matrix[0][0]);
 }
 
 void ShaderProgram::SetMatrix3x4(const std::string& name,
-                                 const glm::mat3x4& matrix, bool is_transpose) {
+                                 const math::Mat3x4& matrix,
+                                 bool is_transpose) {
   glUniformMatrix3x4fv(glGetUniformLocation(handle_, name.c_str()), 1,
                        is_transpose, &matrix[0][0]);
 }
 
 void ShaderProgram::SetMatrix4x3(const std::string& name,
-                                 const glm::mat4x3& matrix, bool is_transpose) {
+                                 const math::Mat4x3& matrix,
+                                 bool is_transpose) {
   glUniformMatrix4x3fv(glGetUniformLocation(handle_, name.c_str()), 1,
                        is_transpose, &matrix[0][0]);
 }

@@ -7,7 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/engine.h"
+#include "comet/engine/engine.h"
 
 extern std::unique_ptr<comet::Engine> comet::GenerateEngine();
 

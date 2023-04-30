@@ -9,27 +9,29 @@
 
 #include "vulkan/vulkan.h"
 
-#include "comet/core/engine.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_module.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-using ShaderModuleHandlerDescr = HandlerDescr;
+struct ShaderModuleHandlerDescr : HandlerDescr {
+  resource::ResourceManager* resource_manager{nullptr};
+};
 
 class ShaderModuleHandler : public Handler {
  public:
   ShaderModuleHandler() = delete;
   explicit ShaderModuleHandler(const ShaderModuleHandlerDescr& descr);
   ShaderModuleHandler(const ShaderModuleHandler&) = delete;
-  ShaderModuleHandler(ShaderModuleHandler&& other) = delete;
+  ShaderModuleHandler(ShaderModuleHandler&&) = delete;
   ShaderModuleHandler& operator=(const ShaderModuleHandler&) = delete;
-  ShaderModuleHandler& operator=(ShaderModuleHandler&& other) = delete;
+  ShaderModuleHandler& operator=(ShaderModuleHandler&&) = delete;
   virtual ~ShaderModuleHandler() = default;
 
   void Shutdown() override;
@@ -50,6 +52,7 @@ class ShaderModuleHandler : public Handler {
   static VkShaderStageFlagBits GetVulkanType(ShaderModuleType module_type);
 
   std::unordered_map<ShaderModuleId, ShaderModule> shader_modules_{};
+  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

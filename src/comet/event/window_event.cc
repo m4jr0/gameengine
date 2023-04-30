@@ -6,6 +6,25 @@
 
 namespace comet {
 namespace event {
+const stringid::StringId WindowInitializedEvent::kStaticType_{
+    COMET_STRING_ID("event_window_initialize")};
+
+WindowInitializedEvent::WindowInitializedEvent(rendering::WindowSize width,
+                                               rendering::WindowSize height)
+    : width_{width}, height_{height} {}
+
+stringid::StringId WindowInitializedEvent::GetType() const noexcept {
+  return kStaticType_;
+}
+
+rendering::WindowSize WindowInitializedEvent::GetWidth() const noexcept {
+  return width_;
+}
+
+rendering::WindowSize WindowInitializedEvent::GetHeight() const noexcept {
+  return height_;
+}
+
 const stringid::StringId WindowResizeEvent::kStaticType_{
     COMET_STRING_ID("event_window_resize")};
 

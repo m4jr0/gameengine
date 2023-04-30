@@ -7,18 +7,22 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/hash.h"
 #include "comet/core/manager.h"
-#include "comet/entity/component/component.h"
-#include "comet/entity/component_view.h"
-#include "comet/entity/entity.h"
-#include "comet/entity/entity_misc_types.h"
-#include "comet/utils/memory/memory.h"
+#include "comet/core/memory/memory.h"
+#include "comet/entity/archetype.h"
+#include "comet/entity/component.h"
+#include "comet/entity/entity_id.h"
+#include "comet/entity/entity_type.h"
 
 namespace comet {
 namespace entity {
+using EntityManagerDescr = ManagerDescr;
+
 class EntityManager : public Manager {
  public:
-  EntityManager() = default;
+  EntityManager() = delete;
+  explicit EntityManager(const EntityManagerDescr& descr);
   EntityManager(const EntityManager&) = delete;
   EntityManager(EntityManager&&) = delete;
   EntityManager& operator=(const EntityManager&) = delete;
@@ -29,246 +33,95 @@ class EntityManager : public Manager {
   void Shutdown() override;
 
   EntityId Generate();
-
-  template <typename... ComponentTypes>
-  EntityId Generate(ComponentTypes&&... components) {
-    static_assert((std::is_trivially_copyable<ComponentTypes>::value, ...),
-                  "Component type must be trivially copyable.");
-
-    EntityId entity_id{entity_id_handler_.Generate()};
-
-    (RegisterComponentIfNeeded<ComponentTypes>(), ...);
-    auto* archetype{GetArchetype(GenerateEntityType<ComponentTypes...>())};
-    ResizeArchetype(archetype, 1);
-
-    auto entity_index{archetype->entity_ids.size() - 1};
-    archetype->entity_ids[entity_index] = entity_id;
-
-    records_.emplace(
-        std::make_pair(entity_id, Record{archetype, entity_index}));
-
-    (CopyComponent(entity_id, archetype, entity_index,
-                   std::forward<ComponentTypes>(components)),
-     ...);
-
-    return entity_id;
-  }
+  EntityId Generate(const std::vector<ComponentDescr>& component_descrs);
 
   bool IsEntity(const EntityId& entity) const;
   void Destroy(EntityId entity);
 
-  template <typename ComponentTypeId>
-  bool HasComponent(EntityId entity_id) const {
-    const auto kComponentTypeId{ComponentTypeId::kComponentTypeId};
-    const auto& entity_type{records_.at(entity_id).archetype->entity_type};
-
-    for (const auto& other_component_id : entity_type) {
-      if (kComponentTypeId == other_component_id) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  template <typename ComponentType>
-  bool IsComponentRegistered() const {
-    return component_descrs_.find(ComponentType::kComponentTypeId) !=
-           component_descrs_.cend();
-  }
-
-  template <typename ComponentType>
-  void RegisterComponent() {
-    component_descrs_[ComponentType::kComponentTypeId] = {
-        sizeof(ComponentType), alignof(ComponentType)};
-  }
-
-  template <typename ComponentType>
-  void RegisterComponentIfNeeded() {
-    if (!IsComponentRegistered<ComponentType>()) {
-      RegisterComponent<ComponentType>();
-    }
-  }
-
-  template <typename ComponentType, typename... Args>
-  void AddComponent(EntityId entity_id, Args&&... args) {
-    AddComponents<ComponentType>(entity_id,
-                                 ComponentType{std::forward<Args>(args)...});
-  }
-
-  template <typename... ComponentTypes>
-  void const AddComponents(EntityId entity_id, ComponentTypes&&... components) {
-    static_assert((std::is_trivially_copyable<ComponentTypes>::value, ...),
-                  "Component type must be trivially copyable.");
-
-    // Step 1: apply safety checks + handle new archetype.
-    COMET_ASSERT(IsEntity(entity_id),
-                 "Trying to add component to dead entity #", entity_id, "!");
-
-    (RegisterComponentIfNeeded<ComponentTypes>(), ...);
-    auto added_entity_type{entity::GenerateEntityType<ComponentTypes...>()};
-    constexpr auto kAddedComponentCount{sizeof...(ComponentTypes)};
-
-    auto& entity_record{records_[entity_id]};
-    auto* old_archetype{entity_record.archetype};
-    const auto& old_entity_type{old_archetype->entity_type};
-    auto* new_archetype{
-        GetArchetype(AddToEntityType(old_entity_type, added_entity_type))};
-
-    // Step 2: increase new archetype's size.
-    ResizeArchetype(new_archetype, 1);
-
-    // Step 3: copy entity's components into new archetype.
-    const auto& new_entity_type{new_archetype->entity_type};
-    const uindex new_entity_index{new_archetype->entity_ids.size() - 1};
-    const auto old_entity_index{entity_record.row};
-    uindex old_cmp_cursor{0};
-    uindex new_cmp_cursor{0};
-
-    for (uindex i{0}; i < new_entity_type.size(); ++i) {
-      auto& new_cmp_array{new_archetype->components[i]};
-      const auto component_type_id{new_entity_type[i]};
-      const auto cmp_size{component_descrs_[component_type_id].size};
-      const auto new_cmp_offset{
-          static_cast<sptrdiff>(cmp_size * new_entity_index)};
-      const auto old_cmp_offset{
-          static_cast<sptrdiff>(cmp_size * old_entity_index)};
-
-      if (new_cmp_cursor < kAddedComponentCount &&
-          added_entity_type[new_cmp_cursor] == new_entity_type[i]) {
-        // Check new components if assertion is enabled.
-        COMET_ASSERT(!DoesEntityTypeContain(old_entity_type,
-                                            added_entity_type[new_cmp_cursor]),
-                     "Entity #", entity_id, " already contains component ",
-                     COMET_STRING_ID_LABEL(added_entity_type[new_cmp_cursor]),
-                     "!");
-
-        // New components are added later.
-        ++new_cmp_cursor;  // Added component IDs are sorted, so we can optimize
-                           // the loop.
-      } else {
-        // Copy existing components.
-        std::memcpy(
-            new_cmp_array.first + new_cmp_offset,
-            old_archetype->components[old_cmp_cursor].first + old_cmp_offset,
-            cmp_size);
-        ++old_cmp_cursor;
-      }
-    }
-
-    // Copy new components.
-    (CopyComponent(entity_id, new_archetype, new_entity_index,
-                   std::forward<ComponentTypes>(components)),
-     ...);
-
-    // Step 4: copy last entity inplace of current entity, if necessary.
-    PreRemoveEntityFromArchetype(entity_record.row, old_archetype);
-
-    // Step 5: decrease old archetype's size.
-    ResizeArchetype(old_archetype, -1);
-
-    new_archetype->entity_ids[new_entity_index] = entity_id;
-    entity_record.archetype = new_archetype;
-    entity_record.row = new_entity_index;
-  }
-
-  template <typename ComponentType>
-  void RemoveComponent(EntityId entity_id) {
-    RemoveComponents<ComponentType>(entity_id);
-  }
-
-  template <typename... ComponentTypes>
-  void const RemoveComponents(EntityId entity_id) {
-    auto removed_entity_type{GenerateEntityType<ComponentTypes...>()};
-    auto removed_component_count{removed_entity_type.size()};
-    COMET_ASSERT(removed_component_count != 0,
-                 "Trying to remove 0 component for entity #", entity_id, "!");
-    COMET_ASSERT(IsEntity(entity_id),
-                 "Trying to remove component from dead entity #", entity_id,
-                 "!");
-
-    auto& entity_record{records_[entity_id]};
-    auto* old_archetype{entity_record.archetype};
-    const auto& old_entity_type{old_archetype->entity_type};
-    const auto old_component_count{old_entity_type.size()};
-
-    for (uindex i{0}; i < removed_component_count; ++i) {
-      COMET_ASSERT(
-          DoesEntityTypeContain(old_entity_type, removed_entity_type[i]),
-          "Entity #", entity_id, " does not contain component ",
-          COMET_STRING_ID_LABEL(removed_entity_type[i]), "!");
-    }
-
-    COMET_ASSERT(removed_component_count <= old_component_count,
-                 "Component count to remove for entity #", entity_id,
-                 ": is too high (", removed_component_count, " > ",
-                 old_component_count, ")!");
-
-    auto* new_archetype{GetArchetype(
-        RemoveFromEntityType(old_entity_type, removed_entity_type))};
-
-    // Step 2: increase new archetype's size.
-    ResizeArchetype(new_archetype, 1);
-
-    // Step 3: copy entity's components into new archetype.
-    const uindex new_entity_index{new_archetype->entity_ids.size() - 1};
-    const auto old_entity_index{entity_record.row};
-
-    for (uindex i{0}; i < new_archetype->entity_type.size(); ++i) {
-      auto& new_cmp_array{new_archetype->components[i]};
-      const auto cmp_size{
-          component_descrs_[new_archetype->entity_type[i]].size};
-      const auto new_cmp_offset{
-          static_cast<sptrdiff>(cmp_size * new_entity_index)};
-      const auto old_cmp_offset{
-          static_cast<sptrdiff>(cmp_size * old_entity_index)};
-
-      // Copy non-removed components.
-      std::memcpy(new_cmp_array.first + new_cmp_offset,
-                  old_archetype->components[i].first + old_cmp_offset,
-                  cmp_size);
-    }
-
-    // Step 4: copy last entity inplace of current entity, if necessary.
-    PreRemoveEntityFromArchetype(entity_record.row, old_archetype);
-
-    // Step 5: decrease old archetype's size.
-    ResizeArchetype(old_archetype, -1);
-
-    new_archetype->entity_ids[new_entity_index] = entity_id;
-    entity_record.archetype = new_archetype;
-    entity_record.row = new_entity_index;
-  }
+  bool HasComponent(EntityId entity_id, EntityId component_id) const;
+  void AddComponents(EntityId entity_id,
+                     const std::vector<ComponentDescr>& component_descrs);
+  void RemoveComponents(EntityId entity_id,
+                        const std::vector<EntityId>& component_ids);
 
   template <typename ComponentType>
   ComponentType* GetComponent(EntityId entity_id) {
-    COMET_ASSERT(IsEntity(entity_id), "Trying to get a ",
-                 COMET_STRING_ID_LABEL(ComponentType::kComponentTypeId),
+    const auto component_type_id{
+        ComponentTypeDescrGetter<ComponentType>::Get().id};
+    COMET_ASSERT(IsEntity(entity_id), "Trying to get a ", component_type_id,
                  " component from a dead entity #", entity_id, "!");
+
+    if (!HasComponent(entity_id, component_type_id)) {
+      return nullptr;
+    }
 
     const auto& record{records_[entity_id]};
     const auto& entity_type{record.archetype->entity_type};
+    const auto& archetype_record{
+        registered_component_types_.at(component_type_id)
+            .archetype_map.at(record.archetype->id)};
 
-    for (uindex i{0}; i < entity_type.size(); ++i) {
-      if (ComponentType::kComponentTypeId == entity_type[i]) {
-        return reinterpret_cast<ComponentType*>(
-                   record.archetype->components[i].first) +
-               record.row;
+    return reinterpret_cast<ComponentType*>(
+               record.archetype->components[archetype_record.cmp_array_index]
+                   .first) +
+           record.row;
+  }
+
+  bool HasParent(EntityId entity_id, EntityId parent_id);
+
+  template <typename... ComponentTypes, typename Function,
+            typename... ComponentTypeIds>
+  void Each(const Function& func, ComponentTypeIds... component_type_ids) {
+    constexpr auto component_type_count{sizeof...(ComponentTypes)};
+    constexpr auto component_type_ids_count{sizeof...(ComponentTypeIds)};
+    constexpr auto component_id_count{component_type_count +
+                                      component_type_ids_count};
+
+    uindex i{0};
+    std::array<EntityId, component_id_count> all_ids{};
+    (void(all_ids[i++] = component_type_ids), ...);
+    (void(all_ids[i++] = ComponentTypeDescrGetter<ComponentTypes>::Get().id),
+     ...);
+
+    if (all_ids.size() == 0) {
+      for (const auto* archetype : archetypes_) {
+        for (auto entity_id : archetype->entity_ids) {
+          func(entity_id);
+        }
       }
+
+      return;
     }
 
-    return nullptr;
+    std::sort(all_ids.begin(), all_ids.end());
+
+    for (Archetype* archetype : archetypes_) {
+      if (archetype->entity_type.size() < all_ids.size()) {
+        continue;
+      }
+
+      uindex count{0};
+
+      for (auto component_type_id : archetype->entity_type) {
+        if (component_type_id == all_ids[count]) {
+          ++count;
+        }
+
+        if (count == all_ids.size()) {
+          for (auto entity_id : archetype->entity_ids) {
+            func(entity_id);
+          }
+
+          break;
+        }
+      }
+    }
   }
 
-  template <typename... ComponentTypes>
-  ComponentView GetView() const {
-    ComponentTypeId component_type_ids[] = {
-        ComponentTypes::kComponentTypeId...};
-    return ComponentView{component_type_ids, sizeof...(ComponentTypes),
-                         archetypes_};
+  template <typename... ComponentTypes, typename Function>
+  void EachChild(const Function& func, EntityId parent_id) {
+    Each<ComponentTypes...>(func, Tag(EntityIdTag::Child, parent_id));
   }
-
-  ComponentView GetView() const;
 
  private:
   template <typename EntityType>
@@ -282,53 +135,43 @@ class EntityManager : public Manager {
     auto* archetype{new Archetype{}};
     archetype->entity_type = std::forward<EntityType>(entity_type);
     archetypes_.push_back(archetype);
+    ArchetypeId archetype_id{0};
 
     for (const auto component_type_id : archetype->entity_type) {
+      archetype_id = HashCombine(archetype_id, component_type_id);
       archetype->components.push_back(ComponentArray{nullptr, nullptr, 0});
+    }
+
+    archetype->id = archetype_id;
+    uindex i{0};
+
+    for (const auto component_type_id : archetype->entity_type) {
+      registered_component_types_[component_type_id]
+          .archetype_map[archetype->id]
+          .cmp_array_index = i++;
     }
 
     return archetype;
   }
 
+  void RegisterComponentType(const ComponentDescr& component_descr);
+  void RegisterComponentTypes(
+      const std::vector<ComponentDescr>& component_type_descrs);
+  void UnregisterComponentType(EntityId component_type_id);
   void ResizeArchetype(Archetype* archetype, s16 delta);
   void PreRemoveEntityFromArchetype(uindex entity_row, Archetype* archetype);
   bool DoesEntityTypeContain(const EntityType& entity_type,
-                             ComponentTypeId component_type_id);
-
-  template <typename ComponentType>
+                             EntityId component_type_id);
   void CopyComponent(EntityId entity_id, Archetype* new_archetype,
-                     uindex new_entity_index, ComponentType&& component) {
-    const auto kAddedComponentTypeId{ComponentType::kComponentTypeId};
-    uindex component_index{0};
-
-    while (component_index < new_archetype->entity_type.size() &&
-           new_archetype->entity_type[component_index] !=
-               kAddedComponentTypeId) {
-      ++component_index;
-    }
-
-    COMET_ASSERT(component_index < new_archetype->entity_type.size(),
-                 "Component ", COMET_STRING_ID_LABEL(kAddedComponentTypeId),
-                 " has not been found in the entity #", entity_id,
-                 "! What happened?");
-
-    auto& new_cmp_array{new_archetype->components[component_index]};
-    const auto cmp_size{component_descrs_[kAddedComponentTypeId].size};
-    const auto new_cmp_offset{
-        static_cast<sptrdiff>(cmp_size * new_entity_index)};
-
-    auto new_cmp{ComponentType{std::forward<ComponentType>(component)}};
-
-    // Add new component.
-    std::memcpy(new_cmp_array.first + new_cmp_offset, &new_cmp, cmp_size);
-  }
+                     uindex new_entity_index,
+                     const ComponentDescr& component_descr);
 
   Archetype* root_archetype_{nullptr};
-  std::unordered_map<ComponentTypeId, ComponentDescr> component_descrs_{};
   std::vector<Archetype*> archetypes_{};
   gid::BreedHandler entity_id_handler_{};
   gid::BreedHandler component_id_handler_{};
-  std::unordered_map<EntityId, Record> records_{};
+  Records records_{};
+  RegisteredComponentTypeMap registered_component_types_{};
 };
 }  // namespace entity
 }  // namespace comet

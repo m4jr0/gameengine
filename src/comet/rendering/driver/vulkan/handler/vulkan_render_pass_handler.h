@@ -27,9 +27,9 @@ class RenderPassHandler : public Handler {
   RenderPassHandler() = delete;
   explicit RenderPassHandler(const RenderPassHandlerDescr& descr);
   RenderPassHandler(const RenderPassHandler&) = delete;
-  RenderPassHandler(RenderPassHandler&& other) = delete;
+  RenderPassHandler(RenderPassHandler&&) = delete;
   RenderPassHandler& operator=(const RenderPassHandler&) = delete;
-  RenderPassHandler& operator=(RenderPassHandler&& other) = delete;
+  RenderPassHandler& operator=(RenderPassHandler&&) = delete;
   virtual ~RenderPassHandler() = default;
 
   void Shutdown() override;

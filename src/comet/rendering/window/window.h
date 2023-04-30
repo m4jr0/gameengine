@@ -7,6 +7,8 @@
 
 #include "comet_precompile.h"
 
+#include "comet/event/event_manager.h"
+#include "comet/input/input_manager.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
@@ -15,16 +17,18 @@ struct WindowDescr {
   WindowSize width{1280};
   WindowSize height{720};
   std::string name{"Comet Game Engine"};
+  event::EventManager* event_manager{nullptr};
+  input::InputManager* input_manager{nullptr};
 };
 
 class Window {
  public:
   Window() = delete;
-  explicit Window(const WindowDescr &descr);
-  Window(const Window &) = default;
-  Window(Window &&) noexcept;
-  Window &operator=(const Window &) = default;
-  Window &operator=(Window &&) noexcept;
+  explicit Window(const WindowDescr& descr);
+  Window(const Window&) = default;
+  Window(Window&&) noexcept;
+  Window& operator=(const Window&) = default;
+  Window& operator=(Window&&) noexcept;
   virtual ~Window();
 
   virtual void Initialize();
@@ -33,7 +37,7 @@ class Window {
   virtual void SetSize(WindowSize width, WindowSize height) = 0;
 
   bool IsInitialized() const noexcept;
-  virtual const std::string &GetName() const noexcept;
+  virtual const std::string& GetName() const noexcept;
   virtual const WindowSize GetWidth() const noexcept;
   virtual const WindowSize GetHeight() const noexcept;
 
@@ -42,6 +46,8 @@ class Window {
   WindowSize width_{0};
   WindowSize height_{0};
   std::string name_{};
+  event::EventManager* event_manager_{nullptr};
+  input::InputManager* input_manager_{nullptr};
 };
 }  // namespace rendering
 }  // namespace comet

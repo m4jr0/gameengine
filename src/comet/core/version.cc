@@ -4,8 +4,6 @@
 
 #include "version.h"
 
-#include "comet/utils/string.h"
-
 namespace comet {
 namespace version {
 std::string GetFormattedVersion() {

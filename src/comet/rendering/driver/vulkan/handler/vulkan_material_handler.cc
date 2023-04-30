@@ -4,13 +4,12 @@
 
 #include "vulkan_material_handler.h"
 
-#include "comet/core/engine.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
@@ -19,9 +18,11 @@ namespace vk {
 MaterialHandler::MaterialHandler(const MaterialHandlerDescr& descr)
     : Handler{descr},
       texture_handler_{descr.texture_handler},
-      shader_handler_{descr.shader_handler} {
+      shader_handler_{descr.shader_handler},
+      resource_manager_{descr.resource_manager} {
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
   COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
+  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
 }
 
 void MaterialHandler::Shutdown() {
@@ -195,15 +196,6 @@ void MaterialHandler::UpdateInstance(Material& material, ShaderId shader_id) {
   material.instance_update_frame = frame_count;
 }
 
-void MaterialHandler::UpdateLocal(Material& material,
-                                  const MaterialLocalPacket& packet,
-                                  ShaderId shader_id) {
-  auto* shader_ptr{shader_handler_->Get(shader_id)};
-  COMET_ASSERT(shader_ptr != nullptr, "Material's shader cannot be null!");
-  shader_handler_->SetUniform(*shader_ptr, shader_ptr->uniform_indices.model,
-                              packet.position);
-}
-
 Material* MaterialHandler::GenerateInternal(const MaterialDescr& descr) {
   Material material;
   material.id = descr.id;
@@ -228,8 +220,7 @@ TextureMap MaterialHandler::GenerateTextureMap(
   return TextureMap{
       GetOrGenerateSampler(map),
       texture_handler_->GetOrGenerate(
-          Engine::Get().GetResourceManager().Load<resource::TextureResource>(
-              texture_id)),
+          resource_manager_->Load<resource::TextureResource>(texture_id)),
       map.type};
 }
 
@@ -244,7 +235,7 @@ void MaterialHandler::Destroy(Material& material, bool is_destroying_handler) {
   material.id = kInvalidMaterialId;
   material.instance_id = kInvalidMaterialInstanceId;
   material.shader_id = kInvalidShaderId;
-  material.diffuse_color = {1.0f, 1.0f, 1.0f, 1.0f};
+  material.diffuse_color = {kColorWhite, 1.0f};
 
   if (!is_destroying_handler) {
     std::array<TextureMap*, 3> texture_maps = {

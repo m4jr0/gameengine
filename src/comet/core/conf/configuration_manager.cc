@@ -4,10 +4,14 @@
 
 #include "configuration_manager.h"
 
-#include "comet/utils/file_system.h"
+#include "comet/core/file_system.h"
 
 namespace comet {
 namespace conf {
+ConfigurationManager::ConfigurationManager(
+    const ConfigurationManagerDescr& descr)
+    : Manager{descr} {}
+
 void ConfigurationManager::Initialize() {
   Manager::Initialize();
   ParseConfFile();
@@ -22,8 +26,7 @@ void ConfigurationManager::ParseConfFile() {
   std::ifstream in_file;
 
   // kConfigFilePath_ is const, so using .data() is okay.
-  if (!utils::filesystem::OpenBinaryFileToReadFrom(kConfigFilePath_.data(),
-                                                   in_file)) {
+  if (!OpenBinaryFileToReadFrom(kConfigFilePath_.data(), in_file)) {
     COMET_LOG_CORE_INFO("No configuration file at: ", kConfigFilePath_, ".");
     return;
   }
@@ -37,7 +40,7 @@ void ConfigurationManager::ParseConfFile() {
   std::string line;
 
   while (in_file.good() && std::getline(in_file, line)) {
-    utils::string::Trim(line);
+    Trim(line);
 
     if (line.empty() || line[0] == '#') {
       continue;

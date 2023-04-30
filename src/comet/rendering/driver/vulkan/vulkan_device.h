@@ -48,9 +48,9 @@ class Device {
   Device() = delete;
   explicit Device(const DeviceDescr& descr);
   Device(const Device&) = delete;
-  Device(Device&& other) = delete;
+  Device(Device&&) = delete;
   Device& operator=(const Device&) = delete;
-  Device& operator=(Device&& other) = delete;
+  Device& operator=(Device&&) = delete;
   ~Device();
 
   void Initialize();

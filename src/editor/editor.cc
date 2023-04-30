@@ -4,8 +4,7 @@
 
 #include "editor.h"
 
-#include "comet/entity/entity.h"
-#include "comet/entity/factory/model_entity.h"
+#include "comet/entity/factory/entity_factory_manager.h"
 
 namespace comet {
 namespace editor {
@@ -37,7 +36,10 @@ void CometEditor::PreLoad() {
   sigaction(SIGINT, &sig_handler, NULL);
 #endif  // COMET_UNIX
 
-  asset_manager_.Initialize();
+  asset::AssetManagerDescr asset_manager_descr{};
+  asset_manager_descr.resource_manager = resource_manager_.get();
+  asset_manager_ = std::make_unique<asset::AssetManager>(asset_manager_descr);
+  asset_manager_->Initialize();
 }
 
 // TODO(m4jr0): Remove temporary code.
@@ -48,7 +50,7 @@ void CometEditor::PostLoad() {
 
 void CometEditor::PostUnload() {
   PostUnloadTmpCode();
-  asset_manager_.Shutdown();
+  asset_manager_->Shutdown();
   Engine::PostUnload();
 }
 
@@ -71,8 +73,13 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::PostLoadTmpCode() {
-  entity::GenerateModelEntity("models/nanosuit/model.obj");
+  entity_factory_manager_->GetModel()->Generate("models/nanosuit/model.obj");
+
   CameraHandlerDescr camera_handler_descr{};
+  camera_handler_descr.camera_manager = camera_manager_.get();
+  camera_handler_descr.event_manager = event_manager_.get();
+  camera_handler_descr.input_manager = input_manager_.get();
+  camera_handler_descr.time_manager = time_manager_.get();
   camera_handler_ = std::make_unique<CameraHandler>(camera_handler_descr);
   camera_handler_->Initialize();
 }

@@ -12,6 +12,28 @@
 
 namespace comet {
 namespace event {
+class WindowInitializedEvent : public Event {
+ public:
+  const static stringid::StringId kStaticType_;
+
+  WindowInitializedEvent(rendering::WindowSize width,
+                         rendering::WindowSize height);
+  WindowInitializedEvent(const WindowInitializedEvent&) = default;
+  WindowInitializedEvent(WindowInitializedEvent&&) noexcept = default;
+  WindowInitializedEvent& operator=(const WindowInitializedEvent&) = default;
+  WindowInitializedEvent& operator=(WindowInitializedEvent&&) noexcept =
+      default;
+  virtual ~WindowInitializedEvent() = default;
+
+  stringid::StringId GetType() const noexcept override;
+  rendering::WindowSize GetWidth() const noexcept;
+  rendering::WindowSize GetHeight() const noexcept;
+
+ private:
+  rendering::WindowSize width_{0};
+  rendering::WindowSize height_{0};
+};
+
 class WindowResizeEvent : public Event {
  public:
   const static stringid::StringId kStaticType_;

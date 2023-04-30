@@ -7,10 +7,26 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
+#include "comet/math/bounding_volume.h"
+#include "comet/math/vector.h"
+#include "comet/rendering/camera/frustum.h"
 
 namespace comet {
 namespace rendering {
+constexpr math::Vec3 kColorBlack{0.0f, 0.0f, 0.0f};
+constexpr math::Vec3 kColorWhite{1.0f, 1.0f, 1.0f};
+constexpr math::Vec3 kColorRed{1.0f, 0.0f, 0.0f};
+constexpr math::Vec3 kColorGreen{0.0f, 1.0f, 0.0f};
+constexpr math::Vec3 kColorBlue{0.0f, 0.0f, 1.0f};
+constexpr math::Vec3 kColorYellow{1.0f, 1.0f, 0.0f};
+constexpr math::Vec3 kColorCyan{0.0f, 1.0f, 1.0f};
+constexpr math::Vec3 kColorMagenta{1.0f, 0.0f, 1.0f};
+
+enum class DriverType : u8 { Unknown = 0, OpenGl, Vulkan, Direct3d12 };
+
+DriverType GetDriverTypeFromStr(std::string_view str);
+std::string GetDriverTypeLabel(rendering::DriverType type);
+
 using FrameCount = u32;
 constexpr auto kInvalidFrameCount{static_cast<FrameCount>(-1)};
 
@@ -25,15 +41,17 @@ enum class AntiAliasingType : u16 {
   MsaaX64
 };
 
+AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str);
+
 using WindowSize = u16;
 
 struct Vertex {
-  glm::vec3 position{};
-  glm::vec3 normal{};
-  glm::vec3 tangent{};
-  glm::vec3 bitangent{};
-  glm::vec2 uv{};
-  glm::vec3 color{};
+  math::Vec3 position{};
+  math::Vec3 normal{};
+  math::Vec3 tangent{};
+  math::Vec3 bitangent{};
+  math::Vec2 uv{};
+  math::Vec3 color{};
 };
 
 using Index = u32;
@@ -68,6 +86,7 @@ enum class RenderingViewType : u16 {
   World,
   Skybox,
   SimpleWorld,
+  Debug,
   ImGui
 };
 
@@ -88,7 +107,7 @@ struct RenderingViewDescr {
   RenderingViewType type{RenderingViewType::Unknown};
   WindowSize width{0};
   WindowSize height{0};
-  f32 clear_color[4]{0.0f, 0.0f, 0.0f, 1.0f};
+  f32 clear_color[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
   RenderingViewId id{kInvalidRenderingViewId};
 };
 
@@ -178,6 +197,12 @@ constexpr auto kMaxShaderUniformCount{128};
 constexpr auto kMaxShaderTextureMapCount{32};
 
 enum class CullMode { Unknown = 0, None, Front, Back, FrontAndBack };
+
+void GenerateGeometry(const math::Aabb& aabb, std::vector<Vertex>& vertices,
+                      std::vector<Index>& indices, bool is_visible);
+
+void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
+                      std::vector<Index>& indices);
 }  // namespace rendering
 }  // namespace comet
 

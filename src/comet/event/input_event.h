@@ -7,10 +7,9 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
-
 #include "comet/event/event.h"
 #include "comet/input/input.h"
+#include "comet/math/vector.h"
 
 namespace comet {
 namespace event {
@@ -44,7 +43,7 @@ class MouseMoveEvent : public Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  explicit MouseMoveEvent(glm::vec2 position);
+  explicit MouseMoveEvent(const math::Vec2& position);
   MouseMoveEvent(const MouseMoveEvent&) = default;
   MouseMoveEvent(MouseMoveEvent&&) noexcept = default;
   MouseMoveEvent& operator=(const MouseMoveEvent&) = default;
@@ -52,10 +51,10 @@ class MouseMoveEvent : public Event {
   virtual ~MouseMoveEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
-  glm::vec2 GetPosition() const noexcept;
+  const math::Vec2& GetPosition() const noexcept;
 
  private:
-  glm::vec2 position_{0.0f, 0.0f};
+  math::Vec2 position_{0.0f, 0.0f};
 };
 
 class MouseScrollEvent : public Event {

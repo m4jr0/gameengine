@@ -7,7 +7,9 @@
 
 #include "comet_precompile.h"
 
-#include "comet/rendering/window/glfw/glfw_window.h"
+#define GLFW_INCLUDE_NONE
+
+#include "GLFW/glfw3.h"
 
 namespace comet {
 namespace input {

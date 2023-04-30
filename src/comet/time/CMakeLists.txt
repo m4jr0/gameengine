@@ -48,5 +48,5 @@ endif()
 # Internal libraries.
 target_link_libraries(${TIME_LIBRARY_NAME}
   PRIVATE
-    # Put internal libraries here.
+    ${CORE_LIBRARY_NAME}
 )

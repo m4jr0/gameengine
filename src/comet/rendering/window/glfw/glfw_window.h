@@ -5,9 +5,9 @@
 #ifndef COMET_COMET_RENDERING_WINDOW_GLFW_GLFW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_GLFW_GLFW_WINDOW_H_
 
-#define GLFW_INCLUDE_NONE
-
 #include "comet_precompile.h"
+
+#define GLFW_INCLUDE_NONE
 
 #include "GLFW/glfw3.h"
 

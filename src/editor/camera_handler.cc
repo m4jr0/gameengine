@@ -4,17 +4,22 @@
 
 #include "camera_handler.h"
 
-#include "glm/gtx/norm.hpp"
-
-#include "comet/core/engine.h"
 #include "comet/event/input_event.h"
-#include "comet/input/input_manager.h"
+#include "comet/math/vector.h"
 #include "comet/rendering/camera/camera.h"
-#include "comet/rendering/camera/camera_manager.h"
 
 namespace comet {
 namespace editor {
-CameraHandler::CameraHandler(const CameraHandlerDescr& descr) {}
+CameraHandler::CameraHandler(const CameraHandlerDescr& descr)
+    : camera_manager_{descr.camera_manager},
+      event_manager_{descr.event_manager},
+      input_manager_{descr.input_manager},
+      time_manager_{descr.time_manager} {
+  COMET_ASSERT(camera_manager_ != nullptr, "Camera manager is null!");
+  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
+  COMET_ASSERT(input_manager_ != nullptr, "Input manager is null!");
+  COMET_ASSERT(time_manager_ != nullptr, "Time manager is null!");
+}
 
 CameraHandler ::~CameraHandler() {
   COMET_ASSERT(
@@ -26,22 +31,20 @@ void CameraHandler ::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize camera handler, but it is already done!");
 
-  auto& event_manager{Engine::Get().GetEventManager()};
+  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
+                           event::KeyboardEvent::kStaticType_);
 
-  event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::KeyboardEvent::kStaticType_);
+  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
+                           event::MouseMoveEvent::kStaticType_);
 
-  event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseMoveEvent::kStaticType_);
+  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
+                           event::MouseScrollEvent::kStaticType_);
 
-  event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseScrollEvent::kStaticType_);
+  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
+                           event::MouseClickEvent::kStaticType_);
 
-  event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseClickEvent::kStaticType_);
-
-  event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseReleaseEvent::kStaticType_);
+  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
+                           event::MouseReleaseEvent::kStaticType_);
 
   is_initialized_ = true;
 }
@@ -53,21 +56,19 @@ void CameraHandler ::Shutdown() {
 }
 
 void CameraHandler::Update() {
-  auto& input_manager{Engine::Get().GetInputManager()};
   auto is_mouse_button{is_orbiting_from_mouse_ || is_rotating_from_mouse_ ||
                        is_panning_from_mouse_ || is_zooming_from_mouse_};
-  auto is_left{input_manager.IsKeyPressed(input::KeyCode::Left)};
-  auto is_right{input_manager.IsKeyPressed(input::KeyCode::Right)};
-  auto is_up{input_manager.IsKeyPressed(input::KeyCode::Up)};
-  auto is_down{input_manager.IsKeyPressed(input::KeyCode::Down)};
+  auto is_left{input_manager_->IsKeyPressed(input::KeyCode::Left)};
+  auto is_right{input_manager_->IsKeyPressed(input::KeyCode::Right)};
+  auto is_up{input_manager_->IsKeyPressed(input::KeyCode::Up)};
+  auto is_down{input_manager_->IsKeyPressed(input::KeyCode::Down)};
   auto is_keyboard_key{is_left || is_right || is_up || is_down};
 
   if (!is_mouse_button && !is_keyboard_key) {
     return;
   }
 
-  auto* camera{Engine::Get().GetCameraManager().GetMainCamera()};
-
+  auto* camera{camera_manager_->GetMainCamera()};
   auto width{camera->GetWidth()};
   auto height{camera->GetHeight()};
 
@@ -75,10 +76,10 @@ void CameraHandler::Update() {
     return;
   }
 
-  auto delta_time{Engine::Get().GetTimeManager().GetFixedDeltaTime()};
+  auto delta_time{time_manager_->GetFixedDeltaTime()};
 
   if (is_keyboard_key) {
-    glm::vec3 delta{0.0f};
+    math::Vec3 delta{0.0f};
 
     if (is_left) {
       delta.x += -1.0f;
@@ -106,7 +107,7 @@ void CameraHandler::Update() {
 
   auto mouse_pos_delta{last_mouse_pos_ - current_mouse_pos_};
   last_mouse_pos_ = current_mouse_pos_;
-  auto is_mouse_moving{glm::length2(mouse_pos_delta) > 0.05f};
+  auto is_mouse_moving{math::GetSquaredMagnitude(mouse_pos_delta) > 0.05f};
 
   if (!is_mouse_moving) {
     return;
@@ -134,11 +135,12 @@ void CameraHandler::Update() {
 
   if (is_out_of_bounds) {
     last_mouse_pos_ = current_mouse_pos_;
-    input_manager.SetMousePosition(current_mouse_pos_.x, current_mouse_pos_.y);
+    input_manager_->SetMousePosition(current_mouse_pos_.x,
+                                     current_mouse_pos_.y);
   }
 
   if (is_orbiting_from_mouse_) {
-    glm::vec3 delta{mouse_pos_delta.x, -mouse_pos_delta.y, 0.0f};
+    math::Vec3 delta{mouse_pos_delta.x, -mouse_pos_delta.y, 0.0f};
     delta *= kMouseOrbitSensitivity_;
     camera->Orbit(delta);
     return;
@@ -151,14 +153,14 @@ void CameraHandler::Update() {
   }
 
   if (is_panning_from_mouse_) {
-    glm::vec3 delta{mouse_pos_delta.x, -mouse_pos_delta.y, 0.0f};
+    math::Vec3 delta{-mouse_pos_delta.x, -mouse_pos_delta.y, 0.0f};
     delta *= kMousePanSensitivity_;
     camera->Move(delta);
     return;
   }
 
   if (is_zooming_from_mouse_) {
-    glm::vec3 delta{0.0f, 0.0f, -mouse_pos_delta.x + mouse_pos_delta.y};
+    math::Vec3 delta{0.0f, 0.0f, -mouse_pos_delta.x + mouse_pos_delta.y};
     delta *= kMouseZoomSensitivity_;
     camera->Move(delta);
     return;
@@ -178,7 +180,7 @@ void CameraHandler::OnEvent(const event::Event& event) {
       case input::KeyCode::F:
         if (is_press) {
           // TODO(m4jr0): Focus on current selected mesh.
-          Engine::Get().GetCameraManager().GetMainCamera()->Reset();
+          camera_manager_->GetMainCamera()->Reset();
         }
 
         break;
@@ -199,7 +201,7 @@ void CameraHandler::OnEvent(const event::Event& event) {
 
     switch (button) {
       case input::MouseButton::Left:
-        if (Engine::Get().GetInputManager().IsAltPressed()) {
+        if (input_manager_->IsAltPressed()) {
           ResetMousePosition();
           is_orbiting_from_mouse_ = true;
         }
@@ -209,7 +211,7 @@ void CameraHandler::OnEvent(const event::Event& event) {
       case input::MouseButton::Right:
         ResetMousePosition();
 
-        if (Engine::Get().GetInputManager().IsAltPressed()) {
+        if (input_manager_->IsAltPressed()) {
           is_zooming_from_mouse_ = true;
         } else {
           is_rotating_from_mouse_ = true;
@@ -228,9 +230,9 @@ void CameraHandler::OnEvent(const event::Event& event) {
   } else if (event_type == event::MouseScrollEvent::kStaticType_) {
     const auto& mouse_scroll_event{
         static_cast<const event::MouseScrollEvent&>(event)};
-    auto camera{Engine::Get().GetCameraManager().GetMainCamera()};
-    camera->Move(glm::vec3(0.0f, 0.0f,
-                           static_cast<f32>(mouse_scroll_event.GetYOffset())));
+    auto camera{camera_manager_->GetMainCamera()};
+    camera->Move(math::Vec3(0.0f, 0.0f,
+                            static_cast<f32>(mouse_scroll_event.GetYOffset())));
     return;
 
   } else if (event_type == event::MouseReleaseEvent::kStaticType_) {
@@ -257,8 +259,7 @@ void CameraHandler::OnEvent(const event::Event& event) {
   }
 }
 void CameraHandler::ResetMousePosition() {
-  last_mouse_pos_ = current_mouse_pos_ =
-      Engine::Get().GetInputManager().GetMousePosition();
+  last_mouse_pos_ = current_mouse_pos_ = input_manager_->GetMousePosition();
 }
 }  // namespace editor
 }  // namespace comet

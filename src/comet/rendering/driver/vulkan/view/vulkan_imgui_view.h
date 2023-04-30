@@ -7,9 +7,13 @@
 
 #include "comet_precompile.h"
 
+#ifdef COMET_IMGUI
+
 #include "vulkan/vulkan.h"
 
+#include "comet/physics/physics_manager.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
+#include "comet/rendering/rendering_manager.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
 namespace comet {
@@ -17,6 +21,9 @@ namespace rendering {
 namespace vk {
 struct ImGuiViewDescr : ViewDescr {
   VulkanGlfwWindow* window{nullptr};
+#ifdef COMET_DEBUG
+  DebuggerDisplayerManager* debugger_displayer_manager{nullptr};
+#endif  // COMET_DEBUG;
 };
 
 class ImGuiView : public View {
@@ -37,9 +44,15 @@ class ImGuiView : public View {
 
   VkDescriptorPool descriptor_pool_handle_{VK_NULL_HANDLE};
   VulkanGlfwWindow* window_{nullptr};
+#ifdef COMET_DEBUG
+  DebuggerDisplayerManager* debugger_displayer_manager_{nullptr};
+#endif  // COMET_DEBUG
+  physics::PhysicsManager* physics_manager_{nullptr};
+  rendering::RenderingManager* rendering_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet
+#endif  // COMET_IMGUI
 
 #endif  // COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_IMGUI_VIEW_H_

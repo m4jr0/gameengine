@@ -11,6 +11,8 @@
 # Source files #################################################################
 add_library(${PHYSICS_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/physics/physics_manager.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/comet/physics/component/transform_component.h"
 )
 
 # Compiling ####################################################################
@@ -48,5 +50,9 @@ endif()
 # Internal libraries.
 target_link_libraries(${PHYSICS_LIBRARY_NAME}
   PRIVATE
-    # Put internal libraries here.
+    ${CORE_LIBRARY_NAME}
+    ${ENTITY_LIBRARY_NAME}
+    ${EVENT_LIBRARY_NAME}
+    ${MATH_LIBRARY_NAME}
+    ${TIME_LIBRARY_NAME}
 )

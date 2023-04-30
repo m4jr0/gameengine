@@ -6,18 +6,19 @@
 
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 
-#include "comet/core/engine.h"
+#include "comet/core/file_system.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/utils/file_system.h"
+#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
+ModelExporter::ModelExporter(const ModelExporterDescr& descr)
+    : AssetExporter{descr} {}
+
 bool ModelExporter::IsCompatible(std::string_view extension) const {
-  return extension == "obj";
+  return extension == "obj" || extension == "fbx";
 }
 
 std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
@@ -43,71 +44,211 @@ std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
   model.type_id = resource::ModelResource::kResourceTypeId;
   LoadNode(model, scene->mRootNode, scene);
 
-  resource_files.push_back(Engine::Get().GetResourceManager().GetResourceFile(
-      model, compression_mode_));
+  resource_files.push_back(
+      resource_manager_->GetResourceFile(model, compression_mode_));
 
-  LoadMaterials(utils::filesystem::GetDirectoryPath(asset_descr.asset_abs_path),
-                scene, resource_files);
+  LoadMaterials(GetDirectoryPath(asset_descr.asset_abs_path), scene,
+                resource_files);
 
   return resource_files;
 }
 
+math::Mat4 ModelExporter::GetTransform(
+    const math::Mat4& current_transform,
+    const aiMatrix4x4& transform_to_combine) {
+  // Assimp matrices are row-major, so we compute the product from its transpose
+  // directly.
+  math::Mat4 result{0.0f};
+
+  result[0][0] = current_transform[0][0] * transform_to_combine[0][0] +
+                 current_transform[1][0] * transform_to_combine[0][1] +
+                 current_transform[2][0] * transform_to_combine[0][2] +
+                 current_transform[3][0] * transform_to_combine[0][3];
+
+  result[0][1] = current_transform[0][1] * transform_to_combine[0][0] +
+                 current_transform[1][1] * transform_to_combine[0][1] +
+                 current_transform[2][1] * transform_to_combine[0][2] +
+                 current_transform[3][1] * transform_to_combine[0][3];
+
+  result[0][2] = current_transform[0][2] * transform_to_combine[0][0] +
+                 current_transform[1][2] * transform_to_combine[0][1] +
+                 current_transform[2][2] * transform_to_combine[0][2] +
+                 current_transform[3][2] * transform_to_combine[0][3];
+
+  result[0][3] = current_transform[0][3] * transform_to_combine[0][0] +
+                 current_transform[1][3] * transform_to_combine[0][1] +
+                 current_transform[2][3] * transform_to_combine[0][2] +
+                 current_transform[3][3] * transform_to_combine[0][3];
+
+  result[1][0] = current_transform[0][0] * transform_to_combine[1][0] +
+                 current_transform[1][0] * transform_to_combine[1][1] +
+                 current_transform[2][0] * transform_to_combine[1][2] +
+                 current_transform[3][0] * transform_to_combine[1][3];
+
+  result[1][1] = current_transform[0][1] * transform_to_combine[1][0] +
+                 current_transform[1][1] * transform_to_combine[1][1] +
+                 current_transform[2][1] * transform_to_combine[1][2] +
+                 current_transform[3][1] * transform_to_combine[1][3];
+
+  result[1][2] = current_transform[0][2] * transform_to_combine[1][0] +
+                 current_transform[1][2] * transform_to_combine[1][1] +
+                 current_transform[2][2] * transform_to_combine[1][2] +
+                 current_transform[3][2] * transform_to_combine[1][3];
+
+  result[1][3] = current_transform[0][3] * transform_to_combine[1][0] +
+                 current_transform[1][3] * transform_to_combine[1][1] +
+                 current_transform[2][3] * transform_to_combine[1][2] +
+                 current_transform[3][3] * transform_to_combine[1][3];
+
+  result[2][0] = current_transform[0][0] * transform_to_combine[2][0] +
+                 current_transform[1][0] * transform_to_combine[2][1] +
+                 current_transform[2][0] * transform_to_combine[2][2] +
+                 current_transform[3][0] * transform_to_combine[2][3];
+
+  result[2][1] = current_transform[0][1] * transform_to_combine[2][0] +
+                 current_transform[1][1] * transform_to_combine[2][1] +
+                 current_transform[2][1] * transform_to_combine[2][2] +
+                 current_transform[3][1] * transform_to_combine[2][3];
+
+  result[2][2] = current_transform[0][2] * transform_to_combine[2][0] +
+                 current_transform[1][2] * transform_to_combine[2][1] +
+                 current_transform[2][2] * transform_to_combine[2][2] +
+                 current_transform[3][2] * transform_to_combine[2][3];
+
+  result[2][3] = current_transform[0][3] * transform_to_combine[2][0] +
+                 current_transform[1][3] * transform_to_combine[2][1] +
+                 current_transform[2][3] * transform_to_combine[2][2] +
+                 current_transform[3][3] * transform_to_combine[2][3];
+
+  result[3][0] = current_transform[0][0] * transform_to_combine[3][0] +
+                 current_transform[1][0] * transform_to_combine[3][1] +
+                 current_transform[2][0] * transform_to_combine[3][2] +
+                 current_transform[3][0] * transform_to_combine[3][3];
+
+  result[3][1] = current_transform[0][1] * transform_to_combine[3][0] +
+                 current_transform[1][1] * transform_to_combine[3][1] +
+                 current_transform[2][1] * transform_to_combine[3][2] +
+                 current_transform[3][1] * transform_to_combine[3][3];
+
+  result[3][2] = current_transform[0][2] * transform_to_combine[3][0] +
+                 current_transform[1][2] * transform_to_combine[3][1] +
+                 current_transform[2][2] * transform_to_combine[3][2] +
+                 current_transform[3][2] * transform_to_combine[3][3];
+
+  result[3][3] = current_transform[0][3] * transform_to_combine[3][0] +
+                 current_transform[1][3] * transform_to_combine[3][1] +
+                 current_transform[2][3] * transform_to_combine[3][2] +
+                 current_transform[3][3] * transform_to_combine[3][3];
+
+  return result;
+}
+
 void ModelExporter::LoadNode(resource::ModelResource& model,
-                             const aiNode* current_node,
-                             const aiScene* scene) const {
+                             const aiNode* current_node, const aiScene* scene,
+                             resource::ResourceId parent_id,
+                             const math::Mat4& parent_transform) const {
+  auto transform{GetTransform(parent_transform, current_node->mTransformation)};
+  resource::ResourceId last_mesh_id{resource::kInvalidResourceId};
+
   for (uindex index{0}; index < current_node->mNumMeshes; ++index) {
     const auto* mesh{scene->mMeshes[current_node->mMeshes[index]]};
-    LoadMesh(model, mesh, scene);
+    last_mesh_id = LoadMesh(model, mesh, scene, parent_id, transform);
   }
 
+  parent_id = current_node->mNumMeshes != 1 ? parent_id : last_mesh_id;
+
   for (uindex index{0}; index < current_node->mNumChildren; ++index) {
-    LoadNode(model, current_node->mChildren[index], scene);
+    LoadNode(model, current_node->mChildren[index], scene, parent_id,
+             transform);
   }
 }
 
-void ModelExporter::LoadMesh(resource::ModelResource& model,
-                             const aiMesh* current_mesh,
-                             const aiScene* scene) const {
-  std::vector<rendering::Vertex> vertices;
-  std::vector<rendering::Index> indices;
+resource::ResourceId ModelExporter::LoadMesh(
+    resource::ModelResource& model, const aiMesh* current_mesh,
+    const aiScene* scene, resource::ResourceId parent_id,
+    const math::Mat4& transform) const {
+  model.meshes.push_back({});
+  auto& mesh_resource{model.meshes[model.meshes.size() - 1]};
+  mesh_resource.resource_id = model.id;
+  mesh_resource.internal_id = model.meshes.size();
+
+  auto* raw_material{scene->mMaterials[current_mesh->mMaterialIndex]};
+  mesh_resource.material_id =
+      resource::GenerateMaterialId(raw_material->GetName().C_Str());
+
+  auto& vertices{mesh_resource.vertices};
+  auto& indices{mesh_resource.indices};
+
+  math::Vec3 min_extents{std::numeric_limits<float>::max()};
+  math::Vec3 max_extents{std::numeric_limits<float>::lowest()};
 
   for (uindex index{0}; index < current_mesh->mNumVertices; ++index) {
-    rendering::Vertex vertex{};
+    vertices.push_back({});
+    auto& vertex{vertices[vertices.size() - 1]};
 
     if (current_mesh->mVertices) {
-      vertex.position = glm::vec3(current_mesh->mVertices[index].x,
-                                  current_mesh->mVertices[index].y,
-                                  current_mesh->mVertices[index].z);
+      vertex.position = math::Vec3{current_mesh->mVertices[index].x,
+                                   current_mesh->mVertices[index].y,
+                                   current_mesh->mVertices[index].z};
     }
 
     if (current_mesh->mNormals) {
-      vertex.normal = glm::vec3(current_mesh->mNormals[index].x,
-                                current_mesh->mNormals[index].y,
-                                current_mesh->mNormals[index].z);
+      vertex.normal = math::Vec3{current_mesh->mNormals[index].x,
+                                 current_mesh->mNormals[index].y,
+                                 current_mesh->mNormals[index].z};
     }
 
     if (current_mesh->mTangents) {
-      vertex.tangent = glm::vec3(current_mesh->mTangents[index].x,
-                                 current_mesh->mTangents[index].y,
-                                 current_mesh->mTangents[index].z);
+      vertex.tangent = math::Vec3{current_mesh->mTangents[index].x,
+                                  current_mesh->mTangents[index].y,
+                                  current_mesh->mTangents[index].z};
     }
 
     if (current_mesh->mBitangents) {
-      vertex.bitangent = glm::vec3(current_mesh->mBitangents[index].x,
-                                   current_mesh->mBitangents[index].y,
-                                   current_mesh->mBitangents[index].z);
+      vertex.bitangent = math::Vec3{current_mesh->mBitangents[index].x,
+                                    current_mesh->mBitangents[index].y,
+                                    current_mesh->mBitangents[index].z};
     }
 
     // Does our current mesh contain texture coordinates?
     if (current_mesh->mTextureCoords[0]) {
-      vertex.uv = glm::vec2(current_mesh->mTextureCoords[0][index].x,
-                            current_mesh->mTextureCoords[0][index].y);
+      vertex.uv = math::Vec2{current_mesh->mTextureCoords[0][index].x,
+                             current_mesh->mTextureCoords[0][index].y};
     } else {
-      vertex.uv = glm::vec2(0.0f, 0.0f);
+      vertex.uv = math::Vec2{0.0f, 0.0f};
     }
 
-    vertices.push_back(vertex);
+    if (vertex.position.x < min_extents.x) {
+      min_extents.x = vertex.position.x;
+    }
+
+    if (vertex.position.y < min_extents.y) {
+      min_extents.y = vertex.position.y;
+    }
+
+    if (vertex.position.z < min_extents.z) {
+      min_extents.z = vertex.position.z;
+    }
+
+    if (vertex.position.x > max_extents.x) {
+      max_extents.x = vertex.position.x;
+    }
+
+    if (vertex.position.y > max_extents.y) {
+      max_extents.y = vertex.position.y;
+    }
+
+    if (vertex.position.z > max_extents.z) {
+      max_extents.z = vertex.position.z;
+    }
   }
+
+  mesh_resource.transform = transform;
+  mesh_resource.local_center = (max_extents + min_extents) * 0.5f;
+  // mesh_resource.local_center =
+  //     transform * math::Vec4{mesh_resource.local_center, 1.0f};
+  mesh_resource.local_max_extents = max_extents - mesh_resource.local_center;
+  mesh_resource.parent_id = parent_id;
 
   for (uindex index{0}; index < current_mesh->mNumFaces; ++index) {
     const auto& face{current_mesh->mFaces[index]};
@@ -117,17 +258,7 @@ void ModelExporter::LoadMesh(resource::ModelResource& model,
     }
   }
 
-  resource::MeshResource mesh_resource{};
-  mesh_resource.resource_id = model.id;
-  mesh_resource.internal_id = model.meshes.size();
-  mesh_resource.vertices = std::move(vertices);
-  mesh_resource.indices = std::move(indices);
-
-  auto* raw_material{scene->mMaterials[current_mesh->mMaterialIndex]};
-  mesh_resource.material_id =
-      resource::GenerateMaterialId(raw_material->GetName().C_Str());
-
-  model.meshes.push_back(std::move(mesh_resource));
+  return mesh_resource.internal_id;
 }
 
 void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
@@ -179,7 +310,7 @@ void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
   }
 
   map->texture_id = resource::GenerateResourceIdFromPath(
-      utils::filesystem::Append(resource_path, texture_path.C_Str()));
+      Append(resource_path, texture_path.C_Str()));
   map->type = texture_type;
 
   aiTextureMapMode raw_texture_repeat_mode;
@@ -208,11 +339,21 @@ void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
   map->mag_filter_mode = rendering::TextureFilterMode::Linear;
 }
 
+void ModelExporter::LoadDefaultTextures(
+    resource::MaterialResource& material) const {
+  auto& map{material.descr.diffuse_map};
+  map.texture_id = resource::kFlatTextureResourceId;
+  map.type = rendering::TextureType::Diffuse;
+  map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
+  map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
+  map.min_filter_mode = rendering::TextureFilterMode::Linear;
+  map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+}
+
 void ModelExporter::LoadMaterials(
     std::string_view directory_path, const aiScene* scene,
     std::vector<resource::ResourceFile>& resource_files) const {
-  const auto resource_path{
-      utils::filesystem::GetRelativePath(directory_path, root_asset_path_)};
+  const auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
   constexpr std::array<aiTextureType, 4> exported_texture_types{
       {aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_HEIGHT,
        aiTextureType_AMBIENT}};
@@ -247,18 +388,25 @@ void ModelExporter::LoadMaterials(
       color = kDefaultColor_;
     }
 
-    material.descr.diffuse_color = glm::vec4(color.r, color.b, color.g, 1.0f);
+    material.descr.diffuse_color = math::Vec4(color.r, color.b, color.g, 1.0f);
 
     for (auto raw_texture_type : exported_texture_types) {
       LoadMaterialTextures(resource_path, material, raw_material,
                            raw_texture_type);
     }
 
+    if (material.descr.diffuse_map.texture_id == resource::kInvalidResourceId &&
+        material.descr.specular_map.texture_id ==
+            resource::kInvalidResourceId &&
+        material.descr.normal_map.texture_id == resource::kInvalidResourceId) {
+      LoadDefaultTextures(material);
+    }
+
     material.id = resource::GenerateMaterialId(raw_material->GetName().C_Str());
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
-    resource_files.push_back(Engine::Get().GetResourceManager().GetResourceFile(
-        material, compression_mode_));
+    resource_files.push_back(
+        resource_manager_->GetResourceFile(material, compression_mode_));
   }
 }
 

@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+#include "comet/core/logger.h"
+
 #if defined(_MSC_VER)
 #if defined(_CPPRTTI)
 #define COMET_RTTI
@@ -24,9 +26,7 @@
 #endif  // defined(__GNUG__)
 
 namespace comet {
-namespace debug {
 void HandleCriticalError();
-}  // namespace debug
 }  // namespace comet
 
 #ifndef COMET_DEBUG
@@ -38,7 +38,7 @@ void HandleCriticalError();
                                                                   \
     if (!isOk) {                                                  \
       COMET_LOG_GLOBAL_ERROR("[CRITICAL FAILURE] ", __VA_ARGS__); \
-      comet::debug::HandleCriticalError();                        \
+      comet::HandleCriticalError();                               \
     }                                                             \
                                                                   \
     assert(isOk);                                                 \

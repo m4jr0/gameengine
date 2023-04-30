@@ -8,10 +8,6 @@
 #
 ################################################################################
 
-# Packages #####################################################################
-# OpenGL Mathematics.
-find_package(glm REQUIRED)
-
 # Source files #################################################################
 add_library(${INPUT_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/input/input_manager.cc"
@@ -29,7 +25,6 @@ target_include_directories(${INPUT_LIBRARY_NAME}
 target_link_directories(${INPUT_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
-    glm::glm
 )
 
 target_link_libraries(${INPUT_LIBRARY_NAME}
@@ -54,5 +49,6 @@ endif()
 # Internal libraries.
 target_link_libraries(${INPUT_LIBRARY_NAME}
   PRIVATE
-    # Put internal libraries here.
+    ${CORE_LIBRARY_NAME}
+    ${EVENT_LIBRARY_NAME}
 )

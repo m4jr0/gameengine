@@ -47,9 +47,9 @@ class Swapchain {
   Swapchain() = delete;
   explicit Swapchain(const SwapchainDescr& descr);
   Swapchain(const Swapchain&) = delete;
-  Swapchain(Swapchain&& other) = delete;
+  Swapchain(Swapchain&&) = delete;
   Swapchain& operator=(const Swapchain&) = delete;
-  Swapchain& operator=(Swapchain&& other) = delete;
+  Swapchain& operator=(Swapchain&&) = delete;
   ~Swapchain();
 
   void Initialize();

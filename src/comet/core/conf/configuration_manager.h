@@ -9,15 +9,18 @@
 
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/manager.h"
-#include "comet/utils/string.h"
+#include "comet/core/string.h"
 
 using namespace std::literals;
 
 namespace comet {
 namespace conf {
+using ConfigurationManagerDescr = ManagerDescr;
+
 class ConfigurationManager : public Manager {
  public:
-  ConfigurationManager() = default;
+  ConfigurationManager() = delete;
+  explicit ConfigurationManager(const ConfigurationManagerDescr& descr);
   ConfigurationManager(const ConfigurationManager&) = delete;
   ConfigurationManager(ConfigurationManager&&) = delete;
   ConfigurationManager& operator=(const ConfigurationManager&) = delete;
@@ -71,10 +74,8 @@ class ConfigurationManager : public Manager {
  private:
   template <typename KeyString, typename ValueString>
   void ParseKeyValuePair(KeyString&& raw_key, ValueString&& raw_value) {
-    auto key{COMET_STRING_ID(
-        utils::string::GetTrimmedCopy(std::forward<KeyString>(raw_key)))};
-    auto str_value{
-        utils::string::GetTrimmedCopy(std::forward<KeyString>(raw_value))};
+    auto key{COMET_STRING_ID(GetTrimmedCopy(std::forward<KeyString>(raw_key)))};
+    auto str_value{GetTrimmedCopy(std::forward<KeyString>(raw_value))};
 
     if (key == kApplicationName || key == kRenderingDriver ||
         key == kRenderingAntiAliasing || key == kResourceRootPath) {
@@ -90,16 +91,16 @@ class ConfigurationManager : public Manager {
                key == kRenderingVulkanMinorVersion ||
                key == kRenderingVulkanPatchVersion ||
                key == kRenderingVulkanMaxFramesInFlight) {
-      SetU16(key, utils::string::ParseU16(str_value));
+      SetU16(key, ParseU16(str_value));
     } else if (key == kRenderingClearColorR || key == kRenderingClearColorG ||
                key == kRenderingClearColorB || key == kRenderingClearColorA) {
-      SetF32(key, utils::string::ParseF32(str_value));
+      SetF32(key, ParseF32(str_value));
     } else if (key == kCoreMsPerUpdate) {
-      SetF64(key, utils::string::ParseF64(str_value));
+      SetF64(key, ParseF64(str_value));
     } else if (key == kRenderingIsVsync || key == kRenderingIsTripleBuffering ||
                key == kRenderingIsSamplerAnisotropy ||
                key == kRenderingIsSampleRateShading) {
-      SetBool(key, utils::string::ParseBool(str_value));
+      SetBool(key, ParseBool(str_value));
     } else {
       COMET_LOG_CORE_WARNING("Invalid configuration key: \"",
                              COMET_STRING_ID_LABEL(key), "\". Ignoring.");
@@ -111,25 +112,5 @@ class ConfigurationManager : public Manager {
 };
 }  // namespace conf
 }  // namespace comet
-
-#define COMET_CONF(key) Engine::Get().GetConfigurationManager().Get(key)
-#define COMET_CONF_STR(key) Engine::Get().GetConfigurationManager().GetStr(key)
-#define COMET_CONF_U8(key) Engine::Get().GetConfigurationManager().GetU8(key)
-#define COMET_CONF_U16(key) Engine::Get().GetConfigurationManager().GetU16(key)
-#define COMET_CONF_U32(key) Engine::Get().GetConfigurationManager().GetU32(key)
-#define COMET_CONF_U64(key) Engine::Get().GetConfigurationManager().GetU64(key)
-#define COMET_CONF_S8(key) Engine::Get().GetConfigurationManager().GetS8(key)
-#define COMET_CONF_S16(key) Engine::Get().GetConfigurationManager().GetS16(key)
-#define COMET_CONF_S32(key) Engine::Get().GetConfigurationManager().GetS32(key)
-#define COMET_CONF_S64(key) Engine::Get().GetConfigurationManager().GetS64(key)
-#define COMET_CONF_F32(key) Engine::Get().GetConfigurationManager().GetF32(key)
-#define COMET_CONF_F64(key) Engine::Get().GetConfigurationManager().GetF64(key)
-#define COMET_CONF_UINDEX(key) \
-  Engine::Get().GetConfigurationManager().GetIndex(key)
-#define COMET_CONF_UX(key) Engine::Get().GetConfigurationManager().GetUx(key)
-#define COMET_CONF_SX(key) Engine::Get().GetConfigurationManager().GetSx(key)
-#define COMET_CONF_FX(key) Engine::Get().GetConfigurationManager().GetFx(key)
-#define COMET_CONF_BOOL(key) \
-  Engine::Get().GetConfigurationManager().GetBool(key)
 
 #endif  // COMET_COMET_CORE_CONF_CONFIGURATION_MANAGER_H_

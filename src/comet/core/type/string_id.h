@@ -7,8 +7,6 @@
 
 #include "comet_precompile.h"
 
-#include "comet/utils/hash.h"
-
 namespace comet {
 namespace stringid {
 using StringId = u32;

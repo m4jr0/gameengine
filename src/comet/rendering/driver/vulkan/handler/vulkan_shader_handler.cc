@@ -4,6 +4,7 @@
 
 #include "vulkan_shader_handler.h"
 
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
@@ -12,7 +13,6 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -21,11 +21,13 @@ ShaderHandler::ShaderHandler(const ShaderHandlerDescr& descr)
     : Handler{descr},
       shader_module_handler_{descr.shader_module_handler},
       pipeline_handler_{descr.pipeline_handler},
-      texture_handler_{descr.texture_handler} {
+      texture_handler_{descr.texture_handler},
+      resource_manager_{descr.resource_manager} {
   COMET_ASSERT(shader_module_handler_ != nullptr,
                "Shader module handler is null!");
   COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
+  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
 }
 
 void ShaderHandler::Initialize() {
@@ -48,8 +50,7 @@ void ShaderHandler::Shutdown() {
 
 Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   const auto* shader_resource{
-      Engine::Get().GetResourceManager().Load<resource::ShaderResource>(
-          descr.resource_path)};
+      resource_manager_->Load<resource::ShaderResource>(descr.resource_path)};
   COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
   Shader shader{};
   shader.id = shader_resource->id;
@@ -158,6 +159,13 @@ void ShaderHandler::UpdateGlobal(Shader& shader,
                           &global_descriptor_set_handle, 0, VK_NULL_HANDLE);
 
   shader.global_uniform_data.update_frame = frame_count;
+}
+
+void ShaderHandler::UpdateLocal(const ShaderLocalPacket& packet,
+                                ShaderId shader_id) {
+  auto* shader_ptr{Get(shader_id)};
+  COMET_ASSERT(shader_ptr != nullptr, "Material's shader cannot be null!");
+  SetUniform(*shader_ptr, shader_ptr->uniform_indices.model, packet.position);
 }
 
 void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
@@ -721,7 +729,7 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
   } else {
     uniform.offset = shader.push_constant_ranges.size();
     uniform.size = static_cast<ShaderUniformSize>(
-        utils::memory::AlignSize(size, GetStd430Alignment(uniform.type)));
+        AlignSize(size, GetStd430Alignment(uniform.type)));
 
     VkPushConstantRange range{};
     range.offset = uniform.offset;
@@ -871,9 +879,9 @@ void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
                      .limits.minUniformBufferOffsetAlignment};
 
   shader.global_ubo_data.ubo_stride =
-      utils::memory::AlignSize(shader.global_ubo_data.ubo_size, alignment);
+      AlignSize(shader.global_ubo_data.ubo_size, alignment);
   shader.instance_ubo_data.ubo_stride =
-      utils::memory::AlignSize(shader.instance_ubo_data.ubo_size, alignment);
+      AlignSize(shader.instance_ubo_data.ubo_size, alignment);
 
   auto buffer_size{static_cast<VkDeviceSize>(
       shader.global_ubo_data.ubo_stride +

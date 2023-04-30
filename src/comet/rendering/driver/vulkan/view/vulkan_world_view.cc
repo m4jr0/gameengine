@@ -26,6 +26,19 @@ void WorldView::Initialize() {
   render_pass_descr.offset.x = 0;
   render_pass_descr.offset.y = 0;
 
+  render_pass_descr.dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  render_pass_descr.dependency.dstSubpass = 0;
+  render_pass_descr.dependency.srcStageMask =
+      VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+  render_pass_descr.dependency.srcAccessMask = 0;
+  render_pass_descr.dependency.dstStageMask =
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  render_pass_descr.dependency.dstAccessMask =
+      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  render_pass_descr.dependency.dependencyFlags = 0;
+
   // TODO(m4jr0): Make clear values more configurable.
   std::memcpy(&render_pass_descr.clear_values[0].color, clear_color_,
               sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);

@@ -7,7 +7,6 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
 #include "vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 

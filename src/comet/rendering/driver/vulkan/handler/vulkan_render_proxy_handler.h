@@ -7,14 +7,15 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
-
 #include "comet/entity/entity_manager.h"
+#include "comet/math/bounding_volume.h"
+#include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_proxy.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/resource/model_resource.h"
 #include "comet/time/time_manager.h"
 
@@ -24,6 +25,9 @@ namespace vk {
 struct RenderProxyHandlerDescr : HandlerDescr {
   MaterialHandler* material_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
+  ShaderHandler* shader_handler{nullptr};
+  CameraManager* camera_manager{nullptr};
+  entity::EntityManager* entity_manager{nullptr};
 };
 
 class RenderProxyHandler : public Handler {
@@ -31,31 +35,33 @@ class RenderProxyHandler : public Handler {
   RenderProxyHandler() = delete;
   explicit RenderProxyHandler(const RenderProxyHandlerDescr& descr);
   RenderProxyHandler(const RenderProxyHandler&) = delete;
-  RenderProxyHandler(RenderProxyHandler&& other) = delete;
+  RenderProxyHandler(RenderProxyHandler&&) = delete;
   RenderProxyHandler& operator=(const RenderProxyHandler&) = delete;
-  RenderProxyHandler& operator=(RenderProxyHandler&& other) = delete;
+  RenderProxyHandler& operator=(RenderProxyHandler&&) = delete;
   virtual ~RenderProxyHandler() = default;
 
   void Shutdown() override;
 
-  RenderProxy* Get(uindex index);
-  RenderProxy* Get(const resource::MeshResource* resource);
-  RenderProxy* TryGet(uindex index);
-  RenderProxy* TryGet(const resource::MeshResource* resource);
   void Update(time::Interpolation interpolation);
   void DrawProxies(const Shader& shader);
-  uindex GetCount() const noexcept;
+  // TODO(m4jr0): Remove temporary code.
+  void DrawProxiesForDebugging(const Shader& shader);
+  u32 GetDrawCount() const noexcept;
 
  private:
   RenderProxy GenerateInternal(Mesh& mesh, Material& material,
-                               const glm::mat4& transform);
+                               const math::Mat4& transform);
   void Draw(const RenderProxy& proxy);
 
+  constexpr static auto kDefaultProxyCount{512};
   FrameIndex update_frame_{kInvalidFrameIndex};
   std::vector<RenderProxy> proxies_{};
-  const RenderProxy* last_drawn_proxy_{nullptr};
+  const Mesh* last_drawn_mesh_{nullptr};
   MaterialHandler* material_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
+  ShaderHandler* shader_handler_{nullptr};
+  CameraManager* camera_manager_{nullptr};
+  entity::EntityManager* entity_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

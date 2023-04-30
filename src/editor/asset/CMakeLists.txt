@@ -56,6 +56,7 @@ target_link_directories(${ASSET_LIBRARY_NAME}
 
 target_link_libraries(${ASSET_LIBRARY_NAME}
   PRIVATE
+    ${CORE_LIBRARY_NAME}
     assimp::assimp
     SPIRV-Tools-opt
     glslang

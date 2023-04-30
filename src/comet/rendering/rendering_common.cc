@@ -4,8 +4,58 @@
 
 #include "rendering_common.h"
 
+#include "comet/core/conf/configuration_manager.h"
+#include "comet/math/plane.h"
+
 namespace comet {
 namespace rendering {
+DriverType GetDriverTypeFromStr(std::string_view str) {
+  if (str == conf::kRenderingDriverOpengl) {
+    return DriverType::OpenGl;
+  } else if (str == conf::kRenderingDriverVulkan) {
+    return DriverType::Vulkan;
+  } else if (str == conf::kRenderingDriverDirect3d12) {
+    return DriverType::Direct3d12;
+  }
+
+  return DriverType::Unknown;
+}
+
+std::string GetDriverTypeLabel(rendering::DriverType type) {
+  switch (type) {
+    case DriverType::OpenGl:
+      return "OpenGL";
+    case DriverType::Vulkan:
+      return "Vulkan";
+    case DriverType::Direct3d12:
+      return "Direct3D 12";
+  }
+
+  return "???";
+}
+
+AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
+  if (str == conf::kRenderingAntiAliasingTypeNone) {
+    return AntiAliasingType::None;
+  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX64) {
+    return AntiAliasingType::MsaaX64;
+  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX32) {
+    return AntiAliasingType::MsaaX32;
+  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX16) {
+    return AntiAliasingType::MsaaX16;
+  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX8) {
+    return AntiAliasingType::MsaaX8;
+  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX4) {
+    return AntiAliasingType::MsaaX4;
+  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX2) {
+    return AntiAliasingType::MsaaX2;
+  } else if (str == conf::kRenderingAntiAliasingTypeMsaa) {
+    return AntiAliasingType::Msaa;
+  }
+
+  return AntiAliasingType::None;
+}
+
 std::string GetTextureTypeLabel(TextureType texture_type) {
   switch (texture_type) {
     case comet::rendering::TextureType::Unknown:
@@ -195,6 +245,253 @@ Alignment GetStd430Alignment(ShaderUniformType type) {
   }
 
   return kInvalidAlignment;
+}
+
+void GenerateGeometry(const math::Aabb& aabb, std::vector<Vertex>& vertices,
+                      std::vector<Index>& indices, bool is_visible) {
+  COMET_ASSERT(vertices.size() == 0,
+               "Tried to generate geometry for AABB, but vertices provided are "
+               "not empty!");
+  COMET_ASSERT(indices.size() == 0,
+               "Tried to generate geometry for AABB, but indices provided are "
+               "not empty!");
+  const math::Vec3 extents{aabb.extents[0], aabb.extents[1], aabb.extents[2]};
+
+  vertices.reserve(8);
+
+  Vertex vertex{};
+  vertex.color = is_visible ? kColorGreen : kColorRed;
+
+  // Top right far.
+  constexpr auto kTopRightFarIndex{0};
+  vertex.position = aabb.center + math::Vec3(extents.x, extents.y, -extents.z);
+  vertices.push_back(vertex);
+
+  // Top right near.
+  constexpr auto kTopRightNearIndex{1};
+  vertex.position = aabb.center + math::Vec3(extents.x, extents.y, extents.z);
+  vertices.push_back(vertex);
+
+  // Top left far.
+  constexpr auto kTopLeftFarIndex{2};
+  vertex.position = aabb.center + math::Vec3(-extents.x, extents.y, -extents.z);
+  vertices.push_back(vertex);
+
+  // Top left near.
+  constexpr auto kTopLeftNearIndex{3};
+  vertex.position = aabb.center + math::Vec3(-extents.x, extents.y, extents.z);
+  vertices.push_back(vertex);
+
+  // Bottom right far.
+  constexpr auto kBottomRightFarIndex{4};
+  vertex.position = aabb.center + math::Vec3(extents.x, -extents.y, -extents.z);
+  vertices.push_back(vertex);
+
+  // Bottom right near.
+  constexpr auto kBottomRightNearIndex{5};
+  vertex.position = aabb.center + math::Vec3(extents.x, -extents.y, extents.z);
+  vertices.push_back(vertex);
+
+  // Bottom left far.
+  constexpr auto kBottomLeftFarIndex{6};
+  vertex.position =
+      aabb.center + math::Vec3(-extents.x, -extents.y, -extents.z);
+  vertices.push_back(vertex);
+
+  // Bottom left near.
+  constexpr auto kBottomLeftNearIndex{7};
+  vertex.position = aabb.center + math::Vec3(-extents.x, -extents.y, extents.z);
+  vertices.push_back(vertex);
+
+  indices.reserve(36);
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kTopRightNearIndex);
+  indices.push_back(kTopLeftNearIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kTopLeftFarIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kTopRightNearIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kBottomLeftFarIndex);
+
+  indices.push_back(kBottomLeftFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kBottomLeftNearIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kBottomLeftNearIndex);
+  indices.push_back(kBottomLeftFarIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kBottomLeftFarIndex);
+  indices.push_back(kTopLeftFarIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kTopLeftFarIndex);
+
+  indices.push_back(kTopLeftFarIndex);
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kBottomLeftFarIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kTopRightNearIndex);
+  indices.push_back(kBottomRightNearIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kBottomLeftNearIndex);
+}
+
+void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
+                      std::vector<Index>& indices) {
+  COMET_ASSERT(
+      vertices.size() == 0,
+      "Tried to generate geometry for frustum, but vertices provided are "
+      "not empty!");
+  COMET_ASSERT(
+      indices.size() == 0,
+      "Tried to generate geometry for frustum, but indices provided are "
+      "not empty!");
+
+  const auto& top_face{frustum.GetTop()};
+  const auto& bottom_face{frustum.GetBottom()};
+  const auto& left_face{frustum.GetLeft()};
+  const auto& right_face{frustum.GetRight()};
+  const auto& near_face{frustum.GetNear()};
+  const auto& far_face{frustum.GetFar()};
+  vertices.reserve(8);
+
+  Vertex vertex{};
+  vertex.color = kColorBlack;
+  bool is_intersection{false};
+
+  // Top right far.
+  constexpr auto kTopRightFarIndex{0};
+  is_intersection = Intersect(top_face, far_face, right_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Top, far and right faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  // Top right near.
+  constexpr auto kTopRightNearIndex{1};
+  is_intersection = Intersect(top_face, near_face, right_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Top, near and right faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  // Top left far.
+  constexpr auto kTopLeftFarIndex{2};
+  is_intersection = Intersect(top_face, far_face, left_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Top, far and left faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  // Top left near.
+  constexpr auto kTopLeftNearIndex{3};
+  is_intersection = Intersect(top_face, near_face, left_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Top, near and left faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  // Bottom right far.
+  constexpr auto kBottomRightFarIndex{4};
+  is_intersection =
+      Intersect(bottom_face, far_face, right_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Bottom, far and right faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  // Bottom right near.
+  constexpr auto kBottomRightNearIndex{5};
+  is_intersection =
+      Intersect(bottom_face, near_face, right_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Bottom, near and right faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  // Bottom left far.
+  constexpr auto kBottomLeftFarIndex{6};
+  is_intersection =
+      Intersect(bottom_face, far_face, left_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Bottom, far and left faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  // Bottom left near.
+  constexpr auto kBottomLeftNearIndex{7};
+  is_intersection =
+      Intersect(bottom_face, near_face, left_face, vertex.position);
+  COMET_ASSERT(is_intersection,
+               "Bottom, near and left faces in the frustum won't intersect! "
+               "Frustum seems to be invalid.");
+  vertices.push_back(vertex);
+
+  indices.reserve(36);
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kTopRightNearIndex);
+  indices.push_back(kTopLeftNearIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kTopLeftFarIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kTopRightNearIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kBottomLeftFarIndex);
+
+  indices.push_back(kBottomLeftFarIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kBottomLeftNearIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kBottomLeftNearIndex);
+  indices.push_back(kBottomLeftFarIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kBottomLeftFarIndex);
+  indices.push_back(kTopLeftFarIndex);
+
+  indices.push_back(kTopRightFarIndex);
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kTopLeftFarIndex);
+
+  indices.push_back(kTopLeftFarIndex);
+  indices.push_back(kBottomRightFarIndex);
+  indices.push_back(kBottomLeftFarIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kTopRightNearIndex);
+  indices.push_back(kBottomRightNearIndex);
+
+  indices.push_back(kTopLeftNearIndex);
+  indices.push_back(kBottomRightNearIndex);
+  indices.push_back(kBottomLeftNearIndex);
 }
 }  // namespace rendering
 }  // namespace comet

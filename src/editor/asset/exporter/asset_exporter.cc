@@ -4,12 +4,17 @@
 
 #include "asset_exporter.h"
 
-#include "comet/utils/file_system.h"
+#include "comet/core/file_system.h"
 #include "editor/asset/asset_utils.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
+AssetExporter::AssetExporter(const AssetExporterDescr& descr)
+    : resource_manager_{descr.resource_manager} {
+  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
+}
+
 const std::string& AssetExporter::GetRootResourcePath() const {
   return root_resource_path_;
 }
@@ -23,8 +28,7 @@ bool AssetExporter::Process(std::string_view asset_abs_path) {
 
   AssetDescr descr{};
   descr.asset_abs_path = std::string{asset_abs_path};
-  descr.asset_path = utils::filesystem::GetRelativePath(descr.asset_abs_path,
-                                                        root_asset_path_);
+  descr.asset_path = GetRelativePath(descr.asset_abs_path, root_asset_path_);
   descr.metadata_path = GetAssetMetadataFilePath(descr.asset_abs_path);
   auto is_metadata_error{false};
   descr.metadata = SetAndGetMetadata(descr.metadata_path);
@@ -60,8 +64,8 @@ bool AssetExporter::Process(std::string_view asset_abs_path) {
 
   for (const auto& resource_file : resource_files) {
     if (!resource::SaveResourceFile(
-            utils::filesystem::Append(
-                root_resource_path_, std::to_string(resource_file.resource_id)),
+            Append(root_resource_path_,
+                   std::to_string(resource_file.resource_id)),
             resource_file)) {
       COMET_LOG_GLOBAL_ERROR("Unable to save resource file: ",
                              resource_file.resource_id);

@@ -4,22 +4,35 @@
 
 #include "vulkan_imgui_view.h"
 
+#ifdef COMET_IMGUI
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-#include "comet/core/engine.h"
-#include "comet/physics/physics_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/rendering_manager.h"
+
+#ifdef COMET_DEBUG
+#include "comet/rendering/debugger/debugger_displayer_manager.h"
+#endif  // COMET_DEBUG
 
 namespace comet {
 namespace rendering {
 namespace vk {
 ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
-    : View{descr}, window_{descr.window} {
+    : View{descr},
+      window_{descr.window}
+#ifdef COMET_DEBUG
+      ,
+      debugger_displayer_manager_{descr.debugger_displayer_manager}
+#endif  // COMET_DEBUG
+{
   COMET_ASSERT(window_ != nullptr, "Window is null!");
+#ifdef COMET_DEBUG
+  COMET_ASSERT(debugger_displayer_manager_ != nullptr,
+               "Debugger displayer manager is null!");
+#endif  // COMET_DEBUG
 }
 
 void ImGuiView::Initialize() {
@@ -33,6 +46,19 @@ void ImGuiView::Initialize() {
   render_pass_descr.extent = extent;
   render_pass_descr.offset.x = 0;
   render_pass_descr.offset.y = 0;
+
+  render_pass_descr.dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  render_pass_descr.dependency.dstSubpass = 0;
+  render_pass_descr.dependency.srcStageMask =
+      VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+  render_pass_descr.dependency.srcAccessMask = 0;
+  render_pass_descr.dependency.dstStageMask =
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  render_pass_descr.dependency.dstAccessMask =
+      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  render_pass_descr.dependency.dependencyFlags = 0;
 
   // TODO(m4jr0): Make clear values more configurable.
   std::memcpy(&render_pass_descr.clear_values[0].color, clear_color_,
@@ -87,6 +113,9 @@ void ImGuiView::Initialize() {
                              &descriptor_pool_handle_),
       "Failed to create descriptor pool for ImGui!");
 
+#ifdef COMET_DEBUG
+  IMGUI_CHECKVERSION();
+#endif  // COMET_DEBUG
   ImGui::CreateContext();
   ImGui_ImplGlfw_InitForVulkan(window_->GetHandle(), false);
   const auto& device{context_->GetDevice()};
@@ -105,6 +134,7 @@ void ImGuiView::Initialize() {
   imgui_info.MSAASamples = device.GetMsaaSamples();
 
   ImGui_ImplVulkan_Init(&imgui_info, render_pass_->handle);
+  ImGui::StyleColorsDark();
 
   auto command_pool_handle{context_->GetUploadContext().command_pool_handle};
   auto command_buffer_handle{
@@ -131,7 +161,6 @@ void ImGuiView::Destroy() {
 void ImGuiView::Update(const ViewPacket& packet) {
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
-
   ImGui::NewFrame();
   Draw();
   ImGui::Render();
@@ -144,24 +173,11 @@ void ImGuiView::Update(const ViewPacket& packet) {
 }
 
 void vk::ImGuiView::Draw() const {
-  // TODO(m4jr0): Implement driver agnostic logic somewhere else.
-  const auto& rendering_manager{Engine::Get().GetRenderingManager()};
-  const auto& physics_manager{Engine::Get().GetPhysicsManager()};
-
-  ImGui::Begin("Mini Profiler");
-  ImGui::Text("PHYSICS");
-  ImGui::Indent();
-  ImGui::Text("Frame Time: %f ms", physics_manager.GetFrameTime());
-  ImGui::Text("Framerate: %u Hz", physics_manager.GetFrameRate());
-  ImGui::Unindent();
-  ImGui::Spacing();
-  ImGui::Text("RENDERING");
-  ImGui::Indent();
-  ImGui::Text("Frame Time: %f ms", rendering_manager.GetFrameTime());
-  ImGui::Text("Framerate: %u FPS", rendering_manager.GetFrameRate());
-  ImGui::Unindent();
-  ImGui::End();
+#ifdef COMET_DEBUG
+  debugger_displayer_manager_->Draw();
+#endif  // COMET_DEBUG
 }
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet
+#endif  // COMET_IMGUI

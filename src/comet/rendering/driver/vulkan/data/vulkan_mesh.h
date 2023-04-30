@@ -7,10 +7,11 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
 #include "vulkan/vulkan.h"
 
+#include "comet/math/vector.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
+#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {
@@ -19,10 +20,10 @@ using MeshId = u64;
 constexpr auto kInvalidMeshId{static_cast<MeshId>(-1)};
 
 struct Vertex {
-  glm::vec3 position{};
-  glm::vec3 normal{};
-  glm::vec4 color{};
-  glm::vec2 uv{};
+  math::Vec3 position{};
+  math::Vec3 normal{};
+  math::Vec4 color{kColorWhite, 1.0f};
+  math::Vec2 uv{};
 };
 
 using Index = u32;

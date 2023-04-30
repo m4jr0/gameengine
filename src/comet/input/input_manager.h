@@ -7,17 +7,25 @@
 
 #include "comet_precompile.h"
 
-#include "glm/glm.hpp"
+#define GLFW_INCLUDE_NONE
+
+#include "GLFW/glfw3.h"
 
 #include "comet/core/manager.h"
+#include "comet/event/event_manager.h"
 #include "comet/input/input.h"
-#include "comet/rendering/window/glfw/glfw_window.h"
+#include "comet/math/vector.h"
 
 namespace comet {
 namespace input {
+struct InputManagerDescr : ManagerDescr {
+  event::EventManager* event_manager{nullptr};
+};
+
 class InputManager : public Manager {
  public:
-  InputManager() = default;
+  InputManager() = delete;
+  explicit InputManager(const InputManagerDescr& descr);
   InputManager(const InputManager&) = delete;
   InputManager(InputManager&&) = delete;
   InputManager& operator=(const InputManager&) = delete;
@@ -33,11 +41,14 @@ class InputManager : public Manager {
   virtual bool IsMousePressed(MouseButton key_code) const;
   virtual bool IsMouseDown(MouseButton key_code) const;
   virtual bool IsMouseUp(MouseButton key_code) const;
-  virtual glm::vec2 GetMousePosition() const;
+  virtual math::Vec2 GetMousePosition() const;
   virtual void SetMousePosition(f32, f32);
   void AttachGlfwWindow(GLFWwindow* window_handle_);
   bool IsAltPressed() const;
   bool IsShiftPressed() const;
+
+ protected:
+  event::EventManager* event_manager_{nullptr};
 
  private:
   mutable std::atomic<GLFWwindow*> window_handle_{nullptr};
@@ -64,8 +75,8 @@ class NullInputManager : public InputManager {
   };
   virtual bool IsMouseUp(MouseButton key_code) const override { return false; };
 
-  virtual glm::vec2 GetMousePosition() const override {
-    return glm::vec2{0.0f, 0.0f};
+  virtual math::Vec2 GetMousePosition() const override {
+    return math::Vec2{0.0f, 0.0f};
   };
 
   virtual void SetMousePosition(f32 x, f32 y) override{};

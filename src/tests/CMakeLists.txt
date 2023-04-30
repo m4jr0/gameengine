@@ -19,9 +19,9 @@ list(APPEND TESTS_EXECUTABLE_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/tests/entity/tests_entity.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/tests/utils/tests_file_system.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/core/tests_file_system.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/tests/utils/structure/tests_ring_queue.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/core/type/structure/tests_ring_queue.cc"
 )
 
 # Executable ###################################################################

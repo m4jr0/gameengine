@@ -8,15 +8,17 @@
 
 #include "stb_image.h"
 
-#include "comet/core/engine.h"
+#include "comet/core/file_system.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/texture_resource.h"
-#include "comet/utils/file_system.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
+TextureExporter::TextureExporter(const TextureExporterDescr& descr)
+    : AssetExporter{descr} {}
+
 bool TextureExporter::IsCompatible(std::string_view extension) const {
   return extension == "png" || extension == "jpg";
 }
@@ -54,8 +56,8 @@ std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
       texture.descr.resolution[1];
   asset_descr.metadata[kCometEditorTextureMetadataKeySize] = texture.descr.size;
 
-  resource_files.push_back(Engine::Get().GetResourceManager().GetResourceFile(
-      texture, compression_mode_));
+  resource_files.push_back(
+      resource_manager_->GetResourceFile(texture, compression_mode_));
   stbi_image_free(pixel_data);
   return resource_files;
 }

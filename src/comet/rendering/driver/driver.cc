@@ -5,44 +5,9 @@
 #include "driver.h"
 
 #include "comet/core/conf/configuration_value.h"
-#include "comet/core/engine.h"
 
 namespace comet {
 namespace rendering {
-DriverType GetDriverTypeFromStr(std::string_view str) {
-  if (str == conf::kRenderingDriverOpengl) {
-    return DriverType::OpenGl;
-  } else if (str == conf::kRenderingDriverVulkan) {
-    return DriverType::Vulkan;
-  } else if (str == conf::kRenderingDriverDirect3d12) {
-    return DriverType::Direct3d12;
-  }
-
-  return DriverType::Unknown;
-}
-
-AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
-  if (str == conf::kRenderingAntiAliasingTypeNone) {
-    return AntiAliasingType::None;
-  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX64) {
-    return AntiAliasingType::MsaaX64;
-  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX32) {
-    return AntiAliasingType::MsaaX32;
-  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX16) {
-    return AntiAliasingType::MsaaX16;
-  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX8) {
-    return AntiAliasingType::MsaaX8;
-  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX4) {
-    return AntiAliasingType::MsaaX4;
-  } else if (str == conf::kRenderingAntiAliasingTypeMsaaX2) {
-    return AntiAliasingType::MsaaX2;
-  } else if (str == conf::kRenderingAntiAliasingTypeMsaa) {
-    return AntiAliasingType::Msaa;
-  }
-
-  return AntiAliasingType::None;
-}
-
 Driver::Driver(const DriverDescr& descr)
     : is_vsync_{descr.is_vsync},
       is_triple_buffering_{descr.is_triple_buffering},
@@ -57,8 +22,26 @@ Driver::Driver(const DriverDescr& descr)
       app_name_{descr.app_name},
       app_major_version_{descr.app_major_version},
       app_minor_version_{descr.app_minor_version},
-      app_patch_version_{descr.app_patch_version} {
+      app_patch_version_{descr.app_patch_version},
+      camera_manager_{descr.camera_manager},
+      configuration_manager_{descr.configuration_manager},
+#ifdef COMET_DEBUG
+      debugger_displayer_manager_{descr.debugger_displayer_manager},
+#endif  // COMET_DEBUG
+      entity_manager_{descr.entity_manager},
+      event_manager_{descr.event_manager},
+      resource_manager_{descr.resource_manager} {
   std::memcpy(clear_color_, descr.clear_color, sizeof(descr.clear_color));
+  COMET_ASSERT(camera_manager_ != nullptr, "Camera manager is null!");
+  COMET_ASSERT(configuration_manager_ != nullptr,
+               "Configuration manager is null!");
+#ifdef COMET_DEBUG
+  COMET_ASSERT(debugger_displayer_manager_ != nullptr,
+               "Debugger displayer manager is null!");
+#endif  // COMET_DEBUG
+  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
+  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
+  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
 }
 
 Driver ::~Driver() {

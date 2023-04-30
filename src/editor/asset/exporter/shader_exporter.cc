@@ -6,13 +6,15 @@
 
 #include "nlohmann/json.hpp"
 
-#include "comet/core/engine.h"
+#include "comet/core/file_system.h"
 #include "comet/resource/shader_resource.h"
-#include "comet/utils/file_system.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
+ShaderExporter::ShaderExporter(const ShaderExporterDescr& descr)
+    : AssetExporter{descr} {}
+
 bool ShaderExporter::IsCompatible(std::string_view extension) const {
   return extension == "cshader";
 }
@@ -26,8 +28,7 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
 
   try {
     std::string metadata_raw;
-    utils::filesystem::ReadStrFromFile(asset_descr.asset_abs_path,
-                                       metadata_raw);
+    ReadStrFromFile(asset_descr.asset_abs_path, metadata_raw);
 
     if (metadata_raw.size() == 0) {
       return to_return;
@@ -98,8 +99,8 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
     return to_return;
   }
 
-  to_return.push_back(Engine::Get().GetResourceManager().GetResourceFile(
-      shader, compression_mode_));
+  to_return.push_back(
+      resource_manager_->GetResourceFile(shader, compression_mode_));
   return to_return;
 }
 
