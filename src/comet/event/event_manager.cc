@@ -15,11 +15,34 @@ void EventManager::Shutdown() {
   Manager::Shutdown();
 }
 
-void EventManager::Register(const EventListener& function,
-                            stringid::StringId event_type) {
+EventListenerId EventManager::Register(const Callback& function,
+                                       stringid::StringId event_type) {
   std::scoped_lock<std::mutex> lock(mutex_);
   auto& listeners{listeners_[event_type]};
-  listeners.push_back(function);
+  const auto id{listener_id_counter_++};
+  listeners.push_back({id, function});
+  id_event_type_map_[id] = event_type;
+  return id;
+}
+
+void EventManager::Unregister(EventListenerId id) {
+  std::scoped_lock<std::mutex> lock(mutex_);
+  COMET_ASSERT(id_event_type_map_.find(id) != id_event_type_map_.cend(),
+               "Unable to find event type from ID ", id, "!");
+  auto& listeners{listeners_[id_event_type_map_.at(id)]};
+  uindex found_index{kInvalidIndex};
+
+  for (uindex i{0}; i < listeners.size(); ++i) {
+    if (listeners[i].id == id) {
+      found_index = i;
+      break;
+    }
+  }
+
+  COMET_ASSERT(found_index != kInvalidIndex, "Unable to find listener from ID ",
+               id, "!");
+  listeners.erase(listeners.begin() + found_index);
+  id_event_type_map_.erase(id);
 }
 
 void EventManager::FireEventNow(std::unique_ptr<Event> event) const {
@@ -52,7 +75,7 @@ void EventManager::Dispatch(std::unique_ptr<Event> event) const {
   const auto event_pointer{event.get()};
 
   for (const auto& listener : listeners) {
-    listener(*event_pointer);
+    listener.callback(*event_pointer);
   }
 }
 }  // namespace event
