@@ -5,7 +5,6 @@
 #include "vulkan_imgui_view.h"
 
 #ifdef COMET_IMGUI
-
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"

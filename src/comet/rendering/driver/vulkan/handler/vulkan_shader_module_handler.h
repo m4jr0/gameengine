@@ -46,10 +46,11 @@ class ShaderModuleHandler : public Handler {
   void Destroy(ShaderModule& shader_module);
 
  private:
+  static VkShaderStageFlagBits GetVulkanType(ShaderModuleType module_type);
+
   ShaderModule* Get(ShaderModuleId shader_module_id);
   ShaderModule* TryGet(ShaderModuleId shader_module_id);
   void Destroy(ShaderModule& shader_module, bool is_destroying_handler);
-  static VkShaderStageFlagBits GetVulkanType(ShaderModuleType module_type);
 
   std::unordered_map<ShaderModuleId, ShaderModule> shader_modules_{};
   resource::ResourceManager* resource_manager_{nullptr};

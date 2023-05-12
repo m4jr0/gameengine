@@ -1,11 +1,24 @@
-# version 330 core
+#version 460 core
 
-in vec2 texture_coordinates;
+layout(location = 0) out vec4 outColor;
 
-out vec4 color;
+layout (std140, binding = 1) uniform local_uniform_object {
+    vec4 diffuseColor;
+    float shininess;
+} local_ubo;
 
-uniform sampler2D texture_diffuse0;
+// diffuseMap, specularMap, normalMap.
+uniform sampler2D texSamplers[3];
+
+in struct data_object {
+    vec4 ambientColor;
+    vec2 texCoord;
+    vec3 normals;
+    vec3 viewPos;
+    vec3 fragPos;
+    vec4 color;
+} data;
 
 void main() {
-    color = texture(texture_diffuse0, texture_coordinates);
+    outColor = texture(texSamplers[0], data.texCoord) * data.color;
 }

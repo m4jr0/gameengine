@@ -63,7 +63,7 @@ class ShaderHandler : public Handler {
   void BindInstance(Shader& shader, MaterialId instance_id) const;
   void Reset();
   void UpdateGlobal(Shader& shader, const ShaderPacket& packet) const;
-  void UpdateLocal(const ShaderLocalPacket& packet, ShaderId shader_id);
+  void UpdateLocal(Shader& shader, const ShaderLocalPacket& packet);
   void SetUniform(Shader& shader, const ShaderUniform& uniform,
                   const void* value) const;
   void SetUniform(ShaderId id, const ShaderUniform& uniform, const void* value);

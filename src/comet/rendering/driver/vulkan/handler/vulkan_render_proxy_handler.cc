@@ -83,7 +83,7 @@ RenderProxy RenderProxyHandler::GenerateInternal(Mesh& mesh, Material& material,
   return proxy;
 }
 
-void RenderProxyHandler::DrawProxies(const Shader& shader) {
+void RenderProxyHandler::DrawProxies(Shader& shader) {
   for (const auto& proxy : proxies_) {
     auto* material{proxy.material};
     COMET_ASSERT(material != nullptr, "Material should never be null!");
@@ -91,7 +91,7 @@ void RenderProxyHandler::DrawProxies(const Shader& shader) {
 
     ShaderLocalPacket local_packet{};
     local_packet.position = &proxy.transform;
-    shader_handler_->UpdateLocal(local_packet, shader.id);
+    shader_handler_->UpdateLocal(shader, local_packet);
     Draw(proxy);
   }
 
@@ -99,11 +99,11 @@ void RenderProxyHandler::DrawProxies(const Shader& shader) {
   last_drawn_mesh_ = nullptr;
 }
 
-void RenderProxyHandler::DrawProxiesForDebugging(const Shader& shader) {
+void RenderProxyHandler::DrawProxiesForDebugging(Shader& shader) {
   for (const auto& proxy : proxies_) {
     ShaderLocalPacket local_packet{};
     local_packet.position = &proxy.transform;
-    shader_handler_->UpdateLocal(local_packet, shader.id);
+    shader_handler_->UpdateLocal(shader, local_packet);
     Draw(proxy);
   }
 

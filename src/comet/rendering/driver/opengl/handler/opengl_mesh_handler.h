@@ -1,0 +1,55 @@
+// Copyright 2023 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_MESH_HANDLER_H_
+#define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_MESH_HANDLER_H_
+
+#include "comet_precompile.h"
+
+#include "glad/glad.h"
+
+#include "comet/rendering/driver/opengl/data/opengl_mesh.h"
+#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
+#include "comet/resource/model_resource.h"
+
+namespace comet {
+namespace rendering {
+namespace gl {
+using MeshHandlerDescr = HandlerDescr;
+
+class MeshHandler : public Handler {
+ public:
+  MeshHandler() = delete;
+  explicit MeshHandler(const MeshHandlerDescr& descr);
+  MeshHandler(const MeshHandler&) = delete;
+  MeshHandler(MeshHandler&&) = delete;
+  MeshHandler& operator=(const MeshHandler&) = delete;
+  MeshHandler& operator=(MeshHandler&&) = delete;
+  virtual ~MeshHandler() = default;
+
+  void Shutdown() override;
+
+  Mesh* Generate(const resource::MeshResource* resource);
+  Mesh* Get(MeshId mesh_id);
+  Mesh* Get(const resource::MeshResource* resource);
+  Mesh* TryGet(MeshId mesh_id);
+  Mesh* TryGet(const resource::MeshResource* resource);
+  Mesh* GetOrGenerate(const resource::MeshResource* resource);
+  void Destroy(MeshId mesh_id);
+  void Destroy(Mesh& mesh);
+  MeshId GenerateMeshId(const resource::MeshResource* resource) const;
+  void Bind(MeshId mesh_id);
+  void Bind(const Mesh* mesh);
+
+ private:
+  void Destroy(Mesh& mesh, bool is_destroying_handler);
+  void Upload(Mesh& mesh) const;
+
+  std::unordered_map<MeshId, Mesh> meshes_{};
+};
+}  // namespace gl
+}  // namespace rendering
+}  // namespace comet
+
+#endif  // COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_MESH_HANDLER_H_

@@ -12,7 +12,11 @@
 
 namespace comet {
 namespace resource {
-constexpr ResourceId kFlatTextureResourceId{1};
+constexpr ResourceId kDefaultDiffuseTextureResourceId{1};
+constexpr ResourceId kDefaultSpecularTextureResourceId{2};
+constexpr ResourceId kDefaultNormalTextureResourceId{3};
+
+ResourceId GetDefaultTextureFromType(rendering::TextureType texture_type);
 
 struct TextureResourceDescr {
   u64 size{0};
@@ -39,7 +43,9 @@ class TextureHandler : public ResourceHandler {
 
   const Resource* Get(ResourceId resource_id) override;
   const Resource* GetDefaultResource() override;
-  const Resource* GetFlatTexture();
+  const Resource* GetDefaultDiffuseTexture();
+  const Resource* GetDefaultSpecularTexture();
+  const Resource* GetDefaultNormalTexture();
 
  protected:
   ResourceFile Pack(const Resource& resource,
@@ -48,7 +54,9 @@ class TextureHandler : public ResourceHandler {
 
  private:
   std::unique_ptr<TextureResource> default_texture_{nullptr};
-  std::unique_ptr<TextureResource> flat_texture_{nullptr};
+  std::unique_ptr<TextureResource> diffuse_texture_{nullptr};
+  std::unique_ptr<TextureResource> normal_texture_{nullptr};
+  std::unique_ptr<TextureResource> specular_texture_{nullptr};
 };
 }  // namespace resource
 }  // namespace comet

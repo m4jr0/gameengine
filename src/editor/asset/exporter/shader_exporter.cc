@@ -34,7 +34,7 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
       return to_return;
     }
 
-    // Everytime we get an object, we must use assignment to prevent a bug with
+    // Every time we get an object, we must use assignment to prevent a bug with
     // GCC where the generated
     // type is an array (which is wrong).
     const auto shader_file = nlohmann::json::parse(metadata_raw);

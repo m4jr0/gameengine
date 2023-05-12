@@ -8,7 +8,6 @@
 #include "comet_precompile.h"
 
 #ifdef COMET_IMGUI
-
 #include "vulkan/vulkan.h"
 
 #include "comet/physics/physics_manager.h"

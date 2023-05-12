@@ -9,6 +9,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/texture_resource.h"
 
@@ -57,10 +58,17 @@ Material* MaterialHandler::Generate(
     const resource::MaterialResource& resource) {
   MaterialDescr descr{};
   descr.id = resource.id;
-  descr.shader_id = resource.descr.shader_id;
   descr.diffuse_map = GenerateTextureMap(resource.descr.diffuse_map);
   descr.specular_map = GenerateTextureMap(resource.descr.specular_map);
   descr.normal_map = GenerateTextureMap(resource.descr.normal_map);
+
+  std::string shader_path{};
+  shader_path.reserve(static_cast<uindex>(26) + resource::kMaxShaderNameLen);
+  shader_path += "shaders/vulkan/";
+  shader_path += resource.descr.shader_name;
+  shader_path += ".vk.cshader";
+  descr.shader_id = resource::GenerateResourceIdFromPath(shader_path);
+
   return Generate(descr);
 }
 
@@ -146,7 +154,7 @@ void MaterialHandler::UpdateInstance(Material& material, ShaderId shader_id) {
     // TODO(m4jr0): Check if this needs to be updated.
     if (shader.instance_ubo_data.uniform_count > 0) {
       buffer_info = init::GenerateDescriptorBufferInfo(
-          shader.uniform_buffer.handle, instance.offset,
+          shader.uniform_buffer.handle, shader.bound_ubo_offset,
           shader.instance_ubo_data.ubo_stride);
       write_descriptor_sets[descriptor_count] =
           init::GenerateBufferWriteDescriptorSet(
@@ -215,7 +223,7 @@ TextureMap MaterialHandler::GenerateTextureMap(
     const resource::TextureMap& map) {
   const auto texture_id{map.texture_id != resource::kInvalidResourceId
                             ? map.texture_id
-                            : resource::kDefaultResourceId};
+                            : resource::GetDefaultTextureFromType(map.type)};
 
   return TextureMap{
       GetOrGenerateSampler(map),

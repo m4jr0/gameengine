@@ -66,8 +66,8 @@ std::string GetTextureTypeLabel(TextureType texture_type) {
       return "diffuse";
     case comet::rendering::TextureType::Specular:
       return "specular";
-    case comet::rendering::TextureType::Height:
-      return "height";
+    case comet::rendering::TextureType::Normal:
+      return "normal";
     case comet::rendering::TextureType::Color:
       return "color";
   }

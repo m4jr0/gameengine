@@ -107,6 +107,23 @@ void ShaderModuleHandler::Destroy(ShaderModule& shader_module) {
   Destroy(shader_module, false);
 }
 
+VkShaderStageFlagBits ShaderModuleHandler::GetVulkanType(
+    ShaderModuleType module_type) {
+  switch (module_type) {
+    case ShaderModuleType::Vertex:
+      return VK_SHADER_STAGE_VERTEX_BIT;
+    case ShaderModuleType::Fragment:
+      return VK_SHADER_STAGE_FRAGMENT_BIT;
+    default:
+      COMET_ASSERT(
+          false, "Unknown shader module type: ",
+          static_cast<std::underlying_type_t<ShaderModuleType>>(module_type),
+          "!");
+  }
+
+  return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+}
+
 ShaderModule* ShaderModuleHandler::Get(ShaderModuleId shader_module_id) {
   auto* shader_module{TryGet(shader_module_id)};
   COMET_ASSERT(shader_module != nullptr,
@@ -141,23 +158,6 @@ void ShaderModuleHandler::Destroy(ShaderModule& shader_module,
   shader_module.code_size = 0;
   shader_module.code = nullptr;
   shader_module.type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
-}
-
-VkShaderStageFlagBits ShaderModuleHandler::GetVulkanType(
-    ShaderModuleType module_type) {
-  switch (module_type) {
-    case ShaderModuleType::Vertex:
-      return VK_SHADER_STAGE_VERTEX_BIT;
-    case ShaderModuleType::Fragment:
-      return VK_SHADER_STAGE_FRAGMENT_BIT;
-    default:
-      COMET_ASSERT(
-          false, "Unknown shader module type: ",
-          static_cast<std::underlying_type_t<ShaderModuleType>>(module_type),
-          "!");
-  }
-
-  return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 }
 }  // namespace vk
 }  // namespace rendering

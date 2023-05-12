@@ -76,7 +76,7 @@ void WorldView::Initialize() {
   render_pass_ = render_pass_handler_->Generate(render_pass_descr);
 
   ShaderDescr shader_descr{};
-  shader_descr.resource_path = "shaders/default_shader.cshader";
+  shader_descr.resource_path = "shaders/vulkan/default_shader.vk.cshader";
   shader_descr.render_pass = render_pass_;
   shader_ = shader_handler_->Generate(shader_descr);
 }

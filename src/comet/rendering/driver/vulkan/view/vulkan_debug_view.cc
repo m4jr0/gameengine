@@ -79,7 +79,7 @@ void DebugView::Initialize() {
   render_pass_ = render_pass_handler_->Generate(render_pass_descr);
 
   ShaderDescr shader_descr{};
-  shader_descr.resource_path = "shaders/debug_shader.cshader";
+  shader_descr.resource_path = "shaders/vulkan/debug_shader.vk.cshader";
   shader_descr.render_pass = render_pass_;
   shader_ = shader_handler_->Generate(shader_descr);
 }

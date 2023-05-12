@@ -340,6 +340,16 @@ void VulkanDriver::DestroyHandlers() {
   render_pass_handler_->Shutdown();
   render_proxy_handler_->Shutdown();
   view_handler_->Shutdown();
+
+  shader_module_handler_ = nullptr;
+  shader_handler_ = nullptr;
+  texture_handler_ = nullptr;
+  material_handler_ = nullptr;
+  mesh_handler_ = nullptr;
+  pipeline_handler_ = nullptr;
+  render_pass_handler_ = nullptr;
+  render_proxy_handler_ = nullptr;
+  view_handler_ = nullptr;
 }
 
 void VulkanDriver::DestroyInstance() {

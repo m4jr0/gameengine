@@ -10,7 +10,7 @@ layout(set = 1, binding = 0) uniform local_uniform_object {
 // diffuseMap, specularMap, normalMap.
 layout(set = 1, binding = 1) uniform sampler2D texSamplers[3];
 
-layout(location = 1) in struct in_data_object {
+layout(location = 1) in struct data_object {
     vec4 ambientColor;
     vec2 texCoord;
     vec3 normals;

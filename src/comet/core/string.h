@@ -52,6 +52,13 @@ fx ParseFx(const std::string& str);
 fx ParseFx(const schar* str);
 bool ParseBool(const std::string& str);
 bool ParseBool(const schar* str);
+
+template <class Integer,
+          typename std::enable_if_t<std::is_integral_v<Integer>>* = nullptr>
+uindex ConvertToStr(Integer number, schar* buff, uindex buff_len) {
+  // TODO(m4jr0): Optimize function.
+  return std::snprintf(buff, buff_len, "%d", number);
+}
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_STRING_H_

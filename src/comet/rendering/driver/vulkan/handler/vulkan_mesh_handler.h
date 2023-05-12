@@ -37,11 +37,11 @@ class MeshHandler : public Handler {
   Mesh* GetOrGenerate(const resource::MeshResource* resource);
   void Destroy(MeshId mesh_id);
   void Destroy(Mesh& mesh);
-  void Upload(Mesh& mesh) const;
   MeshId GenerateMeshId(const resource::MeshResource* resource) const;
 
  private:
   void Destroy(Mesh& mesh, bool is_destroying_handler);
+  void Upload(Mesh& mesh) const;
 
   std::unordered_map<MeshId, Mesh> meshes_{};
 };

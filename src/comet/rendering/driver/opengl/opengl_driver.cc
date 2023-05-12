@@ -8,6 +8,7 @@
 #include "comet/event/runtime_event.h"
 #include "comet/event/window_event.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/rendering/driver/opengl/view/opengl_view.h"
 #include "comet/resource/component/mesh_component.h"
 
 namespace comet {
@@ -57,65 +58,115 @@ void OpenGlDriver::Initialize() {
     }
   }
 
-  TemporaryHandlerDescr tmp_handler_descr{};
-  tmp_handler_descr.camera_manager = camera_manager_;
-  tmp_handler_descr.debugger_displayer_manager = debugger_displayer_manager_;
-  tmp_handler_descr.resource_manager = resource_manager_;
-  tmp_handler_descr.window = window_.get();
-  tmp_handler_ = std::make_unique<TemporaryHandler>(tmp_handler_descr);
-  tmp_handler_->Initialize();
+  if (is_sampler_anisotropy_) {
+#ifdef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+    GLfloat max_anisotropy;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+    glSamplerParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+                        max_anisotropy);
+#else
+    COMET_LOG_RENDERING_ERROR(
+        "Sampler anisotropy is enabled, but current driver does not seem to "
+        "support it. Ignoring feature.");
+#endif  // GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+  }
+
+  InitializeHandlers();
 }
 
 void OpenGlDriver::Shutdown() {
-  tmp_handler_->Shutdown();
-  tmp_handler_ = nullptr;
+  DestroyHandlers();
   window_->Destroy();
+  frame_count_ = 0;
   Driver::Shutdown();
 }
 
 void OpenGlDriver::Update(time::Interpolation interpolation) {
-  // Temporary code to display something in OpenGL.
-  // This code is CERTAINLY not final. For now, it only shows that both OpenGL
-  // and Vulkan can work independently.
-
   glClearColor(clear_color_[0], clear_color_[1], clear_color_[2],
                clear_color_[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  // TODO(m4jr0): Remove temporary code.
-  // Proxies should be managed with proper memory management and occlusion
-  // culling.
-  entity_manager_->Each<resource::MeshComponent, physics::TransformComponent>(
-      [&](auto entity_id) {
-        auto* transform_cmp{
-            entity_manager_->GetComponent<physics::TransformComponent>(
-                entity_id)};
-
-        auto* proxy{tmp_handler_->TryGetRenderProxy(entity_id)};
-
-        if (proxy != nullptr) {
-          proxy->transform += (transform_cmp->global - proxy->transform) *
-                              static_cast<f32>(interpolation);
-          return;
-        }
-
-        auto* mesh_cmp{
-            entity_manager_->GetComponent<resource::MeshComponent>(entity_id)};
-
-        tmp_handler_->GenerateRenderProxy(
-            entity_id, *mesh_cmp->mesh,
-            transform_cmp->global * static_cast<f32>(interpolation),
-            *mesh_cmp->material, is_sampler_anisotropy_);
-      });
-
-  tmp_handler_->DrawRenderProxies();
-  tmp_handler_->DrawUi();
+  Draw(interpolation);
   window_->SwapBuffers();
+  ++frame_count_;
 }
 
 DriverType OpenGlDriver::GetType() const noexcept { return DriverType::OpenGl; }
 
-u32 OpenGlDriver::GetDrawCount() const { return tmp_handler_->GetDrawCount(); }
+u32 OpenGlDriver::GetDrawCount() const {
+  return render_proxy_handler_->GetDrawCount();
+}
+
+void OpenGlDriver::InitializeHandlers() {
+  MeshHandlerDescr mesh_handler_descr{};
+  mesh_handler_ = std::make_unique<MeshHandler>(mesh_handler_descr);
+
+  ShaderModuleHandlerDescr shader_module_handler_descr{};
+  shader_module_handler_descr.resource_manager = resource_manager_;
+  shader_module_handler_ =
+      std::make_unique<ShaderModuleHandler>(shader_module_handler_descr);
+
+  TextureHandlerDescr texture_handler_descr{};
+  texture_handler_ = std::make_unique<TextureHandler>(texture_handler_descr);
+
+  ShaderHandlerDescr shader_handler_descr{};
+  shader_handler_descr.resource_manager = resource_manager_;
+  shader_handler_descr.shader_module_handler = shader_module_handler_.get();
+  shader_handler_descr.texture_handler = texture_handler_.get();
+  shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
+
+  MaterialHandlerDescr material_handler_descr{};
+  material_handler_descr.resource_manager = resource_manager_;
+  material_handler_descr.shader_handler = shader_handler_.get();
+  material_handler_descr.texture_handler = texture_handler_.get();
+  material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
+
+  RenderProxyHandlerDescr render_proxy_handler_descr{};
+  render_proxy_handler_descr.material_handler = material_handler_.get();
+  render_proxy_handler_descr.mesh_handler = mesh_handler_.get();
+  render_proxy_handler_descr.shader_handler = shader_handler_.get();
+  render_proxy_handler_descr.camera_manager = camera_manager_;
+  render_proxy_handler_descr.entity_manager = entity_manager_;
+  render_proxy_handler_ =
+      std::make_unique<RenderProxyHandler>(render_proxy_handler_descr);
+
+  ViewHandlerDescr view_handler_descr{};
+  view_handler_descr.shader_handler = shader_handler_.get();
+  view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
+#ifdef COMET_DEBUG
+  view_handler_descr.debugger_displayer_manager = debugger_displayer_manager_;
+#endif  // COMET_DEBUG
+  view_handler_descr.rendering_view_descrs = &rendering_view_descrs_;
+  view_handler_descr.window = window_.get();
+  view_handler_ = std::make_unique<ViewHandler>(view_handler_descr);
+
+  texture_handler_->Initialize();
+  shader_module_handler_->Initialize();
+  shader_handler_->Initialize();
+  material_handler_->Initialize();
+  mesh_handler_->Initialize();
+  render_proxy_handler_->Initialize();
+  view_handler_->Initialize();
+}
+
+void OpenGlDriver::DestroyHandlers() {
+  // Order is important to improve performance.
+  shader_module_handler_->Shutdown();
+  shader_handler_->Shutdown();
+  texture_handler_->Shutdown();
+  material_handler_->Shutdown();
+  mesh_handler_->Shutdown();
+  render_proxy_handler_->Shutdown();
+  view_handler_->Shutdown();
+
+  shader_module_handler_ = nullptr;
+  shader_handler_ = nullptr;
+  texture_handler_ = nullptr;
+  material_handler_ = nullptr;
+  mesh_handler_ = nullptr;
+  render_proxy_handler_ = nullptr;
+  view_handler_ = nullptr;
+}
 
 void OpenGlDriver::SetSize(WindowSize width, WindowSize height) {
   glViewport(0, 0, window_->GetWidth(), window_->GetHeight());
@@ -132,6 +183,17 @@ void OpenGlDriver::OnEvent(const event::Event& event) {
 }
 
 Window* OpenGlDriver::GetWindow() { return window_.get(); }
+
+void OpenGlDriver::Draw(time::Interpolation interpolation) {
+  ViewPacket packet{};
+  packet.frame_count = frame_count_;
+  packet.interpolation = interpolation;
+
+  auto* camera{camera_manager_->GetMainCamera()};
+  packet.projection_matrix = camera->GetProjectionMatrix();
+  packet.view_matrix = &camera->GetViewMatrix();
+  view_handler_->Update(packet);
+}
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

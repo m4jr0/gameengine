@@ -245,8 +245,6 @@ resource::ResourceId ModelExporter::LoadMesh(
 
   mesh_resource.transform = transform;
   mesh_resource.local_center = (max_extents + min_extents) * 0.5f;
-  // mesh_resource.local_center =
-  //     transform * math::Vec4{mesh_resource.local_center, 1.0f};
   mesh_resource.local_max_extents = max_extents - mesh_resource.local_center;
   mesh_resource.parent_id = parent_id;
 
@@ -295,7 +293,7 @@ void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
       // TODO(m4jr0): Check behavior. Apparently, Assimp might process normal
       // textures as height ones. See
       // https://github.com/assimp/assimp/issues/430
-    case rendering::TextureType::Height:
+    case rendering::TextureType::Normal:
       map = &material.descr.normal_map;
       break;
     default:
@@ -341,13 +339,35 @@ void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
 
 void ModelExporter::LoadDefaultTextures(
     resource::MaterialResource& material) const {
-  auto& map{material.descr.diffuse_map};
-  map.texture_id = resource::kFlatTextureResourceId;
-  map.type = rendering::TextureType::Diffuse;
-  map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-  map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-  map.min_filter_mode = rendering::TextureFilterMode::Linear;
-  map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+  if (material.descr.diffuse_map.type == rendering::TextureType::Unknown) {
+    auto& map{material.descr.diffuse_map};
+    map.texture_id = resource::kInvalidResourceId;
+    map.type = rendering::TextureType::Diffuse;
+    map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    map.min_filter_mode = rendering::TextureFilterMode::Linear;
+    map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+  }
+
+  if (material.descr.specular_map.type == rendering::TextureType::Unknown) {
+    auto& map{material.descr.specular_map};
+    map.texture_id = resource::kInvalidResourceId;
+    map.type = rendering::TextureType::Specular;
+    map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    map.min_filter_mode = rendering::TextureFilterMode::Linear;
+    map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+  }
+
+  if (material.descr.normal_map.type == rendering::TextureType::Unknown) {
+    auto& map{material.descr.normal_map};
+    map.texture_id = resource::kInvalidResourceId;
+    map.type = rendering::TextureType::Normal;
+    map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    map.min_filter_mode = rendering::TextureFilterMode::Linear;
+    map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+  }
 }
 
 void ModelExporter::LoadMaterials(
@@ -365,8 +385,7 @@ void ModelExporter::LoadMaterials(
                            "\" found.");
 
     resource::MaterialResource material{};
-    material.descr.shader_id =
-        resource::GenerateResourceIdFromPath("shaders/default_shader.cshader");
+    std::memcpy(material.descr.shader_name, "default_shader", 14);
 
     if (aiGetMaterialFloat(raw_material, AI_MATKEY_SHININESS,
                            &material.descr.shininess) != AI_SUCCESS) {
@@ -395,13 +414,7 @@ void ModelExporter::LoadMaterials(
                            raw_texture_type);
     }
 
-    if (material.descr.diffuse_map.texture_id == resource::kInvalidResourceId &&
-        material.descr.specular_map.texture_id ==
-            resource::kInvalidResourceId &&
-        material.descr.normal_map.texture_id == resource::kInvalidResourceId) {
-      LoadDefaultTextures(material);
-    }
-
+    LoadDefaultTextures(material);
     material.id = resource::GenerateMaterialId(raw_material->GetName().C_Str());
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
@@ -420,7 +433,7 @@ rendering::TextureType ModelExporter::GetTextureType(
       return rendering::TextureType::Specular;
     }
     case aiTextureType_HEIGHT: {
-      return rendering::TextureType::Height;
+      return rendering::TextureType::Normal;
     }
     case aiTextureType_AMBIENT: {
       return rendering::TextureType::Ambient;

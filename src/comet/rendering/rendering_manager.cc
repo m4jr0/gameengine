@@ -120,7 +120,6 @@ uindex RenderingManager::GetDrawCount() const {
 
 void RenderingManager::GenerateOpenGlDriver() {
   COMET_LOG_RENDERING_DEBUG("Initializing OpenGL driver...");
-  COMET_LOG_RENDERING_WARNING("OpenGL implementation is not ready yet.");
 
   gl::OpenGlDriverDescr descr{};
   FillDriverDescr(descr);

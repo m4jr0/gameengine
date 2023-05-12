@@ -101,6 +101,28 @@ void MeshHandler::Destroy(MeshId mesh_id) { Destroy(*Get(mesh_id)); }
 
 void MeshHandler::Destroy(Mesh& mesh) { Destroy(mesh, false); }
 
+MeshId MeshHandler::GenerateMeshId(
+    const resource::MeshResource* resource) const {
+  return static_cast<u64>(resource->internal_id) |
+         static_cast<u64>(resource->resource_id) << 32;
+}
+
+void MeshHandler::Destroy(Mesh& mesh, bool is_destroying_handler) {
+  if (mesh.vertex_buffer.allocation_handle != VK_NULL_HANDLE) {
+    DestroyBuffer(mesh.vertex_buffer);
+  }
+
+  mesh.vertices.clear();
+  mesh.indices.clear();
+  mesh.vertex_buffer = {};
+
+  if (!is_destroying_handler) {
+    meshes_.erase(mesh.id);
+  }
+
+  mesh.id = kInvalidMeshId;
+}
+
 void MeshHandler::Upload(Mesh& mesh) const {
   const auto vertex_buffer_size{sizeof(Vertex) * mesh.vertices.size()};
   const auto index_buffer_size{sizeof(Index) * mesh.indices.size()};
@@ -132,28 +154,6 @@ void MeshHandler::Upload(Mesh& mesh) const {
              mesh.vertex_buffer, buffer_size,
              context_->GetUploadContext().upload_fence_handle);
   DestroyBuffer(staging_buffer);
-}
-
-MeshId MeshHandler::GenerateMeshId(
-    const resource::MeshResource* resource) const {
-  return static_cast<u64>(resource->internal_id) |
-         static_cast<u64>(resource->resource_id) << 32;
-}
-
-void MeshHandler::Destroy(Mesh& mesh, bool is_destroying_handler) {
-  if (mesh.vertex_buffer.allocation_handle != VK_NULL_HANDLE) {
-    DestroyBuffer(mesh.vertex_buffer);
-  }
-
-  mesh.vertices.clear();
-  mesh.indices.clear();
-  mesh.vertex_buffer = {};
-
-  if (!is_destroying_handler) {
-    meshes_.erase(mesh.id);
-  }
-
-  mesh.id = kInvalidMeshId;
 }
 }  // namespace vk
 }  // namespace rendering

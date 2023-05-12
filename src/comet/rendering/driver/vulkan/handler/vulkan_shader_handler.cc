@@ -161,11 +161,9 @@ void ShaderHandler::UpdateGlobal(Shader& shader,
   shader.global_uniform_data.update_frame = frame_count;
 }
 
-void ShaderHandler::UpdateLocal(const ShaderLocalPacket& packet,
-                                ShaderId shader_id) {
-  auto* shader_ptr{Get(shader_id)};
-  COMET_ASSERT(shader_ptr != nullptr, "Material's shader cannot be null!");
-  SetUniform(*shader_ptr, shader_ptr->uniform_indices.model, packet.position);
+void ShaderHandler::UpdateLocal(Shader& shader,
+                                const ShaderLocalPacket& packet) {
+  SetUniform(shader, shader.uniform_indices.model, packet.position);
 }
 
 void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
@@ -262,6 +260,7 @@ void ShaderHandler::BindMaterial(Material& material) {
   // Generate material instance.
   shader->instances.list.push_back(std::move(instance));
   material.instance_id = instance_id_handler_.Generate();
+  instance.id = material.instance_id;
   shader->instances.ids.push_back(material.instance_id);
 }
 
@@ -462,6 +461,7 @@ void ShaderHandler::Destroy(Shader& shader, bool is_destroying_handler) {
   shader.vertex_attribute_stride = 0;
   shader.bound_ubo_offset = 0;
   shader.bound_instance_index = kInvalidMaterialInstanceId;
+  shader.global_uniform_data = {};
   shader.global_ubo_data.uniform_count = 0;
   shader.global_ubo_data.sampler_count = 0;
   shader.global_ubo_data.ubo_size = 0;
@@ -512,8 +512,6 @@ void ShaderHandler::Destroy(Shader& shader, bool is_destroying_handler) {
   if (!is_destroying_handler) {
     shaders_.erase(shader.id);
   }
-
-  shader.global_uniform_data = {};
 }
 
 u32 ShaderHandler::GetInstanceIndex(const Shader& shader,
@@ -527,7 +525,7 @@ u32 ShaderHandler::GetInstanceIndex(
   auto it{std::find(instance_ids.begin(), instance_ids.end(), instance_id)};
   COMET_ASSERT(it != instance_ids.end(),
                "Unable to find bound material instance (ID: ", instance_id,
-               ") in shader with ID ", shader.id, "!");
+               ") in shader ", COMET_STRING_ID_LABEL(shader.id), "!");
   return static_cast<u32>(it - instance_ids.begin());
 }
 
@@ -700,56 +698,6 @@ void ShaderHandler::HandleSamplerGeneration(
   AddUniform(shader, uniform_descr, location);
 }
 
-void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
-                               ShaderUniformLocation location) const {
-  COMET_ASSERT(shader.uniforms.size() + 1 <= kMaxShaderUniformCount,
-               "Too many uniforms to be added to shader ",
-               COMET_STRING_ID_LABEL(shader.id), "! Max uniform count is ",
-               kMaxShaderUniformCount, ".");
-  ShaderUniform uniform{};
-  uniform.scope = descr.scope;
-  uniform.type = descr.type;
-  uniform.index = HandleUniformIndex(shader, descr);
-  auto is_sampler{uniform.type == ShaderUniformType::Sampler};
-
-  if (is_sampler) {
-    uniform.location = location;
-  } else {
-    uniform.location = uniform.index;
-  }
-
-  auto size{GetUniformSize(uniform.type)};
-
-  if (uniform.scope != ShaderUniformScope::Local) {
-    uniform.offset = is_sampler ? 0
-                     : uniform.scope == ShaderUniformScope::Global
-                         ? shader.global_ubo_data.ubo_size
-                         : shader.instance_ubo_data.ubo_size;
-    uniform.size = size;
-  } else {
-    uniform.offset = shader.push_constant_ranges.size();
-    uniform.size = static_cast<ShaderUniformSize>(
-        AlignSize(size, GetStd430Alignment(uniform.type)));
-
-    VkPushConstantRange range{};
-    range.offset = uniform.offset;
-    range.size = uniform.size;
-    range.stageFlags =
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    shader.push_constant_ranges.push_back(range);
-  }
-
-  shader.uniforms.push_back(uniform);
-
-  if (!is_sampler) {
-    if (uniform.scope == ShaderUniformScope::Global) {
-      shader.global_ubo_data.ubo_size += uniform.size;
-    } else if (uniform.scope == ShaderUniformScope::Instance) {
-      shader.instance_ubo_data.ubo_size += uniform.size;
-    }
-  }
-}
-
 ShaderUniformIndex ShaderHandler::HandleUniformIndex(
     Shader& shader, const ShaderUniformDescr& uniform_descr) const {
   ShaderUniformIndex* index{nullptr};
@@ -874,14 +822,23 @@ void ShaderHandler::HandleDescriptorPoolGeneration(Shader& shader) const {
 }
 
 void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
-  auto alignment{context_->GetDevice()
-                     .GetProperties()
-                     .limits.minUniformBufferOffsetAlignment};
+  const auto alignment{context_->GetDevice()
+                           .GetProperties()
+                           .limits.minUniformBufferOffsetAlignment};
 
   shader.global_ubo_data.ubo_stride =
       AlignSize(shader.global_ubo_data.ubo_size, alignment);
   shader.instance_ubo_data.ubo_stride =
       AlignSize(shader.instance_ubo_data.ubo_size, alignment);
+
+#ifdef COMET_DEBUG
+  const auto max_range{
+      context_->GetDevice().GetProperties().limits.maxUniformBufferRange};
+  COMET_ASSERT(shader.global_ubo_data.ubo_stride < max_range,
+               "Shader global UBO data is too big!");
+  COMET_ASSERT(shader.instance_ubo_data.ubo_stride < max_range,
+               "Shader instance UBO data is too big!");
+#endif  // COMET_DEBUG
 
   auto buffer_size{static_cast<VkDeviceSize>(
       shader.global_ubo_data.ubo_stride +
@@ -902,6 +859,56 @@ void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
   AllocateShaderUniformData(context_->GetDevice(),
                             descriptor_set_layout_handles_buffer_,
                             shader.global_uniform_data);
+}
+
+void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
+                               ShaderUniformLocation location) const {
+  COMET_ASSERT(shader.uniforms.size() + 1 <= kMaxShaderUniformCount,
+               "Too many uniforms to be added to shader ",
+               COMET_STRING_ID_LABEL(shader.id), "! Max uniform count is ",
+               kMaxShaderUniformCount, ".");
+  ShaderUniform uniform{};
+  uniform.scope = descr.scope;
+  uniform.type = descr.type;
+  uniform.index = HandleUniformIndex(shader, descr);
+  auto is_sampler{uniform.type == ShaderUniformType::Sampler};
+
+  if (is_sampler) {
+    uniform.location = location;
+  } else {
+    uniform.location = uniform.index;
+  }
+
+  auto size{GetUniformSize(uniform.type)};
+
+  if (uniform.scope == ShaderUniformScope::Local) {
+    uniform.offset = shader.push_constant_ranges.size();
+    uniform.size = static_cast<ShaderUniformSize>(
+        AlignSize(size, GetStd430Alignment(uniform.type)));
+
+    VkPushConstantRange range{};
+    range.offset = uniform.offset;
+    range.size = uniform.size;
+    range.stageFlags =
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    shader.push_constant_ranges.push_back(range);
+  } else {
+    uniform.offset = is_sampler ? 0
+                     : uniform.scope == ShaderUniformScope::Global
+                         ? shader.global_ubo_data.ubo_size
+                         : shader.instance_ubo_data.ubo_size;
+    uniform.size = size;
+  }
+
+  shader.uniforms.push_back(uniform);
+
+  if (!is_sampler) {
+    if (uniform.scope == ShaderUniformScope::Global) {
+      shader.global_ubo_data.ubo_size += uniform.size;
+    } else if (uniform.scope == ShaderUniformScope::Instance) {
+      shader.instance_ubo_data.ubo_size += uniform.size;
+    }
+  }
 }
 }  // namespace vk
 }  // namespace rendering

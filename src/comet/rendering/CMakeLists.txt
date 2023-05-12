@@ -58,9 +58,30 @@ add_library(${RENDERING_LIBRARY_NAME}
 
     # OpenGL.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_driver.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_shader.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_temporary_handler.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_texture.cc"
+    
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_frame.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_material.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_mesh.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_render_proxy.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader_module.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_texture.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_texture_map.h"
+
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_material_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_mesh_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_shader_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_shader_module_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_texture_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_view_handler.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_debug_view.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_imgui_view.cc"  
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_shader_view.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_view.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_world_view.cc"
 
     #Vulkan.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_buffer.h"
@@ -70,8 +91,8 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_material.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_mesh.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_proxy.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_render_proxy.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_shader.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_shader_module.h"
@@ -96,10 +117,10 @@ add_library(${RENDERING_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_material_utils.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_debug_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_imgui_view.cc"  
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_shader_view.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_world_view.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_context.cc"

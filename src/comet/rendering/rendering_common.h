@@ -61,7 +61,7 @@ enum class TextureType : u8 {
   Ambient,
   Diffuse,
   Specular,
-  Height,
+  Normal,
   Color
 };
 

@@ -66,8 +66,16 @@ std::unique_ptr<Resource> TextureHandler::Unpack(
 }
 
 const Resource* TextureHandler::Get(ResourceId resource_id) {
-  if (resource_id == kFlatTextureResourceId) {
-    return GetFlatTexture();
+  if (resource_id == kDefaultDiffuseTextureResourceId) {
+    return GetDefaultDiffuseTexture();
+  }
+
+  if (resource_id == kDefaultSpecularTextureResourceId) {
+    return GetDefaultSpecularTexture();
+  }
+
+  if (resource_id == kDefaultNormalTextureResourceId) {
+    return GetDefaultNormalTexture();
   }
 
   return cache_.Get(resource_id);
@@ -122,17 +130,17 @@ const Resource* TextureHandler::GetDefaultResource() {
   return default_texture_.get();
 }
 
-const Resource* TextureHandler::GetFlatTexture() {
-  if (flat_texture_ == nullptr) {
+const Resource* TextureHandler::GetDefaultDiffuseTexture() {
+  if (diffuse_texture_ == nullptr) {
     constexpr auto kDimension{16};
     constexpr auto kChannelCount{4};
     constexpr u8 kColor[]{150, 150, 150, 255};
 
-    flat_texture_ = std::make_unique<TextureResource>();
-    flat_texture_->id = kFlatTextureResourceId;
-    flat_texture_->type_id = TextureResource::kResourceTypeId;
+    diffuse_texture_ = std::make_unique<TextureResource>();
+    diffuse_texture_->id = kDefaultDiffuseTextureResourceId;
+    diffuse_texture_->type_id = TextureResource::kResourceTypeId;
 
-    auto& descr{flat_texture_->descr};
+    auto& descr{diffuse_texture_->descr};
     descr.size =
         static_cast<comet::u64>(kDimension) * kDimension * kChannelCount;
     descr.format = rendering::TextureFormat::Rgba8;
@@ -140,7 +148,7 @@ const Resource* TextureHandler::GetFlatTexture() {
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
 
-    auto& data{flat_texture_->data};
+    auto& data{diffuse_texture_->data};
     data.resize(descr.size);
     auto is_color_1{false};
 
@@ -149,7 +157,84 @@ const Resource* TextureHandler::GetFlatTexture() {
     }
   }
 
-  return flat_texture_.get();
+  return diffuse_texture_.get();
+}
+
+const Resource* TextureHandler::GetDefaultSpecularTexture() {
+  if (specular_texture_ == nullptr) {
+    constexpr auto kDimension{1};
+    constexpr auto kChannelCount{4};
+    constexpr u8 kColor[]{0, 0, 0, 255};
+
+    specular_texture_ = std::make_unique<TextureResource>();
+    specular_texture_->id = kDefaultSpecularTextureResourceId;
+    specular_texture_->type_id = TextureResource::kResourceTypeId;
+
+    auto& descr{specular_texture_->descr};
+    descr.size =
+        static_cast<comet::u64>(kDimension) * kDimension * kChannelCount;
+    descr.format = rendering::TextureFormat::Rgba8;
+    descr.resolution[0] = kDimension;
+    descr.resolution[1] = kDimension;
+    descr.channel_count = kChannelCount;
+
+    auto& data{specular_texture_->data};
+    data.resize(descr.size);
+    auto is_color_1{false};
+
+    for (uindex i{0}; i < descr.size; ++i) {
+      data[i] = kColor[i % kChannelCount];
+    }
+  }
+
+  return specular_texture_.get();
+}
+
+const Resource* TextureHandler::GetDefaultNormalTexture() {
+  if (normal_texture_ == nullptr) {
+    constexpr auto kDimension{1};
+    constexpr auto kChannelCount{4};
+    constexpr u8 kColor[]{127, 127, 255, 255};
+
+    normal_texture_ = std::make_unique<TextureResource>();
+    normal_texture_->id = kDefaultNormalTextureResourceId;
+    normal_texture_->type_id = TextureResource::kResourceTypeId;
+
+    auto& descr{normal_texture_->descr};
+    descr.size =
+        static_cast<comet::u64>(kDimension) * kDimension * kChannelCount;
+    descr.format = rendering::TextureFormat::Rgba8;
+    descr.resolution[0] = kDimension;
+    descr.resolution[1] = kDimension;
+    descr.channel_count = kChannelCount;
+
+    auto& data{normal_texture_->data};
+    data.resize(descr.size);
+    auto is_color_1{false};
+
+    for (uindex i{0}; i < descr.size; ++i) {
+      data[i] = kColor[i % kChannelCount];
+    }
+  }
+
+  return normal_texture_.get();
+}
+
+ResourceId GetDefaultTextureFromType(rendering::TextureType texture_type) {
+  switch (texture_type) {
+    case rendering::TextureType::Diffuse:
+      return kDefaultDiffuseTextureResourceId;
+    case rendering::TextureType::Specular:
+      return kDefaultSpecularTextureResourceId;
+    case rendering::TextureType::Normal:
+      return kDefaultNormalTextureResourceId;
+    default:
+      COMET_ASSERT(false, "Unknown or unsupported texture type provided: ",
+                   static_cast<std::underlying_type_t<rendering::TextureType>>(
+                       texture_type),
+                   "!");
+      return kDefaultResourceId;
+  }
 }
 }  // namespace resource
 }  // namespace comet

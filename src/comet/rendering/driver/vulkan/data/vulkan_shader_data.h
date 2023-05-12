@@ -37,6 +37,19 @@ struct ShaderUniform {
   ShaderUniformScope scope{ShaderUniformScope::Unknown};
 };
 
+struct ShaderUniformIndices {
+  ShaderUniformIndex projection{kInvalidShaderUniformIndex};
+  ShaderUniformIndex view{kInvalidShaderUniformIndex};
+  ShaderUniformIndex ambient_color{kInvalidShaderUniformIndex};
+  ShaderUniformIndex view_pos{kInvalidShaderUniformIndex};
+  ShaderUniformIndex diffuse_color{kInvalidShaderUniformIndex};
+  ShaderUniformIndex diffuse_map{kInvalidShaderUniformIndex};
+  ShaderUniformIndex specular_map{kInvalidShaderUniformIndex};
+  ShaderUniformIndex normal_map{kInvalidShaderUniformIndex};
+  ShaderUniformIndex shininess{kInvalidShaderUniformIndex};
+  ShaderUniformIndex model{kInvalidShaderUniformIndex};
+};
+
 constexpr auto kShaderDescriptorSetGlobalIndex{0};
 constexpr auto kShaderDescriptorSetInstanceIndex{1};
 
@@ -60,19 +73,6 @@ struct ShaderDescr {
 };
 
 constexpr auto kMaxMaterialInstances{1024};
-
-struct ShaderUniformIndices {
-  ShaderUniformIndex projection{kInvalidShaderUniformIndex};
-  ShaderUniformIndex view{kInvalidShaderUniformIndex};
-  ShaderUniformIndex ambient_color{kInvalidShaderUniformIndex};
-  ShaderUniformIndex view_pos{kInvalidShaderUniformIndex};
-  ShaderUniformIndex diffuse_color{kInvalidShaderUniformIndex};
-  ShaderUniformIndex diffuse_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex specular_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex normal_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex shininess{kInvalidShaderUniformIndex};
-  ShaderUniformIndex model{kInvalidShaderUniformIndex};
-};
 
 struct ShaderUniformData {
   std::vector<VkDescriptorSet> descriptor_set_handles{};

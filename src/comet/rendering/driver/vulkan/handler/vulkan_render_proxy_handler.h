@@ -12,7 +12,7 @@
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_proxy.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_render_proxy.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
@@ -43,9 +43,9 @@ class RenderProxyHandler : public Handler {
   void Shutdown() override;
 
   void Update(time::Interpolation interpolation);
-  void DrawProxies(const Shader& shader);
+  void DrawProxies(Shader& shader);
   // TODO(m4jr0): Remove temporary code.
-  void DrawProxiesForDebugging(const Shader& shader);
+  void DrawProxiesForDebugging(Shader& shader);
   u32 GetDrawCount() const noexcept;
 
  private:

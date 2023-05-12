@@ -72,7 +72,7 @@ const Resource* MaterialHandler::GetDefaultResource() {
     default_material_->type_id = MaterialResource::kResourceTypeId;
 
     auto& descr{default_material_->descr};
-    descr.diffuse_map.texture_id = kFlatTextureResourceId;
+    descr.diffuse_map.texture_id = kDefaultDiffuseTextureResourceId;
     descr.diffuse_map.type = rendering::TextureType::Diffuse;
   }
 

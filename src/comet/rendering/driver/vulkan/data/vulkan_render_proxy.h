@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_PROXY_H_
-#define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_PROXY_H_
+#ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PROXY_H_
+#define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PROXY_H_
 
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
@@ -21,4 +21,4 @@ struct RenderProxy {
 }  // namespace rendering
 }  // namespace comet
 
-#endif  // COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_PROXY_H_
+#endif  // COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PROXY_H_
