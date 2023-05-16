@@ -8,7 +8,6 @@
 #include "comet_precompile.h"
 
 #ifdef COMET_PROFILING
-
 #include "comet/core/manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/rendering_manager.h"
@@ -48,7 +47,6 @@ class ProfilerManager : public Manager {
 };
 }  // namespace profiler
 }  // namespace comet
-
 #endif  // COMET_PROFILING
 
 #endif  // COMET_COMET_PROFILER_PROFILER_MANAGER_H_

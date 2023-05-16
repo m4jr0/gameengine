@@ -5,13 +5,6 @@
 #ifndef COMET_COMET_PRECOMPILE_H_
 #define COMET_COMET_PRECOMPILE_H_
 
-#include "comet/core/define.h"
-#include "comet/core/os.h"
-
-#ifdef COMET_WINDOWS
-#define NOMINMAX
-#endif  // COMET_WINDOWS
-
 #include <algorithm>
 #include <any>
 #include <array>
@@ -52,14 +45,21 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// Order is really important here.
+#include "comet/core/compiler.h"
+#include "comet/core/os.h"
+
 #ifdef COMET_WINDOWS
+#define NOMINMAX
+
 #include <windows.h>
 #endif  // COMET_WINDOWS
 
 #include "comet/core/type/primitive.h"
-
-#include "comet/core/compiler.h"
+#include "comet/core/define.h"
 #include "comet/core/debug.h"
+#include "comet/core/memory/allocation_tracking.h"
+
 #include "comet/core/logger.h"
 #include "comet/core/type/gid.h"
 #include "comet/core/type/string_id.h"

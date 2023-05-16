@@ -29,6 +29,7 @@ add_library(${CORE_LIBRARY_NAME}
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"
 
+  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocation_tracking.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"

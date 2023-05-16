@@ -4,8 +4,9 @@
 
 #include "profiler_manager.h"
 
-#ifdef COMET_PROFILING
+#include "comet/core/memory/allocation_tracking.h"
 
+#ifdef COMET_PROFILING
 namespace comet {
 namespace profiler {
 ProfilerManager::ProfilerManager(const ProfilerManagerDescr& descr)
@@ -32,11 +33,11 @@ void ProfilerManager::Update() const {
   packet.rendering_frame_time = rendering_manager_->GetFrameTime();
   packet.rendering_frame_rate = rendering_manager_->GetFrameRate();
   packet.rendering_draw_count = rendering_manager_->GetDrawCount();
+  packet.memory_use = GetMemoryUse();
 
   debugger_displayer_manager_->Update(packet);
 #endif  // COMET_DEBUG
 }
 }  // namespace profiler
 }  // namespace comet
-
 #endif  // COMET_PROFILING

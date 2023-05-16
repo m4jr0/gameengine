@@ -59,6 +59,14 @@ uindex ConvertToStr(Integer number, schar* buff, uindex buff_len) {
   // TODO(m4jr0): Optimize function.
   return std::snprintf(buff, buff_len, "%d", number);
 }
+
+template <class Float,
+          typename std::enable_if_t<std::is_floating_point_v<Float>>* = nullptr>
+std::string ConvertToStr(Float number, u8 precision) {
+  std::stringstream stream{};
+  stream << std::fixed << std::setprecision(precision) << number;
+  return stream.str();
+}
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_STRING_H_

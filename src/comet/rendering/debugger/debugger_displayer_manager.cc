@@ -4,6 +4,8 @@
 
 #include "debugger_displayer_manager.h"
 
+#include "comet/core/memory/memory.h"
+
 #ifdef COMET_DEBUG
 #ifdef COMET_IMGUI
 #include "imgui.h"
@@ -22,11 +24,15 @@ void DebuggerDisplayerManager::Update(const MiniProfilerPacket& packet) {
 void DebuggerDisplayerManager::Draw() {
 #ifdef COMET_IMGUI
   ImGui::Begin("Mini Profiler");
+
+  // Physics.
   ImGui::Text("PHYSICS");
   ImGui::Indent();
   ImGui::Text("Frame Time: %f ms", mini_profiler_packet_.physics_frame_time);
   ImGui::Text("Framerate: %u Hz", mini_profiler_packet_.physics_frame_rate);
   ImGui::Unindent();
+
+  // Rendering.
   ImGui::Spacing();
   ImGui::Text("RENDERING");
   ImGui::Indent();
@@ -37,6 +43,14 @@ void DebuggerDisplayerManager::Draw() {
   ImGui::Text("Framerate: %u FPS", mini_profiler_packet_.rendering_frame_rate);
   ImGui::Text("Draw count: %u", mini_profiler_packet_.rendering_draw_count);
   ImGui::Unindent();
+
+  // Memory.
+  ImGui::Spacing();
+  ImGui::Text("MEMORY");
+  ImGui::Indent();
+  ImGui::Text("Usage: %s",
+              GetMemorySizeString(mini_profiler_packet_.memory_use).c_str());
+
   ImGui::End();
 #endif  // COMET_IMGUI
 }

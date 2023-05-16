@@ -20,6 +20,7 @@ struct MiniProfilerPacket {
   u32 rendering_frame_rate{0};
   u32 rendering_draw_count{0};
   DriverType rendering_driver_type{DriverType::Unknown};
+  uindex memory_use{0};
 };
 
 using DebuggerDisplayerManagerDescr = ManagerDescr;

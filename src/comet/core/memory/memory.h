@@ -40,6 +40,8 @@ inline bool IsAligned(T* ptr, uindex alignment) noexcept {
   auto tmp{reinterpret_cast<uptr>(ptr)};
   return tmp % alignment == 0;
 }
+
+std::string GetMemorySizeString(uindex size);
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_MEMORY_H_
