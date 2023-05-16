@@ -11,18 +11,25 @@
 
 namespace comet {
 namespace resource {
-const Resource* ResourceCache::Set(std::unique_ptr<Resource> resource) {
+Resource* ResourceCache::Set(std::unique_ptr<Resource> resource) {
   const auto it{cache_.emplace(resource->id, std::move(resource))};
   COMET_ASSERT(it.second, "Unable to save resource to cache!");
   return it.first->second.get();
 }
 
-const Resource* ResourceCache::Get(ResourceId resource_id) const {
+Resource* ResourceCache::Get(ResourceId resource_id) {
   if (cache_.find(resource_id) == cache_.cend()) {
     return nullptr;
   }
 
   return cache_.at(resource_id).get();
+}
+
+void ResourceCache::Destroy(ResourceId resource_id) {
+  COMET_ASSERT(cache_.find(resource_id) != cache_.cend(),
+               "Tried to destroy resource with ID ",
+               COMET_STRING_ID_LABEL(resource_id), ", but the former is null!");
+  cache_.erase(resource_id);
 }
 
 ResourceId GenerateResourceIdFromPath(const std::string& resource_path) {
@@ -194,9 +201,10 @@ const Resource* ResourceHandler::Load(std::string_view root_resource_path,
     return GetDefaultResource();
   }
 
-  const auto* resource{Get(resource_id)};
+  auto* resource{GetInternal(resource_id)};
 
   if (resource != nullptr) {
+    ++resource->ref_count;
     return resource;
   }
 
@@ -213,11 +221,45 @@ const Resource* ResourceHandler::Load(std::string_view root_resource_path,
     return GetDefaultResource();
   }
 
-  return cache_.Set(Unpack(file));
+  resource = cache_.Set(Unpack(file));
+  resource->ref_count = 1;
+  return resource;
+}
+
+void ResourceHandler::Unload(std::string_view root_resource_path,
+                             const std::string& resource_path) {
+  Unload(root_resource_path, resource_path.c_str());
+}
+
+void ResourceHandler::Unload(std::string_view root_resource_path,
+                             const schar* resource_path) {
+  Unload(root_resource_path, GenerateResourceIdFromPath(resource_path));
+}
+
+void ResourceHandler::Unload(std::string_view root_resource_path,
+                             ResourceId resource_id) {
+  COMET_ASSERT(resource_id != kDefaultResourceId,
+               "Cannot unload default resource!");
+  auto* resource{cache_.Get(resource_id)};
+  COMET_ASSERT(resource != nullptr, "Tried to unload resource with ID ",
+               COMET_STRING_ID_LABEL(resource_id), ", but the former is null!");
+  COMET_ASSERT(resource->ref_count > 0, "Resource with ID ",
+               COMET_STRING_ID_LABEL(resource_id),
+               ", was asked to be unloaded, but reference count is already 0! "
+               "What happened??");
+  --resource->ref_count;
+
+  if (resource->ref_count < 1) {
+    Destroy(resource_id);
+  }
 }
 
 const Resource* ResourceHandler::Get(ResourceId resource_id) {
-  return cache_.Get(resource_id);
+  return GetInternal(resource_id);
+}
+
+void ResourceHandler::Destroy(ResourceId resource_id) {
+  cache_.Destroy(resource_id);
 }
 
 const Resource* ResourceHandler::GetDefaultResource() { return nullptr; }
@@ -225,6 +267,10 @@ const Resource* ResourceHandler::GetDefaultResource() { return nullptr; }
 ResourceFile ResourceHandler::GetResourceFile(
     const Resource& resource, CompressionMode compression_mode) const {
   return Pack(resource, compression_mode);
+}
+
+Resource* ResourceHandler::GetInternal(ResourceId resource_id) {
+  return cache_.Get(resource_id);
 }
 }  // namespace resource
 }  // namespace comet

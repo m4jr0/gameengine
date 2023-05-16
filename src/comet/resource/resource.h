@@ -21,13 +21,7 @@ using ResourcePath = std::string;
 
 enum class CompressionMode : u8 { None = 0, Lz4 };
 
-enum class ResourceLifeSpan : u8 {
-  Unknown = 0,
-  Frame,
-  DoubleFrame,
-  Level,
-  Global
-};
+enum class ResourceLifeSpan : u8 { Unknown = 0, Manual, Level, Global };
 
 struct ResourceFile {
   ResourceId resource_id{kInvalidResourceId};
@@ -41,9 +35,13 @@ struct ResourceFile {
   std::vector<u8> data{};
 };
 
+using RefCount = u32;
+constexpr auto kInvalidRefCount{static_cast<RefCount>(-1)};
+
 struct Resource {
   ResourceId id{kInvalidResourceId};
   ResourceId type_id{kInvalidResourceTypeId};
+  RefCount ref_count{kInvalidRefCount};
 
   virtual ~Resource() = default;
 };
@@ -62,8 +60,9 @@ class ResourceCache {
   ResourceCache& operator=(ResourceCache&&) = delete;
   ~ResourceCache() = default;
 
-  const Resource* Set(std::unique_ptr<Resource> resource);
-  const Resource* Get(ResourceId resource_id) const;
+  Resource* Set(std::unique_ptr<Resource> resource);
+  Resource* Get(ResourceId resource_id);
+  void Destroy(ResourceId resource_id);
 
  private:
   std::unordered_map<ResourceId, std::unique_ptr<Resource>> cache_{};
@@ -119,12 +118,18 @@ class ResourceHandler {
                        const schar* resource_path);
   const Resource* Load(std::string_view root_resource_path,
                        ResourceId resource_id);
-  virtual const Resource* Get(ResourceId resource_id);
+  void Unload(std::string_view root_resource_path,
+              const std::string& resource_path);
+  void Unload(std::string_view root_resource_path, const schar* resource_path);
+  void Unload(std::string_view root_resource_path, ResourceId resource_id);
+  const Resource* Get(ResourceId resource_id);
+  virtual void Destroy(ResourceId resource_id);
   virtual const Resource* GetDefaultResource();
   ResourceFile GetResourceFile(const Resource& resource,
                                CompressionMode compression_mode) const;
 
  protected:
+  virtual Resource* GetInternal(ResourceId resource_id);
   virtual ResourceFile Pack(const Resource& resource,
                             CompressionMode compression_mode) const = 0;
   virtual std::unique_ptr<Resource> Unpack(const ResourceFile& file) const = 0;

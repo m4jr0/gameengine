@@ -48,7 +48,7 @@ class ResourceManager : public Manager {
   template <typename ResourceType>
   const ResourceType* Load(
       ResourceId resource_id,
-      ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
+      ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
     COMET_ASSERT(
         handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
         "Unknown resource type ID: ", ResourceType::kResourceTypeId,
@@ -76,7 +76,7 @@ class ResourceManager : public Manager {
   template <typename ResourceType>
   const ResourceType* Load(
       const schar* asset_path,
-      ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
+      ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
     return Load<ResourceType>(GenerateResourceIdFromPath(asset_path),
                               life_span);
   }
@@ -84,9 +84,29 @@ class ResourceManager : public Manager {
   template <typename ResourceType>
   const ResourceType* Load(
       const std::string& asset_path,
-      ResourceLifeSpan life_span = ResourceLifeSpan::Global) {
+      ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
     return Load<ResourceType>(GenerateResourceIdFromPath(asset_path),
                               life_span);
+  }
+
+  template <typename ResourceType>
+  void Unload(ResourceId resource_id) {
+    COMET_ASSERT(
+        handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
+        "Unknown resource type ID: ", ResourceType::kResourceTypeId,
+        ". Aborting.");
+    auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
+    handler->Unload(root_resource_path_, resource_id);
+  }
+
+  template <typename ResourceType>
+  void Unload(const schar* asset_path) {
+    Unload<ResourceType>(GenerateResourceIdFromPath(asset_path));
+  }
+
+  template <typename ResourceType>
+  void Unload(const std::string& asset_path) {
+    Unload<ResourceType>(GenerateResourceIdFromPath(asset_path));
   }
 
   template <typename ResourceType>

@@ -41,13 +41,14 @@ class TextureHandler : public ResourceHandler {
   TextureHandler& operator=(TextureHandler&&) = delete;
   virtual ~TextureHandler() = default;
 
-  const Resource* Get(ResourceId resource_id) override;
+  void Destroy(ResourceId resource_id) override;
   const Resource* GetDefaultResource() override;
-  const Resource* GetDefaultDiffuseTexture();
-  const Resource* GetDefaultSpecularTexture();
-  const Resource* GetDefaultNormalTexture();
+  Resource* GetDefaultDiffuseTexture();
+  Resource* GetDefaultSpecularTexture();
+  Resource* GetDefaultNormalTexture();
 
  protected:
+  virtual Resource* GetInternal(ResourceId resource_id) override;
   ResourceFile Pack(const Resource& resource,
                     CompressionMode compression_mode) const override;
   std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
