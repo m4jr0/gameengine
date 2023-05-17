@@ -57,6 +57,7 @@ void Engine::Run() {
 }
 
 void Engine::Update(f64& lag) {
+  memory_manager_->Update();
   time_manager_->Update();
   lag += time_manager_->GetDeltaTime();
   physics_manager_->Update(lag);
@@ -96,6 +97,10 @@ void Engine::PreLoad() {
   conf::ConfigurationManagerDescr configuration_manager_descr{};
   configuration_manager_ =
       std::make_unique<conf::ConfigurationManager>(configuration_manager_descr);
+
+  memory::MemoryManagerDescr memory_manager_descr{};
+  memory_manager_ =
+      std::make_unique<memory::MemoryManager>(memory_manager_descr);
 
   resource::ResourceManagerDescr resource_manager_descr{};
   resource_manager_descr.configuration_manager = configuration_manager_.get();
@@ -163,6 +168,7 @@ void Engine::PreLoad() {
   profiler_manager_descr.debugger_displayer_manager =
       debugger_displayer_manager_.get();
 #endif  // COMET_DEBUG
+  profiler_manager_descr.memory_manager = memory_manager_.get();
   profiler_manager_descr.physics_manager = physics_manager_.get();
   profiler_manager_descr.rendering_manager = rendering_manager_.get();
   profiler_manager_ =
@@ -172,6 +178,7 @@ void Engine::PreLoad() {
 #endif  // COMET_PROFILING
 
   configuration_manager_->Initialize();
+  memory_manager_->Initialize();
   event_manager_->Initialize();
   resource_manager_->Initialize();
 }
@@ -216,8 +223,9 @@ void Engine::PreUnload() {
 
 void Engine::Unload() {
   resource_manager_->Shutdown();
-  configuration_manager_->Shutdown();
   event_manager_->Shutdown();
+  memory_manager_->Shutdown();
+  configuration_manager_->Shutdown();
   is_running_ = false;
   is_exit_requested_ = false;
 }

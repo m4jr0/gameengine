@@ -9,6 +9,7 @@
 
 #ifdef COMET_PROFILING
 #include "comet/core/manager.h"
+#include "comet/core/memory/memory_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/rendering_manager.h"
 
@@ -22,6 +23,7 @@ struct ProfilerManagerDescr : ManagerDescr {
 #ifdef COMET_DEBUG
   rendering::DebuggerDisplayerManager* debugger_displayer_manager{nullptr};
 #endif  // COMET_DEBUG
+  memory::MemoryManager* memory_manager{nullptr};
   physics::PhysicsManager* physics_manager{nullptr};
   rendering::RenderingManager* rendering_manager{nullptr};
 };
@@ -42,6 +44,7 @@ class ProfilerManager : public Manager {
 #ifdef COMET_DEBUG
   rendering::DebuggerDisplayerManager* debugger_displayer_manager_{nullptr};
 #endif  // COMET_DEBUG
+  memory::MemoryManager* memory_manager_{nullptr};
   physics::PhysicsManager* physics_manager_{nullptr};
   rendering::RenderingManager* rendering_manager_{nullptr};
 };

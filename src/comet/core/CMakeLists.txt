@@ -31,6 +31,7 @@ add_library(${CORE_LIBRARY_NAME}
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocation_tracking.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory_manager.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/primitive.h"

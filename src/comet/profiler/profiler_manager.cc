@@ -14,12 +14,14 @@ ProfilerManager::ProfilerManager(const ProfilerManagerDescr& descr)
 #ifdef COMET_DEBUG
       debugger_displayer_manager_{descr.debugger_displayer_manager},
 #endif  // COMET_DEBUG
+      memory_manager_{descr.memory_manager},
       physics_manager_{descr.physics_manager},
       rendering_manager_{descr.rendering_manager} {
 #ifdef COMET_DEBUG
   COMET_ASSERT(debugger_displayer_manager_ != nullptr,
                "Debugger displayer manager is null!");
 #endif  // COMET_DEBUG
+  COMET_ASSERT(memory_manager_ != nullptr, "Memory manager is null!");
   COMET_ASSERT(physics_manager_ != nullptr, "Physics manager is null!");
   COMET_ASSERT(rendering_manager_ != nullptr, "Rendering manager is null!");
 }
@@ -33,7 +35,7 @@ void ProfilerManager::Update() const {
   packet.rendering_frame_time = rendering_manager_->GetFrameTime();
   packet.rendering_frame_rate = rendering_manager_->GetFrameRate();
   packet.rendering_draw_count = rendering_manager_->GetDrawCount();
-  packet.memory_use = GetMemoryUse();
+  packet.memory_use = memory_manager_->GetAllocatedMemory();
 
   debugger_displayer_manager_->Update(packet);
 #endif  // COMET_DEBUG

@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/memory/memory_manager.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event_manager.h"
@@ -73,6 +74,7 @@ class Engine {
   std::unique_ptr<rendering::RenderingManager> rendering_manager_{nullptr};
   std::unique_ptr<resource::ResourceManager> resource_manager_{nullptr};
   std::unique_ptr<time::TimeManager> time_manager_{nullptr};
+  std::unique_ptr<memory::MemoryManager> memory_manager_{nullptr};
 
 #ifdef COMET_DEBUG
   std::unique_ptr<rendering::DebuggerDisplayerManager>
