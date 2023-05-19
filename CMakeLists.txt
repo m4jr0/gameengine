@@ -34,32 +34,7 @@ set(EXECUTABLE_NAME "comet_editor")
 set(TESTS_EXECUTABLE_NAME "comet_tests")
 
 # Internal library names.
-set(CORE_LIBRARY_NAME "core")
-set(ENGINE_LIBRARY_NAME "engine")
-set(EVENT_LIBRARY_NAME "event")
-set(ENTITY_LIBRARY_NAME "entity")
-set(INPUT_LIBRARY_NAME "input")
-set(MATH_LIBRARY_NAME "math")
-set(PHYSICS_LIBRARY_NAME "physics")
-set(PROFILER_LIBRARY_NAME "profiler")
-set(RENDERING_LIBRARY_NAME "rendering")
-set(RESOURCE_LIBRARY_NAME "resource")
-set(TIME_LIBRARY_NAME "time")
-
-# Internal libraries container.
-list(APPEND COMET_LIBRARIES
-  ${CORE_LIBRARY_NAME}
-  ${ENGINE_LIBRARY_NAME}
-  ${EVENT_LIBRARY_NAME}
-  ${ENTITY_LIBRARY_NAME}
-  ${INPUT_LIBRARY_NAME}
-  ${MATH_LIBRARY_NAME}
-  ${PHYSICS_LIBRARY_NAME}
-  ${PROFILER_LIBRARY_NAME}
-  ${RENDERING_LIBRARY_NAME}
-  ${RESOURCE_LIBRARY_NAME}
-  ${TIME_LIBRARY_NAME}
-)
+set(COMET_LIBRARY_NAME "comet")
 
 # Other.
 set(MESSAGE_PREFIX "[Comet] ")
@@ -160,6 +135,8 @@ project("Comet Game Engine"
   DESCRIPTION "Simple video game engine"
   LANGUAGES CXX
 )
+
+add_library(${COMET_LIBRARY_NAME})
 
 # Disable any non-conformant code with Microsoft Visual C++.
 if(MSVC)

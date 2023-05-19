@@ -9,50 +9,41 @@
 ################################################################################
 
 # Source files #################################################################
-add_library(${PHYSICS_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/physics/physics_manager.cc"
+target_sources(${COMET_LIBRARY_NAME}
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/physics/physics_manager.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/comet/physics/component/transform_component.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/physics/component/transform_component.h"
 )
 
 # Compiling ####################################################################
-target_include_directories(${PHYSICS_LIBRARY_NAME}
+target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
-target_link_directories(${PHYSICS_LIBRARY_NAME}
+target_link_directories(${COMET_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
 )
 
-target_link_libraries(${PHYSICS_LIBRARY_NAME}
+target_link_libraries(${COMET_LIBRARY_NAME}
   PRIVATE
     # Put libraries here.
 )
 
 if(WIN32)
-  target_link_libraries(${PHYSICS_LIBRARY_NAME}
+  target_link_libraries(${COMET_LIBRARY_NAME}
     PRIVATE
       # Put libraries here.
   )
 endif()
 
 if(LINUX)
-  target_link_libraries(${PHYSICS_LIBRARY_NAME}
+  target_link_libraries(${COMET_LIBRARY_NAME}
     PRIVATE
       # Put libraries here.
   )
 endif()
-
-# Internal libraries.
-target_link_libraries(${PHYSICS_LIBRARY_NAME}
-  PRIVATE
-    ${CORE_LIBRARY_NAME}
-    ${ENTITY_LIBRARY_NAME}
-    ${EVENT_LIBRARY_NAME}
-    ${MATH_LIBRARY_NAME}
-    ${TIME_LIBRARY_NAME}
-)

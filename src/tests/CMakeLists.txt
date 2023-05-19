@@ -55,6 +55,6 @@ target_link_directories(${TESTS_EXECUTABLE_NAME}
 
 target_link_libraries(${TESTS_EXECUTABLE_NAME}
   PRIVATE
-    ${COMET_LIBRARIES}
+    ${COMET_LIBRARY_NAME}
     Catch2::Catch2WithMain
 )

@@ -27,36 +27,37 @@ find_package(unofficial-shaderc CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 
 # Source files #################################################################
-add_library(${ASSET_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/asset.h"
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/asset_manager.cc"
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/asset_utils.cc"
+target_sources(${EXECUTABLE_NAME}
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/asset.h"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/asset_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/asset_utils.cc"
 
-  # Exporters.
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model_exporter.cc"
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_exporter.cc"
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_module_exporter.cc"
-  "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture_exporter.cc"
+    # Exporters.
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model_exporter.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_exporter.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_module_exporter.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture_exporter.cc"
 )
 
 # Compiling ####################################################################
-target_include_directories(${ASSET_LIBRARY_NAME}
+target_include_directories(${EXECUTABLE_NAME}
   PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
-target_link_directories(${ASSET_LIBRARY_NAME}
+target_link_directories(${EXECUTABLE_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
     target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 )
 
-target_link_libraries(${ASSET_LIBRARY_NAME}
+target_link_libraries(${EXECUTABLE_NAME}
   PRIVATE
-    ${CORE_LIBRARY_NAME}
+    ${COMET_LIBRARY_NAME}
     assimp::assimp
     SPIRV-Tools-opt
     glslang
@@ -65,14 +66,14 @@ target_link_libraries(${ASSET_LIBRARY_NAME}
 )
 
 if(WIN32)
-  target_link_libraries(${ASSET_LIBRARY_NAME}
+  target_link_libraries(${EXECUTABLE_NAME}
     PRIVATE
       # Put libraries here.
   )
 endif()
 
 if(LINUX)
-  target_link_libraries(${ASSET_LIBRARY_NAME}
+  target_link_libraries(${EXECUTABLE_NAME}
     PRIVATE
       # Put libraries here.
   )

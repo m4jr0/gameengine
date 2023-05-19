@@ -24,15 +24,6 @@ if(MSVC)
   target_link_options(${EXECUTABLE_NAME} PRIVATE /NODEFAULTLIB:MSVCRT)
 endif()
 
-# Global variables #############################################################
-# Internal library names.
-set(ASSET_LIBRARY_NAME "asset")
-
-# Internal libraries container.
-list(APPEND COMET_EDITOR_LIBRARIES
-  ${ASSET_LIBRARY_NAME}
-)
-
 # Subdirectories ###############################################################
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor/asset")
 
@@ -40,6 +31,11 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor/asset")
 target_precompile_headers(${EXECUTABLE_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet_precompile.h"
+)
+
+target_link_libraries(${EXECUTABLE_NAME}
+  PRIVATE
+    ${COMET_LIBRARY_NAME}
 )
 
 target_include_directories(${EXECUTABLE_NAME}
@@ -52,10 +48,4 @@ target_include_directories(${EXECUTABLE_NAME}
 target_link_directories(${EXECUTABLE_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
-)
-
-target_link_libraries(${EXECUTABLE_NAME}
-  PRIVATE
-    ${COMET_LIBRARIES}
-    ${COMET_EDITOR_LIBRARIES}
 )

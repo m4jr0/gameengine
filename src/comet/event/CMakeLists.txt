@@ -9,48 +9,43 @@
 ################################################################################
 
 # Source files #################################################################
-add_library(${EVENT_LIBRARY_NAME}
-  "${PROJECT_SOURCE_DIR}/src/comet/event/event.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/event/event_manager.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/event/input_event.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/event/runtime_event.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/event/window_event.cc"
+target_sources(${COMET_LIBRARY_NAME}
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/event/event.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/event/event_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/event/input_event.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/event/runtime_event.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/event/window_event.cc"
 )
 
 # Compiling ####################################################################
-target_include_directories(${EVENT_LIBRARY_NAME}
+target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
-target_link_directories(${EVENT_LIBRARY_NAME}
+target_link_directories(${COMET_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
 )
 
-target_link_libraries(${EVENT_LIBRARY_NAME}
+target_link_libraries(${COMET_LIBRARY_NAME}
   PRIVATE
     # Put libraries here.
 )
 
 if(WIN32)
-  target_link_libraries(${EVENT_LIBRARY_NAME}
+  target_link_libraries(${COMET_LIBRARY_NAME}
     PRIVATE
       # Put libraries here.
   )
 endif()
 
 if(LINUX)
-  target_link_libraries(${EVENT_LIBRARY_NAME}
+  target_link_libraries(${COMET_LIBRARY_NAME}
     PRIVATE
       # Put libraries here.
   )
 endif()
-
-# Internal libraries.
-target_link_libraries(${EVENT_LIBRARY_NAME}
-  PRIVATE
-    ${CORE_LIBRARY_NAME}
-)
