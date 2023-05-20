@@ -88,12 +88,9 @@ static constexpr auto kCometEditorShaderUniformScopeGlobal{"global"sv};
 static constexpr auto kCometEditorShaderUniformScopeInstance{"instance"sv};
 static constexpr auto kCometEditorShaderUniformScopeLocal{"local"sv};
 
-using ShaderExporterDescr = AssetExporterDescr;
-
 class ShaderExporter : public AssetExporter {
  public:
-  ShaderExporter() = delete;
-  explicit ShaderExporter(const ShaderExporterDescr& descr);
+  ShaderExporter() = default;
   ShaderExporter(const ShaderExporter&) = delete;
   ShaderExporter(ShaderExporter&&) = delete;
   ShaderExporter& operator=(const ShaderExporter&) = delete;

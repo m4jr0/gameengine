@@ -17,12 +17,11 @@
 
 namespace comet {
 namespace entity {
-using EntityManagerDescr = ManagerDescr;
-
 class EntityManager : public Manager {
  public:
-  EntityManager() = delete;
-  explicit EntityManager(const EntityManagerDescr& descr);
+  static EntityManager& Get();
+
+  EntityManager() = default;
   EntityManager(const EntityManager&) = delete;
   EntityManager(EntityManager&&) = delete;
   EntityManager& operator=(const EntityManager&) = delete;

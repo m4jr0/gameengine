@@ -27,6 +27,8 @@ ConfValue GetDefaultValue(ConfKey key) {
     default_value.ushort = 0;
   } else if (key == kCoreMsPerUpdate) {
     default_value.flong = 16.66;
+  } else if (key == kEventMaxQueueSize) {
+    default_value.ushort = 200;
   } else if (key == kRenderingDriver) {
     std::memcpy(&default_value.str, kRenderingDriverVulkan.data(),
                 kRenderingDriverVulkan.size());

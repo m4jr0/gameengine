@@ -4,7 +4,9 @@
 
 #include "opengl_render_proxy_handler.h"
 
+#include "comet/entity/entity_manager.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/resource/component/mesh_component.h"
 
@@ -15,14 +17,10 @@ RenderProxyHandler::RenderProxyHandler(const RenderProxyHandlerDescr& descr)
     : Handler{descr},
       material_handler_{descr.material_handler},
       mesh_handler_{descr.mesh_handler},
-      shader_handler_{descr.shader_handler},
-      camera_manager_{descr.camera_manager},
-      entity_manager_{descr.entity_manager} {
+      shader_handler_{descr.shader_handler} {
   COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
   COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
   COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(camera_manager_ != nullptr, "Camera manager is null!");
-  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
 }
 
 void RenderProxyHandler::Shutdown() {
@@ -37,7 +35,8 @@ void RenderProxyHandler::Update(FrameIndex frame_count,
     return;
   }
 
-  const auto& frustum{camera_manager_->GetMainCamera()->GetFrustum()};
+  const auto& frustum{
+      rendering::CameraManager::Get().GetMainCamera()->GetFrustum()};
   proxies_.clear();
 
   // Reset proxies_ to its default capacity;
@@ -45,12 +44,14 @@ void RenderProxyHandler::Update(FrameIndex frame_count,
     proxies_.reserve(kDefaultProxyCount);
   }
 
-  entity_manager_->Each<resource::MeshComponent, physics::TransformComponent>(
+  auto& entity_manager{entity::EntityManager::Get()};
+
+  entity_manager.Each<resource::MeshComponent, physics::TransformComponent>(
       [&](auto entity_id) {
         auto* mesh_cmp{
-            entity_manager_->GetComponent<resource::MeshComponent>(entity_id)};
+            entity_manager.GetComponent<resource::MeshComponent>(entity_id)};
         auto* transform_cmp{
-            entity_manager_->GetComponent<physics::TransformComponent>(
+            entity_manager.GetComponent<physics::TransformComponent>(
                 entity_id)};
 
         const math::Aabb aabb{math::GenerateGlobalAabb(

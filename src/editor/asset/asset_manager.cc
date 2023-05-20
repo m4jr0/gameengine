@@ -8,6 +8,7 @@
 
 #include "comet/core/file_system.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/resource_manager.h"
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model_exporter.h"
 #include "editor/asset/exporter/shader_exporter.h"
@@ -17,39 +18,31 @@
 namespace comet {
 namespace editor {
 namespace asset {
-AssetManager::AssetManager(const AssetManagerDescr& descr)
-    : Manager{descr},
-      resource_manager_{descr.resource_manager},
+AssetManager& AssetManager::Get() {
+  static AssetManager singleton{};
+  return singleton;
+}
+
+AssetManager::AssetManager()
+    : Manager{},
       root_asset_path_{Append(GetCurrentDirectory(), "assets")},
       library_meta_path_{Append(
           root_asset_path_,
-          "library." + std::string(kCometEditorAssetMetadataFileExtension))} {
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
-}
+          "library." + std::string(kCometEditorAssetMetadataFileExtension))} {}
 
 void AssetManager::Initialize() {
   Manager::Initialize();
   RefreshLibraryMetadataFile();
 
-  root_resource_path_ = resource_manager_->GetRootResourcePath();
+  root_resource_path_ = resource::ResourceManager::Get().GetRootResourcePath();
 
-  ModelExporterDescr model_exporter_descr{};
-  model_exporter_descr.resource_manager = resource_manager_;
-  exporters_.push_back(std::make_unique<ModelExporter>(model_exporter_descr));
+  exporters_.push_back(std::make_unique<ModelExporter>());
 
-  ShaderExporterDescr shader_exporter_descr{};
-  shader_exporter_descr.resource_manager = resource_manager_;
-  exporters_.push_back(std::make_unique<ShaderExporter>(shader_exporter_descr));
+  exporters_.push_back(std::make_unique<ShaderExporter>());
 
-  ShaderModuleExporterDescr shader_module_exporter_descr{};
-  shader_module_exporter_descr.resource_manager = resource_manager_;
-  exporters_.push_back(
-      std::make_unique<ShaderModuleExporter>(shader_module_exporter_descr));
+  exporters_.push_back(std::make_unique<ShaderModuleExporter>());
 
-  TextureExporterDescr texture_exporter_descr{};
-  texture_exporter_descr.resource_manager = resource_manager_;
-  exporters_.push_back(
-      std::make_unique<TextureExporter>(texture_exporter_descr));
+  exporters_.push_back(std::make_unique<TextureExporter>());
 
   for (const auto& exporter : exporters_) {
     exporter->SetRootResourcePath(root_resource_path_);

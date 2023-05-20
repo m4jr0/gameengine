@@ -19,19 +19,12 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
     : Handler{descr},
       shader_handler_{descr.shader_handler},
       render_proxy_handler_{descr.render_proxy_handler},
-#ifdef COMET_DEBUG
-      debugger_displayer_manager_{descr.debugger_displayer_manager},
-#endif  // COMET_DEBUG
       window_{descr.window},
       rendering_view_descrs_{descr.rendering_view_descrs} {
   COMET_ASSERT(shader_handler_ != nullptr,
                "Shader handler cannot be null for view handler!");
   COMET_ASSERT(render_proxy_handler_ != nullptr,
                "Render proxy handler cannot be null for view handler!");
-#ifdef COMET_DEBUG
-  COMET_ASSERT(debugger_displayer_manager_ != nullptr,
-               "Debugger displayer manager cannot be null for view handler!");
-#endif  // COMET_DEBUG
   COMET_ASSERT(window_ != nullptr, "Window cannot be null for view handler!");
   COMET_ASSERT(rendering_view_descrs_ != nullptr,
                "Render view descriptions cannot be null for view handler!");
@@ -114,9 +107,6 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
     case RenderingViewType::ImGui: {
       ImGuiViewDescr view_descr{};
       view_descr.id = descr.id;
-#ifdef COMET_DEBUG
-      view_descr.debugger_displayer_manager = debugger_displayer_manager_;
-#endif  // COMET_DEBUG
       view_descr.window = window_;
       view = std::make_unique<ImGuiView>(view_descr);
       break;

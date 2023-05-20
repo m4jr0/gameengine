@@ -22,12 +22,9 @@ static constexpr auto kCometEditorTextureMetadataKeySize{"size"sv};
 
 static constexpr auto kCometEditorTextureFormatRgba8{"rgba8"sv};
 
-using TextureExporterDescr = AssetExporterDescr;
-
 class TextureExporter : public AssetExporter {
  public:
-  TextureExporter() = delete;
-  explicit TextureExporter(const TextureExporterDescr& descr);
+  TextureExporter() = default;
   TextureExporter(const TextureExporter&) = delete;
   TextureExporter(TextureExporter&&) = delete;
   TextureExporter& operator=(const TextureExporter&) = delete;

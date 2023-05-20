@@ -6,12 +6,6 @@
 
 namespace comet {
 namespace entity {
-Handler::Handler(const HandlerDescr& descr)
-    : entity_manager_{descr.entity_manager} {
-  COMET_ASSERT(entity_manager_ != nullptr,
-               "Entity manager cannot be null for handler!");
-}
-
 Handler ::~Handler() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for handler, but it is still initialized!");

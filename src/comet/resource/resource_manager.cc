@@ -4,6 +4,7 @@
 
 #include "resource_manager.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/file_system.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/model_resource.h"
@@ -13,17 +14,15 @@
 
 namespace comet {
 namespace resource {
-ResourceManager::ResourceManager(const ResourceManagerDescr& descr)
-    : Manager{descr}, configuration_manager_{descr.configuration_manager} {
-  COMET_ASSERT(configuration_manager_ != nullptr,
-               "Configuration manager is null!");
+ResourceManager& ResourceManager::Get() {
+  static ResourceManager singleton{};
+  return singleton;
 }
 
 void ResourceManager::Initialize() {
   Manager::Initialize();
   root_resource_path_ =
-      Append(GetCurrentDirectory(),
-             configuration_manager_->GetStr(conf::kResourceRootPath));
+      Append(GetCurrentDirectory(), COMET_CONF_STR(conf::kResourceRootPath));
 
   InitializeResourcesDirectory();
 

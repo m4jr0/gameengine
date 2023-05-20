@@ -4,13 +4,13 @@
 
 #include "opengl_shader_module_handler.h"
 
+#include "comet/resource/resource_manager.h"
+
 namespace comet {
 namespace rendering {
 namespace gl {
 ShaderModuleHandler::ShaderModuleHandler(const ShaderModuleHandlerDescr& descr)
-    : Handler{descr}, resource_manager_{descr.resource_manager} {
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
-}
+    : Handler{descr} {}
 
 void ShaderModuleHandler::Shutdown() {
   for (auto& it : shader_modules_) {
@@ -23,8 +23,9 @@ void ShaderModuleHandler::Shutdown() {
 
 const ShaderModule* ShaderModuleHandler::Generate(
     const schar* shader_module_path) {
-  const auto* resource{resource_manager_->Load<resource::ShaderModuleResource>(
-      shader_module_path)};
+  const auto* resource{
+      resource::ResourceManager::Get().Load<resource::ShaderModuleResource>(
+          shader_module_path)};
 
   auto shader_module{CompileShader(resource)};
 

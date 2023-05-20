@@ -6,8 +6,10 @@
 
 #include "vulkan_driver.h"
 
+#include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
 #include "comet/rendering/camera/camera.h"
+#include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
@@ -28,7 +30,6 @@ VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
   window_descr.width = descr.window_width;
   window_descr.height = descr.window_height;
   window_descr.name = descr.app_name;
-  window_descr.event_manager = descr.event_manager;
   window_ = std::make_unique<VulkanGlfwWindow>(window_descr);
 }
 
@@ -39,8 +40,9 @@ void VulkanDriver::Initialize() {
   COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
   InitializeVulkanInstance();
 
-  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(VulkanDriver::OnEvent),
-                           event::WindowResizeEvent::kStaticType_);
+  event::EventManager::Get().Register(
+      COMET_EVENT_BIND_FUNCTION(VulkanDriver::OnEvent),
+      event::WindowResizeEvent::kStaticType_);
 
 #ifdef COMET_VULKAN_DEBUG_MODE
   InitializeDebugMessenger();
@@ -267,7 +269,6 @@ void VulkanDriver::InitializeHandlers() {
 
   ShaderModuleHandlerDescr shader_module_handler_descr{};
   shader_module_handler_descr.context = context_.get();
-  shader_module_handler_descr.resource_manager = resource_manager_;
   shader_module_handler_ =
       std::make_unique<ShaderModuleHandler>(shader_module_handler_descr);
 
@@ -276,14 +277,12 @@ void VulkanDriver::InitializeHandlers() {
   shader_handler_descr.shader_module_handler = shader_module_handler_.get();
   shader_handler_descr.pipeline_handler = pipeline_handler_.get();
   shader_handler_descr.texture_handler = texture_handler_.get();
-  shader_handler_descr.resource_manager = resource_manager_;
   shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
 
   MaterialHandlerDescr material_handler_descr{};
   material_handler_descr.context = context_.get();
   material_handler_descr.texture_handler = texture_handler_.get();
   material_handler_descr.shader_handler = shader_handler_.get();
-  material_handler_descr.resource_manager = resource_manager_;
   material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
 
   MeshHandlerDescr mesh_handler_descr{};
@@ -301,8 +300,6 @@ void VulkanDriver::InitializeHandlers() {
   proxy_handler_descr.material_handler = material_handler_.get();
   proxy_handler_descr.mesh_handler = mesh_handler_.get();
   proxy_handler_descr.shader_handler = shader_handler_.get();
-  proxy_handler_descr.camera_manager = camera_manager_;
-  proxy_handler_descr.entity_manager = entity_manager_;
   render_proxy_handler_ =
       std::make_unique<RenderProxyHandler>(proxy_handler_descr);
 
@@ -311,9 +308,6 @@ void VulkanDriver::InitializeHandlers() {
   view_handler_descr.shader_handler = shader_handler_.get();
   view_handler_descr.render_pass_handler = render_pass_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
-#ifdef COMET_DEBUG
-  view_handler_descr.debugger_displayer_manager = debugger_displayer_manager_;
-#endif  // COMET_DEBUG
   view_handler_descr.rendering_view_descrs = &rendering_view_descrs_;
   view_handler_descr.window = window_.get();
   view_handler_ = std::make_unique<ViewHandler>(view_handler_descr);
@@ -467,7 +461,7 @@ void VulkanDriver::DrawViews(time::Interpolation interpolation) {
   ViewPacket packet{};
   packet.interpolation = interpolation;
 
-  auto* camera{camera_manager_->GetMainCamera()};
+  auto* camera{CameraManager::Get().GetMainCamera()};
   packet.projection_matrix = camera->GetProjectionMatrix();
   packet.projection_matrix[1][1] *= -1;  // Axis is inverted in Vulkan.
   packet.view_matrix = &camera->GetViewMatrix();

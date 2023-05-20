@@ -6,8 +6,10 @@
 
 namespace comet {
 namespace event {
-EventManager::EventManager(const EventManagerDescr& descr)
-    : Manager{descr}, event_queue_{descr.queue_size} {}
+EventManager& EventManager::Get() {
+  static EventManager singleton{};
+  return singleton;
+}
 
 void EventManager::Shutdown() {
   listeners_.clear();

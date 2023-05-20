@@ -13,9 +13,10 @@
 
 namespace comet {
 namespace rendering {
-DebuggerDisplayerManager::DebuggerDisplayerManager(
-    const DebuggerDisplayerManagerDescr& descr)
-    : Manager{descr} {}
+DebuggerDisplayerManager& DebuggerDisplayerManager::Get() {
+  static DebuggerDisplayerManager singleton{};
+  return singleton;
+}
 
 void DebuggerDisplayerManager::Update(const MiniProfilerPacket& packet) {
   mini_profiler_packet_ = packet;

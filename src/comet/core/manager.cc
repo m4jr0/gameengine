@@ -5,8 +5,6 @@
 #include "manager.h"
 
 namespace comet {
-Manager::Manager(const ManagerDescr& descr) {}
-
 Manager ::~Manager() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for manager, but it is still initialized!");

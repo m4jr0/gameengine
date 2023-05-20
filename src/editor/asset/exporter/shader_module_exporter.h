@@ -12,12 +12,9 @@
 namespace comet {
 namespace editor {
 namespace asset {
-using ShaderModuleExporterDescr = AssetExporterDescr;
-
 class ShaderModuleExporter : public AssetExporter {
  public:
-  ShaderModuleExporter() = delete;
-  explicit ShaderModuleExporter(const ShaderModuleExporterDescr& descr);
+  ShaderModuleExporter() = default;
   ShaderModuleExporter(const ShaderModuleExporter&) = delete;
   ShaderModuleExporter(ShaderModuleExporter&&) = delete;
   ShaderModuleExporter& operator=(const ShaderModuleExporter&) = delete;

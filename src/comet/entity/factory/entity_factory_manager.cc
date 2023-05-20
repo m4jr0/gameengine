@@ -6,22 +6,15 @@
 
 namespace comet {
 namespace entity {
-EntityFactoryManager::EntityFactoryManager(
-    const EntityFactoryManagerDescr& descr)
-    : Manager{descr},
-      entity_manager_{descr.entity_manager},
-      resource_manager_{descr.resource_manager} {
-  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
+EntityFactoryManager& EntityFactoryManager::Get() {
+  static EntityFactoryManager singleton{};
+  return singleton;
 }
 
 void EntityFactoryManager::Initialize() {
   Manager::Initialize();
 
-  ModelHandlerDescr model_handler_descr{};
-  model_handler_descr.entity_manager = entity_manager_;
-  model_handler_descr.resource_manager = resource_manager_;
-  model_handler_ = std::make_unique<ModelHandler>(model_handler_descr);
+  model_handler_ = std::make_unique<ModelHandler>();
   model_handler_->Initialize();
 }
 

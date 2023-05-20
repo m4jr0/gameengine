@@ -7,20 +7,14 @@
 
 #include "comet_precompile.h"
 
-#include "comet/resource/resource_manager.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-struct AssetExporterDescr : ManagerDescr {
-  resource::ResourceManager* resource_manager{nullptr};
-};
-
 class AssetExporter {
  public:
-  AssetExporter() = delete;
-  explicit AssetExporter(const AssetExporterDescr& descr);
+  AssetExporter() = default;
   AssetExporter(const AssetExporter&) = delete;
   AssetExporter(AssetExporter&&) = delete;
   AssetExporter& operator=(const AssetExporter&) = delete;
@@ -50,7 +44,6 @@ class AssetExporter {
   resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
   std::string root_asset_path_{};
   std::string root_resource_path_{};
-  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace asset
 }  // namespace editor

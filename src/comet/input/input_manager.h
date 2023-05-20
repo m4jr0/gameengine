@@ -8,24 +8,19 @@
 #include "comet_precompile.h"
 
 #define GLFW_INCLUDE_NONE
-
 #include "GLFW/glfw3.h"
 
 #include "comet/core/manager.h"
-#include "comet/event/event_manager.h"
 #include "comet/input/input.h"
 #include "comet/math/vector.h"
 
 namespace comet {
 namespace input {
-struct InputManagerDescr : ManagerDescr {
-  event::EventManager* event_manager{nullptr};
-};
-
 class InputManager : public Manager {
  public:
-  InputManager() = delete;
-  explicit InputManager(const InputManagerDescr& descr);
+  static InputManager& Get();
+
+  InputManager() = default;
   InputManager(const InputManager&) = delete;
   InputManager(InputManager&&) = delete;
   InputManager& operator=(const InputManager&) = delete;
@@ -46,9 +41,6 @@ class InputManager : public Manager {
   void AttachGlfwWindow(GLFWwindow* window_handle_);
   bool IsAltPressed() const;
   bool IsShiftPressed() const;
-
- protected:
-  event::EventManager* event_manager_{nullptr};
 
  private:
   mutable std::atomic<GLFWwindow*> window_handle_{nullptr};

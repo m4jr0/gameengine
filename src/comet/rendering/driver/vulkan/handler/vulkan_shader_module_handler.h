@@ -14,15 +14,12 @@
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-struct ShaderModuleHandlerDescr : HandlerDescr {
-  resource::ResourceManager* resource_manager{nullptr};
-};
+struct ShaderModuleHandlerDescr : HandlerDescr {};
 
 class ShaderModuleHandler : public Handler {
  public:
@@ -53,7 +50,6 @@ class ShaderModuleHandler : public Handler {
   void Destroy(ShaderModule& shader_module, bool is_destroying_handler);
 
   std::unordered_map<ShaderModuleId, ShaderModule> shader_modules_{};
-  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

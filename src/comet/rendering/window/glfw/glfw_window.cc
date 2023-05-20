@@ -4,7 +4,9 @@
 
 #include "glfw_window.h"
 
+#include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
+#include "comet/input/input_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -77,8 +79,7 @@ void GlfwWindow::Initialize() {
   glfwSetWindowAspectRatio(handle_, width_, height_);
 
   glfwSetWindowCloseCallback(handle_, [](GLFWwindow* window) {
-    static_cast<event::EventManager*>(glfwGetWindowUserPointer(window))
-        ->FireEvent<event::WindowCloseEvent>();
+    event::EventManager::Get().FireEvent<event::WindowCloseEvent>();
   });
 
   glfwSetWindowSizeCallback(
@@ -108,13 +109,13 @@ void GlfwWindow::Destroy() {
 
 void GlfwWindow::Update() {
   if (!is_resize_event_ ||
-      input_manager_->IsMousePressed(input::MouseButton::Left)) {
+      input::InputManager::Get().IsMousePressed(input::MouseButton::Left)) {
     return;
   }
 
   if (new_width_ != width_ || new_height_ != height_) {
-    event_manager_->FireEvent<event::WindowResizeEvent>(new_width_,
-                                                        new_height_);
+    event::EventManager::Get().FireEvent<event::WindowResizeEvent>(new_width_,
+                                                                   new_height_);
   }
 
   new_width_ = new_height_ = 0;

@@ -9,14 +9,12 @@
 
 #include "comet/core/file_system.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-ModelExporter::ModelExporter(const ModelExporterDescr& descr)
-    : AssetExporter{descr} {}
-
 bool ModelExporter::IsCompatible(std::string_view extension) const {
   return extension == "obj" || extension == "fbx";
 }
@@ -44,8 +42,8 @@ std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
   model.type_id = resource::ModelResource::kResourceTypeId;
   LoadNode(model, scene->mRootNode, scene);
 
-  resource_files.push_back(
-      resource_manager_->GetResourceFile(model, compression_mode_));
+  resource_files.push_back(resource::ResourceManager::Get().GetResourceFile(
+      model, compression_mode_));
 
   LoadMaterials(GetDirectoryPath(asset_descr.asset_abs_path), scene,
                 resource_files);
@@ -418,8 +416,8 @@ void ModelExporter::LoadMaterials(
     material.id = resource::GenerateMaterialId(raw_material->GetName().C_Str());
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
-    resource_files.push_back(
-        resource_manager_->GetResourceFile(material, compression_mode_));
+    resource_files.push_back(resource::ResourceManager::Get().GetResourceFile(
+        material, compression_mode_));
   }
 }
 

@@ -4,15 +4,14 @@
 
 #include "vulkan_shader_module_handler.h"
 
+#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
 ShaderModuleHandler::ShaderModuleHandler(const ShaderModuleHandlerDescr& descr)
-    : Handler{descr}, resource_manager_{descr.resource_manager} {
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
-}
+    : Handler{descr} {}
 
 void ShaderModuleHandler::Shutdown() {
   for (auto& it : shader_modules_) {
@@ -26,7 +25,7 @@ void ShaderModuleHandler::Shutdown() {
 const ShaderModule* ShaderModuleHandler::Generate(
     const schar* shader_module_path) {
   const auto* shader_module_resource{
-      resource_manager_->Load<resource::ShaderModuleResource>(
+      resource::ResourceManager::Get().Load<resource::ShaderModuleResource>(
           shader_module_path)};
 
   COMET_ASSERT(shader_module_resource != nullptr,

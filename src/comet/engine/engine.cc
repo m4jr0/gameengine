@@ -4,8 +4,27 @@
 
 #include "engine.h"
 
+#include "comet/core/conf/configuration_manager.h"
+#include "comet/core/memory/memory_manager.h"
+#include "comet/entity/entity_manager.h"
+#include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
+#include "comet/input/input_manager.h"
+#include "comet/physics/physics_manager.h"
+#include "comet/rendering/camera/camera_manager.h"
+#include "comet/rendering/rendering_manager.h"
+#include "comet/resource/resource_manager.h"
+#include "comet/time/time_manager.h"
+
+#ifdef COMET_PROFILING
+#include "comet/profiler/profiler_manager.h"
+#endif  // COMET_PROFILIN
+
+#ifdef COMET_DEBUG
+#include "comet/rendering/debugger/debugger_displayer_manager.h"
+#endif  // COMET_DEBUG
 
 namespace comet {
 Engine::~Engine() {
@@ -25,7 +44,7 @@ void Engine::Initialize() {
 void Engine::Run() {
   try {
     is_running_ = true;
-    time_manager_->Initialize();
+    time::TimeManager::Get().Initialize();
     // To catch up time taken to render.
     f64 lag{0.0};
     COMET_LOG_CORE_INFO("Comet started");
@@ -57,14 +76,15 @@ void Engine::Run() {
 }
 
 void Engine::Update(f64& lag) {
-  memory_manager_->Update();
-  time_manager_->Update();
-  lag += time_manager_->GetDeltaTime();
-  physics_manager_->Update(lag);
-  rendering_manager_->Update(lag / time_manager_->GetFixedDeltaTime());
+  memory::MemoryManager::Get().Update();
+  time::TimeManager::Get().Update();
+  lag += time::TimeManager::Get().GetDeltaTime();
+  physics::PhysicsManager::Get().Update(lag);
+  rendering::RenderingManager::Get().Update(
+      lag / time::TimeManager::Get().GetFixedDeltaTime());
 
 #ifdef COMET_PROFILING
-  profiler_manager_->Update();
+  profiler::ProfilerManager::Get().Update();
 #endif  // COMET_PROFILING
 }
 
@@ -94,138 +114,59 @@ void Engine::Quit() {
 }
 
 void Engine::PreLoad() {
-  conf::ConfigurationManagerDescr configuration_manager_descr{};
-  configuration_manager_ =
-      std::make_unique<conf::ConfigurationManager>(configuration_manager_descr);
-
-  memory::MemoryManagerDescr memory_manager_descr{};
-  memory_manager_ =
-      std::make_unique<memory::MemoryManager>(memory_manager_descr);
-
-  resource::ResourceManagerDescr resource_manager_descr{};
-  resource_manager_descr.configuration_manager = configuration_manager_.get();
-  resource_manager_ =
-      std::make_unique<resource::ResourceManager>(resource_manager_descr);
-
-  time::TimeManagerDescr time_manager_descr{};
-  time_manager_descr.configuration_manager = configuration_manager_.get();
-  time_manager_ = std::make_unique<time::TimeManager>(time_manager_descr);
-
-  entity::EntityManagerDescr entity_manager_descr{};
-  entity_manager_ =
-      std::make_unique<entity::EntityManager>(entity_manager_descr);
-
-  entity::EntityFactoryManagerDescr entity_factory_manager_descr{};
-  entity_factory_manager_descr.entity_manager = entity_manager_.get();
-  entity_factory_manager_descr.resource_manager = resource_manager_.get();
-  entity_factory_manager_ = std::make_unique<entity::EntityFactoryManager>(
-      entity_factory_manager_descr);
-
-  event::EventManagerDescr event_manager_descr{};
-  event_manager_ = std::make_unique<event::EventManager>(event_manager_descr);
-
-  input::InputManagerDescr input_manager_descr{};
-  input_manager_descr.event_manager = event_manager_.get();
-  input_manager_ = std::make_unique<input::InputManager>(input_manager_descr);
-
-  physics::PhysicsManagerDescr physics_manager_descr{};
-  physics_manager_descr.entity_manager = entity_manager_.get();
-  physics_manager_descr.event_manager = event_manager_.get();
-  physics_manager_descr.time_manager = time_manager_.get();
-  physics_manager_ =
-      std::make_unique<physics::PhysicsManager>(physics_manager_descr);
-
-  rendering::CameraManagerDescr camera_manager_descr{};
-  camera_manager_descr.event_manager = event_manager_.get();
-  camera_manager_ =
-      std::make_unique<rendering::CameraManager>(camera_manager_descr);
-
-#ifdef COMET_DEBUG
-  rendering::DebuggerDisplayerManagerDescr debugger_displayer_manager_descr{};
-  debugger_displayer_manager_ =
-      std::make_unique<rendering::DebuggerDisplayerManager>(
-          debugger_displayer_manager_descr);
-#endif  // COMET_DEBUG
-
-  rendering::RenderingManagerDescr rendering_manager_descr{};
-  rendering_manager_descr.camera_manager = camera_manager_.get();
-  rendering_manager_descr.configuration_manager = configuration_manager_.get();
-#ifdef COMET_DEBUG
-  rendering_manager_descr.debugger_displayer_manager =
-      debugger_displayer_manager_.get();
-#endif  // COMET_DEBUG
-  rendering_manager_descr.entity_manager = entity_manager_.get();
-  rendering_manager_descr.event_manager = event_manager_.get();
-  rendering_manager_descr.input_manager = input_manager_.get();
-  rendering_manager_descr.resource_manager = resource_manager_.get();
-  rendering_manager_descr.time_manager = time_manager_.get();
-  rendering_manager_ =
-      std::make_unique<rendering::RenderingManager>(rendering_manager_descr);
-
 #ifdef COMET_PROFILING
-  profiler::ProfilerManagerDescr profiler_manager_descr{};
-#ifdef COMET_DEBUG
-  profiler_manager_descr.debugger_displayer_manager =
-      debugger_displayer_manager_.get();
-#endif  // COMET_DEBUG
-  profiler_manager_descr.memory_manager = memory_manager_.get();
-  profiler_manager_descr.physics_manager = physics_manager_.get();
-  profiler_manager_descr.rendering_manager = rendering_manager_.get();
-  profiler_manager_ =
-      std::make_unique<profiler::ProfilerManager>(profiler_manager_descr);
-
-  profiler_manager_->Initialize();
+  profiler::ProfilerManager::Get().Initialize();
 #endif  // COMET_PROFILING
 
-  configuration_manager_->Initialize();
-  memory_manager_->Initialize();
-  event_manager_->Initialize();
-  resource_manager_->Initialize();
+  conf::ConfigurationManager::Get().Initialize();
+  memory::MemoryManager::Get().Initialize();
+  event::EventManager::Get().Initialize();
+  resource::ResourceManager::Get().Initialize();
 }
 
 void Engine::Load() {
 #ifdef COMET_DEBUG
-  debugger_displayer_manager_->Initialize();
+  rendering::DebuggerDisplayerManager::Get().Initialize();
 #endif  // COMET_DEBUG
-  rendering_manager_->Initialize();
-  camera_manager_->Initialize();
-  physics_manager_->Initialize();
-  input_manager_->Initialize();
+  rendering::RenderingManager::Get().Initialize();
+  rendering::CameraManager::Get().Initialize();
+  physics::PhysicsManager::Get().Initialize();
+  input::InputManager::Get().Initialize();
 
   const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
 
-  event_manager_->Register(event_function,
-                           event::WindowCloseEvent::kStaticType_);
+  event::EventManager::Get().Register(event_function,
+                                      event::WindowCloseEvent::kStaticType_);
 
-  entity_manager_->Initialize();
-  entity_factory_manager_->Initialize();
+  entity::EntityManager::Get().Initialize();
+  entity::EntityFactoryManager::Get().Initialize();
 }
 
 void Engine::PostLoad() {}
 
 void Engine::PreUnload() {
-  entity_factory_manager_->Shutdown();
-  entity_manager_->Shutdown();
-  physics_manager_->Shutdown();
-  input_manager_->Shutdown();
-  camera_manager_->Shutdown();
-  rendering_manager_->Shutdown();
+  entity::EntityFactoryManager::Get().Shutdown();
+  entity::EntityManager::Get().Shutdown();
+  physics::PhysicsManager::Get().Shutdown();
+  input::InputManager::Get().Shutdown();
+  rendering::CameraManager::Get().Shutdown();
+  rendering::RenderingManager::Get().Shutdown();
 #ifdef COMET_DEBUG
-  debugger_displayer_manager_->Shutdown();
+  rendering::DebuggerDisplayerManager::Get().Shutdown();
 #endif  // COMET_DEBUG
-  time_manager_->Shutdown();
+  time::TimeManager::Get().Shutdown();
 
 #ifdef COMET_PROFILING
-  profiler_manager_->Shutdown();
+  profiler::ProfilerManager::Get().Shutdown();
 #endif  // COMET_PROFILING
   COMET_STRING_ID_DESTROY();
 }
 
 void Engine::Unload() {
-  resource_manager_->Shutdown();
-  event_manager_->Shutdown();
-  memory_manager_->Shutdown();
-  configuration_manager_->Shutdown();
+  resource::ResourceManager::Get().Shutdown();
+  event::EventManager::Get().Shutdown();
+  memory::MemoryManager::Get().Shutdown();
+  conf::ConfigurationManager::Get().Shutdown();
   is_running_ = false;
   is_exit_requested_ = false;
 }

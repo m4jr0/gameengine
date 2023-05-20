@@ -11,14 +11,9 @@
 
 namespace comet {
 namespace entity {
-struct HandlerDescr {
-  EntityManager* entity_manager{nullptr};
-};
-
 class Handler {
  public:
-  Handler() = delete;
-  explicit Handler(const HandlerDescr& descr);
+  Handler() = default;
   Handler(const Handler&) = delete;
   Handler(Handler&&) = delete;
   Handler& operator=(const Handler&) = delete;
@@ -32,8 +27,6 @@ class Handler {
 
  protected:
   bool is_initialized_{false};
-
-  EntityManager* entity_manager_{nullptr};
 };
 }  // namespace entity
 }  // namespace comet

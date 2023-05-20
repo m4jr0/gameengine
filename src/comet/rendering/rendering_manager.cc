@@ -4,52 +4,32 @@
 
 #include "rendering_manager.h"
 
+#include "comet/core/conf/configuration_manager.h"
+#include "comet/input/input_manager.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
 
 namespace comet {
 namespace rendering {
-RenderingManager::RenderingManager(const RenderingManagerDescr& descr)
-    : Manager{descr},
-      camera_manager_{descr.camera_manager},
-      configuration_manager_{descr.configuration_manager},
-#ifdef COMET_DEBUG
-      debugger_displayer_manager_{descr.debugger_displayer_manager},
-#endif  // COMET_DEBUG
-      entity_manager_{descr.entity_manager},
-      event_manager_{descr.event_manager},
-      input_manager_{descr.input_manager},
-      resource_manager_{descr.resource_manager},
-      time_manager_{descr.time_manager} {
-  COMET_ASSERT(camera_manager_ != nullptr, "Camera manager is null!");
-  COMET_ASSERT(configuration_manager_ != nullptr,
-               "Configuration manager is null!");
-#ifdef COMET_DEBUG
-  COMET_ASSERT(debugger_displayer_manager_ != nullptr,
-               "Debugger displayer manager is null!");
-#endif  // COMET_DEBUG
-  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
-  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
-  COMET_ASSERT(input_manager_ != nullptr, "Input manager is null!");
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
-  COMET_ASSERT(time_manager_ != nullptr, "Time manager is null!");
+RenderingManager& RenderingManager::Get() {
+  static RenderingManager singleton{};
+  return singleton;
 }
 
 void RenderingManager::Initialize() {
   Manager::Initialize();
-  const auto fps_cap{configuration_manager_->GetU16(conf::kRenderingFpsCap)};
+  const auto fps_cap{COMET_CONF_U16(conf::kRenderingFpsCap)};
 
   if (fps_cap > 0) {
     frame_time_threshold_ =
-        1000 / static_cast<f64>(
-                   configuration_manager_->GetU16(conf::kRenderingFpsCap));
+        1000 / static_cast<f64>(COMET_CONF_U16(conf::kRenderingFpsCap));
   } else {
     frame_time_threshold_ = 0;
   }
 
-  const auto driver_type{GetDriverTypeFromStr(
-      configuration_manager_->GetStr(conf::kRenderingDriver))};
+  const auto driver_type{
+      GetDriverTypeFromStr(COMET_CONF_STR(conf::kRenderingDriver))};
 
   COMET_ASSERT(driver_type != DriverType::Unknown,
                "Unknown rendering driver type!");
@@ -64,7 +44,7 @@ void RenderingManager::Initialize() {
 
   COMET_ASSERT(driver_ != nullptr, "Rendering driver is null!");
   driver_->Initialize();
-  input_manager_->AttachGlfwWindow(
+  input::InputManager::Get().AttachGlfwWindow(
       static_cast<GlfwWindow*>(driver_->GetWindow())->GetHandle());
 }
 
@@ -79,7 +59,7 @@ void RenderingManager::Shutdown() {
 }
 
 void RenderingManager::Update(time::Interpolation interpolation) {
-  current_time_ += time_manager_->GetDeltaTime();
+  current_time_ += time::TimeManager::Get().GetDeltaTime();
 
   if (current_time_ > 1000) {
     frame_rate_ = counter_;
@@ -92,7 +72,7 @@ void RenderingManager::Update(time::Interpolation interpolation) {
   }
 
   driver_->Update(interpolation);
-  input_manager_->Update();
+  input::InputManager::Get().Update();
   ++counter_;
 }
 
@@ -124,9 +104,9 @@ void RenderingManager::GenerateOpenGlDriver() {
   gl::OpenGlDriverDescr descr{};
   FillDriverDescr(descr);
   descr.opengl_major_version =
-      configuration_manager_->GetU8(conf::kRenderingOpenGlMajorVersion);
+      COMET_CONF_U8(conf::kRenderingOpenGlMajorVersion);
   descr.opengl_minor_version =
-      configuration_manager_->GetU8(conf::kRenderingOpenGlMinorVersion);
+      COMET_CONF_U8(conf::kRenderingOpenGlMinorVersion);
 
   driver_ = std::make_unique<gl::OpenGlDriver>(descr);
 }
@@ -137,15 +117,15 @@ void RenderingManager::GenerateVulkanDriver() {
   vk::VulkanDriverDescr descr{};
   FillDriverDescr(descr);
   descr.vulkan_major_version =
-      configuration_manager_->GetU8(conf::kRenderingVulkanMajorVersion);
+      COMET_CONF_U8(conf::kRenderingVulkanMajorVersion);
   descr.vulkan_minor_version =
-      configuration_manager_->GetU8(conf::kRenderingVulkanMinorVersion);
+      COMET_CONF_U8(conf::kRenderingVulkanMinorVersion);
   descr.vulkan_patch_version =
-      configuration_manager_->GetU8(conf::kRenderingVulkanPatchVersion);
+      COMET_CONF_U8(conf::kRenderingVulkanPatchVersion);
   descr.vulkan_variant_version =
-      configuration_manager_->GetU8(conf::kRenderingVulkanVariantVersion);
+      COMET_CONF_U8(conf::kRenderingVulkanVariantVersion);
   descr.max_frames_in_flight =
-      configuration_manager_->GetU8(conf::kRenderingVulkanMaxFramesInFlight);
+      COMET_CONF_U8(conf::kRenderingVulkanMaxFramesInFlight);
 
   driver_ = std::make_unique<vk::VulkanDriver>(descr);
 }
@@ -156,48 +136,33 @@ void RenderingManager::GenerateDirect3D12Driver() {
 }
 
 void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
-  descr.is_vsync = configuration_manager_->GetBool(conf::kRenderingIsVsync);
+  descr.is_vsync = COMET_CONF_BOOL(conf::kRenderingIsVsync);
   descr.is_triple_buffering =
-      configuration_manager_->GetBool(conf::kRenderingIsTripleBuffering);
+      COMET_CONF_BOOL(conf::kRenderingIsTripleBuffering);
 
-  descr.clear_color[0] =
-      configuration_manager_->GetF32(conf::kRenderingClearColorR);
-  descr.clear_color[1] =
-      configuration_manager_->GetF32(conf::kRenderingClearColorG);
-  descr.clear_color[2] =
-      configuration_manager_->GetF32(conf::kRenderingClearColorB);
-  descr.clear_color[3] =
-      configuration_manager_->GetF32(conf::kRenderingClearColorA);
+  descr.clear_color[0] = COMET_CONF_F32(conf::kRenderingClearColorR);
+  descr.clear_color[1] = COMET_CONF_F32(conf::kRenderingClearColorG);
+  descr.clear_color[2] = COMET_CONF_F32(conf::kRenderingClearColorB);
+  descr.clear_color[3] = COMET_CONF_F32(conf::kRenderingClearColorA);
 
-  descr.window_width = static_cast<WindowSize>(
-      configuration_manager_->GetU16(conf::kRenderingWindowWidth));
-  descr.window_height = static_cast<WindowSize>(
-      configuration_manager_->GetU16(conf::kRenderingWindowHeight));
+  descr.window_width =
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth));
+  descr.window_height =
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight));
 
-  descr.anti_aliasing_type = GetAntiAliasingTypeFromStr(
-      configuration_manager_->GetStr(conf::kRenderingAntiAliasing));
+  descr.anti_aliasing_type =
+      GetAntiAliasingTypeFromStr(COMET_CONF_STR(conf::kRenderingAntiAliasing));
   descr.is_sampler_anisotropy =
-      configuration_manager_->GetBool(conf::kRenderingIsSamplerAnisotropy);
+      COMET_CONF_BOOL(conf::kRenderingIsSamplerAnisotropy);
   descr.is_sample_rate_shading =
-      configuration_manager_->GetBool(conf::kRenderingIsSampleRateShading);
+      COMET_CONF_BOOL(conf::kRenderingIsSampleRateShading);
 
   descr.rendering_view_descrs = GenerateRenderingViewDescrs();
 
-  descr.app_name = configuration_manager_->GetStr(conf::kApplicationName);
-  descr.app_major_version =
-      configuration_manager_->GetU8(conf::kRenderingVulkanMajorVersion);
-  descr.app_minor_version =
-      configuration_manager_->GetU8(conf::kRenderingVulkanMinorVersion);
-  descr.app_patch_version =
-      configuration_manager_->GetU8(conf::kRenderingVulkanPatchVersion);
-  descr.camera_manager = camera_manager_;
-  descr.configuration_manager = configuration_manager_;
-#ifdef COMET_DEBUG
-  descr.debugger_displayer_manager = debugger_displayer_manager_;
-#endif  // COMET_DEBUG
-  descr.entity_manager = entity_manager_;
-  descr.event_manager = event_manager_;
-  descr.resource_manager = resource_manager_;
+  descr.app_name = COMET_CONF_STR(conf::kApplicationName);
+  descr.app_major_version = COMET_CONF_U8(conf::kRenderingVulkanMajorVersion);
+  descr.app_minor_version = COMET_CONF_U8(conf::kRenderingVulkanMinorVersion);
+  descr.app_patch_version = COMET_CONF_U8(conf::kRenderingVulkanPatchVersion);
 }
 
 std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
@@ -218,19 +183,17 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   descrs.resize(size);
 
   f32 clear_color[4]{};
-  clear_color[0] = configuration_manager_->GetF32(conf::kRenderingClearColorR);
-  clear_color[1] = configuration_manager_->GetF32(conf::kRenderingClearColorG);
-  clear_color[2] = configuration_manager_->GetF32(conf::kRenderingClearColorB);
-  clear_color[3] = configuration_manager_->GetF32(conf::kRenderingClearColorA);
+  clear_color[0] = COMET_CONF_F32(conf::kRenderingClearColorR);
+  clear_color[1] = COMET_CONF_F32(conf::kRenderingClearColorG);
+  clear_color[2] = COMET_CONF_F32(conf::kRenderingClearColorB);
+  clear_color[3] = COMET_CONF_F32(conf::kRenderingClearColorA);
 
   const auto window_width{
-      static_cast<WindowSize>(
-          configuration_manager_->GetU16(conf::kRenderingWindowWidth)),
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth)),
   };
 
   const auto window_height{
-      static_cast<WindowSize>(
-          configuration_manager_->GetU16(conf::kRenderingWindowHeight)),
+      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight)),
   };
 
   uindex cursor{0};

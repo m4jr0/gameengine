@@ -23,12 +23,11 @@ struct MiniProfilerPacket {
   uindex memory_use{0};
 };
 
-using DebuggerDisplayerManagerDescr = ManagerDescr;
-
 class DebuggerDisplayerManager : public Manager {
  public:
-  DebuggerDisplayerManager() = delete;
-  explicit DebuggerDisplayerManager(const DebuggerDisplayerManagerDescr& descr);
+  static DebuggerDisplayerManager& Get();
+
+  DebuggerDisplayerManager() = default;
   DebuggerDisplayerManager(const DebuggerDisplayerManager&) = delete;
   DebuggerDisplayerManager(DebuggerDisplayerManager&&) = delete;
   DebuggerDisplayerManager& operator=(const DebuggerDisplayerManager&) = delete;

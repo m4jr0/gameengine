@@ -8,20 +8,16 @@
 #include "comet_precompile.h"
 
 #include "comet/core/manager.h"
-#include "comet/resource/resource_manager.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-struct AssetManagerDescr : ManagerDescr {
-  resource::ResourceManager* resource_manager{nullptr};
-};
-
 class AssetManager : public Manager {
  public:
-  AssetManager() = delete;
-  explicit AssetManager(const AssetManagerDescr& descr);
+  static AssetManager& Get();
+
+  AssetManager();
   AssetManager(const AssetManager&) = delete;
   AssetManager(AssetManager&&) = delete;
   AssetManager& operator=(const AssetManager&) = delete;
@@ -56,7 +52,6 @@ class AssetManager : public Manager {
   std::string root_asset_path_{};
   std::string root_resource_path_{};
   std::string library_meta_path_{};
-  resource::ResourceManager* resource_manager_{nullptr};
   std::vector<std::unique_ptr<AssetExporter>> exporters_;
 };
 }  // namespace asset

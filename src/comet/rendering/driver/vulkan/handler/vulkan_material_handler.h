@@ -15,7 +15,6 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -23,7 +22,6 @@ namespace vk {
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
   ShaderHandler* shader_handler{nullptr};
-  resource::ResourceManager* resource_manager{nullptr};
 };
 
 class MaterialHandler : public Handler {
@@ -63,7 +61,6 @@ class MaterialHandler : public Handler {
   std::unordered_map<SamplerId, Sampler> samplers_{};
   TextureHandler* texture_handler_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
-  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

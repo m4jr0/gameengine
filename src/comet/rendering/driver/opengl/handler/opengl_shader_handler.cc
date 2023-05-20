@@ -4,7 +4,9 @@
 
 #include "opengl_shader_handler.h"
 
+#include "comet/core/memory/memory.h"
 #include "comet/core/string.h"
+#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 
 namespace comet {
@@ -12,10 +14,8 @@ namespace rendering {
 namespace gl {
 ShaderHandler::ShaderHandler(const ShaderHandlerDescr& descr)
     : Handler{descr},
-      resource_manager_{descr.resource_manager},
       shader_module_handler_{descr.shader_module_handler},
       texture_handler_{descr.texture_handler} {
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
   COMET_ASSERT(shader_module_handler_ != nullptr,
                "Shader module handler is null!");
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
@@ -47,7 +47,8 @@ void ShaderHandler::Shutdown() {
 
 Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   const auto* shader_resource{
-      resource_manager_->Load<resource::ShaderResource>(descr.resource_path)};
+      resource::ResourceManager::Get().Load<resource::ShaderResource>(
+          descr.resource_path)};
   COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
   COMET_ASSERT(shader_resource->descr.vertex_attributes.size() == 0,
                "Custom vertex attributes are not supported on OpenGL!");

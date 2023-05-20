@@ -14,15 +14,11 @@
 
 namespace comet {
 namespace entity {
-struct EntityFactoryManagerDescr : ManagerDescr {
-  EntityManager* entity_manager{nullptr};
-  resource::ResourceManager* resource_manager{nullptr};
-};
-
 class EntityFactoryManager : public Manager {
  public:
-  EntityFactoryManager() = delete;
-  explicit EntityFactoryManager(const EntityFactoryManagerDescr& descr);
+  static EntityFactoryManager& Get();
+
+  EntityFactoryManager() = default;
   EntityFactoryManager(const EntityFactoryManager&) = delete;
   EntityFactoryManager(EntityFactoryManager&&) = delete;
   EntityFactoryManager& operator=(const EntityFactoryManager&) = delete;
@@ -35,8 +31,6 @@ class EntityFactoryManager : public Manager {
   const ModelHandler* GetModel() const;
 
  private:
-  EntityManager* entity_manager_{nullptr};
-  resource::ResourceManager* resource_manager_{nullptr};
   std::unique_ptr<ModelHandler> model_handler_{nullptr};
 };
 }  // namespace entity

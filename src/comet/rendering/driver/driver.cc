@@ -22,26 +22,8 @@ Driver::Driver(const DriverDescr& descr)
       app_name_{descr.app_name},
       app_major_version_{descr.app_major_version},
       app_minor_version_{descr.app_minor_version},
-      app_patch_version_{descr.app_patch_version},
-      camera_manager_{descr.camera_manager},
-      configuration_manager_{descr.configuration_manager},
-#ifdef COMET_DEBUG
-      debugger_displayer_manager_{descr.debugger_displayer_manager},
-#endif  // COMET_DEBUG
-      entity_manager_{descr.entity_manager},
-      event_manager_{descr.event_manager},
-      resource_manager_{descr.resource_manager} {
+      app_patch_version_{descr.app_patch_version} {
   std::memcpy(clear_color_, descr.clear_color, sizeof(descr.clear_color));
-  COMET_ASSERT(camera_manager_ != nullptr, "Camera manager is null!");
-  COMET_ASSERT(configuration_manager_ != nullptr,
-               "Configuration manager is null!");
-#ifdef COMET_DEBUG
-  COMET_ASSERT(debugger_displayer_manager_ != nullptr,
-               "Debugger displayer manager is null!");
-#endif  // COMET_DEBUG
-  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
-  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
 }
 
 Driver ::~Driver() {

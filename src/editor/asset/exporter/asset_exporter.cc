@@ -10,11 +10,6 @@
 namespace comet {
 namespace editor {
 namespace asset {
-AssetExporter::AssetExporter(const AssetExporterDescr& descr)
-    : resource_manager_{descr.resource_manager} {
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
-}
-
 const std::string& AssetExporter::GetRootResourcePath() const {
   return root_resource_path_;
 }

@@ -8,9 +8,10 @@
 
 namespace comet {
 namespace conf {
-ConfigurationManager::ConfigurationManager(
-    const ConfigurationManagerDescr& descr)
-    : Manager{descr} {}
+ConfigurationManager& ConfigurationManager::Get() {
+  static ConfigurationManager singleton{};
+  return singleton;
+}
 
 void ConfigurationManager::Initialize() {
   Manager::Initialize();

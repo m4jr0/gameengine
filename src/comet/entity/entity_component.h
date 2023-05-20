@@ -9,7 +9,6 @@
 
 #include "comet/entity/component.h"
 #include "comet/entity/entity_id.h"
-#include "comet/entity/entity_manager.h"
 
 namespace comet {
 namespace entity {
@@ -22,8 +21,7 @@ class EntityComponentGenerator {
   EntityComponentGenerator& operator=(EntityComponentGenerator&&) = delete;
   ~EntityComponentGenerator() = default;
 
-  static EntityComponentGenerator Get(EntityManager* entity_manager,
-                                      EntityId entity_id = kInvalidEntityId);
+  static EntityComponentGenerator Get(EntityId entity_id = kInvalidEntityId);
   EntityComponentGenerator& Reserve(uindex size);
   EntityComponentGenerator& ShrinkToFit();
   EntityComponentGenerator& AddParent(EntityId parent_id);
@@ -45,11 +43,9 @@ class EntityComponentGenerator {
   EntityId Submit();
 
  private:
-  EntityComponentGenerator(EntityManager* entity_manager,
-                           EntityId entity_id = kInvalidEntityId);
+  EntityComponentGenerator(EntityId entity_id = kInvalidEntityId);
   EntityComponentGenerator& Add(EntityId component_type_id);
 
-  EntityManager* entity_manager_{nullptr};
   EntityId entity_id_{kInvalidEntityId};
   std::vector<ComponentDescr> component_descrs_{};
 };
@@ -63,8 +59,7 @@ class EntityComponentDestroyer {
   EntityComponentDestroyer& operator=(EntityComponentDestroyer&&) = delete;
   ~EntityComponentDestroyer() = default;
 
-  static EntityComponentDestroyer Get(EntityManager* entity_manager,
-                                      EntityId entity_id);
+  static EntityComponentDestroyer Get(EntityId entity_id);
   EntityComponentDestroyer& Reserve(uindex size);
   EntityComponentDestroyer& ShrinkToFit();
   EntityComponentDestroyer& RemoveParent(EntityId parent_id);
@@ -79,10 +74,9 @@ class EntityComponentDestroyer {
   void Submit();
 
  private:
-  EntityComponentDestroyer(EntityManager* entity_manager, EntityId entity_id);
+  EntityComponentDestroyer(EntityId entity_id);
   EntityComponentDestroyer& Remove(EntityId component_type_id);
 
-  EntityManager* entity_manager_{nullptr};
   EntityId entity_id_{kInvalidEntityId};
   std::vector<EntityId> component_ids_{};
 };

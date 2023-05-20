@@ -13,19 +13,15 @@
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-struct ShaderModuleHandlerDescr : HandlerDescr {
-  resource::ResourceManager* resource_manager{nullptr};
-};
+using ShaderModuleHandlerDescr = HandlerDescr;
 
 class ShaderModuleHandler : public Handler {
  public:
-  ShaderModuleHandler() = delete;
   explicit ShaderModuleHandler(const ShaderModuleHandlerDescr& descr);
   ShaderModuleHandler(const ShaderModuleHandler&) = delete;
   ShaderModuleHandler(ShaderModuleHandler&&) = delete;
@@ -58,7 +54,6 @@ class ShaderModuleHandler : public Handler {
       const resource::ShaderModuleResource* resource) const;
 
   std::unordered_map<ShaderModuleHandle, ShaderModule> shader_modules_{};
-  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

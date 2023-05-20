@@ -4,10 +4,12 @@
 
 #include "opengl_driver.h"
 
+#include "comet/event/event_manager.h"
 #include "comet/event/input_event.h"
 #include "comet/event/runtime_event.h"
 #include "comet/event/window_event.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
 #include "comet/resource/component/mesh_component.h"
 
@@ -23,7 +25,6 @@ OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr) : Driver(descr) {
   window_descr.opengl_minor_version = descr.opengl_minor_version;
   window_descr.is_vsync = is_vsync_;
   window_descr.anti_aliasing_type = anti_aliasing_type_;
-  window_descr.event_manager = event_manager_;
   window_ = std::make_unique<OpenGlGlfwWindow>(window_descr);
 
   if (is_triple_buffering_) {
@@ -40,8 +41,9 @@ void OpenGlDriver::Initialize() {
   window_->Initialize();
   COMET_ASSERT(window_->IsInitialized(), "Window could not be initialized!");
 
-  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
-                           event::WindowResizeEvent::kStaticType_);
+  event::EventManager::Get().Register(
+      COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
+      event::WindowResizeEvent::kStaticType_);
 
   const auto result{
       gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
@@ -102,7 +104,6 @@ void OpenGlDriver::InitializeHandlers() {
   mesh_handler_ = std::make_unique<MeshHandler>(mesh_handler_descr);
 
   ShaderModuleHandlerDescr shader_module_handler_descr{};
-  shader_module_handler_descr.resource_manager = resource_manager_;
   shader_module_handler_ =
       std::make_unique<ShaderModuleHandler>(shader_module_handler_descr);
 
@@ -110,13 +111,11 @@ void OpenGlDriver::InitializeHandlers() {
   texture_handler_ = std::make_unique<TextureHandler>(texture_handler_descr);
 
   ShaderHandlerDescr shader_handler_descr{};
-  shader_handler_descr.resource_manager = resource_manager_;
   shader_handler_descr.shader_module_handler = shader_module_handler_.get();
   shader_handler_descr.texture_handler = texture_handler_.get();
   shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
 
   MaterialHandlerDescr material_handler_descr{};
-  material_handler_descr.resource_manager = resource_manager_;
   material_handler_descr.shader_handler = shader_handler_.get();
   material_handler_descr.texture_handler = texture_handler_.get();
   material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
@@ -125,17 +124,12 @@ void OpenGlDriver::InitializeHandlers() {
   render_proxy_handler_descr.material_handler = material_handler_.get();
   render_proxy_handler_descr.mesh_handler = mesh_handler_.get();
   render_proxy_handler_descr.shader_handler = shader_handler_.get();
-  render_proxy_handler_descr.camera_manager = camera_manager_;
-  render_proxy_handler_descr.entity_manager = entity_manager_;
   render_proxy_handler_ =
       std::make_unique<RenderProxyHandler>(render_proxy_handler_descr);
 
   ViewHandlerDescr view_handler_descr{};
   view_handler_descr.shader_handler = shader_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
-#ifdef COMET_DEBUG
-  view_handler_descr.debugger_displayer_manager = debugger_displayer_manager_;
-#endif  // COMET_DEBUG
   view_handler_descr.rendering_view_descrs = &rendering_view_descrs_;
   view_handler_descr.window = window_.get();
   view_handler_ = std::make_unique<ViewHandler>(view_handler_descr);
@@ -189,7 +183,7 @@ void OpenGlDriver::Draw(time::Interpolation interpolation) {
   packet.frame_count = frame_count_;
   packet.interpolation = interpolation;
 
-  auto* camera{camera_manager_->GetMainCamera()};
+  auto* camera{CameraManager::Get().GetMainCamera()};
   packet.projection_matrix = camera->GetProjectionMatrix();
   packet.view_matrix = &camera->GetViewMatrix();
   view_handler_->Update(packet);

@@ -13,11 +13,9 @@ namespace gl {
 MaterialHandler::MaterialHandler(const MaterialHandlerDescr& descr)
     : Handler{descr},
       texture_handler_{descr.texture_handler},
-      shader_handler_{descr.shader_handler},
-      resource_manager_{descr.resource_manager} {
+      shader_handler_{descr.shader_handler} {
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
   COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
 }
 
 void MaterialHandler::Shutdown() {
@@ -231,7 +229,8 @@ TextureMap MaterialHandler::GenerateTextureMap(
                              : resource::GetDefaultTextureFromType(map.type)};
 
   const auto* resource{
-      resource_manager_->Load<resource::TextureResource>(resource_id)};
+      resource::ResourceManager::Get().Load<resource::TextureResource>(
+          resource_id)};
 
   texture_map.texture_handle =
       texture_handler_->GetOrGenerate(resource)->handle;

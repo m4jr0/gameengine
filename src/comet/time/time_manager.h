@@ -7,7 +7,6 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/manager.h"
 
 #ifdef COMET_MSVC
@@ -18,14 +17,11 @@ namespace comet {
 namespace time {
 using Interpolation = f64;
 
-struct TimeManagerDescr : ManagerDescr {
-  conf::ConfigurationManager* configuration_manager{nullptr};
-};
-
 class TimeManager : public Manager {
  public:
-  TimeManager() = delete;
-  explicit TimeManager(const TimeManagerDescr& descr);
+  static TimeManager& Get();
+
+  TimeManager() = default;
   TimeManager(const TimeManager&) = delete;
   TimeManager(TimeManager&&) = delete;
   TimeManager& operator=(const TimeManager&) = delete;
@@ -53,7 +49,6 @@ class TimeManager : public Manager {
   f64 previous_time_{0.0};
   f64 delta_time_{0.0};
   f32 time_scale_{1.0f};
-  conf::ConfigurationManager* configuration_manager_{nullptr};
 };
 }  // namespace time
 }  // namespace comet

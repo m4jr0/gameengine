@@ -4,11 +4,12 @@
 
 #include "entity_component.h"
 
+#include "comet/entity/entity_manager.h"
+
 namespace comet {
 namespace entity {
-EntityComponentGenerator EntityComponentGenerator::Get(
-    EntityManager* entity_manager, EntityId entity_id) {
-  return EntityComponentGenerator{entity_manager, entity_id};
+EntityComponentGenerator EntityComponentGenerator::Get(EntityId entity_id) {
+  return EntityComponentGenerator{entity_id};
 }
 
 EntityComponentGenerator& EntityComponentGenerator::Reserve(uindex size) {
@@ -23,7 +24,7 @@ EntityComponentGenerator& EntityComponentGenerator::ShrinkToFit() {
 
 EntityComponentGenerator& EntityComponentGenerator::AddParent(
     EntityId parent_id) {
-  COMET_ASSERT(entity_manager_->IsEntity(parent_id),
+  COMET_ASSERT(EntityManager::Get().IsEntity(parent_id),
                "Trying to add a dead parent entity #", parent_id, "!");
   return Add(Tag(EntityIdTag::Child, parent_id));
 }
@@ -32,19 +33,16 @@ void EntityComponentGenerator::Reset() { component_descrs_.clear(); }
 
 EntityId EntityComponentGenerator::Submit() {
   if (entity_id_ == kInvalidEntityId) {
-    return entity_manager_->Generate(component_descrs_);
+    return EntityManager::Get().Generate(component_descrs_);
   }
 
-  entity_manager_->AddComponents(entity_id_, component_descrs_);
+  EntityManager::Get().AddComponents(entity_id_, component_descrs_);
   Reset();
   return entity_id_;
 }
 
-EntityComponentGenerator::EntityComponentGenerator(
-    EntityManager* entity_manager, EntityId entity_id)
-    : entity_manager_{entity_manager}, entity_id_{entity_id} {
-  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
-}
+EntityComponentGenerator::EntityComponentGenerator(EntityId entity_id)
+    : entity_id_{entity_id} {}
 
 EntityComponentGenerator& EntityComponentGenerator::Add(
     EntityId component_type_id) {
@@ -56,9 +54,8 @@ EntityComponentGenerator& EntityComponentGenerator::Add(
   return *this;
 }
 
-EntityComponentDestroyer EntityComponentDestroyer::Get(
-    EntityManager* entity_manager, EntityId entity_id) {
-  return EntityComponentDestroyer{entity_manager, entity_id};
+EntityComponentDestroyer EntityComponentDestroyer::Get(EntityId entity_id) {
+  return EntityComponentDestroyer{entity_id};
 }
 
 EntityComponentDestroyer& EntityComponentDestroyer::Reserve(uindex size) {
@@ -79,15 +76,14 @@ EntityComponentDestroyer& EntityComponentDestroyer::RemoveParent(
 void EntityComponentDestroyer::Reset() { component_ids_.clear(); }
 
 void EntityComponentDestroyer::Submit() {
-  entity_manager_->RemoveComponents(entity_id_, component_ids_);
+  EntityManager::Get().RemoveComponents(entity_id_, component_ids_);
   Reset();
 }
 
-EntityComponentDestroyer::EntityComponentDestroyer(
-    EntityManager* entity_manager, EntityId entity_id)
-    : entity_manager_{entity_manager}, entity_id_{entity_id} {
-  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
-  COMET_ASSERT(entity_manager_->IsEntity(entity_id), "Entity does not exist!");
+EntityComponentDestroyer::EntityComponentDestroyer(EntityId entity_id)
+    : entity_id_{entity_id} {
+  COMET_ASSERT(EntityManager::Get().IsEntity(entity_id),
+               "Entity does not exist!");
 }
 
 EntityComponentDestroyer& EntityComponentDestroyer::Remove(

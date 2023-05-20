@@ -18,12 +18,9 @@
 namespace comet {
 namespace editor {
 namespace asset {
-using ModelExporterDescr = AssetExporterDescr;
-
 class ModelExporter : public AssetExporter {
  public:
-  ModelExporter() = delete;
-  explicit ModelExporter(const ModelExporterDescr& descr);
+  ModelExporter() = default;
   ModelExporter(const ModelExporter&) = delete;
   ModelExporter(ModelExporter&&) = delete;
   ModelExporter& operator=(const ModelExporter&) = delete;

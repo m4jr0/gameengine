@@ -7,8 +7,6 @@
 
 #include "comet_precompile.h"
 
-#include "comet/event/event_manager.h"
-#include "comet/input/input_manager.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
@@ -17,8 +15,6 @@ struct WindowDescr {
   WindowSize width{1280};
   WindowSize height{720};
   std::string name{"Comet Game Engine"};
-  event::EventManager* event_manager{nullptr};
-  input::InputManager* input_manager{nullptr};
 };
 
 class Window {
@@ -46,8 +42,6 @@ class Window {
   WindowSize width_{0};
   WindowSize height_{0};
   std::string name_{};
-  event::EventManager* event_manager_{nullptr};
-  input::InputManager* input_manager_{nullptr};
 };
 }  // namespace rendering
 }  // namespace comet

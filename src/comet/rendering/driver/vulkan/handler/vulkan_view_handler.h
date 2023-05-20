@@ -18,10 +18,6 @@
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
-#ifdef COMET_DEBUG
-#include "comet/rendering/debugger/debugger_displayer_manager.h"
-#endif  // COMET_DEBUG
-
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -66,9 +62,6 @@ class ViewHandler : public Handler {
   ShaderHandler* shader_handler_{nullptr};
   RenderPassHandler* render_pass_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
-#ifdef COMET_DEBUG
-  DebuggerDisplayerManager* debugger_displayer_manager_{nullptr};
-#endif  // COMET_DEBUG
   VulkanGlfwWindow* window_{nullptr};
   std::vector<RenderingViewDescr>* rendering_view_descrs_{nullptr};
 };

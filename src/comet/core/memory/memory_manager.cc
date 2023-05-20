@@ -8,9 +8,10 @@
 
 namespace comet {
 namespace memory {
-MemoryManager::MemoryManager(const MemoryManagerDescr& descr)
-    : Manager{descr} {}
-
+MemoryManager& MemoryManager::Get() {
+  static MemoryManager singleton{};
+  return singleton;
+}
 void MemoryManager::Initialize() { Manager::Initialize(); }
 
 void MemoryManager::Shutdown() { Manager::Shutdown(); }

@@ -8,7 +8,6 @@
 #include "comet_precompile.h"
 
 #define GLFW_INCLUDE_NONE
-
 #include "GLFW/glfw3.h"
 
 #include "comet/rendering/rendering_common.h"

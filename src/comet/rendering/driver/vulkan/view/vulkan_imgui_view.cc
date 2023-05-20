@@ -20,18 +20,8 @@ namespace comet {
 namespace rendering {
 namespace vk {
 ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
-    : View{descr},
-      window_{descr.window}
-#ifdef COMET_DEBUG
-      ,
-      debugger_displayer_manager_{descr.debugger_displayer_manager}
-#endif  // COMET_DEBUG
-{
+    : View{descr}, window_{descr.window} {
   COMET_ASSERT(window_ != nullptr, "Window is null!");
-#ifdef COMET_DEBUG
-  COMET_ASSERT(debugger_displayer_manager_ != nullptr,
-               "Debugger displayer manager is null!");
-#endif  // COMET_DEBUG
 }
 
 void ImGuiView::Initialize() {
@@ -173,7 +163,7 @@ void ImGuiView::Update(const ViewPacket& packet) {
 
 void vk::ImGuiView::Draw() const {
 #ifdef COMET_DEBUG
-  debugger_displayer_manager_->Draw();
+  DebuggerDisplayerManager::Get().Draw();
 #endif  // COMET_DEBUG
 }
 }  // namespace vk

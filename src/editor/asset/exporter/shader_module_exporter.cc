@@ -8,15 +8,12 @@
 
 #include "comet/core/file_system.h"
 #include "comet/core/string.h"
+#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-ShaderModuleExporter::ShaderModuleExporter(
-    const ShaderModuleExporterDescr& descr)
-    : AssetExporter{descr} {}
-
 bool ShaderModuleExporter::IsCompatible(std::string_view extension) const {
   return extension == "vert" || extension == "frag";
 }
@@ -120,7 +117,8 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
   }
 
   return std::vector<resource::ResourceFile>{
-      resource_manager_->GetResourceFile(shader, compression_mode_)};
+      resource::ResourceManager::Get().GetResourceFile(shader,
+                                                       compression_mode_)};
 }
 }  // namespace asset
 }  // namespace editor

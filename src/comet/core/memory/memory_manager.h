@@ -11,12 +11,11 @@
 
 namespace comet {
 namespace memory {
-using MemoryManagerDescr = ManagerDescr;
-
 class MemoryManager : public Manager {
  public:
-  MemoryManager() = delete;
-  explicit MemoryManager(const MemoryManagerDescr& descr);
+  static MemoryManager& Get();
+
+  MemoryManager() = default;
   MemoryManager(const MemoryManager&) = delete;
   MemoryManager(MemoryManager&&) = delete;
   MemoryManager& operator=(const MemoryManager&) = delete;

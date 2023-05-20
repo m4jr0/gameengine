@@ -5,25 +5,23 @@
 #include "physics_manager.h"
 
 #include "comet/entity/entity_id.h"
+#include "comet/entity/entity_manager.h"
+#include "comet/event/event_manager.h"
 #include "comet/math/geometry.h"
 #include "comet/math/math_commons.h"
 #include "comet/math/vector.h"
+#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace physics {
-PhysicsManager::PhysicsManager(const PhysicsManagerDescr& descr)
-    : Manager{descr},
-      entity_manager_{descr.entity_manager},
-      event_manager_{descr.event_manager},
-      time_manager_{descr.time_manager} {
-  COMET_ASSERT(entity_manager_ != nullptr, "Entity manager is null!");
-  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
-  COMET_ASSERT(time_manager_ != nullptr, "Time manager is null!");
+PhysicsManager& PhysicsManager::Get() {
+  static PhysicsManager singleton{};
+  return singleton;
 }
 
 void PhysicsManager::Initialize() {
   Manager::Initialize();
-  fixed_delta_time_ = time_manager_->GetFixedDeltaTime();
+  fixed_delta_time_ = time::TimeManager::Get().GetFixedDeltaTime();
   max_frame_rate_ = static_cast<u32>((1 / fixed_delta_time_) * 1000);
 };
 
@@ -43,7 +41,7 @@ void PhysicsManager::Update(f64& lag) {
     counter_ = 0;
   }
 
-  current_time_ += time_manager_->GetDeltaTime();
+  current_time_ += time::TimeManager::Get().GetDeltaTime();
 
   while (lag > fixed_delta_time_) {
     // TODO(m4jr0): Investigate. This seems to prevent round errors.
@@ -52,7 +50,7 @@ void PhysicsManager::Update(f64& lag) {
       return;
     }
 
-    event_manager_->FireAllEvents();
+    event::EventManager::Get().FireAllEvents();
 
     // TODO(m4jr0): Remove temporary code.
     ApplyTmpCode();
@@ -70,17 +68,20 @@ void PhysicsManager::SetLocal(TransformComponent* cmp,
   cmp->local = local;
   cmp->is_dirty = true;
 
-  entity_manager_->GetComponent<TransformRootComponent>(cmp->root_entity_id)
+  entity::EntityManager::Get()
+      .GetComponent<TransformRootComponent>(cmp->root_entity_id)
       ->is_child_dirty = true;
 };
 
 void PhysicsManager::UpdateTree(
     entity::EntityId parent_entity_id,
     const TransformComponent* parent_transform_cmp) const {
-  entity_manager_->EachChild<TransformComponent>(
+  auto& entity_manager{entity::EntityManager::Get()};
+
+  entity_manager.EachChild<TransformComponent>(
       [&](auto entity_id) {
         auto* transform_cmp{
-            entity_manager_->GetComponent<TransformComponent>(entity_id)};
+            entity_manager.GetComponent<TransformComponent>(entity_id)};
 
         if (transform_cmp->is_dirty) {
           transform_cmp->global =
@@ -99,17 +100,19 @@ f32 PhysicsManager::GetFrameTime() const noexcept {
 }
 
 void PhysicsManager::UpdateEntityTransforms() {
-  entity_manager_->Each<TransformRootComponent, TransformComponent>(
+  auto& entity_manager{entity::EntityManager::Get()};
+
+  entity_manager.Each<TransformRootComponent, TransformComponent>(
       [&](auto entity_id) {
         auto* root_cmp{
-            entity_manager_->GetComponent<TransformRootComponent>(entity_id)};
+            entity_manager.GetComponent<TransformRootComponent>(entity_id)};
 
         if (!root_cmp->is_child_dirty) {
           return;
         }
 
         auto* transform_cmp{
-            entity_manager_->GetComponent<TransformComponent>(entity_id)};
+            entity_manager.GetComponent<TransformComponent>(entity_id)};
 
         if (transform_cmp->is_dirty) {
           transform_cmp->global = transform_cmp->local;
@@ -122,11 +125,12 @@ void PhysicsManager::UpdateEntityTransforms() {
 
 void PhysicsManager::ApplyTmpCode() {
   constexpr auto rot_speed{math::ConvertToRadians(0.5f)};
+  auto& entity_manager{entity::EntityManager::Get()};
 
-  entity_manager_->Each<TransformRootComponent, TransformComponent>(
+  entity_manager.Each<TransformRootComponent, TransformComponent>(
       [&](auto entity_id) {
         auto* transform_cmp{
-            entity_manager_->GetComponent<TransformComponent>(entity_id)};
+            entity_manager.GetComponent<TransformComponent>(entity_id)};
         SetLocal(transform_cmp, math::Rotate(transform_cmp->local, rot_speed,
                                              math::Vec3{0.0f, 1.0f, 0.0f}));
       });

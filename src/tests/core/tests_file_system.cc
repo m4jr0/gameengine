@@ -9,7 +9,6 @@
 #include "catch.hpp"
 
 #include "comet/core/string.h"
-
 namespace comet {
 namespace comettests {
 const std::string test_dir{"comettests_tests_file_system"};
@@ -33,7 +32,7 @@ std::string FormatAbsolutePath(std::string_view absolute_path,
 }  // namespace comettests
 }  // namespace comet
 
-TEST_CASE("File system management", "[comet::utils::filesystem]") {
+TEST_CASE("File system management", "[comet::filesystem]") {
   SECTION("Create operations.") {
     REQUIRE(
         !comet::CreateFile(comet::Append(comet::comettests::tmp_dir, "/test")));

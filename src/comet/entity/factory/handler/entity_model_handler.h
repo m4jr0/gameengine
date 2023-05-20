@@ -9,18 +9,12 @@
 
 #include "comet/entity/entity_id.h"
 #include "comet/entity/factory/handler/entity_handler.h"
-#include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace entity {
-struct ModelHandlerDescr : HandlerDescr {
-  resource::ResourceManager* resource_manager{nullptr};
-};
-
 class ModelHandler : public Handler {
  public:
-  ModelHandler() = delete;
-  explicit ModelHandler(const ModelHandlerDescr& descr);
+  ModelHandler() = default;
   ModelHandler(const ModelHandler&) = delete;
   ModelHandler(ModelHandler&&) = delete;
   ModelHandler& operator=(const ModelHandler&) = delete;
@@ -29,9 +23,6 @@ class ModelHandler : public Handler {
 
   EntityId Generate(const std::string& model_path) const;
   EntityId Generate(const schar* model_path) const;
-
- private:
-  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace entity
 }  // namespace comet

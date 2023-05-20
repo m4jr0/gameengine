@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/manager.h"
 #include "comet/core/type/structure/ring_queue.h"
 #include "comet/event/event.h"
@@ -27,14 +28,11 @@ using EventListeners =
 using IdEventTypeMap = std::unordered_map<EventListenerId, stringid::StringId>;
 using EventQueue = comet::ring_queue<std::unique_ptr<event::Event>>;
 
-struct EventManagerDescr : ManagerDescr {
-  uindex queue_size{200};
-};
-
 class EventManager : public Manager {
  public:
-  EventManager() = delete;
-  explicit EventManager(const EventManagerDescr& descr);
+  static EventManager& Get();
+
+  EventManager() = default;
   EventManager(const EventManager&) = delete;
   EventManager(EventManager&&) = delete;
   EventManager& operator=(const EventManager&) = delete;
@@ -70,7 +68,7 @@ class EventManager : public Manager {
   EventListenerId listener_id_counter_{0};
   EventListeners listeners_{};
   IdEventTypeMap id_event_type_map_{};
-  EventQueue event_queue_{0};
+  EventQueue event_queue_{COMET_CONF_U16(conf::kEventMaxQueueSize)};
 };
 }  // namespace event
 }  // namespace comet

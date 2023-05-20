@@ -6,8 +6,10 @@
 
 namespace comet {
 namespace entity {
-EntityManager::EntityManager(const EntityManagerDescr& descr)
-    : Manager{descr} {}
+EntityManager& EntityManager::Get() {
+  static EntityManager singleton{};
+  return singleton;
+}
 
 void EntityManager::Initialize() {
   Manager::Initialize();

@@ -10,7 +10,7 @@
 #include "exception.h"
 
 namespace comet {
-// Abstract ring queue with a fixed capacity given at its instanciation.
+// Abstract ring queue with a fixed capacity given at its instantiation.
 // The public member naming rules follow the STL containers to ease its use.
 template <class T>
 class abstract_ring_queue {
@@ -79,7 +79,7 @@ inline uindex abstract_ring_queue<T>::capacity() const noexcept {
   return this->capacity_;
 }
 
-// Non thread-safe ring queue with a fixed capacity given at its instanciation.
+// Non thread-safe ring queue with a fixed capacity given at its instantiation.
 // The public member naming rules follow the STL containers to ease its use.
 template <class T>
 class ring_queue : public abstract_ring_queue<T> {
@@ -203,7 +203,7 @@ inline uindex ring_queue<T>::size() const noexcept {
   return this->size_;
 }
 
-// Thread-safe ring queue with a fixed capacity given at its instanciation.
+// Thread-safe ring queue with a fixed capacity given at its instantiation.
 // The public member naming rules follow the STL containers to ease its use.
 template <class T>
 class concurrent_ring_queue : public abstract_ring_queue<T> {

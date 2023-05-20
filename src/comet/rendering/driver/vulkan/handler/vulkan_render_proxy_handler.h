@@ -7,7 +7,6 @@
 
 #include "comet_precompile.h"
 
-#include "comet/entity/entity_manager.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
@@ -26,8 +25,6 @@ struct RenderProxyHandlerDescr : HandlerDescr {
   MaterialHandler* material_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
   ShaderHandler* shader_handler{nullptr};
-  CameraManager* camera_manager{nullptr};
-  entity::EntityManager* entity_manager{nullptr};
 };
 
 class RenderProxyHandler : public Handler {
@@ -60,8 +57,6 @@ class RenderProxyHandler : public Handler {
   MaterialHandler* material_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
-  CameraManager* camera_manager_{nullptr};
-  entity::EntityManager* entity_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

@@ -15,7 +15,6 @@
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_module_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 
 namespace comet {
@@ -35,7 +34,6 @@ struct ShaderLocalPacket {
 };
 
 struct ShaderHandlerDescr : HandlerDescr {
-  resource::ResourceManager* resource_manager{nullptr};
   ShaderModuleHandler* shader_module_handler{nullptr};
   TextureHandler* texture_handler{nullptr};
 };
@@ -118,7 +116,6 @@ class ShaderHandler : public Handler {
   Shader* bound_shader_{nullptr};
   std::unordered_map<ShaderHandle, Shader> shaders_{};
   gid::BreedHandler instance_id_handler_{};
-  resource::ResourceManager* resource_manager_{nullptr};
   ShaderModuleHandler* shader_module_handler_{nullptr};
   TextureHandler* texture_handler_{nullptr};
   inline static const std::unordered_map<ShaderUniformType,

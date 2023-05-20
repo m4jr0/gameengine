@@ -20,7 +20,6 @@ namespace gl {
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
   ShaderHandler* shader_handler{nullptr};
-  resource::ResourceManager* resource_manager{nullptr};
 };
 
 class MaterialHandler : public Handler {
@@ -57,7 +56,6 @@ class MaterialHandler : public Handler {
   std::unordered_map<MaterialId, Material> materials_{};
   TextureHandler* texture_handler_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
-  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

@@ -13,6 +13,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -21,13 +22,11 @@ ShaderHandler::ShaderHandler(const ShaderHandlerDescr& descr)
     : Handler{descr},
       shader_module_handler_{descr.shader_module_handler},
       pipeline_handler_{descr.pipeline_handler},
-      texture_handler_{descr.texture_handler},
-      resource_manager_{descr.resource_manager} {
+      texture_handler_{descr.texture_handler} {
   COMET_ASSERT(shader_module_handler_ != nullptr,
                "Shader module handler is null!");
   COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
 }
 
 void ShaderHandler::Initialize() {
@@ -50,7 +49,8 @@ void ShaderHandler::Shutdown() {
 
 Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   const auto* shader_resource{
-      resource_manager_->Load<resource::ShaderResource>(descr.resource_path)};
+      resource::ResourceManager::Get().Load<resource::ShaderResource>(
+          descr.resource_path)};
   COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
   Shader shader{};
   shader.id = shader_resource->id;

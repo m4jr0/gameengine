@@ -8,9 +8,7 @@
 #include "comet_precompile.h"
 
 #ifdef COMET_IMGUI
-#include "comet/physics/physics_manager.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/rendering_manager.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {
@@ -18,9 +16,6 @@ namespace rendering {
 namespace gl {
 struct ImGuiViewDescr : ViewDescr {
   OpenGlGlfwWindow* window{nullptr};
-#ifdef COMET_DEBUG
-  DebuggerDisplayerManager* debugger_displayer_manager{nullptr};
-#endif  // COMET_DEBUG;
 };
 
 class ImGuiView : public View {
@@ -40,11 +35,6 @@ class ImGuiView : public View {
   void Draw() const;
 
   OpenGlGlfwWindow* window_{nullptr};
-#ifdef COMET_DEBUG
-  DebuggerDisplayerManager* debugger_displayer_manager_{nullptr};
-#endif  // COMET_DEBUG
-  physics::PhysicsManager* physics_manager_{nullptr};
-  rendering::RenderingManager* rendering_manager_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

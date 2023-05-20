@@ -4,22 +4,24 @@
 
 #include "camera_manager.h"
 
+#include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
 
 namespace comet {
 namespace rendering {
-CameraManager::CameraManager(const CameraManagerDescr& descr)
-    : Manager{descr}, event_manager_{descr.event_manager} {
-  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
+CameraManager& CameraManager::Get() {
+  static CameraManager singleton{};
+  return singleton;
 }
 
 void CameraManager::Initialize() {
   Manager::Initialize();
+  auto& event_manager{event::EventManager::Get()};
 
-  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(CameraManager::OnEvent),
-                           event::WindowInitializedEvent::kStaticType_);
-  event_manager_->Register(COMET_EVENT_BIND_FUNCTION(CameraManager::OnEvent),
-                           event::WindowResizeEvent::kStaticType_);
+  event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraManager::OnEvent),
+                         event::WindowInitializedEvent::kStaticType_);
+  event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraManager::OnEvent),
+                         event::WindowResizeEvent::kStaticType_);
 
   GenerateMainCamera();
 }

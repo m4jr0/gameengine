@@ -11,6 +11,7 @@
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
@@ -19,11 +20,9 @@ namespace vk {
 MaterialHandler::MaterialHandler(const MaterialHandlerDescr& descr)
     : Handler{descr},
       texture_handler_{descr.texture_handler},
-      shader_handler_{descr.shader_handler},
-      resource_manager_{descr.resource_manager} {
+      shader_handler_{descr.shader_handler} {
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
   COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(resource_manager_ != nullptr, "Resource manager is null!");
 }
 
 void MaterialHandler::Shutdown() {
@@ -228,7 +227,8 @@ TextureMap MaterialHandler::GenerateTextureMap(
   return TextureMap{
       GetOrGenerateSampler(map),
       texture_handler_->GetOrGenerate(
-          resource_manager_->Load<resource::TextureResource>(texture_id)),
+          resource::ResourceManager::Get().Load<resource::TextureResource>(
+              texture_id)),
       map.type};
 }
 

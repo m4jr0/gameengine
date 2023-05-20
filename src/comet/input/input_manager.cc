@@ -4,6 +4,7 @@
 
 #include "input_manager.h"
 
+#include "comet/event/event_manager.h"
 #include "comet/event/input_event.h"
 
 #ifdef COMET_IMGUI
@@ -12,9 +13,9 @@
 
 namespace comet {
 namespace input {
-InputManager::InputManager(const InputManagerDescr& descr)
-    : Manager{descr}, event_manager_{descr.event_manager} {
-  COMET_ASSERT(event_manager_ != nullptr, "Event manager is null!");
+InputManager& InputManager::Get() {
+  static InputManager singleton{};
+  return singleton;
 }
 
 void InputManager::Initialize() {
@@ -25,8 +26,8 @@ void InputManager::Initialize() {
 #ifdef COMET_IMGUI
         ImGui_ImplGlfw_ScrollCallback(handle, x_offset, y_offset);
 #endif  // COMET_IMGUI
-        static_cast<event::EventManager*>(glfwGetWindowUserPointer(handle))
-            ->FireEvent<event::MouseScrollEvent>(x_offset, y_offset);
+        event::EventManager::Get().FireEvent<event::MouseScrollEvent>(x_offset,
+                                                                      y_offset);
       });
 
   glfwSetCursorPosCallback(
@@ -34,8 +35,8 @@ void InputManager::Initialize() {
 #ifdef COMET_IMGUI
         ImGui_ImplGlfw_CursorPosCallback(handle, x_pos, y_pos);
 #endif  // COMET_IMGUI
-        static_cast<event::EventManager*>(glfwGetWindowUserPointer(handle))
-            ->FireEvent<event::MouseMoveEvent>(math::Vec2{x_pos, y_pos});
+        event::EventManager::Get().FireEvent<event::MouseMoveEvent>(
+            math::Vec2{x_pos, y_pos});
       });
 
   glfwSetKeyCallback(window_handle_, [](GLFWwindow* handle, s32 key,
@@ -43,35 +44,30 @@ void InputManager::Initialize() {
 #ifdef COMET_IMGUI
     ImGui_ImplGlfw_KeyCallback(handle, key, scan_code, action, mods);
 #endif  // COMET_IMGUI
-    static_cast<event::EventManager*>(glfwGetWindowUserPointer(handle))
-        ->FireEvent<event::KeyboardEvent>(
-            static_cast<input::KeyCode>(key),
-            static_cast<input::ScanCode>(scan_code),
-            static_cast<input::Action>(action), static_cast<input::Mods>(mods));
+    event::EventManager::Get().FireEvent<event::KeyboardEvent>(
+        static_cast<input::KeyCode>(key),
+        static_cast<input::ScanCode>(scan_code),
+        static_cast<input::Action>(action), static_cast<input::Mods>(mods));
   });
 
-  glfwSetMouseButtonCallback(
-      window_handle_,
-      [](GLFWwindow* handle, s32 raw_button, s32 raw_action, s32 raw_mods) {
+  glfwSetMouseButtonCallback(window_handle_, [](GLFWwindow* handle,
+                                                s32 raw_button, s32 raw_action,
+                                                s32 raw_mods) {
 #ifdef COMET_IMGUI
-        ImGui_ImplGlfw_MouseButtonCallback(handle, raw_button, raw_action,
-                                           raw_mods);
+    ImGui_ImplGlfw_MouseButtonCallback(handle, raw_button, raw_action,
+                                       raw_mods);
 #endif  // COMET_IMGUI
 
-        auto action{static_cast<Action>(raw_action)};
+    auto action{static_cast<Action>(raw_action)};
 
-        if (action == Action::Press) {
-          static_cast<event::EventManager*>(glfwGetWindowUserPointer(handle))
-              ->FireEvent<event::MouseClickEvent>(
-                  static_cast<MouseButton>(raw_button),
-                  static_cast<Mods>(raw_mods));
-        } else if (action == Action::Release) {
-          static_cast<event::EventManager*>(glfwGetWindowUserPointer(handle))
-              ->FireEvent<event::MouseReleaseEvent>(
-                  static_cast<MouseButton>(raw_button),
-                  static_cast<Mods>(raw_mods));
-        }
-      });
+    if (action == Action::Press) {
+      event::EventManager::Get().FireEvent<event::MouseClickEvent>(
+          static_cast<MouseButton>(raw_button), static_cast<Mods>(raw_mods));
+    } else if (action == Action::Release) {
+      event::EventManager::Get().FireEvent<event::MouseReleaseEvent>(
+          static_cast<MouseButton>(raw_button), static_cast<Mods>(raw_mods));
+    }
+  });
 
   glfwSetWindowFocusCallback(
       window_handle_, [](GLFWwindow* handle, s32 is_focused) {
@@ -101,7 +97,6 @@ void InputManager::Initialize() {
 }
 
 void InputManager::Shutdown() {
-  glfwSetWindowUserPointer(window_handle_, nullptr);
   glfwSetScrollCallback(window_handle_, nullptr);
   glfwSetCursorPosCallback(window_handle_, nullptr);
   glfwSetKeyCallback(window_handle_, nullptr);
@@ -165,7 +160,6 @@ void InputManager::SetMousePosition(f32 x, f32 y) {
 
 void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
   window_handle_ = window_handle;
-  glfwSetWindowUserPointer(window_handle_, event_manager_);
 }
 
 bool InputManager::IsAltPressed() const {

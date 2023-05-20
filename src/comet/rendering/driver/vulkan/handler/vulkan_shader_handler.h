@@ -18,7 +18,6 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 
 namespace comet {
@@ -37,7 +36,6 @@ struct ShaderHandlerDescr : HandlerDescr {
   ShaderModuleHandler* shader_module_handler{nullptr};
   PipelineHandler* pipeline_handler{nullptr};
   TextureHandler* texture_handler{nullptr};
-  resource::ResourceManager* resource_manager{nullptr};
 };
 
 class ShaderHandler : public Handler {
@@ -112,7 +110,6 @@ class ShaderHandler : public Handler {
   ShaderModuleHandler* shader_module_handler_{nullptr};
   PipelineHandler* pipeline_handler_{nullptr};
   TextureHandler* texture_handler_{nullptr};
-  resource::ResourceManager* resource_manager_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

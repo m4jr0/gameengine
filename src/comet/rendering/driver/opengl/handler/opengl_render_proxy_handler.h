@@ -7,7 +7,6 @@
 
 #include "comet_precompile.h"
 
-#include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/data/opengl_material.h"
 #include "comet/rendering/driver/opengl/data/opengl_mesh.h"
@@ -25,8 +24,6 @@ struct RenderProxyHandlerDescr : HandlerDescr {
   MaterialHandler* material_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
   ShaderHandler* shader_handler{nullptr};
-  CameraManager* camera_manager{nullptr};
-  entity::EntityManager* entity_manager{nullptr};
 };
 
 class RenderProxyHandler : public Handler {
@@ -59,8 +56,6 @@ class RenderProxyHandler : public Handler {
   MaterialHandler* material_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
-  CameraManager* camera_manager_{nullptr};
-  entity::EntityManager* entity_manager_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering
