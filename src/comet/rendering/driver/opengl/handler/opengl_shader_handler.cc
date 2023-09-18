@@ -4,8 +4,8 @@
 
 #include "opengl_shader_handler.h"
 
+#include "comet/core/c_string.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/string.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 
@@ -251,8 +251,8 @@ void ShaderHandler::BindMaterial(Material& material) {
     // TODO(m4jr0): Put texture maps in generic array.
     std::array<TextureMap*, 3> maps{
         &material.diffuse_map, &material.specular_map, &material.normal_map};
-    std::memcpy(instance.uniform_data.texture_maps.data(), maps.data(),
-                sizeof(TextureMap*) * maps.size());
+    CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
+               sizeof(TextureMap*) * maps.size());
   }
 
   instance.offset =
@@ -613,10 +613,10 @@ ShaderUniformLocation GetSamplerLocation(
 
   if (uniform_descr.scope == ShaderUniformScope::Global) {
     cursor = 15;
-    std::memcpy(buff, "globalSamplers[", cursor);
+    CopyMemory(buff, "globalSamplers[", cursor);
   } else if (uniform_descr.scope == ShaderUniformScope::Instance) {
     cursor = 12;
-    std::memcpy(buff, "texSamplers[", cursor);
+    CopyMemory(buff, "texSamplers[", cursor);
   } else {
     COMET_ASSERT(false, "Unknown or unsupported sampler scope: ",
                  static_cast<std::underlying_type_t<ShaderUniformScope>>(
@@ -625,9 +625,10 @@ ShaderUniformLocation GetSamplerLocation(
     return kInvalidShaderUniformLocation;
   }
 
-  cursor += ConvertToStr(static_cast<s16>(texture_type), buff + cursor,
-                         kBuffLen - cursor);
-
+  uindex copy_count;
+  ConvertToStr(static_cast<s16>(texture_type), buff + cursor, kBuffLen - cursor,
+               &copy_count);
+  cursor += copy_count;
   buff[cursor++] = ']';
 
   while (cursor < kBuffLen) {
@@ -671,27 +672,35 @@ ShaderUniformIndex ShaderHandler::HandleUniformIndex(
     Shader& shader, const ShaderUniformDescr& uniform_descr) const {
   ShaderUniformIndex* index{nullptr};
 
-  if (uniform_descr.name == "projection") {
+  if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len, "projection",
+                      10)) {
     index = &shader.uniform_indices.projection;
-  } else if (uniform_descr.name == "view") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len, "view",
+                             4)) {
     index = &shader.uniform_indices.view;
-  } else if (uniform_descr.name == "projection") {
-    index = &shader.uniform_indices.projection;
-  } else if (uniform_descr.name == "ambientColor") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "ambientColor", 12)) {
     index = &shader.uniform_indices.ambient_color;
-  } else if (uniform_descr.name == "viewPos") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "viewPos", 7)) {
     index = &shader.uniform_indices.view_pos;
-  } else if (uniform_descr.name == "diffuseColor") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "diffuseColor", 12)) {
     index = &shader.uniform_indices.diffuse_color;
-  } else if (uniform_descr.name == "diffuseMap") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "diffuseMap", 10)) {
     index = &shader.uniform_indices.diffuse_map;
-  } else if (uniform_descr.name == "specularMap") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "specularMap", 11)) {
     index = &shader.uniform_indices.specular_map;
-  } else if (uniform_descr.name == "normalMap") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "normalMap", 9)) {
     index = &shader.uniform_indices.normal_map;
-  } else if (uniform_descr.name == "shininess") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "shininess", 9)) {
     index = &shader.uniform_indices.shininess;
-  } else if (uniform_descr.name == "model") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "model", 5)) {
     index = &shader.uniform_indices.model;
   }
 
@@ -748,8 +757,7 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
     ;
   } else {
     if (uniform.scope == ShaderUniformScope::Local) {
-      uniform.location =
-          glGetUniformLocation(shader.handle, descr.name.c_str());
+      uniform.location = glGetUniformLocation(shader.handle, descr.name);
     } else {
       uniform.location = uniform.scope == ShaderUniformScope::Global
                              ? shader.global_ubo_data.uniform_block_index

@@ -4,16 +4,13 @@
 
 #include "material_resource.h"
 
+#include "comet/core/memory/memory.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace resource {
 const ResourceTypeId MaterialResource::kResourceTypeId{
     COMET_STRING_ID("material")};
-
-ResourceId GenerateMaterialId(const std::string& material_name) {
-  return GenerateMaterialId(material_name.c_str());
-}
 
 ResourceId GenerateMaterialId(const schar* material_name) {
   return COMET_STRING_ID(material_name);
@@ -34,10 +31,10 @@ ResourceFile MaterialHandler::Pack(const Resource& resource,
   uindex cursor{0};
   auto* buffer{data.data()};
 
-  std::memcpy(&buffer[cursor], &material.id, kResourceIdSize);
+  CopyMemory(&buffer[cursor], &material.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&buffer[cursor], &material.type_id, kResourceTypeIdSize);
+  CopyMemory(&buffer[cursor], &material.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   PackPodResourceDescr(material.descr, file);
@@ -56,10 +53,10 @@ std::unique_ptr<Resource> MaterialHandler::Unpack(
   constexpr auto kResourceIdSize{sizeof(ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
-  std::memcpy(&material.id, &buffer[cursor], kResourceIdSize);
+  CopyMemory(&material.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&material.type_id, &buffer[cursor], kResourceTypeIdSize);
+  CopyMemory(&material.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   return std::make_unique<MaterialResource>(material);

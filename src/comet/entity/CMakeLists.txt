@@ -11,9 +11,9 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/comet/entity/archetype.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/entity/archetype.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/component.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_component.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_component.h"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_id.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_type.cc"

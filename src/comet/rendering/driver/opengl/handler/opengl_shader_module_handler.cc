@@ -4,6 +4,7 @@
 
 #include "opengl_shader_module_handler.h"
 
+#include "comet/core/generator.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -22,7 +23,7 @@ void ShaderModuleHandler::Shutdown() {
 }
 
 const ShaderModule* ShaderModuleHandler::Generate(
-    const schar* shader_module_path) {
+    CTStringView shader_module_path) {
   const auto* resource{
       resource::ResourceManager::Get().Load<resource::ShaderModuleResource>(
           shader_module_path)};
@@ -38,11 +39,6 @@ const ShaderModule* ShaderModuleHandler::Generate(
   COMET_ASSERT(insert_pair.second, "Could not insert shader module: ",
                COMET_STRING_ID_LABEL(shader_module_id), "!");
   return &insert_pair.first->second;
-}
-
-const ShaderModule* ShaderModuleHandler::Generate(
-    const std::string& shader_module_path) {
-  return Generate(shader_module_path.c_str());
 }
 
 const ShaderModule* ShaderModuleHandler::Get(
@@ -65,7 +61,7 @@ const ShaderModule* ShaderModuleHandler::TryGet(
   return &it->second;
 }
 
-const ShaderModule* ShaderModuleHandler::GetOrGenerate(const schar* path) {
+const ShaderModule* ShaderModuleHandler::GetOrGenerate(CTStringView path) {
   const auto* shader_module{TryGet(COMET_STRING_ID(path))};
 
   if (shader_module != nullptr) {
@@ -73,11 +69,6 @@ const ShaderModule* ShaderModuleHandler::GetOrGenerate(const schar* path) {
   }
 
   return Generate(path);
-}
-
-const ShaderModule* ShaderModuleHandler::GetOrGenerate(
-    const std::string& path) {
-  return GetOrGenerate(path.c_str());
 }
 
 void ShaderModuleHandler::Destroy(ShaderModuleHandle shader_module_id) {
@@ -186,10 +177,9 @@ ShaderModule ShaderModuleHandler::CompileShader(
   glGetShaderiv(shader_module.handle, GL_INFO_LOG_LENGTH, &msg_len);
 
   if (msg_len > 0) {
-    std::string error_message{};
-    error_message.resize(static_cast<uindex>(msg_len) + 1);
-    glGetShaderInfoLog(shader_module.handle, msg_len, nullptr,
-                       error_message.data());
+    auto* error_message{
+        GenerateForOneFrame<schar>(static_cast<uindex>(msg_len) + 1)};
+    glGetShaderInfoLog(shader_module.handle, msg_len, nullptr, error_message);
     COMET_ASSERT(false, "Error while compiling shader module: ", error_message);
   }
 

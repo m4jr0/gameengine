@@ -28,12 +28,14 @@ namespace debug {
 
 #ifdef COMET_VULKAN_DEBUG_VMA
 // Print debug messages from VMA.
-#define VMA_DEBUG_LOG(format, ...)                                        \
-  do {                                                                    \
-    constexpr auto kMessageLength{255};                                   \
-    std::string message(kMessageLength, 0);                               \
-    std::snprintf(message.data(), kMessageLength, format, ##__VA_ARGS__); \
-    COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                         \
+#define VMA_DEBUG_LOG(format, ...)                                          \
+  do {                                                                      \
+    constexpr auto kMessageLength{255};                                     \
+    char message[kMessageLength]{'\0'};                                     \
+    const auto len{                                                         \
+        std::snprintf(message, kMessageLength - 1, format, ##__VA_ARGS__)}; \
+    message[len] = '\0';                                                    \
+    COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                           \
   } while (false)
 #endif  // COMET_VULKAN_DEBUG_VMA
 #endif  // COMET_VULKAN_DEBUG_MODE

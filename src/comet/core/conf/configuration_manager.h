@@ -7,14 +7,15 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/c_string.h"
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/manager.h"
-#include "comet/core/string.h"
-
-using namespace std::literals;
+#include "comet/core/type/tstring.h"
 
 namespace comet {
 namespace conf {
+using ConfValues = std::unordered_map<ConfKey, ConfValue>;
+
 class ConfigurationManager : public Manager {
  public:
   static ConfigurationManager& Get();
@@ -31,8 +32,10 @@ class ConfigurationManager : public Manager {
   void ParseConfFile();
 
   ConfValue& Get(ConfKey key);
-  ConfValue Get(ConfKey key) const;
-  std::string GetStr(ConfKey key) const;
+  const ConfValue& Get(ConfKey key) const;
+  const schar* GetStr(ConfKey key) const;
+  const tchar* GetTStr(ConfKey key) const;
+  void GetTStr(ConfKey key, TString& str) const;
   u8 GetU8(ConfKey key) const;
   u16 GetU16(ConfKey key) const;
   u32 GetU32(ConfKey key) const;
@@ -51,9 +54,10 @@ class ConfigurationManager : public Manager {
 
   void Set(ConfKey key, const ConfValue& value);
 
-  void SetStr(ConfKey key, const std::string& value);
   void SetStr(ConfKey key, const schar* value);
   void SetStr(ConfKey key, const schar* value, uindex length);
+  void SetTStr(ConfKey key, const tchar* value);
+  void SetTStr(ConfKey key, const tchar* value, uindex length);
   void SetU8(ConfKey key, u8 value);
   void SetU16(ConfKey key, u16 value);
   void SetU32(ConfKey key, u32 value);
@@ -69,51 +73,21 @@ class ConfigurationManager : public Manager {
   void SetSx(ConfKey key, sx value);
   void SetFx(ConfKey key, fx value);
   void SetBool(ConfKey key, bool value);
+  void ParseKeyValuePair(schar* raw_key, uindex raw_key_len, schar* value,
+                         uindex value_len);
 
  private:
-  template <typename KeyString, typename ValueString>
-  void ParseKeyValuePair(KeyString&& raw_key, ValueString&& raw_value) {
-    auto key{COMET_STRING_ID(GetTrimmedCopy(std::forward<KeyString>(raw_key)))};
-    auto str_value{GetTrimmedCopy(std::forward<KeyString>(raw_value))};
-
-    if (key == kApplicationName || key == kRenderingDriver ||
-        key == kRenderingAntiAliasing || key == kResourceRootPath) {
-      SetStr(key, str_value);
-    } else if (key == kEventMaxQueueSize || key == kApplicationMajorVersion ||
-               key == kApplicationMinorVersion ||
-               key == kApplicationPatchVersion ||
-               key == kRenderingWindowWidth || key == kRenderingWindowHeight ||
-               key == kRenderingFpsCap || key == kRenderingOpenGlMajorVersion ||
-               key == kRenderingOpenGlMinorVersion ||
-               key == kRenderingVulkanVariantVersion ||
-               key == kRenderingVulkanMajorVersion ||
-               key == kRenderingVulkanMinorVersion ||
-               key == kRenderingVulkanPatchVersion ||
-               key == kRenderingVulkanMaxFramesInFlight) {
-      SetU16(key, ParseU16(str_value));
-    } else if (key == kRenderingClearColorR || key == kRenderingClearColorG ||
-               key == kRenderingClearColorB || key == kRenderingClearColorA) {
-      SetF32(key, ParseF32(str_value));
-    } else if (key == kCoreMsPerUpdate) {
-      SetF64(key, ParseF64(str_value));
-    } else if (key == kRenderingIsVsync || key == kRenderingIsTripleBuffering ||
-               key == kRenderingIsSamplerAnisotropy ||
-               key == kRenderingIsSampleRateShading) {
-      SetBool(key, ParseBool(str_value));
-    } else {
-      COMET_LOG_CORE_WARNING("Invalid configuration key: \"",
-                             COMET_STRING_ID_LABEL(key), "\". Ignoring.");
-    }
-  }
-
-  static constexpr auto kConfigFilePath_{"./comet_config.cfg"sv};
-  std::unordered_map<ConfKey, ConfValue> values_{};
+  static constexpr auto kConfigFileRelativePath_{
+      COMET_CTSTRING_VIEW("./comet_config.cfg")};
+  ConfValues values_{};
 };
 }  // namespace conf
 }  // namespace comet
 
 #define COMET_CONF(key) comet::conf::ConfigurationManager::Get().Get(key)
 #define COMET_CONF_STR(key) comet::conf::ConfigurationManager::Get().GetStr(key)
+#define COMET_CONF_TSTR(key, ...) \
+  comet::conf::ConfigurationManager::Get().GetTStr(key, ##__VA_ARGS__)
 #define COMET_CONF_U8(key) comet::conf::ConfigurationManager::Get().GetU8(key)
 #define COMET_CONF_U16(key) comet::conf::ConfigurationManager::Get().GetU16(key)
 #define COMET_CONF_U32(key) comet::conf::ConfigurationManager::Get().GetU32(key)

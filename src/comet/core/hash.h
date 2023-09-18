@@ -19,15 +19,10 @@ constexpr ux kMagicNumber{2 ^ kCharBit / kPhi};
 }  // namespace internal
 
 u32 HashCrC32(const void* data, uindex length);
-u32 HashCrC32(const std::string& string);
 
-std::string HashSha256(std::ifstream& stream);
-std::string HashSha256(const u8* data, const u8* end);
+constexpr auto kSha256DigestSize{picosha2::k_digest_size};
 
-template <typename Container>
-std::string HashSha256(const Container& data) {
-  return HashSha256(data.data(), data.data() + data.size());
-}
+void HashSha256(std::ifstream& stream, schar* buffer, uindex buffer_len);
 
 constexpr std::size_t HashCombine(std::size_t lhs, std::size_t rhs) {
   lhs ^= rhs + internal::kMagicNumber + (lhs << 6) + (lhs >> 2);

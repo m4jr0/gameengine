@@ -12,12 +12,39 @@ MemoryManager& MemoryManager::Get() {
   static MemoryManager singleton{};
   return singleton;
 }
-void MemoryManager::Initialize() { Manager::Initialize(); }
 
-void MemoryManager::Shutdown() { Manager::Shutdown(); }
+void MemoryManager::Initialize() {
+  Manager::Initialize();
+  one_frame_allocator_.Initialize();
+  two_frame_allocator_.Initialize();
+  tstring_allocator_.Initialize();
+}
 
-void MemoryManager::Update() {}
+void MemoryManager::Shutdown() {
+  one_frame_allocator_.Destroy();
+  two_frame_allocator_.Destroy();
+  tstring_allocator_.Destroy();
+  Manager::Shutdown();
+}
+
+void MemoryManager::Update() {
+  one_frame_allocator_.Clear();
+  two_frame_allocator_.SwapFrames();
+  two_frame_allocator_.ClearCurrent();
+}
 
 uindex MemoryManager::GetAllocatedMemory() const { return GetMemoryUse(); }
+
+OneFrameAllocator& MemoryManager::GetOneFrameAllocator() {
+  return one_frame_allocator_;
+}
+
+TwoFrameAllocator& MemoryManager::GetTwoFrameAllocator() {
+  return two_frame_allocator_;
+}
+
+TStringAllocator& MemoryManager::GetTStringAllocator() {
+  return tstring_allocator_;
+}
 }  // namespace memory
 }  // namespace comet

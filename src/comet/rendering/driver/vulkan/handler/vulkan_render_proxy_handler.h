@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/type/stl_types.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
@@ -52,7 +53,7 @@ class RenderProxyHandler : public Handler {
 
   constexpr static auto kDefaultProxyCount{512};
   FrameIndex update_frame_{kInvalidFrameIndex};
-  std::vector<RenderProxy> proxies_{};
+  one_frame_vector<RenderProxy> proxies_{};
   const Mesh* last_drawn_mesh_{nullptr};
   MaterialHandler* material_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};

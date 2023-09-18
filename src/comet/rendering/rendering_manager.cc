@@ -5,8 +5,10 @@
 #include "rendering_manager.h"
 
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/memory/memory.h"
 #include "comet/input/input_manager.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/driver/empty/empty_driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
 
@@ -28,9 +30,9 @@ void RenderingManager::Initialize() {
     frame_time_threshold_ = 0;
   }
 
-  const auto driver_type{
-      GetDriverTypeFromStr(COMET_CONF_STR(conf::kRenderingDriver))};
-
+  const auto* driver_label{COMET_CONF_STR(conf::kRenderingDriver)};
+  COMET_LOG_RENDERING_INFO("Graphics backend: ", driver_label, ".");
+  const auto driver_type{GetDriverTypeFromStr(driver_label)};
   COMET_ASSERT(driver_type != DriverType::Unknown,
                "Unknown rendering driver type!");
 
@@ -41,11 +43,22 @@ void RenderingManager::Initialize() {
   } else if (driver_type == DriverType::Direct3d12) {
     GenerateDirect3D12Driver();
   }
+#ifdef COMET_DEBUG
+  else if (driver_type == DriverType::Empty) {
+    GenerateEmptyDriver();
+  }
+#endif  // COMET_DEBUG
 
   COMET_ASSERT(driver_ != nullptr, "Rendering driver is null!");
   driver_->Initialize();
   input::InputManager::Get().AttachGlfwWindow(
       static_cast<GlfwWindow*>(driver_->GetWindow())->GetHandle());
+
+#ifdef COMET_IMGUI
+  if (driver_type != DriverType::Empty) {
+    input::InputManager::EnableImGui();
+  }
+#endif  // COMET_IMGUI
 }
 
 void RenderingManager::Shutdown() {
@@ -99,8 +112,6 @@ uindex RenderingManager::GetDrawCount() const {
 }
 
 void RenderingManager::GenerateOpenGlDriver() {
-  COMET_LOG_RENDERING_DEBUG("Initializing OpenGL driver...");
-
   gl::OpenGlDriverDescr descr{};
   FillDriverDescr(descr);
   descr.opengl_major_version =
@@ -112,8 +123,6 @@ void RenderingManager::GenerateOpenGlDriver() {
 }
 
 void RenderingManager::GenerateVulkanDriver() {
-  COMET_LOG_RENDERING_DEBUG("Initializing Vulkan driver...");
-
   vk::VulkanDriverDescr descr{};
   FillDriverDescr(descr);
   descr.vulkan_major_version =
@@ -131,9 +140,16 @@ void RenderingManager::GenerateVulkanDriver() {
 }
 
 void RenderingManager::GenerateDirect3D12Driver() {
-  COMET_LOG_RENDERING_DEBUG("Initializing Direct3D 12 driver...");
   COMET_ASSERT(false, "Direct3D 12 is unsupported at this time.");
 }
+
+#ifdef COMET_DEBUG
+void RenderingManager::GenerateEmptyDriver() {
+  empty::EmptyDriverDescr descr{};
+  FillDriverDescr(descr);
+  driver_ = std::make_unique<empty::EmptyDriver>(descr);
+}
+#endif  // COMET_DEBUG
 
 void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
   descr.is_vsync = COMET_CONF_BOOL(conf::kRenderingIsVsync);
@@ -152,6 +168,7 @@ void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
 
   descr.anti_aliasing_type =
       GetAntiAliasingTypeFromStr(COMET_CONF_STR(conf::kRenderingAntiAliasing));
+
   descr.is_sampler_anisotropy =
       COMET_CONF_BOOL(conf::kRenderingIsSamplerAnisotropy);
   descr.is_sample_rate_shading =
@@ -159,7 +176,12 @@ void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
 
   descr.rendering_view_descrs = GenerateRenderingViewDescrs();
 
-  descr.app_name = COMET_CONF_STR(conf::kApplicationName);
+  const auto* app_name{COMET_CONF_STR(conf::kApplicationName)};
+  descr.app_name_len = GetLength(app_name);
+  COMET_ASSERT(descr.app_name_len < kMaxAppNameLen,
+               "Application name provided is too long (", descr.app_name_len,
+               " > ", kMaxAppNameLen, ")!");
+  Copy(descr.app_name, app_name, descr.app_name_len);
   descr.app_major_version = COMET_CONF_U8(conf::kRenderingVulkanMajorVersion);
   descr.app_minor_version = COMET_CONF_U8(conf::kRenderingVulkanMinorVersion);
   descr.app_patch_version = COMET_CONF_U8(conf::kRenderingVulkanPatchVersion);
@@ -206,7 +228,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   world_view_descr.is_last = cursor == descrs.size() - 1;
   world_view_descr.width = window_width;
   world_view_descr.height = window_height;
-  std::memcpy(world_view_descr.clear_color, clear_color, sizeof(clear_color));
+  CopyMemory(world_view_descr.clear_color, clear_color, sizeof(clear_color));
   world_view_descr.id = COMET_STRING_ID("rendering_world_view");
   ++cursor;
 
@@ -218,7 +240,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   // skybox_view_descr.is_last = cursor == descrs.size() - 1;
   // skybox_view_descr.width = window_width;
   // skybox_view_descr.height = window_height;
-  // std::memcpy(skybox_view_descr.clear_color, clear_color,
+  // CopyMemory(skybox_view_descr.clear_color, clear_color,
   // sizeof(clear_color)); skybox_view_descr.id =
   // COMET_STRING_ID("rendering_skybox_view");
   // ++cursor;
@@ -231,7 +253,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   // light_world_view_descr.is_last = cursor == descrs.size() - 1;
   // light_world_view_descr.width = window_width;
   // light_world_view_descr.height = window_height;
-  // std::memcpy(light_world_view_descr.clear_color, clear_color,
+  // CopyMemory(light_world_view_descr.clear_color, clear_color,
   //             sizeof(clear_color));
   // light_world_view_descr.id = COMET_STRING_ID("rendering_light_world_view");
   // ++cursor;
@@ -244,7 +266,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   debug_view_descr.is_last = cursor == descrs.size() - 1;
   debug_view_descr.width = window_width;
   debug_view_descr.height = window_height;
-  std::memcpy(debug_view_descr.clear_color, clear_color, sizeof(clear_color));
+  CopyMemory(debug_view_descr.clear_color, clear_color, sizeof(clear_color));
   debug_view_descr.id = COMET_STRING_ID("rendering_debug_view");
   ++cursor;
 #endif  // COMET_DEBUG_VIEW
@@ -257,7 +279,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   imgui_view_descr.is_last = cursor == descrs.size() - 1;
   imgui_view_descr.width = window_width;
   imgui_view_descr.height = window_height;
-  std::memcpy(imgui_view_descr.clear_color, clear_color, sizeof(clear_color));
+  CopyMemory(imgui_view_descr.clear_color, clear_color, sizeof(clear_color));
   imgui_view_descr.id = COMET_STRING_ID("rendering_imgui_view");
   ++cursor;
 #endif  // COMET_IMGUI

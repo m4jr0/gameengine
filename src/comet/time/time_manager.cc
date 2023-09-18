@@ -6,6 +6,7 @@
 
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/date.h"
+#include "comet/math/math_commons.h"
 
 namespace comet {
 namespace time {
@@ -29,7 +30,7 @@ void TimeManager::Initialize() {
 
   // Round up to two decimal places.
   fixed_delta_time_ =
-      std::ceil(COMET_CONF_F64(conf::kCoreMsPerUpdate) * 100.0) / 100.0;
+      math::Ceil(COMET_CONF_F64(conf::kCoreMsPerUpdate) * 100.0) / 100.0;
 }
 
 void TimeManager::Shutdown() {

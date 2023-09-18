@@ -17,7 +17,8 @@ void DebugView::Initialize() {
   View::Initialize();
 
   ShaderDescr shader_descr{};
-  shader_descr.resource_path = "shaders/opengl/debug_shader.gl.cshader";
+  shader_descr.resource_path =
+      COMET_TCHAR("shaders/opengl/debug_shader.gl.cshader");
   shader_ = shader_handler_->Generate(shader_descr);
 }
 

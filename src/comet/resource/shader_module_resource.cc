@@ -4,6 +4,8 @@
 
 #include "shader_module_resource.h"
 
+#include "comet/core/memory/memory.h"
+
 namespace comet {
 namespace resource {
 const ResourceTypeId ShaderModuleResource::kResourceTypeId{
@@ -24,13 +26,13 @@ ResourceFile ShaderModuleHandler::Pack(const Resource& resource,
   uindex cursor{0};
   auto* buffer{data.data()};
 
-  std::memcpy(&buffer[cursor], &shader_module.id, kResourceIdSize);
+  CopyMemory(&buffer[cursor], &shader_module.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&buffer[cursor], &shader_module.type_id, kResourceTypeIdSize);
+  CopyMemory(&buffer[cursor], &shader_module.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  std::memcpy(&buffer[cursor], shader_module.data.data(), data_size);
+  CopyMemory(&buffer[cursor], shader_module.data.data(), data_size);
   cursor += data_size;
 
   PackPodResourceDescr(shader_module.descr, file);
@@ -50,14 +52,14 @@ std::unique_ptr<Resource> ShaderModuleHandler::Unpack(
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   const auto data_size{data.size() - kResourceIdSize - kResourceTypeIdSize};
 
-  std::memcpy(&shader_module.id, &buffer[cursor], kResourceIdSize);
+  CopyMemory(&shader_module.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&shader_module.type_id, &buffer[cursor], kResourceTypeIdSize);
+  CopyMemory(&shader_module.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   shader_module.data.resize(data_size);
-  std::memcpy(shader_module.data.data(), &buffer[cursor], data_size);
+  CopyMemory(shader_module.data.data(), &buffer[cursor], data_size);
   cursor += data_size;
 
   return std::make_unique<ShaderModuleResource>(std::move(shader_module));

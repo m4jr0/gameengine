@@ -58,6 +58,50 @@ constexpr T Abs(T x) {
 
   return -x;
 }
+
+template <class T>
+const T& Min(const T& a, const T& b) {
+  return (a < b) ? a : b;
+}
+
+template <class T>
+const T& Max(const T& a, const T& b) {
+  return (a > b) ? a : b;
+}
+
+template <class T>
+const T& Clamp(const T& x, const T& min, const T& max) {
+  return Min(Max(x, min), max);
+}
+
+template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+const T& Floor(const T& x) {
+  return x;
+}
+
+constexpr s32 Floor(f32 x) { return static_cast<s32>(x); }
+
+constexpr s64 Floor(f64 x) { return static_cast<s64>(x); }
+
+template <class T, typename = std::enable_if_t<std::is_integral_v<T>>>
+const T& Ceil(const T& x) {
+  return x;
+}
+
+constexpr s32 Ceil(f32 x) {
+  const auto i{static_cast<s32>(x)};
+  return x > i ? i + 1 : i;
+}
+
+constexpr s64 Ceil(f64 x) {
+  const auto i{static_cast<s64>(x)};
+  return x > i ? i + 1 : i;
+}
+
+template <class T>
+const T Log2(const T& x, const T& i = 0) {
+  return (x < 2) ? i : Log2(x / 2, i + 1);
+}
 }  // namespace math
 }  // namespace comet
 

@@ -62,7 +62,7 @@ class EntityManager : public Manager {
 
     return reinterpret_cast<ComponentType*>(
                record.archetype->components[archetype_record.cmp_array_index]
-                   .first) +
+                   .elements) +
            record.row;
   }
 
@@ -83,7 +83,7 @@ class EntityManager : public Manager {
      ...);
 
     if (all_ids.size() == 0) {
-      for (const auto* archetype : archetypes_) {
+      for (const auto& archetype : archetypes_) {
         for (auto entity_id : archetype->entity_ids) {
           func(entity_id);
         }
@@ -94,7 +94,7 @@ class EntityManager : public Manager {
 
     std::sort(all_ids.begin(), all_ids.end());
 
-    for (Archetype* archetype : archetypes_) {
+    for (auto& archetype : archetypes_) {
       if (archetype->entity_type.size() < all_ids.size()) {
         continue;
       }
@@ -125,20 +125,19 @@ class EntityManager : public Manager {
  private:
   template <typename EntityType>
   Archetype* GetArchetype(EntityType&& entity_type) {
-    for (auto* archetype : archetypes_) {
+    for (auto& archetype : archetypes_) {
       if (archetype->entity_type == entity_type) {
-        return archetype;
+        return archetype.get();
       }
     }
 
-    auto* archetype{new Archetype{}};
+    auto archetype{GenerateArchetype()};
     archetype->entity_type = std::forward<EntityType>(entity_type);
-    archetypes_.push_back(archetype);
     ArchetypeId archetype_id{0};
 
     for (const auto component_type_id : archetype->entity_type) {
       archetype_id = HashCombine(archetype_id, component_type_id);
-      archetype->components.push_back(ComponentArray{nullptr, nullptr, 0});
+      archetype->components.push_back(ComponentArray{nullptr, 0});
     }
 
     archetype->id = archetype_id;
@@ -150,7 +149,9 @@ class EntityManager : public Manager {
           .cmp_array_index = i++;
     }
 
-    return archetype;
+    auto* archetype_p{archetype.get()};
+    archetypes_.push_back(std::move(archetype));
+    return archetype_p;
   }
 
   void RegisterComponentType(const ComponentDescr& component_descr);
@@ -166,7 +167,7 @@ class EntityManager : public Manager {
                      const ComponentDescr& component_descr);
 
   Archetype* root_archetype_{nullptr};
-  std::vector<Archetype*> archetypes_{};
+  std::vector<ArchetypePointer> archetypes_{};
   gid::BreedHandler entity_id_handler_{};
   gid::BreedHandler component_id_handler_{};
   Records records_{};

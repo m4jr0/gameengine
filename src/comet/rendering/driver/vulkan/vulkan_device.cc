@@ -4,6 +4,7 @@
 
 #include "vulkan_device.h"
 
+#include "comet/core/c_string.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
@@ -464,8 +465,7 @@ bool Device::AreDeviceExtensionsAvailable(
     auto is_found{false};
 
     for (auto& extension_properties : extensions_properties) {
-      if (std::strncmp(extension_name, extension_properties.extensionName,
-                       VK_MAX_EXTENSION_NAME_SIZE) == 0) {
+      if (AreStringsEqual(extension_name, extension_properties.extensionName)) {
         is_found = true;
         break;
       }

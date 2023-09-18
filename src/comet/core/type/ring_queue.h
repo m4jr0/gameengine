@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_TYPE_STRUCTURE_RING_QUEUE_H_
-#define COMET_COMET_CORE_TYPE_STRUCTURE_RING_QUEUE_H_
+#ifndef COMET_COMET_CORE_TYPE_RING_QUEUE_H_
+#define COMET_COMET_CORE_TYPE_RING_QUEUE_H_
 
 #include "comet_precompile.h"
 
@@ -426,4 +426,4 @@ inline uindex concurrent_ring_queue<T>::size() const noexcept {
 }
 }  // namespace comet
 
-#endif  // COMET_COMET_CORE_TYPE_STRUCTURE_RING_QUEUE_H_
+#endif  // COMET_COMET_CORE_TYPE_RING_QUEUE_H_

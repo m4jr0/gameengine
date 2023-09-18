@@ -96,7 +96,9 @@
         "valarray": "cpp",
         "variant": "cpp",
         "numbers": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "charconv": "cpp",
+        "format": "cpp"
     },
     "C_Cpp.clang_format_style": "Google"
 }

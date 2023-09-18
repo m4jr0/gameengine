@@ -5,6 +5,16 @@
 #ifndef COMET_COMET_CORE_DEFINE_H_
 #define COMET_COMET_CORE_DEFINE_H_
 
+#include "comet/core/os.h"
+
+// String.
+#ifdef COMET_WINDOWS
+#define COMET_WIDE_TCHAR
+#endif  // COMET_WINDOWS
+
+// Path.
+#define COMET_NORMALIZE_PATHS
+
 // Rendering.
 #ifdef COMET_DEBUG
 #define COMET_PROFILING

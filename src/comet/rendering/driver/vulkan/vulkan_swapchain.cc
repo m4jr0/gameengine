@@ -4,6 +4,7 @@
 
 #include "vulkan_swapchain.h"
 
+#include "comet/math/math_commons.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
@@ -93,12 +94,12 @@ VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
   } else {
     VkExtent2D extent{current_width, current_height};
 
-    extent.width = std::clamp(extent.width, capabilities.minImageExtent.width,
-                              capabilities.maxImageExtent.width);
+    extent.width = math::Clamp(extent.width, capabilities.minImageExtent.width,
+                               capabilities.maxImageExtent.width);
 
     extent.height =
-        std::clamp(extent.height, capabilities.minImageExtent.height,
-                   capabilities.maxImageExtent.height);
+        math::Clamp(extent.height, capabilities.minImageExtent.height,
+                    capabilities.maxImageExtent.height);
 
     return extent;
   }

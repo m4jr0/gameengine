@@ -8,6 +8,7 @@
 #include "comet_precompile.h"
 
 #include "comet/core/manager.h"
+#include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
 
 namespace comet {
@@ -27,7 +28,7 @@ class ResourceManager : public Manager {
   void Shutdown() override;
   void InitializeResourcesDirectory();
 
-  const std::string& GetRootResourcePath();
+  const TString& GetRootResourcePath();
 
   template <typename ResourceHandlerType>
   void AddHandler(ResourceId resource_id) {
@@ -71,16 +72,9 @@ class ResourceManager : public Manager {
 
   template <typename ResourceType>
   const ResourceType* Load(
-      const schar* asset_path,
+      CTStringView asset_path,
       ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
-    return Load<ResourceType>(GenerateResourceIdFromPath(asset_path),
-                              life_span);
-  }
-
-  template <typename ResourceType>
-  const ResourceType* Load(
-      const std::string& asset_path,
-      ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
+    COMET_ASSERT(!asset_path.IsEmpty(), "Asset path provided is empty!");
     return Load<ResourceType>(GenerateResourceIdFromPath(asset_path),
                               life_span);
   }
@@ -96,12 +90,7 @@ class ResourceManager : public Manager {
   }
 
   template <typename ResourceType>
-  void Unload(const schar* asset_path) {
-    Unload<ResourceType>(GenerateResourceIdFromPath(asset_path));
-  }
-
-  template <typename ResourceType>
-  void Unload(const std::string& asset_path) {
+  void Unload(CTStringView asset_path) {
     Unload<ResourceType>(GenerateResourceIdFromPath(asset_path));
   }
 
@@ -116,7 +105,7 @@ class ResourceManager : public Manager {
   }
 
  private:
-  std::string root_resource_path_{};
+  TString root_resource_path_{};
   std::unordered_map<ResourceId, std::unique_ptr<ResourceHandler>> handlers_{};
 };
 }  // namespace resource

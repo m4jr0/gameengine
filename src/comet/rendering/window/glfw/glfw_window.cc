@@ -61,6 +61,7 @@ void GlfwWindow::Initialize() {
   Window::Initialize();
 
   if (window_count_ == 0) {
+    COMET_LOG_RENDERING_INFO("Initializing GLFW...");
     const auto result{glfwInit()};
     COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
     SetGlfwHints();
@@ -70,7 +71,7 @@ void GlfwWindow::Initialize() {
     });
   }
 
-  handle_ = glfwCreateWindow(width_, height_, name_.c_str(), nullptr, nullptr);
+  handle_ = glfwCreateWindow(width_, height_, name_, nullptr, nullptr);
   COMET_ASSERT(handle_ != nullptr,
                "Something bad happened while creating the GLFW window!");
   window_count_++;
@@ -97,6 +98,7 @@ void GlfwWindow::Destroy() {
     window_count_--;
 
     if (window_count_ <= 0) {
+      COMET_LOG_RENDERING_INFO("Terminating GLFW...");
       glfwTerminate();
     }
   }

@@ -28,9 +28,9 @@ void TwoFrameAllocator::SwapFrames() {
   current_stack_ = static_cast<u8>(!current_stack_);
 }
 
-void TwoFrameAllocator::Clear() { stacks_[current_stack_].Clear(); }
+void TwoFrameAllocator::ClearCurrent() { stacks_[current_stack_].Clear(); }
 
-uindex TwoFrameAllocator::GetSize() const noexcept {
+uindex TwoFrameAllocator::GetCurrentSize() const noexcept {
   return stacks_[current_stack_].GetSize();
 }
 

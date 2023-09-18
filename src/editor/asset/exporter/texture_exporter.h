@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
@@ -31,7 +32,7 @@ class TextureExporter : public AssetExporter {
   TextureExporter& operator=(TextureExporter&&) = delete;
   virtual ~TextureExporter() = default;
 
-  bool IsCompatible(std::string_view extension) const override;
+  bool IsCompatible(CTStringView extension) const override;
 
  protected:
   std::vector<resource::ResourceFile> GetResourceFiles(

@@ -28,17 +28,19 @@ class TwoFrameAllocator {
   void Destroy();
   void* Allocate(uindex size, u8 align = 0);
   void SwapFrames();
-  void Clear();
-  uindex GetSize() const noexcept;
+  void ClearCurrent();
+  uindex GetCurrentSize() const noexcept;
   uindex GetTotalSize() const noexcept;
 
  private:
   u8 current_stack_{0};
   StackAllocator stacks_[2]{
-      StackAllocator{
-          conf::GetDefaultValue(conf::kCoreOneFrameAllocatorCapacity).u32 / 2},
-      StackAllocator{
-          conf::GetDefaultValue(conf::kCoreOneFrameAllocatorCapacity).u32 / 2}};
+      StackAllocator{conf::GetDefaultValue(conf::kCoreOneFrameAllocatorCapacity)
+                         .u32_value /
+                     2},
+      StackAllocator{conf::GetDefaultValue(conf::kCoreOneFrameAllocatorCapacity)
+                         .u32_value /
+                     2}};
 };
 }  // namespace memory
 }  // namespace comet

@@ -4,13 +4,41 @@
 
 #include "file_system.h"
 
+#include "comet/core/generator.h"
 #include "comet/core/hash.h"
 
 namespace comet {
-bool OpenBinaryFileToWriteTo(const schar* path, std::ofstream& out_file,
-                             bool is_append) {
-  auto mode{static_cast<std::ios_base::openmode>(
-      std::ios::binary | std::ios::out | std::ios::failbit)};
+namespace internal {
+const tchar* GetTmpNormalizedCopy(CTStringView str) {
+#ifdef COMET_WINDOWS
+  auto* tmp{GenerateForOneFrame<tchar>(str.GetLength() + 1)};
+
+  for (uindex i{0}; i < str.GetLength(); ++i) {
+    tchar c{str[i]};
+
+    if (c == COMET_TCHAR('\\')) {
+      c = COMET_TCHAR('/');
+    }
+
+    tmp[i] = c;
+  }
+
+  tmp[str.GetLength()] = COMET_TCHAR('\0');
+  return tmp;
+#else
+  return str.GetCTStr();
+#endif  // COMET_WINDOWS
+}
+}  // namespace internal
+
+bool OpenFileToWriteTo(CTStringView path, std::ofstream& out_file,
+                       bool is_append, bool is_binary) {
+  auto mode{
+      static_cast<std::ios_base::openmode>(std::ios::out | std::ios::failbit)};
+
+  if (is_binary) {
+    mode |= std::ios::binary;
+  }
 
   if (!is_append) {
     mode |= std::ios::trunc;
@@ -22,22 +50,19 @@ bool OpenBinaryFileToWriteTo(const schar* path, std::ofstream& out_file,
   return true;
 }
 
-bool OpenBinaryFileToWriteTo(const std::string& path, std::ofstream& out_file,
-                             bool is_append) {
-  return OpenBinaryFileToWriteTo(path.c_str(), out_file, is_append);
-}
-
-bool OpenBinaryFileToReadFrom(const schar* path, std::ifstream& in_file,
-                              bool is_at_end) {
-  in_file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
+bool OpenFileToReadFrom(CTStringView path, std::ifstream& in_file,
+                        bool is_at_end, bool is_binary) {
   try {
     // Weird case to keep MSVC happy.
 #ifdef COMET_MSVC
-    auto mode{static_cast<s32>(std::ios::binary)};
+    auto mode{static_cast<s32>(std::ios::in)};
 #else
-    auto mode{std::ios::binary};
+    auto mode{std::ios::in};
 #endif  // COMET_MSVC
+
+    if (is_binary) {
+      mode |= std::ios::binary;
+    }
 
     if (is_at_end) {
       mode |= std::ios::ate;
@@ -52,55 +77,40 @@ bool OpenBinaryFileToReadFrom(const schar* path, std::ifstream& in_file,
   }
 }
 
-bool OpenBinaryFileToReadFrom(const std::string& path, std::ifstream& in_file,
-                              bool is_at_end) {
-  return OpenBinaryFileToReadFrom(path.c_str(), in_file, is_at_end);
-}
-
 void CloseFile(std::ofstream& file) { file.close(); }
 
-bool WriteBinaryToFile(const schar* path, const u8* buffer, uindex buffer_size,
+bool WriteBinaryToFile(CTStringView path, const u8* buff, uindex buff_len,
                        bool is_append) {
   std::ofstream file;
 
-  if (!OpenBinaryFileToWriteTo(path, file, is_append)) {
+  if (!OpenFileToWriteTo(path, file, is_append)) {
     return false;
   }
 
-  file.write(reinterpret_cast<const schar*>(buffer), buffer_size);
+  file.write(reinterpret_cast<const schar*>(buff), buff_len);
   CloseFile(file);
   return true;
 }
 
-bool WriteBinaryToFile(const std::string& path, const u8* buffer,
-                       uindex buffer_size, bool is_append) {
-  return WriteBinaryToFile(path.c_str(), buffer, buffer_size, is_append);
-}
-
-bool ReadBinaryFromFile(const schar* path, std::vector<u8>& buffer) {
+bool ReadBinaryFromFile(CTStringView path, std::vector<u8>& buff) {
   std::ifstream input_stream;
 
-  if (!OpenBinaryFileToReadFrom(path, input_stream, true)) {
+  if (!OpenFileToReadFrom(path, input_stream, true, true)) {
     return false;
   }
 
   const auto file_size{input_stream.tellg()};
-  buffer.resize(file_size);
+  buff.resize(file_size);
   input_stream.seekg(0);
-  input_stream.read(reinterpret_cast<schar*>(buffer.data()), file_size);
+  input_stream.read(reinterpret_cast<schar*>(buff.data()), file_size);
 
   CloseFile(input_stream);
   return true;
 }
 
-bool ReadBinaryFromFile(const std::string& path, std::vector<u8>& buffer) {
-  return ReadBinaryFromFile(path.c_str(), buffer);
-}
-
 void CloseFile(std::ifstream& file) { file.close(); }
 
-bool WriteStrToFile(const schar* path, std::string_view buffer,
-                    bool is_append) {
+bool WriteStrToFile(CTStringView path, const schar* buff, bool is_append) {
   auto mode{std::ios::binary | std::ios::out};
 
   if (!is_append) {
@@ -111,21 +121,19 @@ bool WriteStrToFile(const schar* path, std::string_view buffer,
 
   std::ofstream out_file;
   out_file.open(path, mode);
-  out_file << buffer;
+  out_file << buff;
   out_file.close();
 
   return true;
 }
 
-bool WriteStrToFile(const std::string& path, std::string_view buffer,
-                    bool is_append) {
-  return WriteStrToFile(path.c_str(), buffer, is_append);
-}
-
-bool ReadStrFromFile(const schar* path, std::string& buffer) {
+bool ReadStrFromFile(CTStringView path, schar* buff, uindex buff_len,
+                     uindex* out_len) {
   std::ifstream input_stream;
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   auto is_open{false};
+  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
+  COMET_ASSERT(buff_len > 0, "Length of buffer provided is 0!");
 
   try {
     input_stream.open(path, std::ios::in);
@@ -137,406 +145,609 @@ bool ReadStrFromFile(const schar* path, std::string& buffer) {
   }
 
   if (!is_open) {
+    buff[0] = '\0';
     return false;
   }
 
-  std::stringstream string_stream{};
-  string_stream << input_stream.rdbuf();
-  buffer = string_stream.str();
+  // Get character count.
+  input_stream.ignore(std::numeric_limits<std::streamsize>::max());
+  const auto file_size{input_stream.gcount()};
+  COMET_ASSERT(buff_len > file_size, "File is too big for buffer: ", file_size,
+               " >= ", buff_len, "!");
+  input_stream.clear();  // Reset file (EOF flag is set).
+  input_stream.seekg(0, std::ios_base::beg);
+
+  COMET_ASSERT(input_stream.read(buff, file_size),
+               "Something wrong happened while reading the file!");
+
+  buff[file_size] = '\0';
   input_stream.close();
+
+  if (out_len != nullptr) {
+    *out_len = input_stream.gcount();
+  }
+
   return true;
 }
 
-bool ReadStrFromFile(const std::string& path, std::string& buffer) {
-  return ReadStrFromFile(path.c_str(), buffer);
+bool GetLine(std::istream& stream, schar* buff, uindex buff_len,
+             uindex* out_len) {
+  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
+
+  if (buff_len == 0) {
+    return false;
+  }
+
+  schar c;
+  uindex i{0};
+  uindex max_line_len{buff_len - 1};
+
+  while (i < max_line_len && stream.good() && stream.get(c) && c != '\n') {
+    buff[i++] = c;
+  }
+
+  buff[i] = '\0';
+
+  if (out_len != nullptr) {
+    *out_len = i - 1;
+  }
+
+  return i > 0 && i != buff_len;
 }
 
-bool CreateFile(const schar* create_path, bool is_recursive) {
-  const auto str_len{strlen(create_path)};
-
-  if (str_len == 0) {
+bool CreateFile(CTStringView path, bool is_recursive) {
+  if (path.GetLength() == 0) {
     return false;
   }
 
-  const auto last_character{create_path[str_len - 1]};
+  const auto last_character{path[path.GetLength() - 1]};
 
-  if (last_character == '/') {
+  if (IsSlash(last_character)) {
     return false;
   }
 
-  const auto str_directory_path{GetParentPath(create_path)};
+  const auto directory_path{GetParentPath(path)};
 
   if (is_recursive) {
-    if (!std::filesystem::create_directories(str_directory_path)) {
+    if (!CreateDirectory(directory_path, true)) {
       return false;
     }
   }
-
-  // Save one allocation.
-  std::filesystem::path directory_path{str_directory_path};
 
   if (!IsDirectory(directory_path) || !Exists(directory_path)) {
     return false;
   }
 
-  WriteStrToFile(str_directory_path, "");
+  WriteStrToFile(directory_path, "", true);
   return true;
 }
 
-bool CreateFile(const std::string& create_path, bool is_recursive) {
-  return CreateFile(create_path.c_str(), is_recursive);
-}
+bool CreateDirectory(CTStringView path, bool is_recursive) {
+#ifdef COMET_WINDOWS
+  auto is_created{CreateDirectoryW(path, nullptr) ||
+                  GetLastError() == ERROR_ALREADY_EXISTS};
 
-bool CreateDirectory(std::string_view create_path, bool is_recursive) {
-  const std::filesystem::path path{create_path};
-
-  if (is_recursive) {
-    return std::filesystem::create_directories(path);
-  } else {
-    if (!IsDirectory(GetParentPathView(create_path))) {
-      return false;
-    }
-
-    return std::filesystem::create_directory(path);
+  if (!is_recursive || is_created) {
+    return is_created;
   }
-}
 
-bool Move(std::string_view previous_name, std::string_view new_name) {
-  std::filesystem::path previous_name_path{previous_name};
-  std::filesystem::path new_name_path{new_name};
+  return CreateDirectory(GetParentPath(path), true) &&
+             CreateDirectoryW(path, nullptr) ||
+         GetLastError() == ERROR_ALREADY_EXISTS;
+#else
+  if (mkdir(path, S_IRWXU | S_IRGRP | S_IXGRP | S_IXOTH) == 0 ||
+      errno == EEXIST) {
+    return true;
+  }
 
-  if (!Exists(previous_name_path) ||
-      (Exists(new_name_path)) && previous_name != new_name) {
+  if (!is_recursive) {
     return false;
   }
 
-  std::filesystem::rename(previous_name_path, new_name_path);
-  return true;
+  return CreateDirectory(GetParentPath(path), true) && CreateDirectory(path);
+#endif  // COMET_WINDOWS
 }
 
-bool Remove(const std::filesystem::path& path, bool is_recursive) {
-  if (!is_recursive && IsDirectory(path) && !IsEmpty(path)) {
+bool Move(CTStringView previous_name, CTStringView new_name) {
+  if (!Exists(previous_name) ||
+      (Exists(new_name)) && previous_name != new_name) {
     return false;
-  } else {
-    return std::filesystem::remove_all(path);
   }
+
+#ifdef COMET_WINDOWS
+  return MoveFileW(previous_name, new_name) != 0;
+#else
+  return rename(previous_name, new_name) == 0;
+#endif  // COMET_WINDOWS
 }
 
-std::vector<std::string> ListDirectories(const std::filesystem::path& path,
-                                         bool is_sorted) {
-  if (!Exists(path) || IsFile(path)) {
-    return std::vector<std::string>();
+bool Remove(CTStringView path, bool is_recursive) {
+  if (!is_recursive && IsDirectory(path) && !path.IsEmpty()) {
+    return false;
   }
 
-  std::vector<std::string> list;
-  std::filesystem::directory_iterator end_it;
-
-  for (std::filesystem::directory_iterator it{path}; it != end_it; ++it) {
-    if (std::filesystem::is_directory(it->path())) {
-      list.push_back(it->path().generic_string());
-    }
-  }
-
-  if (is_sorted) {
-    std::sort(list.begin(), list.end());
-  }
-
-  return list;
+  // TODO(m4jr0): Implement custom function.
+  return std::filesystem::remove_all(path.GetCTStr());
 }
 
-std::vector<std::string> ListFiles(const std::filesystem::path& path,
-                                   bool is_sorted) {
-  if (!Exists(path)) {
-    return std::vector<std::string>();
-  }
-
-  std::vector<std::string> list;
-
-  if (IsFile(path)) {
-    list.push_back(path.string());
-    return list;
-  }
-
-  std::filesystem::directory_iterator end_it;
-
-  for (std::filesystem::directory_iterator it{path}; it != end_it; ++it) {
-    if (!std::filesystem::is_directory(it->path())) {
-      list.push_back(it->path().generic_string());
-    }
-  }
-
-  if (is_sorted) {
-    std::sort(list.begin(), list.end());
-  }
-
-  return list;
+TString GetCurrentDirectory(bool is_clean) {
+  // TODO(m4jr0): Implement custom function.
+  TString current_directory{std::filesystem::current_path().c_str()};
+  Clean(current_directory);
+  return current_directory;
 }
 
-std::vector<std::string> ListAll(const std::filesystem::path& path,
-                                 bool is_sorted) {
-  if (!Exists(path)) {
-    return std::vector<std::string>();
-  }
-
-  std::vector<std::string> list;
-  std::filesystem::directory_iterator end_it;
-
-  for (std::filesystem::directory_iterator it{path}; it != end_it; ++it) {
-    list.push_back(it->path().generic_string());
-  }
-
-  if (is_sorted) {
-    std::sort(list.begin(), list.end());
-  }
-
-  return list;
-}
-
-std::filesystem::path GetCurrentDirectoryAsPath() {
-  return std::filesystem::current_path();
-}
-
-std::string GetCurrentDirectory() {
-  return std::filesystem::current_path().generic_string();
-}
-
-std::string GetDirectoryPath(const std::filesystem::path& path) {
+TString GetDirectoryPath(CTStringView path) {
   const auto is_directory{IsDirectory(path)};
   const auto is_file{IsFile(path)};
 
   if (!is_directory && !is_file) {
-    return "";
+    return TString{};
   }
 
   if (is_directory) {
-    return path.string();
+    TString directory_path{path.GetCTStr()};
+    return directory_path;
   }
 
   return GetParentPath(path);
 }
 
-std::string GetName(std::string_view path) {
-  return std::string{GetNameView(path)};
+TString GetName(CTStringView path) {
+  if (path.GetLength() == 0) {
+    return TString{};
+  }
+
+  uindex offset;
+  // Normalize path to work with slashes (/) only.
+  const auto* normalized_path{internal::GetTmpNormalizedCopy(path)};
+
+  if (IsSlash(path.GetLast())) {
+    offset = GetNthToLastIndexOf(normalized_path, path.GetLength(),
+                                 COMET_TCHAR('/'), 1);
+  } else {
+    offset =
+        GetLastIndexOf(normalized_path, path.GetLength(), COMET_TCHAR('/'));
+  }
+
+  if (offset == kInvalidIndex || offset == path.GetLength() - 1) {
+    return TString{};
+  }
+
+  ++offset;
+  return path.GenerateSubString(offset);
 }
 
-std::string_view GetNameView(std::string_view path) {
-  return path.substr(path.find_last_of('/') + 1, path.size());
-}
+TString GetExtension(CTStringView path, bool is_force_lowercase) {
+  auto offset{GetLastIndexOf(path, path.GetLength(), COMET_TCHAR('.'))};
 
-std::string GetExtension(const std::filesystem::path& path,
-                         bool is_force_lowercase) {
-  auto extension{path.extension().generic_string()};
-  extension.erase(0, 1);
+  if (offset == kInvalidIndex || offset == path.GetLength() - 1) {
+    return TString{};
+  }
+
+  ++offset;
+  TString extension{};
+  extension.Resize(path.GetLength() - offset);
+  GetSubString(extension.GetTStr(), path, path.GetLength(), offset);
+  extension[extension.GetLength()] = COMET_TCHAR('\0');
 
   if (is_force_lowercase) {
-    std::transform(extension.begin(), extension.end(), extension.begin(),
-                   [](u8 c) { return std::tolower(c); });
+    for (uindex i{0}; i < extension.GetLength(); ++i) {
+      extension[i] = ToLower(extension[i]);
+    }
   }
 
   return extension;
 }
 
-void ReplaceExtension(std::string_view extension, std::string& path,
+void ReplaceExtension(CTStringView extension, TString& path,
                       bool is_force_lowercase) {
-  if (path.empty()) {
+  if (path.IsEmpty()) {
     return;
   }
 
-  auto dot_pos{GetLastNthPos(path, '.', 1)};
+  auto dot_pos{path.GetNthToLastIndexOf(COMET_TCHAR('.'), 1)};
 
+  // Case: no extension. New extension will be appended at the end of the path.
   if (dot_pos == kInvalidIndex) {
+    dot_pos = GetLength(path);
+  }
+
+  if (extension.IsEmpty()) {
+    path.Resize(dot_pos);
     return;
   }
 
-  if (extension.empty()) {
-    path.resize(dot_pos);
-    return;
-  }
-
-  auto anchor{dot_pos + 1};
-  std::string_view path_view{path};
-  path_view = path_view.substr(0, anchor);
-  auto new_size{path_view.size() + extension.size()};
-
-  if (new_size != path.size()) {
-    path.resize(new_size);
-  }
+  const auto anchor{dot_pos + 1};
+  path.Resize(anchor + extension.GetLength());
 
   if (is_force_lowercase) {
-    for (uindex i{0}; i < extension.size(); ++i) {
-      path[anchor + i] = std::tolower(extension[i]);
+    for (uindex i{0}; i < extension.GetLength(); ++i) {
+      path[anchor + i] = ToLower(extension[i]);
     }
   } else {
-    for (uindex i{0}; i < extension.size(); ++i) {
+    for (uindex i{0}; i < extension.GetLength(); ++i) {
       path[anchor + i] = extension[i];
     }
   }
 }
 
-std::string ReplaceExtensionToCopy(std::string_view extension,
-                                   std::string_view path,
-                                   bool is_force_lowercase) {
-  std::string copy{path};
-  ReplaceExtension(extension, copy, is_force_lowercase);
-  return copy;
+TString GetNormalizedPath(CTStringView path) {
+  // TODO(m4jr0): Implement custom function.
+  const auto normalized_path{std::filesystem::path{path.GetCTStr()}
+                                 .lexically_normal()
+                                 .generic_string()};
+  return TString{normalized_path.c_str()};
 }
 
-std::string GetNormalizedPath(const std::filesystem::path& path) {
-  return path.lexically_normal().generic_string();
+TString GetAbsolutePath(CTStringView relative_path) {
+  // TODO(m4jr0): Implement custom function.
+  const auto absolute_path{
+      std::filesystem::path{relative_path.GetCTStr()}.generic_string()};
+  TString abs_path{absolute_path.c_str()};
+  return abs_path;
 }
 
-std::string GetAbsolutePath(const std::filesystem::path& relative_path) {
-  return relative_path.generic_string();
+TString GetRelativePath(CTStringView from, CTStringView to) {
+  // TODO(m4jr0): Implement custom function.
+  const auto relative_path_tmp{std::filesystem::path{from.GetCTStr()}
+                                   .lexically_relative(to.GetCTStr())
+                                   .generic_string()};
+
+  TString relative_path{relative_path_tmp.c_str()};
+  return relative_path;
 }
 
-std::string GetRelativePath(const std::filesystem::path& from_path,
-                            const std::filesystem::path& to_path) {
-  return from_path.lexically_relative(to_path).generic_string();
+TString GetRelativePath(CTStringView absolute_path) {
+  return GetRelativePath(absolute_path, GetCurrentDirectory());
 }
 
-std::string GetRelativePath(const std::filesystem::path& absolute_path) {
-  return GetRelativePath(absolute_path,
-                         std::filesystem::path{GetCurrentDirectory()});
-}
-
-std::string GetNativePath(const std::filesystem::path& path) {
-  return path.string();
-}
-
-std::string_view GetParentPathView(std::string_view current_path) {
-  if (current_path.empty()) {
-    return std::string_view{};
+TString GetParentPath(CTStringView current_path) {
+  if (current_path.IsEmpty()) {
+    return TString{};
   }
 
-  uindex index{current_path.size() - 1};
+  uindex cursor{current_path.GetLength() - 1};
 
-  if (index > 0 && current_path[index] == '/') {
-    current_path = current_path.substr(0, index);
-    --index;
+  if (cursor > 0 && IsSlash(current_path[cursor])) {
+    --cursor;
   }
 
-  while (index > 0 && current_path[index] != '/') {
-    --index;
+  while (cursor > 0 && !IsSlash(current_path[cursor])) {
+    --cursor;
   }
 
-  if (index == 0) {
-    if (current_path[0] == '/') {
-      return current_path.substr(0, 1);
+  if (cursor == 0) {
+    TString parent_path{kNativeSlash};
+    return parent_path;
+  }
+
+  TString parent_path{current_path.GetCTStr(),
+                      current_path.GetCTStr() + cursor};
+  Clean(parent_path);
+  return parent_path;
+}
+
+bool IsSlash(tchar c) {
+#ifdef COMET_WINDOWS
+  return c == COMET_TCHAR('/') || c == COMET_TCHAR('\\');
+#else
+  return c == COMET_TCHAR('/');
+#endif  // COMET_WINDOWS
+  return false;
+}
+
+bool IsDirectory(CTStringView path) {
+  if (path.IsEmpty()) {
+    return false;
+  }
+
+#ifdef COMET_WINDOWS
+  auto attributes{GetFileAttributesW(path)};
+  return attributes != 0xFFFFFFFF && attributes & FILE_ATTRIBUTE_DIRECTORY;
+#else
+  struct stat status;
+  return stat(path, &status) != -1 && S_ISDIR(status.st_mode);
+#endif  // COMET_WINDOWS
+}
+
+bool IsFile(CTStringView path) {
+  if (path.IsEmpty()) {
+    return false;
+  }
+
+#ifdef COMET_WINDOWS
+  auto attributes{GetFileAttributesW(path)};
+  return attributes != 0xFFFFFFFF &&
+         (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+#else
+  struct stat status;
+  return stat(path, &status) != -1 && S_ISREG(status.st_mode);
+#endif  // COMET_WINDOWS
+}
+
+bool IsAbsolute(CTStringView path) {
+  if (path.IsEmpty()) {
+    return false;
+  }
+
+#ifdef COMET_WINDOWS
+  // Check for root paths.
+  if (IsSlash(path[0])) {
+    return true;
+  }
+
+  // Check for drive letters.
+  if (path.GetLength() >= 3 && IsAlpha(path[0]) && path[1] == ':' &&
+      IsSlash(path[2])) {
+    return true;
+  }
+
+  // Check for extended paths.
+  if (path.GetLength() >= 4) {
+    tchar tmp[5];
+    Copy(tmp, path, 4);
+    tmp[4] = COMET_TCHAR('\0');
+
+    if (AreStringsEqual(tmp, 4, COMET_TCHAR("\\\\?\\"), 4)) {
+      return true;
+    }
+  }
+
+  // Check for UNC paths.
+  if (path.GetLength() >= 8) {
+    tchar tmp[9];
+    Copy(tmp, path, 8);
+    tmp[8] = COMET_TCHAR('\0');
+
+    if (AreStringsEqual(tmp, 8, COMET_TCHAR("\\\\?\\UNC\\"), 8)) {
+      return true;
+    }
+  }
+
+  return false;
+#else
+  return IsSlash(path[0]);
+#endif  // COMET_WINDOWS
+}
+
+bool IsRelative(CTStringView path) {
+  if (path.IsEmpty()) {
+    return false;
+  }
+
+  return !IsAbsolute(path);
+}
+
+bool Exists(CTStringView path) {
+#ifdef _WIN32
+  struct _stat64i32 status;
+  return _wstat(path.GetCTStr(), &status) == 0;
+#else
+  struct stat status;
+  return stat(path.GetCTStr(), &status) == 0;
+#endif
+}
+
+bool IsEmpty(CTStringView path) {
+  // TODO(m4jr0): Implement custom function.
+  return std::filesystem::is_empty(path.GetCTStr());
+}
+
+void AppendTo(CTStringView to_append, tchar* buff, uindex buff_len,
+              uindex* out_len) {
+  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
+  COMET_ASSERT(buff_len > 0, "Length of buffer provided is 0!");
+
+  if (to_append.GetLength() == 0) {
+    if (out_len != nullptr) {
+      *out_len = buff_len;
     }
 
-    return current_path;
+    return;
   }
 
-  return current_path.substr(0, index);
-}
+  auto buff_offset{GetLength(buff)};
 
-bool IsDirectory(const std::filesystem::path& path) {
-  return std::filesystem::is_directory(path);
-}
-
-bool IsFile(const std::filesystem::path& path) {
-  return std::filesystem::is_regular_file(path);
-}
-
-bool IsAbsolute(const std::filesystem::path& path) {
-  return path.is_absolute();
-}
-
-bool IsRelative(const std::filesystem::path& path) {
-  return path.is_relative();
-}
-
-bool Exists(const std::filesystem::path& path) {
-  return std::filesystem::exists(path);
-}
-
-bool IsEmpty(const std::filesystem::path& path) {
-  return std::filesystem::is_empty(path);
-}
-
-std::string Append(std::string_view path_a, std::string_view path_b) {
-  // Error cases: empty strings.
-  if (path_a.empty()) {
-    if (path_b.empty()) {
-      return std::string{};
-    }
-
-    return std::string{path_b};
+  if (!IsSlash(buff[buff_offset]) && !IsSlash(to_append[0])) {
+    buff[buff_offset++] = kNativeSlash;
+  } else if (IsSlash(buff[buff_offset]) && IsSlash(to_append[0])) {
+    --buff_offset;
   }
 
-  auto anchor{GetLastNonCharacterIndex(path_a, '/')};
+  const auto new_len{buff_offset + to_append.GetLength()};
+  COMET_ASSERT(buff_len > new_len,
+               "Length of buffer provided is too small: ", buff_len,
+               " <= ", new_len, "!");
+  Copy(buff, to_append, to_append.GetLength(), buff_offset);
+  buff[new_len] = COMET_TCHAR('\0');
 
-  // Case: first character of path_a is /.
-  if (anchor == kInvalidIndex) {
-    anchor = 0;
+  if (out_len != nullptr) {
+    *out_len = new_len;
   }
+}
 
-  path_a = path_a.substr(0, anchor + 1);
-  anchor = GetFirstDifferentCharacterIndex(path_b, '/');
+void Append(CTStringView path_a, CTStringView path_b, tchar* buff,
+            uindex buff_len, uindex* out_len) {
+  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
+  const auto path_a_len{path_a.GetLength()};
+  COMET_ASSERT(buff_len > path_a_len,
+               "Length of buffer provided is too small: ", buff_len,
+               " <= ", path_a_len, "!");
 
-  // Case: path_b is root.
-  if (anchor == kInvalidIndex) {
-    // Return copy of path_a without trailing /.
-    return std::string{path_a};
-  }
+  Copy(buff, path_a, path_a_len);
+  buff[path_a_len] = COMET_TCHAR('\0');
+  AppendTo(path_b, buff, buff_len, out_len);
+}
 
-  path_b = path_b.substr(anchor, path_b.size() - anchor);
-  std::string path{};
-
-  // Add 1 extra for added /.
-  path.resize(path_a.size() + path_b.size() + 1);
-  uindex path_index{0};
-
-  for (uindex i{0}; i < path_a.size(); ++i) {
-    path[path_index++] = path_a[i];
-  }
-
-  path[path_index++] = '/';
-
-  for (uindex i{0}; i < path_b.size(); ++i) {
-    path[path_index++] = path_b[i];
-  }
-
+TString Append(CTStringView path_a, CTStringView path_b) {
+  TString path{};
+  // Worst case: path_a and path_b don't contain a trailing/forwarding
+  // (respectively) slash, so we need to add 1 character to store it.
+  path.Reserve(path_a.GetLength() + path_b.GetLength() + 1);
+  path = path_a;
+  uindex path_len;
+  AppendTo(path_b, path.GetTStr(), path.GetCapacity() + 1, &path_len);
+  path.Resize(path_len);
   return path;
 }
 
-void RemoveTrailingSlashes(std::string& str) {
-  str.erase(std::find_if(str.rbegin(), str.rend(),
-                         [](schar character) { return character != '/'; })
-                .base(),
-            str.end());
+void RemoveTrailingSlashes(TString& str) {
+  if (str.GetLength() == 0) {
+    return;
+  }
+
+  uindex i{str.GetLength() - 1};
+
+  while (IsSlash(str[i]) && i != kInvalidIndex) {
+    --i;
+  }
+
+  if (i >= str.GetLength() - 1) {
+    return;
+  }
+
+  str.Resize(i + 1);
 }
 
-void RemoveLeadingSlashes(std::string& str) {
-  str.erase(str.begin(),
-            std::find_if(str.begin(), str.end(),
-                         [](schar character) { return character != '/'; }));
-}
-
-f64 GetLastModificationTime(const schar* path) {
+f64 GetLastModificationTime(CTStringView path) {
   if (!Exists(path)) {
     return -1;
   }
 
-  struct stat result {};
+#ifdef COMET_WINDOWS
+  struct _stat64i32 status;
 
-  if (stat(path, &result) == 0) {
-    return result.st_mtime * 1000;
+  if (_wstat(path.GetCTStr(), &status) == 0) {
+    return status.st_mtime * 1000;
   }
+#else
+  struct stat status;
+
+  if (stat(path.GetCTStr(), &status) == 0) {
+    return status.st_mtime * 1000;
+  }
+#endif  // COMET_WINDOWS
 
   return -1;
 }
 
-f64 GetLastModificationTime(const std::string& path) {
-  return GetLastModificationTime(path.c_str());
-}
+void GetChecksum(CTStringView path, schar* checksum, uindex checksum_len) {
+  COMET_ASSERT(checksum_len > kSha256DigestSize,
+               "Length of checksum provided should be at least ",
+               (kSha256DigestSize + 1), " bytes!");
 
-std::string GetChecksum(std::string_view path) {
   if (!IsFile(path)) {
-    return "";
+    checksum[0] = '\0';
+    return;
   }
 
-  auto file{std::ifstream(path.data(), std::ios::binary)};
-  return HashSha256(file);
+  auto file{std::ifstream(path, std::ios::binary)};
+  HashSha256(file, checksum, checksum_len);
+  checksum[kSha256DigestSize] = COMET_TCHAR('\0');
+}
+
+void Normalize(tchar* str, uindex len) {
+#ifdef COMET_WINDOWS
+  for (uindex i{0}; i < len; ++i) {
+    tchar c{str[i]};
+
+    if (str[i] == COMET_TCHAR('\\')) {
+      str[i] = COMET_TCHAR('/');
+    }
+  }
+#else
+  return;
+#endif  // COMET_WINDOWS
+}
+
+void Normalize(tchar* str) { return Normalize(str, GetLength(str)); }
+
+void Normalize(TString& str) {
+  return Normalize(str.GetTStr(), str.GetLength());
+}
+
+void MakeNative(tchar* str, uindex len) {
+#ifdef COMET_WINDOWS
+  for (uindex i{0}; i < len; ++i) {
+    tchar c{str[i]};
+
+    if (str[i] == COMET_TCHAR('/')) {
+      str[i] = COMET_TCHAR('\\');
+    }
+  }
+#else
+  return;
+#endif  // COMET_WINDOWS
+}
+
+void MakeNative(tchar* str) { return MakeNative(str, GetLength(str)); }
+
+void MakeNative(TString& str) {
+  return MakeNative(str.GetTStr(), str.GetLength());
+}
+
+void Clean(tchar* str, uindex len) {
+#ifdef COMET_NORMALIZE_PATHS
+  Normalize(str, len);
+#else
+  MakeNative(str, len);
+#endif  // COMET_NORMALIZE_PATHS
+}
+
+void Clean(tchar* str) { return Clean(str, GetLength(str)); }
+void Clean(TString& str) { return Clean(str.GetTStr(), str.GetLength()); }
+
+const tchar* GetTmpTChar(const schar* str, uindex len) {
+#ifdef COMET_WIDE_TCHAR
+  auto* tmp{GenerateForOneFrame<tchar>(len + 1)};
+  Copy(tmp, str, len);
+  tmp[len] = COMET_TCHAR('\0');
+  return tmp;
+#else
+  return str;
+#endif  // COMET_WIDE_TCHAR
+}
+
+const tchar* GetTmpTChar(const schar* str) {
+  return GetTmpTChar(str, GetLength(str));
+}
+
+const tchar* GetTmpTChar(const wchar* str, uindex len) {
+#ifdef COMET_WIDE_TCHAR
+  return str;
+#else
+  auto* tmp{GenerateForOneFrame<tchar>(len + 1)};
+  Copy(tmp, str, len);
+  tmp[len] = COMET_TCHAR('\0');
+  return tmp;
+#endif  // COMET_WIDE_TCHAR
+}
+
+const tchar* GetTmpTChar(const wchar* str) {
+  return GetTmpTChar(str, GetLength(str));
+}
+
+uindex GetSize(CTStringView path) {
+#ifdef COMET_WINDOWS
+  WIN32_FILE_ATTRIBUTE_DATA status;
+
+  if (GetFileAttributesExW(path.GetCTStr(), GetFileExInfoStandard, &status)) {
+    ULARGE_INTEGER size;
+    size.LowPart = status.nFileSizeLow;
+    size.HighPart = status.nFileSizeHigh;
+    return static_cast<uindex>(size.QuadPart);
+  }
+
+  return 0;
+#else
+  struct stat status;
+
+  if (stat(path.GetCTStr(), &status) == 0) {
+    return static_cast<uindex>(status.st_size);
+  }
+
+  return 0;
+#endif  // COMET_WINDOWS
 }
 }  // namespace comet

@@ -4,6 +4,8 @@
 
 #include "entity_model_handler.h"
 
+#include "comet/core/type/stl_types.h"
+#include "comet/core/type/tstring.h"
 #include "comet/entity/entity_component.h"
 #include "comet/physics/component/transform_component.h"
 #include "comet/resource/component/mesh_component.h"
@@ -12,11 +14,7 @@
 
 namespace comet {
 namespace entity {
-EntityId ModelHandler::Generate(const std::string& model_path) const {
-  return Generate(model_path.c_str());
-}
-
-EntityId ModelHandler::Generate(const schar* model_path) const {
+EntityId ModelHandler::Generate(CTStringView model_path) const {
   const auto* model{
       resource::ResourceManager::Get().Load<resource::ModelResource>(
           model_path)};
@@ -25,7 +23,7 @@ EntityId ModelHandler::Generate(const schar* model_path) const {
     return kInvalidEntityId;
   }
 
-  auto root_entity_id{EntityComponentGenerator::Get()
+  auto root_entity_id{GetEntityComponentGenerator<one_frame_vector>()
                           .AddComponent(physics::TransformComponent{})
                           .AddComponent(physics::TransformRootComponent{})
                           .Submit()};
@@ -37,7 +35,7 @@ EntityId ModelHandler::Generate(const schar* model_path) const {
   root_transform_cmp->parent_entity_id = root_transform_cmp->root_entity_id =
       root_entity_id;
 
-  std::unordered_map<resource::ResourceId, EntityId> entity_ids{};
+  one_frame_unordered_map<resource::ResourceId, EntityId> entity_ids{};
 
   // TODO(m4jr0): Optimize code to do one big submit at once.
   for (const auto& mesh : model->meshes) {
@@ -56,7 +54,7 @@ EntityId ModelHandler::Generate(const schar* model_path) const {
     transform_cmp.local = mesh.transform;
 
     entity_ids[mesh.internal_id] =
-        EntityComponentGenerator::Get()
+        GetEntityComponentGenerator<one_frame_vector>()
             .AddComponent(mesh_cmp)
             .AddComponent(transform_cmp)
             .AddParent(transform_cmp.parent_entity_id)

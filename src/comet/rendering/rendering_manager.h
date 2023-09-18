@@ -39,6 +39,9 @@ class RenderingManager : public Manager {
   void GenerateOpenGlDriver();
   void GenerateVulkanDriver();
   void GenerateDirect3D12Driver();
+#ifdef COMET_DEBUG
+  void GenerateEmptyDriver();
+#endif  // COMET_DEBUG
   void FillDriverDescr(DriverDescr& descr) const;
   std::vector<RenderingViewDescr> GenerateRenderingViewDescrs() const;
   bool IsFpsCapReached() const;

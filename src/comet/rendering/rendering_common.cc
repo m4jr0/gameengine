@@ -17,11 +17,16 @@ DriverType GetDriverTypeFromStr(std::string_view str) {
   } else if (str == conf::kRenderingDriverDirect3d12) {
     return DriverType::Direct3d12;
   }
+#ifdef COMET_DEBUG
+  else if (str == conf::kRenderingDriverEmpty) {
+    return DriverType::Empty;
+  }
+#endif  // COMET_DEBUG
 
   return DriverType::Unknown;
 }
 
-std::string GetDriverTypeLabel(rendering::DriverType type) {
+const schar* GetDriverTypeLabel(rendering::DriverType type) {
   switch (type) {
     case DriverType::OpenGl:
       return "OpenGL";
@@ -29,6 +34,10 @@ std::string GetDriverTypeLabel(rendering::DriverType type) {
       return "Vulkan";
     case DriverType::Direct3d12:
       return "Direct3D 12";
+#ifdef COMET_DEBUG
+    case DriverType::Empty:
+      return "Empty";
+#endif  // COMET_DEBUG
   }
 
   return "???";
@@ -56,7 +65,7 @@ AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
   return AntiAliasingType::None;
 }
 
-std::string GetTextureTypeLabel(TextureType texture_type) {
+const schar* GetTextureTypeLabel(TextureType texture_type) {
   switch (texture_type) {
     case comet::rendering::TextureType::Unknown:
       return "unknown";
@@ -75,7 +84,7 @@ std::string GetTextureTypeLabel(TextureType texture_type) {
   return "???";
 }
 
-std::string GetTextureFilterModeLabel(TextureFilterMode filter_mode) {
+const schar* GetTextureFilterModeLabel(TextureFilterMode filter_mode) {
   switch (filter_mode) {
     case comet::rendering::TextureFilterMode::Unknown:
       return "unknown";
@@ -88,7 +97,7 @@ std::string GetTextureFilterModeLabel(TextureFilterMode filter_mode) {
   return "???";
 }
 
-std::string GetTextureRepeatModeLabel(TextureRepeatMode repeat_mode) {
+const schar* GetTextureRepeatModeLabel(TextureRepeatMode repeat_mode) {
   switch (repeat_mode) {
     case comet::rendering::TextureRepeatMode::Unknown:
       return "unknown";
@@ -245,6 +254,35 @@ Alignment GetStd430Alignment(ShaderUniformType type) {
   }
 
   return kInvalidAlignment;
+}
+
+void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
+             uindex name_len) {
+  descr.name_len = name_len;
+
+  if (descr.name_len >= kVertexAttributeDescrMaxNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Vertex attribute name provided is too long: ", descr.name_len,
+        " >= ", kVertexAttributeDescrMaxNameLen, ". It will be truncated.");
+    descr.name_len = static_cast<uindex>(kVertexAttributeDescrMaxNameLen - 1);
+  }
+
+  Copy(descr.name, name, descr.name_len);
+  descr.name[descr.name_len + 1] = '\0';
+}
+
+void SetName(ShaderUniformDescr& descr, const schar* name, uindex name_len) {
+  descr.name_len = name_len;
+
+  if (descr.name_len >= kShaderUniformDescrMaxNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Shader uniform name provided is too long: ", descr.name_len,
+        " >= ", kShaderUniformDescrMaxNameLen, ". It will be truncated.");
+    descr.name_len = static_cast<uindex>(kShaderUniformDescrMaxNameLen - 1);
+  }
+
+  Copy(descr.name, name, descr.name_len);
+  descr.name[descr.name_len + 1] = '\0';
 }
 
 void GenerateGeometry(const math::Aabb& aabb, std::vector<Vertex>& vertices,

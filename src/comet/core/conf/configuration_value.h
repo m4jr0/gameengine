@@ -13,6 +13,10 @@ namespace comet {
 namespace conf {
 using ConfKey = stringid::StringId;
 
+constexpr auto kMaxKeyLength{64};
+constexpr auto kMaxValueLength{256};
+constexpr auto kMaxLineLength{512};
+
 // Possible entries.
 // Application. //////////////////////////////////////////////////////////
 static const ConfKey kApplicationName{COMET_STRING_ID("application_name")};
@@ -25,6 +29,12 @@ static const ConfKey kApplicationPatchVersion{
 
 // Core. /////////////////////////////////////////////////////////////////
 static const ConfKey kCoreMsPerUpdate{COMET_STRING_ID("core_ms_per_update")};
+static const ConfKey kCoreOneFrameAllocatorCapacity{
+    COMET_STRING_ID("core_one_frame_allocator_capacity")};
+static const ConfKey kCoreTwoFrameAllocatorCapacity{
+    COMET_STRING_ID("core_two_frame_allocator_capacity")};
+static const ConfKey kCoreTStringAllocatorCapacity{
+    COMET_STRING_ID("core_tstring_allocator_capacity")};
 
 // Event. ////////////////////////////////////////////////////////////////
 static const ConfKey kEventMaxQueueSize{
@@ -90,31 +100,36 @@ static const ConfKey kRenderingVulkanMaxFramesInFlight{
 // Direct3D 12.
 static constexpr auto kRenderingDriverDirect3d12{"direct3d12"sv};
 
+// Other.
+#ifdef COMET_DEBUG
+static constexpr auto kRenderingDriverEmpty{"empty"sv};
+#endif  // COMET_DEBUG
+
 // Resource. /////////////////////////////////////////////////////////////
 static const ConfKey kResourceRootPath{COMET_STRING_ID("resource_root_path")};
 
 constexpr u16 kMaxStrValueLength{260};
 
 union ConfValue {
-  schar str[kMaxStrValueLength];
-  u8 ubyte;
-  u16 ushort;
-  u32 u;
-  u64 ulong;
-  s8 sbyte;
-  s16 sshort;
-  s32 s;
-  s64 slong;
-  f32 f;
-  f64 flong;
-  uindex index;
-  ux uarch;
-  sx sarch;
-  fx farch;
-  bool flag;
+  schar str_value[kMaxStrValueLength];
+  wchar wstr_value[kMaxStrValueLength * sizeof(wchar)];
+  u8 u8_value;
+  u16 u16_value;
+  u32 u32_value;
+  u64 u64_value;
+  s8 s8_value;
+  s16 s16_value;
+  s32 s32_value;
+  s64 s64_value;
+  f32 f32_value;
+  f64 f64_value;
+  uindex uindex_value;
+  ux ux_value;
+  sx sx_value;
+  fx fx_value;
+  bool bool_value;
 };
 
-ConfValue GetDefaultValue(const std::string& key);
 ConfValue GetDefaultValue(const schar* key);
 ConfValue GetDefaultValue(ConfKey key);
 }  // namespace conf

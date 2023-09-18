@@ -21,9 +21,10 @@ ResourceManager& ResourceManager::Get() {
 
 void ResourceManager::Initialize() {
   Manager::Initialize();
-  root_resource_path_ =
-      Append(GetCurrentDirectory(), COMET_CONF_STR(conf::kResourceRootPath));
-
+  root_resource_path_.Reserve(conf::kMaxStrValueLength);
+  root_resource_path_ = COMET_CONF_TSTR(conf::kResourceRootPath);
+  COMET_DISALLOW_STR_ALLOC(root_resource_path_);
+  Clean(root_resource_path_);
   InitializeResourcesDirectory();
 
   AddHandler<MaterialHandler>(MaterialResource::kResourceTypeId);
@@ -34,7 +35,7 @@ void ResourceManager::Initialize() {
 }
 
 void ResourceManager::Shutdown() {
-  root_resource_path_.clear();
+  root_resource_path_.Clear();
   handlers_.clear();
   Manager::Shutdown();
 }
@@ -45,7 +46,7 @@ void ResourceManager::InitializeResourcesDirectory() {
   }
 }
 
-const std::string& ResourceManager::GetRootResourcePath() {
+const TString& ResourceManager::GetRootResourcePath() {
   return root_resource_path_;
 }
 }  // namespace resource

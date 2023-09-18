@@ -14,8 +14,11 @@ namespace rendering {
 struct WindowDescr {
   WindowSize width{1280};
   WindowSize height{720};
-  std::string name{"Comet Game Engine"};
+  schar name[kMaxWindowNameLen]{"Comet Game Engine"};
+  uindex name_len{0};
 };
+
+void SetName(WindowDescr& descr, const schar* name, uindex name_len);
 
 class Window {
  public:
@@ -33,7 +36,7 @@ class Window {
   virtual void SetSize(WindowSize width, WindowSize height) = 0;
 
   bool IsInitialized() const noexcept;
-  virtual const std::string& GetName() const noexcept;
+  virtual const schar* GetName() const noexcept;
   virtual const WindowSize GetWidth() const noexcept;
   virtual const WindowSize GetHeight() const noexcept;
 
@@ -41,7 +44,8 @@ class Window {
   bool is_initialized_{false};
   WindowSize width_{0};
   WindowSize height_{0};
-  std::string name_{};
+  schar name_[kMaxWindowNameLen]{'\0'};
+  uindex name_len_{0};
 };
 }  // namespace rendering
 }  // namespace comet

@@ -4,6 +4,8 @@
 
 #include "texture_resource.h"
 
+#include "comet/core/memory/memory.h"
+
 namespace comet {
 namespace resource {
 const ResourceTypeId TextureResource::kResourceTypeId{
@@ -207,13 +209,13 @@ ResourceFile TextureHandler::Pack(const Resource& resource,
   uindex cursor{0};
   auto* buffer{data.data()};
 
-  std::memcpy(&buffer[cursor], &texture.id, kResourceIdSize);
+  CopyMemory(&buffer[cursor], &texture.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&buffer[cursor], &texture.type_id, kResourceTypeIdSize);
+  CopyMemory(&buffer[cursor], &texture.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  std::memcpy(&buffer[cursor], texture.data.data(), data_size);
+  CopyMemory(&buffer[cursor], texture.data.data(), data_size);
   cursor += data_size;
 
   PackPodResourceDescr(texture.descr, file);
@@ -234,14 +236,14 @@ std::unique_ptr<Resource> TextureHandler::Unpack(
   const auto data_size{sizeof(u8) * data.size() - kResourceIdSize -
                        kResourceTypeIdSize};
 
-  std::memcpy(&texture.id, &buffer[cursor], kResourceIdSize);
+  CopyMemory(&texture.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&texture.type_id, &buffer[cursor], kResourceTypeIdSize);
+  CopyMemory(&texture.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   texture.data.resize(data_size);
-  std::memcpy(texture.data.data(), &buffer[cursor], data_size);
+  CopyMemory(texture.data.data(), &buffer[cursor], data_size);
   cursor += data_size;
 
   return std::make_unique<TextureResource>(std::move(texture));

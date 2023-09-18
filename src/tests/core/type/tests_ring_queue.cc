@@ -4,14 +4,14 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/type/structure/exception.h"
-#include "comet/core/type/structure/ring_queue.h"
+#include "comet/core/type/exception.h"
+#include "comet/core/type/ring_queue.h"
 
 #include "catch.hpp"
 
 #include "tests/dummies/dummy_object.h"
 
-TEST_CASE("Ring queue creation with specific capacity", "[comet::structure]") {
+TEST_CASE("Ring queue creation with specific capacity", "[comet]") {
   const comet::uindex capacity{15};
 
   auto queue{comet::ring_queue<std::unique_ptr<comet::comettests::DummyObject>>(
@@ -23,7 +23,7 @@ TEST_CASE("Ring queue creation with specific capacity", "[comet::structure]") {
   }
 }
 
-TEST_CASE("Ring queue push operations in single thread", "[comet::structure]") {
+TEST_CASE("Ring queue push operations in single thread", "[comet]") {
   const comet::uindex capacity{15};
 
   SECTION("Properties after pushing one element.") {
@@ -89,8 +89,7 @@ TEST_CASE("Ring queue push operations in single thread", "[comet::structure]") {
   }
 }
 
-TEST_CASE("Ring queue front & pop operations in single thread",
-          "[comet::structure]") {
+TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
   const comet::uindex capacity{15};
 
   SECTION("Properties after front/pop operations on one element.") {
@@ -184,8 +183,7 @@ TEST_CASE("Ring queue front & pop operations in single thread",
   }
 }
 
-TEST_CASE("Thread-safe ring queue creation with specific capacity",
-          "[comet::structure]") {
+TEST_CASE("Thread-safe ring queue creation with specific capacity", "[comet]") {
   const comet::uindex capacity{15};
 
   auto queue{comet::concurrent_ring_queue<
@@ -198,7 +196,7 @@ TEST_CASE("Thread-safe ring queue creation with specific capacity",
 }
 
 TEST_CASE("Thread-safe ring queue push operations in single thread",
-          "[comet::structure]") {
+          "[comet]") {
   const comet::uindex capacity{15};
 
   SECTION("Properties after pushing one element.") {
@@ -263,7 +261,7 @@ TEST_CASE("Thread-safe ring queue push operations in single thread",
 }
 
 TEST_CASE("Thread-safe ring queue front & pop operations in single thread",
-          "[comet::structure]") {
+          "[comet]") {
   const comet::uindex capacity{15};
 
   SECTION("Properties after front/pop operations on one element.") {
@@ -355,7 +353,7 @@ TEST_CASE("Thread-safe ring queue front & pop operations in single thread",
 }
 
 TEST_CASE("Thread-safe ring queue push operations in multiple threads",
-          "[comet::structure]") {
+          "[comet]") {
   const comet::uindex capacity{15};
   SECTION("Usage in threads: push operations.") {
     comet::uindex thread_number{5};
@@ -395,7 +393,7 @@ TEST_CASE("Thread-safe ring queue push operations in multiple threads",
 }
 
 TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
-          "[comet::structure]") {
+          "[comet]") {
   SECTION("Usage in threads: front/pop operations.") {
     comet::uindex thread_number{5};
     auto queue{comet::concurrent_ring_queue<

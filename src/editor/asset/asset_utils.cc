@@ -11,55 +11,56 @@
 namespace comet {
 namespace editor {
 namespace asset {
-std::string GetAssetMetadataFilePath(std::string_view asset_file_path) {
-  if (asset_file_path.empty()) {
-    return std::string{};
+TString GenerateAssetMetadataFilePath(CTStringView asset_file_path) {
+  if (IsEmpty(asset_file_path)) {
+    return {};
   }
 
-  auto asset_file_path_size{asset_file_path.size()};
-  auto extension_size{kCometEditorAssetMetadataFileExtension.size()};
+  auto extension_size{kCometEditorAssetMetadataFileExtension.GetLength()};
 
-  std::string metadata_file_path{};
   // + 1 to add the dot.
-  metadata_file_path.resize(asset_file_path_size + extension_size + 1);
+  auto total_len{asset_file_path.GetLength() +
+                 kCometEditorAssetMetadataFileExtension.GetLength() + 1};
+  TString path{};
+  path.Resize(total_len);
+  COMET_DISALLOW_STR_ALLOC(path);
 
-  for (uindex i{0}; i < asset_file_path_size; ++i) {
-    metadata_file_path[i] = asset_file_path[i];
+  for (uindex i{0}; i < asset_file_path.GetLength(); ++i) {
+    path[i] = asset_file_path[i];
   }
 
-  metadata_file_path[asset_file_path_size] = '.';
+  path[asset_file_path.GetLength()] = COMET_TCHAR('.');
 
-  for (uindex i{0}; i < extension_size; ++i) {
-    metadata_file_path[i + asset_file_path_size + 1] =
+  for (uindex i{0}; i < kCometEditorAssetMetadataFileExtension.GetLength();
+       ++i) {
+    path[i + asset_file_path.GetLength() + 1] =
         kCometEditorAssetMetadataFileExtension[i];
   }
 
-  return metadata_file_path;
+  return path;
 }
 
-void SaveMetadata(const schar* metadata_file_path,
+void SaveMetadata(CTStringView metadata_file_path,
                   const nlohmann::json& metadata) {
-  WriteStrToFile(metadata_file_path,
-                 metadata.dump(kCometEditorAssetMetadataIndent));
+  auto str_dump{metadata.dump(kCometEditorAssetMetadataIndent)};
+  WriteStrToFile(metadata_file_path, str_dump.c_str());
 }
 
-void SaveMetadata(const std::string& metadata_file_path,
-                  const nlohmann::json& metadata) {
-  return SaveMetadata(metadata_file_path.c_str(), metadata);
-}
-
-nlohmann::json GetMetadata(const schar* metadata_file_path) {
+nlohmann::json GetMetadata(CTStringView metadata_file_path) {
   if (!IsFile(metadata_file_path)) {
     // We have to use () here, with {} the wrong type (array) is set.
     return nlohmann::json(nlohmann::json::value_t::object);
   }
 
-  std::string metadata_raw;
+  constexpr auto kMaxMetadataRaw{4096};
+  schar metadata_raw[kMaxMetadataRaw];
 
   try {
-    ReadStrFromFile(metadata_file_path, metadata_raw);
+    uindex metadata_raw_len;
+    ReadStrFromFile(metadata_file_path, metadata_raw, kMaxMetadataRaw,
+                    &metadata_raw_len);
 
-    if (metadata_raw.size() == 0) {
+    if (metadata_raw_len == 0) {
       // Same here.
       return nlohmann::json(nlohmann::json::value_t::object);
     }
@@ -74,15 +75,10 @@ nlohmann::json GetMetadata(const schar* metadata_file_path) {
   return nlohmann::json(nlohmann::json::value_t::object);
 }
 
-nlohmann::json GetMetadata(const std::string& metadata_file_path) {
-  return GetMetadata(metadata_file_path.c_str());
-}
-
-nlohmann::json SetAndGetMetadata(const schar* metadata_file_path) {
+nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path) {
   // We must use assignment here to prevent a bug with GCC where the generated
   // type is an array (which is wrong).
   auto metadata = GetMetadata(metadata_file_path);
-  const auto comet_version{version::GetFormattedVersion()};
   const auto update_time{GetNow()};
   f64 creation_time{0};
   uindex file_version{0};
@@ -101,21 +97,23 @@ nlohmann::json SetAndGetMetadata(const schar* metadata_file_path) {
   metadata[kCometEditorAssetMetadataKeyCreationTime] = creation_time;
   metadata[kCometEditorAssetMetadataKeyUpdateTime] = update_time;
   metadata[kCometEditorAssetMetadataKeyVersion] = file_version + 1;
-  metadata[kCometEditorAssetCometVersion] = comet_version;
+  metadata[kCometEditorAssetCometVersion] = version::kCometVersionStr;
 
   return metadata;
 }
 
-nlohmann::json SetAndGetMetadata(const std::string& metadata_file_path) {
-  return SetAndGetMetadata(metadata_file_path.c_str());
-}
-
-bool IsMetadataFile(const std::string& file_path) {
-  return IsMetadataFile(file_path.c_str());
-}
-
-bool IsMetadataFile(const schar* file_path) {
+bool IsMetadataFile(CTStringView file_path) {
   return GetExtension(file_path) == kCometEditorAssetMetadataFileExtension;
+}
+
+TString GenerateResourcePath(CTStringView folder_path,
+                             resource::ResourceId resource_id) {
+  // The ID will be 10 characters max.
+  tchar resource_id_path[11];
+  uindex resource_id_path_len;
+  ConvertToStr(resource_id, resource_id_path, 10, &resource_id_path_len);
+  resource_id_path[10] = COMET_TCHAR('\0');
+  return folder_path / resource_id_path;
 }
 }  // namespace asset
 }  // namespace editor

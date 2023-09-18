@@ -4,6 +4,7 @@
 
 #include "vulkan_texture_handler.h"
 
+#include "comet/math/math_commons.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
@@ -164,8 +165,8 @@ void TextureHandler::Destroy(Texture& texture, bool is_destroying_handler) {
 }
 
 u32 TextureHandler::GetMipLevels(const resource::TextureResource* resource) {
-  return static_cast<u32>(std::floor(std::log2(std::max(
-             resource->descr.resolution[0], resource->descr.resolution[1])))) +
+  return static_cast<u32>(math::Log2(math::Max(
+             resource->descr.resolution[0], resource->descr.resolution[1]))) +
          1;
 }
 

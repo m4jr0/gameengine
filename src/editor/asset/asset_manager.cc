@@ -6,7 +6,9 @@
 
 #include "nlohmann/json.hpp"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/file_system.h"
+#include "comet/core/generator.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/asset_utils.h"
@@ -23,25 +25,36 @@ AssetManager& AssetManager::Get() {
   return singleton;
 }
 
-AssetManager::AssetManager()
-    : Manager{},
-      root_asset_path_{Append(GetCurrentDirectory(), "assets")},
-      library_meta_path_{Append(
-          root_asset_path_,
-          "library." + std::string(kCometEditorAssetMetadataFileExtension))} {}
+AssetManager::AssetManager() : Manager{} {
+  root_asset_path_ = GetCurrentDirectory();
+  root_asset_path_ /= COMET_TCHAR("assets");
+  COMET_DISALLOW_STR_ALLOC(root_asset_path_);
+  Clean(root_asset_path_);
+
+  constexpr auto library_suffix_len{
+      8 + kCometEditorAssetMetadataFileExtension.GetLength()};
+
+  // Add 1 for the separating slash, if needed.
+  library_meta_path_.Reserve(
+      root_asset_path_.GetLength() + 8 +
+      kCometEditorAssetMetadataFileExtension.GetLength() + 1);
+  COMET_DISALLOW_STR_ALLOC(library_meta_path_);
+  library_meta_path_ = root_asset_path_;
+  library_meta_path_ /= COMET_TCHAR("library.");
+  library_meta_path_ += kCometEditorAssetMetadataFileExtension;
+  Clean(library_meta_path_);
+}
 
 void AssetManager::Initialize() {
   Manager::Initialize();
   RefreshLibraryMetadataFile();
 
   root_resource_path_ = resource::ResourceManager::Get().GetRootResourcePath();
+  COMET_DISALLOW_STR_ALLOC(root_resource_path_);
 
   exporters_.push_back(std::make_unique<ModelExporter>());
-
   exporters_.push_back(std::make_unique<ShaderExporter>());
-
   exporters_.push_back(std::make_unique<ShaderModuleExporter>());
-
   exporters_.push_back(std::make_unique<TextureExporter>());
 
   for (const auto& exporter : exporters_) {
@@ -59,16 +72,16 @@ void AssetManager::RefreshLibraryMetadataFile() {
 void AssetManager::Shutdown() {
   is_force_refresh_ = false;
   last_update_time_ = 0;
-  root_asset_path_.clear();
-  root_resource_path_.clear();
-  library_meta_path_.clear();
+  root_asset_path_.Clear();
+  root_resource_path_.Clear();
+  library_meta_path_.Clear();
   exporters_.clear();
   Manager::Shutdown();
 }
 
 void AssetManager::Refresh() { Refresh(root_asset_path_); }
 
-void AssetManager::Refresh(const schar* asset_abs_path) {
+void AssetManager::Refresh(CTStringView asset_abs_path) {
   if (IsDirectory(asset_abs_path)) {
     RefreshFolder(asset_abs_path);
   } else if (IsFile(asset_abs_path)) {
@@ -81,52 +94,51 @@ void AssetManager::Refresh(const schar* asset_abs_path) {
   RefreshLibraryMetadataFile();
 }
 
-void AssetManager::Refresh(const std::string& asset_abs_path) {
-  Refresh(asset_abs_path.c_str());
-}
-
-const std::string& AssetManager::GetAssetsRootPath() const noexcept {
+const TString& AssetManager::GetAssetsRootPath() const noexcept {
   return root_asset_path_;
 }
 
-const std::string& AssetManager::GetResourcesRootPath() const noexcept {
+const TString& AssetManager::GetResourcesRootPath() const noexcept {
   return root_resource_path_;
 }
 
-void AssetManager::RefreshFolder(std::string_view asset_abs_path) {
-  const auto folder_name{GetNameView(asset_abs_path)};
-  std::string metadata_file_path{};
-  metadata_file_path.reserve(
-      folder_name.size() + kCometEditorAssetFolderMetadataFileExtension.size());
-  std::memcpy(metadata_file_path.data(), folder_name.data(),
-              folder_name.size());
-  std::memcpy(metadata_file_path.data() + folder_name.size(),
-              kCometEditorAssetFolderMetadataFileExtension.data(),
-              kCometEditorAssetFolderMetadataFileExtension.size());
+void AssetManager::RefreshFolder(CTStringView asset_abs_path) {
+  auto parent_path{GetParentPath(asset_abs_path)};
+  auto folder_name{GetName(asset_abs_path)};
 
-  metadata_file_path =
-      Append(GetParentPath(asset_abs_path), std::move(metadata_file_path));
+  if (folder_name.IsEmpty()) {
+    COMET_LOG_GLOBAL_ERROR(
+        "Empty folder name retrieved from path: ", asset_abs_path, "!");
+    return;
+  }
+
+  // Add 1 for separating slash (if necessary).
+  TString metadata_file_path{};
+  metadata_file_path.Reserve(
+      parent_path.GetLength() + folder_name.GetLength() + 1 +
+      kCometEditorAssetFolderMetadataFileExtension.GetLength());
+  COMET_DISALLOW_STR_ALLOC(metadata_file_path);
+  metadata_file_path = parent_path;
+  metadata_file_path /= folder_name;  // No allocation.
+  metadata_file_path +=
+      kCometEditorAssetFolderMetadataFileExtension;  // No allocation.
 
   if (asset_abs_path != root_asset_path_) {
     SetAndGetMetadata(metadata_file_path);
   }
 
-  const auto folders{ListDirectories(asset_abs_path)};
+  ForEachDirectory(asset_abs_path, [&](CTStringView directory_path) {
+    RefreshFolder(directory_path);
+  });
 
-  for (const auto& folder : folders) {
-    RefreshFolder(folder);
-  }
-
-  const auto assets{ListFiles(asset_abs_path)};
-
-  for (const auto& asset : assets) {
-    RefreshAsset(asset);
-  }
+  ForEachFile(asset_abs_path,
+              [&](CTStringView file_path) { RefreshAsset(file_path); });
 }
 
-void AssetManager::RefreshAsset(const schar* asset_abs_path) {
-  if (!IsRefreshNeeded(asset_abs_path,
-                       GetAssetMetadataFilePath(asset_abs_path))) {
+void AssetManager::RefreshAsset(CTStringView asset_abs_path) {
+  auto asset_metadata_file_path{GenerateAssetMetadataFilePath(asset_abs_path)};
+
+  if (!IsRefreshNeeded(asset_abs_path, asset_metadata_file_path)) {
     return;
   }
 
@@ -141,22 +153,17 @@ void AssetManager::RefreshAsset(const schar* asset_abs_path) {
   }
 }
 
-void AssetManager::RefreshAsset(const std::string& asset_abs_path) {
-  return RefreshAsset(asset_abs_path.c_str());
-}
-
-bool AssetManager::IsRefreshNeeded(const schar* asset_abs_path,
-                                   const schar* metadata_file_path) const {
+bool AssetManager::IsRefreshNeeded(CTStringView asset_abs_path,
+                                   CTStringView metadata_file_path) const {
   if (is_force_refresh_ || asset_abs_path == root_asset_path_ ||
       !Exists(metadata_file_path)) {
     return true;
   }
 
-  const auto asset_path{GetRelativePath(asset_abs_path, root_asset_path_)};
+  const auto resource_id{resource::GenerateResourceIdFromPath(
+      GetRelativePath(asset_abs_path, root_asset_path_))};
 
-  const auto resource_id{resource::GenerateResourceIdFromPath(asset_path)};
-
-  if (!Exists(Append(root_resource_path_, std::to_string(resource_id)))) {
+  if (!Exists(GenerateResourcePath(root_resource_path_, resource_id))) {
     return true;
   }
 
@@ -167,26 +174,9 @@ bool AssetManager::IsRefreshNeeded(const schar* asset_abs_path,
   const auto update_time{existing_metadata.value(
       kCometEditorAssetMetadataKeyUpdateTime, static_cast<f64>(-1))};
 
-  const auto modification_time{
-      GetLastModificationTime(std::string{asset_abs_path})};
+  const auto modification_time{GetLastModificationTime(asset_abs_path)};
 
   return update_time <= modification_time;
-}
-
-bool AssetManager::IsRefreshNeeded(
-    const schar* asset_abs_path, const std::string& metadata_file_path) const {
-  return IsRefreshNeeded(asset_abs_path, metadata_file_path.c_str());
-}
-
-bool AssetManager::IsRefreshNeeded(const std::string& asset_abs_path,
-                                   const schar* metadata_file_path) const {
-  return IsRefreshNeeded(asset_abs_path.c_str(), metadata_file_path);
-}
-
-bool AssetManager::IsRefreshNeeded(
-    const std::string& asset_abs_path,
-    const std::string& metadata_file_path) const {
-  return IsRefreshNeeded(asset_abs_path.c_str(), metadata_file_path);
 }
 }  // namespace asset
 }  // namespace editor

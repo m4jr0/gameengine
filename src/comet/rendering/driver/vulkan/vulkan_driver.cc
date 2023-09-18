@@ -6,6 +6,7 @@
 
 #include "vulkan_driver.h"
 
+#include "comet/core/c_string.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
 #include "comet/rendering/camera/camera.h"
@@ -29,13 +30,13 @@ VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
   WindowDescr window_descr{};
   window_descr.width = descr.window_width;
   window_descr.height = descr.window_height;
-  window_descr.name = descr.app_name;
+  SetName(window_descr, app_name_, app_name_len_);
   window_ = std::make_unique<VulkanGlfwWindow>(window_descr);
 }
 
 void VulkanDriver::Initialize() {
   Driver::Initialize();
-  COMET_LOG_RENDERING_DEBUG("Initializing  driver.");
+  COMET_LOG_RENDERING_DEBUG("Initializing Vulkan driver.");
   window_->Initialize();
   COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
   InitializeVulkanInstance();
@@ -162,7 +163,7 @@ void VulkanDriver::InitializeVulkanInstance() {
 
   VkApplicationInfo app_info{};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  app_info.pApplicationName = app_name_.c_str();
+  app_info.pApplicationName = app_name_;
   app_info.applicationVersion = VK_MAKE_API_VERSION(
       0, app_major_version_, app_minor_version_, app_patch_version_);
 
@@ -225,7 +226,7 @@ void VulkanDriver::InitializeVulkanInstance() {
     auto is_found{false};
 
     for (const auto& extension : extensions) {
-      if (std::strcmp(required_extension, extension.extensionName) == 0) {
+      if (AreStringsEqual(required_extension, extension.extensionName)) {
         is_found = true;
         break;
       }
@@ -541,7 +542,7 @@ bool VulkanDriver::AreValidationLayersSupported() {
     auto is_layer_found{false};
 
     for (const auto& layer_properties : available_layers) {
-      if (std::strcmp(layer_name, layer_properties.layerName) == 0) {
+      if (AreStringsEqual(layer_name, layer_properties.layerName)) {
         is_layer_found = true;
         break;
       }
@@ -562,20 +563,21 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanValidationMessage(
     VkDebugUtilsMessageTypeFlagsEXT message_type,
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
-  std::string message_type_str;
+  constexpr auto kMessageTypeStrMaxLen{48};
+  schar message_type_str[kMessageTypeStrMaxLen]{'\0'};
 
   switch (message_type) {
     case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
-      message_type_str = "General";
+      Copy(message_type_str, "General", 7);
       break;
     case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
-      message_type_str = "Validation";
+      Copy(message_type_str, "Validation", 10);
       break;
     case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
-      message_type_str = "Performance";
+      Copy(message_type_str, "Performance", 11);
       break;
     default:
-      message_type_str = "???";
+      Copy(message_type_str, "???", 3);
       break;
   }
 

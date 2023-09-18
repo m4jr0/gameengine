@@ -11,36 +11,25 @@ namespace comet {
 namespace comettests {
 class DummyObject {
  public:
-  static constexpr bool kDefaultVerbose_{false};
-
-  DummyObject(s32 value = 0, bool is_verbose = kDefaultVerbose_);
+  DummyObject(s32 value = 0);
   DummyObject(const DummyObject&);
   DummyObject(DummyObject&&) noexcept;
   DummyObject& operator=(const DummyObject&);
   DummyObject& operator=(DummyObject&&) noexcept;
-  ~DummyObject();
+  ~DummyObject() = default;
 
   bool operator==(const DummyObject&) const;
   bool operator!=(const DummyObject&) const;
 
-  std::string ToString() const;
-
   static uindex GetCounter() noexcept;
   uindex GetId() const noexcept;
   s32 GetValue() const noexcept;
-  bool IsVerbose() const noexcept;
-  void IsVerbose(bool) noexcept;
 
  private:
-  void Print(std::string_view message) const;
-
   static uindex counter_;
   u64 id_{0};
   s32 value_{0};
-  bool is_verbose_{false};
 };
-
-std::ostream& operator<<(std::ostream&, const DummyObject&);
 }  // namespace comettests
 }  // namespace comet
 

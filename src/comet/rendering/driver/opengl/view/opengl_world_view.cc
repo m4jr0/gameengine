@@ -17,7 +17,9 @@ void WorldView::Initialize() {
   View::Initialize();
 
   ShaderDescr shader_descr{};
-  shader_descr.resource_path = "shaders/opengl/default_shader.gl.cshader";
+  shader_descr.resource_path =
+      COMET_TCHAR("shaders/opengl/default_shader.gl.cshader");
+  COMET_DISALLOW_STR_ALLOC(shader_descr.resource_path);
   shader_ = shader_handler_->Generate(shader_descr);
 }
 

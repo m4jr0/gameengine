@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "comet/core/define.h"
 #include "comet/core/os.h"
 
 namespace comet {
@@ -35,6 +36,19 @@ using sptrdiff = std::ptrdiff_t;
 
 using schar = char;
 using uchar = unsigned char;
+using wchar = wchar_t;
+
+#ifdef COMET_WIDE_TCHAR
+using tchar = wchar;
+#else
+using tchar = schar;
+#endif  // COMET_WIDE_TCHAR
+
+#ifdef COMET_WIDE_TCHAR
+#define COMET_TCHAR(str) L##str
+#else
+#define COMET_TCHAR(str) str
+#endif  // COMET_WIDE_TCHAR
 
 using b8 = s8;
 using b32 = s32;

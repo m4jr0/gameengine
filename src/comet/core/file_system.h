@@ -14,235 +14,260 @@
 #undef GetCurrentDirectory
 #endif  // COMET_MSVC
 
-#include "comet/core/string.h"
+#ifndef COMET_WINDOWS
+#include <dirent.h>
+#endif  // !COMET_WINDOWS
+
+#include "comet/core/c_string.h"
+#include "comet/core/type/tstring.h"
 
 namespace comet {
-bool OpenBinaryFileToWriteTo(const schar* path, std::ofstream& out_file,
-                             bool is_append = false);
-bool OpenBinaryFileToWriteTo(const std::string& path, std::ofstream& out_file,
-                             bool is_append = false);
-bool OpenBinaryFileToReadFrom(const schar* path, std::ifstream& in_file,
-                              bool is_at_end = false);
-bool OpenBinaryFileToReadFrom(const std::string& path, std::ifstream& in_file,
-                              bool is_at_end = false);
+constexpr auto kMaxPathLength{4096};
+
+constexpr auto kNativeSlash{
+#ifdef COMET_WINDOWS
+#ifdef COMET_NORMALIZE_PATHS
+    COMET_TCHAR('/')
+#else
+    COMET_TCHAR('\\')
+#endif  // COMET_NORMALIZE_PATHS
+#else
+    COMET_TCHAR('/')
+#endif  // COMET_WINDOWS
+};
+
+namespace internal {
+const tchar* GetTmpNormalizedCopy(CTStringView str);
+}  // namespace internal
+
+bool OpenFileToWriteTo(CTStringView path, std::ofstream& out_file,
+                       bool is_append = false, bool is_binary = false);
+bool OpenFileToReadFrom(CTStringView path, std::ifstream& in_file,
+                        bool is_at_end = false, bool is_binary = false);
 void CloseFile(std::ofstream& file);
-bool WriteBinaryToFile(const schar* path, const u8* buffer, uindex buffer_size,
+bool WriteBinaryToFile(CTStringView path, const u8* buff, uindex buff_len,
                        bool is_append = false);
-bool WriteBinaryToFile(const std::string& path, const u8* buffer,
-                       uindex buffer_size, bool is_append = false);
-bool WriteBinaryToFile(const schar* path, const u8* buffer, uindex buffer_size,
+bool WriteBinaryToFile(CTStringView path, const u8* buff, uindex buff_len,
                        bool is_append);
-bool ReadBinaryFromFile(const std::string& path, std::vector<u8>& buffer);
+bool ReadBinaryFromFile(CTStringView path, std::vector<u8>& buff);
 void CloseFile(std::ifstream& file);
-bool WriteStrToFile(const schar* path, std::string_view buffer,
+bool WriteStrToFile(CTStringView path, const schar* buff,
                     bool is_append = false);
-bool WriteStrToFile(const std::string& path, std::string_view buffer,
-                    bool is_append = false);
-bool ReadStrFromFile(const schar* path, std::string& buffer);
-bool ReadStrFromFile(const std::string& path, std::string& buffer);
-bool CreateFile(const schar* path, bool is_recursive = false);
-bool CreateFile(const std::string& path, bool is_recursive = false);
-bool CreateDirectory(std::string_view path, bool is_recursive = false);
-bool Move(std::string_view previous_name, std::string_view new_name);
-bool Remove(const std::filesystem::path& path, bool is_recursive = false);
-
-template <typename Path>
-bool Remove(Path&& str, bool is_recursive = false) {
-  const std::filesystem::path path{std::forward<Path>(str)};
-  return Remove(path, is_recursive);
-}
-
-std::vector<std::string> ListDirectories(const std::filesystem::path& path,
-                                         bool is_recursive = false);
-
-template <typename Path>
-std::vector<std::string> ListDirectories(Path&& str_path,
-                                         bool is_sorted = false) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  return ListDirectories(path, is_sorted);
-}
-
-std::vector<std::string> ListFiles(const std::filesystem::path& path,
-                                   bool is_sorted = false);
-
-template <typename Path>
-std::vector<std::string> ListFiles(Path&& str_path, bool is_sorted = false) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  return ListFiles(path, is_sorted);
-}
-
-std::vector<std::string> ListAll(const std::filesystem::path& path,
-                                 bool is_sorted = false);
-
-template <typename Path>
-std::vector<std::string> ListAll(Path&& str_path, bool is_sorted = false) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  return ListAll(path, is_sorted);
-}
-
-std::filesystem::path GetCurrentDirectoryAsPath();
-std::string GetCurrentDirectory();
-
-std::string GetDirectoryPath(const std::filesystem::path& path);
-
-template <typename Path>
-std::string GetDirectoryPath(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  return GetDirectoryPath(path);
-}
-
-std::string GetName(std::string_view path);
-std::string_view GetNameView(std::string_view path);
-
-std::string GetExtension(const std::filesystem::path& path,
-                         bool is_force_lowercase = true);
-
-template <typename Path>
-std::string GetExtension(Path&& str_path, bool is_force_lowercase = true) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  return GetExtension(path, is_force_lowercase);
-}
-
-void ReplaceExtension(std::string_view extension, std::string& path,
+bool ReadStrFromFile(CTStringView path, schar* buff, uindex buff_len,
+                     uindex* out_len = nullptr);
+bool GetLine(std::istream& stream, schar* buff, uindex buff_len,
+             uindex* out_len = nullptr);
+bool CreateFile(CTStringView path, bool is_recursive = false);
+bool CreateDirectory(CTStringView path, bool is_recursive = false);
+bool Move(CTStringView previous_name, CTStringView new_name);
+bool Remove(CTStringView path, bool is_recursive = false);
+TString GetCurrentDirectory(bool is_clean = true);
+TString GetDirectoryPath(CTStringView path);
+TString GetName(CTStringView path);
+TString GetExtension(CTStringView path, bool is_force_lowercase = true);
+void ReplaceExtension(CTStringView extension, TString& path,
                       bool is_force_lowercase = true);
-std::string ReplaceExtensionToCopy(std::string_view extension,
-                                   std::string_view path,
-                                   bool is_force_lowercase = true);
+TString GetNormalizedPath(CTStringView path);
+TString GetAbsolutePath(CTStringView relative_path);
+TString GetRelativePath(CTStringView from, CTStringView to);
+TString GetRelativePath(CTStringView absolute_path);
+TString GetParentPath(CTStringView current_path);
+bool IsSlash(tchar c);
+bool IsDirectory(CTStringView path);
+bool IsFile(CTStringView path);
+bool IsAbsolute(CTStringView path);
+bool IsRelative(CTStringView path);
+bool Exists(CTStringView path);
+bool IsEmpty(CTStringView path);
+void AppendTo(CTStringView to_append, tchar* buff, uindex buff_len,
+              uindex* out_len);
+void Append(CTStringView path_a, CTStringView path_b, tchar* buff,
+            uindex buff_len, uindex* out_len = nullptr);
+TString Append(CTStringView path_a, CTStringView path_b);
+void RemoveTrailingSlashes(TString& path);
+f64 GetLastModificationTime(CTStringView path);
+void GetChecksum(CTStringView path, schar* checksum, uindex checksum_len);
 
-std::string GetNormalizedPath(const std::filesystem::path& path);
+template <typename DirectoryCallback>
+void ForEachDirectory(CTStringView path, DirectoryCallback callback) {
+#ifdef COMET_WINDOWS
+  tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
+  Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
-template <typename Path>
-std::string GetNormalizedPath(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return GetNormalizedPath(path);
-}
+  WIN32_FIND_DATAW find_data;
+  auto handle{FindFirstFileW(buff, &find_data)};
 
-std::string GetAbsolutePath(const std::filesystem::path& relative_path);
-
-template <typename Path>
-std::string GetAbsolutePath(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return GetAbsolutePath(path);
-}
-
-std::string GetRelativePath(const std::filesystem::path& from_path,
-                            const std::filesystem::path& to_path);
-
-template <typename FromPath, typename ToPath>
-std::string GetRelativePath(FromPath&& str_from_path, ToPath&& str_to_path) {
-  const std::filesystem::path from_path{std::forward<FromPath>(str_from_path)};
-  const std::filesystem::path to_path{std::forward<ToPath>(str_to_path)};
-  return GetRelativePath(from_path, to_path);
-}
-
-std::string GetRelativePath(const std::filesystem::path& absolute_path);
-
-template <typename Path>
-std::string GetRelativePath(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  const auto current_directory_path{GetCurrentDirectoryAsPath()};
-  // Call non-templated function.
-  return GetRelativePath(path, current_directory_path);
-}
-
-std::string GetNativePath(const std::filesystem::path& path);
-
-template <typename Path>
-std::string GetNativePath(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return GetNativePath(path);
-}
-
-template <typename Path>
-std::string GetParentPath(Path&& str_path) {
-  auto absolute_path{GetAbsolutePath(std::forward<Path>(str_path))};
-
-  if (absolute_path.size() <= 1) {
-    return absolute_path;
+  if (handle == INVALID_HANDLE_VALUE) {
+    return;
   }
 
-  auto absolute_view{std::string_view{absolute_path}};
+  do {
+    if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+      continue;
+    }
 
-  if (absolute_view[absolute_view.size() - 1] == '/') {
-    // No allocation here.
-    absolute_view = absolute_view.substr(0, absolute_view.size() - 1);
+    auto file_name_len{GetLength(find_data.cFileName)};
+
+    if (AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR("."),
+                        1) ||
+        AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR(".."),
+                        2)) {
+      continue;
+    }
+
+    buff[0] = COMET_TCHAR('\0');
+    Append(path, find_data.cFileName, buff, kMaxPathLength);
+    callback(buff);
+  } while (FindNextFileW(handle, &find_data) != 0);
+
+  FindClose(handle);
+#else
+  auto* dir{opendir(path)};
+
+  if (dir == nullptr) {
+    return;
   }
 
-  const auto last_index{GetLastNthPos(absolute_view, '/', 1)};
+  struct dirent* entry{nullptr};
+  tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
+  const auto path_len{path.GetLength()};
 
-  if (last_index == kInvalidIndex) {
-    return absolute_path;
+  while ((entry = readdir(dir)) != nullptr) {
+    const auto dir_len{GetLength(entry->d_name)};
+
+    if (entry->d_type != DT_DIR ||
+        AreStringsEqual(entry->d_name, dir_len, COMET_TCHAR("."), 1) ||
+        AreStringsEqual(entry->d_name, dir_len, COMET_TCHAR(".."), 2)) {
+      continue;
+    }
+
+    CTStringView folder_name{entry->d_name, entry->d_reclen};
+    Append(path, folder_name, buff, kMaxPathLength);
+    buff[path_len + entry->d_reclen + 1] = COMET_TCHAR('\0');
+    callback(buff);
   }
 
-  absolute_path.resize(last_index);
-  return absolute_path;
+  closedir(dir);
+#endif  // COMET_WINDOWS
 }
 
-std::string_view GetParentPathView(std::string_view current_path);
+template <typename FileCallback>
+void ForEachFile(CTStringView path, FileCallback callback) {
+#ifdef COMET_WINDOWS
+  tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
+  Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
-bool IsDirectory(const std::filesystem::path& path);
+  WIN32_FIND_DATAW find_data;
+  auto handle{FindFirstFileW(buff, &find_data)};
 
-template <typename Path>
-bool IsDirectory(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return std::filesystem::is_directory(path);
+  if (handle == INVALID_HANDLE_VALUE) {
+    return;
+  }
+
+  do {
+    if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      continue;
+    }
+
+    buff[0] = COMET_TCHAR('\0');
+    Append(path, find_data.cFileName, buff, kMaxPathLength);
+    callback(buff);
+  } while (FindNextFileW(handle, &find_data) != 0);
+
+  FindClose(handle);
+#else
+  auto* dir{opendir(path)};
+
+  if (dir == nullptr) {
+    return;
+  }
+
+  struct dirent* entry{nullptr};
+  tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
+  const auto path_len{path.GetLength()};
+
+  while ((entry = readdir(dir)) != nullptr) {
+    if (entry->d_type != DT_REG) {
+      continue;
+    }
+
+    CTStringView folder_name{entry->d_name, entry->d_reclen};
+    Append(path, folder_name, buff, kMaxPathLength);
+    buff[path_len + entry->d_reclen + 1] = COMET_TCHAR('\0');
+    callback(buff);
+  }
+
+  closedir(dir);
+#endif  // COMET_WINDOWS
 }
 
-bool IsFile(const std::filesystem::path& path);
+template <typename FileCallback>
+void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
+#ifdef COMET_WINDOWS
+  tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
+  Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
-template <typename Path>
-bool IsFile(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return std::filesystem::is_regular_file(path);
+  WIN32_FIND_DATAW find_data;
+  auto handle{FindFirstFileW(buff, &find_data)};
+
+  if (handle == INVALID_HANDLE_VALUE) {
+    return;
+  }
+
+  do {
+    if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      auto file_name_len{GetLength(find_data.cFileName)};
+
+      if (AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR("."),
+                          1) ||
+          AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR(".."),
+                          2)) {
+        continue;
+      }
+    }
+
+    buff[0] = COMET_TCHAR('\0');
+    Append(path, find_data.cFileName, buff, kMaxPathLength);
+    callback(buff);
+  } while (FindNextFileW(handle, &find_data) != 0);
+
+  FindClose(handle);
+#else
+  auto* dir{opendir(path)};
+
+  if (dir == nullptr) {
+    return;
+  }
+
+  struct dirent* entry{nullptr};
+  tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
+  const auto path_len{path.GetLength()};
+
+  while ((entry = readdir(dir)) != nullptr) {
+    CTStringView folder_name{entry->d_name, entry->d_reclen};
+    Append(path, folder_name, buff, kMaxPathLength);
+    buff[path_len + entry->d_reclen + 1] = COMET_TCHAR('\0');
+    callback(buff);
+  }
+
+  closedir(dir);
+#endif  // COMET_WINDOWS
 }
 
-bool IsAbsolute(const std::filesystem::path& path);
-
-template <typename Path>
-bool IsAbsolute(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return IsAbsolute(path);
-}
-
-bool IsRelative(const std::filesystem::path& path);
-
-template <typename Path>
-bool IsRelative(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return IsRelative(path);
-}
-
-bool Exists(const std::filesystem::path& path);
-
-template <typename Path>
-bool Exists(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return Exists(path);
-}
-
-bool IsEmpty(const std::filesystem::path& path);
-
-template <typename Path>
-bool IsEmpty(Path&& str_path) {
-  const std::filesystem::path path{std::forward<Path>(str_path)};
-  // Call non-templated function.
-  return IsEmpty(path);
-}
-
-std::string Append(std::string_view path_a, std::string_view path_b);
-void RemoveTrailingSlashes(std::string& path);
-void RemoveLeadingSlashes(std::string& path);
-f64 GetLastModificationTime(const schar* path);
-f64 GetLastModificationTime(const std::string& path);
-std::string GetChecksum(std::string_view path);
+void Normalize(tchar* str, uindex len);
+void Normalize(tchar* str);
+void Normalize(TString& str);
+void MakeNative(tchar* str, uindex len);
+void MakeNative(tchar* str);
+void MakeNative(TString& str);
+void Clean(tchar* str, uindex len);
+void Clean(tchar* str);
+void Clean(TString& str);
+const tchar* GetTmpTChar(const schar* str, uindex len);
+const tchar* GetTmpTChar(const schar* str);
+const tchar* GetTmpTChar(const wchar* str, uindex len);
+const tchar* GetTmpTChar(const wchar* str);
+uindex GetSize(CTStringView path);
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_FILE_SYSTEM_H_

@@ -9,6 +9,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
@@ -50,8 +51,8 @@ void ImGuiView::Initialize() {
   render_pass_descr.dependency.dependencyFlags = 0;
 
   // TODO(m4jr0): Make clear values more configurable.
-  std::memcpy(&render_pass_descr.clear_values[0].color, clear_color_,
-              sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);
+  CopyMemory(&render_pass_descr.clear_values[0].color, clear_color_,
+             sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);
   render_pass_descr.clear_values[1].depthStencil.depth = 1.0f;
 
   const auto is_msaa{context_->GetDevice().IsMsaa()};

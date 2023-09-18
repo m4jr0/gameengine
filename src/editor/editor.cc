@@ -4,6 +4,7 @@
 
 #include "editor.h"
 
+#include "comet/core/type/tstring.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 
 namespace comet {
@@ -72,7 +73,7 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::PostLoadTmpCode() {
   entity::EntityFactoryManager::Get().GetModel()->Generate(
-      "models/nanosuit/model.obj");
+      COMET_CTSTRING_VIEW("models/nanosuit/model.obj"));
   camera_handler_ = std::make_unique<CameraHandler>();
   camera_handler_->Initialize();
 }

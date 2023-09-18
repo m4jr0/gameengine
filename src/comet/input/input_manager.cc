@@ -24,7 +24,9 @@ void InputManager::Initialize() {
   glfwSetScrollCallback(
       window_handle_, [](GLFWwindow* handle, f64 x_offset, f64 y_offset) {
 #ifdef COMET_IMGUI
-        ImGui_ImplGlfw_ScrollCallback(handle, x_offset, y_offset);
+        if (is_imgui_) {
+          ImGui_ImplGlfw_ScrollCallback(handle, x_offset, y_offset);
+        }
 #endif  // COMET_IMGUI
         event::EventManager::Get().FireEvent<event::MouseScrollEvent>(x_offset,
                                                                       y_offset);
@@ -33,7 +35,9 @@ void InputManager::Initialize() {
   glfwSetCursorPosCallback(
       window_handle_, [](GLFWwindow* handle, f64 x_pos, f64 y_pos) {
 #ifdef COMET_IMGUI
-        ImGui_ImplGlfw_CursorPosCallback(handle, x_pos, y_pos);
+        if (is_imgui_) {
+          ImGui_ImplGlfw_CursorPosCallback(handle, x_pos, y_pos);
+        }
 #endif  // COMET_IMGUI
         event::EventManager::Get().FireEvent<event::MouseMoveEvent>(
             math::Vec2{x_pos, y_pos});
@@ -42,7 +46,9 @@ void InputManager::Initialize() {
   glfwSetKeyCallback(window_handle_, [](GLFWwindow* handle, s32 key,
                                         s32 scan_code, s32 action, s32 mods) {
 #ifdef COMET_IMGUI
-    ImGui_ImplGlfw_KeyCallback(handle, key, scan_code, action, mods);
+    if (is_imgui_) {
+      ImGui_ImplGlfw_KeyCallback(handle, key, scan_code, action, mods);
+    }
 #endif  // COMET_IMGUI
     event::EventManager::Get().FireEvent<event::KeyboardEvent>(
         static_cast<input::KeyCode>(key),
@@ -54,8 +60,10 @@ void InputManager::Initialize() {
                                                 s32 raw_button, s32 raw_action,
                                                 s32 raw_mods) {
 #ifdef COMET_IMGUI
-    ImGui_ImplGlfw_MouseButtonCallback(handle, raw_button, raw_action,
-                                       raw_mods);
+    if (is_imgui_) {
+      ImGui_ImplGlfw_MouseButtonCallback(handle, raw_button, raw_action,
+                                         raw_mods);
+    }
 #endif  // COMET_IMGUI
 
     auto action{static_cast<Action>(raw_action)};
@@ -72,26 +80,34 @@ void InputManager::Initialize() {
   glfwSetWindowFocusCallback(
       window_handle_, [](GLFWwindow* handle, s32 is_focused) {
 #ifdef COMET_IMGUI
-        ImGui_ImplGlfw_WindowFocusCallback(handle, is_focused);
+        if (is_imgui_) {
+          ImGui_ImplGlfw_WindowFocusCallback(handle, is_focused);
+        }
 #endif  // COMET_IMGUI
       });
 
   glfwSetCursorEnterCallback(
       window_handle_, [](GLFWwindow* handle, s32 is_entered) {
 #ifdef COMET_IMGUI
-        ImGui_ImplGlfw_CursorEnterCallback(handle, is_entered);
+        if (is_imgui_) {
+          ImGui_ImplGlfw_CursorEnterCallback(handle, is_entered);
+        }
 #endif  // COMET_IMGUI
       });
 
   glfwSetCharCallback(window_handle_, [](GLFWwindow* handle, u32 code_point) {
 #ifdef COMET_IMGUI
-    ImGui_ImplGlfw_CharCallback(handle, code_point);
+    if (is_imgui_) {
+      ImGui_ImplGlfw_CharCallback(handle, code_point);
+    }
 #endif  // COMET_IMGUI
   });
 
   glfwSetMonitorCallback([](GLFWmonitor* monitor, s32 event) {
 #ifdef COMET_IMGUI
-    ImGui_ImplGlfw_MonitorCallback(monitor, event);
+    if (is_imgui_) {
+      ImGui_ImplGlfw_MonitorCallback(monitor, event);
+    }
 #endif  // COMET_IMGUI
   });
 }
@@ -161,6 +177,8 @@ void InputManager::SetMousePosition(f32 x, f32 y) {
 void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
   window_handle_ = window_handle;
 }
+
+void InputManager::EnableImGui() { is_imgui_ = true; }
 
 bool InputManager::IsAltPressed() const {
   return IsKeyPressed(KeyCode::LeftAlt) || IsKeyPressed(KeyCode::RightAlt);

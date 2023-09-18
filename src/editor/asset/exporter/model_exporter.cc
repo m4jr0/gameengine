@@ -8,6 +8,8 @@
 #include "assimp/postprocess.h"
 
 #include "comet/core/file_system.h"
+#include "comet/core/generator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
@@ -15,8 +17,8 @@
 namespace comet {
 namespace editor {
 namespace asset {
-bool ModelExporter::IsCompatible(std::string_view extension) const {
-  return extension == "obj" || extension == "fbx";
+bool ModelExporter::IsCompatible(CTStringView extension) const {
+  return extension == COMET_TCHAR("obj") || extension == COMET_TCHAR("fbx");
 }
 
 std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
@@ -24,8 +26,16 @@ std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
   std::vector<resource::ResourceFile> resource_files{};
   Assimp::Importer importer;
 
+#ifdef COMET_WIDE_TCHAR
+  auto* asset_abs_path{
+      GenerateForOneFrame<schar>(asset_descr.asset_abs_path.GetCTStr(),
+                                 asset_descr.asset_abs_path.GetLength())};
+#else
+  auto* asset_abs_path{asset_descr.asset_abs_path.GetCTStr()};
+#endif  // COMET_WIDE_TCHAR
+
   const auto* scene{importer.ReadFile(
-      asset_descr.asset_abs_path,
+      asset_abs_path,
       aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace)};
 
   if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
@@ -257,7 +267,7 @@ resource::ResourceId ModelExporter::LoadMesh(
   return mesh_resource.internal_id;
 }
 
-void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
+void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
                                          resource::MaterialResource& material,
                                          aiMaterial* raw_material,
                                          aiTextureType raw_texture_type) const {
@@ -275,9 +285,6 @@ void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
                              "\" is greater than 1. This is not supported. "
                              "Ignoring excess textures.");
   }
-
-  aiString texture_path;
-  raw_material->GetTexture(raw_texture_type, 0, &texture_path);
 
   resource::TextureMap* map{nullptr};
 
@@ -305,8 +312,10 @@ void ModelExporter::LoadMaterialTextures(std::string_view resource_path,
     return;
   }
 
+  aiString texture_path;
+  raw_material->GetTexture(raw_texture_type, 0, &texture_path);
   map->texture_id = resource::GenerateResourceIdFromPath(
-      Append(resource_path, texture_path.C_Str()));
+      resource_path / GetTmpTChar(texture_path.C_Str()));
   map->type = texture_type;
 
   aiTextureMapMode raw_texture_repeat_mode;
@@ -369,7 +378,7 @@ void ModelExporter::LoadDefaultTextures(
 }
 
 void ModelExporter::LoadMaterials(
-    std::string_view directory_path, const aiScene* scene,
+    CTStringView directory_path, const aiScene* scene,
     std::vector<resource::ResourceFile>& resource_files) const {
   const auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
   constexpr std::array<aiTextureType, 4> exported_texture_types{
@@ -383,7 +392,7 @@ void ModelExporter::LoadMaterials(
                            "\" found.");
 
     resource::MaterialResource material{};
-    std::memcpy(material.descr.shader_name, "default_shader", 14);
+    CopyMemory(material.descr.shader_name, "default_shader", 14);
 
     if (aiGetMaterialFloat(raw_material, AI_MATKEY_SHININESS,
                            &material.descr.shininess) != AI_SUCCESS) {

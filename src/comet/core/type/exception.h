@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_TYPE_STRUCTURE_EXCEPTION_H_
-#define COMET_COMET_CORE_TYPE_STRUCTURE_EXCEPTION_H_
+#ifndef COMET_COMET_CORE_TYPE_EXCEPTION_H_
+#define COMET_COMET_CORE_TYPE_EXCEPTION_H_
 
 #include "comet_precompile.h"
 
@@ -21,4 +21,4 @@ class empty_error : public std::runtime_error {
 };
 }  // namespace comet
 
-#endif  // COMET_COMET_CORE_TYPE_STRUCTURE_EXCEPTION_H_
+#endif  // COMET_COMET_CORE_TYPE_EXCEPTION_H_

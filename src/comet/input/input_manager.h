@@ -39,11 +39,19 @@ class InputManager : public Manager {
   virtual math::Vec2 GetMousePosition() const;
   virtual void SetMousePosition(f32, f32);
   void AttachGlfwWindow(GLFWwindow* window_handle_);
+
+#ifdef COMET_IMGUI
+  static void EnableImGui();
+#endif  // COMET_IMGUI
+
   bool IsAltPressed() const;
   bool IsShiftPressed() const;
 
  private:
   mutable std::atomic<GLFWwindow*> window_handle_{nullptr};
+#ifdef COMET_IMGUI
+  static inline bool is_imgui_{false};
+#endif  // COMET_IMGUI
 };
 
 class NullInputManager : public InputManager {

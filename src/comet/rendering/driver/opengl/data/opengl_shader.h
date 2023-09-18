@@ -90,7 +90,7 @@ using ShaderHandle = u32;
 constexpr auto kInvalidShaderHandle{0};
 
 struct ShaderDescr {
-  std::string resource_path{};
+  TString resource_path{};
 };
 
 struct Shader {

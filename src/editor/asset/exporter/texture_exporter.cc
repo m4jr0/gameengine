@@ -5,10 +5,10 @@
 #include "texture_exporter.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-
 #include "stb_image.h"
 
 #include "comet/core/file_system.h"
+#include "comet/core/generator.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
@@ -17,8 +17,8 @@
 namespace comet {
 namespace editor {
 namespace asset {
-bool TextureExporter::IsCompatible(std::string_view extension) const {
-  return extension == "png" || extension == "jpg";
+bool TextureExporter::IsCompatible(CTStringView extension) const {
+  return extension == COMET_TCHAR("png") || extension == COMET_TCHAR("jpg");
 }
 
 std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
@@ -27,8 +27,15 @@ std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
   s32 tex_width{0};
   s32 tex_height{0};
   s32 tex_channels{0};
-  auto* pixel_data{stbi_load(asset_descr.asset_abs_path.c_str(), &tex_width,
-                             &tex_height, &tex_channels, STBI_rgb_alpha)};
+#ifdef COMET_WIDE_TCHAR
+  auto* asset_abs_path{
+      GenerateForOneFrame<schar>(asset_descr.asset_abs_path.GetCTStr(),
+                                 asset_descr.asset_abs_path.GetLength())};
+#else
+  auto* asset_abs_path{asset_descr.asset_abs_path.GetCTStr()};
+#endif  // COMET_WIDE_TCHAR
+  auto* pixel_data{stbi_load(asset_abs_path, &tex_width, &tex_height,
+                             &tex_channels, STBI_rgb_alpha)};
 
   if (pixel_data == nullptr) {
     COMET_LOG_GLOBAL_ERROR("Failed to load texture image");

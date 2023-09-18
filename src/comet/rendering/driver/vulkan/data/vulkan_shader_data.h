@@ -68,7 +68,7 @@ struct DescriptorSetLayoutBindings {
 };
 
 struct ShaderDescr {
-  std::string resource_path{};
+  TString resource_path{};
   const RenderPass* render_pass{nullptr};
 };
 

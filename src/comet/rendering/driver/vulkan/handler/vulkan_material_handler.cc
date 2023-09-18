@@ -61,11 +61,12 @@ Material* MaterialHandler::Generate(
   descr.specular_map = GenerateTextureMap(resource.descr.specular_map);
   descr.normal_map = GenerateTextureMap(resource.descr.normal_map);
 
-  std::string shader_path{};
-  shader_path.reserve(static_cast<uindex>(26) + resource::kMaxShaderNameLen);
-  shader_path += "shaders/vulkan/";
-  shader_path += resource.descr.shader_name;
-  shader_path += ".vk.cshader";
+  TString shader_path{};
+  shader_path.Reserve(static_cast<uindex>(26) + resource::kMaxShaderNameLen);
+  shader_path += COMET_TCHAR("shaders/vulkan/");
+  shader_path += GetTmpTChar(resource.descr.shader_name);
+  shader_path += COMET_TCHAR(".vk.cshader");
+  COMET_DISALLOW_STR_ALLOC(shader_path);
   descr.shader_id = resource::GenerateResourceIdFromPath(shader_path);
 
   return Generate(descr);

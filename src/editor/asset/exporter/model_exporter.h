@@ -9,6 +9,7 @@
 
 #include "assimp/scene.h"
 
+#include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/model_resource.h"
@@ -27,7 +28,7 @@ class ModelExporter : public AssetExporter {
   ModelExporter& operator=(ModelExporter&&) = delete;
   virtual ~ModelExporter() = default;
 
-  bool IsCompatible(std::string_view extension) const override;
+  bool IsCompatible(CTStringView extension) const override;
 
  protected:
   std::vector<resource::ResourceFile> GetResourceFiles(
@@ -45,9 +46,9 @@ class ModelExporter : public AssetExporter {
       const aiScene* scene,
       resource::ResourceId parent_id = resource::kInvalidResourceId,
       const math::Mat4& transform = math::Mat4{1.0f}) const;
-  void LoadMaterials(std::string_view directory_path, const aiScene* scene,
+  void LoadMaterials(CTStringView directory_path, const aiScene* scene,
                      std::vector<resource::ResourceFile>& resource_files) const;
-  void LoadMaterialTextures(std::string_view resource_path,
+  void LoadMaterialTextures(CTStringView resource_path,
                             resource::MaterialResource& material,
                             aiMaterial* raw_material,
                             aiTextureType raw_texture_type) const;

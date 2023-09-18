@@ -9,6 +9,8 @@
 
 #include "nlohmann/json.hpp"
 
+#include "comet/core/file_system.h"
+#include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
 
 using namespace std::literals;
@@ -17,10 +19,10 @@ namespace comet {
 namespace editor {
 namespace asset {
 constexpr unsigned short kCometEditorAssetMetadataIndent{2};
-
-static constexpr auto kCometEditorAssetMetadataFileExtension{"meta"sv};
+static constexpr auto kCometEditorAssetMetadataFileExtension{
+    COMET_CTSTRING_VIEW("meta")};
 static constexpr auto kCometEditorAssetFolderMetadataFileExtension{
-    "dir.meta"sv};
+    COMET_CTSTRING_VIEW("dir.meta")};
 
 static constexpr auto kCometResourceCompressionModeNone{"none"sv};
 static constexpr auto kCometResourceCompressionModeLz4{"lz4"sv};
@@ -34,9 +36,9 @@ static constexpr auto kCometEditorAssetMetadataKeyCompressionMode{
     "compression_mode"sv};
 
 struct AssetDescr {
-  std::string asset_abs_path{};
-  std::string asset_path{};
-  std::string metadata_path{};
+  TString asset_abs_path{};
+  TString asset_path{};
+  TString metadata_path{};
   nlohmann::json metadata{};
 };
 }  // namespace asset

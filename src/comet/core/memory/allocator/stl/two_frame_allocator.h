@@ -27,10 +27,15 @@ class two_frame_allocator {
             size * sizeof(T), std::alignment_of_v<T>));
   }
 
- public:
+  T* allocate_one() { return allocate(1); }
+
   void deallocate(T* const p, std::size_t size) noexcept {
     // Do nothing. Data will be purged at the end of the frame after the next
     // one.
+  }
+
+  void deallocate_one(T* const p) noexcept {
+    // Do nothing. Data will be purged at the end of the frame.
   }
 };
 }  // namespace comet

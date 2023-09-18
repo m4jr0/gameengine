@@ -4,264 +4,371 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/file_system.h"
-
 #include "catch.hpp"
+#include "catch2/reporters/catch_reporter_event_listener.hpp"
+#include "catch2/reporters/catch_reporter_registrars.hpp"
 
-#include "comet/core/string.h"
+#include "comet/core/c_string.h"
+#include "comet/core/file_system.h"
+#include "comet/core/type/tstring.h"
+
 namespace comet {
 namespace comettests {
-const std::string test_dir{"comettests_tests_file_system"};
-auto current_dir{comet::GetCurrentDirectory()};
-auto tmp_dir{comet::Append(current_dir, test_dir)};
+const auto* test_dir{COMET_TCHAR("comettests_tests_file_system")};
+comet::TString current_dir{};
+comet::TString tmp_dir{};
 
-std::string FormatAbsolutePath(std::string_view absolute_path,
-                               std::string_view to_search, const uindex count) {
-  if (absolute_path.size() == 0 || count == 0) {
-    return std::string{absolute_path};
+class TestsFileSystemEventListener : public Catch::EventListenerBase {
+  using Catch::EventListenerBase::EventListenerBase;
+
+ public:
+  void testCaseStarting(Catch::TestCaseInfo const&) override {
+    current_dir = comet::GetCurrentDirectory();
+    tmp_dir = comet::comettests::current_dir / comet::comettests::test_dir;
+  }
+};
+
+CATCH_REGISTER_LISTENER(TestsFileSystemEventListener)
+
+TString FormatAbsolutePath(CTStringView absolute_path, tchar to_search,
+                           const uindex count) {
+  if (absolute_path.GetLength() == 0 || count == 0) {
+    return TString{absolute_path.GetCTStr()};
   }
 
-  uindex index_to_cut{GetLastNthPos(absolute_path, to_search, count)};
+  uindex index_to_cut{GetNthToLastIndexOf(
+      absolute_path.GetCTStr(), absolute_path.GetLength(), to_search, count)};
 
   if (index_to_cut == kInvalidIndex) {
-    return "";
+    return TString{""};
   }
 
-  return std::string{absolute_path.substr(index_to_cut, absolute_path.size())};
+  return TString{
+      absolute_path.GenerateSubString(index_to_cut, absolute_path.GetLength())};
 }
 }  // namespace comettests
 }  // namespace comet
 
 TEST_CASE("File system management", "[comet::filesystem]") {
   SECTION("Create operations.") {
-    REQUIRE(
-        !comet::CreateFile(comet::Append(comet::comettests::tmp_dir, "/test")));
+    REQUIRE(!comet::CreateFile(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test"))));
 
     REQUIRE(comet::CreateFile(
-        comet::Append(comet::comettests::tmp_dir, "/test"), true));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test")), true));
 
-    comet::GetChecksum(comet::Append(comet::comettests::tmp_dir, "/test"));
+    comet::schar checksum[33];
+    comet::GetChecksum(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test")),
+        checksum, 33);
 
     REQUIRE(!comet::CreateFile(
-        comet::Append(comet::comettests::tmp_dir, "/test2/")));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test2/"))));
 
     REQUIRE(comet::CreateDirectory(
-        comet::Append(comet::comettests::tmp_dir, "/test3")));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test3"))));
 
     REQUIRE(comet::CreateDirectory(
-        comet::Append(comet::comettests::tmp_dir, "/test4/")));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test4/"))));
 
-    REQUIRE(!comet::CreateDirectory(
-        comet::Append(comet::comettests::tmp_dir, "/test5/test6")));
+    REQUIRE(!comet::CreateDirectory(comet::Append(
+        comet::comettests::tmp_dir, COMET_TCHAR("/test5/test6"))));
 
     REQUIRE(comet::CreateDirectory(
-        comet::Append(comet::comettests::tmp_dir, "/test5/test6"), true));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test5/test6")),
+        true));
   }
 
   SECTION("Read & write operations.") {
-    const auto& test_write{std::string("test_write")};
+    constexpr auto* test_write{"test_write"};
+    constexpr auto test_write_len{comet::GetLength(test_write)};
 
     // The file does not exist (yet).
     REQUIRE(comet::WriteStrToFile(
-        comet::Append(comet::comettests::tmp_dir, "/test7"), test_write));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test7")),
+        test_write));
 
     // The file already exists.
     REQUIRE(comet::WriteStrToFile(
-        comet::Append(comet::comettests::tmp_dir, "/test"), test_write));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test")),
+        test_write));
 
-    std::string test_read{};
+    comet::schar test_read[4096];
+    comet::uindex test_read_len;
 
     REQUIRE(comet::ReadStrFromFile(
-        comet::Append(comet::comettests::tmp_dir, "/test7"), test_read));
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test7")),
+        test_read, 4096, &test_read_len));
 
-    REQUIRE(test_read == test_write);
+    REQUIRE(comet::AreStringsEqual(test_read, test_read_len, test_write,
+                                   test_write_len));
   }
 
   SECTION("Move operations.") {
     // Checking with something that does not exist.
-    REQUIRE(
-        !comet::Move(comet::Append(comet::comettests::tmp_dir, "/DOESNOTEXIST"),
-                     comet::Append(comet::comettests::tmp_dir, "/test8")));
+    REQUIRE(!comet::Move(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/DOESNOTEXIST")),
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))));
 
     // Checking with a file.
-    REQUIRE(comet::Move(comet::Append(comet::comettests::tmp_dir, "/test7"),
-                        comet::Append(comet::comettests::tmp_dir, "/test8")));
+    REQUIRE(comet::Move(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test7")),
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))));
 
     // Checking with a file on itself.
-    REQUIRE(comet::Move(comet::Append(comet::comettests::tmp_dir, "/test8"),
-                        comet::Append(comet::comettests::tmp_dir, "/test8")));
+    REQUIRE(comet::Move(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8")),
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))));
 
     // Checking with a folder.
-    REQUIRE(comet::Move(comet::Append(comet::comettests::tmp_dir, "/test4"),
-                        comet::Append(comet::comettests::tmp_dir, "/test9")));
+    REQUIRE(comet::Move(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test4")),
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test9"))));
 
     // Checking with a folder on itself.
-    REQUIRE(comet::Move(comet::Append(comet::comettests::tmp_dir, "/test9"),
-                        comet::Append(comet::comettests::tmp_dir, "/test9")));
+    REQUIRE(comet::Move(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test9")),
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test9"))));
 
     // Checking with a folder on a file.
-    REQUIRE(!comet::Move(comet::Append(comet::comettests::tmp_dir, "/test9"),
-                         comet::Append(comet::comettests::tmp_dir, "/test8")));
+    REQUIRE(!comet::Move(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test9")),
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))));
 
     // Checking with a file on a folder.
-    REQUIRE(!comet::Move(comet::Append(comet::comettests::tmp_dir, "/test8"),
-                         comet::Append(comet::comettests::tmp_dir, "/test9")));
+    REQUIRE(!comet::Move(
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8")),
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test9"))));
   }
 
-  SECTION("List operations.") {
-    std::vector<std::string> dir_to_test;
+  SECTION("Files and folders operations.") {
+    std::array<const comet::TString, 3> dir_to_test{
+        {comet::comettests::tmp_dir / COMET_TCHAR("/test3"),
+         comet::comettests::tmp_dir / COMET_TCHAR("/test5"),
+         comet::comettests::tmp_dir / COMET_TCHAR("/test9")}};
+    comet::uindex count{0};
 
-    dir_to_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test3"));
-    dir_to_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test5"));
-    dir_to_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test9"));
+    comet::ForEachDirectory(comet::comettests::tmp_dir,
+                            [&](comet::CTStringView directory_path) {
+                              for (const auto& path : dir_to_test) {
+                                if (path == directory_path) {
+                                  ++count;
+                                  break;
+                                }
+                              }
+                            });
 
-    REQUIRE(comet::ListDirectories(comet::comettests::tmp_dir, true) ==
-            dir_to_test);
+    REQUIRE(count == dir_to_test.size());
 
-    std::vector<std::string> files_to_test;
+    std::array<const comet::TString, 2> files_to_test{
+        {comet::comettests::tmp_dir / COMET_TCHAR("/test"),
+         comet::comettests::tmp_dir / COMET_TCHAR("/test8")}};
+    count = 0;
 
-    files_to_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test"));
-    files_to_test.push_back(
-        comet::Append(comet::comettests::tmp_dir, "/test8"));
+    comet::ForEachFile(comet::comettests::tmp_dir,
+                       [&](comet::CTStringView file_path) {
+                         for (const auto& path : files_to_test) {
+                           if (path == file_path) {
+                             ++count;
+                             break;
+                           }
+                         }
+                       });
 
-    REQUIRE(comet::ListFiles(comet::comettests::tmp_dir, true) ==
-            files_to_test);
+    REQUIRE(count == files_to_test.size());
 
-    std::vector<std::string> all_test;
+    std::array<const comet::TString, 5> all_test{
+        {comet::comettests::tmp_dir / COMET_TCHAR("/test"),
+         comet::comettests::tmp_dir / COMET_TCHAR("/test3"),
+         comet::comettests::tmp_dir / COMET_TCHAR("/test5"),
+         comet::comettests::tmp_dir / COMET_TCHAR("/test8"),
+         comet::comettests::tmp_dir / COMET_TCHAR("/test9")}};
+    count = 0;
 
-    all_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test"));
-    all_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test3"));
-    all_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test5"));
-    all_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test8"));
-    all_test.push_back(comet::Append(comet::comettests::tmp_dir, "/test9"));
+    comet::ForEachFileAndDirectory(comet::comettests::tmp_dir,
+                                   [&](comet::CTStringView other_path) {
+                                     for (const auto& path : all_test) {
+                                       if (path == other_path) {
+                                         ++count;
+                                         break;
+                                       }
+                                     }
+                                   });
 
-    REQUIRE(comet::ListAll(comet::comettests::tmp_dir, true) == all_test);
+    REQUIRE(count == all_test.size());
 
-    const auto does_not_exist{
-        comet::Append(comet::comettests::tmp_dir, "/DOESNOTEXIST")};
-    std::vector<std::string> last_tests;  // Empty list.
+    std::array<const comet::TString, 1> does_not_exist{
+        {comet::comettests::tmp_dir / COMET_TCHAR("/DOESNOTEXIST")}};
+    count = 0;
 
-    REQUIRE(comet::ListFiles(does_not_exist, true) == last_tests);
+    comet::ForEachDirectory(comet::comettests::tmp_dir,
+                            [&](comet::CTStringView directory_path) {
+                              for (const auto& path : does_not_exist) {
+                                if (path == directory_path) {
+                                  ++count;
+                                  break;
+                                }
+                              }
+                            });
 
-    REQUIRE(comet::ListDirectories(does_not_exist, true) == last_tests);
+    REQUIRE(count == 0);
+    count = 0;
 
-    REQUIRE(comet::ListAll(does_not_exist, true) == last_tests);
+    comet::ForEachFile(comet::comettests::tmp_dir,
+                       [&](comet::CTStringView file_path) {
+                         for (const auto& path : all_test) {
+                           if (path == file_path) {
+                             ++count;
+                             break;
+                           }
+                         }
+                       });
 
-    const auto file_path{comet::Append(comet::comettests::tmp_dir, "/test8")};
+    REQUIRE(count == 2);
+    count = 0;
 
-    // Should be empty, because a file is not a directory.
-    REQUIRE(comet::ListDirectories(file_path, true) == last_tests);
+    const auto file_path{
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))};
 
-    last_tests.push_back(file_path);  // One file only.
+    // Count should be 0, because a file is not a directory.
+    comet::ForEachDirectory(
+        file_path, [&](comet::CTStringView directory_path) { ++count; });
 
-    REQUIRE(comet::ListFiles(file_path, true) == last_tests);
+    REQUIRE(count == 0);
+    count = 0;
+
+    comet::ForEachFile(file_path,
+                       [&](comet::CTStringView directory_path) { ++count; });
+
+    REQUIRE(count == 0);
+    count = 0;
+
+    comet::ForEachFileAndDirectory(
+        file_path, [&](comet::CTStringView directory_path) { ++count; });
+
+    REQUIRE(count == 0);
   }
 
   SECTION("String operations.") {
-    std::string test_string = "///test///";
-
-    comet::RemoveLeadingSlashes(test_string);
-
-    REQUIRE(test_string == "test///");
-
+    comet::TString test_string{"///test///"};
     comet::RemoveTrailingSlashes(test_string);
-
-    REQUIRE(test_string == "test");
+    REQUIRE(test_string == COMET_TCHAR("///test"));
 
     REQUIRE(comet::IsDirectory(comet::comettests::current_dir));
     REQUIRE(!comet::IsFile(comet::comettests::current_dir));
 
     REQUIRE(comet::GetParentPath(comet::comettests::current_dir) ==
-            comet::comettests::current_dir.substr(
-                0, comet::comettests::current_dir.find_last_of("/")));
+            comet::comettests::current_dir.GenerateSubString(
+                0, comet::comettests::current_dir.GetLastIndexOf(
+                       COMET_TCHAR('/'))));
 
-    REQUIRE(comet::GetNormalizedPath("test/.././test") == "test");
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("test/.././test")) ==
+            COMET_TCHAR("test"));
 
-    const auto file_path{comet::Append(comet::comettests::tmp_dir, "/test8")};
-    const auto dir_path{comet::Append(comet::comettests::tmp_dir, "/test3")};
-    const auto does_not_exist_path{
-        comet::Append(comet::comettests::tmp_dir, "/DOESNOTEXIST")};
+    const auto file_path{
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))};
+    const auto dir_path{
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test3"))};
+    const auto does_not_exist_path{comet::Append(comet::comettests::tmp_dir,
+                                                 COMET_TCHAR("/DOESNOTEXIST"))};
 
     // For tests with absolute paths, we simply cut the beginning of the
     // string to allow the tests to run on any computer.
     auto tmp_file_path{comet::GetAbsolutePath(file_path)};
+    comet::TString buffer{};
+    buffer.Reserve(512);
+    buffer /= comet::comettests::test_dir;
+    buffer /= COMET_TCHAR("/test8");
 
-    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_file_path, "/", 2) ==
-            "/" + comet::Append(comet::comettests::test_dir, "/test8"));
+    REQUIRE(comet::comettests::FormatAbsolutePath(
+                tmp_file_path, COMET_TCHAR('/'), 2) == buffer);
+    buffer.Clear();
+    buffer /= comet::comettests::test_dir;
+    buffer /= COMET_TCHAR("/test3");
 
     auto tmp_dir_path{comet::GetAbsolutePath(dir_path)};
 
-    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_dir_path, "/", 2) ==
-            "/" + comet::Append(comet::comettests::test_dir, "/test3"));
+    REQUIRE(comet::comettests::FormatAbsolutePath(
+                tmp_dir_path, COMET_TCHAR('/'), 2) == buffer);
 
     auto tmp_does_not_exist_path{comet::GetAbsolutePath(does_not_exist_path)};
+    buffer.Clear();
+    buffer /= comet::comettests::test_dir;
+    buffer /= COMET_TCHAR("/DOESNOTEXIST");
 
-    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_does_not_exist_path, "/",
-                                                  2) ==
-            "/" + comet::Append(comet::comettests::test_dir, "/DOESNOTEXIST"));
+    REQUIRE(comet::comettests::FormatAbsolutePath(
+                tmp_does_not_exist_path, COMET_TCHAR('/'), 2) == buffer);
 
     REQUIRE(comet::GetRelativePath(file_path) ==
-            comet::Append(comet::comettests::test_dir, "/test8"));
+            comet::Append(comet::comettests::test_dir, COMET_TCHAR("/test8")));
 
     REQUIRE(comet::GetRelativePath(dir_path) ==
-            comet::Append(comet::comettests::test_dir, "/test3"));
+            comet::Append(comet::comettests::test_dir, COMET_TCHAR("/test3")));
 
     REQUIRE(comet::GetRelativePath(does_not_exist_path) ==
-            comet::Append(comet::comettests::test_dir, "/DOESNOTEXIST"));
+            comet::Append(comet::comettests::test_dir,
+                          COMET_TCHAR("/DOESNOTEXIST")));
 
     tmp_file_path = comet::GetDirectoryPath(file_path);
 
-    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_file_path, "/", 1) ==
-            "/" + comet::comettests::test_dir);
+    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_file_path,
+                                                  COMET_TCHAR('/'), 1) ==
+            COMET_TCHAR("/") + comet::TString{comet::comettests::test_dir});
 
     tmp_dir_path = comet::GetDirectoryPath(dir_path);
 
-    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_dir_path, "/", 2) ==
-            "/" + comet::Append(comet::comettests::test_dir, "/test3"));
+    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_dir_path,
+                                                  COMET_TCHAR('/'), 2) ==
+            COMET_TCHAR("/") + comet::Append(comet::comettests::test_dir,
+                                             COMET_TCHAR("/test3")));
 
     tmp_does_not_exist_path = comet::GetDirectoryPath(does_not_exist_path);
 
-    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_does_not_exist_path, "/",
-                                                  1) == "");
+    REQUIRE(comet::comettests::FormatAbsolutePath(tmp_does_not_exist_path,
+                                                  COMET_TCHAR('/'),
+                                                  1) == COMET_TCHAR(""));
 
-    REQUIRE(comet::GetName(file_path) == "test8");
-    REQUIRE(comet::GetName(dir_path) == "test3");
-    REQUIRE(comet::GetName(does_not_exist_path) == "DOESNOTEXIST");
+    REQUIRE(comet::GetName(file_path) == COMET_TCHAR("test8"));
+    REQUIRE(comet::GetName(dir_path) == COMET_TCHAR("test3"));
+    REQUIRE(comet::GetName(does_not_exist_path) == COMET_TCHAR("DOESNOTEXIST"));
 
-    REQUIRE(comet::GetNameView(file_path) == "test8");
-    REQUIRE(comet::GetNameView(dir_path) == "test3");
-    REQUIRE(comet::GetNameView(does_not_exist_path) == "DOESNOTEXIST");
+    REQUIRE(comet::GetExtension(file_path) == COMET_TCHAR(""));
+    REQUIRE(comet::GetExtension(file_path) == COMET_TCHAR(""));
+    REQUIRE(comet::GetExtension(COMET_TCHAR("/test/test1.txt")) ==
+            COMET_TCHAR("txt"));
 
-    REQUIRE(comet::GetExtension(file_path) == "");
-    REQUIRE(comet::GetExtension(file_path) == "");
-    REQUIRE(comet::GetExtension("/test/test1.txt") == "txt");
+    REQUIRE(comet::GetExtension(COMET_TCHAR("/test/test1.txt.mp3")) ==
+            COMET_TCHAR("mp3"));
 
-    REQUIRE(comet::GetExtension("/test/test1.txt.mp3") == "mp3");
+    REQUIRE(comet::GetExtension(COMET_TCHAR("/test/test1.txt.MP3")) ==
+            COMET_TCHAR("mp3"));
 
-    REQUIRE(comet::GetExtension("/test/test1.txt.MP3") == "mp3");
+    comet::TString replace_extension_path{"/test/test1.txt.MP3"};
+    comet::ReplaceExtension(COMET_TCHAR("fla"), replace_extension_path);
 
-    REQUIRE(comet::ReplaceExtensionToCopy("fla", "/test/test1.txt.MP3") ==
-            "/test/test1.txt.fla");
+    REQUIRE(replace_extension_path == COMET_TCHAR("/test/test1.txt.fla"));
 
-    REQUIRE(comet::GetExtension(does_not_exist_path) == "");
+    REQUIRE(comet::GetExtension(does_not_exist_path) == COMET_TCHAR(""));
 
-    REQUIRE(comet::IsRelative("../test"));
+    REQUIRE(comet::IsRelative(COMET_TCHAR("../test")));
 #ifdef COMET_WINDOWS
-    REQUIRE(!comet::IsRelative("C://test1/test2/test3"));
-    REQUIRE(comet::IsAbsolute("C://test1/test2/test3"));
+    REQUIRE(!comet::IsRelative(COMET_TCHAR("C://test1/test2/test3")));
+    REQUIRE(comet::IsAbsolute(COMET_TCHAR("C://test1/test2/test3")));
 #endif  // COMET_WINDOWS
 #ifdef COMET_UNIX
-    REQUIRE(!comet::IsRelative("/test1/test2/test3"));
-    REQUIRE(comet::IsAbsolute("/test1/test2/test3"));
+    REQUIRE(!comet::IsRelative(COMET_TCHAR("/test1/test2/test3")));
+    REQUIRE(comet::IsAbsolute(COMET_TCHAR("/test1/test2/test3")));
 #endif  // COMET_UNIX
-    REQUIRE(!comet::IsAbsolute("../test"));
+    REQUIRE(!comet::IsAbsolute(COMET_TCHAR("../test")));
   }
 
   SECTION("State operations.") {
-    const auto file_path{comet::Append(comet::comettests::tmp_dir, "/test8")};
-    const auto dir_path{comet::Append(comet::comettests::tmp_dir, "/test3")};
-    const auto does_not_exist{
-        comet::Append(comet::comettests::tmp_dir, "/DOESNOTEXIST")};
+    const auto file_path{
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))};
+    const auto dir_path{
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test3"))};
+    const auto does_not_exist{comet::Append(comet::comettests::tmp_dir,
+                                            COMET_TCHAR("/DOESNOTEXIST"))};
 
     REQUIRE(!comet::IsDirectory(file_path));
     REQUIRE(comet::IsFile(file_path));

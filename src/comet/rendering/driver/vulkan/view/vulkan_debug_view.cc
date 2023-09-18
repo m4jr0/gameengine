@@ -4,6 +4,8 @@
 
 #include "vulkan_debug_view.h"
 
+#include "comet/core/memory/memory.h"
+
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -42,8 +44,8 @@ void DebugView::Initialize() {
   render_pass_descr.dependency.dependencyFlags = 0;
 
   // TODO(m4jr0): Make clear values more configurable.
-  std::memcpy(&render_pass_descr.clear_values[0].color, clear_color_,
-              sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);
+  CopyMemory(&render_pass_descr.clear_values[0].color, clear_color_,
+             sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);
   render_pass_descr.clear_values[1].depthStencil.depth = 1.0f;
 
   auto is_msaa{context_->GetDevice().IsMsaa()};
@@ -79,7 +81,8 @@ void DebugView::Initialize() {
   render_pass_ = render_pass_handler_->Generate(render_pass_descr);
 
   ShaderDescr shader_descr{};
-  shader_descr.resource_path = "shaders/vulkan/debug_shader.vk.cshader";
+  shader_descr.resource_path =
+      COMET_TCHAR("shaders/vulkan/debug_shader.vk.cshader");
   shader_descr.render_pass = render_pass_;
   shader_ = shader_handler_->Generate(shader_descr);
 }

@@ -7,6 +7,8 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/file_system.h"
+#include "comet/core/type/tstring.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
@@ -21,29 +23,31 @@ class AssetExporter {
   AssetExporter& operator=(AssetExporter&&) = delete;
   virtual ~AssetExporter() = default;
 
-  virtual bool IsCompatible(std::string_view extension) const = 0;
-  bool Process(std::string_view asset_path);
+  virtual bool IsCompatible(CTStringView extension) const = 0;
+  bool Process(CTStringView asset_path);
 
   template <typename ResourcePath>
   void SetRootResourcePath(ResourcePath&& path) {
     root_resource_path_ = std::forward<ResourcePath>(path);
+    Clean(root_resource_path_.GetTStr(), root_resource_path_.GetLength());
   };
 
   template <typename AssetPath>
   void SetRootAssetPath(AssetPath&& path) {
     root_asset_path_ = std::forward<AssetPath>(path);
+    Clean(root_asset_path_.GetTStr(), root_asset_path_.GetLength());
   };
 
-  const std::string& GetRootResourcePath() const;
-  const std::string& GetRootAssetPath() const;
+  const TString& GetRootResourcePath() const;
+  const TString& GetRootAssetPath() const;
 
  protected:
   virtual std::vector<resource::ResourceFile> GetResourceFiles(
       AssetDescr& asset_descr) const = 0;
 
   resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
-  std::string root_asset_path_{};
-  std::string root_resource_path_{};
+  TString root_asset_path_{};
+  TString root_resource_path_{};
 };
 }  // namespace asset
 }  // namespace editor

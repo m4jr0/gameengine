@@ -2,12 +2,18 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_MEMORY_H_
-#define COMET_COMET_CORE_MEMORY_H_
+#ifndef COMET_COMET_CORE_MEMORY_MEMORY_H_
+#define COMET_COMET_CORE_MEMORY_MEMORY_H_
 
 #include "comet_precompile.h"
 
 namespace comet {
+constexpr auto kMaxAlignment{256};
+enum class MemoryTag { Untagged = 0, OneFrame, TwoFrames, TString, Entity };
+
+const schar* GetMemoryTagLabel(MemoryTag tag);
+void* CopyMemory(void* dst, const void* src, uindex size);
+
 inline uptr AlignAddress(uptr address, uindex alignment) {
   const uindex mask{alignment - 1};
   COMET_ASSERT((alignment & mask) == 0, "Bad alignment provided for address ",
@@ -15,6 +21,7 @@ inline uptr AlignAddress(uptr address, uindex alignment) {
                "! Must be a power of 2.");
   return (address + mask) & ~mask;
 }
+
 inline uindex AlignSize(uindex size, uindex alignment) {
   const uindex mask{alignment - 1};
   COMET_ASSERT((alignment & mask) == 0, "Bad alignment provided for size ",
@@ -28,12 +35,21 @@ inline T* AlignPointer(T* ptr, uindex alignment) {
       AlignAddress(reinterpret_cast<uptr>(ptr), alignment));
 }
 
+void* Allocate(uindex size, MemoryTag tag = MemoryTag::Untagged);
+void* AllocateAligned(uindex size, u16 alignment, MemoryTag tag);
+
 template <typename T>
-T* AllocAligned(T** ptr, uindex size, uindex alignment) {
-  uindex worst_case_size{size + alignment - 1};
-  *ptr = reinterpret_cast<T*>(new u8[worst_case_size]);
-  return AlignPointer(*ptr, alignment);
+T* AllocateAligned(MemoryTag tag) {
+  return AllocateAligned<T>(1, tag);
 }
+
+template <typename T>
+T* AllocateAligned(uindex count, MemoryTag tag) {
+  return reinterpret_cast<T*>(
+      AllocateAligned(sizeof(T) * count, alignof(T), tag));
+}
+
+void Deallocate(void* p);
 
 template <typename T>
 inline bool IsAligned(T* ptr, uindex alignment) noexcept {
@@ -41,7 +57,8 @@ inline bool IsAligned(T* ptr, uindex alignment) noexcept {
   return tmp % alignment == 0;
 }
 
-std::string GetMemorySizeString(uindex size);
+void GetMemorySizeString(uindex size, schar* buffer, uindex buffer_len,
+                         uindex* out_len = nullptr);
 }  // namespace comet
 
-#endif  // COMET_COMET_CORE_MEMORY_H_
+#endif  // COMET_COMET_CORE_MEMORY_MEMORY_H_

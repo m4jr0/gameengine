@@ -21,7 +21,8 @@ list(APPEND TESTS_EXECUTABLE_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/tests/core/tests_file_system.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/tests/core/type/structure/tests_ring_queue.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/core/type/tests_frame_vector.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/core/type/tests_ring_queue.cc"
 )
 
 # Executable ###################################################################

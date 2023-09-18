@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/type/stl_types.h"
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_type.h"
 
@@ -14,7 +15,6 @@ namespace comet {
 namespace entity {
 struct ComponentArray {
   u8* elements{nullptr};
-  u8* first{nullptr};
   uindex size{0};
 };
 
@@ -50,6 +50,10 @@ struct RegisteredComponentType {
 
 using RegisteredComponentTypeMap =
     std::unordered_map<EntityId, RegisteredComponentType>;
+
+using ArchetypePointer = custom_unique_ptr<Archetype>;
+
+ArchetypePointer GenerateArchetype();
 }  // namespace entity
 }  // namespace comet
 #endif  // COMET_COMET_ENTITY_ARCHETYPE_H_

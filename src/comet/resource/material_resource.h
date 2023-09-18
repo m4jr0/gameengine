@@ -45,7 +45,6 @@ struct MaterialResource : public Resource {
   MaterialResourceDescr descr{};
 };
 
-ResourceId GenerateMaterialId(const std::string& material_name);
 ResourceId GenerateMaterialId(const schar* material_name);
 
 class MaterialHandler : public ResourceHandler {

@@ -44,13 +44,13 @@ void PhysicsManager::Update(f64& lag) {
   current_time_ += time::TimeManager::Get().GetDeltaTime();
 
   while (lag > fixed_delta_time_) {
+    memory::MemoryManager::Get().Update();
+
     // TODO(m4jr0): Investigate. This seems to prevent round errors.
     if (counter_ == max_frame_rate_) {
       lag = 0;
       return;
     }
-
-    event::EventManager::Get().FireAllEvents();
 
     // TODO(m4jr0): Remove temporary code.
     ApplyTmpCode();
@@ -60,6 +60,7 @@ void PhysicsManager::Update(f64& lag) {
 
     ++counter_;
     lag -= fixed_delta_time_;
+    event::EventManager::Get().FireAllEvents();
   }
 }
 

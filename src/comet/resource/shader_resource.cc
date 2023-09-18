@@ -4,6 +4,9 @@
 
 #include "shader_resource.h"
 
+#include "comet/core/c_string.h"
+#include "comet/core/memory/memory.h"
+
 namespace comet {
 namespace resource {
 const ResourceTypeId ShaderResource::kResourceTypeId{COMET_STRING_ID("shader")};
@@ -22,10 +25,10 @@ ResourceFile ShaderHandler::Pack(const Resource& resource,
   uindex cursor{0};
   auto* buffer{data.data()};
 
-  std::memcpy(&buffer[cursor], &shader.id, kResourceIdSize);
+  CopyMemory(&buffer[cursor], &shader.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&buffer[cursor], &shader.type_id, kResourceTypeIdSize);
+  CopyMemory(&buffer[cursor], &shader.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   const auto dumped_descr{DumpDescr(shader.descr)};
@@ -49,10 +52,10 @@ std::unique_ptr<Resource> ShaderHandler::Unpack(
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
 
-  std::memcpy(&shader.id, &buffer[cursor], kResourceIdSize);
+  CopyMemory(&shader.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  std::memcpy(&shader.type_id, &buffer[cursor], kResourceTypeIdSize);
+  CopyMemory(&shader.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   return std::make_unique<ShaderResource>(std::move(shader));
@@ -72,21 +75,21 @@ std::vector<u8> ShaderHandler::DumpDescr(
   auto total_size{kBoolSize + kCullModeSize + kUIndexSize};
 
   for (const auto& module_path : descr.shader_module_paths) {
-    total_size += kUIndexSize + module_path.size();
+    total_size += kUIndexSize + (module_path.GetLength() + 1) * sizeof(tchar);
   }
 
   total_size += kUIndexSize;
 
   for (const auto& vertex_attribute : descr.vertex_attributes) {
     total_size += kShaderVertexAttributeTypeSize + kUIndexSize +
-                  vertex_attribute.name.size();
+                  vertex_attribute.name_len;
   }
 
   total_size += kUIndexSize;
 
   for (const auto& uniform : descr.uniforms) {
     total_size += kShaderUniformTypeSize + kShaderUniformScopeSize +
-                  kUIndexSize + uniform.name.size();
+                  kUIndexSize + uniform.name_len;
   }
 
   const auto data_size{total_size};
@@ -95,59 +98,59 @@ std::vector<u8> ShaderHandler::DumpDescr(
   uindex cursor{0};
   auto* buffer{dumped_descr.data()};
 
-  std::memcpy(&buffer[cursor], &descr.is_wireframe, kBoolSize);
+  CopyMemory(&buffer[cursor], &descr.is_wireframe, kBoolSize);
   cursor += kBoolSize;
 
-  std::memcpy(&buffer[cursor], &descr.cull_mode, kCullModeSize);
+  CopyMemory(&buffer[cursor], &descr.cull_mode, kCullModeSize);
   cursor += kCullModeSize;
 
   const auto module_path_count{descr.shader_module_paths.size()};
-  std::memcpy(&buffer[cursor], &module_path_count, kUIndexSize);
+  CopyMemory(&buffer[cursor], &module_path_count, kUIndexSize);
   cursor += kUIndexSize;
 
   for (const auto& module_path : descr.shader_module_paths) {
-    const auto module_path_size{module_path.size()};
-    std::memcpy(&buffer[cursor], &module_path_size, kUIndexSize);
+    const auto module_path_size{(module_path.GetLength() + 1) * sizeof(tchar)};
+    CopyMemory(&buffer[cursor], &module_path_size, kUIndexSize);
     cursor += kUIndexSize;
 
-    std::memcpy(&buffer[cursor], module_path.c_str(), module_path_size);
+    CopyMemory(&buffer[cursor], module_path.GetCTStr(), module_path_size);
     cursor += module_path_size;
   }
 
   const auto vertex_attribute_count{descr.vertex_attributes.size()};
-  std::memcpy(&buffer[cursor], &vertex_attribute_count, kUIndexSize);
+  CopyMemory(&buffer[cursor], &vertex_attribute_count, kUIndexSize);
   cursor += kUIndexSize;
 
   for (const auto& vertex_attribute : descr.vertex_attributes) {
-    std::memcpy(&buffer[cursor], &vertex_attribute.type,
-                kShaderVertexAttributeTypeSize);
+    CopyMemory(&buffer[cursor], &vertex_attribute.type,
+               kShaderVertexAttributeTypeSize);
     cursor += kShaderVertexAttributeTypeSize;
 
-    const auto vertex_attribute_name_size{vertex_attribute.name.size()};
-    std::memcpy(&buffer[cursor], &vertex_attribute_name_size, kUIndexSize);
+    const auto vertex_attribute_name_size{vertex_attribute.name_len};
+    CopyMemory(&buffer[cursor], &vertex_attribute_name_size, kUIndexSize);
     cursor += kUIndexSize;
 
-    std::memcpy(&buffer[cursor], vertex_attribute.name.c_str(),
-                vertex_attribute_name_size);
+    CopyMemory(&buffer[cursor], vertex_attribute.name,
+               vertex_attribute_name_size);
     cursor += vertex_attribute_name_size;
   }
 
   const auto uniform_count{descr.uniforms.size()};
-  std::memcpy(&buffer[cursor], &uniform_count, kUIndexSize);
+  CopyMemory(&buffer[cursor], &uniform_count, kUIndexSize);
   cursor += kUIndexSize;
 
   for (const auto& uniform : descr.uniforms) {
-    std::memcpy(&buffer[cursor], &uniform.type, kShaderUniformTypeSize);
+    CopyMemory(&buffer[cursor], &uniform.type, kShaderUniformTypeSize);
     cursor += kShaderUniformTypeSize;
 
-    std::memcpy(&buffer[cursor], &uniform.scope, kShaderUniformScopeSize);
+    CopyMemory(&buffer[cursor], &uniform.scope, kShaderUniformScopeSize);
     cursor += kShaderUniformScopeSize;
 
-    const auto uniform_name_size{uniform.name.size()};
-    std::memcpy(&buffer[cursor], &uniform_name_size, kUIndexSize);
+    const auto uniform_name_size{uniform.name_len};
+    CopyMemory(&buffer[cursor], &uniform_name_size, kUIndexSize);
     cursor += kUIndexSize;
 
-    std::memcpy(&buffer[cursor], uniform.name.c_str(), uniform_name_size);
+    CopyMemory(&buffer[cursor], uniform.name, uniform_name_size);
     cursor += uniform_name_size;
   }
 
@@ -168,32 +171,33 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
   uindex cursor{0};
   ShaderResourceDescr descr{};
 
-  std::memcpy(&descr.is_wireframe, &buffer[cursor], kBoolSize);
+  CopyMemory(&descr.is_wireframe, &buffer[cursor], kBoolSize);
   cursor += kBoolSize;
 
-  std::memcpy(&descr.cull_mode, &buffer[cursor], kCullModeSize);
+  CopyMemory(&descr.cull_mode, &buffer[cursor], kCullModeSize);
   cursor += kCullModeSize;
 
   uindex module_path_count;
-  std::memcpy(&module_path_count, &buffer[cursor], kUIndexSize);
+  CopyMemory(&module_path_count, &buffer[cursor], kUIndexSize);
   cursor += kUIndexSize;
 
   descr.shader_module_paths.reserve(module_path_count);
 
   for (uindex i{0}; i < module_path_count; ++i) {
     uindex module_path_size;
-    std::memcpy(&module_path_size, &buffer[cursor], kUIndexSize);
+    CopyMemory(&module_path_size, &buffer[cursor], kUIndexSize);
     cursor += kUIndexSize;
 
-    std::string module_path{&buffer[cursor],
-                            &buffer[cursor] + module_path_size};
+    const auto* str{reinterpret_cast<const tchar*>(&buffer[cursor])};
+
+    TString module_path{str, str + module_path_size};
     cursor += module_path_size;
 
     descr.shader_module_paths.push_back(std::move(module_path));
   }
 
   uindex vertex_attribute_count;
-  std::memcpy(&vertex_attribute_count, &buffer[cursor], kUIndexSize);
+  CopyMemory(&vertex_attribute_count, &buffer[cursor], kUIndexSize);
   cursor += kUIndexSize;
 
   descr.vertex_attributes.reserve(vertex_attribute_count);
@@ -201,23 +205,24 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
   for (uindex i{0}; i < vertex_attribute_count; ++i) {
     rendering::ShaderVertexAttributeDescr vertex_attribute_descr{};
 
-    std::memcpy(&vertex_attribute_descr.type, &buffer[cursor],
-                kShaderVertexAttributeTypeSize);
+    CopyMemory(&vertex_attribute_descr.type, &buffer[cursor],
+               kShaderVertexAttributeTypeSize);
     cursor += kShaderVertexAttributeTypeSize;
 
-    uindex vertex_attribute_name_size;
-    std::memcpy(&vertex_attribute_name_size, &buffer[cursor], kUIndexSize);
+    uindex vertex_attribute_name_len;
+    CopyMemory(&vertex_attribute_name_len, &buffer[cursor], kUIndexSize);
     cursor += kUIndexSize;
 
-    vertex_attribute_descr.name = std::string{
-        &buffer[cursor], &buffer[cursor] + vertex_attribute_name_size};
-    cursor += vertex_attribute_name_size;
+    SetName(vertex_attribute_descr,
+            reinterpret_cast<const schar*>(&buffer[cursor]),
+            vertex_attribute_name_len);
+    cursor += vertex_attribute_name_len;
 
     descr.vertex_attributes.push_back(std::move(vertex_attribute_descr));
   }
 
   uindex uniform_count;
-  std::memcpy(&uniform_count, &buffer[cursor], kUIndexSize);
+  CopyMemory(&uniform_count, &buffer[cursor], kUIndexSize);
   cursor += kUIndexSize;
 
   descr.uniforms.reserve(uniform_count);
@@ -225,19 +230,19 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
   for (uindex i{0}; i < uniform_count; ++i) {
     rendering::ShaderUniformDescr uniform_descr{};
 
-    std::memcpy(&uniform_descr.type, &buffer[cursor], kShaderUniformTypeSize);
+    CopyMemory(&uniform_descr.type, &buffer[cursor], kShaderUniformTypeSize);
     cursor += kShaderUniformTypeSize;
 
-    std::memcpy(&uniform_descr.scope, &buffer[cursor], kShaderUniformScopeSize);
+    CopyMemory(&uniform_descr.scope, &buffer[cursor], kShaderUniformScopeSize);
     cursor += kShaderUniformScopeSize;
 
-    uindex uniform_name_size;
-    std::memcpy(&uniform_name_size, &buffer[cursor], kUIndexSize);
+    uindex uniform_name_len;
+    CopyMemory(&uniform_name_len, &buffer[cursor], kUIndexSize);
     cursor += kUIndexSize;
 
-    uniform_descr.name =
-        std::string{&buffer[cursor], &buffer[cursor] + uniform_name_size};
-    cursor += uniform_name_size;
+    SetName(uniform_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+            uniform_name_len);
+    cursor += uniform_name_len;
 
     descr.uniforms.push_back(std::move(uniform_descr));
   }

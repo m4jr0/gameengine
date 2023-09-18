@@ -47,18 +47,18 @@ void EventManager::Unregister(EventListenerId id) {
   id_event_type_map_.erase(id);
 }
 
-void EventManager::FireEventNow(std::unique_ptr<Event> event) const {
+void EventManager::FireEventNow(EventPointer event) const {
   Dispatch(std::move(event));
 }
 
-void EventManager::FireEvent(std::unique_ptr<Event> event) {
+void EventManager::FireEvent(EventPointer event) {
   std::scoped_lock<std::mutex> lock(mutex_);
   event_queue_.push(std::move(event));
 }
 
 void EventManager::FireAllEvents() {
   std::scoped_lock<std::mutex> lock(mutex_);
-  std::unique_ptr<Event> event;
+  EventPointer event;
 
   while (!event_queue_.empty()) {
     Dispatch(std::move(event_queue_.front()));
@@ -66,7 +66,7 @@ void EventManager::FireAllEvents() {
   }
 }
 
-void EventManager::Dispatch(std::unique_ptr<Event> event) const {
+void EventManager::Dispatch(EventPointer event) const {
   auto it{listeners_.find(event->GetType())};
 
   if (it == listeners_.end()) {

@@ -18,7 +18,10 @@ find_package(OpenGL REQUIRED)
 
 # Vulkan.
 find_package(Vulkan REQUIRED)
-find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
+
+if(NOT WIN32)
+  find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+endif()
 
 # ImGui.
 find_package(imgui CONFIG REQUIRED)
@@ -84,7 +87,7 @@ target_sources(${COMET_LIBRARY_NAME}
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_view.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_world_view.cc"
 
-    #Vulkan.
+    # Vulkan.
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_buffer.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_frame.h"
@@ -130,8 +133,12 @@ target_sources(${COMET_LIBRARY_NAME}
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_driver.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_swapchain.cc"
 
+    # Empty.
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/empty/empty_driver.cc"
+
       # Windows.
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/glfw_window.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/empty/empty_glfw_window.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/opengl/opengl_glfw_window.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/vulkan/vulkan_glfw_window.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cc"
@@ -162,7 +169,6 @@ target_link_libraries(${COMET_LIBRARY_NAME}
   PRIVATE
     ${ZLIB_LIBRARY_RELEASE}
     glad
-    unofficial::vulkan-memory-allocator::vulkan-memory-allocator
     imgui::imgui
     glfw
 )
@@ -184,6 +190,7 @@ if(LINUX)
       glfw3
       pthread
       ${Vulkan_LIBRARIES}
+      GPUOpen::VulkanMemoryAllocator
       ${CMAKE_DL_LIBS}
       ${X11_X11_LIB}
   )

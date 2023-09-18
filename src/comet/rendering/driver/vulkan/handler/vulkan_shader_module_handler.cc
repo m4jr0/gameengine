@@ -23,7 +23,7 @@ void ShaderModuleHandler::Shutdown() {
 }
 
 const ShaderModule* ShaderModuleHandler::Generate(
-    const schar* shader_module_path) {
+    CTStringView shader_module_path) {
   const auto* shader_module_resource{
       resource::ResourceManager::Get().Load<resource::ShaderModuleResource>(
           shader_module_path)};
@@ -58,11 +58,6 @@ const ShaderModule* ShaderModuleHandler::Generate(
   return &insert_pair.first->second;
 }
 
-const ShaderModule* ShaderModuleHandler::Generate(
-    const std::string& shader_module_path) {
-  return Generate(shader_module_path.c_str());
-}
-
 const ShaderModule* ShaderModuleHandler::Get(
     ShaderModuleId shader_module_id) const {
   auto* shader_module{TryGet(shader_module_id)};
@@ -83,7 +78,7 @@ const ShaderModule* ShaderModuleHandler::TryGet(
   return &it->second;
 }
 
-const ShaderModule* ShaderModuleHandler::GetOrGenerate(const schar* path) {
+const ShaderModule* ShaderModuleHandler::GetOrGenerate(CTStringView path) {
   const auto* shader_module{TryGet(COMET_STRING_ID(path))};
 
   if (shader_module != nullptr) {
@@ -91,11 +86,6 @@ const ShaderModule* ShaderModuleHandler::GetOrGenerate(const schar* path) {
   }
 
   return Generate(path);
-}
-
-const ShaderModule* ShaderModuleHandler::GetOrGenerate(
-    const std::string& path) {
-  return GetOrGenerate(path.c_str());
 }
 
 void ShaderModuleHandler::Destroy(ShaderModuleId shader_module_id) {

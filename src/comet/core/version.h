@@ -5,7 +5,6 @@
 #ifndef COMET_COMET_CORE_VERSION_H_
 #define COMET_COMET_CORE_VERSION_H_
 
-#include <string>
 #include <string_view>
 
 #include "comet/core/type/primitive.h"
@@ -15,11 +14,13 @@ using namespace std::literals;
 namespace comet {
 namespace version {
 static constexpr auto kCometName{"Comet Game Engine"sv};
+
 constexpr u16 kCometVersionMajor{0};
 constexpr u16 kCometVersionMinor{0};
 constexpr u16 kCometVersionPatch{1};
 
-std::string GetFormattedVersion();
+constexpr auto kCometVersionStr{kCometVersionMajor + '.' + kCometVersionMinor +
+                                '.' + kCometVersionPatch};
 }  // namespace version
 }  // namespace comet
 

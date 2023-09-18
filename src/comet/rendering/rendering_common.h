@@ -13,6 +13,9 @@
 
 namespace comet {
 namespace rendering {
+constexpr auto kMaxAppNameLen{256};
+constexpr auto kMaxWindowNameLen{256};
+
 constexpr math::Vec3 kColorBlack{0.0f, 0.0f, 0.0f};
 constexpr math::Vec3 kColorWhite{1.0f, 1.0f, 1.0f};
 constexpr math::Vec3 kColorRed{1.0f, 0.0f, 0.0f};
@@ -22,10 +25,10 @@ constexpr math::Vec3 kColorYellow{1.0f, 1.0f, 0.0f};
 constexpr math::Vec3 kColorCyan{0.0f, 1.0f, 1.0f};
 constexpr math::Vec3 kColorMagenta{1.0f, 0.0f, 1.0f};
 
-enum class DriverType : u8 { Unknown = 0, OpenGl, Vulkan, Direct3d12 };
+enum class DriverType : u8 { Unknown = 0, Empty, OpenGl, Vulkan, Direct3d12 };
 
 DriverType GetDriverTypeFromStr(std::string_view str);
-std::string GetDriverTypeLabel(rendering::DriverType type);
+const schar* GetDriverTypeLabel(rendering::DriverType type);
 
 using FrameCount = u32;
 constexpr auto kInvalidFrameCount{static_cast<FrameCount>(-1)};
@@ -75,9 +78,9 @@ enum class TextureRepeatMode : u8 {
 
 enum class TextureFilterMode : u8 { Unknown = 0, Nearest, Linear };
 
-std::string GetTextureTypeLabel(TextureType texture_type);
-std::string GetTextureFilterModeLabel(TextureFilterMode filter_mode);
-std::string GetTextureRepeatModeLabel(TextureRepeatMode repeat_mode);
+const schar* GetTextureTypeLabel(TextureType texture_type);
+const schar* GetTextureFilterModeLabel(TextureFilterMode filter_mode);
+const schar* GetTextureRepeatModeLabel(TextureRepeatMode repeat_mode);
 
 enum class TextureFormat : u32 { Unknown = 0, Rgba8, Rgb8 };
 
@@ -176,21 +179,31 @@ Alignment GetScalarAlignment(ShaderUniformType type);
 Alignment GetStd140Alignment(ShaderUniformType type);
 Alignment GetStd430Alignment(ShaderUniformType type);
 
+constexpr auto kVertexAttributeDescrMaxNameLen{64};
+
 struct ShaderVertexAttributeDescr {
   ShaderVertexAttributeType type{ShaderVertexAttributeType::Unknown};
-  std::string name{};
+  schar name[kVertexAttributeDescrMaxNameLen]{'\0'};
+  uindex name_len{0};
 };
+
+void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
+             uindex name_len);
 
 using ShaderUniformSize = u32;
 constexpr auto kInvalidShaderUniformSize{static_cast<ShaderUniformSize>(-1)};
 
 enum class ShaderUniformScope : u8 { Unknown = 0, Global, Instance, Local };
+constexpr auto kShaderUniformDescrMaxNameLen{64};
 
 struct ShaderUniformDescr {
   ShaderUniformType type{ShaderUniformType::Unknown};
   ShaderUniformScope scope{ShaderUniformScope::Unknown};
-  std::string name{};
+  schar name[kShaderUniformDescrMaxNameLen]{'\0'};
+  uindex name_len{0};
 };
+
+void SetName(ShaderUniformDescr& descr, const schar* name, uindex name_len);
 
 constexpr auto kMaxShaderCount{256};
 constexpr auto kMaxShaderUniformCount{128};

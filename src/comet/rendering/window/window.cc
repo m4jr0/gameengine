@@ -9,8 +9,24 @@
 
 namespace comet {
 namespace rendering {
+void SetName(WindowDescr& descr, const schar* name, uindex name_len) {
+  descr.name_len = name_len;
+
+  if (descr.name_len >= kMaxWindowNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Window name provided is too long: ", descr.name_len,
+        " >= ", kMaxWindowNameLen, ". It will be truncated.");
+    descr.name_len = static_cast<uindex>(kMaxWindowNameLen - 1);
+  }
+
+  Copy(descr.name, name, descr.name_len);
+  descr.name[descr.name_len + 1] = '\0';
+}
+
 Window::Window(const WindowDescr& descr)
-    : name_{descr.name}, width_{descr.width}, height_{descr.height} {
+    : width_{descr.width}, height_{descr.height} {
+  Copy(name_, descr.name, descr.name_len);
+  name_len_ = descr.name_len;
   event::EventManager::Get().FireEvent<event::WindowInitializedEvent>(width_,
                                                                       height_);
 }
@@ -18,12 +34,14 @@ Window::Window(const WindowDescr& descr)
 Window::Window(Window&& other) noexcept
     : is_initialized_{other.is_initialized_},
       width_{other.width_},
-      height_{other.height_},
-      name_{std::move(other.name_)} {
+      height_{other.height_} {
+  Copy(name_, other.name_, other.name_len_);
+  name_len_ = other.name_len_;
   other.is_initialized_ = false;
   other.width_ = 0;
   other.height_ = 0;
-  other.name_.clear();
+  FillWith(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1), '\0');
+  other.name_len_ = 0;
 }
 
 Window& Window::operator=(Window&& other) noexcept {
@@ -34,11 +52,13 @@ Window& Window::operator=(Window&& other) noexcept {
   is_initialized_ = other.is_initialized_;
   width_ = other.width_;
   height_ = other.height_;
-  name_ = std::move(other.name_);
+  Copy(name_, other.name_, other.name_len_);
+  name_len_ = other.name_len_;
   other.is_initialized_ = false;
   other.width_ = 0;
   other.height_ = 0;
-  other.name_.clear();
+  FillWith(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1), '\0');
+  other.name_len_ = 0;
   return *this;
 }
 
@@ -63,7 +83,7 @@ void Window::Update() {}
 
 bool Window::IsInitialized() const noexcept { return is_initialized_; }
 
-const std::string& Window::GetName() const noexcept { return name_; }
+const schar* Window::GetName() const noexcept { return name_; }
 
 const WindowSize Window::GetWidth() const noexcept { return width_; }
 

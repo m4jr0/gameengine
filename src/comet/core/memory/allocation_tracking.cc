@@ -21,7 +21,7 @@ uindex GetMemoryUse() {
 }  // namespace comet
 
 #ifdef COMET_DEBUG
-void* operator new(std::size_t size) throw(std::bad_alloc) {
+void* operator new(std::size_t size) throw() {
   comet::internal::memory_use.total_allocated += size;
   return std::malloc(size);
 }

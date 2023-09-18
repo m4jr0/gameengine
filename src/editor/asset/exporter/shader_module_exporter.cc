@@ -6,49 +6,49 @@
 
 #include "shaderc/shaderc.hpp"
 
+#include "comet/core/c_string.h"
 #include "comet/core/file_system.h"
-#include "comet/core/string.h"
+#include "comet/core/generator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-bool ShaderModuleExporter::IsCompatible(std::string_view extension) const {
-  return extension == "vert" || extension == "frag";
+bool ShaderModuleExporter::IsCompatible(CTStringView extension) const {
+  return extension == COMET_TCHAR("vert") || extension == COMET_TCHAR("frag");
 }
 
 std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
     AssetDescr& asset_descr) const {
   const auto driver_keyword_pos{
-      GetLastNthPos(asset_descr.asset_path, std::string("."), 2)};
+      asset_descr.asset_path.GetNthToLastIndexOf(COMET_TCHAR('.'), 2)};
 
-  std::string driver_keyword;
-
-  if (driver_keyword_pos != kInvalidIndex) {
-    driver_keyword = ReplaceExtensionToCopy(
-        "", asset_descr.asset_path.substr(driver_keyword_pos + 1,
-                                          asset_descr.asset_path.size()));
-  } else {
+  if (driver_keyword_pos == kInvalidIndex) {
     COMET_LOG_GLOBAL_ERROR(
         "Unable to retrieve driver keyword from asset shader path: ",
         asset_descr.asset_path, ".");
+    return {};
   }
 
+  auto driver_keyword{
+      asset_descr.asset_path.GenerateSubString(driver_keyword_pos + 1)};
+  ReplaceExtension(COMET_TCHAR(""), driver_keyword);
   auto shader_keyword{GetExtension(asset_descr.asset_path)};
 
   rendering::ShaderModuleType shader_type{rendering::ShaderModuleType::Unknown};
   rendering::DriverType driver_type{rendering::DriverType::Unknown};
 
-  if (driver_keyword == "gl") {
+  if (driver_keyword == COMET_TCHAR("gl")) {
     driver_type = rendering::DriverType::OpenGl;
-  } else if (driver_keyword == "vk") {
+  } else if (driver_keyword == COMET_TCHAR("vk")) {
     driver_type = rendering::DriverType::Vulkan;
   }
 
-  if (shader_keyword == "vert") {
+  if (shader_keyword == COMET_TCHAR("vert")) {
     shader_type = rendering::ShaderModuleType::Vertex;
-  } else if (shader_keyword == "frag") {
+  } else if (shader_keyword == COMET_TCHAR("frag")) {
     shader_type = rendering::ShaderModuleType::Fragment;
   }
 
@@ -68,8 +68,10 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
   shader.descr.shader_type = shader_type;
   shader.descr.driver_type = driver_type;
 
-  std::string shader_code;
-  ReadStrFromFile(asset_descr.asset_abs_path, shader_code);
+  schar shader_code[4096];
+  uindex shader_code_len;
+  ReadStrFromFile(asset_descr.asset_abs_path, shader_code, 4096,
+                  &shader_code_len);
 
   switch (driver_type) {
     case rendering::DriverType::Vulkan: {
@@ -94,9 +96,16 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
           break;
       }
 
-      const auto result{compiler.CompileGlslToSpv(
-          shader_code.c_str(), shader_kind,
-          GetNameView(asset_descr.asset_abs_path).data(), options)};
+      const auto tmp_input_file_name{GetName(asset_descr.asset_abs_path)};
+#ifdef COMET_WIDE_TCHAR
+      const auto* input_file_name{GenerateForOneFrame<schar>(
+          tmp_input_file_name.GetCTStr(), tmp_input_file_name.GetLength())};
+#else
+      const auto* input_file_name{tmp_input_file_name.GetCTStr()};
+#endif  // COMET_WIDE_TCHAR
+
+      const auto result{compiler.CompileGlslToSpv(shader_code, shader_kind,
+                                                  input_file_name, options)};
 
       if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
         COMET_LOG_GLOBAL_ERROR("Shaderc compilation error! At ",
@@ -105,13 +114,13 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
       }
 
       shader.data.resize((result.cend() - result.cbegin()) * sizeof(u32));
-      std::memcpy(shader.data.data(), result.cbegin(), shader.data.size());
+      CopyMemory(shader.data.data(), result.cbegin(), shader.data.size());
       break;
     }
     default:
     case rendering::DriverType::OpenGl: {
-      shader.data.resize(shader_code.size());
-      std::memcpy(shader.data.data(), shader_code.c_str(), shader.data.size());
+      shader.data.resize(shader_code_len);
+      CopyMemory(shader.data.data(), shader_code, shader.data.size());
       break;
     }
   }

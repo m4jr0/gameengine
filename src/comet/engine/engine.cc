@@ -76,7 +76,6 @@ void Engine::Run() {
 }
 
 void Engine::Update(f64& lag) {
-  memory::MemoryManager::Get().Update();
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
   physics::PhysicsManager::Get().Update(lag);

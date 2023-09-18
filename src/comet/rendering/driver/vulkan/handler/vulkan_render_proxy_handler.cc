@@ -37,13 +37,8 @@ void RenderProxyHandler::Update(time::Interpolation interpolation) {
   }
 
   const auto& frustum{CameraManager::Get().GetMainCamera()->GetFrustum()};
-  proxies_.clear();
-
-  // Reset proxies_ to its default capacity;
-  if (proxies_.size() != kDefaultProxyCount) {
-    proxies_.reserve(kDefaultProxyCount);
-  }
-
+  proxies_ = one_frame_vector<RenderProxy>{};
+  proxies_.reserve(kDefaultProxyCount);
   auto& entity_manager{entity::EntityManager::Get()};
 
   entity_manager.Each<resource::MeshComponent, physics::TransformComponent>(

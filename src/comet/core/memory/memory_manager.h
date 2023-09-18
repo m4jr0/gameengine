@@ -7,7 +7,11 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/allocator/frame_allocator.h"
+#include "comet/core/memory/allocator/stack_allocator.h"
+#include "comet/core/memory/allocator/tstring_allocator.h"
 
 namespace comet {
 namespace memory {
@@ -27,6 +31,17 @@ class MemoryManager : public Manager {
   void Update();
 
   uindex GetAllocatedMemory() const;
+  OneFrameAllocator& GetOneFrameAllocator();
+  TwoFrameAllocator& GetTwoFrameAllocator();
+  TStringAllocator& GetTStringAllocator();
+
+ private:
+  OneFrameAllocator one_frame_allocator_{
+      COMET_CONF_U32(conf::kCoreOneFrameAllocatorCapacity)};
+  TwoFrameAllocator two_frame_allocator_{
+      COMET_CONF_U32(conf::kCoreTwoFrameAllocatorCapacity)};
+  TStringAllocator tstring_allocator_{
+      COMET_CONF_U32(conf::kCoreTStringAllocatorCapacity)};
 };
 }  // namespace memory
 }  // namespace comet

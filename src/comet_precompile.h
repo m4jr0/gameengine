@@ -51,8 +51,12 @@
 
 #ifdef COMET_WINDOWS
 #define NOMINMAX
-
 #include <windows.h>
+
+#undef MoveMemory
+#undef CopyMemory
+#undef FillMemory
+#undef ZeroMemory
 #endif  // COMET_WINDOWS
 
 #include "comet/core/type/primitive.h"

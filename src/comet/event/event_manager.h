@@ -9,7 +9,7 @@
 
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/manager.h"
-#include "comet/core/type/structure/ring_queue.h"
+#include "comet/core/type/ring_queue.h"
 #include "comet/event/event.h"
 
 namespace comet {
@@ -26,7 +26,7 @@ struct EventListener {
 using EventListeners =
     std::unordered_map<stringid::StringId, std::vector<EventListener>>;
 using IdEventTypeMap = std::unordered_map<EventListenerId, stringid::StringId>;
-using EventQueue = comet::ring_queue<std::unique_ptr<event::Event>>;
+using EventQueue = ring_queue<EventPointer>;
 
 class EventManager : public Manager {
  public:
@@ -45,24 +45,24 @@ class EventManager : public Manager {
                            stringid::StringId event_type);
   void Unregister(EventListenerId id);
 
-  template <typename T, typename... Targs>
-  void FireEventNow(Targs... args) const {
-    Dispatch(Event::Generate<T>(args...));
+  template <typename T, typename... Args>
+  void FireEventNow(Args&&... args) const {
+    Dispatch(GenerateEvent<T>(std::forward<Args>(args)...));
   }
 
-  void FireEventNow(std::unique_ptr<Event> event) const;
+  void FireEventNow(EventPointer event) const;
 
-  template <typename T, typename... Targs>
-  void FireEvent(Targs... args) {
+  template <typename T, typename... Args>
+  void FireEvent(Args&&... args) {
     std::scoped_lock<std::mutex> lock(mutex_);
-    event_queue_.push(Event::Generate<T>(args...));
+    event_queue_.push(GenerateEvent<T>(std::forward<Args>(args)...));
   }
 
-  void FireEvent(std::unique_ptr<Event> event);
+  void FireEvent(EventPointer event);
   void FireAllEvents();
 
  private:
-  void Dispatch(std::unique_ptr<Event> event) const;
+  void Dispatch(EventPointer event) const;
 
   mutable std::mutex mutex_{};
   EventListenerId listener_id_counter_{0};

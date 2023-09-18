@@ -7,14 +7,15 @@
 #include "nlohmann/json.hpp"
 
 #include "comet/core/file_system.h"
+#include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-bool ShaderExporter::IsCompatible(std::string_view extension) const {
-  return extension == "cshader";
+bool ShaderExporter::IsCompatible(CTStringView extension) const {
+  return extension == COMET_TCHAR("cshader");
 }
 
 std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
@@ -25,24 +26,33 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
   std::vector<resource::ResourceFile> to_return{};
 
   try {
-    std::string metadata_raw;
-    ReadStrFromFile(asset_descr.asset_abs_path, metadata_raw);
+    schar shader_file_raw[4096];
+    uindex shader_file_raw_len;
+    ReadStrFromFile(asset_descr.asset_abs_path, shader_file_raw, 4096,
+                    &shader_file_raw_len);
 
-    if (metadata_raw.size() == 0) {
+    if (shader_file_raw_len == 0) {
       return to_return;
     }
 
     // Every time we get an object, we must use assignment to prevent a bug with
-    // GCC where the generated
-    // type is an array (which is wrong).
-    const auto shader_file = nlohmann::json::parse(metadata_raw);
+    // GCC where the generated type is an array (which is wrong).
+    const auto shader_file = nlohmann::json::parse(shader_file_raw);
     to_return.reserve(1);
     shader.descr.is_wireframe =
         shader_file.value(kCometEditorShaderKeyIsWireframe, false);
     shader.descr.cull_mode = GetCullMode(shader_file.value(
         kCometEditorShaderKeyCullMode, kCometEditorShaderCullModeNone));
-    shader.descr.shader_module_paths = shader_file.value(
-        kCometEditorShaderKeyShaderModulePaths, std::vector<std::string>{});
+    const auto& raw_module_paths{
+        shader_file[kCometEditorShaderKeyShaderModulePaths]};
+    shader.descr.shader_module_paths.reserve(raw_module_paths.size());
+
+    for (const auto& raw_module_path : raw_module_paths) {
+      const auto& raw_module_path_str{
+          raw_module_path.get_ref<const nlohmann::json::string_t&>()};
+      shader.descr.shader_module_paths.push_back(
+          TString{GetTmpTChar(raw_module_path_str.c_str())});
+    }
 
     if (shader_file.contains(kCometEditorShaderKeyVertexAttributes)) {
       const auto raw_vertex_attributes =
@@ -52,13 +62,26 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
       for (uindex i{0}; i < raw_vertex_attributes.size(); ++i) {
         const auto& raw_vertex_attribute = raw_vertex_attributes[i];
         rendering::ShaderVertexAttributeDescr vertex_attribute{};
-        vertex_attribute.name =
-            raw_vertex_attribute[kCometEditorShaderKeyVertexAttributeName];
+
+        const auto& raw_vertex_attribute_name_json{
+            raw_vertex_attribute[kCometEditorShaderKeyVertexAttributeName]};
+        const auto& raw_vertex_attribute_name{
+            raw_vertex_attribute_name_json
+                .get_ref<const nlohmann::json::string_t&>()};
+        auto raw_vertex_attribute_name_len{raw_vertex_attribute_name.size()};
+        SetName(vertex_attribute, raw_vertex_attribute_name.c_str(),
+                raw_vertex_attribute_name_len);
 
 #ifdef COMET_GCC
-        // Creating a string to keep GCC happy.
-        vertex_attribute.type = GetShaderVertexAttributeType(std::string(
-            raw_vertex_attribute[kCometEditorShaderKeyVertexAttributeType]));
+        // Keep GCC happy.
+        const auto& raw_vertex_attribute_type_json{
+            raw_vertex_attribute[kCometEditorShaderKeyVertexAttributeType]};
+        const auto& raw_vertex_attribute_type{
+            raw_vertex_attribute_type_json
+                .get_ref<const nlohmann::json::string_t&>()};
+
+        vertex_attribute.type =
+            GetShaderVertexAttributeType(raw_vertex_attribute_type.c_str());
 #else
         vertex_attribute.type = GetShaderVertexAttributeType(
             raw_vertex_attribute[kCometEditorShaderKeyVertexAttributeType]);
@@ -74,14 +97,27 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
       for (uindex i{0}; i < raw_uniforms.size(); ++i) {
         const auto& raw_uniform = raw_uniforms[i];
         rendering::ShaderUniformDescr uniform{};
-        uniform.name = raw_uniform[kCometEditorShaderKeyUniformName];
+
+        const auto& raw_uniform_name_json{
+            raw_uniform[kCometEditorShaderKeyVertexAttributeName]};
+        const auto& raw_uniform_name{
+            raw_uniform_name_json.get_ref<const nlohmann::json::string_t&>()};
+        auto raw_uniform_name_len{raw_uniform_name.size()};
+        SetName(uniform, raw_uniform_name.c_str(), raw_uniform_name_len);
 
 #ifdef COMET_GCC
-        // Creating a string to keep GCC happy.
-        uniform.type = GetShaderUniformType(
-            std::string(raw_uniform[kCometEditorShaderKeyUniformType]));
-        uniform.scope = GetShaderUniformScope(
-            std::string(raw_uniform[kCometEditorShaderKeyUniformScope]));
+        // Keep GCC happy.
+        const auto& raw_uniform_type_json{
+            raw_uniform[kCometEditorShaderKeyUniformType]};
+        const auto& raw_uniform_type{
+            raw_uniform_type_json.get_ref<const nlohmann::json::string_t&>()};
+        uniform.type = GetShaderUniformType(raw_uniform_type.c_str());
+
+        const auto& raw_uniform_scope_json{
+            raw_uniform[kCometEditorShaderKeyUniformScope]};
+        const auto& raw_uniform_scope{
+            raw_uniform_scope_json.get_ref<const nlohmann::json::string_t&>()};
+        uniform.scope = GetShaderUniformScope(raw_uniform_scope.c_str());
 #else
         uniform.type =
             GetShaderUniformType(raw_uniform[kCometEditorShaderKeyUniformType]);

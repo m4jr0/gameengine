@@ -4,6 +4,7 @@
 
 #include "vulkan_buffer_utils.h"
 
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -12,10 +13,10 @@ namespace comet {
 namespace rendering {
 namespace vk {
 Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
-                    VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
-                    VkMemoryPropertyFlags memory_property_flags,
-                    VmaAllocationCreateFlags vma_flags,
-                    VkSharingMode sharing_mode) {
+                      VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
+                      VkMemoryPropertyFlags memory_property_flags,
+                      VmaAllocationCreateFlags vma_flags,
+                      VkSharingMode sharing_mode) {
   Buffer buffer{};
   buffer.allocator_handle = allocator_handle;
 
@@ -79,7 +80,7 @@ void CopyToBuffer(Buffer& buffer, void const* data, uindex length,
         reinterpret_cast<sptrdiff>(buffer.mapped_memory) + offset);
   }
 
-  std::memcpy(dest, data, length);
+  CopyMemory(dest, data, length);
 }
 
 void UnmapBuffer(Buffer& buffer) {

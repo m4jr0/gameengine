@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/type/tstring.h"
 #include "comet/entity/entity_id.h"
 #include "comet/entity/factory/handler/entity_handler.h"
 
@@ -21,8 +22,7 @@ class ModelHandler : public Handler {
   ModelHandler& operator=(ModelHandler&&) = delete;
   virtual ~ModelHandler() = default;
 
-  EntityId Generate(const std::string& model_path) const;
-  EntityId Generate(const schar* model_path) const;
+  EntityId Generate(CTStringView model_path) const;
 };
 }  // namespace entity
 }  // namespace comet

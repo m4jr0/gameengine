@@ -28,31 +28,23 @@ class AssetManager : public Manager {
   void Shutdown() override;
   void RefreshLibraryMetadataFile();
   void Refresh();
-  void Refresh(const schar* asset_abs_path);
-  void Refresh(const std::string& asset_abs_path);
+  void Refresh(CTStringView asset_abs_path);
 
-  const std::string& GetAssetsRootPath() const noexcept;
-  const std::string& GetResourcesRootPath() const noexcept;
+  const TString& GetAssetsRootPath() const noexcept;
+  const TString& GetResourcesRootPath() const noexcept;
 
  private:
-  void RefreshFolder(std::string_view asset_abs_path);
-  void RefreshAsset(const schar* asset_abs_path);
-  void RefreshAsset(const std::string& asset_abs_path);
-  bool IsRefreshNeeded(const schar* asset_abs_path,
-                       const schar* meta_file_path) const;
-  bool IsRefreshNeeded(const schar* asset_abs_path,
-                       const std::string& meta_file_path) const;
-  bool IsRefreshNeeded(const std::string& asset_abs_path,
-                       const schar* meta_file_path) const;
-  bool IsRefreshNeeded(const std::string& asset_abs_path,
-                       const std::string& meta_file_path) const;
+  void RefreshFolder(CTStringView asset_abs_path);
+  void RefreshAsset(CTStringView asset_abs_path);
+  bool IsRefreshNeeded(CTStringView asset_abs_path,
+                       CTStringView metadata_file_path) const;
 
   bool is_force_refresh_{false};
   f64 last_update_time_{0};
-  std::string root_asset_path_{};
-  std::string root_resource_path_{};
-  std::string library_meta_path_{};
-  std::vector<std::unique_ptr<AssetExporter>> exporters_;
+  TString root_asset_path_{};
+  TString root_resource_path_{};
+  TString library_meta_path_{};
+  std::vector<std::unique_ptr<AssetExporter>> exporters_{};
 };
 }  // namespace asset
 }  // namespace editor

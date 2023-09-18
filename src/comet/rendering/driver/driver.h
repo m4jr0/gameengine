@@ -26,7 +26,8 @@ struct DriverDescr {
   WindowSize window_width{0};
   WindowSize window_height{0};
   f32 clear_color[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
-  std::string app_name{};
+  schar app_name[kMaxAppNameLen]{'\0'};
+  uindex app_name_len{0};
   std::vector<RenderingViewDescr> rendering_view_descrs{};
 };
 
@@ -52,16 +53,17 @@ class Driver {
   bool is_initialized_{false};
   bool is_vsync_{false};
   bool is_triple_buffering_{false};
+  AntiAliasingType anti_aliasing_type_{AntiAliasingType::None};
   bool is_sampler_anisotropy_{false};
   bool is_sample_rate_shading_{false};
   u8 app_major_version_{0};
   u8 app_minor_version_{0};
   u8 app_patch_version_{0};
-  AntiAliasingType anti_aliasing_type_{AntiAliasingType::None};
   WindowSize window_width_{0};
   WindowSize window_height_{0};
   f32 clear_color_[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
-  std::string app_name_{};
+  schar app_name_[kMaxAppNameLen]{'\0'};
+  uindex app_name_len_{0};
   std::vector<RenderingViewDescr> rendering_view_descrs_{};
 };
 }  // namespace rendering

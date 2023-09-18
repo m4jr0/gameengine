@@ -11,20 +11,15 @@
 
 TEST_CASE("Components management", "[comet::entity]") {
   auto& entity_manager{comet::entity::EntityManager::Get()};
-  entity_manager.Initialize();
   const comet::entity::EntityId entity_id1{entity_manager.Generate()};
   const comet::entity::EntityId entity_id2{entity_manager.Generate()};
   const comet::entity::EntityId entity_id3{entity_manager.Generate()};
 
-  auto entity_cmp_gen1{
-      comet::entity::EntityComponentGenerator::Get(entity_id1)};
-  auto entity_cmp_gen2{
-      comet::entity::EntityComponentGenerator::Get(entity_id2)};
-  auto entity_cmp_gen3{
-      comet::entity::EntityComponentGenerator::Get(entity_id3)};
+  auto entity_cmp_gen1{comet::entity::GetEntityComponentGenerator(entity_id1)};
+  auto entity_cmp_gen2{comet::entity::GetEntityComponentGenerator(entity_id2)};
+  auto entity_cmp_gen3{comet::entity::GetEntityComponentGenerator(entity_id3)};
 
-  auto entity_cmp_des1{
-      comet::entity::EntityComponentDestroyer::Get(entity_id1)};
+  auto entity_cmp_des1{comet::entity::GetEntityComponentDestroyer(entity_id1)};
 
   SECTION("Create operations.") {
     entity_cmp_gen1.AddComponent(comet::comettests::DummyTagComponent{})
@@ -297,6 +292,4 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(is_entity_id2);
     REQUIRE(is_entity_id3);
   }
-
-  entity_manager.Shutdown();
 }

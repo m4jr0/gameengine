@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/type/tstring.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
@@ -17,7 +18,7 @@ namespace resource {
 struct ShaderResourceDescr {
   bool is_wireframe{false};
   rendering::CullMode cull_mode{rendering::CullMode::Unknown};
-  std::vector<std::string> shader_module_paths{};
+  std::vector<TString> shader_module_paths{};
   std::vector<rendering::ShaderVertexAttributeDescr> vertex_attributes{};
   std::vector<rendering::ShaderUniformDescr> uniforms{};
 };

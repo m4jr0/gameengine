@@ -4,6 +4,7 @@
 
 #include "vulkan_shader_handler.h"
 
+#include "comet/core/c_string.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
@@ -238,8 +239,8 @@ void ShaderHandler::BindMaterial(Material& material) {
     // TODO(m4jr0): Put texture maps in generic array.
     std::array<TextureMap*, 3> maps{
         &material.diffuse_map, &material.specular_map, &material.normal_map};
-    std::memcpy(instance.uniform_data.texture_maps.data(), maps.data(),
-                sizeof(TextureMap*) * maps.size());
+    CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
+               sizeof(TextureMap*) * maps.size());
   }
 
   const auto layout_count{descriptor_set_layout_handles_buffer_.size()};
@@ -702,27 +703,35 @@ ShaderUniformIndex ShaderHandler::HandleUniformIndex(
     Shader& shader, const ShaderUniformDescr& uniform_descr) const {
   ShaderUniformIndex* index{nullptr};
 
-  if (uniform_descr.name == "projection") {
+  if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len, "projection",
+                      10)) {
     index = &shader.uniform_indices.projection;
-  } else if (uniform_descr.name == "view") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len, "view",
+                             4)) {
     index = &shader.uniform_indices.view;
-  } else if (uniform_descr.name == "projection") {
-    index = &shader.uniform_indices.projection;
-  } else if (uniform_descr.name == "ambientColor") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "ambientColor", 12)) {
     index = &shader.uniform_indices.ambient_color;
-  } else if (uniform_descr.name == "viewPos") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "viewPos", 7)) {
     index = &shader.uniform_indices.view_pos;
-  } else if (uniform_descr.name == "diffuseColor") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "diffuseColor", 12)) {
     index = &shader.uniform_indices.diffuse_color;
-  } else if (uniform_descr.name == "diffuseMap") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "diffuseMap", 10)) {
     index = &shader.uniform_indices.diffuse_map;
-  } else if (uniform_descr.name == "specularMap") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "specularMap", 11)) {
     index = &shader.uniform_indices.specular_map;
-  } else if (uniform_descr.name == "normalMap") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "normalMap", 9)) {
     index = &shader.uniform_indices.normal_map;
-  } else if (uniform_descr.name == "shininess") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "shininess", 9)) {
     index = &shader.uniform_indices.shininess;
-  } else if (uniform_descr.name == "model") {
+  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
+                             "model", 5)) {
     index = &shader.uniform_indices.model;
   }
 

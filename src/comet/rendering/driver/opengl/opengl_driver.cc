@@ -20,7 +20,7 @@ OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr) : Driver(descr) {
   OpenGlGlfwWindowDescr window_descr{};
   window_descr.width = window_width_;
   window_descr.height = window_height_;
-  window_descr.name = app_name_;
+  SetName(window_descr, app_name_, app_name_len_);
   window_descr.opengl_major_version = descr.opengl_major_version;
   window_descr.opengl_minor_version = descr.opengl_minor_version;
   window_descr.is_vsync = is_vsync_;

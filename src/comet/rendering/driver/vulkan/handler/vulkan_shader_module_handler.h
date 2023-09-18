@@ -9,6 +9,7 @@
 
 #include "vulkan/vulkan.h"
 
+#include "comet/core/type/tstring.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_module.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
@@ -33,12 +34,10 @@ class ShaderModuleHandler : public Handler {
 
   void Shutdown() override;
 
-  const ShaderModule* Generate(const schar* shader_module_path);
-  const ShaderModule* Generate(const std::string& shader_module_path);
+  const ShaderModule* Generate(CTStringView shader_module_path);
   const ShaderModule* Get(ShaderModuleId shader_module_id) const;
   const ShaderModule* TryGet(ShaderModuleId shader_module_id) const;
-  const ShaderModule* GetOrGenerate(const schar* path);
-  const ShaderModule* GetOrGenerate(const std::string& path);
+  const ShaderModule* GetOrGenerate(CTStringView path);
   void Destroy(ShaderModuleId shader_module_id);
   void Destroy(ShaderModule& shader_module);
 

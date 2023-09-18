@@ -8,6 +8,8 @@
 
 #include "comet/core/compression.h"
 #include "comet/core/file_system.h"
+#include "comet/core/generator.h"
+#include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace resource {
@@ -32,11 +34,7 @@ void ResourceCache::Destroy(ResourceId resource_id) {
   cache_.erase(resource_id);
 }
 
-ResourceId GenerateResourceIdFromPath(const std::string& resource_path) {
-  return GenerateResourceIdFromPath(resource_path.c_str());
-}
-
-ResourceId GenerateResourceIdFromPath(const schar* resource_path) {
+ResourceId GenerateResourceIdFromPath(CTStringView resource_path) {
   return COMET_STRING_ID(resource_path);
 }
 
@@ -50,7 +48,7 @@ void PackBytes(const u8* bytes, uindex bytes_size,
       break;
     }
     case CompressionMode::None: {
-      std::memcpy(packed_bytes, bytes, bytes_size);
+      CopyMemory(packed_bytes, bytes, bytes_size);
       *packed_bytes_size = bytes_size;
       break;
     }
@@ -86,7 +84,7 @@ std::vector<u8> UnpackBytes(CompressionMode compression_mode,
     }
     case CompressionMode::None: {
       data.resize(decompressed_size);
-      std::memcpy(data.data(), packed_bytes, decompressed_size);
+      CopyMemory(data.data(), packed_bytes, decompressed_size);
       break;
     }
     default: {
@@ -111,10 +109,10 @@ std::vector<u8> UnpackResourceData(const ResourceFile& file) {
   return UnpackBytes(file.compression_mode, file.data, file.data_size);
 }
 
-bool SaveResourceFile(const std::string& path, const ResourceFile& file) {
+bool SaveResourceFile(CTStringView path, const ResourceFile& file) {
   std::ofstream out_file;
 
-  if (!OpenBinaryFileToWriteTo(path, out_file, false)) {
+  if (!OpenFileToWriteTo(path, out_file, false, true)) {
     COMET_LOG_RESOURCE_ERROR("Unable to write resource file: ", path);
     return false;
   }
@@ -147,10 +145,10 @@ bool SaveResourceFile(const std::string& path, const ResourceFile& file) {
   return true;
 }
 
-bool LoadResourceFile(const std::string& path, ResourceFile& file) {
+bool LoadResourceFile(CTStringView path, ResourceFile& file) {
   std::ifstream in_file;
 
-  if (!OpenBinaryFileToReadFrom(path, in_file)) {
+  if (!OpenFileToReadFrom(path, in_file, false, true)) {
     COMET_LOG_RESOURCE_ERROR("Unable to open resource file: ", path);
     return false;
   }
@@ -185,17 +183,12 @@ bool LoadResourceFile(const std::string& path, ResourceFile& file) {
   return true;
 }
 
-const Resource* ResourceHandler::Load(std::string_view root_resource_path,
-                                      const std::string& resource_path) {
-  return Load(root_resource_path, resource_path.c_str());
-}
-
-const Resource* ResourceHandler::Load(std::string_view root_resource_path,
-                                      const schar* resource_path) {
+const Resource* ResourceHandler::Load(CTStringView root_resource_path,
+                                      CTStringView resource_path) {
   return Load(root_resource_path, GenerateResourceIdFromPath(resource_path));
 }
 
-const Resource* ResourceHandler::Load(std::string_view root_resource_path,
+const Resource* ResourceHandler::Load(CTStringView root_resource_path,
                                       ResourceId resource_id) {
   if (resource_id == kDefaultResourceId) {
     return GetDefaultResource();
@@ -208,11 +201,18 @@ const Resource* ResourceHandler::Load(std::string_view root_resource_path,
     return resource;
   }
 
+  tchar resource_id_path[10];
+  uindex resource_id_path_len;
+  ConvertToStr(resource_id, resource_id_path, 10, &resource_id_path_len);
+
+  TString resource_abs_path{};
+  // Adding 1 for the hypothetical "/" between those two (if needed).
+  resource_abs_path.Reserve(root_resource_path.GetLength() + 1 +
+                            resource_id_path_len);
+  resource_abs_path = root_resource_path;
+  resource_abs_path /= resource_id_path;  // No allocation.
+
   ResourceFile file{};
-
-  const auto resource_abs_path =
-      Append(root_resource_path, std::to_string(resource_id));
-
   const auto is_load{LoadResourceFile(resource_abs_path, file)};
 
   if (!is_load) {
@@ -226,17 +226,12 @@ const Resource* ResourceHandler::Load(std::string_view root_resource_path,
   return resource;
 }
 
-void ResourceHandler::Unload(std::string_view root_resource_path,
-                             const std::string& resource_path) {
-  Unload(root_resource_path, resource_path.c_str());
-}
-
-void ResourceHandler::Unload(std::string_view root_resource_path,
-                             const schar* resource_path) {
+void ResourceHandler::Unload(CTStringView root_resource_path,
+                             CTStringView resource_path) {
   Unload(root_resource_path, GenerateResourceIdFromPath(resource_path));
 }
 
-void ResourceHandler::Unload(std::string_view root_resource_path,
+void ResourceHandler::Unload(CTStringView root_resource_path,
                              ResourceId resource_id) {
   COMET_ASSERT(resource_id != kDefaultResourceId,
                "Cannot unload default resource!");

@@ -9,20 +9,20 @@
 
 #include "nlohmann/json.hpp"
 
+#include "comet/core/type/tstring.h"
+#include "comet/resource/resource.h"
+
 namespace comet {
 namespace editor {
 namespace asset {
-std::string GetAssetMetadataFilePath(std::string_view asset_file_path);
-void SaveMetadata(const schar* metadata_file_path,
+TString GenerateAssetMetadataFilePath(CTStringView asset_file_path);
+void SaveMetadata(CTStringView metadata_file_path,
                   const nlohmann::json& metadata);
-void SaveMetadata(const std::string& metadata_file_path,
-                  const nlohmann::json& metadata);
-nlohmann::json GetMetadata(const schar* metadata_file_path);
-nlohmann::json GetMetadata(const std::string& metadata_file_path);
-nlohmann::json SetAndGetMetadata(const schar* metadata_file_path);
-nlohmann::json SetAndGetMetadata(const std::string& metadata_file_path);
-bool IsMetadataFile(const std::string& file_path);
-bool IsMetadataFile(const schar* file_path);
+nlohmann::json GetMetadata(CTStringView metadata_file_path);
+nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path);
+bool IsMetadataFile(CTStringView file_path);
+TString GenerateResourcePath(CTStringView folder_path,
+                             resource::ResourceId resource_id);
 }  // namespace asset
 }  // namespace editor
 }  // namespace comet

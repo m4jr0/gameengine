@@ -4,37 +4,39 @@
 
 #include "asset_exporter.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/c_string.h"
 #include "editor/asset/asset_utils.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
-const std::string& AssetExporter::GetRootResourcePath() const {
+const TString& AssetExporter::GetRootResourcePath() const {
   return root_resource_path_;
 }
 
-const std::string& AssetExporter::GetRootAssetPath() const {
+const TString& AssetExporter::GetRootAssetPath() const {
   return root_asset_path_;
 }
 
-bool AssetExporter::Process(std::string_view asset_abs_path) {
+bool AssetExporter::Process(CTStringView asset_abs_path) {
   COMET_LOG_GLOBAL_INFO("Processing asset at path: ", asset_abs_path, ".");
 
   AssetDescr descr{};
-  descr.asset_abs_path = std::string{asset_abs_path};
+  descr.asset_abs_path = asset_abs_path;
+
+  Clean(descr.asset_abs_path.GetTStr(), descr.asset_abs_path.GetLength());
   descr.asset_path = GetRelativePath(descr.asset_abs_path, root_asset_path_);
-  descr.metadata_path = GetAssetMetadataFilePath(descr.asset_abs_path);
+  descr.metadata_path = GenerateAssetMetadataFilePath(descr.asset_abs_path);
   auto is_metadata_error{false};
   descr.metadata = SetAndGetMetadata(descr.metadata_path);
-  const std::string_view* compression_mode_label{nullptr};
+  const schar* compression_mode_label{nullptr};
 
   switch (compression_mode_) {
     case resource::CompressionMode::Lz4:
-      compression_mode_label = &kCometResourceCompressionModeLz4;
+      compression_mode_label = kCometResourceCompressionModeLz4.data();
       break;
     case resource::CompressionMode::None:
-      compression_mode_label = &kCometResourceCompressionModeNone;
+      compression_mode_label = kCometResourceCompressionModeNone.data();
       break;
     default:
       COMET_LOG_GLOBAL_ERROR(
@@ -42,14 +44,13 @@ bool AssetExporter::Process(std::string_view asset_abs_path) {
           static_cast<std::underlying_type_t<resource::CompressionMode>>(
               compression_mode_),
           " for asset at path ", descr.asset_path, ". Ignoring compression.");
-      compression_mode_label = &kCometResourceCompressionModeNone;
+      compression_mode_label = kCometResourceCompressionModeNone.data();
       break;
   }
 
   descr.metadata[kCometEditorAssetMetadataKeyCompressionMode] =
-      compression_mode_label->data();
+      compression_mode_label;
 
-  SaveMetadata(descr.metadata_path, descr.metadata);
   auto resource_files{GetResourceFiles(descr)};
 
   if (resource_files.size() == 0) {
@@ -59,14 +60,15 @@ bool AssetExporter::Process(std::string_view asset_abs_path) {
 
   for (const auto& resource_file : resource_files) {
     if (!resource::SaveResourceFile(
-            Append(root_resource_path_,
-                   std::to_string(resource_file.resource_id)),
+            GenerateResourcePath(root_resource_path_,
+                                 resource_file.resource_id),
             resource_file)) {
       COMET_LOG_GLOBAL_ERROR("Unable to save resource file: ",
                              resource_file.resource_id);
     }
   }
 
+  SaveMetadata(descr.metadata_path, descr.metadata);
   return true;
 }
 }  // namespace asset

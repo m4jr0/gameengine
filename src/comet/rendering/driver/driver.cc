@@ -4,7 +4,9 @@
 
 #include "driver.h"
 
+#include "comet/core/c_string.h"
 #include "comet/core/conf/configuration_value.h"
+#include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace rendering {
@@ -19,11 +21,12 @@ Driver::Driver(const DriverDescr& descr)
                              descr.is_sampler_anisotropy},
       is_sample_rate_shading_{anti_aliasing_type_ != AntiAliasingType::None &&
                               descr.is_sample_rate_shading},
-      app_name_{descr.app_name},
+      app_name_len_{descr.app_name_len},
       app_major_version_{descr.app_major_version},
       app_minor_version_{descr.app_minor_version},
       app_patch_version_{descr.app_patch_version} {
-  std::memcpy(clear_color_, descr.clear_color, sizeof(descr.clear_color));
+  Copy(app_name_, descr.app_name, app_name_len_);
+  CopyMemory(clear_color_, descr.clear_color, sizeof(descr.clear_color));
 }
 
 Driver ::~Driver() {

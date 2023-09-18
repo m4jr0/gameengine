@@ -4,6 +4,8 @@
 
 #include "entity_manager.h"
 
+#include "comet/math/math_commons.h"
+
 namespace comet {
 namespace entity {
 EntityManager& EntityManager::Get() {
@@ -17,18 +19,15 @@ void EntityManager::Initialize() {
 }
 
 void EntityManager::Shutdown() {
-  for (auto* archetype : archetypes_) {
+  for (auto& archetype : archetypes_) {
     for (auto& cmp_array : archetype->components) {
       if (cmp_array.size == 0) {
         continue;
       }
 
-      delete[] cmp_array.elements;
+      Deallocate(cmp_array.elements);
       cmp_array.elements = nullptr;
     }
-
-    delete archetype;
-    archetype = nullptr;
   }
 
   archetypes_.clear();
@@ -36,6 +35,7 @@ void EntityManager::Shutdown() {
   root_archetype_ = nullptr;
   entity_id_handler_.Shutdown();
   records_.clear();
+  registered_component_types_.clear();
   Manager::Shutdown();
 }
 
@@ -97,82 +97,79 @@ bool EntityManager::HasComponent(EntityId entity_id,
 
 void EntityManager::AddComponents(
     EntityId entity_id, const std::vector<ComponentDescr>& component_descrs) {
-  {
-    // Step 1: apply safety checks + handle new archetype.
-    COMET_ASSERT(IsEntity(entity_id),
-                 "Trying to add component to dead entity #", entity_id, "!");
-    RegisterComponentTypes(component_descrs);
+  // Step 1: apply safety checks + handle new archetype.
+  COMET_ASSERT(IsEntity(entity_id), "Trying to add component to dead entity #",
+               entity_id, "!");
+  RegisterComponentTypes(component_descrs);
 
-    auto added_entity_type{GenerateEntityType(component_descrs)};
-    auto& entity_record{records_[entity_id]};
-    auto* old_archetype{entity_record.archetype};
-    const auto& old_entity_type{old_archetype->entity_type};
-    auto* new_archetype{
-        GetArchetype(AddToEntityType(old_entity_type, added_entity_type))};
+  auto added_entity_type{GenerateEntityType(component_descrs)};
+  auto& entity_record{records_[entity_id]};
+  auto* old_archetype{entity_record.archetype};
+  const auto& old_entity_type{old_archetype->entity_type};
+  auto* new_archetype{
+      GetArchetype(AddToEntityType(old_entity_type, added_entity_type))};
 
-    // Step 2: increase new archetype's size.
-    ResizeArchetype(new_archetype, 1);
+  // Step 2: increase new archetype's size.
+  ResizeArchetype(new_archetype, 1);
 
-    // Step 3: copy entity's components into new archetype.
-    const auto& new_entity_type{new_archetype->entity_type};
-    const uindex new_entity_index{new_archetype->entity_ids.size() - 1};
-    const auto old_entity_index{entity_record.row};
-    uindex old_cmp_cursor{0};
-    uindex new_cmp_cursor{0};
+  // Step 3: copy entity's components into new archetype.
+  const auto& new_entity_type{new_archetype->entity_type};
+  const uindex new_entity_index{new_archetype->entity_ids.size() - 1};
+  const auto old_entity_index{entity_record.row};
+  uindex old_cmp_cursor{0};
+  uindex new_cmp_cursor{0};
 
-    for (uindex i{0}; i < new_entity_type.size(); ++i) {
-      auto& new_cmp_array{new_archetype->components[i]};
+  for (uindex i{0}; i < new_entity_type.size(); ++i) {
+    auto& new_cmp_array{new_archetype->components[i]};
 
-      if (new_cmp_cursor < component_descrs.size() &&
-          added_entity_type[new_cmp_cursor] == new_entity_type[i]) {
-        // Check new components if assertion is enabled.
-        COMET_ASSERT(!DoesEntityTypeContain(old_entity_type,
-                                            added_entity_type[new_cmp_cursor]),
-                     "Entity #", entity_id, " already contains component ",
-                     COMET_STRING_ID_LABEL(added_entity_type[new_cmp_cursor]),
-                     "!");
+    if (new_cmp_cursor < component_descrs.size() &&
+        added_entity_type[new_cmp_cursor] == new_entity_type[i]) {
+      // Check new components if assertion is enabled.
+      COMET_ASSERT(!DoesEntityTypeContain(old_entity_type,
+                                          added_entity_type[new_cmp_cursor]),
+                   "Entity #", entity_id, " already contains component ",
+                   COMET_STRING_ID_LABEL(added_entity_type[new_cmp_cursor]),
+                   "!");
 
-        // New components are added later.
-        ++new_cmp_cursor;  // Added component IDs are sorted, so we can optimize
-                           // the loop.
-      } else {
-        // Copy existing components.
-        const auto component_type_id{new_entity_type[i]};
-        const auto cmp_size{
-            registered_component_types_[component_type_id].type_descr.size};
+      // New components are added later.
+      ++new_cmp_cursor;  // Added component IDs are sorted, so we can optimize
+                         // the loop.
+    } else {
+      // Copy existing components.
+      const auto component_type_id{new_entity_type[i]};
+      const auto cmp_size{
+          registered_component_types_[component_type_id].type_descr.size};
 
-        if (cmp_size > 0) {
-          const auto new_cmp_offset{
-              static_cast<sptrdiff>(cmp_size * new_entity_index)};
-          const auto old_cmp_offset{
-              static_cast<sptrdiff>(cmp_size * old_entity_index)};
+      if (cmp_size > 0) {
+        const auto new_cmp_offset{
+            static_cast<sptrdiff>(cmp_size * new_entity_index)};
+        const auto old_cmp_offset{
+            static_cast<sptrdiff>(cmp_size * old_entity_index)};
 
-          std::memcpy(
-              new_cmp_array.first + new_cmp_offset,
-              old_archetype->components[old_cmp_cursor].first + old_cmp_offset,
-              cmp_size);
-        }
-
-        ++old_cmp_cursor;
+        CopyMemory(
+            new_cmp_array.elements + new_cmp_offset,
+            old_archetype->components[old_cmp_cursor].elements + old_cmp_offset,
+            cmp_size);
       }
+
+      ++old_cmp_cursor;
     }
-
-    // Copy new components.
-    for (const auto& component_descr : component_descrs) {
-      CopyComponent(entity_id, new_archetype, new_entity_index,
-                    component_descr);
-    }
-
-    // Step 4: copy last entity inplace of current entity, if necessary.
-    PreRemoveEntityFromArchetype(entity_record.row, old_archetype);
-
-    // Step 5: decrease old archetype's size.
-    ResizeArchetype(old_archetype, -1);
-
-    new_archetype->entity_ids[new_entity_index] = entity_id;
-    entity_record.archetype = new_archetype;
-    entity_record.row = new_entity_index;
   }
+
+  // Copy new components.
+  for (const auto& component_descr : component_descrs) {
+    CopyComponent(entity_id, new_archetype, new_entity_index, component_descr);
+  }
+
+  // Step 4: copy last entity inplace of current entity, if necessary.
+  PreRemoveEntityFromArchetype(entity_record.row, old_archetype);
+
+  // Step 5: decrease old archetype's size.
+  ResizeArchetype(old_archetype, -1);
+
+  new_archetype->entity_ids[new_entity_index] = entity_id;
+  entity_record.archetype = new_archetype;
+  entity_record.row = new_entity_index;
 }
 
 void EntityManager::RemoveComponents(
@@ -226,11 +223,12 @@ void EntityManager::RemoveComponents(
         static_cast<sptrdiff>(cmp_size * old_entity_index)};
 
     // Copy non-removed components.
-    std::memcpy(new_cmp_array.first + new_cmp_offset,
-                old_archetype->components[i].first + old_cmp_offset, cmp_size);
+    CopyMemory(new_cmp_array.elements + new_cmp_offset,
+               old_archetype->components[i].elements + old_cmp_offset,
+               cmp_size);
   }
 
-  // Step 4: copy last entity inplace of current entity, if necessary.
+  // Step 4: copy last entity in place of current entity, if necessary.
   PreRemoveEntityFromArchetype(entity_record.row, old_archetype);
 
   // Step 5: decrease old archetype's size.
@@ -305,27 +303,27 @@ void EntityManager::ResizeArchetype(Archetype* archetype, s16 delta) {
 
     // If new_size < copy_size, the last existing components will be
     // truncated.
-    const auto copy_size{std::min(old_cmp_size, new_size)};
-    archetype->components[i] = {nullptr, nullptr, new_size};
+    const auto copy_size{math::Min(old_cmp_size, new_size)};
+    archetype->components[i] = {nullptr, new_size};
 
     if (new_size > 0) {
-      archetype->components[i].first = AllocAligned(
-          &archetype->components[i].elements, new_size, cmp_alignment);
+      archetype->components[i].elements = reinterpret_cast<u8*>(
+          AllocateAligned(new_size, cmp_alignment, MemoryTag::Entity));
     }
 
     if (copy_size != 0) {
-      std::memcpy(archetype->components[i].elements, old_cmp_elements,
-                  copy_size);
+      CopyMemory(archetype->components[i].elements, old_cmp_elements,
+                 copy_size);
     }
 
     if (old_cmp_size != 0) {
-      delete[] old_cmp_elements;
+      Deallocate(old_cmp_elements);
       old_cmp_elements = nullptr;
     }
   }
 
   archetype->entity_ids.resize(
-      std::max(uindex{0}, archetype->entity_ids.size() + delta));
+      math::Max(uindex{0}, archetype->entity_ids.size() + delta));
 }
 
 void EntityManager::PreRemoveEntityFromArchetype(uindex entity_row,
@@ -349,8 +347,8 @@ void EntityManager::PreRemoveEntityFromArchetype(uindex entity_row,
         continue;
       }
 
-      std::memcpy(cmp_array.first + cmp_size * entity_row,
-                  cmp_array.first + cmp_size * last_entity_row, cmp_size);
+      CopyMemory(cmp_array.elements + cmp_size * entity_row,
+                 cmp_array.elements + cmp_size * last_entity_row, cmp_size);
     }
 
     last_entity_record.row = entity_row;
@@ -394,8 +392,8 @@ void EntityManager::CopyComponent(EntityId entity_id, Archetype* new_archetype,
       component_descr.type_descr.size * new_entity_index)};
 
   // Add new component.
-  std::memcpy(new_cmp_array.first + new_cmp_offset, component_descr.data,
-              component_descr.type_descr.size);
+  CopyMemory(new_cmp_array.elements + new_cmp_offset, component_descr.data,
+             component_descr.type_descr.size);
 }
 
 bool EntityManager::HasParent(EntityId entity_id, EntityId parent_id) {

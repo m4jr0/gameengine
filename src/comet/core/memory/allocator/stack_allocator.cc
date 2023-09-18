@@ -11,17 +11,18 @@ StackAllocator::StackAllocator(uindex capacity)
     : size_{0}, capacity_{capacity}, root_{nullptr}, marker_{root_} {}
 
 void StackAllocator::Initialize() {
-  COMET_ASSERT(capacity_ > 0, "Capacity is 0!");
-  AllocAligned(&root_, capacity_, 0);
+  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
+  root_ = reinterpret_cast<u8*>(
+      AllocateAligned(capacity_, alignof(u8), MemoryTag::Untagged));
   marker_ = root_;
 }
 
 void StackAllocator::Destroy() {
-  delete root_;
+  Deallocate(root_);
   root_ = nullptr;
   size_ = 0;
   capacity_ = 0;
-  marker_ = 0;
+  marker_ = nullptr;
 }
 
 void* StackAllocator::Allocate(uindex size, u8 alignment) {

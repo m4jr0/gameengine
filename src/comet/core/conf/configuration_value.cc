@@ -4,12 +4,10 @@
 
 #include "configuration_value.h"
 
+#include "comet/core/c_string.h"
+
 namespace comet {
 namespace conf {
-ConfValue GetDefaultValue(const std::string& key) {
-  return GetDefaultValue(key.c_str());
-}
-
 ConfValue GetDefaultValue(const schar* key) {
   return GetDefaultValue(COMET_STRING_ID(key));
 }
@@ -18,61 +16,71 @@ ConfValue GetDefaultValue(ConfKey key) {
   ConfValue default_value{};
 
   if (key == kApplicationName) {
-    std::memcpy(&default_value.str, "Comet Editor\0", 13);
+    Copy(default_value.str_value, "Comet Editor\0", 13);
   } else if (key == kApplicationMajorVersion) {
-    default_value.ushort = 0;
+    default_value.u16_value = 0;
   } else if (key == kApplicationMinorVersion) {
-    default_value.ushort = 1;
+    default_value.u16_value = 1;
   } else if (key == kApplicationPatchVersion) {
-    default_value.ushort = 0;
+    default_value.u16_value = 0;
   } else if (key == kCoreMsPerUpdate) {
-    default_value.flong = 16.66;
+    default_value.f64_value = 16.66;
+  } else if (key == kCoreOneFrameAllocatorCapacity) {
+    default_value.u32_value = 268435456;  // 256 MiB.
+  } else if (key == kCoreTwoFrameAllocatorCapacity) {
+    default_value.u32_value = 268435456;  // 256 MiB.
+  } else if (key == kCoreTStringAllocatorCapacity) {
+    default_value.u32_value = 134217728;  // 128 MiB.
   } else if (key == kEventMaxQueueSize) {
-    default_value.ushort = 200;
+    default_value.u16_value = 200;
   } else if (key == kRenderingDriver) {
-    std::memcpy(&default_value.str, kRenderingDriverVulkan.data(),
-                kRenderingDriverVulkan.size());
+    Copy(default_value.str_value, kRenderingDriverVulkan.data(),
+         kRenderingDriverVulkan.size());
   } else if (key == kRenderingWindowWidth) {
-    default_value.ushort = 800;
+    default_value.u16_value = 800;
   } else if (key == kRenderingWindowHeight) {
-    default_value.ushort = 600;
+    default_value.u16_value = 600;
   } else if (key == kRenderingClearColorR) {
-    default_value.f = 0.5f;
+    default_value.f32_value = 0.5f;
   } else if (key == kRenderingClearColorG) {
-    default_value.f = 0.5f;
+    default_value.f32_value = 0.5f;
   } else if (key == kRenderingClearColorB) {
-    default_value.f = 0.5f;
+    default_value.f32_value = 0.5f;
   } else if (key == kRenderingClearColorA) {
-    default_value.f = 1.0f;
+    default_value.f32_value = 1.0f;
   } else if (key == kRenderingIsVsync) {
-    default_value.flag = true;
+    default_value.bool_value = true;
   } else if (key == kRenderingIsTripleBuffering) {
-    default_value.flag = true;
+    default_value.bool_value = true;
   } else if (key == kRenderingFpsCap) {
-    default_value.ushort = 0;
+    default_value.u16_value = 0;
   } else if (key == kRenderingAntiAliasing) {
-    std::memcpy(&default_value.str, kRenderingAntiAliasingTypeNone.data(),
-                kRenderingAntiAliasingTypeNone.size());
+    Copy(default_value.str_value, kRenderingAntiAliasingTypeNone.data(),
+         kRenderingAntiAliasingTypeNone.size());
   } else if (key == kRenderingIsSamplerAnisotropy) {
-    default_value.flag = true;
+    default_value.bool_value = true;
   } else if (key == kRenderingIsSampleRateShading) {
-    default_value.flag = true;
+    default_value.bool_value = true;
   } else if (key == kRenderingOpenGlMajorVersion) {
-    default_value.ushort = 4;
+    default_value.u16_value = 4;
   } else if (key == kRenderingOpenGlMinorVersion) {
-    default_value.ushort = 6;
+    default_value.u16_value = 6;
   } else if (key == kRenderingVulkanVariantVersion) {
-    default_value.ushort = 0;
+    default_value.u16_value = 0;
   } else if (key == kRenderingVulkanMajorVersion) {
-    default_value.ushort = 1;
+    default_value.u16_value = 1;
   } else if (key == kRenderingVulkanMinorVersion) {
-    default_value.ushort = 2;
+    default_value.u16_value = 2;
   } else if (key == kRenderingVulkanPatchVersion) {
-    default_value.ushort = 0;
+    default_value.u16_value = 0;
   } else if (key == kRenderingVulkanMaxFramesInFlight) {
-    default_value.ushort = 2;
+    default_value.u16_value = 2;
   } else if (key == kResourceRootPath) {
-    std::memcpy(&default_value.str, "resources\0", 10);
+#ifdef COMET_WIDE_TCHAR
+    Copy(default_value.wstr_value, COMET_TCHAR("resources\0"), 10);
+#else
+    Copy(default_value.str_value, COMET_TCHAR("resources\0"), 10);
+#endif  // COMET_WIDE_TCHAR
   }
 
   return default_value;

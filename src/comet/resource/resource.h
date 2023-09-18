@@ -9,6 +9,7 @@
 
 #include "comet/core/compression.h"
 #include "comet/core/file_system.h"
+#include "comet/core/type/tstring.h"
 
 namespace comet {
 namespace resource {
@@ -17,7 +18,6 @@ constexpr auto kInvalidResourceId{static_cast<ResourceId>(-1)};
 using ResourceTypeId = stringid::StringId;
 constexpr auto kDefaultResourceId{0};
 constexpr auto kInvalidResourceTypeId{static_cast<ResourceTypeId>(-1)};
-using ResourcePath = std::string;
 
 enum class CompressionMode : u8 { None = 0, Lz4 };
 
@@ -68,8 +68,7 @@ class ResourceCache {
   std::unordered_map<ResourceId, std::unique_ptr<Resource>> cache_{};
 };
 
-ResourceId GenerateResourceIdFromPath(const std::string& resource_path);
-ResourceId GenerateResourceIdFromPath(const schar* resource_path);
+ResourceId GenerateResourceIdFromPath(CTStringView resource_path);
 void PackBytes(const u8* bytes, uindex bytes_size,
                CompressionMode compression_mode, std::vector<u8>* packed_bytes,
                uindex* packed_bytes_size);
@@ -100,8 +99,8 @@ ResourceDescrType UnpackPodResourceDescr(const ResourceFile& file) {
   return *reinterpret_cast<const ResourceDescrType*>(raw_descr.data());
 }
 
-bool SaveResourceFile(const std::string& path, const ResourceFile& file);
-bool LoadResourceFile(const std::string& path, ResourceFile& file);
+bool SaveResourceFile(CTStringView path, const ResourceFile& file);
+bool LoadResourceFile(CTStringView path, ResourceFile& file);
 
 class ResourceHandler {
  public:
@@ -112,16 +111,11 @@ class ResourceHandler {
   ResourceHandler& operator=(ResourceHandler&&) = delete;
   virtual ~ResourceHandler() = default;
 
-  const Resource* Load(std::string_view root_resource_path,
-                       const std::string& resource_path);
-  const Resource* Load(std::string_view root_resource_path,
-                       const schar* resource_path);
-  const Resource* Load(std::string_view root_resource_path,
-                       ResourceId resource_id);
-  void Unload(std::string_view root_resource_path,
-              const std::string& resource_path);
-  void Unload(std::string_view root_resource_path, const schar* resource_path);
-  void Unload(std::string_view root_resource_path, ResourceId resource_id);
+  const Resource* Load(CTStringView root_resource_path,
+                       CTStringView resource_path);
+  const Resource* Load(CTStringView root_resource_path, ResourceId resource_id);
+  void Unload(CTStringView root_resource_path, CTStringView resource_path);
+  void Unload(CTStringView root_resource_path, ResourceId resource_id);
   const Resource* Get(ResourceId resource_id);
   virtual void Destroy(ResourceId resource_id);
   virtual const Resource* GetDefaultResource();

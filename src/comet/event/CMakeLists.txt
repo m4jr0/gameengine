@@ -11,7 +11,7 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/comet/event/event.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/event/event.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/event/event_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/event/input_event.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/event/runtime_event.cc"

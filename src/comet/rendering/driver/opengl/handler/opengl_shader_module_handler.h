@@ -31,12 +31,10 @@ class ShaderModuleHandler : public Handler {
 
   void Shutdown() override;
 
-  const ShaderModule* Generate(const schar* shader_module_path);
-  const ShaderModule* Generate(const std::string& shader_module_path);
+  const ShaderModule* Generate(CTStringView shader_module_path);
   const ShaderModule* Get(ShaderModuleHandle shader_module_handle) const;
   const ShaderModule* TryGet(ShaderModuleHandle shader_module_handle) const;
-  const ShaderModule* GetOrGenerate(const schar* path);
-  const ShaderModule* GetOrGenerate(const std::string& path);
+  const ShaderModule* GetOrGenerate(CTStringView path);
   void Destroy(ShaderModuleHandle shader_module_handle);
   void Destroy(ShaderModule& shader_module);
   void Attach(const Shader& shader, ShaderModuleHandle shader_module_handle);

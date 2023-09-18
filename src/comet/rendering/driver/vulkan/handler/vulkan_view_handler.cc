@@ -6,6 +6,8 @@
 
 #include "vulkan/vulkan.h"
 
+#include "comet/core/memory/memory.h"
+
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"
 #endif  // COMET_IMGUI
@@ -92,8 +94,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.is_last = descr.is_last;
       view_descr.width = descr.width;
       view_descr.height = descr.height;
-      std::memcpy(view_descr.clear_color, descr.clear_color,
-                  sizeof(descr.clear_color[0]) * 4);
+      CopyMemory(view_descr.clear_color, descr.clear_color,
+                 sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
@@ -110,8 +112,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.is_last = descr.is_last;
       view_descr.width = descr.width;
       view_descr.height = descr.height;
-      std::memcpy(view_descr.clear_color, descr.clear_color,
-                  sizeof(descr.clear_color[0]) * 4);
+      CopyMemory(view_descr.clear_color, descr.clear_color,
+                 sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
@@ -138,8 +140,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.is_last = descr.is_last;
       view_descr.width = descr.width;
       view_descr.height = descr.height;
-      std::memcpy(view_descr.clear_color, descr.clear_color,
-                  sizeof(descr.clear_color[0]) * 4);
+      CopyMemory(view_descr.clear_color, descr.clear_color,
+                 sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.window = window_;

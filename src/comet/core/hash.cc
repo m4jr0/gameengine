@@ -6,6 +6,8 @@
 
 #include <vector>
 
+#include "comet/core/debug.h"
+
 namespace comet {
 constexpr static u32 kCrc32Table[] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
@@ -63,21 +65,12 @@ u32 HashCrC32(const void* data, uindex length) {
   return crc ^ ~0u;
 }
 
-u32 HashCrC32(const std::string& string) {
-  return HashCrC32(string.data(), string.length());
-}
+void HashSha256(std::ifstream& stream, schar* buffer, uindex buffer_len) {
+  COMET_ASSERT(buffer_len >= kSha256DigestSize,
+               "Buffer length is too small: ", buffer_len, " < ",
+               kSha256DigestSize, "!");
 
-std::string HashSha256(std::ifstream& stream) {
   auto checksum{std::vector<u8>(picosha2::k_digest_size)};
-  picosha2::hash256(stream, checksum.begin(), checksum.end());
-  return std::string{checksum.cbegin(), checksum.cend()};
-}
-
-std::string HashSha256(const u8* data, const u8* end) {
-  auto checksum{std::vector<u8>(picosha2::k_digest_size)};
-  picosha2::hash256(reinterpret_cast<const s8*>(data),
-                    reinterpret_cast<const s8*>(end), checksum.begin(),
-                    checksum.end());
-  return std::string{checksum.cbegin(), checksum.cend()};
+  picosha2::hash256(stream, buffer, buffer + buffer_len);
 }
 }  // namespace comet

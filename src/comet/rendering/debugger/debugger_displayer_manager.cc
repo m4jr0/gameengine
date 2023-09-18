@@ -24,6 +24,10 @@ void DebuggerDisplayerManager::Update(const MiniProfilerPacket& packet) {
 
 void DebuggerDisplayerManager::Draw() {
 #ifdef COMET_IMGUI
+  constexpr auto kBufferCapacity{512};
+  schar buffer[kBufferCapacity];
+  uindex buffer_len;
+
   ImGui::Begin("Mini Profiler");
 
   // Physics.
@@ -37,20 +41,21 @@ void DebuggerDisplayerManager::Draw() {
   ImGui::Spacing();
   ImGui::Text("RENDERING");
   ImGui::Indent();
-  ImGui::Text(
-      "Driver: %s",
-      GetDriverTypeLabel(mini_profiler_packet_.rendering_driver_type).c_str());
+  ImGui::Text("Driver: %s",
+              GetDriverTypeLabel(mini_profiler_packet_.rendering_driver_type));
   ImGui::Text("Frame Time: %f ms", mini_profiler_packet_.rendering_frame_time);
   ImGui::Text("Framerate: %u FPS", mini_profiler_packet_.rendering_frame_rate);
   ImGui::Text("Draw count: %u", mini_profiler_packet_.rendering_draw_count);
   ImGui::Unindent();
 
   // Memory.
+  GetMemorySizeString(mini_profiler_packet_.memory_use, buffer, kBufferCapacity,
+                      &buffer_len);
+
   ImGui::Spacing();
   ImGui::Text("MEMORY");
   ImGui::Indent();
-  ImGui::Text("Usage: %s",
-              GetMemorySizeString(mini_profiler_packet_.memory_use).c_str());
+  ImGui::Text("Usage: %s", buffer);
 
   ImGui::End();
 #endif  // COMET_IMGUI
