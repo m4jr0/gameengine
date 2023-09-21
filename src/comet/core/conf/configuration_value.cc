@@ -16,7 +16,7 @@ ConfValue GetDefaultValue(ConfKey key) {
   ConfValue default_value{};
 
   if (key == kApplicationName) {
-    Copy(default_value.str_value, "Comet Editor\0", 13);
+    Copy(default_value.str_value, "Application\0", 12);
   } else if (key == kApplicationMajorVersion) {
     default_value.u16_value = 0;
   } else if (key == kApplicationMinorVersion) {

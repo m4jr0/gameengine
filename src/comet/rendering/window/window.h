@@ -14,7 +14,7 @@ namespace rendering {
 struct WindowDescr {
   WindowSize width{1280};
   WindowSize height{720};
-  schar name[kMaxWindowNameLen]{"Comet Game Engine"};
+  schar name[kMaxWindowNameLen]{'\0'};
   uindex name_len{0};
 };
 

@@ -26,7 +26,7 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/core/logger.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/core/manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/core/os.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/core/version.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/core/version.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"

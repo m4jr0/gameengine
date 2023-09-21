@@ -97,7 +97,7 @@ nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path) {
   metadata[kCometEditorAssetMetadataKeyCreationTime] = creation_time;
   metadata[kCometEditorAssetMetadataKeyUpdateTime] = update_time;
   metadata[kCometEditorAssetMetadataKeyVersion] = file_version + 1;
-  metadata[kCometEditorAssetCometVersion] = version::kCometVersionStr;
+  metadata[kCometEditorAssetCometVersion] = version::GetVersionStr();
 
   return metadata;
 }
