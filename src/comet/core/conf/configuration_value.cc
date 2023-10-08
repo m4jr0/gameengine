@@ -25,6 +25,10 @@ ConfValue GetDefaultValue(ConfKey key) {
     default_value.u16_value = 0;
   } else if (key == kCoreMsPerUpdate) {
     default_value.f64_value = 16.66;
+#ifdef COMET_DEBUG
+  } else if (key == kCoreOneFrameAllocatorCapacity) {
+    default_value.u32_value = 2097152;  // 2 MiB.
+#endif                                  // COMET_DEBUG
   } else if (key == kCoreOneFrameAllocatorCapacity) {
     default_value.u32_value = 268435456;  // 256 MiB.
   } else if (key == kCoreTwoFrameAllocatorCapacity) {

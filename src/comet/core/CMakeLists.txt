@@ -37,6 +37,7 @@ target_sources(${COMET_LIBRARY_NAME}
 
     "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/frame_allocator.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/stack_allocator.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/string_id_allocator.h"
     "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/tstring_allocator.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/stl/one_frame_allocator.h"

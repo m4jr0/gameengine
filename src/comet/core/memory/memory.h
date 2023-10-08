@@ -5,16 +5,32 @@
 #ifndef COMET_COMET_CORE_MEMORY_MEMORY_H_
 #define COMET_COMET_CORE_MEMORY_MEMORY_H_
 
-#include "comet_precompile.h"
+#include "comet/core/debug.h"
+#include "comet/core/define.h"
+#include "comet/core/logger.h"
+#include "comet/core/memory/allocation_tracking.h"
+#include "comet/core/type/primitive.h"
 
 namespace comet {
 constexpr auto kMaxAlignment{256};
-enum class MemoryTag { Untagged = 0, OneFrame, TwoFrames, TString, Entity };
+
+enum class MemoryTag {
+  Untagged = 0,
+  StringId,
+  OneFrame,
+  TwoFrames,
+  TString,
+  Entity
+};
 
 const schar* GetMemoryTagLabel(MemoryTag tag);
 void* CopyMemory(void* dst, const void* src, uindex size);
 
 inline uptr AlignAddress(uptr address, uindex alignment) {
+  if (alignment == 0) {
+    return address;
+  }
+
   const uindex mask{alignment - 1};
   COMET_ASSERT((alignment & mask) == 0, "Bad alignment provided for address ",
                reinterpret_cast<void*>(address), ": ", alignment,

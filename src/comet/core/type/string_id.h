@@ -7,6 +7,11 @@
 
 #include "comet_precompile.h"
 
+#ifdef COMET_DEBUG
+#include "comet/core/memory/allocator/string_id_allocator.h"
+#include "comet/core/memory/memory.h"
+#endif  // COMET_DEBUG
+
 namespace comet {
 namespace stringid {
 using StringId = u32;
@@ -30,7 +35,11 @@ class StringIdHandler {
   const schar* Labelize(StringId string_id) const;
 
  private:
+#ifdef COMET_DEBUG
   std::unordered_map<StringId, schar*> string_id_table{};
+  memory::StringIdAllocator string_id_allocator_{
+      2097152, MemoryTag::StringId};  // 2 MiB.
+#endif                                // COMET_DEBUG
 };
 
 extern StringIdHandler* SetHandler(bool is_destroy = false);

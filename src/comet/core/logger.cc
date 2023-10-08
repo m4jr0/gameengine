@@ -25,9 +25,7 @@ std::shared_ptr<Logger> Logger::Generate(LoggerType logger_type) {
   // It should be safe though, as this line does nothing else than initializing
   // a logger instance and saving it to a shared pointer.
   // Performance-wise, it should be acceptable, as very few loggers will be
-  // instanciated anyway.
+  // instantiated anyway.
   return std::shared_ptr<Logger>(new Logger(logger_type));
 }
-
-std::unordered_map<LoggerType, std::shared_ptr<Logger>> Logger::loggers_;
 }  // namespace comet

@@ -11,6 +11,8 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
   switch (tag) {
     case MemoryTag::Untagged:
       return "untagged";
+    case MemoryTag::StringId:
+      return "string id";
     case MemoryTag::OneFrame:
       return "one frame";
     case MemoryTag::TwoFrames:

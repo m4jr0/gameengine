@@ -18,14 +18,18 @@ class TStringAllocator {
   TStringAllocator(TStringAllocator&&) = delete;
   TStringAllocator& operator=(const TStringAllocator&) = delete;
   TStringAllocator& operator=(TStringAllocator&&) = delete;
-  ~TStringAllocator() = default;
+  ~TStringAllocator();
 
   void Initialize();
   void Destroy();
   void* Allocate(uindex size);
   void Deallocate(void* p);
   void Clear();
+  bool IsInitialized() const noexcept;
   uindex GetSize() const noexcept;
+
+ private:
+  bool is_initialized_{false};
 };
 }  // namespace comet
 

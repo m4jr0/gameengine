@@ -10,8 +10,8 @@
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/manager.h"
 #include "comet/core/memory/allocator/frame_allocator.h"
-#include "comet/core/memory/allocator/stack_allocator.h"
 #include "comet/core/memory/allocator/tstring_allocator.h"
+#include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace memory {
@@ -37,7 +37,8 @@ class MemoryManager : public Manager {
 
  private:
   OneFrameAllocator one_frame_allocator_{
-      COMET_CONF_U32(conf::kCoreOneFrameAllocatorCapacity)};
+      COMET_CONF_U32(conf::kCoreOneFrameAllocatorCapacity),
+      MemoryTag::OneFrame};
   TwoFrameAllocator two_frame_allocator_{
       COMET_CONF_U32(conf::kCoreTwoFrameAllocatorCapacity)};
   TStringAllocator tstring_allocator_{

@@ -7,22 +7,38 @@
 #include "comet/core/memory/memory.h"
 
 namespace comet {
-StackAllocator::StackAllocator(uindex capacity)
-    : size_{0}, capacity_{capacity}, root_{nullptr}, marker_{root_} {}
+StackAllocator::StackAllocator(uindex capacity, MemoryTag memory_tag)
+    : memory_tag_{memory_tag},
+      size_{0},
+      capacity_{capacity},
+      root_{nullptr},
+      marker_{root_} {}
+
+StackAllocator::~StackAllocator() {
+  COMET_ASSERT(
+      !is_initialized_,
+      "Destructor called for stack allocator, but it is still initialized!");
+}
 
 void StackAllocator::Initialize() {
+  COMET_ASSERT(!is_initialized_,
+               "Tried to initialize stack allocator, but it is already done!");
   COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
   root_ = reinterpret_cast<u8*>(
-      AllocateAligned(capacity_, alignof(u8), MemoryTag::Untagged));
+      AllocateAligned(capacity_, alignof(u8), memory_tag_));
   marker_ = root_;
+  is_initialized_ = true;
 }
 
 void StackAllocator::Destroy() {
+  COMET_ASSERT(is_initialized_,
+               "Tried to destroy stack allocator, but it is not initialized!");
   Deallocate(root_);
   root_ = nullptr;
   size_ = 0;
   capacity_ = 0;
   marker_ = nullptr;
+  is_initialized_ = false;
 }
 
 void* StackAllocator::Allocate(uindex size, u8 alignment) {
@@ -33,6 +49,8 @@ void* StackAllocator::Allocate(uindex size, u8 alignment) {
 }
 
 void StackAllocator::Clear() { marker_ = root_; }
+
+bool StackAllocator::IsInitialized() const noexcept { return is_initialized_; }
 
 uindex StackAllocator::GetSize() const noexcept {
   COMET_ASSERT(marker_ > root_, "Stack allocator is malformed!");

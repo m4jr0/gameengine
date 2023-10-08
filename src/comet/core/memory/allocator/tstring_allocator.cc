@@ -11,12 +11,26 @@ TStringAllocator::TStringAllocator(uindex capacity) {
   // TODO(m4jr0): Implement specific TString allocator.
 }
 
+TStringAllocator::~TStringAllocator() {
+  COMET_ASSERT(
+      !is_initialized_,
+      "Destructor called for TString allocator, but it is still initialized!");
+}
+
 void TStringAllocator::Initialize() {
+  COMET_ASSERT(
+      !is_initialized_,
+      "Tried to initialize TString allocator, but it is already done!");
   // TODO(m4jr0): Implement specific TString allocator.
+  is_initialized_ = true;
 }
 
 void TStringAllocator::Destroy() {
+  COMET_ASSERT(
+      is_initialized_,
+      "Tried to destroy TString allocator, but it is not initialized!");
   // TODO(m4jr0): Implement specific TString allocator.
+  is_initialized_ = false;
 }
 
 void* TStringAllocator::Allocate(uindex size) {

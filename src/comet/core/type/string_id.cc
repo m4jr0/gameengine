@@ -7,24 +7,21 @@
 #include "comet/core/c_string.h"
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
-#include "comet/core/memory/memory_manager.h"
 
 namespace comet {
 namespace stringid {
 StringIdHandler::~StringIdHandler() {
+#ifdef COMET_DEBUG
   if (string_id_table.size() == 0) {
     return;
   }
 
-  for (auto& it : string_id_table) {
-    if (it.second == nullptr) {
-      continue;
-    }
-
-    std::free(it.second);
-  }
-
   string_id_table.clear();
+
+  if (string_id_allocator_.IsInitialized()) {
+    string_id_allocator_.Destroy();
+  }
+#endif  // COMET_DEBUG
 }
 
 StringId StringIdHandler::Generate(const schar* str, uindex length) {
@@ -32,11 +29,22 @@ StringId StringIdHandler::Generate(const schar* str, uindex length) {
                "String provided is null! Cannot generate string ID.");
   COMET_ASSERT(length > 0, "Cannot generate ID from empty string.");
   const auto string_id{HashCrC32(str, length)};
+
+#ifdef COMET_DEBUG
   const auto it{string_id_table.find(string_id)};
 
   if (it == string_id_table.end()) {
-    string_id_table[string_id] = strdup(str);
+    if (!string_id_allocator_.IsInitialized()) {
+      string_id_allocator_.Initialize();
+    }
+
+    auto* saved_str{
+        reinterpret_cast<schar*>(string_id_allocator_.Allocate(length + 1, 0))};
+    Copy(saved_str, str, length);
+    saved_str[length] = '\0';
+    string_id_table[string_id] = saved_str;
   }
+#endif  // COMET_DEBUG
 
   return string_id;
 }
@@ -57,18 +65,22 @@ StringId StringIdHandler::Generate(const wchar* str) {
 // Return temporary string for debug purposes. The schar* returned SHOULD NOT be
 // stored.
 const schar* StringIdHandler::Labelize(StringId string_id) const {
+#ifdef COMET_DEBUG
   const auto it{string_id_table.find(string_id)};
 
   if (it == string_id_table.end()) {
+#endif  // COMET_DEBUG
     auto* label{GenerateForOneFrame<schar>(13)};
     label[0] = '?';
     ConvertToStr(string_id, label + 1, 12);
     label[11] = '?';
     label[12] = '\0';
     return label;
+#ifdef COMET_DEBUG
   }
 
   return string_id_table.at(string_id);
+#endif  // COMET_DEBUG
 }
 
 StringIdHandler* SetHandler(bool is_destroy) {

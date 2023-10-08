@@ -4,6 +4,8 @@
 
 #include "allocation_tracking.h"
 
+#include "comet/core/debug.h"
+
 namespace comet {
 uindex GetTotalAllocatedMemory() {
   return internal::memory_use.total_allocated;

@@ -36,11 +36,13 @@ class TwoFrameAllocator {
   u8 current_stack_{0};
   StackAllocator stacks_[2]{
       StackAllocator{conf::GetDefaultValue(conf::kCoreOneFrameAllocatorCapacity)
-                         .u32_value /
-                     2},
+                             .u32_value /
+                         2,
+                     MemoryTag::TwoFrames},
       StackAllocator{conf::GetDefaultValue(conf::kCoreOneFrameAllocatorCapacity)
-                         .u32_value /
-                     2}};
+                             .u32_value /
+                         2,
+                     MemoryTag::TwoFrames}};
 };
 }  // namespace memory
 }  // namespace comet

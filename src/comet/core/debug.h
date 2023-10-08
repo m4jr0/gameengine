@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+#include <cassert>
+
 #include "comet/core/logger.h"
 
 #if defined(_MSC_VER)

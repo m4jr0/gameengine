@@ -5,7 +5,14 @@
 #ifndef COMET_COMET_CORE_LOGGER_H_
 #define COMET_COMET_CORE_LOGGER_H_
 
-#include "comet_precompile.h"
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+
+#include "comet/core/define.h"
+#include "comet/core/type/primitive.h"
 
 // If issues arise with current terminal, comment this line.
 #define COMET_TERMINAL_COLORS
@@ -113,7 +120,8 @@ class Logger final {
 
   static std::shared_ptr<Logger> Generate(LoggerType logger_type);
 
-  static std::unordered_map<LoggerType, std::shared_ptr<Logger>> loggers_;
+  static inline std::unordered_map<LoggerType, std::shared_ptr<Logger>>
+      loggers_{};
   LoggerType type_{LoggerType::Unknown};
 };
 

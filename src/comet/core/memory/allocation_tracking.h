@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_CORE_ALLOCATION_H_
 #define COMET_COMET_CORE_ALLOCATION_H_
 
-#include "comet_precompile.h"
+#include "comet/core/type/primitive.h"
 
 namespace comet {
 namespace internal {
