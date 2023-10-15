@@ -173,6 +173,10 @@ tchar* TString::GetTStr() noexcept {
 
 uindex TString::GetLength() const noexcept { return length_; }
 
+uindex TString::GetLengthWithNullTerminator() const noexcept {
+  return length_ + 1;
+}
+
 uindex TString::GetCapacity() const noexcept { return capacity_; }
 
 bool TString::IsEmpty() const noexcept { return length_ == 0; }
@@ -184,7 +188,7 @@ const tchar& TString::GetFirst() const noexcept {
 
 const tchar& TString::GetLast() const noexcept {
   COMET_ASSERT(length_ > 0, "Length is 0!");
-  return GetCTStr()[length_ - 2];
+  return GetCTStr()[length_ - 1];
 }
 
 TString::operator const tchar*() const noexcept { return GetCTStr(); }
@@ -242,8 +246,7 @@ stringid::StringId CTStringView::GenerateStringId() const {
 
 std::ostream& operator<<(std::ostream& stream, const TString& str) {
 #ifdef COMET_WIDE_TCHAR
-  return stream << GenerateForOneFrame<schar>(str.GetCTStr(),
-                                              str.GetLength() + 1);
+  return stream << GenerateForOneFrame<schar>(str.GetCTStr(), str.GetLength());
 #else
   return stream << str.GetCTStr();
 #endif  // COMET_WIDE_TCHAR
@@ -251,8 +254,7 @@ std::ostream& operator<<(std::ostream& stream, const TString& str) {
 
 std::ostream& operator<<(std::ostream& stream, const CTStringView& str) {
 #ifdef COMET_WIDE_TCHAR
-  return stream << GenerateForOneFrame<schar>(str.GetCTStr(),
-                                              str.GetLength() + 1);
+  return stream << GenerateForOneFrame<schar>(str.GetCTStr(), str.GetLength());
 #else
   return stream << str.GetCTStr();
 #endif  // COMET_WIDE_TCHAR
@@ -299,11 +301,15 @@ bool operator==(const TString& str, tchar c) { return operator==(str, &c); }
 bool operator==(tchar c, const TString& str) { return operator==(&c, str); }
 
 bool operator==(const CTStringView& str, tchar c) {
-  return operator==(str, &c);
+  tchar tmp[2]{'\0'};
+  tmp[0] = c;
+  return operator==(str, tmp);
 }
 
 bool operator==(tchar c, const CTStringView& str) {
-  return operator==(&c, str);
+  tchar tmp[2]{'\0'};
+  tmp[0] = c;
+  return operator==(tmp, str);
 }
 
 bool operator!=(const TString& str1, const TString& str2) {

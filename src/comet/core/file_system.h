@@ -12,6 +12,32 @@
 #undef CreateFile
 #undef CreateDirectory
 #undef GetCurrentDirectory
+
+#ifdef COMET_WIDE_TCHAR
+#define MSVC_CREATE_DIRECTORY CreateDirectoryW
+#define MSVC_REMOVE_DIRECTORY RemoveDirectoryW
+#define MSVC_GET_CURRENT_DIRECTORY GetCurrentDirectoryW
+#define MSVC_GET_FULL_PATH_NAME GetFullPathNameW
+#define MSVC_MOVE_FILE MoveFileW
+#define MSVC_DELETE_FILE DeleteFileW
+#define MSVC_FIND_FIRST_FILE FindFirstFileW
+#define MSVC_FIND_NEXT_FILE FindNextFileW
+#define MSVC_GET_FILE_ATTRIBUTES GetFileAttributesW
+#define MSVC_GET_FILE_ATTRIBUTES_EX GetFileAttributesExW
+#define MSVC_WIN32_FIND_DATA WIN32_FIND_DATAW
+#else
+#define MSVC_CREATE_DIRECTORY CreateDirectoryA
+#define MSVC_REMOVE_DIRECTORY RemoveDirectoryA
+#define MSVC_GET_CURRENT_DIRECTORY GetCurrentDirectoryA
+#define MSVC_GET_FULL_PATH_NAME GetFullPathNameA
+#define MSVC_MOVE_FILE MoveFileA
+#define MSVC_DELETE_FILE DeleteFileA
+#define MSVC_FIND_FIRST_FILE FindFirstFileA
+#define MSVC_FIND_NEXT_FILE FindNextFileA
+#define MSVC_GET_FILE_ATTRIBUTES GetFileAttributesA
+#define MSVC_GET_FILE_ATTRIBUTES_EX GetFileAttributesExA
+#define MSVC_WIN32_FIND_DATA WIN32_FIND_DATAA
+#endif  // COMET_WIDE_TCHAR
 #endif  // COMET_MSVC
 
 #ifndef COMET_WINDOWS
@@ -22,6 +48,8 @@
 #include "comet/core/type/tstring.h"
 
 namespace comet {
+constexpr CTStringView kDotFolderName{COMET_TCHAR(".")};
+constexpr CTStringView kDotDotFolderName{COMET_TCHAR("..")};
 constexpr auto kMaxPathLength{4096};
 
 constexpr auto kNativeSlash{
@@ -37,7 +65,9 @@ constexpr auto kNativeSlash{
 };
 
 namespace internal {
-const tchar* GetTmpNormalizedCopy(CTStringView str);
+const tchar* GetTmpCopyWithNormalizedSlashes(CTStringView str);
+const tchar* GetNextElementForRelativePath(const tchar*& cursor,
+                                           const tchar* path_end);
 }  // namespace internal
 
 bool OpenFileToWriteTo(CTStringView path, std::ofstream& out_file,
@@ -75,6 +105,18 @@ TString GetParentPath(CTStringView current_path);
 bool IsSlash(tchar c);
 bool IsDirectory(CTStringView path);
 bool IsFile(CTStringView path);
+
+enum class RootType {
+  Unknown = 0,
+  Unix,
+  WindowsDriveLetter,
+  WindowsExtended,
+  WindowsUnc,
+  Invalid
+};
+
+const schar* GetRootTypeLabel(RootType root_type);
+RootType GetRootType(CTStringView path);
 bool IsAbsolute(CTStringView path);
 bool IsRelative(CTStringView path);
 bool Exists(CTStringView path);
@@ -90,12 +132,12 @@ void GetChecksum(CTStringView path, schar* checksum, uindex checksum_len);
 
 template <typename DirectoryCallback>
 void ForEachDirectory(CTStringView path, DirectoryCallback callback) {
-#ifdef COMET_WINDOWS
+#ifdef COMET_MSVC
   tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
   Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
-  WIN32_FIND_DATAW find_data;
-  auto handle{FindFirstFileW(buff, &find_data)};
+  MSVC_WIN32_FIND_DATA find_data;
+  auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
 
   if (handle == INVALID_HANDLE_VALUE) {
     return;
@@ -108,17 +150,19 @@ void ForEachDirectory(CTStringView path, DirectoryCallback callback) {
 
     auto file_name_len{GetLength(find_data.cFileName)};
 
-    if (AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR("."),
-                        1) ||
-        AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR(".."),
-                        2)) {
+    if (AreStringsEqual(find_data.cFileName, file_name_len,
+                        kDotFolderName.GetCTStr(),
+                        kDotFolderName.GetLength()) ||
+        AreStringsEqual(find_data.cFileName, file_name_len,
+                        kDotDotFolderName.GetCTStr(),
+                        kDotDotFolderName.GetLength())) {
       continue;
     }
 
     buff[0] = COMET_TCHAR('\0');
     Append(path, find_data.cFileName, buff, kMaxPathLength);
     callback(buff);
-  } while (FindNextFileW(handle, &find_data) != 0);
+  } while (MSVC_FIND_NEXT_FILE(handle, &find_data) != 0);
 
   FindClose(handle);
 #else
@@ -136,8 +180,10 @@ void ForEachDirectory(CTStringView path, DirectoryCallback callback) {
     const auto dir_len{GetLength(entry->d_name)};
 
     if (entry->d_type != DT_DIR ||
-        AreStringsEqual(entry->d_name, dir_len, COMET_TCHAR("."), 1) ||
-        AreStringsEqual(entry->d_name, dir_len, COMET_TCHAR(".."), 2)) {
+        AreStringsEqual(entry->d_name, dir_len, kDotFolderName.GetCTStr(),
+                        kDotFolderName.GetLength()) ||
+        AreStringsEqual(entry->d_name, dir_len, kDotDotFolderName.GetCTStr(),
+                        kDotDotFolderName.GetLength())) {
       continue;
     }
 
@@ -148,17 +194,17 @@ void ForEachDirectory(CTStringView path, DirectoryCallback callback) {
   }
 
   closedir(dir);
-#endif  // COMET_WINDOWS
+#endif  // COMET_MSVC
 }
 
 template <typename FileCallback>
 void ForEachFile(CTStringView path, FileCallback callback) {
-#ifdef COMET_WINDOWS
+#ifdef COMET_MSVC
   tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
   Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
-  WIN32_FIND_DATAW find_data;
-  auto handle{FindFirstFileW(buff, &find_data)};
+  MSVC_WIN32_FIND_DATA find_data;
+  auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
 
   if (handle == INVALID_HANDLE_VALUE) {
     return;
@@ -172,7 +218,7 @@ void ForEachFile(CTStringView path, FileCallback callback) {
     buff[0] = COMET_TCHAR('\0');
     Append(path, find_data.cFileName, buff, kMaxPathLength);
     callback(buff);
-  } while (FindNextFileW(handle, &find_data) != 0);
+  } while (MSVC_FIND_NEXT_FILE(handle, &find_data) != 0);
 
   FindClose(handle);
 #else
@@ -198,17 +244,17 @@ void ForEachFile(CTStringView path, FileCallback callback) {
   }
 
   closedir(dir);
-#endif  // COMET_WINDOWS
+#endif  // COMET_MSVC
 }
 
 template <typename FileCallback>
 void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
-#ifdef COMET_WINDOWS
+#ifdef COMET_MSVC
   tchar buff[kMaxPathLength]{COMET_TCHAR('\0')};
   Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
-  WIN32_FIND_DATAW find_data;
-  auto handle{FindFirstFileW(buff, &find_data)};
+  MSVC_WIN32_FIND_DATA find_data;
+  auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
 
   if (handle == INVALID_HANDLE_VALUE) {
     return;
@@ -218,10 +264,12 @@ void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
     if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
       auto file_name_len{GetLength(find_data.cFileName)};
 
-      if (AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR("."),
-                          1) ||
-          AreStringsEqual(find_data.cFileName, file_name_len, COMET_TCHAR(".."),
-                          2)) {
+      if (AreStringsEqual(find_data.cFileName, file_name_len,
+                          kDotFolderName.GetCTStr(),
+                          kDotFolderName.GetLength()) ||
+          AreStringsEqual(find_data.cFileName, file_name_len,
+                          kDotDotFolderName.GetCTStr(),
+                          kDotDotFolderName.GetLength())) {
         continue;
       }
     }
@@ -229,7 +277,7 @@ void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
     buff[0] = COMET_TCHAR('\0');
     Append(path, find_data.cFileName, buff, kMaxPathLength);
     callback(buff);
-  } while (FindNextFileW(handle, &find_data) != 0);
+  } while (MSVC_FIND_NEXT_FILE(handle, &find_data) != 0);
 
   FindClose(handle);
 #else
@@ -251,12 +299,12 @@ void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
   }
 
   closedir(dir);
-#endif  // COMET_WINDOWS
+#endif  // COMET_MSVC
 }
 
-void Normalize(tchar* str, uindex len);
-void Normalize(tchar* str);
-void Normalize(TString& str);
+void NormalizeSlashes(tchar* str, uindex len);
+void NormalizeSlashes(tchar* str);
+void NormalizeSlashes(TString& str);
 void MakeNative(tchar* str, uindex len);
 void MakeNative(tchar* str);
 void MakeNative(TString& str);

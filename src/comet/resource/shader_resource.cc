@@ -75,7 +75,8 @@ std::vector<u8> ShaderHandler::DumpDescr(
   auto total_size{kBoolSize + kCullModeSize + kUIndexSize};
 
   for (const auto& module_path : descr.shader_module_paths) {
-    total_size += kUIndexSize + (module_path.GetLength() + 1) * sizeof(tchar);
+    total_size += kUIndexSize +
+                  (module_path.GetLengthWithNullTerminator()) * sizeof(tchar);
   }
 
   total_size += kUIndexSize;
@@ -109,7 +110,8 @@ std::vector<u8> ShaderHandler::DumpDescr(
   cursor += kUIndexSize;
 
   for (const auto& module_path : descr.shader_module_paths) {
-    const auto module_path_size{(module_path.GetLength() + 1) * sizeof(tchar)};
+    const auto module_path_size{(module_path.GetLengthWithNullTerminator()) *
+                                sizeof(tchar)};
     CopyMemory(&buffer[cursor], &module_path_size, kUIndexSize);
     cursor += kUIndexSize;
 

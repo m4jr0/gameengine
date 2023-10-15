@@ -4,13 +4,18 @@
 
 #include "comet_precompile.h"
 
+#include "comet/core/file_system.h"
+
 #include "catch.hpp"
 #include "catch2/reporters/catch_reporter_event_listener.hpp"
 #include "catch2/reporters/catch_reporter_registrars.hpp"
 
 #include "comet/core/c_string.h"
-#include "comet/core/file_system.h"
 #include "comet/core/type/tstring.h"
+
+#ifndef COMET_NORMALIZE_PATHS
+#define COMET_NORMALIZE_PATHS
+#endif  // !COMET_NORMALIZE_PATHS
 
 namespace comet {
 namespace comettests {
@@ -25,6 +30,7 @@ class TestsFileSystemEventListener : public Catch::EventListenerBase {
   void testCaseStarting(Catch::TestCaseInfo const&) override {
     current_dir = comet::GetCurrentDirectory();
     tmp_dir = comet::comettests::current_dir / comet::comettests::test_dir;
+    comet::Remove(comet::comettests::tmp_dir, true);
   }
 };
 
@@ -32,7 +38,7 @@ CATCH_REGISTER_LISTENER(TestsFileSystemEventListener)
 
 TString FormatAbsolutePath(CTStringView absolute_path, tchar to_search,
                            const uindex count) {
-  if (absolute_path.GetLength() == 0 || count == 0) {
+  if (absolute_path.IsEmpty() || count == 0) {
     return TString{absolute_path.GetCTStr()};
   }
 
@@ -262,6 +268,55 @@ TEST_CASE("File system management", "[comet::filesystem]") {
                 0, comet::comettests::current_dir.GetLastIndexOf(
                        COMET_TCHAR('/'))));
 
+#ifdef COMET_WINDOWS
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("C:\\..\\..\\.")) ==
+            COMET_TCHAR("C:/"));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("C:\\Users\\comet\\test")) ==
+            COMET_TCHAR("C:/Users/comet/test"));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("D:\\Users\\comet\\test")) ==
+            COMET_TCHAR("D:/Users/comet/test"));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("C:/Users/comet/test")) ==
+            COMET_TCHAR("C:/Users/comet/test"));
+
+    REQUIRE(comet::GetNormalizedPath(
+                COMET_TCHAR("C:\\..\\..\\.\\Users\\comet\\test\\..")) ==
+            COMET_TCHAR("C:/Users/comet/"));
+
+    REQUIRE(comet::GetNormalizedPath(
+                COMET_TCHAR("C:\\..\\..\\.\\Users\\comet\\test\\..\\.")) ==
+            COMET_TCHAR("C:/Users/comet/"));
+#else
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("/../../.")) ==
+            COMET_TCHAR("/"));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("/home/comet/test")) ==
+            COMET_TCHAR("/home/comet/test"));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR(
+                "/../.././home/comet/test/..")) == COMET_TCHAR("/home/comet/"));
+
+    REQUIRE(comet::GetNormalizedPath(
+                COMET_TCHAR("/../.././home/comet/test/../.")) ==
+            COMET_TCHAR("/home/comet/"));
+#endif  // COMET_WINDOWS
+
+    const auto normalized_path{
+        std::filesystem::path{COMET_TCHAR("..")}.lexically_normal()};
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("..")) == COMET_TCHAR(".."));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("TEST")) ==
+            COMET_TCHAR("TEST"));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("test/..")) ==
+            COMET_TCHAR("."));
+
+    REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("test/../test")) ==
+            COMET_TCHAR("test"));
+
     REQUIRE(comet::GetNormalizedPath(COMET_TCHAR("test/.././test")) ==
             COMET_TCHAR("test"));
 
@@ -298,6 +353,26 @@ TEST_CASE("File system management", "[comet::filesystem]") {
 
     REQUIRE(comet::comettests::FormatAbsolutePath(
                 tmp_does_not_exist_path, COMET_TCHAR('/'), 2) == buffer);
+
+    REQUIRE(comet::GetRelativePath(COMET_TCHAR("videos"),
+                                   COMET_TCHAR("my_documents/videos")) ==
+            COMET_TCHAR("../../videos"));
+
+    REQUIRE(comet::GetRelativePath(COMET_TCHAR("my_documents/videos"),
+                                   COMET_TCHAR("my_documents")) ==
+            COMET_TCHAR("videos"));
+
+    REQUIRE(comet::GetRelativePath(COMET_TCHAR("my_documents"),
+                                   COMET_TCHAR("my_documents/videos")) ==
+            COMET_TCHAR(".."));
+
+    REQUIRE(comet::GetRelativePath(COMET_TCHAR("my_documents/videos"),
+                                   COMET_TCHAR("my_documents/videos")) ==
+            COMET_TCHAR("."));
+
+    REQUIRE(comet::GetRelativePath(COMET_TCHAR("my_documents/../../other"),
+                                   COMET_TCHAR("my_documents/../videos")) ==
+            COMET_TCHAR("../../other"));
 
     REQUIRE(comet::GetRelativePath(file_path) ==
             comet::Append(comet::comettests::test_dir, COMET_TCHAR("/test8")));
@@ -381,6 +456,29 @@ TEST_CASE("File system management", "[comet::filesystem]") {
     REQUIRE(!comet::IsDirectory(does_not_exist));
     REQUIRE(!comet::IsFile(does_not_exist));
     REQUIRE(!comet::IsFile(does_not_exist));
+
+    const auto empty_directory_path{
+        comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("empty_dir"))};
+    const auto non_empty_directory_path{comet::Append(
+        comet::comettests::tmp_dir, COMET_TCHAR("non_empty_dir"))};
+
+    const auto empty_file_path{
+        comet::Append(non_empty_directory_path, COMET_TCHAR("empty_file"))};
+    const auto non_empty_file_path{
+        comet::Append(non_empty_directory_path, COMET_TCHAR("non_empty_file"))};
+
+    comet::CreateDirectory(empty_directory_path);
+    comet::CreateDirectory(non_empty_directory_path);
+
+    comet::CreateFile(empty_file_path);
+    comet::CreateFile(non_empty_file_path);
+
+    WriteStrToFile(non_empty_file_path, "Hello World");
+
+    REQUIRE(comet::IsEmpty(empty_directory_path));
+    REQUIRE(!comet::IsEmpty(non_empty_directory_path));
+    REQUIRE(comet::IsEmpty(empty_file_path));
+    REQUIRE(!comet::IsEmpty(non_empty_file_path));
   }
 
   SECTION("Delete operations.") {

@@ -20,11 +20,6 @@ find_package(Stb REQUIRED COMPONENTS stb_image)
 # Shaders.
 find_package(SPIRV-Tools-opt CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
-
-if(WIN32)
-  find_package(unofficial-shaderc_util CONFIG REQUIRED)
-endif()
-
 find_package(unofficial-shaderc CONFIG REQUIRED)
 
 # Misc.
@@ -71,7 +66,7 @@ target_link_libraries(${EXECUTABLE_NAME}
 if(WIN32)
   target_link_libraries(${EXECUTABLE_NAME}
     PRIVATE
-      unofficial::shaderc_util::shaderc_util
+      # Put libraries here.
   )
 endif()
 

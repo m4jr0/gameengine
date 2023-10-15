@@ -125,17 +125,12 @@ void ImGuiView::Initialize() {
 
   ImGui_ImplVulkan_Init(&imgui_info, render_pass_->handle);
   ImGui::StyleColorsDark();
-
-  auto command_pool_handle{context_->GetUploadContext().command_pool_handle};
-  auto command_buffer_handle{
-      GenerateOneTimeCommand(device, command_pool_handle)};
-  ImGui_ImplVulkan_CreateFontsTexture(command_buffer_handle);
-  SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
-                       device.GetGraphicsQueueHandle());
+  ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 void ImGuiView::Destroy() {
-  ImGui_ImplVulkan_DestroyFontUploadObjects();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui_ImplVulkan_DestroyFontsTexture();
 
   if (descriptor_pool_handle_ != VK_NULL_HANDLE) {
     vkDestroyDescriptorPool(context_->GetDevice(), descriptor_pool_handle_,

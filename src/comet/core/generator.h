@@ -13,19 +13,23 @@
 namespace comet {
 template <typename TChar>
 TChar* GenerateForOneFrame(uindex length) {
+  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<TChar*>(
       memory::MemoryManager::Get().GetOneFrameAllocator().Allocate(
-          length, alignof(TChar)))};
-  new_str[length] = COMET_TCHAR('\0');
+          sizeof(TChar) * (length + 1), alignof(TChar)))};
+  new_str[0] = COMET_TCHAR('\0');
   return new_str;
 }
 
 template <typename ReturnedTChar, typename TCharParam>
 ReturnedTChar* GenerateForOneFrame(const TCharParam* str, uindex length) {
   COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<ReturnedTChar*>(
       memory::MemoryManager::Get().GetOneFrameAllocator().Allocate(
-          length, alignof(ReturnedTChar)))};
+          sizeof(ReturnedTChar) * (length + 1), alignof(ReturnedTChar)))};
   Copy(new_str, str, length);
   new_str[length] = COMET_TCHAR('\0');
   return new_str;
@@ -33,9 +37,11 @@ ReturnedTChar* GenerateForOneFrame(const TCharParam* str, uindex length) {
 
 template <typename TChar>
 TChar* GenerateForTwoFrames(uindex length) {
+  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<TChar*>(
       memory::MemoryManager::Get().GetTwoFrameAllocator().Allocate(
-          length, alignof(TChar)))};
+          sizeof(TChar) * (length + 1), alignof(TChar)))};
   new_str[0] = COMET_TCHAR('\0');
   return new_str;
 }
@@ -43,9 +49,11 @@ TChar* GenerateForTwoFrames(uindex length) {
 template <typename ReturnedTChar, typename TCharParam>
 ReturnedTChar* GenerateForTwoFrames(const TCharParam* str, uindex length) {
   COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<ReturnedTChar*>(
       memory::MemoryManager::Get().GetTwoFrameAllocator().Allocate(
-          length, alignof(ReturnedTChar)))};
+          sizeof(ReturnedTChar) * (length + 1), alignof(ReturnedTChar)))};
   Copy(new_str, str, length);
   new_str[length] = COMET_TCHAR('\0');
   return new_str;

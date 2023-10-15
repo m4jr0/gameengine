@@ -58,8 +58,16 @@ constexpr uindex GetLength(const schar* str) noexcept {
   return std::char_traits<schar>::length(str);
 }
 
+constexpr uindex GetLengthWithNullTerminator(const schar* str) noexcept {
+  return GetLength(str) + 1;
+}
+
 constexpr uindex GetLength(const wchar* str) noexcept {
   return std::char_traits<wchar>::length(str);
+}
+
+constexpr uindex GetLengthWithNullTerminator(const wchar* str) noexcept {
+  return GetLength(str) + 1;
 }
 
 void FillWith(schar* str, uindex str_length, schar c, uindex offset = 0,
@@ -332,11 +340,11 @@ void FillWith(Char* str, uindex str_length, Char c, uindex offset,
     length = str_length - offset;
   }
 
-  for (uindex i{0}; i < length - 1; ++i) {
+  auto max{offset + length};
+
+  for (uindex i{offset}; i < max; ++i) {
     str[i] = c;
   }
-
-  str[length - 1] = COMET_TCHAR('\0');
 }
 
 template <typename Char>

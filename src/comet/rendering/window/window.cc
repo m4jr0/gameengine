@@ -40,7 +40,7 @@ Window::Window(Window&& other) noexcept
   other.is_initialized_ = false;
   other.width_ = 0;
   other.height_ = 0;
-  FillWith(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1), '\0');
+  Clear(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1));
   other.name_len_ = 0;
 }
 
@@ -57,7 +57,7 @@ Window& Window::operator=(Window&& other) noexcept {
   other.is_initialized_ = false;
   other.width_ = 0;
   other.height_ = 0;
-  FillWith(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1), '\0');
+  Clear(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1));
   other.name_len_ = 0;
   return *this;
 }

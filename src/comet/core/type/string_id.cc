@@ -51,7 +51,7 @@ StringId StringIdHandler::Generate(const schar* str, uindex length) {
 
 StringId StringIdHandler::Generate(const wchar* str, uindex length) {
   COMET_ASSERT(length > 0, "Length provided is 0! Cannot generate String ID !");
-  return Generate(GenerateForOneFrame<schar>(str, length + 1), length);
+  return Generate(GenerateForOneFrame<schar>(str, length), length);
 }
 
 StringId StringIdHandler::Generate(const schar* str) {
@@ -70,7 +70,7 @@ const schar* StringIdHandler::Labelize(StringId string_id) const {
 
   if (it == string_id_table.end()) {
 #endif  // COMET_DEBUG
-    auto* label{GenerateForOneFrame<schar>(13)};
+    auto* label{GenerateForOneFrame<schar>(12)};
     label[0] = '?';
     ConvertToStr(string_id, label + 1, 12);
     label[11] = '?';

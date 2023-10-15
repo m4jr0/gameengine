@@ -121,6 +121,7 @@ class TString {
   const tchar* GetCTStr() const noexcept;
   tchar* GetTStr() noexcept;
   uindex GetLength() const noexcept;
+  uindex GetLengthWithNullTerminator() const noexcept;
   uindex GetCapacity() const noexcept;
   bool IsEmpty() const noexcept;
   const tchar& GetFirst() const noexcept;
@@ -180,13 +181,17 @@ class CTStringView {
 
   constexpr uindex GetLength() const noexcept { return length_; }
 
+  constexpr uindex GetLengthWithNullTerminator() const noexcept {
+    return length_ + 1;
+  }
+
   constexpr bool IsEmpty() const noexcept { return length_ == 0; }
 
   constexpr const tchar* GetCTStr() const noexcept { return str_; }
 
   const tchar& GetFirst() const noexcept { return str_[0]; }
 
-  const tchar& GetLast() const noexcept { return str_[length_ - 2]; }
+  const tchar& GetLast() const noexcept { return str_[length_ - 1]; }
 
   constexpr operator const tchar*() const noexcept { return GetCTStr(); }
 
