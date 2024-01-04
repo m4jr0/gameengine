@@ -22,7 +22,8 @@ class ModelHandler : public Handler {
   ModelHandler& operator=(ModelHandler&&) = delete;
   virtual ~ModelHandler() = default;
 
-  EntityId Generate(CTStringView model_path) const;
+  EntityId GenerateStatic(CTStringView model_path) const;
+  EntityId GenerateSkeletal(CTStringView model_path) const;
 };
 }  // namespace entity
 }  // namespace comet

@@ -7,10 +7,10 @@
 
 #include "comet_precompile.h"
 
+#include "comet/geometry/geometry_common.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -27,23 +27,35 @@ class MeshHandler : public Handler {
   MeshHandler& operator=(MeshHandler&&) = delete;
   virtual ~MeshHandler() = default;
 
+  void Initialize() override;
   void Shutdown() override;
 
-  Mesh* Generate(const resource::MeshResource* resource);
-  Mesh* Get(MeshId mesh_id);
-  Mesh* Get(const resource::MeshResource* resource);
-  Mesh* TryGet(MeshId mesh_id);
-  Mesh* TryGet(const resource::MeshResource* resource);
-  Mesh* GetOrGenerate(const resource::MeshResource* resource);
-  void Destroy(MeshId mesh_id);
-  void Destroy(Mesh& mesh);
-  MeshId GenerateMeshId(const resource::MeshResource* resource) const;
+  MeshProxy* Generate(geometry::Mesh* geometry);
+  MeshProxy* Get(geometry::MeshId proxy_id);
+  MeshProxy* Get(const geometry::Mesh* geometry);
+  MeshProxy* TryGet(geometry::MeshId proxy_id);
+  MeshProxy* TryGet(const geometry::Mesh* geometry);
+  MeshProxy* GetOrGenerate(geometry::Mesh* geometry);
+  void Destroy(geometry::MeshId proxy_id);
+  void Destroy(MeshProxy& proxy);
+
+  void Update(geometry::MeshId proxy_id);
+  void Update(MeshProxy& proxy);
+  void Bind(geometry::MeshId proxy_id);
+  void Bind(const MeshProxy* proxy);
 
  private:
-  void Destroy(Mesh& mesh, bool is_destroying_handler);
-  void Upload(Mesh& mesh) const;
+  void InitializeStagingBuffer();
+  void DestroyStagingBuffer();
 
-  std::unordered_map<MeshId, Mesh> meshes_{};
+  MeshProxy* Register(MeshProxy& proxy);
+  void Destroy(MeshProxy& proxy, bool is_destroying_handler);
+  void Upload(MeshProxy& proxy);
+
+  constexpr static auto kStagingBufferSize{4194304};  // 4 MiB.
+
+  Buffer staging_buffer_{};
+  std::unordered_map<geometry::MeshId, MeshProxy> mesh_proxies_{};
 };
 }  // namespace vk
 }  // namespace rendering

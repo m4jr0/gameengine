@@ -7,24 +7,12 @@
 
 #include "comet_precompile.h"
 
-#include "comet/math/vector.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/geometry/geometry_common.h"
+#include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using MeshId = u64;
-constexpr auto kInvalidMeshId{static_cast<MeshId>(-1)};
-
-struct Vertex {
-  math::Vec3 position{};
-  math::Vec3 normal{};
-  math::Vec4 color{kColorWhite, 1.0f};
-  math::Vec2 uv{};
-};
-
-using Index = u32;
-
 using VertexArrayObjectHandle = u32;
 constexpr auto kInvalidVertexArrayObjectHandle{0};
 
@@ -34,13 +22,12 @@ constexpr auto kInvalidVertexBufferObjectHandle{0};
 using ElementBufferObjectHandle = u32;
 constexpr auto kInvalidElementBufferObjectHandle{0};
 
-struct Mesh {
-  MeshId id{kInvalidMeshId};
+struct MeshProxy {
+  geometry::MeshId id{geometry::kInvalidMeshId};
+  const geometry::Mesh* mesh{nullptr};
   VertexArrayObjectHandle vao_handle{kInvalidVertexArrayObjectHandle};
   VertexBufferObjectHandle vbo_handle{kInvalidVertexBufferObjectHandle};
   ElementBufferObjectHandle ebo_handle{kInvalidElementBufferObjectHandle};
-  std::vector<Vertex> vertices{};
-  std::vector<Index> indices{};
 };
 }  // namespace gl
 }  // namespace rendering

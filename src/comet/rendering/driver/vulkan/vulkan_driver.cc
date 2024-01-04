@@ -45,10 +45,10 @@ void VulkanDriver::Initialize() {
       COMET_EVENT_BIND_FUNCTION(VulkanDriver::OnEvent),
       event::WindowResizeEvent::kStaticType_);
 
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   InitializeDebugMessenger();
   InitializeDebugReportCallback();
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
   window_->AttachSurface(instance_handle_);
 
@@ -92,10 +92,10 @@ void VulkanDriver::Shutdown() {
   swapchain_->Destroy();
   context_->Destroy();
   device_->Destroy();
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   DestroyDebugReportCallback();
   DestroyDebugMessenger();
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
   if (window_->IsInitialized()) {
     window_->DetachSurface(instance_handle_);
@@ -179,7 +179,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   create_info.pApplicationInfo = &app_info;
 
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   std::vector<VkValidationFeatureEnableEXT> enabled_validation_features{
 #ifdef COMET_VALIDATION_GPU_ASSISTED_EXT
       VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
@@ -212,7 +212,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   validation_features.pDisabledValidationFeatures = VK_NULL_HANDLE;
   validation_features.pNext = &create_info.pNext;
   create_info.pNext = &validation_features;
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
   const auto required_extensions{GetRequiredExtensions()};
   const u32 required_extension_count{
@@ -239,7 +239,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.enabledExtensionCount = required_extension_count;
   create_info.ppEnabledExtensionNames = required_extensions.data();
 
-#ifndef COMET_VULKAN_DEBUG_MODE
+#ifndef COMET_RENDERING_DRIVER_DEBUG_MODE
   create_info.enabledLayerCount = 0;
   create_info.pNext = VK_NULL_HANDLE;
 #else
@@ -252,7 +252,7 @@ void VulkanDriver::InitializeVulkanInstance() {
       VulkanDriver::LogVulkanValidationMessage)};
   create_info.pNext =
       static_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debug_create_info);
-#endif  // !COMET_VULKAN_DEBUG_MODE
+#endif  // !COMET_RENDERING_DRIVER_DEBUG_MODE
 
   COMET_CHECK_VK(
       vkCreateInstance(&create_info, VK_NULL_HANDLE, &instance_handle_),
@@ -479,16 +479,16 @@ std::vector<const schar*> VulkanDriver::GetRequiredExtensions() {
   std::vector<const schar*> extensions{glfw_extensions,
                                        glfw_extensions + glfw_extension_count};
 
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   extensions.reserve(extensions.size() + 2);
   extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
   return extensions;
 }
 
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
 void VulkanDriver::InitializeDebugMessenger() {
   auto create_info{init::GenerateDebugUtilsMessengerCreateInfo(
       VulkanDriver::LogVulkanValidationMessage)};
@@ -633,7 +633,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanDebugReportMessage(
 
   return VK_FALSE;
 }
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

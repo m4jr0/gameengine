@@ -5,10 +5,11 @@
 #include "opengl_render_proxy_handler.h"
 
 #include "comet/entity/entity_manager.h"
+#include "comet/geometry/component/mesh_component.h"
+#include "comet/geometry/geometry_common.h"
 #include "comet/physics/component/transform_component.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/resource/component/mesh_component.h"
 
 namespace comet {
 namespace rendering {
@@ -46,10 +47,10 @@ void RenderProxyHandler::Update(FrameIndex frame_count,
 
   auto& entity_manager{entity::EntityManager::Get()};
 
-  entity_manager.Each<resource::MeshComponent, physics::TransformComponent>(
+  entity_manager.Each<geometry::MeshComponent, physics::TransformComponent>(
       [&](auto entity_id) {
         auto* mesh_cmp{
-            entity_manager.GetComponent<resource::MeshComponent>(entity_id)};
+            entity_manager.GetComponent<geometry::MeshComponent>(entity_id)};
         auto* transform_cmp{
             entity_manager.GetComponent<physics::TransformComponent>(
                 entity_id)};
@@ -65,19 +66,20 @@ void RenderProxyHandler::Update(FrameIndex frame_count,
         COMET_ASSERT(mesh_cmp->material != nullptr,
                      "Material bound to mesh component is null!");
 
-        Mesh* mesh{mesh_handler_->GetOrGenerate(mesh_cmp->mesh)};
+        MeshProxy* mesh_proxy{mesh_handler_->GetOrGenerate(mesh_cmp->mesh)};
         auto* material{material_handler_->GetOrGenerate(*mesh_cmp->material)};
         proxies_.push_back(
-            GenerateInternal(*mesh, *material, transform_cmp->global));
+            GenerateInternal(*mesh_proxy, *material, transform_cmp->global));
       });
 
   update_frame_ = frame_count;
 }
 
-RenderProxy RenderProxyHandler::GenerateInternal(Mesh& mesh, Material& material,
+RenderProxy RenderProxyHandler::GenerateInternal(MeshProxy& mesh_proxy,
+                                                 Material& material,
                                                  const math::Mat4& transform) {
   RenderProxy proxy{};
-  proxy.mesh = &mesh;
+  proxy.mesh_proxy = &mesh_proxy;
   proxy.material = &material;
   proxy.transform = transform;
   return proxy;
@@ -92,6 +94,7 @@ void RenderProxyHandler::DrawProxies(FrameIndex frame_count, Shader& shader) {
     ShaderLocalPacket local_packet{};
     local_packet.position = &proxy.transform;
     shader_handler_->UpdateLocal(shader, local_packet);
+    mesh_handler_->Update(*proxy.mesh_proxy);
     Draw(frame_count, proxy);
   }
 
@@ -118,8 +121,14 @@ u32 RenderProxyHandler::GetDrawCount() const noexcept {
 
 void RenderProxyHandler::Draw(FrameIndex frame_count,
                               const RenderProxy& proxy) {
-  mesh_handler_->Bind(proxy.mesh);
-  glDrawElements(GL_TRIANGLES, proxy.mesh->indices.size(), GL_UNSIGNED_INT, 0);
+  if (proxy.mesh_proxy != last_drawn_mesh_) {
+    mesh_handler_->Bind(proxy.mesh_proxy);
+    last_drawn_mesh_ = proxy.mesh_proxy;
+  }
+
+  glDrawElements(GL_TRIANGLES,
+                 static_cast<GLsizei>(proxy.mesh_proxy->mesh->indices.size()),
+                 GL_UNSIGNED_INT, 0);
 }
 }  // namespace gl
 }  // namespace rendering

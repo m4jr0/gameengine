@@ -131,7 +131,7 @@ void ShaderHandler::Bind(Shader& shader) {
     return;
   }
 
-  glPolygonMode(shader.cull_mode, shader.is_wireframe ? GL_LINE : GL_FILL);
+  glPolygonMode(GL_FRONT_AND_BACK, shader.is_wireframe ? GL_LINE : GL_FILL);
   glCullFace(shader.cull_mode);
   glUseProgram(shader.handle);
   bound_shader_ = &shader;
@@ -178,7 +178,7 @@ void ShaderHandler::UpdateLocal(Shader& shader,
 }
 
 void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
-                               const void* value) const {
+                               const void* value, bool is_update) const {
   if (uniform.type == ShaderUniformType::Sampler) {
     const TextureMap* texture_map;
 
@@ -194,7 +194,11 @@ void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
 
     glActiveTexture(GL_TEXTURE0 + texture_map->type);
     glBindTexture(GL_TEXTURE_2D, texture_map->texture_handle);
-    glUniform1i(uniform.location, texture_map->type);
+
+    if (is_update) {
+        glUniform1i(uniform.location, texture_map->type);
+    }
+
     return;
   }
 
@@ -204,39 +208,45 @@ void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
         "Unknown or unsupported shader uniform type: ",
         static_cast<std::underlying_type_t<ShaderUniformType>>(uniform.type),
         "!");
+
+    if (is_update) {
     kUniformCallbacks_.at(uniform.type)(uniform.location, value);
+    }
+
     return;
   }
 
-  glBindBuffer(GL_UNIFORM_BUFFER, shader.ubo_handle);
-  glBufferSubData(GL_UNIFORM_BUFFER, shader.bound_ubo_offset + uniform.offset,
-                  uniform.size, value);
-  glBindBuffer(GL_UNIFORM_BUFFER, kInvalidUniformBufferHandle);
+  if (is_update) {
+    glBindBuffer(GL_UNIFORM_BUFFER, shader.ubo_handle);
+    glBufferSubData(GL_UNIFORM_BUFFER, shader.bound_ubo_offset + uniform.offset,
+                    uniform.size, value);
+    glBindBuffer(GL_UNIFORM_BUFFER, kInvalidUniformBufferHandle);
+  }
 }
 
 void ShaderHandler::SetUniform(ShaderHandle handle,
-                               const ShaderUniform& uniform,
-                               const void* value) {
+                               const ShaderUniform& uniform, const void* value,
+                               bool is_update) {
   auto* shader{Get(handle)};
   COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from handle ",
                handle, ", but instance is null!");
-  SetUniform(*shader, uniform, value);
+  SetUniform(*shader, uniform, value, is_update);
 }
 
 void ShaderHandler::SetUniform(Shader& shader, ShaderUniformLocation index,
-                               const void* value) const {
+                               const void* value, bool is_update) const {
   COMET_ASSERT(
       index < shader.uniforms.size(), "Tried to set uniform at index #", index,
       " for shader pass, but uniform count is ", shader.uniforms.size(), "!");
-  SetUniform(shader, shader.uniforms[index], value);
+  SetUniform(shader, shader.uniforms[index], value, is_update);
 }
 
 void ShaderHandler::SetUniform(ShaderHandle handle, ShaderUniformLocation index,
-                               const void* value) {
+                               const void* value, bool is_update) {
   auto* shader{Get(handle)};
   COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from handle ",
                handle, ", but instance is null!");
-  SetUniform(*shader, index, value);
+  SetUniform(*shader, index, value, is_update);
 }
 
 void ShaderHandler::BindMaterial(Material& material) {
@@ -631,10 +641,7 @@ ShaderUniformLocation GetSamplerLocation(
   cursor += copy_count;
   buff[cursor++] = ']';
 
-  while (cursor < kBuffLen) {
-    buff[cursor++] = '\0';
-  }
-
+  FillWith(buff, kBuffLen, '\0', cursor);
   return glGetUniformLocation(shader.handle, buff);
 }
 

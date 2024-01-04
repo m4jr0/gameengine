@@ -13,147 +13,170 @@ namespace rendering {
 namespace vk {
 MeshHandler::MeshHandler(const MeshHandlerDescr& descr) : Handler{descr} {}
 
+void MeshHandler::Initialize() {
+  Handler::Initialize();
+  InitializeStagingBuffer();
+}
+
 void MeshHandler::Shutdown() {
-  for (auto& it : meshes_) {
+  for (auto& it : mesh_proxies_) {
     Destroy(it.second, true);
   }
 
-  meshes_.clear();
+  mesh_proxies_.clear();
+  DestroyStagingBuffer();
   Handler::Shutdown();
 }
 
-Mesh* MeshHandler::Generate(const resource::MeshResource* resource) {
-  Mesh mesh{};
-  mesh.id = GenerateMeshId(resource);
+MeshProxy* MeshHandler::Generate(geometry::Mesh* mesh) {
+  MeshProxy proxy{};
+  proxy.id = mesh->id;
+  proxy.mesh = mesh;
+  proxy.vertex_buffer.allocator_handle = context_->GetAllocatorHandle();
+  return Register(proxy);
+}
 
-  const auto vertex_count{resource->vertices.size()};
-  mesh.vertices.resize(resource->vertices.size());
+MeshProxy* MeshHandler::Get(geometry::MeshId proxy_id) {
+  auto* proxy{TryGet(proxy_id)};
+  COMET_ASSERT(proxy != nullptr,
+               "Requested mesh proxy does not exist: ", proxy_id, "!");
+  return proxy;
+}
 
-  for (uindex i{0}; i < vertex_count; ++i) {
-    auto& vertex{mesh.vertices[i]};
-    auto& vertex_res{resource->vertices[i]};
+MeshProxy* MeshHandler::Get(const geometry::Mesh* mesh) {
+  return Get(mesh->id);
+}
 
-    vertex.position = vertex_res.position;
-    vertex.normal = vertex_res.normal;
+MeshProxy* MeshHandler::TryGet(geometry::MeshId proxy_id) {
+  auto it{mesh_proxies_.find(proxy_id)};
 
-    vertex.uv.x = vertex_res.uv.x;
-    vertex.uv.y = vertex_res.uv.y;
-
-    vertex.color = {kColorWhite, 1.0f};
+  if (it != mesh_proxies_.end()) {
+    return &it->second;
   }
 
-  const auto index_count{resource->indices.size()};
-  mesh.indices.resize(resource->indices.size());
-  mesh.vertex_buffer.allocator_handle = context_->GetAllocatorHandle();
+  return nullptr;
+}
 
-  for (uindex i{0}; i < index_count; ++i) {
-    mesh.indices[i] = resource->indices[i];
+MeshProxy* MeshHandler::TryGet(const geometry::Mesh* mesh) {
+  return TryGet(mesh->id);
+}
+
+MeshProxy* MeshHandler::GetOrGenerate(geometry::Mesh* mesh) {
+  auto* proxy{TryGet(mesh)};
+
+  if (proxy != nullptr) {
+    return proxy;
   }
 
-#ifdef COMET_DEBUG
-  const auto mesh_id{mesh.id};
-#endif  // COMET_DEBUG
-
-  const auto insert_pair{meshes_.emplace(mesh.id, std::move(mesh))};
-  COMET_ASSERT(insert_pair.second,
-               "Could not insert mesh: ", COMET_STRING_ID_LABEL(mesh_id), "!");
-  auto& to_return{insert_pair.first->second};
-  Upload(to_return);
-  return &to_return;
+  return Generate(mesh);
 }
 
-Mesh* MeshHandler::Get(MeshId mesh_id) {
-  auto* mesh{TryGet(mesh_id)};
-  COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", mesh_id,
-               "!");
-  return mesh;
+void MeshHandler::Destroy(geometry::MeshId proxy_id) {
+  Destroy(*Get(proxy_id));
 }
 
-Mesh* MeshHandler::Get(const resource::MeshResource* resource) {
-  return Get(GenerateMeshId(resource));
-}
+void MeshHandler::Destroy(MeshProxy& proxy) { Destroy(proxy, false); }
 
-Mesh* MeshHandler::TryGet(MeshId mesh_id) {
-  auto it{meshes_.find(mesh_id)};
+void MeshHandler::Update(geometry::MeshId proxy_id) { Update(*Get(proxy_id)); }
 
-  if (it == meshes_.end()) {
-    return nullptr;
+void MeshHandler::Update(MeshProxy& proxy) {
+  if (!proxy.mesh->is_dirty) {
+    return;
   }
 
-  return &it->second;
+  Upload(proxy);
 }
 
-Mesh* MeshHandler::TryGet(const resource::MeshResource* resource) {
-  return TryGet(GenerateMeshId(resource));
+void MeshHandler::Bind(geometry::MeshId proxy_id) { Bind(Get(proxy_id)); }
+
+void MeshHandler::Bind(const MeshProxy* proxy) {
+  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  const auto vertex_buffer_size{static_cast<VkDeviceSize>(
+      proxy->mesh->vertices.size() * sizeof(geometry::Vertex))};
+  VkDeviceSize offset{0};
+  vkCmdBindVertexBuffers(command_buffer_handle, 0, 1,
+                         &proxy->vertex_buffer.handle, &offset);
+  vkCmdBindIndexBuffer(command_buffer_handle, proxy->vertex_buffer.handle,
+                       static_cast<VkDeviceSize>(vertex_buffer_size),
+                       VK_INDEX_TYPE_UINT32);
 }
 
-Mesh* MeshHandler::GetOrGenerate(const resource::MeshResource* resource) {
-  auto* mesh{TryGet(resource)};
-
-  if (mesh != nullptr) {
-    return mesh;
-  }
-
-  return Generate(resource);
-}
-
-void MeshHandler::Destroy(MeshId mesh_id) { Destroy(*Get(mesh_id)); }
-
-void MeshHandler::Destroy(Mesh& mesh) { Destroy(mesh, false); }
-
-MeshId MeshHandler::GenerateMeshId(
-    const resource::MeshResource* resource) const {
-  return static_cast<u64>(resource->internal_id) |
-         static_cast<u64>(resource->resource_id) << 32;
-}
-
-void MeshHandler::Destroy(Mesh& mesh, bool is_destroying_handler) {
-  if (mesh.vertex_buffer.allocation_handle != VK_NULL_HANDLE) {
-    DestroyBuffer(mesh.vertex_buffer);
-  }
-
-  mesh.vertices.clear();
-  mesh.indices.clear();
-  mesh.vertex_buffer = {};
-
-  if (!is_destroying_handler) {
-    meshes_.erase(mesh.id);
-  }
-
-  mesh.id = kInvalidMeshId;
-}
-
-void MeshHandler::Upload(Mesh& mesh) const {
-  const auto vertex_buffer_size{sizeof(Vertex) * mesh.vertices.size()};
-  const auto index_buffer_size{sizeof(Index) * mesh.indices.size()};
-  const auto buffer_size{vertex_buffer_size + index_buffer_size};
-  auto allocator_handle{context_->GetAllocatorHandle()};
-
-  Buffer staging_buffer{GenerateBuffer(
-      allocator_handle, buffer_size,
+void MeshHandler::InitializeStagingBuffer() {
+  staging_buffer_ = GenerateBuffer(
+      context_->GetAllocatorHandle(), kStagingBufferSize,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       VMA_MEMORY_USAGE_AUTO,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT)};
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+}
 
-  MapBuffer(staging_buffer);
-  CopyToBuffer(staging_buffer, mesh.vertices.data(), vertex_buffer_size);
-  CopyToBuffer(staging_buffer, mesh.indices.data(), index_buffer_size,
+void MeshHandler::DestroyStagingBuffer() { DestroyBuffer(staging_buffer_); }
+
+MeshProxy* MeshHandler::Register(MeshProxy& proxy) {
+#ifdef COMET_DEBUG
+  const auto proxy_id{proxy.id};
+#endif  // COMET_DEBUG
+
+  const auto insert_pair{mesh_proxies_.emplace(proxy.id, std::move(proxy))};
+  MeshProxy* to_return{insert_pair.second ? &insert_pair.first->second
+                                          : nullptr};
+
+  if (to_return != nullptr) {
+    Upload(*to_return);
+  } else {
+    COMET_ASSERT(false, "Could not insert mesh proxy: ",
+                 COMET_STRING_ID_LABEL(proxy_id), "!");
+  }
+
+  return to_return;
+}
+
+void MeshHandler::Destroy(MeshProxy& proxy, bool is_destroying_handler) {
+  if (proxy.vertex_buffer.allocation_handle != VK_NULL_HANDLE) {
+    DestroyBuffer(proxy.vertex_buffer);
+  }
+
+  proxy.vertex_buffer = {};
+  proxy.mesh = nullptr;
+
+  if (!is_destroying_handler) {
+    mesh_proxies_.erase(proxy.id);
+  }
+
+  proxy.id = geometry::kInvalidMeshId;
+}
+
+void MeshHandler::Upload(MeshProxy& proxy) {
+  const auto vertex_buffer_size{static_cast<VkDeviceSize>(
+      proxy.mesh->vertices.size() * sizeof(geometry::Vertex))};
+  const auto index_buffer_size{
+      static_cast<u32>(proxy.mesh->indices.size() * sizeof(geometry::Index))};
+
+  const auto buffer_size{vertex_buffer_size + index_buffer_size};
+  auto allocator_handle{context_->GetAllocatorHandle()};
+
+  MapBuffer(staging_buffer_);
+  CopyToBuffer(staging_buffer_, proxy.mesh->vertices.data(),
                vertex_buffer_size);
-  UnmapBuffer(staging_buffer);
+  CopyToBuffer(staging_buffer_, proxy.mesh->indices.data(), index_buffer_size,
+               vertex_buffer_size);
+  UnmapBuffer(staging_buffer_);
 
-  mesh.vertex_buffer = GenerateBuffer(
-      allocator_handle, buffer_size,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VMA_MEMORY_USAGE_AUTO, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  if (proxy.vertex_buffer.handle == VK_NULL_HANDLE) {
+    proxy.vertex_buffer = GenerateBuffer(
+        context_->GetAllocatorHandle(), buffer_size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VMA_MEMORY_USAGE_AUTO, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  }
 
   CopyBuffer(context_->GetDevice(),
-             context_->GetUploadContext().command_pool_handle, staging_buffer,
-             mesh.vertex_buffer, buffer_size,
+             context_->GetUploadContext().command_pool_handle, staging_buffer_,
+             proxy.vertex_buffer, buffer_size,
              context_->GetUploadContext().upload_fence_handle);
-  DestroyBuffer(staging_buffer);
+  proxy.mesh->is_dirty = false;
 }
 }  // namespace vk
 }  // namespace rendering

@@ -13,7 +13,7 @@ namespace comet {
 namespace rendering {
 namespace gl {
 struct RenderProxy {
-  Mesh* mesh{nullptr};
+  MeshProxy* mesh_proxy{nullptr};
   Material* material{nullptr};
   math::Mat4 transform{};
 };

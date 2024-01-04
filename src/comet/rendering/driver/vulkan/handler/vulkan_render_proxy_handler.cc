@@ -5,10 +5,11 @@
 #include "vulkan_render_proxy_handler.h"
 
 #include "comet/entity/entity_manager.h"
+#include "comet/geometry/component/mesh_component.h"
+#include "comet/geometry/geometry_common.h"
 #include "comet/physics/component/transform_component.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/resource/component/mesh_component.h"
 
 namespace comet {
 namespace rendering {
@@ -41,10 +42,10 @@ void RenderProxyHandler::Update(time::Interpolation interpolation) {
   proxies_.reserve(kDefaultProxyCount);
   auto& entity_manager{entity::EntityManager::Get()};
 
-  entity_manager.Each<resource::MeshComponent, physics::TransformComponent>(
+  entity_manager.Each<geometry::MeshComponent, physics::TransformComponent>(
       [&](auto entity_id) {
         auto* mesh_cmp{
-            entity_manager.GetComponent<resource::MeshComponent>(entity_id)};
+            entity_manager.GetComponent<geometry::MeshComponent>(entity_id)};
         auto* transform_cmp{
             entity_manager.GetComponent<physics::TransformComponent>(
                 entity_id)};
@@ -60,19 +61,20 @@ void RenderProxyHandler::Update(time::Interpolation interpolation) {
         COMET_ASSERT(mesh_cmp->material != nullptr,
                      "Material bound to mesh component is null!");
 
-        Mesh* mesh{mesh_handler_->GetOrGenerate(mesh_cmp->mesh)};
+        MeshProxy* mesh_proxy{mesh_handler_->GetOrGenerate(mesh_cmp->mesh)};
         auto* material{material_handler_->GetOrGenerate(*mesh_cmp->material)};
         proxies_.push_back(
-            GenerateInternal(*mesh, *material, transform_cmp->global));
+            GenerateInternal(*mesh_proxy, *material, transform_cmp->global));
       });
 
   update_frame_ = frame_count;
 }
 
-RenderProxy RenderProxyHandler::GenerateInternal(Mesh& mesh, Material& material,
+RenderProxy RenderProxyHandler::GenerateInternal(MeshProxy& mesh_proxy,
+                                                 Material& material,
                                                  const math::Mat4& transform) {
   RenderProxy proxy{};
-  proxy.mesh = &mesh;
+  proxy.mesh_proxy = &mesh_proxy;
   proxy.material = &material;
   proxy.transform = transform;
   return proxy;
@@ -87,6 +89,7 @@ void RenderProxyHandler::DrawProxies(Shader& shader) {
     ShaderLocalPacket local_packet{};
     local_packet.position = &proxy.transform;
     shader_handler_->UpdateLocal(shader, local_packet);
+    mesh_handler_->Update(*proxy.mesh_proxy);
     Draw(proxy);
   }
 
@@ -111,21 +114,14 @@ u32 RenderProxyHandler::GetDrawCount() const noexcept {
 }
 
 void RenderProxyHandler::Draw(const RenderProxy& proxy) {
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-
-  if (proxy.mesh != last_drawn_mesh_) {
-    VkDeviceSize offset{0};
-    vkCmdBindVertexBuffers(command_buffer_handle, 0, 1,
-                           &proxy.mesh->vertex_buffer.handle, &offset);
-    vkCmdBindIndexBuffer(
-        command_buffer_handle, proxy.mesh->vertex_buffer.handle,
-        static_cast<VkDeviceSize>(sizeof(Vertex) * proxy.mesh->vertices.size()),
-        VK_INDEX_TYPE_UINT32);
-    last_drawn_mesh_ = proxy.mesh;
+  if (proxy.mesh_proxy != last_drawn_mesh_) {
+    mesh_handler_->Bind(proxy.mesh_proxy);
+    last_drawn_mesh_ = proxy.mesh_proxy;
   }
 
-  vkCmdDrawIndexed(command_buffer_handle,
-                   static_cast<u32>(proxy.mesh->indices.size()), 1, 0, 0, 0);
+  vkCmdDrawIndexed(context_->GetFrameData().command_buffer_handle,
+                   static_cast<u32>(proxy.mesh_proxy->mesh->indices.size()), 1,
+                   0, 0, 0);
 }
 }  // namespace vk
 }  // namespace rendering

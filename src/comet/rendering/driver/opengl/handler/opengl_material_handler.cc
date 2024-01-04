@@ -44,7 +44,8 @@ Material* MaterialHandler::Generate(
   descr.normal_map = GenerateTextureMap(resource.descr.normal_map);
 
   TString shader_path{};
-  shader_path.Reserve(static_cast<uindex>(26) + resource::kMaxShaderNameLen);
+  shader_path.Reserve(resource::kMaxShaderNameLen);
+  COMET_DISALLOW_STR_ALLOC(shader_path);
   shader_path += COMET_TCHAR("shaders/opengl/");
   shader_path += GetTmpTChar(resource.descr.shader_name);
   shader_path += COMET_TCHAR(".gl.cshader");
@@ -104,21 +105,19 @@ void MaterialHandler::UpdateInstance(Material& material, ShaderId shader_id,
   auto* shader_ptr{shader_handler_->Get(shader_id)};
   COMET_ASSERT(shader_ptr != nullptr, "Material's shader cannot be null!");
   auto& shader{*shader_ptr};
+  shader_handler_->BindInstance(shader, material.instance_id);
+  auto is_udpate{material.instance_update_frame != frame_count};
 
-  if (material.instance_update_frame != frame_count) {
-    shader_handler_->BindInstance(shader, material.instance_id);
-
-    shader_handler_->SetUniform(shader, shader.uniform_indices.diffuse_map,
-                                &material.diffuse_map);
-    shader_handler_->SetUniform(shader, shader.uniform_indices.specular_map,
-                                &material.specular_map);
-    shader_handler_->SetUniform(shader, shader.uniform_indices.normal_map,
-                                &material.normal_map);
-    shader_handler_->SetUniform(shader, shader.uniform_indices.diffuse_color,
-                                &material.diffuse_color);
-    shader_handler_->SetUniform(shader, shader.uniform_indices.shininess,
-                                &material.shininess);
-  }
+  shader_handler_->SetUniform(shader, shader.uniform_indices.diffuse_map,
+                              &material.diffuse_map, is_udpate);
+  shader_handler_->SetUniform(shader, shader.uniform_indices.specular_map,
+                              &material.specular_map, is_udpate);
+  shader_handler_->SetUniform(shader, shader.uniform_indices.normal_map,
+                              &material.normal_map, is_udpate);
+  shader_handler_->SetUniform(shader, shader.uniform_indices.diffuse_color,
+                              &material.diffuse_color, is_udpate);
+  shader_handler_->SetUniform(shader, shader.uniform_indices.shininess,
+                              &material.shininess, is_udpate);
 
   material.instance_update_frame = frame_count;
 }

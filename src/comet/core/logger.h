@@ -43,15 +43,17 @@ namespace comet {
 enum class LoggerType {
   Unknown = 0,
   Global,
+  Animation,
   Core,
   Event,
-  GameObject,
+  Entity,
   Input,
+  Math,
   Physics,
+  Profiler,
   Rendering,
   Resource,
-  Time,
-  Utils
+  Time
 };
 
 class Logger final {
@@ -136,6 +138,11 @@ class Logger final {
 #define COMET_LOG_GLOBAL_DEBUG(...)
 #define COMET_LOG_GLOBAL_WARNING(...)
 
+#define COMET_LOG_ANIMATION_ERROR(...)
+#define COMET_LOG_ANIMATION_INFO(...)
+#define COMET_LOG_ANIMATION_DEBUG(...)
+#define COMET_LOG_ANIMATION_WARNING(...)
+
 #define COMET_LOG_CORE_ERROR(...)
 #define COMET_LOG_CORE_INFO(...)
 #define COMET_LOG_CORE_DEBUG(...)
@@ -151,15 +158,30 @@ class Logger final {
 #define COMET_LOG_ENTITY_DEBUG(...)
 #define COMET_LOG_ENTITY_WARNING(...)
 
+#define COMET_LOG_GEOMETRY_ERROR(...)
+#define COMET_LOG_GEOMETRY_INFO(...)
+#define COMET_LOG_GEOMETRY_DEBUG(...)
+#define COMET_LOG_GEOMETRY_WARNING(...)
+
 #define COMET_LOG_INPUT_ERROR(...)
 #define COMET_LOG_INPUT_INFO(...)
 #define COMET_LOG_INPUT_DEBUG(...)
 #define COMET_LOG_INPUT_WARNING(...)
 
+#define COMET_LOG_MATH_ERROR(...)
+#define COMET_LOG_MATH_INFO(...)
+#define COMET_LOG_MATH_DEBUG(...)
+#define COMET_LOG_MATH_WARNING(...)
+
 #define COMET_LOG_PHYSICS_ERROR(...)
 #define COMET_LOG_PHYSICS_INFO(...)
 #define COMET_LOG_PHYSICS_DEBUG(...)
 #define COMET_LOG_PHYSICS_WARNING(...)
+
+#define COMET_LOG_PROFILER_ERROR(...)
+#define COMET_LOG_PROFILER_INFO(...)
+#define COMET_LOG_PROFILER_DEBUG(...)
+#define COMET_LOG_PROFILER_WARNING(...)
 
 #define COMET_LOG_RENDERING_ERROR(...)
 #define COMET_LOG_RENDERING_INFO(...)
@@ -175,11 +197,6 @@ class Logger final {
 #define COMET_LOG_TIME_INFO(...)
 #define COMET_LOG_TIME_DEBUG(...)
 #define COMET_LOG_TIME_WARNING(...)
-
-#define COMET_LOG_UTILS_ERROR(...)
-#define COMET_LOG_UTILS_INFO(...)
-#define COMET_LOG_UTILS_DEBUG(...)
-#define COMET_LOG_UTILS_WARNING(...)
 #else
 #define COMET_LOG_ERROR(logger_type, ...) \
   comet::Logger::Get(logger_type).Error(__VA_ARGS__)
@@ -198,6 +215,15 @@ class Logger final {
   comet::Logger::Get(comet::LoggerType::Global).Debug(__VA_ARGS__)
 #define COMET_LOG_GLOBAL_WARNING(...) \
   comet::Logger::Get(comet::LoggerType::Global).Warning(__VA_ARGS__)
+
+#define COMET_LOG_ANIMATION_ERROR(...) \
+  comet::Logger::Get(comet::LoggerType::Animation).Error(__VA_ARGS__)
+#define COMET_LOG_ANIMATION_INFO(...) \
+  comet::Logger::Get(comet::LoggerType::Animation).Info(__VA_ARGS__)
+#define COMET_LOG_ANIMATION_DEBUG(...) \
+  comet::Logger::Get(comet::LoggerType::Animation).Debug(__VA_ARGS__)
+#define COMET_LOG_ANIMATION_WARNING(...) \
+  comet::Logger::Get(comet::LoggerType::Animation).Warning(__VA_ARGS__)
 
 #define COMET_LOG_CORE_ERROR(...) \
   comet::Logger::Get(comet::LoggerType::Core).Error(__VA_ARGS__)
@@ -218,13 +244,22 @@ class Logger final {
   comet::Logger::Get(comet::LoggerType::Event).Warning(__VA_ARGS__)
 
 #define COMET_LOG_ENTITY_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::GameObject).Error(__VA_ARGS__)
+  comet::Logger::Get(comet::LoggerType::Entity).Error(__VA_ARGS__)
 #define COMET_LOG_ENTITY_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::GameObject).Info(__VA_ARGS__)
+  comet::Logger::Get(comet::LoggerType::Entity).Info(__VA_ARGS__)
 #define COMET_LOG_ENTITY_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::GameObject).Debug(__VA_ARGS__)
+  comet::Logger::Get(comet::LoggerType::Entity).Debug(__VA_ARGS__)
 #define COMET_LOG_ENTITY_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::GameObject).Warning(__VA_ARGS__)
+  comet::Logger::Get(comet::LoggerType::Entity).Warning(__VA_ARGS__)
+
+#define COMET_LOG_GEOMETRY_ERROR(...) \
+  comet::Logger::Get(comet::LoggerType::Geometry).Error(__VA_ARGS__)
+#define COMET_LOG_GEOMETRY_INFO(...) \
+  comet::Logger::Get(comet::LoggerType::Geometry).Info(__VA_ARGS__)
+#define COMET_LOG_GEOMETRY_DEBUG(...) \
+  comet::Logger::Get(comet::LoggerType::Geometry).Debug(__VA_ARGS__)
+#define COMET_LOG_GEOMETRY_WARNING(...) \
+  comet::Logger::Get(comet::LoggerType::Geometry).Warning(__VA_ARGS__)
 
 #define COMET_LOG_INPUT_ERROR(...) \
   comet::Logger::Get(comet::LoggerType::Input).Error(__VA_ARGS__)
@@ -235,6 +270,15 @@ class Logger final {
 #define COMET_LOG_INPUT_WARNING(...) \
   comet::Logger::Get(comet::LoggerType::Input).Warning(__VA_ARGS__)
 
+#define COMET_LOG_MATH_ERROR(...) \
+  comet::Logger::Get(comet::LoggerType::Math).Error(__VA_ARGS__)
+#define COMET_LOG_MATH_INFO(...) \
+  comet::Logger::Get(comet::LoggerType::Math).Info(__VA_ARGS__)
+#define COMET_LOG_MATH_DEBUG(...) \
+  comet::Logger::Get(comet::LoggerType::Math).Debug(__VA_ARGS__)
+#define COMET_LOG_MATH_WARNING(...) \
+  comet::Logger::Get(comet::LoggerType::Math).Warning(__VA_ARGS__)
+
 #define COMET_LOG_PHYSICS_ERROR(...) \
   comet::Logger::Get(comet::LoggerType::Physics).Error(__VA_ARGS__)
 #define COMET_LOG_PHYSICS_INFO(...) \
@@ -243,6 +287,15 @@ class Logger final {
   comet::Logger::Get(comet::LoggerType::Physics).Debug(__VA_ARGS__)
 #define COMET_LOG_PHYSICS_WARNING(...) \
   comet::Logger::Get(comet::LoggerType::Physics).Warning(__VA_ARGS__)
+
+#define COMET_LOG_PROFILER_ERROR(...) \
+  comet::Logger::Get(comet::LoggerType::Profiler).Error(__VA_ARGS__)
+#define COMET_LOG_PROFILER_INFO(...) \
+  comet::Logger::Get(comet::LoggerType::Profiler).Info(__VA_ARGS__)
+#define COMET_LOG_PROFILER_DEBUG(...) \
+  comet::Logger::Get(comet::LoggerType::Profiler).Debug(__VA_ARGS__)
+#define COMET_LOG_PROFILER_WARNING(...) \
+  comet::Logger::Get(comet::LoggerType::Profiler).Warning(__VA_ARGS__)
 
 #define COMET_LOG_RENDERING_ERROR(...) \
   comet::Logger::Get(comet::LoggerType::Rendering).Error(__VA_ARGS__)
@@ -270,15 +323,6 @@ class Logger final {
   comet::Logger::Get(comet::LoggerType::Time).Debug(__VA_ARGS__)
 #define COMET_LOG_TIME_WARNING(...) \
   comet::Logger::Get(comet::LoggerType::Time).Warning(__VA_ARGS__)
-
-#define COMET_LOG_UTILS_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Utils).Error(__VA_ARGS__)
-#define COMET_LOG_UTILS_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Utils).Info(__VA_ARGS__)
-#define COMET_LOG_UTILS_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Utils).Debug(__VA_ARGS__)
-#define COMET_LOG_UTILS_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Utils).Warning(__VA_ARGS__)
 #endif  // !COMET_DEBUG
 }  // namespace comet
 

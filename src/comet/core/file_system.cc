@@ -109,8 +109,8 @@ bool OpenFileToReadFrom(CTStringView path, std::ifstream& in_file,
     in_file.open(path, mode);
     return in_file.is_open();
   } catch (std::runtime_error& error) {
-    COMET_LOG_UTILS_ERROR("Could not open file at path: ", path,
-                          "! Reason: ", error.what());
+    COMET_LOG_CORE_ERROR("Could not open file at path: ", path,
+                         "! Reason: ", error.what());
     return false;
   }
 }
@@ -177,8 +177,8 @@ bool ReadStrFromFile(CTStringView path, schar* buff, uindex buff_len,
     input_stream.open(path, std::ios::in);
     is_open = input_stream.is_open();
   } catch (std::runtime_error& error) {
-    COMET_LOG_UTILS_ERROR("Could not open file at path: ", path,
-                          "! Reason: ", error.what());
+    COMET_LOG_CORE_ERROR("Could not open file at path: ", path,
+                         "! Reason: ", error.what());
     is_open = false;
   }
 

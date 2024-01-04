@@ -174,6 +174,14 @@ void InputManager::SetMousePosition(f32 x, f32 y) {
   glfwSetCursorPos(window_handle_, x, y);
 }
 
+void InputManager::EnableUnconstrainedMouseCursor() {
+  glfwSetInputMode(window_handle_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+}
+
+void InputManager::DisableUnconstrainedMouseCursor() {
+  glfwSetInputMode(window_handle_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+}
+
 void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
   window_handle_ = window_handle;
 }

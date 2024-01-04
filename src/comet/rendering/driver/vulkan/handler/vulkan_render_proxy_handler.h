@@ -47,14 +47,14 @@ class RenderProxyHandler : public Handler {
   u32 GetDrawCount() const noexcept;
 
  private:
-  RenderProxy GenerateInternal(Mesh& mesh, Material& material,
+  RenderProxy GenerateInternal(MeshProxy& mesh_proxy, Material& material,
                                const math::Mat4& transform);
   void Draw(const RenderProxy& proxy);
 
   constexpr static auto kDefaultProxyCount{512};
   FrameIndex update_frame_{kInvalidFrameIndex};
   one_frame_vector<RenderProxy> proxies_{};
-  const Mesh* last_drawn_mesh_{nullptr};
+  const MeshProxy* last_drawn_mesh_{nullptr};
   MaterialHandler* material_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
   ShaderHandler* shader_handler_{nullptr};

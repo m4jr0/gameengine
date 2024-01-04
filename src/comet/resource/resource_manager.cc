@@ -28,7 +28,8 @@ void ResourceManager::Initialize() {
   InitializeResourcesDirectory();
 
   AddHandler<MaterialHandler>(MaterialResource::kResourceTypeId);
-  AddHandler<ModelHandler>(ModelResource::kResourceTypeId);
+  AddHandler<StaticModelHandler>(StaticModelResource::kResourceTypeId);
+  AddHandler<SkinnedModelHandler>(SkeletalModelResource::kResourceTypeId);
   AddHandler<ShaderHandler>(ShaderResource::kResourceTypeId);
   AddHandler<ShaderModuleHandler>(ShaderModuleResource::kResourceTypeId);
   AddHandler<TextureHandler>(TextureResource::kResourceTypeId);

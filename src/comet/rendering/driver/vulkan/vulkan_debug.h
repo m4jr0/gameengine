@@ -23,7 +23,7 @@ namespace debug {
   } while (false)
 #endif  // !COMET_DEBUG
 
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
 #undef VMA_DEBUG_LOG
 
 #ifdef COMET_VULKAN_DEBUG_VMA
@@ -38,7 +38,7 @@ namespace debug {
     COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                           \
   } while (false)
 #endif  // COMET_VULKAN_DEBUG_VMA
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
 VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance_handle,

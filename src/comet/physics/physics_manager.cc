@@ -52,9 +52,6 @@ void PhysicsManager::Update(f64& lag) {
       return;
     }
 
-    // TODO(m4jr0): Remove temporary code.
-    ApplyTmpCode();
-
     // TODO(m4jr0): Use a transform system.
     UpdateEntityTransforms();
 
@@ -121,19 +118,6 @@ void PhysicsManager::UpdateEntityTransforms() {
 
         UpdateTree(entity_id, transform_cmp);
         root_cmp->is_child_dirty = false;
-      });
-}
-
-void PhysicsManager::ApplyTmpCode() {
-  constexpr auto rot_speed{math::ConvertToRadians(0.5f)};
-  auto& entity_manager{entity::EntityManager::Get()};
-
-  entity_manager.Each<TransformRootComponent, TransformComponent>(
-      [&](auto entity_id) {
-        auto* transform_cmp{
-            entity_manager.GetComponent<TransformComponent>(entity_id)};
-        SetLocal(transform_cmp, math::Rotate(transform_cmp->local, rot_speed,
-                                             math::Vec3{0.0f, 1.0f, 0.0f}));
       });
 }
 }  // namespace physics

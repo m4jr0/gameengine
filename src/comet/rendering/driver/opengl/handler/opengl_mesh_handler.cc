@@ -13,11 +13,13 @@ void MeshHandler::Shutdown() {
   std::vector<VertexArrayObjectHandle> vao_handles{};
   std::vector<VertexBufferObjectHandle> vbo_handles{};
   std::vector<ElementBufferObjectHandle> ebo_handles{};
-  vao_handles.reserve(meshes_.size());
-  vbo_handles.reserve(meshes_.size());
-  ebo_handles.reserve(meshes_.size());
 
-  for (auto& it : meshes_) {
+  const auto total_handle_count{mesh_proxies_.size()};
+  vao_handles.reserve(total_handle_count);
+  vbo_handles.reserve(total_handle_count);
+  ebo_handles.reserve(total_handle_count);
+
+  for (auto& it : mesh_proxies_) {
     auto& mesh{it.second};
     if (mesh.vao_handle != kInvalidVertexArrayObjectHandle) {
       vao_handles.push_back(mesh.vao_handle);
@@ -46,163 +48,172 @@ void MeshHandler::Shutdown() {
     glDeleteBuffers(ebo_handles.size(), ebo_handles.data());
   }
 
-  meshes_.clear();
+  mesh_proxies_.clear();
   Handler::Shutdown();
 }
 
-Mesh* MeshHandler::Generate(const resource::MeshResource* resource) {
-  Mesh mesh{};
-  mesh.id = GenerateMeshId(resource);
+MeshProxy* MeshHandler::Generate(const geometry::Mesh* mesh) {
+  MeshProxy proxy{};
+  proxy.id = mesh->id;
+  proxy.mesh = mesh;
+  return Register(proxy);
+}
 
-  const auto vertex_count{resource->vertices.size()};
-  mesh.vertices.resize(resource->vertices.size());
+MeshProxy* MeshHandler::Get(geometry::MeshId proxy_id) {
+  auto* proxy{TryGet(proxy_id)};
+  COMET_ASSERT(proxy != nullptr,
+               "Requested mesh proxy does not exist: ", proxy_id, "!");
+  return proxy;
+}
 
-  for (uindex i{0}; i < vertex_count; ++i) {
-    auto& vertex{mesh.vertices[i]};
-    auto& vertex_res{resource->vertices[i]};
+MeshProxy* MeshHandler::Get(const geometry::Mesh* mesh) {
+  return Get(mesh->id);
+}
 
-    vertex.position = vertex_res.position;
-    vertex.normal = vertex_res.normal;
+MeshProxy* MeshHandler::TryGet(geometry::MeshId proxy_id) {
+  auto it{mesh_proxies_.find(proxy_id)};
 
-    vertex.uv.x = vertex_res.uv.x;
-    vertex.uv.y = vertex_res.uv.y;
-
-    vertex.color = {kColorWhite, 1.0f};
+  if (it != mesh_proxies_.end()) {
+    return &it->second;
   }
 
-  const auto index_count{resource->indices.size()};
-  mesh.indices.resize(resource->indices.size());
+  return nullptr;
+}
 
-  for (uindex i{0}; i < index_count; ++i) {
-    mesh.indices[i] = resource->indices[i];
+MeshProxy* MeshHandler::TryGet(const geometry::Mesh* mesh) {
+  return TryGet(mesh->id);
+}
+
+MeshProxy* MeshHandler::GetOrGenerate(const geometry::Mesh* mesh) {
+  auto* proxy{TryGet(mesh)};
+
+  if (proxy != nullptr) {
+    return proxy;
   }
 
+  return Generate(mesh);
+}
+
+void MeshHandler::Destroy(geometry::MeshId proxy_id) {
+  Destroy(*Get(proxy_id));
+}
+
+void MeshHandler::Destroy(MeshProxy& mesh) { Destroy(mesh, false); }
+
+void MeshHandler::Update(geometry::MeshId proxy_id) { Update(*Get(proxy_id)); }
+
+void MeshHandler::Update(MeshProxy& proxy) {
+  if (!proxy.mesh->is_dirty) {
+    return;
+  }
+
+  Upload(proxy);
+}
+
+void MeshHandler::Bind(geometry::MeshId proxy_id) { Bind(Get(proxy_id)); }
+
+void MeshHandler::Bind(const MeshProxy* proxy) {
+  glBindVertexArray(proxy->vao_handle);
+}
+
+MeshProxy* MeshHandler::Register(MeshProxy& proxy) {
 #ifdef COMET_DEBUG
-  const auto mesh_id{mesh.id};
+  const auto proxy_id{proxy.id};
 #endif  // COMET_DEBUG
 
-  const auto insert_pair{meshes_.emplace(mesh.id, std::move(mesh))};
-  COMET_ASSERT(insert_pair.second,
-               "Could not insert mesh: ", COMET_STRING_ID_LABEL(mesh_id), "!");
-  auto& to_return{insert_pair.first->second};
-  Upload(to_return);
-  return &to_return;
-}
+  const auto insert_pair{mesh_proxies_.emplace(proxy.id, std::move(proxy))};
+  MeshProxy* to_return{insert_pair.second ? &insert_pair.first->second
+                                          : nullptr};
 
-Mesh* MeshHandler::Get(MeshId mesh_id) {
-  auto* mesh{TryGet(mesh_id)};
-  COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", mesh_id,
-               "!");
-  return mesh;
-}
-
-Mesh* MeshHandler::Get(const resource::MeshResource* resource) {
-  return Get(GenerateMeshId(resource));
-}
-
-Mesh* MeshHandler::TryGet(MeshId mesh_id) {
-  auto it{meshes_.find(mesh_id)};
-
-  if (it == meshes_.end()) {
-    return nullptr;
+  if (to_return != nullptr) {
+    Upload(*to_return);
+  } else {
+    COMET_ASSERT(false, "Could not insert mesh proxy: ",
+                 COMET_STRING_ID_LABEL(proxy_id), "!");
   }
 
-  return &it->second;
+  return to_return;
 }
 
-Mesh* MeshHandler::TryGet(const resource::MeshResource* resource) {
-  return TryGet(GenerateMeshId(resource));
-}
-
-Mesh* MeshHandler::GetOrGenerate(const resource::MeshResource* resource) {
-  auto* mesh{TryGet(resource)};
-
-  if (mesh != nullptr) {
-    return mesh;
-  }
-
-  return Generate(resource);
-}
-
-void MeshHandler::Destroy(MeshId mesh_id) { Destroy(*Get(mesh_id)); }
-
-void MeshHandler::Destroy(Mesh& mesh) { Destroy(mesh, false); }
-
-MeshId MeshHandler::GenerateMeshId(
-    const resource::MeshResource* resource) const {
-  return static_cast<u64>(resource->internal_id) |
-         static_cast<u64>(resource->resource_id) << 32;
-}
-
-void MeshHandler::Bind(MeshId mesh_id) { Bind(Get(mesh_id)); }
-
-void MeshHandler::Bind(const Mesh* mesh) {
-  glBindVertexArray(mesh->vao_handle);
-}
-
-void MeshHandler::Destroy(Mesh& mesh, bool is_destroying_handler) {
+void MeshHandler::Destroy(MeshProxy& proxy, bool is_destroying_handler) {
   if (!is_destroying_handler) {
-    if (mesh.vao_handle != kInvalidVertexArrayObjectHandle) {
-      glDeleteVertexArrays(1, &mesh.vao_handle);
+    if (proxy.vao_handle != kInvalidVertexArrayObjectHandle) {
+      glDeleteVertexArrays(1, &proxy.vao_handle);
     }
 
-    if (mesh.vbo_handle != kInvalidVertexBufferObjectHandle) {
-      glDeleteBuffers(1, &mesh.vbo_handle);
+    if (proxy.vbo_handle != kInvalidVertexBufferObjectHandle) {
+      glDeleteBuffers(1, &proxy.vbo_handle);
     }
 
-    if (mesh.ebo_handle != kInvalidElementBufferObjectHandle) {
-      glDeleteBuffers(1, &mesh.ebo_handle);
+    if (proxy.ebo_handle != kInvalidElementBufferObjectHandle) {
+      glDeleteBuffers(1, &proxy.ebo_handle);
     }
   }
 
-  mesh.vao_handle = kInvalidVertexArrayObjectHandle;
-  mesh.vbo_handle = kInvalidVertexBufferObjectHandle;
-  mesh.ebo_handle = kInvalidElementBufferObjectHandle;
-
-  mesh.vertices.clear();
-  mesh.indices.clear();
+  proxy.vao_handle = kInvalidVertexArrayObjectHandle;
+  proxy.vbo_handle = kInvalidVertexBufferObjectHandle;
+  proxy.ebo_handle = kInvalidElementBufferObjectHandle;
+  proxy.mesh = nullptr;
 
   if (!is_destroying_handler) {
-    meshes_.erase(mesh.id);
+    mesh_proxies_.erase(proxy.id);
   }
 
-  mesh.id = kInvalidMeshId;
+  proxy.id = geometry::kInvalidMeshId;
 }
 
-void MeshHandler::Upload(Mesh& mesh) const {
-  glGenVertexArrays(1, &mesh.vao_handle);
-  glGenBuffers(1, &mesh.vbo_handle);
-  glGenBuffers(1, &mesh.ebo_handle);
+void MeshHandler::Upload(MeshProxy& proxy) const {
+  if (proxy.vao_handle == kInvalidVertexArrayObjectHandle) {
+    glGenVertexArrays(1, &proxy.vao_handle);
+  }
 
-  glBindVertexArray(mesh.vao_handle);
-  glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo_handle);
+  if (proxy.vbo_handle == kInvalidVertexBufferObjectHandle) {
+    glGenBuffers(1, &proxy.vbo_handle);
+  }
 
-  glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(Vertex),
-               mesh.vertices.data(), GL_STATIC_DRAW);
+  if (proxy.ebo_handle == kInvalidElementBufferObjectHandle) {
+    glGenBuffers(1, &proxy.ebo_handle);
+  }
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo_handle);
+  auto usage{proxy.mesh->type == geometry::MeshType::Static ? GL_STATIC_DRAW
+                                                            : GL_DYNAMIC_DRAW};
 
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(Index),
-               mesh.indices.data(), GL_STATIC_DRAW);
+  glBindVertexArray(proxy.vao_handle);
+  glBindBuffer(GL_ARRAY_BUFFER, proxy.vbo_handle);
+
+  constexpr auto kVertexSize{sizeof(geometry::Vertex)};
+  const auto* mesh{proxy.mesh};
+
+  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * kVertexSize,
+               mesh->vertices.data(), usage);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, proxy.ebo_handle);
+
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               mesh->indices.size() * sizeof(geometry::Index),
+               mesh->indices.data(), usage);
 
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kVertexSize,
                         reinterpret_cast<void*>(0));
 
   glEnableVertexAttribArray(1);
 
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        reinterpret_cast<void*>(offsetof(Vertex, normal)));
+  glVertexAttribPointer(
+      1, 3, GL_FLOAT, GL_FALSE, kVertexSize,
+      reinterpret_cast<void*>(offsetof(geometry::Vertex, normal)));
 
   glEnableVertexAttribArray(2);
 
-  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        reinterpret_cast<void*>(offsetof(Vertex, color)));
+  glVertexAttribPointer(
+      2, 4, GL_FLOAT, GL_FALSE, kVertexSize,
+      reinterpret_cast<void*>(offsetof(geometry::Vertex, color)));
 
   glEnableVertexAttribArray(3);
 
-  glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        reinterpret_cast<void*>(offsetof(Vertex, uv)));
+  glVertexAttribPointer(
+      3, 2, GL_FLOAT, GL_FALSE, kVertexSize,
+      reinterpret_cast<void*>(offsetof(geometry::Vertex, uv)));
 
   glBindVertexArray(kInvalidVertexArrayObjectHandle);
   glBindBuffer(GL_ARRAY_BUFFER, kInvalidElementBufferObjectHandle);

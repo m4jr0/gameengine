@@ -7,49 +7,87 @@
 
 #include "comet_precompile.h"
 
+#include "comet/geometry/geometry_common.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
 
 namespace comet {
 namespace resource {
-struct ModelResourceDescr {
-  // TODO(m4jr0): Add description.
-  u8 empty{0};
-};
-
 struct MeshResource : InternalResource {
+  geometry::MeshType type{geometry::MeshType::Unknown};
   ResourceId material_id{kInvalidResourceId};
   math::Mat4 transform{1.0f};
   math::Vec3 local_center{0.0f};
   math::Vec3 local_max_extents{0.0f};
   ResourceId parent_id{kInvalidResourceId};
-  std::vector<rendering::Vertex> vertices{};
-  std::vector<rendering::Index> indices{};
+  std::vector<geometry::Index> indices{};
 };
 
-struct ModelResource : Resource {
+struct StaticMeshResource : MeshResource {
+  std::vector<geometry::Vertex> vertices{};
+};
+
+struct SkinnedMeshResource : MeshResource {
+  std::vector<geometry::SkinnedVertex> vertices{};
+};
+
+struct StaticModelResourceDescr {
+  // TODO(m4jr0): Add description.
+  u8 empty{0};
+};
+
+struct StaticModelResource : Resource {
   static const ResourceTypeId kResourceTypeId;
 
-  std::vector<MeshResource> meshes{};
-  ModelResourceDescr descr{};
+  StaticModelResourceDescr descr{};
+  std::vector<StaticMeshResource> meshes{};
 };
 
-class ModelHandler : public ResourceHandler {
+struct SkeletalModelResourceDescr {
+  // TODO(m4jr0): Add description.
+  u8 empty{0};
+};
+
+struct SkeletalModelResource : Resource {
+  static const ResourceTypeId kResourceTypeId;
+
+  SkeletalModelResourceDescr descr{};
+  std::vector<SkinnedMeshResource> meshes{};
+};
+
+class StaticModelHandler : public ResourceHandler {
  public:
-  ModelHandler() = default;
-  ModelHandler(const ModelHandler&) = delete;
-  ModelHandler(ModelHandler&&) = delete;
-  ModelHandler& operator=(const ModelHandler&) = delete;
-  ModelHandler& operator=(ModelHandler&&) = delete;
-  virtual ~ModelHandler() = default;
+  StaticModelHandler() = default;
+  StaticModelHandler(const StaticModelHandler&) = delete;
+  StaticModelHandler(StaticModelHandler&&) = delete;
+  StaticModelHandler& operator=(const StaticModelHandler&) = delete;
+  StaticModelHandler& operator=(StaticModelHandler&&) = delete;
+  virtual ~StaticModelHandler() = default;
 
  protected:
-  uindex GetMeshSize(const MeshResource& mesh) const;
-  uindex GetModelSize(const ModelResource& model) const;
+  uindex GetMeshSize(const StaticMeshResource& mesh) const;
+  uindex GetModelSize(const StaticModelResource& model) const;
+
+  ResourceFile Pack(const Resource& resource,
+                    CompressionMode compression_mode) const override;
+  std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
+};
+
+class SkinnedModelHandler : public ResourceHandler {
+ public:
+  SkinnedModelHandler() = default;
+  SkinnedModelHandler(const SkinnedModelHandler&) = delete;
+  SkinnedModelHandler(SkinnedModelHandler&&) = delete;
+  SkinnedModelHandler& operator=(const SkinnedModelHandler&) = delete;
+  SkinnedModelHandler& operator=(SkinnedModelHandler&&) = delete;
+  virtual ~SkinnedModelHandler() = default;
+
+ protected:
+  uindex GetMeshSize(const SkinnedMeshResource& mesh) const;
+  uindex GetModelSize(const SkeletalModelResource& model) const;
 
   ResourceFile Pack(const Resource& resource,
                     CompressionMode compression_mode) const override;

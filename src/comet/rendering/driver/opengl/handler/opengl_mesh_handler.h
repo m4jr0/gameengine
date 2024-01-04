@@ -9,9 +9,9 @@
 
 #include "glad/glad.h"
 
+#include "comet/geometry/geometry_common.h"
 #include "comet/rendering/driver/opengl/data/opengl_mesh.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -30,23 +30,26 @@ class MeshHandler : public Handler {
 
   void Shutdown() override;
 
-  Mesh* Generate(const resource::MeshResource* resource);
-  Mesh* Get(MeshId mesh_id);
-  Mesh* Get(const resource::MeshResource* resource);
-  Mesh* TryGet(MeshId mesh_id);
-  Mesh* TryGet(const resource::MeshResource* resource);
-  Mesh* GetOrGenerate(const resource::MeshResource* resource);
-  void Destroy(MeshId mesh_id);
-  void Destroy(Mesh& mesh);
-  MeshId GenerateMeshId(const resource::MeshResource* resource) const;
-  void Bind(MeshId mesh_id);
-  void Bind(const Mesh* mesh);
+  MeshProxy* Generate(const geometry::Mesh* resource);
+  MeshProxy* Get(geometry::MeshId proxy_id);
+  MeshProxy* Get(const geometry::Mesh* mesh);
+  MeshProxy* TryGet(geometry::MeshId proxy_id);
+  MeshProxy* TryGet(const geometry::Mesh* mesh);
+  MeshProxy* GetOrGenerate(const geometry::Mesh* mesh);
+  void Destroy(geometry::MeshId proxy_id);
+  void Destroy(MeshProxy& proxy);
+
+  void Update(geometry::MeshId proxy_id);
+  void Update(MeshProxy& proxy);
+  void Bind(geometry::MeshId proxy_id);
+  void Bind(const MeshProxy* proxy);
 
  private:
-  void Destroy(Mesh& mesh, bool is_destroying_handler);
-  void Upload(Mesh& mesh) const;
+  std::unordered_map<geometry::MeshId, MeshProxy> mesh_proxies_{};
 
-  std::unordered_map<MeshId, Mesh> meshes_{};
+  MeshProxy* Register(MeshProxy& proxy);
+  void Destroy(MeshProxy& proxy, bool is_destroying_handler);
+  void Upload(MeshProxy& proxy) const;
 };
 }  // namespace gl
 }  // namespace rendering

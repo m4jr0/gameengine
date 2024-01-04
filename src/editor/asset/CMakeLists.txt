@@ -34,10 +34,15 @@ target_sources(${EXECUTABLE_NAME}
 
     # Exporters.
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
-    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model_exporter.cc"
-    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_exporter.cc"
-    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader_module_exporter.cc"
-    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture_exporter.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_exporter.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_exporter_utils.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/shader_exporter.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/shader_module_exporter.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture/texture_exporter.cc"
 )
 
 # Compiling ####################################################################

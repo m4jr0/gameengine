@@ -59,8 +59,9 @@ class ResourceManager : public Manager {
     if (resource != nullptr) {
       COMET_ASSERT(resource->type_id == ResourceType::kResourceTypeId,
                    "Invalid resource type provided. ID of expected type is ",
-                   resource->type_id, ", ID of type provided is ",
-                   ResourceType::kResourceTypeId);
+                   COMET_STRING_ID_LABEL(resource->type_id),
+                   ", ID of type provided is ",
+                   COMET_STRING_ID_LABEL(ResourceType::kResourceTypeId));
     }
 
     return resource;

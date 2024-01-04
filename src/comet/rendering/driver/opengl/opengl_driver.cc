@@ -11,7 +11,6 @@
 #include "comet/physics/component/transform_component.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/resource/component/mesh_component.h"
 
 namespace comet {
 namespace rendering {
@@ -49,6 +48,12 @@ void OpenGlDriver::Initialize() {
       gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
 
   COMET_ASSERT(result, "Could not load GL Loader!");
+
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+  glEnable(GL_DEBUG_OUTPUT);
+  glDebugMessageCallback(LogOpenGlMessage, nullptr);
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+
   glEnable(GL_DEPTH_TEST);
 
   if (anti_aliasing_type_ != AntiAliasingType::None) {
@@ -188,6 +193,89 @@ void OpenGlDriver::Draw(time::Interpolation interpolation) {
   packet.view_matrix = &camera->GetViewMatrix();
   view_handler_->Update(packet);
 }
+
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum source, GLenum type,
+                                               GLuint id, GLenum severity,
+                                               GLsizei length,
+                                               const GLchar* message,
+                                               const void* user_param) {
+  constexpr auto kTypeStrLen{12};
+  schar type_str[kTypeStrLen]{'\0'};
+
+  switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+      Copy(type_str, "Error", 5);
+      break;
+
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+      Copy(type_str, "Deprecated", 10);
+      break;
+
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+      Copy(type_str, "Undefined", 9);
+      break;
+
+    case GL_DEBUG_TYPE_PORTABILITY:
+      Copy(type_str, "Portability", 11);
+      break;
+
+    case GL_DEBUG_TYPE_PERFORMANCE:
+      Copy(type_str, "Performance", 11);
+      break;
+
+    case GL_DEBUG_TYPE_MARKER:
+      Copy(type_str, "Marker", 6);
+      break;
+
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+      Copy(type_str, "Push Group", 10);
+      break;
+
+    case GL_DEBUG_TYPE_POP_GROUP:
+      Copy(type_str, "Pop Group", 9);
+      break;
+
+    case GL_DEBUG_TYPE_OTHER:
+      Copy(type_str, "Other", 5);
+      break;
+
+    default:
+      Copy(type_str, "???", 3);
+      break;
+  }
+
+  constexpr auto kSeverityStrLen{13};
+  schar severity_str[kSeverityStrLen]{'\0'};
+
+  switch (severity) {
+    case GL_DEBUG_SEVERITY_HIGH:
+      Copy(severity_str, "High", 4);
+      COMET_LOG_RENDERING_ERROR("[", severity_str, " | ", type_str, "] ",
+                                message);
+      break;
+
+    case GL_DEBUG_SEVERITY_MEDIUM:
+      Copy(severity_str, "Medium", 6);
+      COMET_LOG_RENDERING_ERROR("[", severity_str, " | ", type_str, "] ",
+                                message);
+      break;
+
+    case GL_DEBUG_SEVERITY_LOW:
+      Copy(severity_str, "Low", 3);
+      COMET_LOG_RENDERING_WARNING("[", severity_str, " | ", type_str, "] ",
+                                  message);
+      break;
+
+    default:
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+      Copy(severity_str, "Notification", 12);
+      COMET_LOG_RENDERING_DEBUG("[", severity_str, " | ", type_str, "] ",
+                                message);
+      break;
+  }
+}
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

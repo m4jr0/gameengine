@@ -62,11 +62,11 @@ class ShaderHandler : public Handler {
   void UpdateGlobal(Shader& shader, const ShaderPacket& packet) const;
   void UpdateLocal(Shader& shader, const ShaderLocalPacket& packet);
   void SetUniform(Shader& shader, const ShaderUniform& uniform,
-                  const void* value) const;
-  void SetUniform(ShaderId id, const ShaderUniform& uniform, const void* value);
+                  const void* value, bool is_update = true) const;
+  void SetUniform(ShaderId id, const ShaderUniform& uniform, const void* value, bool is_update = true);
   void SetUniform(Shader& shader, ShaderUniformLocation index,
-                  const void* value) const;
-  void SetUniform(ShaderId id, ShaderUniformLocation index, const void* value);
+                  const void* value, bool is_update = true) const;
+  void SetUniform(ShaderId id, ShaderUniformLocation index, const void* value, bool is_update = true);
   void BindMaterial(Material& material);
   void UnbindMaterial(Material& material);
   bool HasMaterial(const Material& material) const;

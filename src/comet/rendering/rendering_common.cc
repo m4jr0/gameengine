@@ -26,7 +26,7 @@ DriverType GetDriverTypeFromStr(std::string_view str) {
   return DriverType::Unknown;
 }
 
-const schar* GetDriverTypeLabel(rendering::DriverType type) {
+const schar* GetDriverTypeLabel(DriverType type) {
   switch (type) {
     case DriverType::OpenGl:
       return "OpenGL";
@@ -67,17 +67,17 @@ AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
 
 const schar* GetTextureTypeLabel(TextureType texture_type) {
   switch (texture_type) {
-    case comet::rendering::TextureType::Unknown:
+    case TextureType::Unknown:
       return "unknown";
-    case comet::rendering::TextureType::Ambient:
+    case TextureType::Ambient:
       return "ambient";
-    case comet::rendering::TextureType::Diffuse:
+    case TextureType::Diffuse:
       return "diffuse";
-    case comet::rendering::TextureType::Specular:
+    case TextureType::Specular:
       return "specular";
-    case comet::rendering::TextureType::Normal:
+    case TextureType::Normal:
       return "normal";
-    case comet::rendering::TextureType::Color:
+    case TextureType::Color:
       return "color";
   }
 
@@ -86,11 +86,11 @@ const schar* GetTextureTypeLabel(TextureType texture_type) {
 
 const schar* GetTextureFilterModeLabel(TextureFilterMode filter_mode) {
   switch (filter_mode) {
-    case comet::rendering::TextureFilterMode::Unknown:
+    case TextureFilterMode::Unknown:
       return "unknown";
-    case comet::rendering::TextureFilterMode::Linear:
+    case TextureFilterMode::Linear:
       return "linear";
-    case comet::rendering::TextureFilterMode::Nearest:
+    case TextureFilterMode::Nearest:
       return "nearest";
   }
 
@@ -99,15 +99,15 @@ const schar* GetTextureFilterModeLabel(TextureFilterMode filter_mode) {
 
 const schar* GetTextureRepeatModeLabel(TextureRepeatMode repeat_mode) {
   switch (repeat_mode) {
-    case comet::rendering::TextureRepeatMode::Unknown:
+    case TextureRepeatMode::Unknown:
       return "unknown";
-    case comet::rendering::TextureRepeatMode::Repeat:
+    case TextureRepeatMode::Repeat:
       return "repeat";
-    case comet::rendering::TextureRepeatMode::MirroredRepeat:
+    case TextureRepeatMode::MirroredRepeat:
       return "mirrored repeat";
-    case comet::rendering::TextureRepeatMode::ClampToEdge:
+    case TextureRepeatMode::ClampToEdge:
       return "clamp to edge";
-    case comet::rendering::TextureRepeatMode::ClampToBorder:
+    case TextureRepeatMode::ClampToBorder:
       return "clamp to border";
   }
 
@@ -285,8 +285,9 @@ void SetName(ShaderUniformDescr& descr, const schar* name, uindex name_len) {
   descr.name[descr.name_len + 1] = '\0';
 }
 
-void GenerateGeometry(const math::Aabb& aabb, std::vector<Vertex>& vertices,
-                      std::vector<Index>& indices, bool is_visible) {
+void GenerateGeometry(const math::Aabb& aabb,
+                      std::vector<geometry::Vertex>& vertices,
+                      std::vector<geometry::Index>& indices, bool is_visible) {
   COMET_ASSERT(vertices.size() == 0,
                "Tried to generate geometry for AABB, but vertices provided are "
                "not empty!");
@@ -297,8 +298,8 @@ void GenerateGeometry(const math::Aabb& aabb, std::vector<Vertex>& vertices,
 
   vertices.reserve(8);
 
-  Vertex vertex{};
-  vertex.color = is_visible ? kColorGreen : kColorRed;
+  geometry::Vertex vertex{};
+  vertex.color = math::Vec4{is_visible ? kColorGreen : kColorRed, 1.0f};
 
   // Top right far.
   constexpr auto kTopRightFarIndex{0};
@@ -391,8 +392,9 @@ void GenerateGeometry(const math::Aabb& aabb, std::vector<Vertex>& vertices,
   indices.push_back(kBottomLeftNearIndex);
 }
 
-void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
-                      std::vector<Index>& indices) {
+void GenerateGeometry(const Frustum& frustum,
+                      std::vector<geometry::Vertex>& vertices,
+                      std::vector<geometry::Index>& indices) {
   COMET_ASSERT(
       vertices.size() == 0,
       "Tried to generate geometry for frustum, but vertices provided are "
@@ -410,13 +412,14 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
   const auto& far_face{frustum.GetFar()};
   vertices.reserve(8);
 
-  Vertex vertex{};
-  vertex.color = kColorBlack;
+  geometry::Vertex vertex{};
+  vertex.color = math::Vec4{kColorBlack, 1.0f};
   bool is_intersection{false};
 
   // Top right far.
   constexpr auto kTopRightFarIndex{0};
-  is_intersection = Intersect(top_face, far_face, right_face, vertex.position);
+  is_intersection =
+      math::Intersect(top_face, far_face, right_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Top, far and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
@@ -424,7 +427,8 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
 
   // Top right near.
   constexpr auto kTopRightNearIndex{1};
-  is_intersection = Intersect(top_face, near_face, right_face, vertex.position);
+  is_intersection =
+      math::Intersect(top_face, near_face, right_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Top, near and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
@@ -432,7 +436,8 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
 
   // Top left far.
   constexpr auto kTopLeftFarIndex{2};
-  is_intersection = Intersect(top_face, far_face, left_face, vertex.position);
+  is_intersection =
+      math::Intersect(top_face, far_face, left_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Top, far and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
@@ -440,7 +445,8 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
 
   // Top left near.
   constexpr auto kTopLeftNearIndex{3};
-  is_intersection = Intersect(top_face, near_face, left_face, vertex.position);
+  is_intersection =
+      math::Intersect(top_face, near_face, left_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Top, near and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
@@ -449,7 +455,7 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
   // Bottom right far.
   constexpr auto kBottomRightFarIndex{4};
   is_intersection =
-      Intersect(bottom_face, far_face, right_face, vertex.position);
+      math::Intersect(bottom_face, far_face, right_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Bottom, far and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
@@ -458,7 +464,7 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
   // Bottom right near.
   constexpr auto kBottomRightNearIndex{5};
   is_intersection =
-      Intersect(bottom_face, near_face, right_face, vertex.position);
+      math::Intersect(bottom_face, near_face, right_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Bottom, near and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
@@ -467,7 +473,7 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
   // Bottom left far.
   constexpr auto kBottomLeftFarIndex{6};
   is_intersection =
-      Intersect(bottom_face, far_face, left_face, vertex.position);
+      math::Intersect(bottom_face, far_face, left_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Bottom, far and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
@@ -476,7 +482,7 @@ void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
   // Bottom left near.
   constexpr auto kBottomLeftNearIndex{7};
   is_intersection =
-      Intersect(bottom_face, near_face, left_face, vertex.position);
+      math::Intersect(bottom_face, near_face, left_face, vertex.position);
   COMET_ASSERT(is_intersection,
                "Bottom, near and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");

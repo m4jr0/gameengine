@@ -4,6 +4,7 @@
 
 #include "engine.h"
 
+#include "comet/animation/animation_manager.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/memory/memory_manager.h"
 #include "comet/entity/entity_manager.h"
@@ -11,6 +12,7 @@
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
+#include "comet/geometry/geometry_manager.h"
 #include "comet/input/input_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/camera/camera_manager.h"
@@ -79,6 +81,7 @@ void Engine::Update(f64& lag) {
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
   physics::PhysicsManager::Get().Update(lag);
+  animation::AnimationManager::Get().Update(lag);
   rendering::RenderingManager::Get().Update(
       lag / time::TimeManager::Get().GetFixedDeltaTime());
 
@@ -137,7 +140,9 @@ void Engine::Load() {
   event::EventManager::Get().Register(event_function,
                                       event::WindowCloseEvent::kStaticType_);
 
+  animation::AnimationManager::Get().Initialize();
   entity::EntityManager::Get().Initialize();
+  geometry::GeometryManager::Get().Initialize();
   entity::EntityFactoryManager::Get().Initialize();
 }
 
@@ -145,7 +150,9 @@ void Engine::PostLoad() {}
 
 void Engine::PreUnload() {
   entity::EntityFactoryManager::Get().Shutdown();
+  geometry::GeometryManager::Get().Shutdown();
   entity::EntityManager::Get().Shutdown();
+  animation::AnimationManager::Get().Shutdown();
   physics::PhysicsManager::Get().Shutdown();
   input::InputManager::Get().Shutdown();
   rendering::CameraManager::Get().Shutdown();

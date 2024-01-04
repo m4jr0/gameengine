@@ -5,11 +5,10 @@
 #ifndef COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 #define COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 
-#include "comet_precompile.h"
-
 #include "comet/core/manager.h"
 #include "comet/math/matrix.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet_precompile.h"
 
 namespace comet {
 namespace physics {
@@ -36,7 +35,6 @@ class PhysicsManager : public Manager {
 
  private:
   void UpdateEntityTransforms();
-  void ApplyTmpCode();
 
   u32 frame_rate_{0};
   u32 counter_{0};

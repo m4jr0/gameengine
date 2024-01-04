@@ -7,6 +7,7 @@
 
 #include "comet_precompile.h"
 
+#include "comet/geometry/geometry_common.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/camera/frustum.h"
@@ -28,7 +29,7 @@ constexpr math::Vec3 kColorMagenta{1.0f, 0.0f, 1.0f};
 enum class DriverType : u8 { Unknown = 0, Empty, OpenGl, Vulkan, Direct3d12 };
 
 DriverType GetDriverTypeFromStr(std::string_view str);
-const schar* GetDriverTypeLabel(rendering::DriverType type);
+const schar* GetDriverTypeLabel(DriverType type);
 
 using FrameCount = u32;
 constexpr auto kInvalidFrameCount{static_cast<FrameCount>(-1)};
@@ -47,17 +48,6 @@ enum class AntiAliasingType : u16 {
 AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str);
 
 using WindowSize = u16;
-
-struct Vertex {
-  math::Vec3 position{};
-  math::Vec3 normal{};
-  math::Vec3 tangent{};
-  math::Vec3 bitangent{};
-  math::Vec2 uv{};
-  math::Vec3 color{};
-};
-
-using Index = u32;
 
 enum class TextureType : u8 {
   Unknown = 0,
@@ -211,11 +201,13 @@ constexpr auto kMaxShaderTextureMapCount{32};
 
 enum class CullMode { Unknown = 0, None, Front, Back, FrontAndBack };
 
-void GenerateGeometry(const math::Aabb& aabb, std::vector<Vertex>& vertices,
-                      std::vector<Index>& indices, bool is_visible);
+void GenerateGeometry(const math::Aabb& aabb,
+                      std::vector<geometry::Vertex>& vertices,
+                      std::vector<geometry::Index>& indices, bool is_visible);
 
-void GenerateGeometry(const Frustum& frustum, std::vector<Vertex>& vertices,
-                      std::vector<Index>& indices);
+void GenerateGeometry(const Frustum& frustum,
+                      std::vector<geometry::Vertex>& vertices,
+                      std::vector<geometry::Index>& indices);
 }  // namespace rendering
 }  // namespace comet
 

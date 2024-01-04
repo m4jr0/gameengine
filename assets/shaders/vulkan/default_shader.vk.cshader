@@ -15,12 +15,20 @@
       "type": "vec3"
     },
     {
-      "name": "inColor",
-      "type": "vec4"
+      "name": "inTangents",
+      "type": "vec3"
+    },
+    {
+      "name": "inBitangents",
+      "type": "vec3"
     },
     {
       "name": "inTexCoord",
       "type": "vec2"
+    },
+    {
+      "name": "inColor",
+      "type": "vec4"
     }
   ],
   "uniforms": [

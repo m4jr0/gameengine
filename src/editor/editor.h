@@ -36,6 +36,7 @@ class CometEditor : public Engine {
 
  private:
   // TODO(m4jr0): Remove temporary code.
+  void PreLoadTmpCode();
   void PostLoadTmpCode();
   void PostUnloadTmpCode();
 

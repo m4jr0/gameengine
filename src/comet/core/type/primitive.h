@@ -7,9 +7,9 @@
 
 #include <float.h>
 
-#include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 #include "comet/core/define.h"
 #include "comet/core/os.h"
@@ -38,10 +38,54 @@ using schar = char;
 using uchar = unsigned char;
 using wchar = wchar_t;
 
+using b8 = s8;
+using b32 = s32;
+
+constexpr auto kU8Min{std::numeric_limits<u8>::min()};
+constexpr auto kU8Max{std::numeric_limits<u8>::max()};
+constexpr auto kU16Min{std::numeric_limits<u16>::min()};
+constexpr auto kU16Max{std::numeric_limits<u16>::max()};
+constexpr auto kU32Min{std::numeric_limits<u32>::min()};
+constexpr auto kU32Max{std::numeric_limits<u32>::max()};
+constexpr auto kU64Min{std::numeric_limits<u64>::min()};
+constexpr auto kU64Max{std::numeric_limits<u64>::max()};
+constexpr auto kS8Min{std::numeric_limits<s8>::min()};
+constexpr auto kS8Max{std::numeric_limits<s8>::max()};
+constexpr auto kS16Min{std::numeric_limits<s16>::min()};
+constexpr auto kS16Max{std::numeric_limits<s16>::max()};
+constexpr auto kS32Min{std::numeric_limits<s32>::min()};
+constexpr auto kS32Max{std::numeric_limits<s32>::max()};
+constexpr auto kS64Min{std::numeric_limits<s64>::min()};
+constexpr auto kS64Max{std::numeric_limits<s64>::max()};
+constexpr auto kUIndexMin{std::numeric_limits<uindex>::min()};
+constexpr auto kUIndexMax{std::numeric_limits<uindex>::max()};
+constexpr auto kUPtrMin{std::numeric_limits<uptr>::min()};
+constexpr auto kUPtrMax{std::numeric_limits<uptr>::max()};
+constexpr auto kSptrDiffMin{std::numeric_limits<sptrdiff>::min()};
+constexpr auto kSptrDiffMax{std::numeric_limits<sptrdiff>::max()};
+constexpr auto kSCharMin{std::numeric_limits<schar>::min()};
+constexpr auto kSCharMax{std::numeric_limits<schar>::max()};
+constexpr auto kUCharMin{std::numeric_limits<uchar>::min()};
+constexpr auto kUCharMax{std::numeric_limits<uchar>::max()};
+constexpr auto kWCharMin{std::numeric_limits<wchar>::min()};
+constexpr auto kWCharMax{std::numeric_limits<wchar>::max()};
+constexpr auto kF32Min{std::numeric_limits<f32>::min()};
+constexpr auto kF32Max{std::numeric_limits<f32>::max()};
+constexpr auto kF64Min{std::numeric_limits<f64>::min()};
+constexpr auto kF64Max{std::numeric_limits<f64>::max()};
+constexpr auto kB8Min{std::numeric_limits<b8>::min()};
+constexpr auto kB8Max{std::numeric_limits<b8>::max()};
+constexpr auto kB32Min{std::numeric_limits<b32>::min()};
+constexpr auto kB32Max{std::numeric_limits<b32>::max()};
+
 #ifdef COMET_WIDE_TCHAR
 using tchar = wchar;
+constexpr auto kTCharMin{kWCharMin};
+constexpr auto kTCharMax{kWCharMax};
 #else
 using tchar = schar;
+constexpr auto kTCharMin{kSCharMin};
+constexpr auto kTCharMax{kSCharMax};
 #endif  // COMET_WIDE_TCHAR
 
 #ifdef COMET_WIDE_TCHAR
@@ -50,23 +94,29 @@ using tchar = schar;
 #define COMET_TCHAR(str) str
 #endif  // COMET_WIDE_TCHAR
 
-using b8 = s8;
-using b32 = s32;
-
 #ifdef COMET_64
 using ux = u64;
 using sx = s64;
 using fx = f64;
+
+constexpr auto kUXMin{kU64Min};
+constexpr auto kUXMax{kU64Max};
+constexpr auto kSXMin{kS64Min};
+constexpr auto kSXMax{kS64Max};
+constexpr auto kFXMin{kF64Min};
+constexpr auto kFXMax{kF64Max};
 #else
 using ux = u32;
 using sx = s32;
 using fx = f32;
-#endif  // COMET_64
 
-constexpr auto kF32Min{FLT_MIN};
-constexpr auto kF32Max{FLT_MAX};
-constexpr auto kF64Min{DBL_MIN};
-constexpr auto kF64Max{DBL_MAX};
+constexpr auto kUXMin{kU32Min};
+constexpr auto kUXMax{kU32Max};
+constexpr auto kSXMin{kS32Min};
+constexpr auto kSXMax{kS32Max};
+constexpr auto kFXMin{kF32Min};
+constexpr auto kFXMax{kF32Max};
+#endif  // COMET_64
 
 static_assert(sizeof(u8) * kCharBit == 8,
               "u8 is not 8 bits on this architecture.");
@@ -109,12 +159,12 @@ static_assert(sizeof(sx) * kCharBit == 64,
 static_assert(sizeof(fx) * kCharBit == 64,
               "fx is not 64 bits on this architecture.");
 #else
-static_assert(sizeof(ux) * kCharBit == 64,
-              "ux is not 64 bits on this architecture.");
-static_assert(sizeof(sx) * kCharBit == 64,
-              "sx is not 64 bits on this architecture.");
-static_assert(sizeof(fx) * kCharBit == 64,
-              "fx is not 64 bits on this architecture.");
+static_assert(sizeof(ux) * kCharBit == 32,
+              "ux is not 32 bits on this architecture.");
+static_assert(sizeof(sx) * kCharBit == 32,
+              "sx is not 32 bits on this architecture.");
+static_assert(sizeof(fx) * kCharBit == 32,
+              "fx is not 32 bits on this architecture.");
 #endif  // COMET_64
 
 constexpr auto kInvalidIndex{static_cast<uindex>(-1)};

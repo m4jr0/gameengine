@@ -15,6 +15,7 @@
 namespace comet {
 namespace stringid {
 using StringId = u32;
+constexpr auto kInvalidStringId{static_cast<StringId>(-1)};
 
 class StringIdHandler {
  public:

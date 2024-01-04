@@ -110,17 +110,17 @@ class Device {
   VkQueue transfer_queue_handle_{
       VK_NULL_HANDLE};  // Will be destroyed automatically.
   static constexpr std::array<const schar*,
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
                               2
 #else
                               1
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
                               >
       kRequiredExtensions_{VK_KHR_SWAPCHAIN_EXTENSION_NAME
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
                            ,
                            VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
       };
 
   VkSampleCountFlagBits msaa_samples_{VK_SAMPLE_COUNT_1_BIT};

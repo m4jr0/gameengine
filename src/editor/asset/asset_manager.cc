@@ -12,10 +12,10 @@
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/asset_utils.h"
-#include "editor/asset/exporter/model_exporter.h"
-#include "editor/asset/exporter/shader_exporter.h"
-#include "editor/asset/exporter/shader_module_exporter.h"
-#include "editor/asset/exporter/texture_exporter.h"
+#include "editor/asset/exporter/model/model_exporter.h"
+#include "editor/asset/exporter/shader/shader_exporter.h"
+#include "editor/asset/exporter/shader/shader_module_exporter.h"
+#include "editor/asset/exporter/texture/texture_exporter.h"
 
 namespace comet {
 namespace editor {

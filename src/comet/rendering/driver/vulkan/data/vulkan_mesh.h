@@ -9,30 +9,18 @@
 
 #include "vulkan/vulkan.h"
 
-#include "comet/math/vector.h"
+#include "comet/geometry/geometry_common.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-using MeshId = u64;
-constexpr auto kInvalidMeshId{static_cast<MeshId>(-1)};
-
-struct Vertex {
-  math::Vec3 position{};
-  math::Vec3 normal{};
-  math::Vec4 color{kColorWhite, 1.0f};
-  math::Vec2 uv{};
-};
-
-using Index = u32;
-
-struct Mesh {
-  std::vector<Vertex> vertices{};
-  std::vector<Index> indices{};
+struct MeshProxy {
+  geometry::MeshId id{geometry::kInvalidMeshId};
+  geometry::Mesh* mesh{nullptr};
   Buffer vertex_buffer{};
-  MeshId id{kInvalidMeshId};
 };
 }  // namespace vk
 }  // namespace rendering

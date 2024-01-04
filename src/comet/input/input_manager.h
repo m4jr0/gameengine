@@ -38,6 +38,8 @@ class InputManager : public Manager {
   virtual bool IsMouseUp(MouseButton key_code) const;
   virtual math::Vec2 GetMousePosition() const;
   virtual void SetMousePosition(f32, f32);
+  virtual void EnableUnconstrainedMouseCursor();
+  virtual void DisableUnconstrainedMouseCursor();
   void AttachGlfwWindow(GLFWwindow* window_handle_);
 
 #ifdef COMET_IMGUI
@@ -80,6 +82,8 @@ class NullInputManager : public InputManager {
   };
 
   virtual void SetMousePosition(f32 x, f32 y) override{};
+  virtual void EnableUnconstrainedMouseCursor() override{};
+  virtual void DisableUnconstrainedMouseCursor() override{};
 };
 }  // namespace input
 }  // namespace comet

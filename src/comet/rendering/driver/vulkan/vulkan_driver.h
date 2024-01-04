@@ -99,7 +99,7 @@ class VulkanDriver : public Driver {
   std::unique_ptr<TextureHandler> texture_handler_{nullptr};
   std::unique_ptr<ViewHandler> view_handler_{nullptr};
 
-#ifdef COMET_VULKAN_DEBUG_MODE
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   void InitializeDebugMessenger();
   void DestroyDebugMessenger();
   void InitializeDebugReportCallback();
@@ -119,7 +119,7 @@ class VulkanDriver : public Driver {
       "VK_LAYER_KHRONOS_validation"};
   VkDebugUtilsMessengerEXT debug_messenger_handle_{VK_NULL_HANDLE};
   VkDebugReportCallbackEXT debug_report_callback_handle_{VK_NULL_HANDLE};
-#endif  // COMET_VULKAN_DEBUG_MODE
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 };
 }  // namespace vk
 }  // namespace rendering

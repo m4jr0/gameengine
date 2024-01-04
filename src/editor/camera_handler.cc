@@ -73,8 +73,6 @@ void CameraHandler::Update() {
     return;
   }
 
-  auto delta_time{time::TimeManager::Get().GetFixedDeltaTime()};
-
   if (is_keyboard_key) {
     math::Vec3 delta{0.0f};
 
@@ -108,31 +106,6 @@ void CameraHandler::Update() {
 
   if (!is_mouse_moving) {
     return;
-  }
-
-  auto is_out_of_bounds{false};
-
-  if (current_mouse_pos_.x > width) {
-    current_mouse_pos_.x = static_cast<s32>(current_mouse_pos_.x) % width;
-    is_out_of_bounds = true;
-  } else if (current_mouse_pos_.x < 0) {
-    current_mouse_pos_.x =
-        width - static_cast<s32>(current_mouse_pos_.x) % width;
-    is_out_of_bounds = true;
-  }
-
-  if (current_mouse_pos_.y > height) {
-    current_mouse_pos_.y = static_cast<s32>(current_mouse_pos_.y) % height;
-    is_out_of_bounds = true;
-  } else if (current_mouse_pos_.y < 0) {
-    current_mouse_pos_.y =
-        height - static_cast<s32>(current_mouse_pos_.y) % height;
-    is_out_of_bounds = true;
-  }
-
-  if (is_out_of_bounds) {
-    last_mouse_pos_ = current_mouse_pos_;
-    input_manager.SetMousePosition(current_mouse_pos_.x, current_mouse_pos_.y);
   }
 
   if (is_orbiting_from_mouse_) {
@@ -200,15 +173,12 @@ void CameraHandler::OnEvent(const event::Event& event) {
     switch (button) {
       case input::MouseButton::Left:
         if (input_manager.IsAltPressed()) {
-          ResetMousePosition();
           is_orbiting_from_mouse_ = true;
         }
 
         break;
 
       case input::MouseButton::Right:
-        ResetMousePosition();
-
         if (input_manager.IsAltPressed()) {
           is_zooming_from_mouse_ = true;
         } else {
@@ -218,10 +188,15 @@ void CameraHandler::OnEvent(const event::Event& event) {
         break;
 
       case input::MouseButton::Middle:
-        ResetMousePosition();
         is_panning_from_mouse_ = true;
         break;
+
+      default:
+        return;
     }
+
+    ResetMousePosition();
+    input_manager.EnableUnconstrainedMouseCursor();
 
     return;
 
@@ -251,8 +226,12 @@ void CameraHandler::OnEvent(const event::Event& event) {
       case input::MouseButton::Middle:
         is_panning_from_mouse_ = false;
         break;
+
+      default:
+        return;
     }
 
+    input::InputManager::Get().DisableUnconstrainedMouseCursor();
     return;
   }
 }

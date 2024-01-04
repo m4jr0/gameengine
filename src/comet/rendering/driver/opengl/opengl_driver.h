@@ -54,6 +54,13 @@ class OpenGlDriver : public Driver {
   Window* GetWindow() override;
 
  private:
+#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+  static void GLAPIENTRY LogOpenGlMessage(GLenum source, GLenum type, GLuint id,
+                                          GLenum severity, GLsizei length,
+                                          const GLchar* message,
+                                          const void* user_param);
+#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+
   FrameIndex frame_count_{0};
 
   std::unique_ptr<OpenGlGlfwWindow> window_{nullptr};
