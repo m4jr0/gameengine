@@ -65,23 +65,34 @@ class NullInputManager : public InputManager {
   NullInputManager& operator=(NullInputManager&&) = delete;
   virtual ~NullInputManager() = default;
 
-  virtual bool IsKeyPressed(KeyCode key_code) const override { return false; };
+  virtual bool IsKeyPressed([[maybe_unused]] KeyCode key_code) const override {
+    return false;
+  };
 
-  virtual bool IsKeyUp(KeyCode key_code) const override { return false; };
-  virtual bool IsKeyDown(KeyCode key_code) const override { return false; };
-  virtual bool IsMousePressed(MouseButton key_code) const override {
+  virtual bool IsKeyUp([[maybe_unused]] KeyCode key_code) const override {
     return false;
   };
-  virtual bool IsMouseDown(MouseButton key_code) const override {
+  virtual bool IsKeyDown([[maybe_unused]] KeyCode key_code) const override {
     return false;
   };
-  virtual bool IsMouseUp(MouseButton key_code) const override { return false; };
+  virtual bool IsMousePressed(
+      [[maybe_unused]] MouseButton key_code) const override {
+    return false;
+  };
+  virtual bool IsMouseDown(
+      [[maybe_unused]] MouseButton key_code) const override {
+    return false;
+  };
+  virtual bool IsMouseUp([[maybe_unused]] MouseButton key_code) const override {
+    return false;
+  };
 
   virtual math::Vec2 GetMousePosition() const override {
     return math::Vec2{0.0f, 0.0f};
   };
 
-  virtual void SetMousePosition(f32 x, f32 y) override{};
+  virtual void SetMousePosition([[maybe_unused]] f32 x,
+                                [[maybe_unused]] f32 y) override{};
   virtual void EnableUnconstrainedMouseCursor() override{};
   virtual void DisableUnconstrainedMouseCursor() override{};
 };

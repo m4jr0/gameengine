@@ -517,7 +517,7 @@ VkSamplerCreateInfo GenerateSamplerCreateInfo(
 VkSamplerCreateInfo GenerateSamplerCreateInfo(
     VkFilter filters, VkSamplerAddressMode address_mode,
     const resource::TextureMap& texture_map, bool is_sampler_anisotropy,
-    u32 max_sampler_anisotropy_count) {
+    f32 max_sampler_anisotropy) {
   auto info{GenerateSamplerCreateInfo(filters, address_mode)};
 
   info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -529,7 +529,7 @@ VkSamplerCreateInfo GenerateSamplerCreateInfo(
   info.addressModeW = GetSamplerAddressMode(texture_map.w_repeat_mode);
 
   info.anisotropyEnable = is_sampler_anisotropy ? VK_TRUE : VK_FALSE;
-  info.maxAnisotropy = max_sampler_anisotropy_count;
+  info.maxAnisotropy = max_sampler_anisotropy;
   info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
   info.unnormalizedCoordinates = VK_FALSE;
   info.compareEnable = VK_FALSE;

@@ -20,7 +20,7 @@ namespace gl {
 using UniformBufferHandle = GLuint;
 constexpr auto kInvalidUniformBufferHandle{0};
 
-using ShaderUniformLocation = u16;
+using ShaderUniformLocation = u32;
 constexpr auto kInvalidShaderUniformLocation{
     static_cast<ShaderUniformLocation>(-1)};
 

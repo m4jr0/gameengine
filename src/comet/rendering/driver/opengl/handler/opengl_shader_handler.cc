@@ -619,7 +619,7 @@ ShaderUniformLocation GetSamplerLocation(
     TextureType texture_type) {
   constexpr uindex kBuffLen{32};
   static schar buff[kBuffLen];
-  u8 cursor;
+  uindex cursor;
 
   if (uniform_descr.scope == ShaderUniformScope::Global) {
     cursor = 15;

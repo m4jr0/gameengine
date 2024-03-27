@@ -18,11 +18,7 @@ list(APPEND EXECUTABLE_SOURCES
 # Executable ###################################################################
 add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
 
-set_target_properties(${EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-
-if(MSVC)
-  target_link_options(${EXECUTABLE_NAME} PRIVATE /NODEFAULTLIB:MSVCRT)
-endif()
+set_target_properties(${EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF CXX_RTTI OFF)
 
 # Subdirectories ###############################################################
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor/asset")

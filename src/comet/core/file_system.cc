@@ -819,6 +819,8 @@ TString GetRelativePath(CTStringView to, CTStringView from) {
     default:
       COMET_ASSERT(false, "Unknown or unsupported root type: ",
                    GetRootTypeLabel(from_root_type), "!");
+      from_cursor = from_p;
+      to_cursor = to_p;
   }
 #else
   const auto is_from_absolute{IsAbsolute(from)};
@@ -1005,7 +1007,6 @@ bool IsSlash(tchar c) {
 #else
   return c == COMET_TCHAR('/');
 #endif  // COMET_MSVC
-  return false;
 }
 
 bool IsDirectory(CTStringView path) {
@@ -1282,17 +1283,17 @@ f64 GetLastModificationTime(CTStringView path) {
   struct _stat64i32 status;
 
   if (_wstat(path.GetCTStr(), &status) == 0) {
-    return status.st_mtime * 1000;
+    return static_cast < f64>(status.st_mtime * 1000);
   }
 #else
   struct stat status;
 
   if (stat(path.GetCTStr(), &status) == 0) {
-    return status.st_mtime * 1000;
+    return static_cast < f64>(status.st_mtime * 1000);
   }
 #endif  // COMET_MSVC
 
-  return -1;
+  return -1.0;
 }
 
 void GetChecksum(CTStringView path, schar* checksum, uindex checksum_len) {
@@ -1313,8 +1314,6 @@ void GetChecksum(CTStringView path, schar* checksum, uindex checksum_len) {
 void NormalizeSlashes(tchar* str, uindex len) {
 #ifdef COMET_MSVC
   for (uindex i{0}; i < len; ++i) {
-    tchar c{str[i]};
-
     if (str[i] == COMET_TCHAR('\\')) {
       str[i] = COMET_TCHAR('/');
     }
@@ -1335,8 +1334,6 @@ void NormalizeSlashes(TString& str) {
 void MakeNative(tchar* str, uindex len) {
 #ifdef COMET_MSVC
   for (uindex i{0}; i < len; ++i) {
-    tchar c{str[i]};
-
     if (str[i] == COMET_TCHAR('/')) {
       str[i] = COMET_TCHAR('\\');
     }
@@ -1378,7 +1375,7 @@ const tchar* GetTmpTChar(const schar* str) {
   return GetTmpTChar(str, GetLength(str));
 }
 
-const tchar* GetTmpTChar(const wchar* str, uindex len) {
+const tchar* GetTmpTChar(const wchar* str, [[maybe_unused]] uindex len) {
 #ifdef COMET_WIDE_TCHAR
   return str;
 #else

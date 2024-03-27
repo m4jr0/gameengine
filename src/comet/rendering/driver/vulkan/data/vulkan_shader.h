@@ -28,7 +28,7 @@ struct Shader {
   bool is_wireframe{false};
   CullMode cull_mode{CullMode::Unknown};
   ShaderId id{kInvalidShaderId};
-  sptrdiff vertex_attribute_stride{0};
+  s32 vertex_attribute_stride{0};
   sptrdiff bound_ubo_offset{0};
   MaterialInstanceId bound_instance_index{kInvalidMaterialInstanceId};
   ShaderUniformData global_uniform_data{};

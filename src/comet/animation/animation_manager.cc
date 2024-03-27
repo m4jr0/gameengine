@@ -14,19 +14,16 @@ AnimationManager& AnimationManager::Get() {
   return singleton;
 }
 
-void AnimationManager::Update(f64& lag) {
+void AnimationManager::Update([[maybe_unused]] f64& lag) {
   auto& entity_manager{entity::EntityManager::Get()};
 
   entity_manager.Each<geometry::MeshComponent, geometry::SkeletonComponent>(
       [&](auto entity_id) {
-        auto* mesh_cmp{
+        [[maybe_unused]] auto* mesh_cmp{
             entity_manager.GetComponent<geometry::MeshComponent>(entity_id)};
-        auto* skeleton_cmp{
+        [[maybe_unused]] auto* skeleton_cmp{
             entity_manager.GetComponent<geometry::SkeletonComponent>(
                 entity_id)};
-
-        auto& vertices{mesh_cmp->mesh->vertices};
-        auto& resource_vertices{skeleton_cmp->resource->vertices};
 
         // TODO(m4jr0): Update geometry according to animations.
         mesh_cmp->mesh->is_dirty = true;

@@ -158,6 +158,10 @@ bool AreStringsEqualInsensitive(const schar* str1, uindex str1_len,
 
 bool AreStringsEqualInsensitive(const wchar* str1, uindex str1_len,
                                 const wchar* str2, uindex str2_len) {
+  if (str1_len != str2_len) {
+    return false;
+  }
+
   if (str1 == nullptr && str2 == nullptr) {
     return true;
   }
@@ -191,14 +195,19 @@ schar* Copy(schar* dst, const schar* src, uindex length, uindex dst_offset,
             uindex src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
-  return std::strncpy(dst + dst_offset, src + src_offset, length);
+  COMET_ASSERT(strncpy_s(dst + dst_offset, length, src + src_offset, length) != 0, "An error occurred while copying a string");
+  return dst;
 }
 
 wchar* Copy(wchar* dst, const schar* src, uindex length, uindex dst_offset,
             uindex src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
-  std::mbstowcs(dst + dst_offset, src + src_offset, length);
+  uindex out_count;
+  COMET_ASSERT(mbstowcs_s(&out_count, dst + dst_offset, length,
+                          src + src_offset,
+                          length) != 0,
+               "An error occurred while copying a string");
   return dst;
 }
 

@@ -50,7 +50,7 @@ std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
   texture.descr.resolution[0] = tex_width;
   texture.descr.resolution[1] = tex_height;
   texture.descr.resolution[2] = 0;
-  texture.descr.channel_count = tex_channels;
+  texture.descr.channel_count = static_cast<u8>(tex_channels);
   texture.descr.format = rendering::TextureFormat::Rgba8;
   texture.data = {pixel_data, pixel_data + texture.descr.size};
 
