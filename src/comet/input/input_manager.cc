@@ -186,7 +186,9 @@ void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
   window_handle_ = window_handle;
 }
 
+#ifdef COMET_DEBUG
 void InputManager::EnableImGui() { is_imgui_ = true; }
+#endif  // COMET_DEBUG
 
 bool InputManager::IsAltPressed() const {
   return IsKeyPressed(KeyCode::LeftAlt) || IsKeyPressed(KeyCode::RightAlt);

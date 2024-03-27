@@ -158,6 +158,10 @@ bool AreStringsEqualInsensitive(const schar* str1, uindex str1_len,
 
 bool AreStringsEqualInsensitive(const wchar* str1, uindex str1_len,
                                 const wchar* str2, uindex str2_len) {
+  if (str1_len != str2_len) {
+    return false;
+  }
+
   if (str1 == nullptr && str2 == nullptr) {
     return true;
   }

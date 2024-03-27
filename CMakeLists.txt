@@ -126,6 +126,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 # Project ######################################################################
+
 message(STATUS
   "${MESSAGE_PREFIX}Building ${CMAKE_PROJECT_NAME} "
   "to ${CMAKE_CURRENT_BINARY_DIR}...")
@@ -135,6 +136,26 @@ project("Comet Game Engine"
   DESCRIPTION "Simple video game engine"
   LANGUAGES CXX
 )
+
+# Compiler specifics.
+if(MSVC)
+  # Disable any non-conformant code with Microsoft Visual C++.
+  # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /W4")
+
+  if(COMET_DEBUG)
+    # Disable any non-conformant code with Microsoft Visual C++.
+    # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+  endif()
+else()
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+endif()
+
+if(COMET_DEBUG_RELEASE)
+  if(MSVC)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
+    add_link_options("/INCREMENTAL:NO" "/DEBUG" "/OPT:REF" "/OPT:ICF")
+  endif()
+endif()
 
 set(COMET_NAME ${CMAKE_PROJECT_NAME})
 string(REPLACE "." ";" VERSION_LIST "${PROJECT_VERSION}")
@@ -151,11 +172,6 @@ target_compile_definitions(${COMET_LIBRARY_NAME}
     COMET_VERSION_MINOR=${COMET_VERSION_MINOR}
     COMET_VERSION_PATCH=${COMET_VERSION_PATCH}
 )
-
-# Disable any non-conformant code with Microsoft Visual C++.
-if(MSVC)
-    add_compile_options(/permissive-)
-endif()
 
 # Vcpkg variables ##############################################################
 set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
