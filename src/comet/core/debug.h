@@ -32,8 +32,8 @@ void HandleCriticalError();
 }  // namespace comet
 
 #ifndef COMET_DEBUG
-#define COMET_ASSERT(assertion, ...)
-#else
+//#define COMET_ASSERT(assertion, ...)
+//#else
 #define COMET_ASSERT(assertion, ...)                              \
   do {                                                            \
     const auto isOk{static_cast<bool>(assertion)};                \

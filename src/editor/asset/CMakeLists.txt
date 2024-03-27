@@ -18,6 +18,7 @@ find_package(assimp REQUIRED)
 find_package(Stb REQUIRED COMPONENTS stb_image)
 
 # Shaders.
+find_package(spirv_cross_core  REQUIRED)
 find_package(SPIRV-Tools-opt CONFIG REQUIRED)
 find_package(glslang CONFIG REQUIRED)
 find_package(unofficial-shaderc CONFIG REQUIRED)
@@ -63,6 +64,8 @@ target_link_libraries(${EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARY_NAME}
     assimp::assimp
+    spirv-cross-core
+    SPIRV-Tools
     SPIRV-Tools-opt
     glslang
     unofficial::shaderc::shaderc

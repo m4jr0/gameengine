@@ -30,6 +30,11 @@ target_sources(${COMET_LIBRARY_NAME}
 
     "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"
+    
+    "${PROJECT_SOURCE_DIR}/src/comet/core/job/fiber/fiber_x86_64_masm_windows.asm"
+    "${PROJECT_SOURCE_DIR}/src/comet/core/job/fiber/fiber.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/core/job/job.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/core/job/job_manager.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocation_tracking.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory.cc"
