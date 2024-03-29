@@ -154,6 +154,9 @@ void CameraHandler::OnEvent(const event::Event& event) {
         }
 
         break;
+
+      default:
+        return;
     }
 
     return;

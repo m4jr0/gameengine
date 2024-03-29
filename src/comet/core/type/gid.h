@@ -52,4 +52,5 @@ class BreedHandler {
 };
 }  // namespace gid
 }  // namespace comet
+
 #endif  // COMET_COMET_CORE_TYPE_GID_H_

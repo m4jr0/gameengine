@@ -91,7 +91,7 @@ void WorldView::Destroy() {
 }
 
 void WorldView::Update(const ViewPacket& packet) {
-  render_proxy_handler_->Update(packet.interpolation);
+  render_proxy_handler_->Update();
   render_pass_handler_->BeginPass(*render_pass_, packet.command_buffer_handle,
                                   packet.frame_in_flight_index);
   shader_handler_->Bind(*shader_);

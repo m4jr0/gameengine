@@ -30,8 +30,7 @@ void RenderProxyHandler::Shutdown() {
   Handler::Shutdown();
 }
 
-void RenderProxyHandler::Update(FrameIndex frame_count,
-                                time::Interpolation interpolation) {
+void RenderProxyHandler::Update(FrameIndex frame_count) {
   if (update_frame_ == frame_count) {
     return;
   }
@@ -95,20 +94,19 @@ void RenderProxyHandler::DrawProxies(FrameIndex frame_count, Shader& shader) {
     local_packet.position = &proxy.transform;
     shader_handler_->UpdateLocal(shader, local_packet);
     mesh_handler_->Update(*proxy.mesh_proxy);
-    Draw(frame_count, proxy);
+    Draw(proxy);
   }
 
   // Reset last drawn proxy to force rebinding meshes next frame.
   last_drawn_mesh_ = nullptr;
 }
 
-void RenderProxyHandler::DrawProxiesForDebugging(FrameIndex frame_count,
-                                                 Shader& shader) {
+void RenderProxyHandler::DrawProxiesForDebugging(Shader& shader) {
   for (const auto& proxy : proxies_) {
     ShaderLocalPacket local_packet{};
     local_packet.position = &proxy.transform;
     shader_handler_->UpdateLocal(shader, local_packet);
-    Draw(frame_count, proxy);
+    Draw(proxy);
   }
 
   // Reset last drawn proxy to force rebinding meshes next frame.
@@ -116,11 +114,10 @@ void RenderProxyHandler::DrawProxiesForDebugging(FrameIndex frame_count,
 }
 
 u32 RenderProxyHandler::GetDrawCount() const noexcept {
-  return proxies_.size();
+  return static_cast<u32>(proxies_.size());
 }
 
-void RenderProxyHandler::Draw(FrameIndex frame_count,
-                              const RenderProxy& proxy) {
+void RenderProxyHandler::Draw(const RenderProxy& proxy) {
   if (proxy.mesh_proxy != last_drawn_mesh_) {
     mesh_handler_->Bind(proxy.mesh_proxy);
     last_drawn_mesh_ = proxy.mesh_proxy;

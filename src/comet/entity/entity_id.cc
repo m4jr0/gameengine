@@ -6,6 +6,8 @@
 
 namespace comet {
 namespace entity {
+gid::Gid GetGid(EntityId id) { return static_cast<u32>(id); }
+
 EntityId Tag(EntityIdTag tag, EntityId id) {
   return (static_cast<EntityId>(tag) << 32) + static_cast<u32>(id);
 }

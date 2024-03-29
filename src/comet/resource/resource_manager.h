@@ -45,7 +45,7 @@ class ResourceManager : public Manager {
   template <typename ResourceType>
   const ResourceType* Load(
       ResourceId resource_id,
-      ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
+      [[maybe_unused]] ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
     COMET_ASSERT(
         handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
         "Unknown resource type ID: ", ResourceType::kResourceTypeId,

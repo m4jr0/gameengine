@@ -16,7 +16,6 @@ GeometryManager& GeometryManager::Get() {
 
 void GeometryManager::Shutdown() {
   for (auto& it : meshes_) {
-    auto& mesh{it.second};
     Destroy(it.second, true);
   }
 
@@ -48,18 +47,18 @@ Mesh* GeometryManager::Generate(const resource::SkinnedMeshResource* resource) {
   return mesh;
 }
 
-Mesh* GeometryManager::Get(MeshId mesh_id, geometry::MeshType type) {
-  auto* mesh{TryGet(mesh_id, type)};
+Mesh* GeometryManager::Get(MeshId mesh_id) {
+  auto* mesh{TryGet(mesh_id)};
   COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", mesh_id,
                "!");
   return mesh;
 }
 
 Mesh* GeometryManager::Get(const resource::MeshResource* resource) {
-  return Get(GenerateMeshId(resource), resource->type);
+  return Get(GenerateMeshId(resource));
 }
 
-Mesh* GeometryManager::TryGet(MeshId mesh_id, geometry::MeshType type) {
+Mesh* GeometryManager::TryGet(MeshId mesh_id) {
   auto it{meshes_.find(mesh_id)};
 
   if (it != meshes_.end()) {
@@ -70,7 +69,7 @@ Mesh* GeometryManager::TryGet(MeshId mesh_id, geometry::MeshType type) {
 }
 
 Mesh* GeometryManager::TryGet(const resource::MeshResource* resource) {
-  return TryGet(GenerateMeshId(resource), resource->type);
+  return TryGet(GenerateMeshId(resource));
 }
 
 Mesh* GeometryManager::GetOrGenerate(const resource::MeshResource* resource) {
@@ -87,16 +86,14 @@ Mesh* GeometryManager::GetOrGenerate(const resource::MeshResource* resource) {
     case MeshType::Skinned:
       return Generate(
           static_cast<const resource::SkinnedMeshResource*>(resource));
+    default:
+      COMET_ASSERT(false, "Unknown or unsupported mesh type: ",
+                   GetMeshTypeLabel(resource->type), "!");
+      return nullptr;
   }
-
-  COMET_ASSERT(false, "Unknown or unsupported mesh type: ",
-               GetMeshTypeLabel(resource->type), "!");
-  return nullptr;
 }
 
-void GeometryManager::Destroy(MeshId mesh_id, geometry::MeshType type) {
-  Destroy(*Get(mesh_id, type));
-}
+void GeometryManager::Destroy(MeshId mesh_id) { Destroy(*Get(mesh_id)); }
 
 void GeometryManager::Destroy(Mesh& mesh) { Destroy(mesh, false); }
 
@@ -149,8 +146,7 @@ Mesh* GeometryManager::GenerateInternal(
   Mesh* to_return{insert_pair.second ? &insert_pair.first->second : nullptr};
 
   if (to_return == nullptr) {
-    COMET_ASSERT(
-        false, "Could not insert mesh: ", COMET_STRING_ID_LABEL(mesh_id), "!");
+    COMET_ASSERT(false, "Could not insert mesh #", mesh_id, "!");
   }
 
   return to_return;

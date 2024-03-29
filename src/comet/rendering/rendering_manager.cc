@@ -107,9 +107,7 @@ f32 RenderingManager::GetFrameTime() const noexcept {
   return (1 / static_cast<f32>(frame_rate_)) * 1000;
 }
 
-uindex RenderingManager::GetDrawCount() const {
-  return driver_->GetDrawCount();
-}
+u32 RenderingManager::GetDrawCount() const { return driver_->GetDrawCount(); }
 
 void RenderingManager::GenerateOpenGlDriver() {
   gl::OpenGlDriverDescr descr{};

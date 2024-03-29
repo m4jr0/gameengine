@@ -100,7 +100,7 @@ TEST_CASE("File system management", "[comet::filesystem]") {
         test_write));
 
     comet::schar test_read[4096];
-    comet::uindex test_read_len;
+    comet::uindex test_read_len{0};
 
     REQUIRE(comet::ReadStrFromFile(
         comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test7")),
@@ -237,20 +237,18 @@ TEST_CASE("File system management", "[comet::filesystem]") {
         comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test8"))};
 
     // Count should be 0, because a file is not a directory.
-    comet::ForEachDirectory(
-        file_path, [&](comet::CTStringView directory_path) { ++count; });
+    comet::ForEachDirectory(file_path, [&](comet::CTStringView) { ++count; });
 
     REQUIRE(count == 0);
     count = 0;
 
-    comet::ForEachFile(file_path,
-                       [&](comet::CTStringView directory_path) { ++count; });
+    comet::ForEachFile(file_path, [&](comet::CTStringView) { ++count; });
 
     REQUIRE(count == 0);
     count = 0;
 
-    comet::ForEachFileAndDirectory(
-        file_path, [&](comet::CTStringView directory_path) { ++count; });
+    comet::ForEachFileAndDirectory(file_path,
+                                   [&](comet::CTStringView) { ++count; });
 
     REQUIRE(count == 0);
   }

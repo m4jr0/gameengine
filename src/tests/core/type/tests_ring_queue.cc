@@ -65,7 +65,7 @@ TEST_CASE("Ring queue push operations in single thread", "[comet]") {
 
     try {
       queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-    } catch (const comet::maximum_capacity_reached_error& error) {
+    } catch (const comet::maximum_capacity_reached_error&) {
       is_exception = true;
     }
 
@@ -81,7 +81,7 @@ TEST_CASE("Ring queue push operations in single thread", "[comet]") {
 
     try {
       queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-    } catch (const comet::maximum_capacity_reached_error& error) {
+    } catch (const comet::maximum_capacity_reached_error&) {
       is_exception = true;
     }
 
@@ -140,7 +140,7 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
     try {
       queue.front();
       queue.pop();
-    } catch (const comet::empty_error& error) {
+    } catch (const comet::empty_error&) {
       is_exception = true;
     }
 
@@ -175,7 +175,7 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
     try {
       queue.front();
       queue.pop();
-    } catch (const comet::empty_error& error) {
+    } catch (const comet::empty_error&) {
       is_exception = true;
     }
 
@@ -236,7 +236,7 @@ TEST_CASE("Thread-safe ring queue push operations in single thread",
 
     try {
       queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-    } catch (const comet::maximum_capacity_reached_error& error) {
+    } catch (const comet::maximum_capacity_reached_error&) {
       is_exception = true;
     }
 
@@ -252,7 +252,7 @@ TEST_CASE("Thread-safe ring queue push operations in single thread",
 
     try {
       queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-    } catch (const comet::maximum_capacity_reached_error& error) {
+    } catch (const comet::maximum_capacity_reached_error&) {
       is_exception = true;
     }
 
@@ -309,7 +309,7 @@ TEST_CASE("Thread-safe ring queue front & pop operations in single thread",
     try {
       queue.front();
       queue.pop();
-    } catch (const comet::empty_error& error) {
+    } catch (const comet::empty_error&) {
       is_exception = true;
     }
 
@@ -344,7 +344,7 @@ TEST_CASE("Thread-safe ring queue front & pop operations in single thread",
     try {
       queue.front();
       queue.pop();
-    } catch (const comet::empty_error& error) {
+    } catch (const comet::empty_error&) {
       is_exception = true;
     }
 
@@ -354,7 +354,6 @@ TEST_CASE("Thread-safe ring queue front & pop operations in single thread",
 
 TEST_CASE("Thread-safe ring queue push operations in multiple threads",
           "[comet]") {
-  const comet::uindex capacity{15};
   SECTION("Usage in threads: push operations.") {
     comet::uindex thread_number{5};
     auto queue{comet::concurrent_ring_queue<
@@ -372,9 +371,9 @@ TEST_CASE("Thread-safe ring queue push operations in multiple threads",
                        &is_generic_error]() {
             try {
               queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -416,9 +415,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
             try {
               queue.front();
               queue.pop();
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -455,9 +454,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
                        &is_generic_error]() {
             try {
               queue.wait_for_front();
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -472,9 +471,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
             try {
               std::this_thread::sleep_for(std::chrono::seconds(1));
               queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -511,9 +510,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
                        &is_generic_error]() {
             try {
               queue.wait_and_pop_front();
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -528,9 +527,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
             try {
               std::this_thread::sleep_for(std::chrono::seconds(1));
               queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -568,9 +567,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
                        &is_generic_error]() {
             try {
               queue.wait_for_data();
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -585,9 +584,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
             try {
               std::this_thread::sleep_for(std::chrono::seconds(1));
               queue.push(std::make_unique<comet::comettests::DummyObject>(0));
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -628,9 +627,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
                        &is_generic_error]() {
             try {
               queue.wait_for_data();
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;
@@ -645,9 +644,9 @@ TEST_CASE("Thread-safe ring queue front & pop operations in multiple threads",
             try {
               std::this_thread::sleep_for(std::chrono::seconds(1));
               queue.pop();
-            } catch (const comet::empty_error& error) {
+            } catch (const comet::empty_error&) {
               is_empty_error = true;
-            } catch (const comet::maximum_capacity_reached_error& error) {
+            } catch (const comet::maximum_capacity_reached_error&) {
               is_max_capacity_error = true;
             } catch (...) {
               is_generic_error = true;

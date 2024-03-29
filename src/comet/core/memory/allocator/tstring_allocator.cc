@@ -7,7 +7,7 @@
 #include "comet/core/memory/memory.h"
 
 namespace comet {
-TStringAllocator::TStringAllocator(uindex capacity) {
+TStringAllocator::TStringAllocator([[maybe_unused]] uindex capacity) {
   // TODO(m4jr0): Implement specific TString allocator.
 }
 

@@ -25,7 +25,7 @@ class TestsEventListener : public Catch::EventListenerBase {
     entity_manager.Initialize();
   }
 
-  void testRunEnded(Catch::TestRunStats const& testRunStats) override {
+  void testRunEnded(Catch::TestRunStats const&) override {
     auto& configuration_manager{comet::conf::ConfigurationManager::Get()};
     configuration_manager.Shutdown();
     auto& memory_manager{comet::memory::MemoryManager::Get()};

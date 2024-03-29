@@ -58,12 +58,12 @@ void Engine::Run() {
 
       Update(lag);
     }
-  } catch (const std::runtime_error& runtime_error) {
+  } catch ([[maybe_unused]] const std::runtime_error& runtime_error) {
     COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
     Quit();
 
     std::cin.get();
-  } catch (const std::exception& exception) {
+  } catch ([[maybe_unused]] const std::exception& exception) {
     COMET_LOG_CORE_ERROR("Exception: ", exception.what());
     Quit();
 

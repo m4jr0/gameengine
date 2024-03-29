@@ -30,7 +30,7 @@ void WorldView::Destroy() {
 }
 
 void WorldView::Update(const ViewPacket& packet) {
-  render_proxy_handler_->Update(packet.frame_count, packet.interpolation);
+  render_proxy_handler_->Update(packet.frame_count);
   shader_handler_->Bind(*shader_);
   ShaderPacket shader_packet{};
   shader_packet.frame_count = packet.frame_count;

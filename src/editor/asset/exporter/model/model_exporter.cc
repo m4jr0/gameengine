@@ -229,24 +229,24 @@ void ModelExporter::LoadMaterials(
 rendering::TextureType ModelExporter::GetTextureType(
     aiTextureType raw_texture_type) {
   switch (raw_texture_type) {
-    case aiTextureType_DIFFUSE: {
+    case aiTextureType_DIFFUSE:
       return rendering::TextureType::Diffuse;
-    }
-    case aiTextureType_SPECULAR: {
-      return rendering::TextureType::Specular;
-    }
-    case aiTextureType_HEIGHT: {
-      return rendering::TextureType::Normal;
-    }
-    case aiTextureType_AMBIENT: {
-      return rendering::TextureType::Ambient;
-    }
-    case aiTextureType_BASE_COLOR: {
-      return rendering::TextureType::Color;
-    }
-  }
 
-  return rendering::TextureType::Unknown;
+    case aiTextureType_SPECULAR:
+      return rendering::TextureType::Specular;
+
+    case aiTextureType_HEIGHT:
+      return rendering::TextureType::Normal;
+
+    case aiTextureType_AMBIENT:
+      return rendering::TextureType::Ambient;
+
+    case aiTextureType_BASE_COLOR:
+      return rendering::TextureType::Color;
+
+    default:
+      return rendering::TextureType::Unknown;
+  }
 }
 
 rendering::TextureRepeatMode ModelExporter::GetTextureRepeatMode(
@@ -260,9 +260,9 @@ rendering::TextureRepeatMode ModelExporter::GetTextureRepeatMode(
       return rendering::TextureRepeatMode::ClampToEdge;
     case aiTextureMapMode_Decal:
       return rendering::TextureRepeatMode::ClampToBorder;
+    default:
+      return rendering::TextureRepeatMode::Unknown;
   }
-
-  return rendering::TextureRepeatMode::Unknown;
 }
 }  // namespace asset
 }  // namespace editor

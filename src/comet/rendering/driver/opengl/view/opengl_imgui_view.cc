@@ -17,9 +17,7 @@ namespace comet {
 namespace rendering {
 namespace gl {
 ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
-    : View{descr},
-      window_{descr.window}
-{
+    : View{descr}, window_{descr.window} {
   COMET_ASSERT(window_ != nullptr, "Window is null!");
 }
 
@@ -42,7 +40,7 @@ void ImGuiView::Destroy() {
   View::Destroy();
 }
 
-void ImGuiView::Update(const ViewPacket& packet) {
+void ImGuiView::Update(const ViewPacket&) {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();

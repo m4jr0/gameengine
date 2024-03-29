@@ -55,7 +55,6 @@ class EntityManager : public Manager {
     }
 
     const auto& record{records_[entity_id]};
-    const auto& entity_type{record.archetype->entity_type};
     const auto& archetype_record{
         registered_component_types_.at(component_type_id)
             .archetype_map.at(record.archetype->id)};

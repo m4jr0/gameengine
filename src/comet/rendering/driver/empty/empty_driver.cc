@@ -34,13 +34,13 @@ void EmptyDriver::Shutdown() {
   Driver::Shutdown();
 }
 
-void EmptyDriver::Update(time::Interpolation interpolation) {}
+void EmptyDriver::Update(time::Interpolation) {}
 
 DriverType EmptyDriver::GetType() const noexcept { return DriverType::Empty; }
 
 u32 EmptyDriver::GetDrawCount() const { return 0; }
 
-void EmptyDriver::SetSize(WindowSize width, WindowSize height) {}
+void EmptyDriver::SetSize(WindowSize, WindowSize) {}
 
 Window* EmptyDriver::GetWindow() { return window_.get(); }
 }  // namespace empty

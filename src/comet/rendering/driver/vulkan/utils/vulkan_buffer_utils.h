@@ -28,8 +28,7 @@ void CopyToBuffer(Buffer& buffer, void const* data, uindex length,
 void UnmapBuffer(Buffer& buffer);
 bool IsBufferInitialized(Buffer& buffer) noexcept;
 void CopyBuffer(const Device& device, VkCommandPool command_pool_handle,
-                Buffer src_buffer, Buffer dst_buffer, VkDeviceSize size,
-                VkFence fence_handle = VK_NULL_HANDLE);
+                Buffer src_buffer, Buffer dst_buffer, VkDeviceSize size);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

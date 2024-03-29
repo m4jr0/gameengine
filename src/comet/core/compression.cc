@@ -12,12 +12,13 @@ void CompressLz4(const std::vector<u8>& src, std::vector<u8>& dst) {
     return;
   }
 
-  const auto compress_staging{LZ4_compressBound(src.size())};
+  const auto compress_staging{LZ4_compressBound(static_cast<s32>(src.size()))};
   dst.resize(compress_staging);
 
-  const auto compressed_size{LZ4_compress_default(
-      reinterpret_cast<const schar*>(src.data()),
-      reinterpret_cast<schar*>(dst.data()), src.size(), compress_staging)};
+  const auto compressed_size{
+      LZ4_compress_default(reinterpret_cast<const schar*>(src.data()),
+                           reinterpret_cast<schar*>(dst.data()),
+                           static_cast<s32>(src.size()), compress_staging)};
   dst.resize(compressed_size);
 }
 
@@ -28,12 +29,12 @@ void CompressLz4(const u8* src, uindex src_size, std::vector<u8>& dst) {
     return;
   }
 
-  const auto compress_staging{LZ4_compressBound(src_size)};
+  const auto compress_staging{LZ4_compressBound(static_cast<s32>(src_size))};
   dst.resize(compress_staging);
 
   const auto compressed_size{LZ4_compress_default(
       reinterpret_cast<const schar*>(src), reinterpret_cast<schar*>(dst.data()),
-      src_size, compress_staging)};
+      static_cast<s32>(src_size), compress_staging)};
   dst.resize(compressed_size);
 }
 
@@ -47,7 +48,8 @@ void DecompressLz4(const std::vector<u8>& src, uindex size,
 
   LZ4_decompress_safe(reinterpret_cast<const schar*>(src.data()),
                       reinterpret_cast<schar*>(dst.data()),
-                      sizeof(src[0]) * src.size(), size);
+                      sizeof(src[0]) * static_cast<s32>(src.size()),
+                      static_cast<s32>(size));
 }
 
 void DecompressLz4(const u8* src, uindex src_size, uindex size,
@@ -59,6 +61,7 @@ void DecompressLz4(const u8* src, uindex src_size, uindex size,
   dst.resize(size);
 
   LZ4_decompress_safe(reinterpret_cast<const schar*>(src),
-                      reinterpret_cast<schar*>(dst.data()), src_size, size);
+                      reinterpret_cast<schar*>(dst.data()),
+                      static_cast<s32>(src_size), static_cast<s32>(size));
 }
 }  // namespace comet

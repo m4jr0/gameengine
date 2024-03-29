@@ -29,7 +29,7 @@ constexpr void CheckComponent() {
 struct ComponentTypeDescr {
   EntityId id{kInvalidEntityId};
   uindex size{0};
-  uindex alignment{0};
+  u16 alignment{0};
 };
 
 class ComponentIdGenerator {

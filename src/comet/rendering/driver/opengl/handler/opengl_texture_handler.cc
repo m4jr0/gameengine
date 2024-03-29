@@ -27,7 +27,7 @@ void TextureHandler::Shutdown() {
   }
 
   if (textures_.size() > 0) {
-    glDeleteTextures(handles.size(), handles.data());
+    glDeleteTextures(static_cast<s32>(handles.size()), handles.data());
   }
 
   textures_.clear();

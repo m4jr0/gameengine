@@ -114,8 +114,8 @@ class ResourceHandler {
   const Resource* Load(CTStringView root_resource_path,
                        CTStringView resource_path);
   const Resource* Load(CTStringView root_resource_path, ResourceId resource_id);
-  void Unload(CTStringView root_resource_path, CTStringView resource_path);
-  void Unload(CTStringView root_resource_path, ResourceId resource_id);
+  void Unload(CTStringView resource_path);
+  void Unload(ResourceId resource_id);
   const Resource* Get(ResourceId resource_id);
   virtual void Destroy(ResourceId resource_id);
   virtual const Resource* GetDefaultResource();

@@ -33,12 +33,12 @@ class GeometryManager : public Manager {
 
   Mesh* Generate(const resource::StaticMeshResource* resource);
   Mesh* Generate(const resource::SkinnedMeshResource* resource);
-  Mesh* Get(MeshId mesh_id, geometry::MeshType type);
+  Mesh* Get(MeshId mesh_id);
   Mesh* Get(const resource::MeshResource* resource);
-  Mesh* TryGet(MeshId mesh_id, geometry::MeshType type);
+  Mesh* TryGet(MeshId mesh_id);
   Mesh* TryGet(const resource::MeshResource* resource);
   Mesh* GetOrGenerate(const resource::MeshResource* resource);
-  void Destroy(MeshId mesh_id, geometry::MeshType type);
+  void Destroy(MeshId mesh_id);
   void Destroy(Mesh& mesh);
   MeshId GenerateMeshId(const resource::MeshResource* resource) const;
   MeshComponent GenerateComponent(const resource::StaticMeshResource* resource);

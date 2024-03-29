@@ -29,12 +29,12 @@ class two_frame_allocator {
 
   T* allocate_one() { return allocate(1); }
 
-  void deallocate(T* const p, std::size_t size) noexcept {
+  void deallocate(T* const, std::size_t) noexcept {
     // Do nothing. Data will be purged at the end of the frame after the next
     // one.
   }
 
-  void deallocate_one(T* const p) noexcept {
+  void deallocate_one(T* const) noexcept {
     // Do nothing. Data will be purged at the end of the frame.
   }
 };

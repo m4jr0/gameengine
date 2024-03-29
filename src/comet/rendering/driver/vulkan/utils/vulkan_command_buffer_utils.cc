@@ -63,8 +63,7 @@ void RecordCommand(const CommandData& command_data) {
   RecordCommand(command_data.command_buffer_handle);
 }
 
-void SubmitCommand(VkDevice device_handle,
-                   VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
+void SubmitCommand(VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
                    VkFence fence_handle, const VkSemaphore* wait_semaphore,
                    const VkSemaphore* signal_semaphore,
                    const VkPipelineStageFlags* wait_dst_stage_mask) {
@@ -80,9 +79,8 @@ void SubmitCommand(const CommandData& command_data, VkQueue queue_handle,
                    VkFence fence_handle, const VkSemaphore* wait_semaphore,
                    const VkSemaphore* signal_semaphore,
                    const VkPipelineStageFlags* wait_dst_stage_mask) {
-  SubmitCommand(command_data.device_handle, command_data.command_buffer_handle,
-                queue_handle, fence_handle, wait_semaphore, signal_semaphore,
-                wait_dst_stage_mask);
+  SubmitCommand(command_data.command_buffer_handle, queue_handle, fence_handle,
+                wait_semaphore, signal_semaphore, wait_dst_stage_mask);
 }
 
 VkCommandBuffer GenerateOneTimeCommand(VkDevice device_handle,
@@ -103,7 +101,7 @@ VkCommandBuffer GenerateOneTimeCommand(VkDevice device_handle,
 void SubmitOneTimeCommand(VkCommandBuffer& command_buffer_handle,
                           VkCommandPool command_pool_handle,
                           VkDevice device_handle, VkQueue queue_handle) {
-  SubmitCommand(device_handle, command_buffer_handle, queue_handle);
+  SubmitCommand(command_buffer_handle, queue_handle);
   vkQueueWaitIdle(queue_handle);
   vkFreeCommandBuffers(device_handle, command_pool_handle, 1,
                        &command_buffer_handle);

@@ -13,8 +13,6 @@ struct MemoryUse {
   uindex total_allocated{0};
   uindex total_freed{0};
 };
-
-static MemoryUse memory_use{};
 }  // namespace internal
 
 uindex GetTotalAllocatedMemory();

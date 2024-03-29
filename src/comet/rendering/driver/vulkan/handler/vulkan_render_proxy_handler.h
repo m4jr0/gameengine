@@ -17,7 +17,6 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/resource/model_resource.h"
-#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -40,7 +39,7 @@ class RenderProxyHandler : public Handler {
 
   void Shutdown() override;
 
-  void Update(time::Interpolation interpolation);
+  void Update();
   void DrawProxies(Shader& shader);
   // TODO(m4jr0): Remove temporary code.
   void DrawProxiesForDebugging(Shader& shader);

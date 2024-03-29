@@ -21,19 +21,20 @@ InputManager& InputManager::Get() {
 void InputManager::Initialize() {
   Manager::Initialize();
 
-  glfwSetScrollCallback(
-      window_handle_, [](GLFWwindow* handle, f64 x_offset, f64 y_offset) {
+  glfwSetScrollCallback(window_handle_, []([[maybe_unused]] GLFWwindow* handle,
+                                           f64 x_offset, f64 y_offset) {
 #ifdef COMET_IMGUI
-        if (is_imgui_) {
-          ImGui_ImplGlfw_ScrollCallback(handle, x_offset, y_offset);
-        }
+    if (is_imgui_) {
+      ImGui_ImplGlfw_ScrollCallback(handle, x_offset, y_offset);
+    }
 #endif  // COMET_IMGUI
-        event::EventManager::Get().FireEvent<event::MouseScrollEvent>(x_offset,
-                                                                      y_offset);
-      });
+    event::EventManager::Get().FireEvent<event::MouseScrollEvent>(x_offset,
+                                                                  y_offset);
+  });
 
   glfwSetCursorPosCallback(
-      window_handle_, [](GLFWwindow* handle, f64 x_pos, f64 y_pos) {
+      window_handle_,
+      []([[maybe_unused]] GLFWwindow* handle, f64 x_pos, f64 y_pos) {
 #ifdef COMET_IMGUI
         if (is_imgui_) {
           ImGui_ImplGlfw_CursorPosCallback(handle, x_pos, y_pos);
@@ -43,42 +44,46 @@ void InputManager::Initialize() {
             math::Vec2{x_pos, y_pos});
       });
 
-  glfwSetKeyCallback(window_handle_, [](GLFWwindow* handle, s32 key,
-                                        s32 scan_code, s32 action, s32 mods) {
+  glfwSetKeyCallback(
+      window_handle_, []([[maybe_unused]] GLFWwindow* handle, s32 key,
+                         s32 scan_code, s32 action, s32 mods) {
 #ifdef COMET_IMGUI
-    if (is_imgui_) {
-      ImGui_ImplGlfw_KeyCallback(handle, key, scan_code, action, mods);
-    }
+        if (is_imgui_) {
+          ImGui_ImplGlfw_KeyCallback(handle, key, scan_code, action, mods);
+        }
 #endif  // COMET_IMGUI
-    event::EventManager::Get().FireEvent<event::KeyboardEvent>(
-        static_cast<input::KeyCode>(key),
-        static_cast<input::ScanCode>(scan_code),
-        static_cast<input::Action>(action), static_cast<input::Mods>(mods));
-  });
+        event::EventManager::Get().FireEvent<event::KeyboardEvent>(
+            static_cast<input::KeyCode>(key),
+            static_cast<input::ScanCode>(scan_code),
+            static_cast<input::Action>(action), static_cast<input::Mods>(mods));
+      });
 
-  glfwSetMouseButtonCallback(window_handle_, [](GLFWwindow* handle,
-                                                s32 raw_button, s32 raw_action,
-                                                s32 raw_mods) {
+  glfwSetMouseButtonCallback(
+      window_handle_, []([[maybe_unused]] GLFWwindow* handle, s32 raw_button,
+                         s32 raw_action, s32 raw_mods) {
 #ifdef COMET_IMGUI
-    if (is_imgui_) {
-      ImGui_ImplGlfw_MouseButtonCallback(handle, raw_button, raw_action,
-                                         raw_mods);
-    }
+        if (is_imgui_) {
+          ImGui_ImplGlfw_MouseButtonCallback(handle, raw_button, raw_action,
+                                             raw_mods);
+        }
 #endif  // COMET_IMGUI
 
-    auto action{static_cast<Action>(raw_action)};
+        auto action{static_cast<Action>(raw_action)};
 
-    if (action == Action::Press) {
-      event::EventManager::Get().FireEvent<event::MouseClickEvent>(
-          static_cast<MouseButton>(raw_button), static_cast<Mods>(raw_mods));
-    } else if (action == Action::Release) {
-      event::EventManager::Get().FireEvent<event::MouseReleaseEvent>(
-          static_cast<MouseButton>(raw_button), static_cast<Mods>(raw_mods));
-    }
-  });
+        if (action == Action::Press) {
+          event::EventManager::Get().FireEvent<event::MouseClickEvent>(
+              static_cast<MouseButton>(raw_button),
+              static_cast<Mods>(raw_mods));
+        } else if (action == Action::Release) {
+          event::EventManager::Get().FireEvent<event::MouseReleaseEvent>(
+              static_cast<MouseButton>(raw_button),
+              static_cast<Mods>(raw_mods));
+        }
+      });
 
   glfwSetWindowFocusCallback(
-      window_handle_, [](GLFWwindow* handle, s32 is_focused) {
+      window_handle_,
+      []([[maybe_unused]] GLFWwindow* handle, [[maybe_unused]] s32 is_focused) {
 #ifdef COMET_IMGUI
         if (is_imgui_) {
           ImGui_ImplGlfw_WindowFocusCallback(handle, is_focused);
@@ -87,7 +92,8 @@ void InputManager::Initialize() {
       });
 
   glfwSetCursorEnterCallback(
-      window_handle_, [](GLFWwindow* handle, s32 is_entered) {
+      window_handle_,
+      []([[maybe_unused]] GLFWwindow* handle, [[maybe_unused]] s32 is_entered) {
 #ifdef COMET_IMGUI
         if (is_imgui_) {
           ImGui_ImplGlfw_CursorEnterCallback(handle, is_entered);
@@ -95,7 +101,8 @@ void InputManager::Initialize() {
 #endif  // COMET_IMGUI
       });
 
-  glfwSetCharCallback(window_handle_, [](GLFWwindow* handle, u32 code_point) {
+  glfwSetCharCallback(window_handle_, []([[maybe_unused]] GLFWwindow* handle,
+                                         [[maybe_unused]] u32 code_point) {
 #ifdef COMET_IMGUI
     if (is_imgui_) {
       ImGui_ImplGlfw_CharCallback(handle, code_point);
@@ -103,13 +110,14 @@ void InputManager::Initialize() {
 #endif  // COMET_IMGUI
   });
 
-  glfwSetMonitorCallback([](GLFWmonitor* monitor, s32 event) {
+  glfwSetMonitorCallback(
+      []([[maybe_unused]] GLFWmonitor* monitor, [[maybe_unused]] s32 event) {
 #ifdef COMET_IMGUI
-    if (is_imgui_) {
-      ImGui_ImplGlfw_MonitorCallback(monitor, event);
-    }
+        if (is_imgui_) {
+          ImGui_ImplGlfw_MonitorCallback(monitor, event);
+        }
 #endif  // COMET_IMGUI
-  });
+      });
 }
 
 void InputManager::Shutdown() {
@@ -186,7 +194,9 @@ void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
   window_handle_ = window_handle;
 }
 
+#ifdef COMET_DEBUG
 void InputManager::EnableImGui() { is_imgui_ = true; }
+#endif  // COMET_DEBUG
 
 bool InputManager::IsAltPressed() const {
   return IsKeyPressed(KeyCode::LeftAlt) || IsKeyPressed(KeyCode::RightAlt);

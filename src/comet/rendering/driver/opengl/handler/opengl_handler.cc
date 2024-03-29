@@ -7,7 +7,7 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-Handler::Handler(const HandlerDescr& descr) {}
+Handler::Handler(const HandlerDescr&) {}
 
 Handler::~Handler() {
   COMET_ASSERT(!is_initialized_,

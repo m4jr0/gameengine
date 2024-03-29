@@ -18,9 +18,9 @@ GlfwWindow::GlfwWindow(const GlfwWindow& other)
 GlfwWindow::GlfwWindow(GlfwWindow&& other) noexcept
     : Window{std::move(other)},
       handle_{other.handle_},
+      is_resize_event_{other.is_resize_event_},
       new_width_{other.new_width_},
-      new_height_{other.new_height_},
-      is_resize_event_{other.is_resize_event_} {
+      new_height_{other.new_height_} {
   other.handle_ = nullptr;
   other.new_width_ = 0;
   other.new_height_ = 0;
@@ -62,7 +62,7 @@ void GlfwWindow::Initialize() {
 
   if (window_count_ == 0) {
     COMET_LOG_RENDERING_INFO("Initializing GLFW...");
-    const auto result{glfwInit()};
+    [[maybe_unused]] const auto result{glfwInit()};
     COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
     SetGlfwHints();
 
@@ -79,7 +79,7 @@ void GlfwWindow::Initialize() {
   glfwSetWindowUserPointer(handle_, static_cast<void*>(this));
   glfwSetWindowAspectRatio(handle_, width_, height_);
 
-  glfwSetWindowCloseCallback(handle_, [](GLFWwindow* window) {
+  glfwSetWindowCloseCallback(handle_, [](GLFWwindow*) {
     event::EventManager::Get().FireEvent<event::WindowCloseEvent>();
   });
 

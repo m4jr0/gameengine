@@ -72,7 +72,7 @@ EntityId EntityManager::Generate(
 }
 
 bool EntityManager::IsEntity(const EntityId& entity_id) const {
-  return entity_id_handler_.IsAlive(entity_id);
+  return entity_id_handler_.IsAlive(GetGid(entity_id));
 }
 
 void EntityManager::Destroy(EntityId entity_id) {
@@ -83,7 +83,7 @@ void EntityManager::Destroy(EntityId entity_id) {
   PreRemoveEntityFromArchetype(record.row, record.archetype);
   ResizeArchetype(record.archetype, -1);
   records_.erase(entity_id);
-  entity_id_handler_.Destroy(entity_id);
+  entity_id_handler_.Destroy(GetGid(entity_id));
 }
 
 bool EntityManager::HasComponent(EntityId entity_id,
@@ -127,9 +127,8 @@ void EntityManager::AddComponents(
       // Check new components if assertion is enabled.
       COMET_ASSERT(!DoesEntityTypeContain(old_entity_type,
                                           added_entity_type[new_cmp_cursor]),
-                   "Entity #", entity_id, " already contains component ",
-                   COMET_STRING_ID_LABEL(added_entity_type[new_cmp_cursor]),
-                   "!");
+                   "Entity #", entity_id, " already contains component #",
+                   added_entity_type[new_cmp_cursor], "!");
 
       // New components are added later.
       ++new_cmp_cursor;  // Added component IDs are sorted, so we can optimize
@@ -184,12 +183,12 @@ void EntityManager::RemoveComponents(
   auto& entity_record{records_[entity_id]};
   auto* old_archetype{entity_record.archetype};
   const auto& old_entity_type{old_archetype->entity_type};
-  const auto old_component_count{old_entity_type.size()};
+  [[maybe_unused]] const auto old_component_count{old_entity_type.size()};
 
   for (uindex i{0}; i < removed_component_count; ++i) {
     COMET_ASSERT(DoesEntityTypeContain(old_entity_type, removed_entity_type[i]),
-                 "Entity #", entity_id, " does not contain component ",
-                 COMET_STRING_ID_LABEL(removed_entity_type[i]), "!");
+                 "Entity #", entity_id, " does not contain component #",
+                 removed_entity_type[i], "!");
   }
 
   COMET_ASSERT(removed_component_count <= old_component_count,
@@ -366,7 +365,8 @@ bool EntityManager::DoesEntityTypeContain(const EntityType& entity_type,
   return false;
 }
 
-void EntityManager::CopyComponent(EntityId entity_id, Archetype* new_archetype,
+void EntityManager::CopyComponent([[maybe_unused]] EntityId entity_id,
+                                  Archetype* new_archetype,
                                   uindex new_entity_index,
                                   const ComponentDescr& component_descr) {
   uindex component_index{0};
@@ -377,10 +377,10 @@ void EntityManager::CopyComponent(EntityId entity_id, Archetype* new_archetype,
     ++component_index;
   }
 
-  COMET_ASSERT(
-      component_index < new_archetype->entity_type.size(), "Component ",
-      COMET_STRING_ID_LABEL(component_descr.type_descr.id),
-      " has not been found in the entity #", entity_id, "! What happened?");
+  COMET_ASSERT(component_index < new_archetype->entity_type.size(),
+               "Component #", component_descr.type_descr.id,
+               " has not been found in the entity #", entity_id,
+               "! What happened?");
 
   auto& new_cmp_array{new_archetype->components[component_index]};
 

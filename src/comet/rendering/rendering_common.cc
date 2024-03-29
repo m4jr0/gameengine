@@ -38,9 +38,9 @@ const schar* GetDriverTypeLabel(DriverType type) {
     case DriverType::Empty:
       return "Empty";
 #endif  // COMET_DEBUG
+    default:
+      return "???";
   }
-
-  return "???";
 }
 
 AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
@@ -150,9 +150,9 @@ Alignment GetScalarAlignment(ShaderUniformType type) {
     case ShaderUniformType::Mat4x3:
     case ShaderUniformType::Mat4x4:
       return 4;
+    default:
+      return kInvalidAlignment;
   }
-
-  return kInvalidAlignment;
 }
 
 // Extended alignment.
@@ -200,9 +200,9 @@ Alignment GetStd140Alignment(ShaderUniformType type) {
     case ShaderUniformType::Mat4x3:
     case ShaderUniformType::Mat4x4:
       return 16;
+    default:
+      return kInvalidAlignment;
   }
-
-  return kInvalidAlignment;
 }
 
 // Base alignment.
@@ -251,9 +251,9 @@ Alignment GetStd430Alignment(ShaderUniformType type) {
     case ShaderUniformType::Mat4x3:
     case ShaderUniformType::Mat4x4:
       return 16;
+    default:
+      return kInvalidAlignment;
   }
-
-  return kInvalidAlignment;
 }
 
 void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
@@ -414,7 +414,7 @@ void GenerateGeometry(const Frustum& frustum,
 
   geometry::Vertex vertex{};
   vertex.color = math::Vec4{kColorBlack, 1.0f};
-  bool is_intersection{false};
+  [[maybe_unused]] bool is_intersection{false};
 
   // Top right far.
   constexpr auto kTopRightFarIndex{0};

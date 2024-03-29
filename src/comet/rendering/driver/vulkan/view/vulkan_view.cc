@@ -8,13 +8,13 @@ namespace comet {
 namespace rendering {
 namespace vk {
 View::View(const ViewDescr& descr)
-    : id_{descr.id},
-      is_first_{descr.is_first},
+    : is_first_{descr.is_first},
       is_last_{descr.is_last},
       width_{descr.width},
       height_{descr.height},
       clear_color_{descr.clear_color[0], descr.clear_color[1],
                    descr.clear_color[2], descr.clear_color[3]},
+      id_{descr.id},
       context_{descr.context},
       render_pass_handler_{descr.render_pass_handler} {
   COMET_ASSERT(context_ != nullptr, "Context is null!");

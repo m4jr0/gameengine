@@ -52,15 +52,15 @@ void TimeManager::Stop() noexcept { SetTimeScale(0.0f); }
 
 void TimeManager::Normalize() noexcept { SetTimeScale(1.0f); }
 
-const f64 TimeManager::GetFixedDeltaTime() const noexcept {
+f64 TimeManager::GetFixedDeltaTime() const noexcept {
   return fixed_delta_time_;
 }
 
-const f64 TimeManager::GetDeltaTime() const noexcept { return delta_time_; }
+f64 TimeManager::GetDeltaTime() const noexcept { return delta_time_; }
 
-const f64 TimeManager::GetCurrentTime() const noexcept { return current_time_; }
+f64 TimeManager::GetCurrentTime() const noexcept { return current_time_; }
 
-const f32 TimeManager::GetTimeScale() const noexcept { return time_scale_; }
+f32 TimeManager::GetTimeScale() const noexcept { return time_scale_; }
 
 void TimeManager::SetTimeScale(f32 time_scale) noexcept {
   time_scale_ = time_scale;

@@ -226,13 +226,11 @@ const Resource* ResourceHandler::Load(CTStringView root_resource_path,
   return resource;
 }
 
-void ResourceHandler::Unload(CTStringView root_resource_path,
-                             CTStringView resource_path) {
-  Unload(root_resource_path, GenerateResourceIdFromPath(resource_path));
+void ResourceHandler::Unload(CTStringView resource_path) {
+  Unload(GenerateResourceIdFromPath(resource_path));
 }
 
-void ResourceHandler::Unload(CTStringView root_resource_path,
-                             ResourceId resource_id) {
+void ResourceHandler::Unload(ResourceId resource_id) {
   COMET_ASSERT(resource_id != kDefaultResourceId,
                "Cannot unload default resource!");
   auto* resource{cache_.Get(resource_id)};

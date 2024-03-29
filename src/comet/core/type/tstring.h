@@ -137,11 +137,10 @@ class TString {
   void Allocate(uindex capacity);
   void Deallocate();
 
+  uindex length_{0};
 #ifdef COMET_DEBUG
   bool is_alloc_allowed_{true};
 #endif  // COMET_DEBUG
-
-  uindex length_{0};
   uindex capacity_{kSSOCapacityThreshold};
   tchar* str_{nullptr};
   tchar sso_[kSSOCapacityThreshold + 1]{COMET_TCHAR('\0')};
@@ -196,8 +195,8 @@ class CTStringView {
   constexpr operator const tchar*() const noexcept { return GetCTStr(); }
 
  private:
-  uindex length_{0};
   const tchar* str_{nullptr};
+  uindex length_{0};
 };
 
 std::ostream& operator<<(std::ostream& stream, const TString& str);

@@ -4,7 +4,7 @@
 
 #include "entry_point.h"
 
-int main(int argc, char* argv[]) {
+int main() {
   {
     auto engine{comet::GenerateEngine()};
 

@@ -65,23 +65,19 @@ class NullInputManager : public InputManager {
   NullInputManager& operator=(NullInputManager&&) = delete;
   virtual ~NullInputManager() = default;
 
-  virtual bool IsKeyPressed(KeyCode key_code) const override { return false; };
+  virtual bool IsKeyPressed(KeyCode) const override { return false; };
 
-  virtual bool IsKeyUp(KeyCode key_code) const override { return false; };
-  virtual bool IsKeyDown(KeyCode key_code) const override { return false; };
-  virtual bool IsMousePressed(MouseButton key_code) const override {
-    return false;
-  };
-  virtual bool IsMouseDown(MouseButton key_code) const override {
-    return false;
-  };
-  virtual bool IsMouseUp(MouseButton key_code) const override { return false; };
+  virtual bool IsKeyUp(KeyCode) const override { return false; };
+  virtual bool IsKeyDown(KeyCode) const override { return false; };
+  virtual bool IsMousePressed(MouseButton) const override { return false; };
+  virtual bool IsMouseDown(MouseButton) const override { return false; };
+  virtual bool IsMouseUp(MouseButton) const override { return false; };
 
   virtual math::Vec2 GetMousePosition() const override {
     return math::Vec2{0.0f, 0.0f};
   };
 
-  virtual void SetMousePosition(f32 x, f32 y) override{};
+  virtual void SetMousePosition(f32, f32) override{};
   virtual void EnableUnconstrainedMouseCursor() override{};
   virtual void DisableUnconstrainedMouseCursor() override{};
 };

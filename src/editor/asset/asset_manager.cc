@@ -31,9 +31,6 @@ AssetManager::AssetManager() : Manager{} {
   COMET_DISALLOW_STR_ALLOC(root_asset_path_);
   Clean(root_asset_path_);
 
-  constexpr auto library_suffix_len{
-      8 + kCometEditorAssetMetadataFileExtension.GetLength()};
-
   // Add 1 for the separating slash, if needed.
   library_meta_path_.Reserve(
       root_asset_path_.GetLength() + 8 +

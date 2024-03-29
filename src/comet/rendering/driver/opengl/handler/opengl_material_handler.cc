@@ -160,8 +160,6 @@ RepeatMode MaterialHandler::GetRepeatMode(TextureRepeatMode repeat_mode) {
 
 TextureType MaterialHandler::GetTextureType(
     rendering::TextureType texture_type) {
-  u8 offset{0};
-
   switch (texture_type) {
     case rendering::TextureType::Diffuse:
       return TextureType::Diffuse;

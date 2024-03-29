@@ -204,7 +204,9 @@ void TString::Allocate(uindex capacity) {
     return;
   }
 
+#ifdef COMET_DEBUG
   COMET_ASSERT(is_alloc_allowed_, "Allocation is not allowed on this TString!");
+#endif  // COMET_DEBUG
   auto* old{GetTStr()};
   auto& tstring_allocator{memory::MemoryManager::Get().GetTStringAllocator()};
 

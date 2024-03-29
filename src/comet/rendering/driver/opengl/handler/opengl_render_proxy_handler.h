@@ -38,16 +38,16 @@ class RenderProxyHandler : public Handler {
 
   void Shutdown() override;
 
-  void Update(FrameIndex frame_count, time::Interpolation interpolation);
+  void Update(FrameIndex frame_count);
   void DrawProxies(FrameIndex frame_count, Shader& shader);
   // TODO(m4jr0): Remove temporary code.
-  void DrawProxiesForDebugging(FrameIndex frame_count, Shader& shader);
+  void DrawProxiesForDebugging(Shader& shader);
   u32 GetDrawCount() const noexcept;
 
  private:
   RenderProxy GenerateInternal(MeshProxy& mesh, Material& material,
                                const math::Mat4& transform);
-  void Draw(FrameIndex frame_count, const RenderProxy& proxy);
+  void Draw(const RenderProxy& proxy);
 
   constexpr static auto kDefaultProxyCount{512};
   FrameIndex update_frame_{kInvalidFrameIndex};

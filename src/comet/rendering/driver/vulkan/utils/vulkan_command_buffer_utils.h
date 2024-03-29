@@ -24,8 +24,8 @@ void DestroyCommandData(CommandData& command_data);
 void RecordCommand(VkCommandBuffer command_buffer_handle);
 void RecordCommand(const CommandData& command_data);
 void SubmitCommand(
-    VkDevice device_handle, VkCommandBuffer command_buffer_handle,
-    VkQueue queue_handle, VkFence fence_handle = VK_NULL_HANDLE,
+    VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
+    VkFence fence_handle = VK_NULL_HANDLE,
     const VkSemaphore* wait_semaphore = VK_NULL_HANDLE,
     const VkSemaphore* signal_semaphore = VK_NULL_HANDLE,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE);

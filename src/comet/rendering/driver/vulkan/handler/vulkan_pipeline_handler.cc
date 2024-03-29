@@ -27,13 +27,13 @@ const Pipeline* PipelineHandler::Generate(const PipelineDescr& descr) {
   switch (descr.type) {
     case PipelineType::Graphics:
       return GenerateGraphics(descr);
+    default:
+      COMET_ASSERT(
+          false, "Invalid  pipeline type provided: ",
+          static_cast<std::underlying_type_t<PipelineType>>(descr.type), "!");
+
+      return nullptr;
   }
-
-  COMET_ASSERT(false, "Invalid  pipeline type provided: ",
-               static_cast<std::underlying_type_t<PipelineType>>(descr.type),
-               "!");
-
-  return nullptr;
 }
 
 const Pipeline* PipelineHandler::Get(PipelineId pipeline_id) const {
@@ -115,7 +115,8 @@ const Pipeline* PipelineHandler::GenerateGraphics(const PipelineDescr& descr) {
   VkPipelineDynamicStateCreateInfo dynamic_state_info{};
   dynamic_state_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  dynamic_state_info.dynamicStateCount = dynamic_states.size();
+  dynamic_state_info.dynamicStateCount =
+      static_cast<u32>(dynamic_states.size());
   dynamic_state_info.pDynamicStates = dynamic_states.data();
 
   auto vertex_input_state_info{init::GeneratePipelineVertexInputStateCreateInfo(

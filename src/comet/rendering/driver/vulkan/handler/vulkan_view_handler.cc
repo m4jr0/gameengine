@@ -189,9 +189,9 @@ void ViewHandler::Destroy(View& view, bool is_destroying_handler) {
   auto view_index{kInvalidIndex};
 
   for (u32 i{0}; i < views_.size(); ++i) {
-    auto* view{views_[i].get()};
+    auto* other_view{views_[i].get()};
 
-    if (view->GetId() == view_id) {
+    if (other_view->GetId() == view_id) {
       view_index = i;
       break;
     }

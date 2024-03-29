@@ -32,7 +32,7 @@ void CometEditor::PreLoad() {
 
 #ifdef COMET_UNIX
   struct sigaction sig_handler;
-  sig_handler.sa_handler = [](s32 signal) { CometEditor::Get().Quit(); };
+  sig_handler.sa_handler = [](s32) { CometEditor::Get().Quit(); };
 
   sigemptyset(&sig_handler.sa_mask);
   sig_handler.sa_flags = 0;

@@ -36,7 +36,7 @@ void ShaderHandler::Shutdown() {
   }
 
   if (ubo_handles.size() > 0) {
-    glDeleteBuffers(ubo_handles.size(), ubo_handles.data());
+    glDeleteBuffers(static_cast<s32>(ubo_handles.size()), ubo_handles.data());
   }
 
   shaders_.clear();
@@ -196,7 +196,7 @@ void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
     glBindTexture(GL_TEXTURE_2D, texture_map->texture_handle);
 
     if (is_update) {
-        glUniform1i(uniform.location, texture_map->type);
+      glUniform1i(uniform.location, texture_map->type);
     }
 
     return;
@@ -210,7 +210,7 @@ void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
         "!");
 
     if (is_update) {
-    kUniformCallbacks_.at(uniform.type)(uniform.location, value);
+      kUniformCallbacks_.at(uniform.type)(uniform.location, value);
     }
 
     return;
@@ -619,7 +619,7 @@ ShaderUniformLocation GetSamplerLocation(
     TextureType texture_type) {
   constexpr uindex kBuffLen{32};
   static schar buff[kBuffLen];
-  u8 cursor;
+  uindex cursor;
 
   if (uniform_descr.scope == ShaderUniformScope::Global) {
     cursor = 15;
@@ -713,7 +713,7 @@ ShaderUniformIndex ShaderHandler::HandleUniformIndex(
 
   COMET_ASSERT(index != nullptr, "Unable to find uniform location with name \"",
                uniform_descr.name, "\"!");
-  COMET_ASSERT(*index == kInvalidShaderUniformLocation,
+  COMET_ASSERT(*index == kInvalidShaderUniformIndex,
                "Uniform location with name \"", uniform_descr.name,
                "\" was already bound!");
   *index = static_cast<ShaderUniformIndex>(shader.uniforms.size());

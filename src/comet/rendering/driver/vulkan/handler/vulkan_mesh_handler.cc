@@ -125,8 +125,7 @@ MeshProxy* MeshHandler::Register(MeshProxy& proxy) {
   if (to_return != nullptr) {
     Upload(*to_return);
   } else {
-    COMET_ASSERT(false, "Could not insert mesh proxy: ",
-                 COMET_STRING_ID_LABEL(proxy_id), "!");
+    COMET_ASSERT(false, "Could not insert mesh proxy #", proxy_id, "!");
   }
 
   return to_return;
@@ -154,7 +153,6 @@ void MeshHandler::Upload(MeshProxy& proxy) {
       static_cast<u32>(proxy.mesh->indices.size() * sizeof(geometry::Index))};
 
   const auto buffer_size{vertex_buffer_size + index_buffer_size};
-  auto allocator_handle{context_->GetAllocatorHandle()};
 
   MapBuffer(staging_buffer_);
   CopyToBuffer(staging_buffer_, proxy.mesh->vertices.data(),
@@ -174,8 +172,7 @@ void MeshHandler::Upload(MeshProxy& proxy) {
 
   CopyBuffer(context_->GetDevice(),
              context_->GetUploadContext().command_pool_handle, staging_buffer_,
-             proxy.vertex_buffer, buffer_size,
-             context_->GetUploadContext().upload_fence_handle);
+             proxy.vertex_buffer, buffer_size);
   proxy.mesh->is_dirty = false;
 }
 }  // namespace vk

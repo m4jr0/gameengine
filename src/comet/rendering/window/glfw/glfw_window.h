@@ -33,7 +33,7 @@ class GlfwWindow : public Window {
   void SetUpResizeEvent(WindowSize width, WindowSize height);
 
   virtual GLFWwindow* GetHandle() noexcept;
-  virtual operator GLFWwindow*() noexcept;
+  operator GLFWwindow*() noexcept;
 
  protected:
   inline static uindex window_count_{0};

@@ -37,8 +37,8 @@ class Window {
 
   bool IsInitialized() const noexcept;
   virtual const schar* GetName() const noexcept;
-  virtual const WindowSize GetWidth() const noexcept;
-  virtual const WindowSize GetHeight() const noexcept;
+  virtual WindowSize GetWidth() const noexcept;
+  virtual WindowSize GetHeight() const noexcept;
 
  protected:
   bool is_initialized_{false};

@@ -16,8 +16,6 @@ TString GenerateAssetMetadataFilePath(CTStringView asset_file_path) {
     return {};
   }
 
-  auto extension_size{kCometEditorAssetMetadataFileExtension.GetLength()};
-
   // + 1 to add the dot.
   auto total_len{asset_file_path.GetLength() +
                  kCometEditorAssetMetadataFileExtension.GetLength() + 1};

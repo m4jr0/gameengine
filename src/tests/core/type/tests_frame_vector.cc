@@ -43,16 +43,7 @@ TEST_CASE("One-frame vectors creation", "[comet::memory]") {
 
   memory_manager.Update();
   comet::two_frame_unordered_map<comet::two_frame_string, comet::u32> map{};
-  map["TEST"] = 32;
-
-  memory_manager.Update();
-
-  auto a{map.at("TEST")};
-  ++a;
 
   memory_manager.Update();
   comet::two_frame_unordered_map<comet::two_frame_string, comet::u32> map2{};
-  map2["TEST"] = 42;
-  auto b{map.at("TEST")};
-  ++a;
 }

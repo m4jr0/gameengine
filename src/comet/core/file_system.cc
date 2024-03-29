@@ -34,7 +34,6 @@ const tchar* GetNextElementForRelativePath(const tchar*& cursor,
                                            const tchar* path_end) {
   auto is_dot{false};
   auto is_dot_dot{false};
-  auto is_from_non_dot_dot{false};
 
   while (cursor < path_end) {
     tchar from_c{*cursor};
@@ -165,8 +164,8 @@ bool WriteStrToFile(CTStringView path, const schar* buff, bool is_append) {
   return true;
 }
 
-bool ReadStrFromFile(CTStringView path, schar* buff, uindex buff_len,
-                     uindex* out_len) {
+bool ReadStrFromFile(CTStringView path, schar* buff,
+                     [[maybe_unused]] uindex buff_len, uindex* out_len) {
   std::ifstream input_stream;
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   auto is_open{false};
@@ -190,14 +189,12 @@ bool ReadStrFromFile(CTStringView path, schar* buff, uindex buff_len,
   // Get character count.
   input_stream.ignore(std::numeric_limits<std::streamsize>::max());
   const auto file_size{input_stream.gcount()};
-  COMET_ASSERT(buff_len > file_size, "File is too big for buffer: ", file_size,
-               " >= ", buff_len, "!");
+  COMET_ASSERT(file_size > 0 && buff_len > static_cast<uindex>(file_size),
+               "File is too big for buffer: ", file_size, " >= ", buff_len,
+               "!");
   input_stream.clear();  // Reset file (EOF flag is set).
   input_stream.seekg(0, std::ios_base::beg);
-
-  COMET_ASSERT(input_stream.read(buff, file_size),
-               "Something wrong happened while reading the file!");
-
+  input_stream.read(buff, file_size);
   buff[file_size] = '\0';
   input_stream.close();
 
@@ -287,7 +284,7 @@ bool CreateDirectory(CTStringView path, bool is_recursive) {
 
 bool Move(CTStringView previous_name, CTStringView new_name) {
   if (!Exists(previous_name) ||
-      (Exists(new_name)) && previous_name != new_name) {
+      (Exists(new_name) && previous_name != new_name)) {
     return false;
   }
 
@@ -409,9 +406,9 @@ bool Remove(CTStringView path, bool is_recursive) {
 #endif  // COMET_MSVC
 }
 
-TString GetCurrentDirectory(bool is_clean) {
+TString GetCurrentDirectory() {
   tchar path_str[kMaxPathLength]{COMET_TCHAR('\0')};
-  bool is_ok{false};
+  [[maybe_unused]] auto is_ok{false};
 
 #ifdef COMET_MSVC
   is_ok = MSVC_GET_CURRENT_DIRECTORY(kMaxPathLength, path_str) != 0;
@@ -602,10 +599,10 @@ TString GetNormalizedPath(CTStringView path) {
                kDotDotFolderName.GetLength(), normalized_cursor);
           normalized_cursor += kDotDotFolderName.GetLength();
 
-          const auto dot_dot_index = kDotDotFolderName.GetLength() - 1;
+          const auto current_dot_dot_index = kDotDotFolderName.GetLength() - 1;
 
-          if (normalized_cursor > dot_dot_index &&
-              !IsSlash(normalized[normalized_cursor - dot_dot_index])) {
+          if (normalized_cursor > current_dot_dot_index &&
+              !IsSlash(normalized[normalized_cursor - current_dot_dot_index])) {
             normalized[normalized_cursor++] = kNativeSlash;
           }
         }
@@ -819,6 +816,8 @@ TString GetRelativePath(CTStringView to, CTStringView from) {
     default:
       COMET_ASSERT(false, "Unknown or unsupported root type: ",
                    GetRootTypeLabel(from_root_type), "!");
+      from_cursor = from_p;
+      to_cursor = to_p;
   }
 #else
   const auto is_from_absolute{IsAbsolute(from)};
@@ -1005,7 +1004,6 @@ bool IsSlash(tchar c) {
 #else
   return c == COMET_TCHAR('/');
 #endif  // COMET_MSVC
-  return false;
 }
 
 bool IsDirectory(CTStringView path) {
@@ -1282,17 +1280,17 @@ f64 GetLastModificationTime(CTStringView path) {
   struct _stat64i32 status;
 
   if (_wstat(path.GetCTStr(), &status) == 0) {
-    return status.st_mtime * 1000;
+    return static_cast<f64>(status.st_mtime * 1000);
   }
 #else
   struct stat status;
 
   if (stat(path.GetCTStr(), &status) == 0) {
-    return status.st_mtime * 1000;
+    return static_cast<f64>(status.st_mtime * 1000);
   }
 #endif  // COMET_MSVC
 
-  return -1;
+  return -1.0;
 }
 
 void GetChecksum(CTStringView path, schar* checksum, uindex checksum_len) {
@@ -1311,17 +1309,11 @@ void GetChecksum(CTStringView path, schar* checksum, uindex checksum_len) {
 }
 
 void NormalizeSlashes(tchar* str, uindex len) {
-#ifdef COMET_MSVC
   for (uindex i{0}; i < len; ++i) {
-    tchar c{str[i]};
-
     if (str[i] == COMET_TCHAR('\\')) {
       str[i] = COMET_TCHAR('/');
     }
   }
-#else
-  return;
-#endif  // COMET_MSVC
 }
 
 void NormalizeSlashes(tchar* str) {
@@ -1332,11 +1324,9 @@ void NormalizeSlashes(TString& str) {
   return NormalizeSlashes(str.GetTStr(), str.GetLength());
 }
 
-void MakeNative(tchar* str, uindex len) {
+void MakeNative([[maybe_unused]] tchar* str, [[maybe_unused]] uindex len) {
 #ifdef COMET_MSVC
   for (uindex i{0}; i < len; ++i) {
-    tchar c{str[i]};
-
     if (str[i] == COMET_TCHAR('/')) {
       str[i] = COMET_TCHAR('\\');
     }
@@ -1363,7 +1353,7 @@ void Clean(tchar* str, uindex len) {
 void Clean(tchar* str) { return Clean(str, GetLength(str)); }
 void Clean(TString& str) { return Clean(str.GetTStr(), str.GetLength()); }
 
-const tchar* GetTmpTChar(const schar* str, uindex len) {
+const tchar* GetTmpTChar(const schar* str, [[maybe_unused]] uindex len) {
 #ifdef COMET_WIDE_TCHAR
   auto* tmp{GenerateForOneFrame<tchar>(len)};
   Copy(tmp, str, len);
@@ -1378,7 +1368,7 @@ const tchar* GetTmpTChar(const schar* str) {
   return GetTmpTChar(str, GetLength(str));
 }
 
-const tchar* GetTmpTChar(const wchar* str, uindex len) {
+const tchar* GetTmpTChar(const wchar* str, [[maybe_unused]] uindex len) {
 #ifdef COMET_WIDE_TCHAR
   return str;
 #else

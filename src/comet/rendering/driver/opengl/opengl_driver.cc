@@ -44,7 +44,7 @@ void OpenGlDriver::Initialize() {
       COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
       event::WindowResizeEvent::kStaticType_);
 
-  const auto result{
+  [[maybe_unused]] const auto result{
       gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
 
   COMET_ASSERT(result, "Could not load GL Loader!");
@@ -167,7 +167,7 @@ void OpenGlDriver::DestroyHandlers() {
   view_handler_ = nullptr;
 }
 
-void OpenGlDriver::SetSize(WindowSize width, WindowSize height) {
+void OpenGlDriver::SetSize(WindowSize, WindowSize) {
   glViewport(0, 0, window_->GetWidth(), window_->GetHeight());
 }
 
@@ -195,11 +195,10 @@ void OpenGlDriver::Draw(time::Interpolation interpolation) {
 }
 
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
-void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum source, GLenum type,
-                                               GLuint id, GLenum severity,
-                                               GLsizei length,
+void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum, GLenum type, GLuint,
+                                               GLenum severity, GLsizei,
                                                const GLchar* message,
-                                               const void* user_param) {
+                                               const void*) {
   constexpr auto kTypeStrLen{12};
   schar type_str[kTypeStrLen]{'\0'};
 

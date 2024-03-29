@@ -93,11 +93,11 @@ class Context {
   uindex max_object_count_{0};
   UploadContext upload_context_{};
   std::vector<FrameData> frame_data_{};
-  const Device* device_{nullptr};
-  const ImageData* image_data_{nullptr};
   VkInstance instance_handle_{VK_NULL_HANDLE};
   VmaAllocator allocator_handle_{VK_NULL_HANDLE};
   VkCommandPool transfer_command_pool_handle_{VK_NULL_HANDLE};
+  const ImageData* image_data_{nullptr};
+  const Device* device_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

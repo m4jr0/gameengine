@@ -158,6 +158,10 @@ bool AreStringsEqualInsensitive(const schar* str1, uindex str1_len,
 
 bool AreStringsEqualInsensitive(const wchar* str1, uindex str1_len,
                                 const wchar* str2, uindex str2_len) {
+  if (str1_len != str2_len) {
+    return false;
+  }
+
   if (str1 == nullptr && str2 == nullptr) {
     return true;
   }
@@ -191,14 +195,28 @@ schar* Copy(schar* dst, const schar* src, uindex length, uindex dst_offset,
             uindex src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+#ifdef COMET_MSVC
+  [[maybe_unused]] auto result{
+      strncpy_s(dst + dst_offset, length + 1, src + src_offset, length)};
+  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+#else
   return std::strncpy(dst + dst_offset, src + src_offset, length);
+#endif  // COMET_MSVC
+  return dst;
 }
 
 wchar* Copy(wchar* dst, const schar* src, uindex length, uindex dst_offset,
             uindex src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+#ifdef COMET_MSVC
+  [[maybe_unused]] uindex out_count;
+  [[maybe_unused]] auto result{mbstowcs_s(
+      &out_count, dst + dst_offset, length + 1, src + src_offset, length)};
+  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+#else
   std::mbstowcs(dst + dst_offset, src + src_offset, length);
+#endif  // COMET_MSVC
   return dst;
 }
 
@@ -206,7 +224,14 @@ schar* Copy(schar* dst, const wchar* src, uindex length, uindex dst_offset,
             uindex src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+#ifdef COMET_MSVC
+  [[maybe_unused]] uindex out_count;
+  [[maybe_unused]] auto result{wcstombs_s(
+      &out_count, dst + dst_offset, length + 1, src + src_offset, length)};
+  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+#else
   std::wcstombs(dst + dst_offset, src + src_offset, length);
+#endif  // COMET_MSVC
   return dst;
 }
 
@@ -214,7 +239,13 @@ wchar* Copy(wchar* dst, const wchar* src, uindex length, uindex dst_offset,
             uindex src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+#ifdef COMET_MSVC
+  [[maybe_unused]] auto result{
+      wcsncpy_s(dst + dst_offset, length + 1, src + src_offset, length)};
+  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+#else
   std::wcsncpy(dst + dst_offset, src + src_offset, length);
+#endif  // COMET_MSVC
   return dst;
 }
 
@@ -262,13 +293,13 @@ void FillWith(wchar* str, uindex str_length, wchar c, uindex offset,
   internal ::FillWith(str, str_length, c, offset, length);
 }
 
-schar ToUpper(schar c) { return std::toupper(c); }
+schar ToUpper(schar c) { return static_cast<schar>(std::toupper(c)); }
 
-wchar ToUpper(wchar c) { return std::towupper(c); }
+wchar ToUpper(wchar c) { return static_cast<wchar>(std::towupper(c)); }
 
-schar ToLower(schar c) { return std::tolower(c); }
+schar ToLower(schar c) { return static_cast<schar>(std::tolower(c)); }
 
-wchar ToLower(wchar c) { return std::towlower(c); }
+wchar ToLower(wchar c) { return static_cast<wchar>(std::towlower(c)); }
 
 void Clear(schar* str, uindex str_len) { FillWith(str, str_len, '\0'); }
 

@@ -157,9 +157,11 @@ void VulkanDriver::InitializeVulkanInstance() {
 
   COMET_LOG_RENDERING_DEBUG("Available  extensions:");
 
+#ifdef COMET_DEBUG
   for (const auto& extension : extensions) {
     COMET_LOG_RENDERING_DEBUG("\t", extension.extensionName);
   }
+#endif  // COMET_DEBUG
 
   VkApplicationInfo app_info{};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -232,8 +234,10 @@ void VulkanDriver::InitializeVulkanInstance() {
       }
     }
 
-    COMET_ASSERT(is_found,
-                 "Required extension is not available: ", required_extension);
+    if (!is_found) {
+      COMET_LOG_RENDERING_ERROR("Required extension is not available: ",
+                                required_extension);
+    }
   }
 
   create_info.enabledExtensionCount = required_extension_count;
@@ -436,8 +440,8 @@ void VulkanDriver::Draw(time::Interpolation interpolation) {
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = extent.width;
-  viewport.height = extent.height;
+  viewport.width = static_cast<f32>(extent.width);
+  viewport.height = static_cast<f32>(extent.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
@@ -561,8 +565,7 @@ bool VulkanDriver::AreValidationLayersSupported() {
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanValidationMessage(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type,
-    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-    void* user_data) {
+    const VkDebugUtilsMessengerCallbackDataEXT* callback_data, void*) {
   constexpr auto kMessageTypeStrMaxLen{48};
   schar message_type_str[kMessageTypeStrMaxLen]{'\0'};
 
@@ -609,9 +612,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanValidationMessage(
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanDebugReportMessage(
-    VkFlags message_flags, VkDebugReportObjectTypeEXT object_type,
-    u64 source_object, uindex location, int32_t message_code,
-    const schar* layer_prefix, const schar* message, void* user_data) {
+    VkFlags message_flags, VkDebugReportObjectTypeEXT, u64, uindex,
+    int32_t message_code, const schar* layer_prefix, const schar* message,
+    void*) {
   if (message_flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT ||
       message_flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
     COMET_LOG_RENDERING_DEBUG("[Debug | ", layer_prefix, "] ", message_code,

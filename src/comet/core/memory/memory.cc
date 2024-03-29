@@ -21,9 +21,9 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "tstring";
     case MemoryTag::Entity:
       return "entity";
+    default:
+      return "???";
   }
-
-  return "???";
 }
 
 void* CopyMemory(void* dst, const void* src, uindex size) {
@@ -31,10 +31,11 @@ void* CopyMemory(void* dst, const void* src, uindex size) {
 }
 
 void* Allocate(uindex size, MemoryTag tag) {
-  return AllocateAligned(size, 0, tag);
+  return AllocateAligned(size, 1, tag);
 }
 
-void* AllocateAligned(uindex size, u16 alignment, MemoryTag tag) {
+void* AllocateAligned(uindex size, u16 alignment,
+                      [[maybe_unused]] MemoryTag tag) {
   // TODO(m4jr0): Handle memory tag.
   uindex final_size{size + alignment};
   auto* ptr{new u8[final_size]};
@@ -57,8 +58,19 @@ void* AllocateAligned(uindex size, u16 alignment, MemoryTag tag) {
   COMET_ASSERT(shift > 0 && shift <= kMaxAlignment,
                "Invalid shift in memory allocation! Shift is ", shift,
                ", but it must be between ", 0, " and ", kMaxAlignment, ".");
+
+#ifdef COMET_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif  // COMET_GCC
   // Set shift to 0 if it equals kMaxAlignment.
   aligned_ptr[-1] = shift & (static_cast<u8>(kMaxAlignment - 1));
+#ifdef COMET_GCC
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#endif  // COMET_GCC
   return aligned_ptr;
 }
 

@@ -29,14 +29,14 @@ void DebugView::Destroy() {
 }
 
 void DebugView::Update(const ViewPacket& packet) {
-  render_proxy_handler_->Update(packet.frame_count, packet.interpolation);
+  render_proxy_handler_->Update(packet.frame_count);
   shader_handler_->Bind(*shader_);
   ShaderPacket shader_packet{};
   shader_packet.projection_matrix = &packet.projection_matrix;
   shader_packet.view_matrix = packet.view_matrix;
   shader_handler_->UpdateGlobal(*shader_, shader_packet);
   // TODO(m4jr0): Remove temporary code.
-  render_proxy_handler_->DrawProxiesForDebugging(packet.frame_count, *shader_);
+  render_proxy_handler_->DrawProxiesForDebugging(*shader_);
   shader_handler_->Reset();
 }
 }  // namespace gl

@@ -98,8 +98,7 @@ bool IsBufferInitialized(Buffer& buffer) noexcept {
 }
 
 void CopyBuffer(const Device& device, VkCommandPool command_pool_handle,
-                Buffer src_buffer, Buffer dst_buffer, VkDeviceSize size,
-                VkFence fence_handle) {
+                Buffer src_buffer, Buffer dst_buffer, VkDeviceSize size) {
   auto command_buffer_handle{
       GenerateOneTimeCommand(device, command_pool_handle)};
   VkBufferCopy copy_region{};

@@ -7,6 +7,7 @@
 
 #include <float.h>
 
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <limits>

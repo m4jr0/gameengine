@@ -31,9 +31,9 @@ class StackAllocator {
  private:
   bool is_initialized_{false};
   MemoryTag memory_tag_{MemoryTag::Untagged};
-  u8* root_{nullptr};
   uindex size_{0};
   uindex capacity_{0};
+  u8* root_{nullptr};
   StackAllocatorMarker marker_{0};
 };
 }  // namespace comet

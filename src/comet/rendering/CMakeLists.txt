@@ -31,7 +31,7 @@ if(LINUX)
   find_package(X11 REQUIRED)
 endif()
 
-if(NOT DEFINED VULKAN_SDK)
+if(WIN32 AND NOT DEFINED VULKAN_SDK)
   if(NOT DEFINED ENV{VULKAN_SDK})
     message(FATAL_ERROR
       "${MESSAGE_PREFIX}VULKAN_SDK is not set. "
@@ -148,7 +148,6 @@ target_sources(${COMET_LIBRARY_NAME}
 target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE
     ${VCPKG_INCLUDE_DIR}
-    "${VULKAN_SDK}/include"
     "${PROJECT_SOURCE_DIR}/src/"
 )
 

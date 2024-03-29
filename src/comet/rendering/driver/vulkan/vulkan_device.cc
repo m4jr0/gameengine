@@ -31,10 +31,6 @@ std::vector<u32> GetUniqueIndices(const QueueFamilyIndices& indices) {
   COMET_ASSERT(AreQueueFamilyIndicesComplete(indices),
                "Queue family indices are not complete");
 
-  const auto graphics_fam_index{indices.graphics_family.value()};
-  const auto present_fam_index{indices.present_family.value()};
-  const auto transfer_fam_index{indices.transfer_family.value()};
-
   std::set<u32> set{indices.graphics_family.value(),
                     indices.present_family.value(),
                     indices.transfer_family.value()};
@@ -131,11 +127,11 @@ VkSampleCountFlagBits GetMaxUsableSampleCount(
 }
 
 Device::Device(const DeviceDescr& descr)
-    : instance_handle_{descr.instance_handle},
-      surface_handle_{descr.surface_handle},
+    : is_sampler_anisotropy_{descr.is_sampler_anisotropy},
+      is_sample_rate_shading_{descr.is_sample_rate_shading},
       anti_aliasing_type_{descr.anti_aliasing_type},
-      is_sampler_anisotropy_{descr.is_sampler_anisotropy},
-      is_sample_rate_shading_{descr.is_sample_rate_shading} {
+      instance_handle_{descr.instance_handle},
+      surface_handle_{descr.surface_handle} {
   COMET_ASSERT(instance_handle_ != VK_NULL_HANDLE,
                "Instance handle provided is null!");
 

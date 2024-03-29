@@ -37,15 +37,16 @@ void MeshHandler::Shutdown() {
   }
 
   if (vao_handles.size() > 0) {
-    glDeleteVertexArrays(vao_handles.size(), vao_handles.data());
+    glDeleteVertexArrays(static_cast<s32>(vao_handles.size()),
+                         vao_handles.data());
   }
 
   if (vbo_handles.size() > 0) {
-    glDeleteBuffers(vbo_handles.size(), vbo_handles.data());
+    glDeleteBuffers(static_cast<s32>(vbo_handles.size()), vbo_handles.data());
   }
 
   if (ebo_handles.size() > 0) {
-    glDeleteBuffers(ebo_handles.size(), ebo_handles.data());
+    glDeleteBuffers(static_cast<s32>(ebo_handles.size()), ebo_handles.data());
   }
 
   mesh_proxies_.clear();
@@ -128,8 +129,7 @@ MeshProxy* MeshHandler::Register(MeshProxy& proxy) {
   if (to_return != nullptr) {
     Upload(*to_return);
   } else {
-    COMET_ASSERT(false, "Could not insert mesh proxy: ",
-                 COMET_STRING_ID_LABEL(proxy_id), "!");
+    COMET_ASSERT(false, "Could not insert mesh proxy #", proxy_id, "!");
   }
 
   return to_return;

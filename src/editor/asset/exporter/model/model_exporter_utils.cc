@@ -135,7 +135,8 @@ resource::ResourceId LoadStaticMesh(resource::StaticModelResource& model,
   model.meshes.push_back({});
   auto& mesh_resource{model.meshes[model.meshes.size() - 1]};
   mesh_resource.resource_id = model.id;
-  mesh_resource.internal_id = model.meshes.size();
+  mesh_resource.internal_id =
+      static_cast<resource::ResourceId>(model.meshes.size());
   mesh_resource.type = geometry::MeshType::Static;
 
   auto* raw_material{scene->mMaterials[current_mesh->mMaterialIndex]};
@@ -264,7 +265,8 @@ resource::ResourceId LoadSkeletalMesh(resource::SkeletalModelResource& model,
   model.meshes.push_back({});
   auto& mesh_resource{model.meshes[model.meshes.size() - 1]};
   mesh_resource.resource_id = model.id;
-  mesh_resource.internal_id = model.meshes.size();
+  mesh_resource.internal_id =
+      static_cast<resource::ResourceId>(model.meshes.size());
   mesh_resource.type = geometry::MeshType::Skinned;
 
   auto* raw_material{scene->mMaterials[current_mesh->mMaterialIndex]};

@@ -316,7 +316,7 @@ void GetSubString(Char* dst, const Char* src, uindex src_length, uindex offset,
   const auto max_len{
       math::Min(src_length - offset + 1, static_cast<uindex>(length))};
 
-  for (auto i{0}; i < max_len; ++i) {
+  for (uindex i{0}; i < max_len; ++i) {
     dst[i] = src[i + offset];
   }
 
@@ -349,7 +349,7 @@ void FillWith(Char* str, uindex str_length, Char c, uindex offset,
 
 template <typename Char>
 uindex GetIndexOf(const Char* str, char c, uindex length, uindex offset) {
-  if (length == 0 || offset != kInvalidIndex && offset >= length) {
+  if (length == 0 || (offset != kInvalidIndex && offset >= length)) {
     return kInvalidIndex;
   }
 
@@ -367,7 +367,7 @@ uindex GetIndexOf(const Char* str, char c, uindex length, uindex offset) {
 }
 
 template <typename Char>
-uindex GetLastIndexOf(const Char* str, uindex length, char c,
+uindex GetLastIndexOf(const Char* str, uindex length, Char c,
                       uindex offset = kInvalidIndex) {
   if (offset == kInvalidIndex) {
     offset = 0;
@@ -453,7 +453,7 @@ uindex GetLastNonWhiteSpaceIndex(const Char* str, uindex str_len) {
 
   --index;
 
-  while (index >= 0 && IsSpace(str[index])) {
+  while (index > 0 && IsSpace(str[index])) {
     --index;
   }
 
@@ -470,7 +470,7 @@ uindex GetLastNonCharacterIndex(const Char* str, uindex str_len, Char c) {
 
   --index;
 
-  while (index >= 0 && str[index] == c) {
+  while (index > 0 && str[index] == c) {
     --index;
   }
 

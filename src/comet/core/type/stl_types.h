@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_CORE_TYPE_STL_TYPES_H_
 #define COMET_COMET_CORE_TYPE_STL_TYPES_H_
 
-#include "comet_precompile.h"
-
 #include "comet/core/memory/allocator/stl/one_frame_allocator.h"
 #include "comet/core/memory/allocator/stl/two_frame_allocator.h"
+#include "comet_precompile.h"
 
 namespace comet {
 template <typename T>
@@ -37,6 +36,11 @@ template <class K, class V>
 using two_frame_unordered_map =
     std::unordered_map<K, V, std::hash<K>, std::equal_to<K>,
                        two_frame_allocator<std::pair<const K, V>>>;
+
+template <class T, std::size_t size>
+constexpr uindex GetLength(const T (&)[size]) noexcept {
+  return size;
+}
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_TYPE_STL_TYPES_H_

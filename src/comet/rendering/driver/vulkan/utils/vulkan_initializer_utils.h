@@ -117,7 +117,7 @@ VkSamplerCreateInfo GenerateSamplerCreateInfo(
 VkSamplerCreateInfo GenerateSamplerCreateInfo(
     VkFilter filters, VkSamplerAddressMode address_mode,
     const resource::TextureMap& texture_map, bool is_sampler_anisotropy,
-    u32 max_sampler_anisotropy_count);
+    f32 max_sampler_anisotropy);
 }  // namespace init
 }  // namespace vk
 }  // namespace rendering

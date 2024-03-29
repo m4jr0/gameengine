@@ -31,7 +31,6 @@ uindex StaticModelHandler::GetMeshSize(const StaticMeshResource& mesh) const {
 
   constexpr auto kVertexSize{sizeof(geometry::Vertex)};
   constexpr auto kIndexSize{sizeof(geometry::Index)};
-  constexpr auto kTextureMapSize{sizeof(TextureMap)};
 
   return kModelIdSize + kMeshIdSize + kMeshType + kMaterialIdSize +
          kTransformSize + kLocalCenterSize + kLocalMaxExtentsSize +
@@ -230,7 +229,6 @@ uindex SkinnedModelHandler::GetMeshSize(const SkinnedMeshResource& mesh) const {
 
   constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
   constexpr auto kIndexSize{sizeof(geometry::Index)};
-  constexpr auto kTextureMapSize{sizeof(TextureMap)};
 
   return kModelIdSize + kMeshIdSize + kMeshType + kMaterialIdSize +
          kTransformSize + kLocalCenterSize + kLocalMaxExtentsSize +

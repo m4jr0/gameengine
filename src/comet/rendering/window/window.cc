@@ -85,8 +85,8 @@ bool Window::IsInitialized() const noexcept { return is_initialized_; }
 
 const schar* Window::GetName() const noexcept { return name_; }
 
-const WindowSize Window::GetWidth() const noexcept { return width_; }
+WindowSize Window::GetWidth() const noexcept { return width_; }
 
-const WindowSize Window::GetHeight() const noexcept { return height_; }
+WindowSize Window::GetHeight() const noexcept { return height_; }
 }  // namespace rendering
 }  // namespace comet

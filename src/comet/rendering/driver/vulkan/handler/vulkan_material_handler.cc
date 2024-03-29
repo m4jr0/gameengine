@@ -269,8 +269,7 @@ Sampler* MaterialHandler::GenerateSampler(SamplerId sampler_id,
                  "Failed to create texture sampler!");
 
   const auto insert_pair{samplers_.emplace(sampler.id, sampler)};
-  COMET_ASSERT(insert_pair.second,
-               "Could not insert sampler: ", COMET_STRING_ID_LABEL(sampler.id),
+  COMET_ASSERT(insert_pair.second, "Could not insert sampler #", sampler.id,
                "!");
   return &insert_pair.first->second;
 }

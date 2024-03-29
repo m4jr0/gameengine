@@ -28,8 +28,10 @@ constexpr auto kInvalidShaderUniformLocation{
 using ShaderUniformIndex = u16;
 constexpr auto kInvalidShaderUniformIndex{static_cast<ShaderUniformIndex>(-1)};
 
+using ShaderOffset = s32;
+
 struct ShaderUniform {
-  sptrdiff offset{0};
+  ShaderOffset offset{0};
   ShaderUniformSize size{kInvalidShaderUniformSize};
   ShaderUniformLocation location{kInvalidShaderUniformLocation};
   ShaderUniformIndex index{kInvalidShaderUniformIndex};
@@ -53,7 +55,7 @@ struct ShaderUniformIndices {
 constexpr auto kShaderDescriptorSetGlobalIndex{0};
 constexpr auto kShaderDescriptorSetInstanceIndex{1};
 
-using BindingIndex = u8;
+using BindingIndex = u32;
 constexpr auto kInvalidBindingIndex{static_cast<BindingIndex>(-1)};
 
 struct DescriptorSetLayoutBinding {

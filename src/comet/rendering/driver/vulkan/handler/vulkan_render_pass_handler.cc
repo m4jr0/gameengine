@@ -426,7 +426,7 @@ void RenderPassHandler::GenerateFrameBuffers(RenderPass& render_pass) const {
       image_view_handles[i] = render_target.attachments[i].image_view_handle;
     }
 
-    create_info.attachmentCount = attachment_count;
+    create_info.attachmentCount = static_cast<u32>(attachment_count);
     create_info.pAttachments = image_view_handles;
 
     COMET_CHECK_VK(

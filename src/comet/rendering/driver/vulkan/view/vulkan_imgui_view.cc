@@ -10,6 +10,7 @@
 #include "imgui_impl_vulkan.h"
 
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/stl_types.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
@@ -95,7 +96,7 @@ void ImGuiView::Initialize() {
   pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
   pool_info.maxSets = 1000;
-  pool_info.poolSizeCount = std::size(pool_sizes);
+  pool_info.poolSizeCount = static_cast<u32>(GetLength(pool_sizes));
   pool_info.pPoolSizes = pool_sizes;
 
   COMET_CHECK_VK(

@@ -30,13 +30,13 @@ class AssetExporter {
   void SetRootResourcePath(ResourcePath&& path) {
     root_resource_path_ = std::forward<ResourcePath>(path);
     Clean(root_resource_path_.GetTStr(), root_resource_path_.GetLength());
-  };
+  }
 
   template <typename AssetPath>
   void SetRootAssetPath(AssetPath&& path) {
     root_asset_path_ = std::forward<AssetPath>(path);
     Clean(root_asset_path_.GetTStr(), root_asset_path_.GetLength());
-  };
+  }
 
   const TString& GetRootResourcePath() const;
   const TString& GetRootAssetPath() const;

@@ -13,18 +13,18 @@ namespace rendering {
 Driver::Driver(const DriverDescr& descr)
     : is_vsync_{descr.is_vsync},
       is_triple_buffering_{descr.is_triple_buffering},
-      window_width_{descr.window_width},
-      window_height_{descr.window_height},
-      rendering_view_descrs_{descr.rendering_view_descrs},
       anti_aliasing_type_{descr.anti_aliasing_type},
       is_sampler_anisotropy_{anti_aliasing_type_ != AntiAliasingType::None &&
                              descr.is_sampler_anisotropy},
       is_sample_rate_shading_{anti_aliasing_type_ != AntiAliasingType::None &&
                               descr.is_sample_rate_shading},
-      app_name_len_{descr.app_name_len},
       app_major_version_{descr.app_major_version},
       app_minor_version_{descr.app_minor_version},
-      app_patch_version_{descr.app_patch_version} {
+      app_patch_version_{descr.app_patch_version},
+      window_width_{descr.window_width},
+      window_height_{descr.window_height},
+      app_name_len_{descr.app_name_len},
+      rendering_view_descrs_{descr.rendering_view_descrs} {
   Copy(app_name_, descr.app_name, app_name_len_);
   CopyMemory(clear_color_, descr.clear_color, sizeof(descr.clear_color));
 }

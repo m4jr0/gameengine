@@ -107,7 +107,6 @@ Resource* TextureHandler::GetDefaultDiffuseTexture() {
 
     auto& data{diffuse_texture_->data};
     data.resize(descr.size);
-    auto is_color_1{false};
 
     for (uindex i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
@@ -137,7 +136,6 @@ Resource* TextureHandler::GetDefaultSpecularTexture() {
 
     auto& data{specular_texture_->data};
     data.resize(descr.size);
-    auto is_color_1{false};
 
     for (uindex i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
@@ -167,7 +165,6 @@ Resource* TextureHandler::GetDefaultNormalTexture() {
 
     auto& data{normal_texture_->data};
     data.resize(descr.size);
-    auto is_color_1{false};
 
     for (uindex i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];

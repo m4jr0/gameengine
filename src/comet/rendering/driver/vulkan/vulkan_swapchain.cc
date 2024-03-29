@@ -254,7 +254,6 @@ VkResult Swapchain::AcquireNextImage(VkSemaphore semaphore_handle) {
 VkResult Swapchain::QueuePresent() {
   auto present_queue_handle{context_->GetDevice().GetPresentQueueHandle()};
   auto semaphore_handle{context_->GetFrameData().render_semaphore_handle};
-  std::array<VkSwapchainKHR, 1> swapchains{{handle_}};
   auto present_info{init::GeneratePresentInfo()};
 
   if (semaphore_handle != VK_NULL_HANDLE) {

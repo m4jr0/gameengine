@@ -91,7 +91,7 @@ bool CreateFile(CTStringView path, bool is_recursive = false);
 bool CreateDirectory(CTStringView path, bool is_recursive = false);
 bool Move(CTStringView previous_name, CTStringView new_name);
 bool Remove(CTStringView path, bool is_recursive = false);
-TString GetCurrentDirectory(bool is_clean = true);
+TString GetCurrentDirectory();
 TString GetDirectoryPath(CTStringView path);
 TString GetName(CTStringView path);
 TString GetExtension(CTStringView path, bool is_force_lowercase = true);

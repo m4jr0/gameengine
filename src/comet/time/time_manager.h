@@ -36,10 +36,10 @@ class TimeManager : public Manager {
   void Stop() noexcept;
   void Normalize() noexcept;
 
-  const f64 GetFixedDeltaTime() const noexcept;
-  const f64 GetDeltaTime() const noexcept;
-  const f64 GetCurrentTime() const noexcept;
-  const f32 GetTimeScale() const noexcept;
+  f64 GetFixedDeltaTime() const noexcept;
+  f64 GetDeltaTime() const noexcept;
+  f64 GetCurrentTime() const noexcept;
+  f32 GetTimeScale() const noexcept;
   void SetTimeScale(f32 time_scale) noexcept;
 
  private:

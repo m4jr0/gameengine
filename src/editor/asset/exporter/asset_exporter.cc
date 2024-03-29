@@ -27,7 +27,6 @@ bool AssetExporter::Process(CTStringView asset_abs_path) {
   Clean(descr.asset_abs_path.GetTStr(), descr.asset_abs_path.GetLength());
   descr.asset_path = GetRelativePath(descr.asset_abs_path, root_asset_path_);
   descr.metadata_path = GenerateAssetMetadataFilePath(descr.asset_abs_path);
-  auto is_metadata_error{false};
   descr.metadata = SetAndGetMetadata(descr.metadata_path);
   const schar* compression_mode_label{nullptr};
 

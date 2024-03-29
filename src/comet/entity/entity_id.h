@@ -21,6 +21,7 @@ enum EntityIdTag : u32 {
   Child = static_cast<u32>(1) << 30
 };
 
+gid::Gid GetGid(EntityId id);
 EntityId Tag(EntityIdTag tag, EntityId id);
 }  // namespace entity
 }  // namespace comet

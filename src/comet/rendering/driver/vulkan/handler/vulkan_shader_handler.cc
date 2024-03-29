@@ -737,7 +737,7 @@ ShaderUniformIndex ShaderHandler::HandleUniformIndex(
 
   COMET_ASSERT(index != nullptr, "Unable to find uniform location with name \"",
                uniform_descr.name, "\"!");
-  COMET_ASSERT(*index == kInvalidShaderUniformLocation,
+  COMET_ASSERT(*index == kInvalidShaderUniformIndex,
                "Uniform location with name \"", uniform_descr.name,
                "\" was already bound!");
   *index = static_cast<ShaderUniformIndex>(shader.uniforms.size());
@@ -891,7 +891,8 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
   auto size{GetUniformSize(uniform.type)};
 
   if (uniform.scope == ShaderUniformScope::Local) {
-    uniform.offset = shader.push_constant_ranges.size();
+    uniform.offset =
+        static_cast<ShaderOffset>(shader.push_constant_ranges.size());
     uniform.size = static_cast<ShaderUniformSize>(
         AlignSize(size, GetStd430Alignment(uniform.type)));
 
@@ -902,10 +903,11 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     shader.push_constant_ranges.push_back(range);
   } else {
-    uniform.offset = is_sampler ? 0
-                     : uniform.scope == ShaderUniformScope::Global
-                         ? shader.global_ubo_data.ubo_size
-                         : shader.instance_ubo_data.ubo_size;
+    uniform.offset =
+        is_sampler ? 0
+        : uniform.scope == ShaderUniformScope::Global
+            ? static_cast<ShaderOffset>(shader.global_ubo_data.ubo_size)
+            : static_cast<ShaderOffset>(shader.instance_ubo_data.ubo_size);
     uniform.size = size;
   }
 

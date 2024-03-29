@@ -66,8 +66,8 @@ void DestroyImage(Image& image) {
 VkImageView GenerateImageView(VkDevice device_handle, VkImage image_handle,
                               VkFormat format, VkImageAspectFlags aspect_flags,
                               u32 mip_levels) {
-  auto create_info{
-      init::GenerateImageViewCreateInfo(image_handle, format, aspect_flags, 1)};
+  auto create_info{init::GenerateImageViewCreateInfo(image_handle, format,
+                                                     aspect_flags, mip_levels)};
   VkImageView image_view_handle{VK_NULL_HANDLE};
 
   COMET_CHECK_VK(vkCreateImageView(device_handle, &create_info, VK_NULL_HANDLE,
@@ -151,6 +151,7 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
     queue_handle = device.GetGraphicsQueueHandle();
   } else {
     COMET_ASSERT(false, "Unsupported layout transition!");
+    return;
   }
 
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

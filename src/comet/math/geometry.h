@@ -16,7 +16,7 @@ constexpr auto kPi{3.14159265358979323846};
 
 template <typename T>
 constexpr T ConvertToRadians(T x) {
-  return x * (kPi / 180);
+  return static_cast<T>(x * (kPi / 180));
 }
 
 Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis);

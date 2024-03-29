@@ -21,8 +21,6 @@ TextureHandler::TextureHandler(const TextureHandlerDescr& descr)
     : Handler{descr} {}
 
 void TextureHandler::Shutdown() {
-  auto& device{context_->GetDevice()};
-
   for (auto& it : textures_) {
     Destroy(it.second, true);
   }
@@ -178,9 +176,9 @@ VkFormat TextureHandler::GetVkFormat(
       break;
     case (rendering::TextureFormat::Rgb8):
       return VK_FORMAT_R8G8B8_SRGB;
+    default:
+      return VK_FORMAT_UNDEFINED;
   }
-
-  return VK_FORMAT_UNDEFINED;
 }
 
 void TextureHandler::GenerateMipmaps(const Texture& texture) const {

@@ -30,7 +30,7 @@ void RenderProxyHandler::Shutdown() {
   Handler::Shutdown();
 }
 
-void RenderProxyHandler::Update(time::Interpolation interpolation) {
+void RenderProxyHandler::Update() {
   auto frame_count{context_->GetFrameCount()};
 
   if (update_frame_ == frame_count) {
@@ -110,7 +110,7 @@ void RenderProxyHandler::DrawProxiesForDebugging(Shader& shader) {
 }
 
 u32 RenderProxyHandler::GetDrawCount() const noexcept {
-  return proxies_.size();
+  return static_cast<u32>(proxies_.size());
 }
 
 void RenderProxyHandler::Draw(const RenderProxy& proxy) {
