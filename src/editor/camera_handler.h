@@ -5,8 +5,7 @@
 #ifndef COMET_EDITOR_CAMERA_HANDLER_H_
 #define COMET_EDITOR_CAMERA_HANDLER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/event/event.h"
 #include "comet/math/vector.h"
 

@@ -4,19 +4,20 @@
 
 #include "window.h"
 
+#include "comet/core/logger.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
 
 namespace comet {
 namespace rendering {
-void SetName(WindowDescr& descr, const schar* name, uindex name_len) {
+void SetName(WindowDescr& descr, const schar* name, usize name_len) {
   descr.name_len = name_len;
 
   if (descr.name_len >= kMaxWindowNameLen) {
     COMET_LOG_RENDERING_WARNING(
         "Window name provided is too long: ", descr.name_len,
         " >= ", kMaxWindowNameLen, ". It will be truncated.");
-    descr.name_len = static_cast<uindex>(kMaxWindowNameLen - 1);
+    descr.name_len = static_cast<usize>(kMaxWindowNameLen - 1);
   }
 
   Copy(descr.name, name, descr.name_len);
@@ -40,7 +41,7 @@ Window::Window(Window&& other) noexcept
   other.is_initialized_ = false;
   other.width_ = 0;
   other.height_ = 0;
-  Clear(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1));
+  Clear(other.name_, static_cast<usize>(kMaxWindowNameLen - 1));
   other.name_len_ = 0;
 }
 
@@ -57,7 +58,7 @@ Window& Window::operator=(Window&& other) noexcept {
   other.is_initialized_ = false;
   other.width_ = 0;
   other.height_ = 0;
-  Clear(other.name_, static_cast<uindex>(kMaxWindowNameLen - 1));
+  Clear(other.name_, static_cast<usize>(kMaxWindowNameLen - 1));
   other.name_len_ = 0;
   return *this;
 }

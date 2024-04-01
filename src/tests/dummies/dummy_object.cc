@@ -6,7 +6,7 @@
 
 namespace comet {
 namespace comettests {
-uindex DummyObject::counter_{0};
+usize DummyObject::counter_{0};
 
 DummyObject::DummyObject(s32 value) : id_{counter_++}, value_{value} {}
 
@@ -49,7 +49,7 @@ bool DummyObject::operator!=(const DummyObject& other) const {
   return value_ != other.value_;
 }
 
-uindex DummyObject::GetCounter() noexcept { return counter_; }
+usize DummyObject::GetCounter() noexcept { return counter_; }
 
 u64 DummyObject::GetId() const noexcept { return id_; }
 

@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_ENTRY_POINT_H_
 #define COMET_COMET_ENTRY_POINT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/engine/engine.h"
 
 extern std::unique_ptr<comet::Engine> comet::GenerateEngine();

@@ -4,6 +4,7 @@
 
 #include "glfw_window.h"
 
+#include "comet/core/logger.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
 #include "comet/input/input_manager.h"

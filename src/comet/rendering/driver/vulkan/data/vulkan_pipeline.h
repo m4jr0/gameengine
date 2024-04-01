@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_PIPELINE_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_PIPELINE_H_
 
-#include "comet_precompile.h"
-
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"

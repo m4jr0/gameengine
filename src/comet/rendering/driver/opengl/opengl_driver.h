@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_DRIVER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_DRIVER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/rendering/driver/driver.h"

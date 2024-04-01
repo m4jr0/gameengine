@@ -4,6 +4,8 @@
 
 #include "entity_type.h"
 
+#include <algorithm>
+
 namespace comet {
 namespace entity {
 EntityType GenerateEntityType(
@@ -30,11 +32,11 @@ EntityType AddToEntityType(const EntityType& entity_type,
   EntityType new_type{};
   new_type.reserve(entity_type.size() + to_add.size());
 
-  for (uindex i{0}; i < entity_type.size(); ++i) {
+  for (usize i{0}; i < entity_type.size(); ++i) {
     new_type.push_back(entity_type[i]);
   }
 
-  for (uindex i{0}; i < new_type.capacity() - entity_type.size(); ++i) {
+  for (usize i{0}; i < new_type.capacity() - entity_type.size(); ++i) {
     new_type.push_back(to_add[i]);
   }
 
@@ -51,12 +53,12 @@ EntityType RemoveFromEntityType(const EntityType& from_entity_type,
                "Tried to remove too many components from entity type!");
 
   EntityType entity_type{};
-  uindex size{from_size - to_remove_size};
+  usize size{from_size - to_remove_size};
   entity_type.resize(size);
 
-  uindex i{0};
-  uindex j{0};
-  uindex cursor{0};
+  usize i{0};
+  usize j{0};
+  usize cursor{0};
 
   while (i < size) {
     // Entity types are sorted.

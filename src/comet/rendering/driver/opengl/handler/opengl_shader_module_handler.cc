@@ -178,7 +178,7 @@ ShaderModule ShaderModuleHandler::CompileShader(
 
   if (msg_len > 0) {
     auto* error_message{
-        GenerateForOneFrame<schar>(static_cast<uindex>(msg_len))};
+        GenerateForOneFrame<schar>(static_cast<usize>(msg_len))};
     glGetShaderInfoLog(shader_module.handle, msg_len, nullptr, error_message);
     COMET_ASSERT(false, "Error while compiling shader module: ", error_message);
   }

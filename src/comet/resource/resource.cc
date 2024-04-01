@@ -7,8 +7,9 @@
 #include <fstream>
 
 #include "comet/core/compression.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
+#include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
@@ -38,9 +39,9 @@ ResourceId GenerateResourceIdFromPath(CTStringView resource_path) {
   return COMET_STRING_ID(resource_path);
 }
 
-void PackBytes(const u8* bytes, uindex bytes_size,
+void PackBytes(const u8* bytes, usize bytes_size,
                CompressionMode compression_mode, std::vector<u8>* packed_bytes,
-               uindex* packed_bytes_size) {
+               usize* packed_bytes_size) {
   switch (compression_mode) {
     case CompressionMode::Lz4: {
       CompressLz4(bytes, bytes_size, *packed_bytes);
@@ -48,7 +49,7 @@ void PackBytes(const u8* bytes, uindex bytes_size,
       break;
     }
     case CompressionMode::None: {
-      CopyMemory(packed_bytes, bytes, bytes_size);
+      memory::CopyMemory(packed_bytes, bytes, bytes_size);
       *packed_bytes_size = bytes_size;
       break;
     }
@@ -62,7 +63,7 @@ void PackBytes(const u8* bytes, uindex bytes_size,
 }
 
 void PackBytes(const std::vector<u8>& bytes, CompressionMode compression_mode,
-               std::vector<u8>* packed_bytes, uindex* packed_bytes_size) {
+               std::vector<u8>* packed_bytes, usize* packed_bytes_size) {
   PackBytes(bytes.data(), bytes.size(), compression_mode, packed_bytes,
             packed_bytes_size);
 }
@@ -73,8 +74,8 @@ void PackResourceData(const std::vector<u8>& data, ResourceFile& file) {
 }
 
 std::vector<u8> UnpackBytes(CompressionMode compression_mode,
-                            const u8* packed_bytes, uindex packed_bytes_size,
-                            uindex decompressed_size) {
+                            const u8* packed_bytes, usize packed_bytes_size,
+                            usize decompressed_size) {
   std::vector<u8> data;
 
   switch (compression_mode) {
@@ -84,7 +85,7 @@ std::vector<u8> UnpackBytes(CompressionMode compression_mode,
     }
     case CompressionMode::None: {
       data.resize(decompressed_size);
-      CopyMemory(data.data(), packed_bytes, decompressed_size);
+      memory::CopyMemory(data.data(), packed_bytes, decompressed_size);
       break;
     }
     default: {
@@ -100,7 +101,7 @@ std::vector<u8> UnpackBytes(CompressionMode compression_mode,
 
 std::vector<u8> UnpackBytes(CompressionMode compression_mode,
                             const std::vector<u8>& packed_bytes,
-                            uindex decompressed_size) {
+                            usize decompressed_size) {
   return UnpackBytes(compression_mode, packed_bytes.data(), packed_bytes.size(),
                      decompressed_size);
 }
@@ -202,7 +203,7 @@ const Resource* ResourceHandler::Load(CTStringView root_resource_path,
   }
 
   tchar resource_id_path[10];
-  uindex resource_id_path_len;
+  usize resource_id_path_len;
   ConvertToStr(resource_id, resource_id_path, 10, &resource_id_path_len);
 
   TString resource_abs_path{};

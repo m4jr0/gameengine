@@ -4,28 +4,225 @@
 
 #include "logger.h"
 
-namespace comet {
-Logger& Logger::Get(LoggerType logger_type) {
-  const auto it{Logger::loggers_.find(logger_type)};
+#include <chrono>
 
-  // If the logger does not exist, we create it.
-  if (it == Logger::loggers_.end()) {
-    return *Logger::loggers_.emplace(logger_type, Logger::Generate(logger_type))
-                .first->second;
+#include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/concurrency/job/scheduler_utils.h"
+#include "comet/core/concurrency/thread/thread_utils.h"
+#include "comet/core/memory/memory.h"
+
+namespace comet {
+void Logger::Dispose() { is_running_.store(false, std::memory_order_release); }
+
+void Logger::Flush() {
+  // current_buffer_index_ will always be synchronized by the flush thread (only
+  // this thread modifies this value).
+  auto current_buffer_index{
+      current_buffer_index_.load(std::memory_order_relaxed)};
+  current_buffer_index_.exchange((current_buffer_index + 1) % kBufferCount_,
+                                 std::memory_order_release);
+
+  auto& buffer{buffers_[current_buffer_index]};
+
+  while (buffer.active_writer_count.load(std::memory_order_acquire) != 0) {
+    std::this_thread::yield();
   }
 
-  return *it->second;
+  auto len{buffers_[current_buffer_index].write_index.load(
+      std::memory_order_acquire)};
+
+  if (len == 0) {
+    return;
+  }
+
+  auto* str{buffer.data};
+  std::cout << str;
+  Clear(str, Buffer::kBufferSize);
+  buffer.write_index.store(0, std::memory_order_release);
+  buffer.is_flush_requested.store(false, std::memory_order_release);
 }
 
-Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
+#ifdef COMET_LOG_IS_FIBER_PREFIX
+void Logger::PopulateFiberPrefix(schar* buffer, usize buffer_len) {
+  // This code doesn't check for buffer overflows.
+  // That's fine for now, as it's only used for debugging.
+  auto thread_id{thread::GetThreadId()};
 
-std::shared_ptr<Logger> Logger::Generate(LoggerType logger_type) {
-  // Because the constructor is private, we have to separate the initialization
-  // from the shared pointer construction.
-  // It should be safe though, as this line does nothing else than initializing
-  // a logger instance and saving it to a shared pointer.
-  // Performance-wise, it should be acceptable, as very few loggers will be
-  // instantiated anyway.
-  return std::shared_ptr<Logger>(new Logger(logger_type));
+  buffer[0] = '[';
+  ++buffer;
+  --buffer_len;
+  usize cur_len;
+  ConvertToStr(thread_id, buffer, buffer_len, &cur_len);
+  buffer += cur_len;
+  Copy(buffer, "] [", 3);
+  buffer += 3;
+  cur_len = 0;
+
+  if (fiber::IsFiber()) {
+    auto fiber_id{fiber::GetCurrent()->GetId()};
+    ConvertToStr(fiber_id, buffer, buffer_len, &cur_len);
+    buffer += cur_len;
+  } else {
+    Copy(buffer, "I/O", 3);
+    buffer += 3;
+  }
+
+  Copy(buffer, "] | \0", 5);
+}
+#endif  // COMET_LOG_IS_FIBER_PREFIX
+
+Logger& Logger::Get() {
+  static Logger singleton{};
+  return singleton;
+}
+
+Logger::~Logger() {
+  is_running_.store(false, std::memory_order_release);
+
+  if (flush_thread_.joinable()) {
+    flush_thread_.join();
+  }
+}
+
+Logger::Logger() {
+  is_running_.store(true, std::memory_order_release);
+  is_initialized_.store(true, std::memory_order_release);
+  flush_thread_ = std::thread{&Logger::ListenToFlushRequests, this};
+}
+
+void Logger::ListenToFlushRequests() {
+  while (!is_initialized_.load(std::memory_order_acquire)) {
+    std::this_thread::yield();
+  }
+
+  auto start{std::chrono::steady_clock::now()};
+
+  while (is_running_.load(std::memory_order_acquire)) {
+    std::this_thread::yield();
+
+    // current_buffer_index_ will always be synchronized by the flush thread
+    // (only this thread modifies this value).
+    auto current_buffer_index{
+        current_buffer_index_.load(std::memory_order_relaxed)};
+
+    auto now{std::chrono::steady_clock::now()};
+    auto elapsed{
+        std::chrono::duration_cast<std::chrono::milliseconds>(now - start)};
+
+    if (elapsed.count() >= kFlushIntervalInMs_ ||
+        buffers_[current_buffer_index].is_flush_requested.load(
+            std::memory_order_acquire)) {
+      Flush();
+    }
+  }
+}
+
+const schar* GetLoggerTypeLabel(LoggerType type) {
+  switch (type) {
+    case LoggerType::Global:
+      return "Global";
+    case LoggerType::Animation:
+      return "Animation";
+    case LoggerType::Core:
+      return "Core";
+    case LoggerType::Event:
+      return "Event";
+    case LoggerType::Entity:
+      return "Entity";
+    case LoggerType::Input:
+      return "Input";
+    case LoggerType::Math:
+      return "Math";
+    case LoggerType::Physics:
+      return "Physics";
+    case LoggerType::Profiler:
+      return "Profiler";
+    case LoggerType::Rendering:
+      return "Rendering";
+    case LoggerType::Resource:
+      return "Resource";
+    case LoggerType::Time:
+      return "Time";
+    default:
+      return "???";
+  }
+}
+
+void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
+                         const TString& arg) {
+#ifdef COMET_WIDE_TCHAR
+  AddToBuffer(buffer, len, offset, arg.GetCTStr());
+#else
+  AddToBuffer(buffer, len, offset, std::string_view{arg.GetCTStr()});
+#endif  // COMET_WIDE_TCHAR
+}
+
+void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
+                         const schar* arg) {
+  AddToBuffer(buffer, len, offset, std::string_view{arg});
+}
+
+void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
+                         const wchar* arg) {
+  // TODO(m4jr0): Use buffer from allocator.
+  constexpr auto kSize{512};
+  schar tmp[kSize]{'\0'};
+  auto arg_len{GetLength(arg) + 1};
+  auto tmp_len{kSize < arg_len ? kSize : arg_len};
+  Copy(tmp, arg, tmp_len - 1);
+  tmp[tmp_len - 1] = '\0';
+  AddToBuffer(buffer, len, offset, std::string_view{tmp});
+}
+
+void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
+                         CTStringView arg) {
+  AddToBuffer(buffer, len, offset, arg.GetCTStr());
+}
+
+void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
+                         std::string_view arg) {
+  auto len_to_copy{arg.size()};
+
+  // Take both \0 and \n into account.
+  if (offset + len_to_copy >= len - 1) {
+    len_to_copy = len - offset - 2;
+  }
+
+  if (len_to_copy == 0) {
+    return;
+  }
+
+  Copy(buffer, arg.data(), len_to_copy, offset);
+  offset += len_to_copy;
+}
+
+void Logger::Send(const schar* str, usize len) {
+  for (;;) {
+    auto current_buffer_index{
+        current_buffer_index_.load(std::memory_order_acquire)};
+
+    auto& buffer{buffers_[current_buffer_index]};
+    buffer.active_writer_count.fetch_add(1, std::memory_order_release);
+
+    if (current_buffer_index !=
+        current_buffer_index_.load(std::memory_order_acquire)) {
+      buffer.active_writer_count.fetch_sub(1, std::memory_order_release);
+      continue;
+    }
+
+    auto old_current_len{
+        buffer.write_index.fetch_add(len, std::memory_order_acq_rel)};
+
+    // Take \0 into account.
+    if (old_current_len + len + 1 > Buffer::kBufferSize) {
+      buffer.is_flush_requested.store(true, std::memory_order_release);
+      buffer.active_writer_count.fetch_sub(1, std::memory_order_release);
+      continue;
+    }
+
+    memory::CopyMemory(buffer.data + old_current_len, str, len);
+    buffer.active_writer_count.fetch_sub(1, std::memory_order_release);
+    break;
+  }
 }
 }  // namespace comet

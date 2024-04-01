@@ -4,7 +4,10 @@
 
 #include "configuration_manager.h"
 
-#include "comet/core/file_system.h"
+#include <fstream>
+
+#include "comet/core/file_system/file_system.h"
+#include "comet/core/logger.h"
 
 namespace comet {
 namespace conf {
@@ -25,6 +28,17 @@ void ConfigurationManager::Initialize() {
   values_.insert(
       {kApplicationPatchVersion, GetDefaultValue(kApplicationPatchVersion)});
   values_.insert({kCoreMsPerUpdate, GetDefaultValue(kCoreMsPerUpdate)});
+  values_.insert(
+      {kCoreForcedWorkerCount, GetDefaultValue(kCoreForcedWorkerCount)});
+  values_.insert(
+      {kCoreForcedIOWorkerCount, GetDefaultValue(kCoreForcedIOWorkerCount)});
+  values_.insert({kCoreLargeFiberCount, GetDefaultValue(kCoreLargeFiberCount)});
+  values_.insert(
+      {kCoreGiganticFiberCount, GetDefaultValue(kCoreGiganticFiberCount)});
+  values_.insert({kCoreJobCounterCount, GetDefaultValue(kCoreJobCounterCount)});
+  values_.insert({kCoreJobQueueCount, GetDefaultValue(kCoreJobQueueCount)});
+  values_.insert(
+      {kCoreTaggedHeapCapacity, GetDefaultValue(kCoreTaggedHeapCapacity)});
   values_.insert({kCoreOneFrameAllocatorCapacity,
                   GetDefaultValue(kCoreOneFrameAllocatorCapacity)});
   values_.insert({kCoreTwoFrameAllocatorCapacity,
@@ -95,7 +109,7 @@ void ConfigurationManager::ParseConfFile() {
   }
 
   schar line[kMaxLineLength];
-  uindex line_len;
+  usize line_len;
 
   while (in_file.good()) {
     if (!GetLine(in_file, line, kMaxLineLength, &line_len)) {
@@ -209,7 +223,7 @@ f64 ConfigurationManager::GetF64(ConfKey key) const {
   return Get(key).f64_value;
 }
 
-uindex ConfigurationManager::GetIndex(ConfKey key) const {
+usize ConfigurationManager::GetIndex(ConfKey key) const {
   return Get(key).uindex_value;
 }
 
@@ -232,7 +246,7 @@ void ConfigurationManager::SetStr(ConfKey key, const schar* value) {
 }
 
 void ConfigurationManager::SetStr(ConfKey key, const schar* value,
-                                  uindex length) {
+                                  usize length) {
   if (length > kMaxStrValueLength) {
     COMET_LOG_CORE_ERROR("String value for key ", COMET_STRING_ID_LABEL(key),
                          "is too long. Length provided is ", length,
@@ -251,7 +265,7 @@ void ConfigurationManager::SetTStr(ConfKey key, const tchar* value) {
 }
 
 void ConfigurationManager::SetTStr(ConfKey key, const tchar* value,
-                                   uindex length) {
+                                   usize length) {
   if (length > kMaxStrValueLength) {
     COMET_LOG_CORE_ERROR("TString value for key ", COMET_STRING_ID_LABEL(key),
                          "is too long. Length provided is ", length,
@@ -310,7 +324,7 @@ void ConfigurationManager::SetF64(ConfKey key, f64 value) {
   Get(key).f64_value = value;
 }
 
-void ConfigurationManager::SetIndex(ConfKey key, uindex value) {
+void ConfigurationManager::SetIndex(ConfKey key, usize value) {
   Get(key).uindex_value = value;
 }
 
@@ -331,17 +345,21 @@ void ConfigurationManager::SetBool(ConfKey key, bool value) {
 }
 
 void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
-                                             uindex key_val_delimiter_pos,
-                                             schar* value, uindex value_len) {
+                                             usize key_val_delimiter_pos,
+                                             schar* value, usize value_len) {
   auto key{COMET_STRING_ID(Trim(raw_key, key_val_delimiter_pos))};
   Trim(value, value_len);
 
   if (key == kApplicationName || key == kRenderingDriver ||
       key == kRenderingAntiAliasing) {
     SetStr(key, value);
+  } else if (key == kCoreForcedWorkerCount || key == kCoreForcedIOWorkerCount) {
+    SetU8(key, ParseU8(value));
   } else if (key == kEventMaxQueueSize || key == kApplicationMajorVersion ||
              key == kApplicationMinorVersion ||
-             key == kApplicationPatchVersion || key == kRenderingWindowWidth ||
+             key == kApplicationPatchVersion || key == kCoreLargeFiberCount ||
+             key == kCoreGiganticFiberCount || key == kCoreJobCounterCount ||
+             key == kCoreJobQueueCount || key == kRenderingWindowWidth ||
              key == kRenderingWindowHeight || key == kRenderingFpsCap ||
              key == kRenderingOpenGlMajorVersion ||
              key == kRenderingOpenGlMinorVersion ||
@@ -351,7 +369,8 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
              key == kRenderingVulkanPatchVersion ||
              key == kRenderingVulkanMaxFramesInFlight) {
     SetU16(key, ParseU16(value));
-  } else if (key == kCoreOneFrameAllocatorCapacity ||
+  } else if (key == kCoreTaggedHeapCapacity ||
+             key == kCoreOneFrameAllocatorCapacity ||
              key == kCoreTwoFrameAllocatorCapacity ||
              key == kCoreTStringAllocatorCapacity) {
     SetU32(key, ParseU32(value));

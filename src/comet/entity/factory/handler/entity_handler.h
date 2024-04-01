@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_ENTITY_FACTORY_HANDLER_ENTITY_HANDLER_H_
 #define COMET_COMET_ENTITY_FACTORY_HANDLER_ENTITY_HANDLER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/entity/entity_manager.h"
 
 namespace comet {

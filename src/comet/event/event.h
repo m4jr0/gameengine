@@ -5,8 +5,10 @@
 #ifndef COMET_COMET_EVENT_EVENT_H_
 #define COMET_COMET_EVENT_EVENT_H_
 
-#include "comet_precompile.h"
+#include <atomic>
 
+#include "comet/core/essentials.h"
+#include "comet/core/logger.h"
 #include "comet/core/type/stl_types.h"
 
 #define COMET_EVENT_BIND_FUNCTION(function) \
@@ -69,7 +71,11 @@ class Event {
   virtual stringid::StringId GetType() const noexcept = 0;
 
  private:
-  static inline SequenceNumber sequence_number_count_{0};
+  static_assert(
+      std::atomic<SequenceNumber>::is_always_lock_free,
+      "std::atomic<SequenceNumber> needs to be always lock-free. Unsupported "
+      "architecture");
+  static inline std::atomic<SequenceNumber> sequence_number_count_{0};
   SequenceNumber sequence_number_{0};
 };
 
@@ -79,13 +85,13 @@ using EventPointer = custom_unique_ptr<comet::event::Event>;
 // allocator and deleter
 template <typename T, typename... Args>
 EventPointer GenerateEvent(Args&&... args) {
-  two_frame_allocator<T> allocator{};
+  memory::two_frame_allocator<T> allocator{};
   auto* p{allocator.allocate_one()};
 
   // No need to deallocate if an exception occurs: the temporary allocator will
   // be flushed by the end of the frame following the current one.
   EventPointer event(p, [](Event* p) { p->~Event(); });
-  new (event.get()) T(std::forward<Args>(args)...);
+  new (event.get()) T{std::forward<Args>(args)...};
   return event;
 }
 }  // namespace event

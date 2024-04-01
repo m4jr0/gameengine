@@ -5,12 +5,14 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_SHADER_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_SHADER_HANDLER_H_
 
-#include "comet_precompile.h"
+#include <functional>
 
 #include "glad/glad.h"
 
+#include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver//opengl/data/opengl_material.h"
+#include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_module_handler.h"
@@ -113,7 +115,7 @@ class ShaderHandler : public Handler {
       Shader& shader, const ShaderUniformDescr& uniform_descr) const;
   void HandleBufferGeneration(Shader& shader) const;
   void AddUniform(Shader& shader, const ShaderUniformDescr& descr,
-                  uindex data_index) const;
+                  usize data_index) const;
 
   Shader* bound_shader_{nullptr};
   std::unordered_map<ShaderHandle, Shader> shaders_{};

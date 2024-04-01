@@ -5,424 +5,422 @@
 #ifndef COMET_COMET_CORE_TYPE_RING_QUEUE_H_
 #define COMET_COMET_CORE_TYPE_RING_QUEUE_H_
 
-#include "comet_precompile.h"
+#include <atomic>
+#include <optional>
+#include <vector>
 
+#include "comet/core/essentials.h"
 #include "exception.h"
 
 namespace comet {
-// Abstract ring queue with a fixed capacity given at its instantiation.
-// The public member naming rules follow the STL containers to ease its use.
 template <class T>
-class abstract_ring_queue {
+class RingQueue {
  public:
-  explicit abstract_ring_queue(uindex capacity);
-  abstract_ring_queue(const abstract_ring_queue&);
-  abstract_ring_queue(abstract_ring_queue&&) noexcept;
-  abstract_ring_queue& operator=(const abstract_ring_queue&);
-  abstract_ring_queue& operator=(abstract_ring_queue&&) noexcept;
+  explicit RingQueue(usize);
+  RingQueue(const RingQueue&);
+  RingQueue(RingQueue&&) noexcept;
+  RingQueue& operator=(const RingQueue&);
+  RingQueue& operator=(RingQueue&&) noexcept;
+  ~RingQueue() = default;
 
-  // By default, there is not empty() member to prevent from using it in the
-  // thread-safe implementation and therefore having TOCTTOU bugs.
-  virtual void push(T&& element) = 0;
-  virtual T& front() = 0;
-  virtual void pop() noexcept = 0;
-  virtual void clear() noexcept = 0;
+  void Push(T&& element);
+  void Push(const T& element);
+  T& Get();
+  void Pop() noexcept;
+  void Clear() noexcept;
+  bool IsEmpty() const noexcept;
 
-  virtual uindex capacity() const noexcept;
-  virtual uindex size() const noexcept = 0;
-
- protected:
-  uindex capacity_{0};
-};
-
-template <class T>
-inline abstract_ring_queue<T>::abstract_ring_queue(uindex capacity)
-    : capacity_{capacity} {}
-
-template <class T>
-inline abstract_ring_queue<T>::abstract_ring_queue(
-    const abstract_ring_queue<T>& other)
-    : capacity_{other.capacity_} {}
-
-template <class T>
-inline abstract_ring_queue<T>::abstract_ring_queue(
-    abstract_ring_queue<T>&& other) noexcept
-    : capacity_{other.capacity_} {
-  other.capacity_ = 0;
-}
-
-template <class T>
-inline abstract_ring_queue<T>& abstract_ring_queue<T>::operator=(
-    const abstract_ring_queue<T>& other) {
-  if (this == &other) {
-    return *this;
-  }
-
-  this->capacity_ = other.capacity;
-  return *this;
-}
-
-template <class T>
-inline abstract_ring_queue<T>& abstract_ring_queue<T>::operator=(
-    abstract_ring_queue<T>&& other) noexcept {
-  if (this == &other) {
-    return *this;
-  }
-
-  this->capacity_ = capacity_;
-  other.capacity_ = 0;
-  return *this;
-}
-
-template <class T>
-inline uindex abstract_ring_queue<T>::capacity() const noexcept {
-  return this->capacity_;
-}
-
-// Non thread-safe ring queue with a fixed capacity given at its instantiation.
-// The public member naming rules follow the STL containers to ease its use.
-template <class T>
-class ring_queue : public abstract_ring_queue<T> {
- public:
-  explicit ring_queue(uindex);
-  ring_queue(const ring_queue&);
-  ring_queue(ring_queue&&) noexcept;
-  ring_queue& operator=(const ring_queue&);
-  ring_queue& operator=(ring_queue&&) noexcept;
-  virtual ~ring_queue() = default;
-
-  void push(T&& element) override;
-  T& front() override;
-  void pop() noexcept override;
-  void clear() noexcept override;
-  bool empty() const noexcept;
-
-  uindex size() const noexcept override;
+  usize GetCapacity() const noexcept;
+  usize GetSize() const noexcept;
 
  private:
-  uindex head_{0};
-  uindex size_{0};
+  usize capacity_{0};
+  usize head_{0};
+  usize size_{0};
   std::vector<T> elements_{};
 };
 
 template <class T>
-inline ring_queue<T>::ring_queue(uindex capacity)
-    : abstract_ring_queue<T>{capacity}, elements_{std::vector<T>(capacity)} {}
+inline RingQueue<T>::RingQueue(usize capacity)
+    : capacity_{capacity}, elements_{std::vector<T>(capacity)} {}
 
 template <class T>
-inline ring_queue<T>::ring_queue(const ring_queue<T>& other)
-    : abstract_ring_queue<T>{other},
+inline RingQueue<T>::RingQueue(const RingQueue<T>& other)
+    : capacity_{other.capacity_},
       head_{other.head_},
       size_{other.size_},
       elements_{other.elements_} {}
 
 template <class T>
-inline ring_queue<T>::ring_queue(ring_queue<T>&& other) noexcept
-    : abstract_ring_queue<T>{std::move(other)},
+inline RingQueue<T>::RingQueue(RingQueue<T>&& other) noexcept
+    : capacity_{(other.capacity_)},
       head_{other.head_},
       size_{other.size_},
       elements_{std::move(other.elements_)} {
+  other.capacity_ = 0;
   other.head_ = 0;
   other.size_ = 0;
-  other.elements_.clear();
+  other.elements_.Clear();
 }
 
 template <class T>
-inline ring_queue<T>& ring_queue<T>::operator=(const ring_queue<T>& other) {
+inline RingQueue<T>& RingQueue<T>::operator=(const RingQueue<T>& other) {
   if (this == &other) {
     return *this;
   }
-
-  abstract_ring_queue<T>::operator=(other);
-  this->head_ = other.head_;
-  this->size_ = other.size_;
-  this->elements_ = other.elements_;
-
-  return *this;
-}
-
-template <class T>
-inline ring_queue<T>& ring_queue<T>::operator=(ring_queue<T>&& other) noexcept {
-  if (this == &other) {
-    return *this;
-  }
-
-  abstract_ring_queue<T>::operator=(std::move(other));
-  this->head_ = other.head_;
-  this->size_ = other.size_;
-  this->elements_ = std::move(other.elements_);
-  other.head_ = 0;
-  other.size_ = 0;
-  other.elements_.clear();
-
-  return *this;
-}
-
-template <class T>
-inline void ring_queue<T>::push(T&& element) {
-  if (this->size_ == this->capacity_) {
-    throw maximum_capacity_reached_error(this->capacity_);
-  }
-
-  this->elements_[(this->head_ + this->size_++) % this->capacity_] =
-      std::forward<T>(element);
-}
-
-template <class T>
-inline T& ring_queue<T>::front() {
-  if (this->size_ == 0) {
-    throw empty_error();
-  }
-
-  return this->elements_[this->head_];
-}
-
-template <class T>
-inline void ring_queue<T>::pop() noexcept {
-  if (this->size_ == 0) {
-    return;
-  }
-
-  this->head_ = (this->head_ + 1) % this->capacity_;
-  --this->size_;
-}
-
-template <class T>
-inline void ring_queue<T>::clear() noexcept {
-  this->head_ = 0;
-  this->size_ = 0;
-}
-
-template <class T>
-inline bool ring_queue<T>::empty() const noexcept {
-  return this->size_ == 0;
-}
-
-template <class T>
-inline uindex ring_queue<T>::size() const noexcept {
-  return this->size_;
-}
-
-// Thread-safe ring queue with a fixed capacity given at its instantiation.
-// The public member naming rules follow the STL containers to ease its use.
-template <class T>
-class concurrent_ring_queue : public abstract_ring_queue<T> {
- public:
-  explicit concurrent_ring_queue(uindex capacity);
-  concurrent_ring_queue(const concurrent_ring_queue&);
-  concurrent_ring_queue(concurrent_ring_queue&&) noexcept;
-  concurrent_ring_queue& operator=(const concurrent_ring_queue&);
-  concurrent_ring_queue& operator=(concurrent_ring_queue&&) noexcept;
-  virtual ~concurrent_ring_queue() = default;
-
-  void push(T&& element) override;
-  void wait_and_push(T&& element);
-  T& front() override;
-  T& wait_for_front();
-  T wait_and_pop_front();
-  void wait_for_data();
-  void wait_for_space();
-  void pop() noexcept override;
-  void clear() noexcept override;
-
-  uindex size() const noexcept override;
-
- private:
-  mutable std::mutex mutex_{};
-  std::condition_variable has_data_{};
-  uindex head_{0};
-  uindex size_{0};
-  std::vector<T> elements_{};
-};
-
-template <class T>
-inline concurrent_ring_queue<T>::concurrent_ring_queue(uindex capacity)
-    : abstract_ring_queue<T>{capacity}, elements_{std::vector<T>(capacity)} {}
-
-template <class T>
-inline concurrent_ring_queue<T>::concurrent_ring_queue(
-    const concurrent_ring_queue<T>& other) {
-  auto this_lock{std::unique_lock<std::mutex>(this->mutex_, std::defer_lock)};
-  auto other_lock{std::unique_lock<std::mutex>(other.mutex_, std::defer_lock)};
-  std::lock(this_lock, other_lock);
 
   this->capacity_ = other.capacity_;
   this->head_ = other.head_;
   this->size_ = other.size_;
   this->elements_ = other.elements_;
-}
-
-template <class T>
-inline concurrent_ring_queue<T>::concurrent_ring_queue(
-    concurrent_ring_queue<T>&& other) noexcept
-    : abstract_ring_queue<T>{std::move(other)},
-      head_{other.head_},
-      size_{other.size_},
-      elements_{std::move(other.elements_)} {
-  auto this_lock{std::unique_lock<std::mutex>(this->mutex_, std::defer_lock)};
-  auto other_lock{std::unique_lock<std::mutex>(other.mutex_, std::defer_lock)};
-  std::lock(this_lock, other_lock);
-
-  other.head_ = 0;
-  other.size_ = 0;
-  other.elements_clear();
-}
-
-template <class T>
-inline concurrent_ring_queue<T>& concurrent_ring_queue<T>::operator=(
-    const concurrent_ring_queue<T>& other) {
-  if (this == &other) {
-    return *this;
-  }
-
-  auto this_lock{std::unique_lock<std::mutex>(mutex_, std::defer_lock)};
-  auto other_lock{std::unique_lock<std::mutex>(other.mutex_, std::defer_lock)};
-  std::lock(this_lock, other_lock);
-
-  const auto old_size{this->size_};
-  const auto old_capacity{this->capacity_};
-  abstract_ring_queue<T>::operator=(other);
-  this->head_ = other.head_;
-  this->size_ = other.size_;
-  this->elements_ = other.elements_;
-
-  if ((old_size == 0 && this->size_ > 0) ||
-      (old_size == old_capacity && this->size_ < this->capacity_)) {
-    has_data_.notify_one();
-  }
 
   return *this;
 }
 
 template <class T>
-inline concurrent_ring_queue<T>& concurrent_ring_queue<T>::operator=(
-    concurrent_ring_queue<T>&& other) noexcept {
+inline RingQueue<T>& RingQueue<T>::operator=(RingQueue<T>&& other) noexcept {
   if (this == &other) {
     return *this;
   }
 
-  auto this_lock{std::unique_lock<std::mutex>(this->mutex_, std::defer_lock)};
-  auto other_lock{std::unique_lock<std::mutex>(other.mutex_, std::defer_lock)};
-  std::lock(this_lock, other_lock);
-
-  const auto old_size{this->size_};
-  const auto old_capacity{this->capacity_};
-  abstract_ring_queue<T>::operator=(std::move(other));
+  this->capacity_ = other.capacity_;
   this->head_ = other.head_;
   this->size_ = other.size_;
   this->elements_ = std::move(other.elements_);
+  other.capacity_ = 0;
   other.head_ = 0;
   other.size_ = 0;
-  other.elements_.clear();
-
-  if ((old_size == 0 && this->size_ > 0) ||
-      (old_size == old_capacity && this->size_ < this->capacity_)) {
-    has_data_.notify_one();
-  }
+  other.elements_.Clear();
 
   return *this;
 }
 
 template <class T>
-inline void concurrent_ring_queue<T>::push(T&& element) {
-  std::unique_lock<std::mutex> lock(this->mutex_);
-
+inline void RingQueue<T>::Push(T&& element) {
   if (this->size_ == this->capacity_) {
-    throw maximum_capacity_reached_error(this->capacity_);
+    throw MaximumCapacityReachedError(this->capacity_);
   }
 
   this->elements_[(this->head_ + this->size_++) % this->capacity_] =
       std::forward<T>(element);
-  lock.unlock();
-  this->has_data_.notify_one();
 }
 
 template <class T>
-inline void concurrent_ring_queue<T>::wait_and_push(T&& element) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  this->has_data_.wait(lock,
-                       [this]() { return this->size_ < this->capacity_; });
+inline void RingQueue<T>::Push(const T& element) {
+  if (this->size_ == this->capacity_) {
+    throw MaximumCapacityReachedError(this->capacity_);
+  }
 
-  this->elements_[(this->head_ + this->size_++) % this->capacity_] =
-      std::forward<T>(element);
-  lock.unlock();
-  this->has_data_.notify_one();
+  this->elements_[(this->head_ + this->size_++) % this->capacity_] = element;
 }
 
 template <class T>
-inline T& concurrent_ring_queue<T>::front() {
-  std::scoped_lock<std::mutex> lock(this->mutex_);
-
+inline T& RingQueue<T>::Get() {
   if (this->size_ == 0) {
-    throw empty_error();
+    throw EmptyError();
   }
 
   return this->elements_[this->head_];
 }
 
 template <class T>
-inline T& concurrent_ring_queue<T>::wait_for_front() {
-  std::unique_lock<std::mutex> lock(this->mutex_);
-  this->has_data_.wait(lock, [this]() { return this->size_ > 0; });
-
-  return this->elements_[this->head_];
-}
-
-template <class T>
-inline T concurrent_ring_queue<T>::wait_and_pop_front() {
-  std::unique_lock<std::mutex> lock(this->mutex_);
-  this->has_data_.wait(lock, [this]() { return this->size_ > 0; });
-
-  auto element{std::forward<T>(this->elements_[head_])};
-
-  this->head_ = (this->head_ + 1) % this->capacity_;
-  --this->size_;
-  lock.unlock();
-  this->has_data_.notify_one();
-
-  return element;
-}
-
-template <class T>
-inline void concurrent_ring_queue<T>::wait_for_data() {
-  std::unique_lock<std::mutex> lock(this->mutex_);
-  this->has_data_.wait(lock, [this]() { return this->size_ > 0; });
-}
-
-template <class T>
-inline void concurrent_ring_queue<T>::wait_for_space() {
-  std::unique_lock<std::mutex> lock(this->mutex_);
-  this->has_data_.wait(lock,
-                       [this]() { return this->size_ < this->capacity_; });
-}
-
-template <class T>
-inline void concurrent_ring_queue<T>::pop() noexcept {
-  std::unique_lock<std::mutex> lock(this->mutex_);
-
+inline void RingQueue<T>::Pop() noexcept {
   if (this->size_ == 0) {
     return;
   }
 
   this->head_ = (this->head_ + 1) % this->capacity_;
   --this->size_;
-  lock.unlock();
-  this->has_data_.notify_one();
 }
 
 template <class T>
-inline void concurrent_ring_queue<T>::clear() noexcept {
-  std::unique_lock<std::mutex> lock(this->mutex_);
+inline void RingQueue<T>::Clear() noexcept {
   this->head_ = 0;
   this->size_ = 0;
-  lock.unlock();
-  this->has_data_.notify_one();
 }
 
 template <class T>
-inline uindex concurrent_ring_queue<T>::size() const noexcept {
-  std::scoped_lock<std::mutex> lock(this->mutex_);
+inline bool RingQueue<T>::IsEmpty() const noexcept {
+  return this->size_ == 0;
+}
+
+template <class T>
+inline usize RingQueue<T>::GetCapacity() const noexcept {
+  return this->capacity_;
+}
+
+template <class T>
+inline usize RingQueue<T>::GetSize() const noexcept {
   return this->size_;
+}
+
+template <class T>
+class LockFreeMPSCRingQueue {
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> needs to be always lock-free. Unsupported "
+                "architecture");
+
+ public:
+  explicit LockFreeMPSCRingQueue(usize);
+  LockFreeMPSCRingQueue(const LockFreeMPSCRingQueue&);
+  LockFreeMPSCRingQueue(LockFreeMPSCRingQueue&&) noexcept;
+  LockFreeMPSCRingQueue& operator=(const LockFreeMPSCRingQueue&);
+  LockFreeMPSCRingQueue& operator=(LockFreeMPSCRingQueue&&) noexcept;
+  ~LockFreeMPSCRingQueue();
+
+  void Push(T&& element);
+  void Push(const T& element);
+  bool Pop(T& element);
+  void Clear();
+
+ private:
+  usize capacity_{0};
+  std::atomic<usize> head_{0};
+  std::atomic<usize> tail_{0};
+  usize size_{0};
+  std::vector<T> elements_{};
+
+  usize Increment(usize index) const;
+};
+
+template <class T>
+inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(usize capacity)
+    : capacity_{capacity}, elements_{std::vector<T>(capacity)} {}
+
+template <class T>
+inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
+    const LockFreeMPSCRingQueue<T>& other)
+    : capacity_{other.capacity_},
+      head_{other.head_},
+      size_{other.size_},
+      elements_{other.elements_} {}
+
+template <class T>
+inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
+    LockFreeMPSCRingQueue<T>&& other) noexcept
+    : capacity_{other.capacity_},
+      head_{other.head_},
+      size_{other.size_},
+      elements_{std::move(other.elements_)} {
+  other.capacity_ = 0;
+  other.head_ = 0;
+  other.size_ = 0;
+  other.elements_.Clear();
+}
+
+template <class T>
+inline LockFreeMPSCRingQueue<T>& LockFreeMPSCRingQueue<T>::operator=(
+    const LockFreeMPSCRingQueue<T>& other) {
+  if (this == &other) {
+    return *this;
+  }
+
+  this->capacity_ = other.capacity_;
+  this->head_ = other.head_;
+  this->size_ = other.size_;
+  this->elements_ = other.elements_;
+
+  return *this;
+}
+
+template <class T>
+inline LockFreeMPSCRingQueue<T>& LockFreeMPSCRingQueue<T>::operator=(
+    LockFreeMPSCRingQueue<T>&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  this->capacity_ = other.capacity_;
+  this->head_ = other.head_;
+  this->size_ = other.size_;
+  this->elements_ = std::move(other.elements_);
+  other.capacity_ = 0;
+  other.head_ = 0;
+  other.size_ = 0;
+  other.elements_.Clear();
+
+  return *this;
+}
+
+template <class T>
+inline LockFreeMPSCRingQueue<T>::~LockFreeMPSCRingQueue() {
+  Clear();
+}
+
+template <class T>
+inline void LockFreeMPSCRingQueue<T>::Push(T&& element) {
+  usize current_tail;
+  usize next_tail;
+
+  do {
+    current_tail = this->tail_.load(std::memory_order_relaxed);
+    next_tail = Increment(current_tail);
+
+    if (next_tail == this->head_.load(std::memory_order_acquire)) {
+      throw MaximumCapacityReachedError(this->capacity_);
+    }
+  } while (!this->tail_.compare_exchange_weak(current_tail, next_tail,
+                                              std::memory_order_release));
+
+  this->elements_[current_tail] = std::forward<T>(element);
+}
+
+template <class T>
+inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
+  usize current_tail;
+  usize next_tail;
+
+  do {
+    current_tail = this->tail_.load(std::memory_order_relaxed);
+    next_tail = Increment(current_tail);
+
+    if (next_tail == this->head_.load(std::memory_order_acquire)) {
+      throw MaximumCapacityReachedError(this->capacity_);
+    }
+  } while (!this->tail_.compare_exchange_weak(current_tail, next_tail,
+                                              std::memory_order_release));
+
+  this->elements_[current_tail] = element;
+}
+
+template <class T>
+inline bool LockFreeMPSCRingQueue<T>::Pop(T& element) {
+  auto current_head = this->head_.load(std::memory_order_relaxed);
+
+  if (current_head == this->tail_.load(std::memory_order_acquire)) {
+    return false;
+  }
+
+  element = std::move(this->elements_[current_head]);
+  this->head_.store(Increment(current_head), std::memory_order_release);
+  return true;
+}
+
+template <class T>
+inline void LockFreeMPSCRingQueue<T>::Clear() {
+  T element;
+
+  while (Pop(element))
+    ;
+}
+
+template <class T>
+inline usize LockFreeMPSCRingQueue<T>::Increment(usize index) const {
+  return (index + 1) % elements_.size();
+}
+
+// https://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue
+template <class T>
+class LockFreeMPMCRingQueue {
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> needs to be always lock-free. Unsupported "
+                "architecture");
+
+ public:
+  explicit LockFreeMPMCRingQueue(usize capacity);
+  ~LockFreeMPMCRingQueue();
+
+  void Push(const T& element);
+  std::optional<T> Pop();
+  void Clear();
+
+ private:
+  struct Node {
+    T element{};
+    std::atomic<usize> sequence{0};
+  };
+
+  constexpr static auto kCachelineSize_{64};
+  using CachelinePad = u8[kCachelineSize_];
+
+  CachelinePad pad0_{};
+  usize mask_{0};
+  Node* elements_{nullptr};
+  CachelinePad pad1_{};
+  std::atomic<usize> head_{0};
+  CachelinePad pad2_{};
+  std::atomic<usize> tail_{0};
+  CachelinePad pad3_{};
+};
+
+template <class T>
+inline LockFreeMPMCRingQueue<T>::LockFreeMPMCRingQueue(usize capacity)
+    : mask_{capacity - 1}, elements_(new Node[capacity]) {
+  COMET_ASSERT(capacity >= 2, "Capacity needs to be at least 2: ", capacity,
+               "!");
+  COMET_ASSERT((capacity & (capacity - 1)) == 0,
+               "Capacity must be a power of 2: ", capacity, "!");
+
+  for (usize i{0}; i < capacity; ++i) {
+    this->elements_[i].sequence.store(i, std::memory_order_relaxed);
+  }
+
+  this->head_.store(0, std::memory_order_relaxed);
+  this->tail_.store(0, std::memory_order_relaxed);
+}
+
+template <class T>
+inline LockFreeMPMCRingQueue<T>::~LockFreeMPMCRingQueue() {
+  delete[] this->elements_;
+}
+
+template <class T>
+inline void LockFreeMPMCRingQueue<T>::Push(const T& element) {
+  Node* node;
+  auto pos{this->head_.load(std::memory_order_relaxed)};
+
+  for (;;) {
+    node = &this->elements_[pos & this->mask_];
+    auto seq{node->sequence.load(std::memory_order_acquire)};
+    auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+
+    if (delta == 0) {
+      if (this->head_.compare_exchange_weak(pos, pos + 1,
+                                            std::memory_order_relaxed)) {
+        break;
+      }
+    } else if (delta < 0) {
+      throw MaximumCapacityReachedError(this->mask_ + 1);
+    } else {
+      pos = this->head_.load(std::memory_order_relaxed);
+    }
+  }
+
+  node->element = element;
+  node->sequence.store(pos + 1, std::memory_order_release);
+}
+
+template <class T>
+inline std::optional<T> LockFreeMPMCRingQueue<T>::Pop() {
+  Node* node;
+  auto pos{this->tail_.load(std::memory_order_relaxed)};
+
+  for (;;) {
+    node = &this->elements_[pos & this->mask_];
+    auto seq{node->sequence.load(std::memory_order_acquire)};
+    auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos + 1)};
+
+    if (delta == 0) {
+      if (this->tail_.compare_exchange_weak(pos, pos + 1,
+                                            std::memory_order_relaxed)) {
+        break;
+      }
+    } else if (delta < 0) {
+      return std::nullopt;
+    } else {
+      pos = this->tail_.load(std::memory_order_relaxed);
+    }
+  }
+
+  auto element{node->element};
+  node->sequence.store(pos + this->mask_ + 1, std::memory_order_release);
+  return element;
+}
+
+template <class T>
+inline void LockFreeMPMCRingQueue<T>::Clear() {
+  while (Pop().has_value())
+    ;
 }
 }  // namespace comet
 

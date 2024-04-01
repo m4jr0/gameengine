@@ -4,7 +4,15 @@
 
 #include "editor.h"
 
-#include "comet/core/file_system.h"
+#ifdef COMET_MSVC
+#include <iostream>
+
+#include "comet/core/windows.h"
+#else
+#include <signal.h>
+#endif  // COMET_MSVC
+
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
@@ -12,14 +20,12 @@
 
 namespace comet {
 namespace editor {
-void CometEditor::Update(f64& lag) {
-  Engine::Update(lag);
+void CometEditor::Update(frame::FrameCount frame_count, f64& lag) {
+  Engine::Update(frame_count, lag);
   camera_handler_->Update();
 }
 
-void CometEditor::PreLoad() {
-  Engine::PreLoad();
-
+void CometEditor::Load() {
 #ifdef COMET_WINDOWS
   if (!SetConsoleCtrlHandler(static_cast<PHANDLER_ROUTINE>(HandleConsole),
                              TRUE)) {
@@ -40,9 +46,12 @@ void CometEditor::PreLoad() {
   sigaction(SIGINT, &sig_handler, NULL);
 #endif  // COMET_UNIX
 
-  PreLoadTmpCode();
+  LoadTmpCode();
   asset_manager_ = std::make_unique<asset::AssetManager>();
   asset_manager_->Initialize();
+  asset_manager_->Refresh();
+
+  Engine::Load();
 }
 
 // TODO(m4jr0): Remove temporary code.
@@ -75,7 +84,7 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 #endif  // COMET_WINDOWS
 
 // TODO(m4jr0): Remove temporary code.
-void CometEditor::PreLoadTmpCode() {
+void CometEditor::LoadTmpCode() {
   comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
                 COMET_CTSTRING_VIEW("models/kate/kate.fbx.meta"));
   // comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /

@@ -5,11 +5,10 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_CONTEXT_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_CONTEXT_H_
 
-#include "comet_precompile.h"
-
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 
@@ -24,7 +23,7 @@ struct ContextDescr {
   FrameInFlightIndex max_frames_in_flight{2};
   bool is_sampler_anisotropy{false};
   bool is_sample_rate_shading{false};
-  uindex max_object_count{0};
+  usize max_object_count{0};
   VkInstance instance_handle{VK_NULL_HANDLE};
   const Device* device{nullptr};
 };
@@ -62,7 +61,7 @@ class Context {
   u8 GetVulkanMinorVersion() const noexcept;
   u8 GetVulkanPatchVersion() const noexcept;
   u8 GetVulkanVariantVersion() const noexcept;
-  uindex GetMaxObjectCount() const noexcept;
+  usize GetMaxObjectCount() const noexcept;
   bool IsSamplerAnisotropy() const noexcept;
   bool IsSampleRateShading() const noexcept;
   ImageIndex GetImageIndex() const;
@@ -90,7 +89,7 @@ class Context {
   FrameIndex frame_count_{0};
   FrameInFlightIndex frame_in_flight_index_{0};
   FrameInFlightIndex max_frames_in_flight_{2};
-  uindex max_object_count_{0};
+  usize max_object_count_{0};
   UploadContext upload_context_{};
   std::vector<FrameData> frame_data_{};
   VkInstance instance_handle_{VK_NULL_HANDLE};

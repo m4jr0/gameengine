@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_CAMERA_FRUSTUM_H_
 #define COMET_COMET_RENDERING_CAMERA_FRUSTUM_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/plane.h"
 
@@ -22,7 +21,7 @@ class Frustum {
   Frustum(Frustum&&) = default;
   Frustum& operator=(const Frustum&) = default;
   Frustum& operator=(Frustum&&) = default;
-  virtual ~Frustum() = default;
+  ~Frustum() = default;
 
   bool IsAabbContained(const math::Aabb& aabb) const;
   bool IsSphereContained(const math::Sphere& sphere) const;

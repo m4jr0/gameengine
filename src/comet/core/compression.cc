@@ -4,6 +4,8 @@
 
 #include "compression.h"
 
+#include <vector>
+
 namespace comet {
 void CompressLz4(const std::vector<u8>& src, std::vector<u8>& dst) {
   dst = {};
@@ -22,7 +24,7 @@ void CompressLz4(const std::vector<u8>& src, std::vector<u8>& dst) {
   dst.resize(compressed_size);
 }
 
-void CompressLz4(const u8* src, uindex src_size, std::vector<u8>& dst) {
+void CompressLz4(const u8* src, usize src_size, std::vector<u8>& dst) {
   dst = {};
 
   if (src_size <= 0) {
@@ -38,7 +40,7 @@ void CompressLz4(const u8* src, uindex src_size, std::vector<u8>& dst) {
   dst.resize(compressed_size);
 }
 
-void DecompressLz4(const std::vector<u8>& src, uindex size,
+void DecompressLz4(const std::vector<u8>& src, usize size,
                    std::vector<u8>& dst) {
   if (src.size() <= 0) {
     return;
@@ -52,7 +54,7 @@ void DecompressLz4(const std::vector<u8>& src, uindex size,
                       static_cast<s32>(size));
 }
 
-void DecompressLz4(const u8* src, uindex src_size, uindex size,
+void DecompressLz4(const u8* src, usize src_size, usize size,
                    std::vector<u8>& dst) {
   if (src_size <= 0) {
     return;

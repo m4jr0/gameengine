@@ -24,11 +24,6 @@ set_target_properties(${EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF CXX_RTTI 
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor/asset")
 
 # Compiling ####################################################################
-target_precompile_headers(${EXECUTABLE_NAME}
-  PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/comet_precompile.h"
-)
-
 target_link_libraries(${EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARY_NAME}

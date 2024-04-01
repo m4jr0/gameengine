@@ -4,6 +4,8 @@
 
 #include "version.h"
 
+#include "comet/core/c_string.h"
+
 namespace comet {
 namespace version {
 const schar* GetVersionStr() {
@@ -14,9 +16,9 @@ const schar* GetVersionStr() {
     return version;
   }
 
-  uindex len{0};
+  usize len{0};
   ConvertToStr(kCometVersionMajor, version, kMaxVersionLen, &len);
-  uindex tmp{len};
+  usize tmp{len};
   Copy(version, ".", 1, len++);
   ConvertToStr(kCometVersionMinor, version + len, kMaxVersionLen - len, &tmp);
   len += tmp;

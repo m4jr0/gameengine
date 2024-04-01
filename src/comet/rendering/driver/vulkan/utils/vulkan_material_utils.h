@@ -7,6 +7,7 @@
 
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
 #include "comet/rendering/rendering_common.h"
 

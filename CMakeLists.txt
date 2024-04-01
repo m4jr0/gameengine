@@ -125,19 +125,27 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     " \"${CMAKE_TOOLCHAIN_FILE}\".")
 endif()
 
+# CMAKE_TOOLCHAIN_FILE might contain backslashes as path separators,
+# which can be interpreted as escape characters...
+if(WIN32)
+  file(TO_CMAKE_PATH "${CMAKE_TOOLCHAIN_FILE}" CMAKE_TOOLCHAIN_FILE)
+endif()
+
 # Project ######################################################################
 
 message(STATUS
   "${MESSAGE_PREFIX}Building ${CMAKE_PROJECT_NAME} "
   "to ${CMAKE_CURRENT_BINARY_DIR}...")
 
-project("Comet Game Engine"
+project("comet_game_engine"
   VERSION 0.1.0
   DESCRIPTION "Simple video game engine"
-  LANGUAGES CXX
+  LANGUAGES CXX ASM ASM_MASM
 )
 
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
+option(COMET_IS_ASAN "Enable TSan (ThreadSanitizer)" OFF)
+option(COMET_IS_TSAN "Enable ASan (AddressSanitizer)" OFF)
 
 # Compiler specifics.
 if(MSVC)
@@ -145,14 +153,35 @@ if(MSVC)
   # As to why W4 is used: https://stackoverflow.com/questions/4001736/whats-up-with-the-thousands-of-warnings-in-standard-headers-in-msvc-wall#comment8922238_4001759
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /W4")
 
-  if (COMET_ARE_WARNINGS_ERRORS)
+  if(COMET_ARE_WARNINGS_ERRORS)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
+  endif()
+
+  if(COMET_IS_ASAN)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
+    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} /fsanitize=address")
+    add_definitions(-D_DISABLE_STRING_ANNOTATION=1)
+    add_definitions(-D_DISABLE_VECTOR_ANNOTATION=1)
   endif()
 else()
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 
-  if (COMET_ARE_WARNINGS_ERRORS)
+  if(COMET_ARE_WARNINGS_ERRORS)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+  endif()
+
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -rdynamic")
+  endif()
+
+  if(COMET_IS_ASAN)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
+  endif()
+
+  if(COMET_IS_TSAN)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=thread")
   endif()
 endif()
 
@@ -161,7 +190,7 @@ if(COMET_DEBUG_RELEASE)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
     add_link_options("/INCREMENTAL:NO" "/DEBUG" "/OPT:REF" "/OPT:ICF")
   else()
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -DNDEBUG")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -rdynamic -DNDEBUG")
   endif()
 endif()
 

@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_ENTITY_COMPONENT_H_
 #define COMET_COMET_ENTITY_COMPONENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/entity/entity_id.h"
 
 namespace comet {
@@ -28,7 +27,7 @@ constexpr void CheckComponent() {
 
 struct ComponentTypeDescr {
   EntityId id{kInvalidEntityId};
-  uindex size{0};
+  usize size{0};
   u16 alignment{0};
 };
 

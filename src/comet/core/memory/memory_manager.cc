@@ -5,6 +5,7 @@
 #include "memory_manager.h"
 
 #include "allocation_tracking.h"
+#include "comet/core/memory/tagged_heap.h"
 
 namespace comet {
 namespace memory {
@@ -15,6 +16,7 @@ MemoryManager& MemoryManager::Get() {
 
 void MemoryManager::Initialize() {
   Manager::Initialize();
+  TaggedHeap::Get().Initialize();
   one_frame_allocator_.Initialize();
   two_frame_allocator_.Initialize();
   tstring_allocator_.Initialize();
@@ -24,6 +26,7 @@ void MemoryManager::Shutdown() {
   one_frame_allocator_.Destroy();
   two_frame_allocator_.Destroy();
   tstring_allocator_.Destroy();
+  TaggedHeap::Get().Destroy();
   Manager::Shutdown();
 }
 
@@ -33,7 +36,7 @@ void MemoryManager::Update() {
   two_frame_allocator_.ClearCurrent();
 }
 
-uindex MemoryManager::GetAllocatedMemory() const { return GetMemoryUse(); }
+usize MemoryManager::GetAllocatedMemory() const { return GetMemoryUse(); }
 
 OneFrameAllocator& MemoryManager::GetOneFrameAllocator() {
   return one_frame_allocator_;

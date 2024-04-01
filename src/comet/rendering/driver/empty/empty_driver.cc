@@ -6,6 +6,7 @@
 
 #include "empty_driver.h"
 
+#include "comet/core/logger.h"
 #include "comet/rendering/window/window.h"
 
 namespace comet {

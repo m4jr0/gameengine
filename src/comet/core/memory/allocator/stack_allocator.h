@@ -5,16 +5,17 @@
 #ifndef COMET_COMET_CORE_MEMORY_ALLOCATOR_STACK_ALLOCATOR_H_
 #define COMET_COMET_CORE_MEMORY_ALLOCATOR_STACK_ALLOCATOR_H_
 
+#include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/primitive.h"
 
 namespace comet {
+namespace memory {
 using StackAllocatorMarker = u8*;
 
 class StackAllocator {
  public:
   StackAllocator() = delete;
-  StackAllocator(uindex capacity, MemoryTag memory_tag = MemoryTag::Untagged);
+  StackAllocator(usize capacity, MemoryTag memory_tag = MemoryTag::Untagged);
   StackAllocator(const StackAllocator&) = delete;
   StackAllocator(StackAllocator&&) = delete;
   StackAllocator& operator=(const StackAllocator&) = delete;
@@ -23,19 +24,21 @@ class StackAllocator {
 
   void Initialize();
   void Destroy();
-  void* Allocate(uindex size, u8 align = 0);
+  void* Allocate(usize size, u8 align = 0);
   void Clear();
   bool IsInitialized() const noexcept;
-  uindex GetSize() const noexcept;
+  usize GetSize() const noexcept;
+  usize GetCapacity() const noexcept;
 
  private:
   bool is_initialized_{false};
   MemoryTag memory_tag_{MemoryTag::Untagged};
-  uindex size_{0};
-  uindex capacity_{0};
+  usize size_{0};
+  usize capacity_{0};
   u8* root_{nullptr};
   StackAllocatorMarker marker_{0};
 };
+}  // namespace memory
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_MEMORY_ALLOCATOR_STACK_ALLOCATOR_H_

@@ -5,8 +5,8 @@
 #ifndef COMET_EDITOR_EDITOR_H_
 #define COMET_EDITOR_EDITOR_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/engine/engine.h"
 #include "comet/entry_point.h"
 #include "comet/event/event.h"
@@ -24,8 +24,8 @@ class CometEditor : public Engine {
   CometEditor& operator=(CometEditor&&) = delete;
   virtual ~CometEditor() = default;
 
-  void Update(f64& lag) override;
-  void PreLoad() override;
+  void Update(frame::FrameCount frame_count, f64& lag) override;
+  void Load() override;
   void PostLoad() override;
   void PostUnload() override;
 
@@ -36,7 +36,7 @@ class CometEditor : public Engine {
 
  private:
   // TODO(m4jr0): Remove temporary code.
-  void PreLoadTmpCode();
+  void LoadTmpCode();
   void PostLoadTmpCode();
   void PostUnloadTmpCode();
 

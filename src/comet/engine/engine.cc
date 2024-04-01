@@ -5,6 +5,8 @@
 #include "engine.h"
 
 #include "comet/animation/animation_manager.h"
+#include "comet/core/concurrency/job/scheduler.h"
+#include "comet/core/concurrency/job/scheduler_utils.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/memory/memory_manager.h"
 #include "comet/entity/entity_manager.h"
@@ -34,10 +36,18 @@ Engine::~Engine() {
                "Destructor called for engine, but it is still initialized!");
 }
 
-void Engine::Initialize() {
+void Engine::Populate() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize engine, but it is already done!");
   PreLoad();
+
+  auto start_callback_descr{
+      job::GenerateJobDescr(job::JobPriority::High, OnSchedulerStarted,
+                            reinterpret_cast<fiber::ParamsHandle>(this))};
+  job::Scheduler::Get().Start(start_callback_descr);
+}
+
+void Engine::Initialize() {
   Load();
   PostLoad();
   is_initialized_ = true;
@@ -49,6 +59,7 @@ void Engine::Run() {
     time::TimeManager::Get().Initialize();
     // To catch up time taken to render.
     f64 lag{0.0};
+    frame::FrameCount frame_count{0};
     COMET_LOG_CORE_INFO("Comet started");
 
     while (is_running_) {
@@ -56,7 +67,7 @@ void Engine::Run() {
         break;
       }
 
-      Update(lag);
+      Update(frame_count++, lag);
     }
   } catch ([[maybe_unused]] const std::runtime_error& runtime_error) {
     COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
@@ -77,17 +88,30 @@ void Engine::Run() {
   Exit();
 }
 
-void Engine::Update(f64& lag) {
+void Engine::Update(frame::FrameCount frame_count, f64& lag) {
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
-  physics::PhysicsManager::Get().Update(lag);
-  animation::AnimationManager::Get().Update(lag);
+
+  frame_count += frame::kFramePacketCount;
+  auto& frame_packet{*frame::GetResolvedFramePacket(frame_count)};
+  frame_packet.lag = lag;
+
+  physics::PhysicsManager::Get().Update(frame_packet);
+
+  frame_packet.interpolation =
+      lag / time::TimeManager::Get().GetFixedDeltaTime();
+
+  animation::AnimationManager::Get().Update(
+      *frame::GetResolvedFramePacket(frame_count - 1));
+
   rendering::RenderingManager::Get().Update(
-      lag / time::TimeManager::Get().GetFixedDeltaTime());
+      *frame::GetResolvedFramePacket(frame_count - 2));
 
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Update();
 #endif  // COMET_PROFILING
+
+  lag = frame_packet.lag;
 }
 
 void Engine::Stop() {
@@ -104,6 +128,7 @@ void Engine::Shutdown() {
   is_initialized_ = false;
 
   COMET_LOG_CORE_INFO("Comet destroyed");
+  Logger::Get().Dispose();
 }
 
 void Engine::Quit() {
@@ -122,6 +147,7 @@ void Engine::PreLoad() {
 
   conf::ConfigurationManager::Get().Initialize();
   memory::MemoryManager::Get().Initialize();
+  job::Scheduler::Get().Initialize();
   event::EventManager::Get().Initialize();
   resource::ResourceManager::Get().Initialize();
 }
@@ -133,7 +159,6 @@ void Engine::Load() {
   rendering::RenderingManager::Get().Initialize();
   rendering::CameraManager::Get().Initialize();
   physics::PhysicsManager::Get().Initialize();
-  input::InputManager::Get().Initialize();
 
   const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
 
@@ -146,7 +171,7 @@ void Engine::Load() {
   entity::EntityFactoryManager::Get().Initialize();
 }
 
-void Engine::PostLoad() {}
+void Engine::PostLoad() { input::InputManager::Get().Initialize(); }
 
 void Engine::PreUnload() {
   entity::EntityFactoryManager::Get().Shutdown();
@@ -171,6 +196,7 @@ void Engine::PreUnload() {
 void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
+  job::Scheduler::Get().Shutdown();
   memory::MemoryManager::Get().Shutdown();
   conf::ConfigurationManager::Get().Shutdown();
   is_running_ = false;
@@ -178,6 +204,13 @@ void Engine::Unload() {
 }
 
 void Engine::PostUnload() { Engine::engine_ = nullptr; }
+
+void Engine::OnSchedulerStarted(fiber::ParamsHandle handle) {
+  auto* engine{reinterpret_cast<Engine*>(handle)};
+  engine->Initialize();
+  engine->Run();
+  engine->Shutdown();
+}
 
 Engine::Engine() { Engine::engine_ = this; }
 

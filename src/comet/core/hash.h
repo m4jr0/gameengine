@@ -5,12 +5,10 @@
 #ifndef COMET_COMET_CORE_HASH_H_
 #define COMET_COMET_CORE_HASH_H_
 
-#include <string>
-
 #include "picosha2.h"
 
+#include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/primitive.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {
@@ -21,16 +19,16 @@ constexpr ux kMagicNumber{2 ^ kCharBit / kPhi};
 template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
 std::size_t Convert(T value) {
   std::size_t to_return;
-  CopyMemory(&to_return, &value, sizeof(T));
+  memory::CopyMemory(&to_return, &value, sizeof(T));
   return to_return;
 }
 }  // namespace internal
 
-u32 HashCrC32(const void* data, uindex length);
+u32 HashCrC32(const void* data, usize length);
 
 constexpr auto kSha256DigestSize{picosha2::k_digest_size};
 
-void HashSha256(std::ifstream& stream, schar* buffer, uindex buffer_len);
+void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len);
 
 constexpr std::size_t HashCombine(std::size_t lhs, std::size_t rhs) {
   lhs ^= rhs + internal::kMagicNumber + (lhs << 6) + (lhs >> 2);

@@ -5,7 +5,7 @@
 #include "resource_manager.h"
 
 #include "comet/core/conf/configuration_manager.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/model_resource.h"
 #include "comet/resource/shader_module_resource.h"

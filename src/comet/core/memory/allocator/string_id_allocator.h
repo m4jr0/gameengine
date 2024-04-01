@@ -6,8 +6,7 @@
 #ifndef COMET_COMET_CORE_MEMORY_STRING_ID_ALLOCATOR_H_
 #define COMET_COMET_CORE_MEMORY_STRING_ID_ALLOCATOR_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/stack_allocator.h"
 
 namespace comet {

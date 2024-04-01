@@ -8,8 +8,9 @@
 #include <stdio.h>
 
 #include <cassert>
+#include <iostream>
 
-#include "comet/core/logger.h"
+#include "comet/core/type/primitive.h"
 
 #if defined(_MSC_VER)
 #if defined(_CPPRTTI)
@@ -28,22 +29,35 @@
 #endif  // defined(__GNUG__)
 
 namespace comet {
+namespace debug {
 void HandleCriticalError();
+
+namespace internal {
+template <typename... Targs>
+void PrintParams(Targs&&... args) {
+  ((std::cerr << std::forward<Targs>(args) << ' '), ...);
+}
+}  // namespace internal
+
+void GenerateStackTrace(schar* buffer, usize buffer_len);
+}  // namespace debug
 }  // namespace comet
 
 #ifndef COMET_DEBUG
 #define COMET_ASSERT(assertion, ...)
 #else
-#define COMET_ASSERT(assertion, ...)                              \
-  do {                                                            \
-    const auto isOk{static_cast<bool>(assertion)};                \
-                                                                  \
-    if (!isOk) {                                                  \
-      COMET_LOG_GLOBAL_ERROR("[CRITICAL FAILURE] ", __VA_ARGS__); \
-      comet::HandleCriticalError();                               \
-    }                                                             \
-                                                                  \
-    assert(isOk);                                                 \
+#define COMET_ASSERT(assertion, ...)                    \
+  do {                                                  \
+    const auto isOk{static_cast<bool>(assertion)};      \
+                                                        \
+    if (!isOk) {                                        \
+      std::cerr << "[CRITICAL FAILURE] ";               \
+      comet::debug::internal::PrintParams(__VA_ARGS__); \
+      std::cerr << '\n';                                \
+      comet::debug::HandleCriticalError();              \
+    }                                                   \
+                                                        \
+    assert(isOk);                                       \
   } while (false)
 #endif
 

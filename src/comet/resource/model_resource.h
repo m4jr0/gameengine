@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 #define COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/matrix.h"
@@ -68,8 +67,8 @@ class StaticModelHandler : public ResourceHandler {
   virtual ~StaticModelHandler() = default;
 
  protected:
-  uindex GetMeshSize(const StaticMeshResource& mesh) const;
-  uindex GetModelSize(const StaticModelResource& model) const;
+  usize GetMeshSize(const StaticMeshResource& mesh) const;
+  usize GetModelSize(const StaticModelResource& model) const;
 
   ResourceFile Pack(const Resource& resource,
                     CompressionMode compression_mode) const override;
@@ -86,8 +85,8 @@ class SkinnedModelHandler : public ResourceHandler {
   virtual ~SkinnedModelHandler() = default;
 
  protected:
-  uindex GetMeshSize(const SkinnedMeshResource& mesh) const;
-  uindex GetModelSize(const SkeletalModelResource& model) const;
+  usize GetMeshSize(const SkinnedMeshResource& mesh) const;
+  usize GetModelSize(const SkeletalModelResource& model) const;
 
   ResourceFile Pack(const Resource& resource,
                     CompressionMode compression_mode) const override;

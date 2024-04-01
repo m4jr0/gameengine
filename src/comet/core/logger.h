@@ -5,14 +5,13 @@
 #ifndef COMET_COMET_CORE_LOGGER_H_
 #define COMET_COMET_CORE_LOGGER_H_
 
-#include <iostream>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <unordered_map>
+#include <array>
+#include <atomic>
+#include <string_view>
+#include <thread>
 
-#include "comet/core/define.h"
-#include "comet/core/type/primitive.h"
+#include "comet/core/essentials.h"
+#include "comet/core/type/tstring.h"
 
 // If issues arise with current terminal, comment this line.
 #define COMET_TERMINAL_COLORS
@@ -56,75 +55,144 @@ enum class LoggerType {
   Time
 };
 
-class Logger final {
- public:
-  static Logger& Get(LoggerType);
+const schar* GetLoggerTypeLabel(LoggerType type);
 
-  Logger() = delete;
+class Logger final {
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> needs to be always lock-free. Unsupported "
+                "architecture");
+  static_assert(std::atomic<bool>::is_always_lock_free,
+                "std::atomic<bool> needs to be always lock-free. Unsupported "
+                "architecture");
+
+ private:
+  void AddToBuffer(schar* buffer, usize len, usize& offset, const TString& arg);
+  void AddToBuffer(schar* buffer, usize len, usize& offset, const schar* arg);
+  void AddToBuffer(schar* buffer, usize len, usize& offset, const wchar* arg);
+  void AddToBuffer(schar* buffer, usize len, usize& offset, CTStringView arg);
+  void AddToBuffer(schar* buffer, usize len, usize& offset,
+                   std::string_view arg);
+  void Send(const schar* buffer, usize buffer_len);
+
+ public:
+  template <typename T>
+  typename std::enable_if<
+      std::is_fundamental<T>::value && !is_char_pointer<T>::value, void>::type
+  AddToBuffer(schar* buffer, usize buffer_len, usize& offset, const T& arg) {
+    // TODO(m4jr0): Use buffer from allocator.
+    constexpr auto kSize{512};
+    schar tmp[kSize]{'\0'};
+
+    usize out_len;
+    ConvertToStr(arg, tmp, kSize, &out_len);
+    AddToBuffer(buffer, buffer_len, offset, tmp);
+  }
+
+  template <typename... Targs>
+  void ProcessArgs(schar* buffer, usize buffer_len, usize& offset,
+                   Targs... args) {
+    (AddToBuffer(buffer, buffer_len, offset, args), ...);
+  }
+
+  template <typename... Targs>
+  void ProcessLog(schar* buffer, usize buffer_len, usize& offset,
+                  Targs... args) {
+    ProcessArgs(buffer, buffer_len, offset, args...);
+  }
+
+  template <typename... Targs>
+  void ProcessLogLn(schar* buffer, usize buffer_len, usize& offset,
+                    Targs... args) {
+    ProcessLog(buffer, buffer_len, offset, args...);
+    AddToBuffer(buffer, buffer_len, offset, std::string_view{"\n"});
+  }
+
+  static Logger& Get();
+
   Logger(const Logger&) = delete;
   Logger(Logger&&) = delete;
   Logger& operator=(const Logger&) = delete;
   Logger& operator=(Logger&&) = delete;
-  ~Logger() = default;
+  ~Logger();
 
   template <typename... Targs>
-  void Error(const Targs&... args) const {
-    std::stringstream string_stream;
-    GetString(string_stream, args...);
-    std::cerr << COMET_ASCII_CATEGORY(COMET_ASCII_ERROR_COL) << "[ERROR]"
-              << COMET_ASCII(COMET_ASCII_ERROR_COL) << " "
-              << string_stream.str() << COMET_ASCII_RESET << '\n';
+  void Log(const schar* category, const schar* label_prefix,
+           const schar* type_label, const schar* label_suffix,
+           const schar* color, const Targs&... args) {
+    // TODO(m4jr0): Use buffer from allocator.
+    constexpr auto kSize{512};
+    schar tmp[kSize]{'\0'};
+    usize offset{0};
+
+#ifdef COMET_LOG_IS_FIBER_PREFIX
+    constexpr auto kFiberPrefixSize{128};
+    schar fiber_prefix[kFiberPrefixSize]{'\0'};
+    PopulateFiberPrefix(fiber_prefix, kFiberPrefixSize);
+    this->ProcessLog(tmp, kSize, offset, fiber_prefix);
+#endif  // COMET_LOG_IS_FIBER_PREFIX
+
+    this->ProcessLog(tmp, kSize, offset, category, label_prefix, type_label,
+                     label_suffix, color);
+    this->ProcessLog(tmp, kSize, offset, args...);
+    this->ProcessLogLn(tmp, kSize, offset, COMET_ASCII_RESET);
+    this->Send(tmp, offset);
   }
 
   template <typename... Targs>
-  void Info(const Targs&... args) const {
-    std::stringstream string_stream;
-    GetString(string_stream, args...);
-    std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_INFO_COL) << "[INFO]"
-              << COMET_ASCII(COMET_ASCII_INFO_COL) << " " << string_stream.str()
-              << COMET_ASCII_RESET << '\n';
+  void Error(LoggerType type, const Targs&... args) {
+    Log(COMET_ASCII_CATEGORY(COMET_ASCII_ERROR_COL), "[",
+        GetLoggerTypeLabel(type), "] [ERROR] ",
+        COMET_ASCII(COMET_ASCII_ERROR_COL), args...);
   }
 
   template <typename... Targs>
-  void Debug(const Targs&... args) const {
-    std::stringstream string_stream;
-    GetString(string_stream, args...);
-    std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_DEBUG_COL) << "[DEBUG]"
-              << COMET_ASCII(COMET_ASCII_DEBUG_COL) << " "
-              << string_stream.str() << COMET_ASCII_RESET << '\n';
+  void Warning(LoggerType type, const Targs&... args) {
+    Log(COMET_ASCII_CATEGORY(COMET_ASCII_WARNING_COL), "[",
+        GetLoggerTypeLabel(type), "] [WARNING] ",
+        COMET_ASCII(COMET_ASCII_WARNING_COL), args...);
   }
 
   template <typename... Targs>
-  void Warning(const Targs&... args) const {
-    std::stringstream string_stream;
-    GetString(string_stream, args...);
-    std::cout << COMET_ASCII_CATEGORY(COMET_ASCII_WARNING_COL) << "[WARNING]"
-              << COMET_ASCII(COMET_ASCII_WARNING_COL) << " "
-              << string_stream.str() << COMET_ASCII_RESET << '\n';
+  void Info(LoggerType type, const Targs&... args) {
+    Log(COMET_ASCII_CATEGORY(COMET_ASCII_INFO_COL), "[",
+        GetLoggerTypeLabel(type), "] [INFO] ",
+        COMET_ASCII(COMET_ASCII_INFO_COL), args...);
   }
 
-  LoggerType GetType() const { return type_; };
+  template <typename... Targs>
+  void Debug(LoggerType type, const Targs&... args) {
+    Log(COMET_ASCII_CATEGORY(COMET_ASCII_DEBUG_COL), "[",
+        GetLoggerTypeLabel(type), "] [DEBUG] ",
+        COMET_ASCII(COMET_ASCII_DEBUG_COL), args...);
+  }
+
+  void Dispose();
 
  private:
-  explicit Logger(LoggerType logger_type);
+  void Flush();
+#ifdef COMET_LOG_IS_FIBER_PREFIX
+  void PopulateFiberPrefix(schar* buffer, usize buffer_len);
+#endif  // COMET_LOG_IS_FIBER_PREFIX
 
-  template <typename T>
-  void GetString(std::stringstream& string_stream, const T& arg) const {
-    string_stream << arg;
-  }
+  struct Buffer {
+    static constexpr auto kBufferSize{4096};
+    schar data[kBufferSize];
+    std::atomic<usize> write_index{0};
+    std::atomic<usize> active_writer_count{0};
+    std::atomic<bool> is_flush_requested{false};
+  };
 
-  template <typename T, typename... Targs>
-  void GetString(std::stringstream& string_stream, const T& arg,
-                 const Targs&... args) const {
-    GetString(string_stream, arg);
-    GetString(string_stream, args...);
-  }
+  static constexpr auto kBufferCount_{2};
+  static constexpr auto kFlushIntervalInMs_{100};
+  std::array<Buffer, kBufferCount_> buffers_{};
+  std::atomic<usize> current_buffer_index_{0};
+  std::thread flush_thread_{};
+  std::atomic<bool> is_initialized_{false};
+  std::atomic<bool> is_running_{false};
 
-  static std::shared_ptr<Logger> Generate(LoggerType logger_type);
+  Logger();
 
-  static inline std::unordered_map<LoggerType, std::shared_ptr<Logger>>
-      loggers_{};
-  LoggerType type_{LoggerType::Unknown};
+  void ListenToFlushRequests();
 };
 
 #ifndef COMET_DEBUG
@@ -185,132 +253,132 @@ class Logger final {
 #define COMET_LOG_TIME_WARNING(...)
 #else
 #define COMET_LOG_INFO(logger_type, ...) \
-  comet::Logger::Get(logger_type).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(logger_type, __VA_ARGS__)
 #define COMET_LOG_DEBUG(logger_type, ...) \
-  comet::Logger::Get(logger_type).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(logger_type, __VA_ARGS__)
 #define COMET_LOG_WARNING(logger_type, ...) \
-  comet::Logger::Get(logger_type).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(logger_type, __VA_ARGS__)
 
 #define COMET_LOG_GLOBAL_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Global).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Global, __VA_ARGS__)
 #define COMET_LOG_GLOBAL_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Global).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Global, __VA_ARGS__)
 #define COMET_LOG_GLOBAL_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Global).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Global, __VA_ARGS__)
 
 #define COMET_LOG_ANIMATION_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Animation).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Animation, __VA_ARGS__)
 #define COMET_LOG_ANIMATION_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Animation).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Animation, __VA_ARGS__)
 #define COMET_LOG_ANIMATION_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Animation).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Animation, __VA_ARGS__)
 
 #define COMET_LOG_CORE_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Core).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Core, __VA_ARGS__)
 #define COMET_LOG_CORE_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Core).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Core, __VA_ARGS__)
 #define COMET_LOG_CORE_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Core).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Core, __VA_ARGS__)
 
 #define COMET_LOG_EVENT_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Event).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Event, __VA_ARGS__)
 #define COMET_LOG_EVENT_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Event).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Event, __VA_ARGS__)
 #define COMET_LOG_EVENT_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Event).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Event, __VA_ARGS__)
 
 #define COMET_LOG_ENTITY_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Entity).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Entity, __VA_ARGS__)
 #define COMET_LOG_ENTITY_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Entity).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Entity, __VA_ARGS__)
 #define COMET_LOG_ENTITY_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Entity).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Entity, __VA_ARGS__)
 
 #define COMET_LOG_GEOMETRY_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Geometry).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Geometry, __VA_ARGS__)
 #define COMET_LOG_GEOMETRY_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Geometry).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Geometry, __VA_ARGS__)
 #define COMET_LOG_GEOMETRY_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Geometry).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Geometry, __VA_ARGS__)
 
 #define COMET_LOG_INPUT_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Input).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Input, __VA_ARGS__)
 #define COMET_LOG_INPUT_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Input).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Input, __VA_ARGS__)
 #define COMET_LOG_INPUT_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Input).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Input, __VA_ARGS__)
 
 #define COMET_LOG_MATH_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Math).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Math, __VA_ARGS__)
 #define COMET_LOG_MATH_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Math).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Math, __VA_ARGS__)
 #define COMET_LOG_MATH_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Math).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Math, __VA_ARGS__)
 
 #define COMET_LOG_PHYSICS_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Physics).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Physics, __VA_ARGS__)
 #define COMET_LOG_PHYSICS_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Physics).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Physics, __VA_ARGS__)
 #define COMET_LOG_PHYSICS_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Physics).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Physics, __VA_ARGS__)
 
 #define COMET_LOG_PROFILER_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Profiler).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Profiler, __VA_ARGS__)
 #define COMET_LOG_PROFILER_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Profiler).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Profiler, __VA_ARGS__)
 #define COMET_LOG_PROFILER_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Profiler).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Profiler, __VA_ARGS__)
 
 #define COMET_LOG_RENDERING_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Rendering).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Rendering, __VA_ARGS__)
 #define COMET_LOG_RENDERING_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Rendering).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Rendering, __VA_ARGS__)
 #define COMET_LOG_RENDERING_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Rendering).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Rendering, __VA_ARGS__)
 
 #define COMET_LOG_RESOURCE_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Resource).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Resource, __VA_ARGS__)
 #define COMET_LOG_RESOURCE_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Resource).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Resource, __VA_ARGS__)
 #define COMET_LOG_RESOURCE_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Resource).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Resource, __VA_ARGS__)
 
 #define COMET_LOG_TIME_INFO(...) \
-  comet::Logger::Get(comet::LoggerType::Time).Info(__VA_ARGS__)
+  comet::Logger::Get().Info(comet::LoggerType::Time, __VA_ARGS__)
 #define COMET_LOG_TIME_DEBUG(...) \
-  comet::Logger::Get(comet::LoggerType::Time).Debug(__VA_ARGS__)
+  comet::Logger::Get().Debug(comet::LoggerType::Time, __VA_ARGS__)
 #define COMET_LOG_TIME_WARNING(...) \
-  comet::Logger::Get(comet::LoggerType::Time).Warning(__VA_ARGS__)
+  comet::Logger::Get().Warning(comet::LoggerType::Time, __VA_ARGS__)
 #endif  // !COMET_DEBUG
 
 #define COMET_LOG_ERROR(logger_type, ...) \
-  comet::Logger::Get(logger_type).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(logger_type, __VA_ARGS__)
 #define COMET_LOG_GLOBAL_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Global).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Global, __VA_ARGS__)
 #define COMET_LOG_ANIMATION_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Animation).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Animation, __VA_ARGS__)
 #define COMET_LOG_CORE_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Core).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Core, __VA_ARGS__)
 #define COMET_LOG_EVENT_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Event).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Event, __VA_ARGS__)
 #define COMET_LOG_ENTITY_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Entity).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Entity, __VA_ARGS__)
 #define COMET_LOG_GEOMETRY_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Geometry).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Geometry, __VA_ARGS__)
 #define COMET_LOG_INPUT_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Input).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Input, __VA_ARGS__)
 #define COMET_LOG_MATH_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Math).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Math, __VA_ARGS__)
 #define COMET_LOG_PHYSICS_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Physics).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Physics, __VA_ARGS__)
 #define COMET_LOG_PROFILER_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Profiler).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Profiler, __VA_ARGS__)
 #define COMET_LOG_RENDERING_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Rendering).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Rendering, __VA_ARGS__)
 #define COMET_LOG_RESOURCE_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Resource).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Resource, __VA_ARGS__)
 #define COMET_LOG_TIME_ERROR(...) \
-  comet::Logger::Get(comet::LoggerType::Time).Error(__VA_ARGS__)
+  comet::Logger::Get().Error(comet::LoggerType::Time, __VA_ARGS__)
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_LOGGER_H_

@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_VIEW_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_VIEW_HANDLER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
@@ -37,17 +36,17 @@ class ViewHandler : public Handler {
 
   void Initialize() override;
   void Shutdown() override;
-  void Destroy(uindex view);
+  void Destroy(usize view);
   void Destroy(View& view);
   void Update(const ViewPacket& packet);
 
-  const View* Get(uindex index) const;
-  const View* TryGet(uindex index) const;
+  const View* Get(usize index) const;
+  const View* TryGet(usize index) const;
   const View* Generate(const RenderingViewDescr& descr);
 
  private:
-  View* Get(uindex index);
-  View* TryGet(uindex index);
+  View* Get(usize index);
+  View* TryGet(usize index);
   void Destroy(View& view, bool is_destroying_handler);
 
   std::vector<std::unique_ptr<View>> views_{};

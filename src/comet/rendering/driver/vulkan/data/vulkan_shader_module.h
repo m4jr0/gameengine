@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_MODULE_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_MODULE_H_
 
-#include "comet_precompile.h"
-
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
@@ -20,7 +19,7 @@ constexpr auto kInvalidShaderModuleId{static_cast<ShaderModuleId>(-1)};
 
 struct ShaderModule {
   ShaderModuleId id{kInvalidShaderModuleId};
-  uindex code_size{0};
+  usize code_size{0};
   const u32* code{nullptr};
   VkShaderModule handle{VK_NULL_HANDLE};
   VkShaderStageFlagBits type{VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM};

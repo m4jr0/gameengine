@@ -5,9 +5,10 @@
 #ifndef COMET_COMET_EVENT_EVENT_MANAGER_H_
 #define COMET_COMET_EVENT_EVENT_MANAGER_H_
 
-#include "comet_precompile.h"
+#include <functional>
 
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/core/type/ring_queue.h"
 #include "comet/event/event.h"
@@ -26,7 +27,7 @@ struct EventListener {
 using EventListeners =
     std::unordered_map<stringid::StringId, std::vector<EventListener>>;
 using IdEventTypeMap = std::unordered_map<EventListenerId, stringid::StringId>;
-using EventQueue = ring_queue<EventPointer>;
+using EventQueue = LockFreeMPSCRingQueue<EventPointer>;
 
 class EventManager : public Manager {
  public:
@@ -54,8 +55,7 @@ class EventManager : public Manager {
 
   template <typename T, typename... Args>
   void FireEvent(Args&&... args) {
-    std::scoped_lock<std::mutex> lock(mutex_);
-    event_queue_.push(GenerateEvent<T>(std::forward<Args>(args)...));
+    event_queue_.Push(GenerateEvent<T>(std::forward<Args>(args)...));
   }
 
   void FireEvent(EventPointer event);
@@ -64,7 +64,6 @@ class EventManager : public Manager {
  private:
   void Dispatch(EventPointer event) const;
 
-  mutable std::mutex mutex_{};
   EventListenerId listener_id_counter_{0};
   EventListeners listeners_{};
   IdEventTypeMap id_event_type_map_{};

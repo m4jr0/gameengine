@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_INITIALIZER_UTILS_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_INITIALIZER_UTILS_H_
 
-#include "comet_precompile.h"
-
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
@@ -75,7 +74,7 @@ GeneratePipelineMultisampleStateCreateInfo();
 VkPipelineColorBlendAttachmentState GeneratePipelineColorBlendAttachmentState();
 VkPipelineColorBlendStateCreateInfo GeneratePipelineColorBlendStateCreateInfo(
     const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-    uindex color_blend_attachment_count);
+    usize color_blend_attachment_count);
 VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
     const PipelineDescr& descr);
 VkPipelineDepthStencilStateCreateInfo
@@ -97,7 +96,7 @@ VkDescriptorSetLayoutBinding GenerateDescriptorSetLayoutBinding(
     VkDescriptorType type, VkShaderStageFlags stage_flags, u32 binding);
 VkDescriptorBufferInfo GenerateDescriptorBufferInfo(VkBuffer buffer_handle,
                                                     sptrdiff offset,
-                                                    uindex stride);
+                                                    usize stride);
 VkDescriptorImageInfo GenerateDescriptorImageInfo(VkSampler sampler_handle,
                                                   VkImageView image_view_handle,
                                                   VkImageLayout image_layout);

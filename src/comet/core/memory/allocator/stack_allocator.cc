@@ -4,10 +4,9 @@
 
 #include "stack_allocator.h"
 
-#include "comet/core/memory/memory.h"
-
 namespace comet {
-StackAllocator::StackAllocator(uindex capacity, MemoryTag memory_tag)
+namespace memory {
+StackAllocator::StackAllocator(usize capacity, MemoryTag memory_tag)
     : memory_tag_{memory_tag},
       size_{0},
       capacity_{capacity},
@@ -41,7 +40,7 @@ void StackAllocator::Destroy() {
   is_initialized_ = false;
 }
 
-void* StackAllocator::Allocate(uindex size, u8 alignment) {
+void* StackAllocator::Allocate(usize size, u8 alignment) {
   auto* p{AlignPointer(marker_, alignment)};
   COMET_ASSERT(p + size <= root_ + capacity_, "Max capacity reached!");
   marker_ = p + size;
@@ -52,8 +51,11 @@ void StackAllocator::Clear() { marker_ = root_; }
 
 bool StackAllocator::IsInitialized() const noexcept { return is_initialized_; }
 
-uindex StackAllocator::GetSize() const noexcept {
+usize StackAllocator::GetSize() const noexcept {
   COMET_ASSERT(marker_ > root_, "Stack allocator is malformed!");
   return marker_ - root_;
 }
+
+usize StackAllocator::GetCapacity() const noexcept { return capacity_; }
+}  // namespace memory
 }  // namespace comet

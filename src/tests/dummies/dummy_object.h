@@ -5,7 +5,7 @@
 #ifndef COMET_TESTS_DUMMY_OBJECT_H_
 #define COMET_TESTS_DUMMY_OBJECT_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 namespace comet {
 namespace comettests {
@@ -21,12 +21,12 @@ class DummyObject {
   bool operator==(const DummyObject&) const;
   bool operator!=(const DummyObject&) const;
 
-  static uindex GetCounter() noexcept;
-  uindex GetId() const noexcept;
+  static usize GetCounter() noexcept;
+  usize GetId() const noexcept;
   s32 GetValue() const noexcept;
 
  private:
-  static uindex counter_;
+  static usize counter_;
   u64 id_{0};
   s32 value_{0};
 };

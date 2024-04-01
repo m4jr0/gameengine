@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_DRIVER_H_
 #define COMET_COMET_RENDERING_DRIVER_DRIVER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/window.h"
 #include "comet/time/time_manager.h"
@@ -27,7 +26,7 @@ struct DriverDescr {
   WindowSize window_height{0};
   f32 clear_color[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
   schar app_name[kMaxAppNameLen]{'\0'};
-  uindex app_name_len{0};
+  usize app_name_len{0};
   std::vector<RenderingViewDescr> rendering_view_descrs{};
 };
 
@@ -63,7 +62,7 @@ class Driver {
   WindowSize window_height_{0};
   f32 clear_color_[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
   schar app_name_[kMaxAppNameLen]{'\0'};
-  uindex app_name_len_{0};
+  usize app_name_len_{0};
   std::vector<RenderingViewDescr> rendering_view_descrs_{};
 };
 }  // namespace rendering

@@ -8,7 +8,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cmake_build"
+            "preLaunchTask": "cmake_build",
+            "externalConsole": true
         },
         {
             "name": "Comet tests (build) [Unix]",
@@ -16,7 +17,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cmake_build"
+            "preLaunchTask": "cmake_build",
+            "externalConsole": true
         },
         {
             "name": "Comet (clean + build) [Unix]",
@@ -24,7 +26,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cleanbuild"
+            "preLaunchTask": "cleanbuild",
+            "externalConsole": true
         },
         {
             "name": "Comet tests (clean + build) [Unix]",
@@ -32,7 +35,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cleanbuild"
+            "preLaunchTask": "cleanbuild",
+            "externalConsole": true
         },
         {
             "name": "Comet (no build) [Unix]",
@@ -40,6 +44,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
+            "externalConsole": true
         },
         {
             "name": "Comet tests (no build) [Unix]",
@@ -47,6 +52,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
+            "externalConsole": true
         },
         // Windows /////////////////////////////////////////////////////////////
         {
@@ -55,7 +61,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor.exe",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cmake_build"
+            "preLaunchTask": "cmake_build",
+            "externalConsole": true
         },
         {
             "name": "Comet tests (build) [Windows]",
@@ -63,7 +70,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cmake_build"
+            "preLaunchTask": "cmake_build",
+            "externalConsole": true
         },
         {
             "name": "Comet (clean + build) [Windows]",
@@ -71,7 +79,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor.exe",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cleanbuild"
+            "preLaunchTask": "cleanbuild",
+            "externalConsole": true
         },
         {
             "name": "Comet tests (clean + build) [Windows]",
@@ -79,7 +88,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
-            "preLaunchTask": "cleanbuild"
+            "preLaunchTask": "cleanbuild",
+            "externalConsole": true
         },
         {
             "name": "Comet (no build) [Windows]",
@@ -87,6 +97,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor.exe",
             "cwd": "${workspaceFolder}/build/",
+            "externalConsole": true
         },
         {
             "name": "Comet tests (no build) [Windows]",
@@ -94,6 +105,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
+            "externalConsole": true
         }
     ]
 }

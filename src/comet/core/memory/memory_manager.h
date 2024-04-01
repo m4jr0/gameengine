@@ -5,9 +5,8 @@
 #ifndef COMET_COMET_CORE_MEMORY_MEMORY_MANAGER_H_
 #define COMET_COMET_CORE_MEMORY_MEMORY_MANAGER_H_
 
-#include "comet_precompile.h"
-
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/core/memory/allocator/frame_allocator.h"
 #include "comet/core/memory/allocator/tstring_allocator.h"
@@ -30,7 +29,7 @@ class MemoryManager : public Manager {
   void Shutdown() override;
   void Update();
 
-  uindex GetAllocatedMemory() const;
+  usize GetAllocatedMemory() const;
   OneFrameAllocator& GetOneFrameAllocator();
   TwoFrameAllocator& GetTwoFrameAllocator();
   TStringAllocator& GetTStringAllocator();

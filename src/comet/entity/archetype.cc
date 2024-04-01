@@ -9,11 +9,11 @@
 namespace comet {
 namespace entity {
 ArchetypePointer GenerateArchetype() {
-  auto* p{AllocateAligned<Archetype>(MemoryTag::Entity)};
+  auto* p{memory::AllocateAligned<Archetype>(memory::MemoryTag::Entity)};
 
   ArchetypePointer archetype(p, [](Archetype* p) {
     p->~Archetype();
-    Deallocate(p);
+    memory::Deallocate(p);
   });
 
   new (archetype.get()) Archetype();

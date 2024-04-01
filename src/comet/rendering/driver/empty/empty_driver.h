@@ -7,8 +7,9 @@
 
 #ifdef COMET_DEBUG
 
-#include "comet_precompile.h"
+#include <memory>
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/window/glfw/empty/empty_glfw_window.h"
 

@@ -5,7 +5,8 @@
 #ifndef COMET_COMET_CORE_CONF_CONFIGURATION_VALUE_H_
 #define COMET_COMET_CORE_CONF_CONFIGURATION_VALUE_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
+#include "comet/core/type/string_id.h"
 
 using namespace std::literals;
 
@@ -29,6 +30,20 @@ static const ConfKey kApplicationPatchVersion{
 
 // Core. /////////////////////////////////////////////////////////////////
 static const ConfKey kCoreMsPerUpdate{COMET_STRING_ID("core_ms_per_update")};
+static const ConfKey kCoreForcedWorkerCount{
+    COMET_STRING_ID("core_forced_worker_count")};
+static const ConfKey kCoreForcedIOWorkerCount{
+    COMET_STRING_ID("core_forced_io_worker_count")};
+static const ConfKey kCoreLargeFiberCount{
+    COMET_STRING_ID("core_large_fiber_count")};
+static const ConfKey kCoreGiganticFiberCount{
+    COMET_STRING_ID("core_gigantic_fiber_count")};
+static const ConfKey kCoreJobCounterCount{
+    COMET_STRING_ID("core_job_counter_count")};
+static const ConfKey kCoreJobQueueCount{
+    COMET_STRING_ID("core_job_queue_count")};
+static const ConfKey kCoreTaggedHeapCapacity{
+    COMET_STRING_ID("core_tagged_heap_capacity")};
 static const ConfKey kCoreOneFrameAllocatorCapacity{
     COMET_STRING_ID("core_one_frame_allocator_capacity")};
 static const ConfKey kCoreTwoFrameAllocatorCapacity{
@@ -123,7 +138,7 @@ union ConfValue {
   s64 s64_value;
   f32 f32_value;
   f64 f64_value;
-  uindex uindex_value;
+  usize uindex_value;
   ux ux_value;
   sx sx_value;
   fx fx_value;

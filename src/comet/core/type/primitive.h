@@ -12,8 +12,14 @@
 #include <cstdint>
 #include <limits>
 
+#include "comet/core/compiler.h"
 #include "comet/core/define.h"
 #include "comet/core/os.h"
+
+#ifdef COMET_ARCH_X86
+#include <emmintrin.h>
+#include <xmmintrin.h>
+#endif  // COMET_ARCH_X86
 
 namespace comet {
 constexpr auto kCharBit{CHAR_BIT};
@@ -31,7 +37,10 @@ using s64 = std::int64_t;
 using f32 = float;
 using f64 = double;
 
-using uindex = std::size_t;
+using usize = std::size_t;
+using ssize = std::ptrdiff_t;
+using sstreamsize = std::streamsize;
+
 using uptr = std::uintptr_t;
 using sptrdiff = std::ptrdiff_t;
 
@@ -58,8 +67,12 @@ constexpr auto kS32Min{std::numeric_limits<s32>::min()};
 constexpr auto kS32Max{std::numeric_limits<s32>::max()};
 constexpr auto kS64Min{std::numeric_limits<s64>::min()};
 constexpr auto kS64Max{std::numeric_limits<s64>::max()};
-constexpr auto kUIndexMin{std::numeric_limits<uindex>::min()};
-constexpr auto kUIndexMax{std::numeric_limits<uindex>::max()};
+constexpr auto kUSizeMin{std::numeric_limits<usize>::min()};
+constexpr auto kUSizeMax{std::numeric_limits<usize>::max()};
+constexpr auto kSSizeMin{std::numeric_limits<ssize>::min()};
+constexpr auto kSSizeMax{std::numeric_limits<ssize>::max()};
+constexpr auto kSStreamSizeMin{std::numeric_limits<sstreamsize>::min()};
+constexpr auto kSStreamSizeMax{std::numeric_limits<sstreamsize>::max()};
 constexpr auto kUPtrMin{std::numeric_limits<uptr>::min()};
 constexpr auto kUPtrMax{std::numeric_limits<uptr>::max()};
 constexpr auto kSptrDiffMin{std::numeric_limits<sptrdiff>::min()};
@@ -119,6 +132,15 @@ constexpr auto kFXMin{kF32Min};
 constexpr auto kFXMax{kF32Max};
 #endif  // COMET_64
 
+template <typename T>
+struct is_char_pointer : std::false_type {};
+
+template <>
+struct is_char_pointer<schar*> : std::true_type {};
+
+template <>
+struct is_char_pointer<wchar*> : std::true_type {};
+
 static_assert(sizeof(u8) * kCharBit == 8,
               "u8 is not 8 bits on this architecture.");
 static_assert(sizeof(u16) * kCharBit == 16,
@@ -168,7 +190,11 @@ static_assert(sizeof(fx) * kCharBit == 32,
               "fx is not 32 bits on this architecture.");
 #endif  // COMET_64
 
-constexpr auto kInvalidIndex{static_cast<uindex>(-1)};
+constexpr auto kInvalidIndex{static_cast<usize>(-1)};
+
+#ifdef COMET_ARCH_X86
+using ms128 = __m128i;
+#endif  // COMET_ARCH_X86
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_TYPE_PRIMITIVE_H_

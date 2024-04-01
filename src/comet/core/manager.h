@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_CORE_MANAGER_H_
 #define COMET_COMET_CORE_MANAGER_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 namespace comet {
 class Manager {

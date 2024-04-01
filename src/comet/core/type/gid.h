@@ -5,7 +5,10 @@
 #ifndef COMET_COMET_CORE_TYPE_GID_H_
 #define COMET_COMET_CORE_TYPE_GID_H_
 
-#include "comet_precompile.h"
+#include <deque>
+#include <vector>
+
+#include "comet/core/essentials.h"
 
 namespace comet {
 namespace gid {

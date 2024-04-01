@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-#include "comet/core/type/primitive.h"
+#include "comet/core/essentials.h"
 
 namespace comet {
 namespace math {

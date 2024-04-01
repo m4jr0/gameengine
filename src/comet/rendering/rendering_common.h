@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_RENDERING_COMMON_H_
 #define COMET_COMET_RENDERING_RENDERING_COMMON_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/vector.h"
@@ -162,7 +161,7 @@ enum class ShaderUniformType : u8 {
   Atomic
 };
 
-using Alignment = uindex;
+using Alignment = usize;
 constexpr auto kInvalidAlignment{static_cast<Alignment>(-1)};
 
 Alignment GetScalarAlignment(ShaderUniformType type);
@@ -174,11 +173,11 @@ constexpr auto kVertexAttributeDescrMaxNameLen{64};
 struct ShaderVertexAttributeDescr {
   ShaderVertexAttributeType type{ShaderVertexAttributeType::Unknown};
   schar name[kVertexAttributeDescrMaxNameLen]{'\0'};
-  uindex name_len{0};
+  usize name_len{0};
 };
 
 void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
-             uindex name_len);
+             usize name_len);
 
 using ShaderUniformSize = u32;
 constexpr auto kInvalidShaderUniformSize{static_cast<ShaderUniformSize>(-1)};
@@ -190,10 +189,10 @@ struct ShaderUniformDescr {
   ShaderUniformType type{ShaderUniformType::Unknown};
   ShaderUniformScope scope{ShaderUniformScope::Unknown};
   schar name[kShaderUniformDescrMaxNameLen]{'\0'};
-  uindex name_len{0};
+  usize name_len{0};
 };
 
-void SetName(ShaderUniformDescr& descr, const schar* name, uindex name_len);
+void SetName(ShaderUniformDescr& descr, const schar* name, usize name_len);
 
 constexpr auto kMaxShaderCount{256};
 constexpr auto kMaxShaderUniformCount{128};

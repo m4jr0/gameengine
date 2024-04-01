@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_MATH_MATRIX_H_
 #define COMET_COMET_MATH_MATRIX_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "glm/glm.hpp"
 
 namespace comet {

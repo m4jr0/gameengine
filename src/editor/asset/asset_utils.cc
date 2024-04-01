@@ -5,7 +5,8 @@
 #include "asset_utils.h"
 
 #include "comet/core/date.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
+#include "comet/core/logger.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
@@ -23,13 +24,13 @@ TString GenerateAssetMetadataFilePath(CTStringView asset_file_path) {
   path.Resize(total_len);
   COMET_DISALLOW_STR_ALLOC(path);
 
-  for (uindex i{0}; i < asset_file_path.GetLength(); ++i) {
+  for (usize i{0}; i < asset_file_path.GetLength(); ++i) {
     path[i] = asset_file_path[i];
   }
 
   path[asset_file_path.GetLength()] = COMET_TCHAR('.');
 
-  for (uindex i{0}; i < kCometEditorAssetMetadataFileExtension.GetLength();
+  for (usize i{0}; i < kCometEditorAssetMetadataFileExtension.GetLength();
        ++i) {
     path[i + asset_file_path.GetLength() + 1] =
         kCometEditorAssetMetadataFileExtension[i];
@@ -54,7 +55,7 @@ nlohmann::json GetMetadata(CTStringView metadata_file_path) {
   schar metadata_raw[kMaxMetadataRaw];
 
   try {
-    uindex metadata_raw_len;
+    usize metadata_raw_len;
     ReadStrFromFile(metadata_file_path, metadata_raw, kMaxMetadataRaw,
                     &metadata_raw_len);
 
@@ -79,7 +80,7 @@ nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path) {
   auto metadata = GetMetadata(metadata_file_path);
   const auto update_time{GetNow()};
   f64 creation_time{0};
-  uindex file_version{0};
+  usize file_version{0};
 
   try {
     creation_time =
@@ -108,7 +109,7 @@ TString GenerateResourcePath(CTStringView folder_path,
                              resource::ResourceId resource_id) {
   // The ID will be 10 characters max.
   tchar resource_id_path[11];
-  uindex resource_id_path_len;
+  usize resource_id_path_len;
   ConvertToStr(resource_id, resource_id_path, 10, &resource_id_path_len);
   resource_id_path[10] = COMET_TCHAR('\0');
   return folder_path / resource_id_path;

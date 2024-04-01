@@ -5,12 +5,11 @@
 #ifndef COMET_COMET_CORE_MEMORY_ALLOCATOR_STL_TWO_FRAME_ALLOCATOR_H_
 #define COMET_COMET_CORE_MEMORY_ALLOCATOR_STL_TWO_FRAME_ALLOCATOR_H_
 
-#include "comet_precompile.h"
-
-#include "comet/core/memory/memory.h"
+#include "comet/core/essentials.h"
 #include "comet/core/memory/memory_manager.h"
 
 namespace comet {
+namespace memory {
 template <class T>
 class two_frame_allocator {
  public:
@@ -38,5 +37,6 @@ class two_frame_allocator {
     // Do nothing. Data will be purged at the end of the frame.
   }
 };
+}  // namespace memory
 }  // namespace comet
 #endif  // COMET_COMET_CORE_MEMORY_ALLOCATOR_STL_TWO_FRAME_ALLOCATOR_H_

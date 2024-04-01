@@ -13,13 +13,12 @@ EventManager& EventManager::Get() {
 
 void EventManager::Shutdown() {
   listeners_.clear();
-  event_queue_.clear();
+  event_queue_.Clear();
   Manager::Shutdown();
 }
 
 EventListenerId EventManager::Register(const Callback& function,
                                        stringid::StringId event_type) {
-  std::scoped_lock<std::mutex> lock(mutex_);
   auto& listeners{listeners_[event_type]};
   const auto id{listener_id_counter_++};
   listeners.push_back({id, function});
@@ -28,13 +27,12 @@ EventListenerId EventManager::Register(const Callback& function,
 }
 
 void EventManager::Unregister(EventListenerId id) {
-  std::scoped_lock<std::mutex> lock(mutex_);
   COMET_ASSERT(id_event_type_map_.find(id) != id_event_type_map_.cend(),
                "Unable to find event type from ID ", id, "!");
   auto& listeners{listeners_[id_event_type_map_.at(id)]};
-  uindex found_index{kInvalidIndex};
+  usize found_index{kInvalidIndex};
 
-  for (uindex i{0}; i < listeners.size(); ++i) {
+  for (usize i{0}; i < listeners.size(); ++i) {
     if (listeners[i].id == id) {
       found_index = i;
       break;
@@ -52,17 +50,14 @@ void EventManager::FireEventNow(EventPointer event) const {
 }
 
 void EventManager::FireEvent(EventPointer event) {
-  std::scoped_lock<std::mutex> lock(mutex_);
-  event_queue_.push(std::move(event));
+  event_queue_.Push(std::move(event));
 }
 
 void EventManager::FireAllEvents() {
-  std::scoped_lock<std::mutex> lock(mutex_);
   EventPointer event;
 
-  while (!event_queue_.empty()) {
-    Dispatch(std::move(event_queue_.front()));
-    event_queue_.pop();
+  while (event_queue_.Pop(event)) {
+    Dispatch(std::move(event));
   }
 }
 

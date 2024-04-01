@@ -7,6 +7,7 @@
 #include "vulkan_driver.h"
 
 #include "comet/core/c_string.h"
+#include "comet/core/logger.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
 #include "comet/rendering/camera/camera.h"
@@ -222,7 +223,7 @@ void VulkanDriver::InitializeVulkanInstance() {
 
   COMET_LOG_RENDERING_DEBUG("Required extensions:");
 
-  for (uindex i{0}; i < required_extension_count; ++i) {
+  for (usize i{0}; i < required_extension_count; ++i) {
     const schar* required_extension{required_extensions[i]};
     COMET_LOG_RENDERING_DEBUG("\t", required_extension);
     auto is_found{false};
@@ -635,7 +636,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanValidationMessage(
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanDebugReportMessage(
-    VkFlags message_flags, VkDebugReportObjectTypeEXT, u64, uindex,
+    VkFlags message_flags, VkDebugReportObjectTypeEXT, u64, usize,
     int32_t message_code, const schar* layer_prefix, const schar* message,
     void*) {
   if (message_flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT ||

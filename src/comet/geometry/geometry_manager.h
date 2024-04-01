@@ -5,10 +5,10 @@
 #ifndef COMET_COMET_GEOMETRY_GEOMETRY_MANAGER_H_
 #define COMET_COMET_GEOMETRY_GEOMETRY_MANAGER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/geometry/component/mesh_component.h"
+#include "comet/geometry/geometry_common.h"
 #include "comet/resource/model_resource.h"
 
 namespace comet {

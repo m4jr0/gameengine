@@ -5,11 +5,10 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_FRAME_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_FRAME_H_
 
-#include "comet_precompile.h"
-
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 
 namespace comet {

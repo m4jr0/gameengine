@@ -5,10 +5,11 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_SHADER_DATA_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_SHADER_DATA_H_
 
-#include "comet_precompile.h"
-
+#include <vector>
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
+#include "comet/core/type/gid.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
@@ -86,7 +87,7 @@ struct ShaderUniformData {
 struct ShaderUniformBufferObjectData {
   u32 uniform_count{0};
   u32 sampler_count{0};
-  uindex ubo_size{0};
+  usize ubo_size{0};
   sptrdiff ubo_stride{0};
   sptrdiff ubo_offset{0};
 };

@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_RENDERING_UTILS_H_
 #define COMET_COMET_RENDERING_RENDERING_UTILS_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 

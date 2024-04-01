@@ -9,9 +9,7 @@ int main() {
     auto engine{comet::GenerateEngine()};
 
     if (engine != nullptr) {
-      engine->Initialize();
-      engine->Run();
-      engine->Shutdown();
+      engine->Populate();
     }
   }
 

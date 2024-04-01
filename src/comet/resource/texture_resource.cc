@@ -62,12 +62,12 @@ const Resource* TextureHandler::GetDefaultResource() {
     data.resize(descr.size);
     auto is_color_1{false};
 
-    for (uindex col{0}; col < kDimension; ++col) {
+    for (usize col{0}; col < kDimension; ++col) {
       if (col % kPatternThreshold == 0) {
         is_color_1 = !is_color_1;
       }
 
-      for (uindex row{0}; row < kDimension; ++row) {
+      for (usize row{0}; row < kDimension; ++row) {
         const auto row_image_index{col * kDimension + row};
         const auto data_index{kChannelCount * row_image_index};
 
@@ -77,7 +77,7 @@ const Resource* TextureHandler::GetDefaultResource() {
 
         const auto& color{is_color_1 ? kColor1 : kColor2};
 
-        for (uindex k{0}; k < kChannelCount; ++k) {
+        for (usize k{0}; k < kChannelCount; ++k) {
           data[data_index + k] = color[k];
         }
       }
@@ -108,7 +108,7 @@ Resource* TextureHandler::GetDefaultDiffuseTexture() {
     auto& data{diffuse_texture_->data};
     data.resize(descr.size);
 
-    for (uindex i{0}; i < descr.size; ++i) {
+    for (usize i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
     }
   }
@@ -137,7 +137,7 @@ Resource* TextureHandler::GetDefaultSpecularTexture() {
     auto& data{specular_texture_->data};
     data.resize(descr.size);
 
-    for (uindex i{0}; i < descr.size; ++i) {
+    for (usize i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
     }
   }
@@ -166,7 +166,7 @@ Resource* TextureHandler::GetDefaultNormalTexture() {
     auto& data{normal_texture_->data};
     data.resize(descr.size);
 
-    for (uindex i{0}; i < descr.size; ++i) {
+    for (usize i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
     }
   }
@@ -203,16 +203,16 @@ ResourceFile TextureHandler::Pack(const Resource& resource,
   const auto data_size{sizeof(u8) * texture.data.size()};
 
   std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize + data_size);
-  uindex cursor{0};
+  usize cursor{0};
   auto* buffer{data.data()};
 
-  CopyMemory(&buffer[cursor], &texture.id, kResourceIdSize);
+  memory::CopyMemory(&buffer[cursor], &texture.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&buffer[cursor], &texture.type_id, kResourceTypeIdSize);
+  memory::CopyMemory(&buffer[cursor], &texture.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  CopyMemory(&buffer[cursor], texture.data.data(), data_size);
+  memory::CopyMemory(&buffer[cursor], texture.data.data(), data_size);
   cursor += data_size;
 
   PackPodResourceDescr(texture.descr, file);
@@ -227,20 +227,20 @@ std::unique_ptr<Resource> TextureHandler::Unpack(
   const auto data{UnpackResourceData(file)};
 
   const auto* buffer{data.data()};
-  uindex cursor{0};
+  usize cursor{0};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   const auto data_size{sizeof(u8) * data.size() - kResourceIdSize -
                        kResourceTypeIdSize};
 
-  CopyMemory(&texture.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&texture.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&texture.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&texture.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   texture.data.resize(data_size);
-  CopyMemory(texture.data.data(), &buffer[cursor], data_size);
+  memory::CopyMemory(texture.data.data(), &buffer[cursor], data_size);
   cursor += data_size;
 
   return std::make_unique<TextureResource>(std::move(texture));

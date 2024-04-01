@@ -5,7 +5,8 @@
 #ifndef COMET_COMET_ENTITY_ENTITY_ID_H_
 #define COMET_COMET_ENTITY_ENTITY_ID_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
+#include "comet/core/type/gid.h"
 
 namespace comet {
 namespace entity {

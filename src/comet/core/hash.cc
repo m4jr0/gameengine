@@ -6,8 +6,6 @@
 
 #include <vector>
 
-#include "comet/core/debug.h"
-
 namespace comet {
 constexpr static u32 kCrc32Table[] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
@@ -54,7 +52,7 @@ constexpr static u32 kCrc32Table[] = {
     0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
     0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d};
 
-u32 HashCrC32(const void* data, uindex length) {
+u32 HashCrC32(const void* data, usize length) {
   const auto* cast_data{reinterpret_cast<const u8*>(data)};
   auto crc{static_cast<u32>(-1)};
 
@@ -65,7 +63,7 @@ u32 HashCrC32(const void* data, uindex length) {
   return crc ^ ~0u;
 }
 
-void HashSha256(std::ifstream& stream, schar* buffer, uindex buffer_len) {
+void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len) {
   COMET_ASSERT(buffer_len >= kSha256DigestSize,
                "Buffer length is too small: ", buffer_len, " < ",
                kSha256DigestSize, "!");

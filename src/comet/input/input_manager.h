@@ -5,11 +5,12 @@
 #ifndef COMET_COMET_INPUT_INPUT_MANAGER_H_
 #define COMET_COMET_INPUT_INPUT_MANAGER_H_
 
-#include "comet_precompile.h"
+#include <atomic>
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/input/input.h"
 #include "comet/math/vector.h"

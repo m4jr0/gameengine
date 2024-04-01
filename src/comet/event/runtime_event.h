@@ -5,8 +5,8 @@
 #ifndef COMET_COMET_EVENT_RUNTIME_EVENT_H_
 #define COMET_COMET_EVENT_RUNTIME_EVENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
+#include "comet/core/type/string_id.h"
 #include "comet/event/event.h"
 
 namespace comet {

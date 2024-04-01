@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_ENTITY_ENTITY_TYPE_H_
 #define COMET_COMET_ENTITY_ENTITY_TYPE_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/entity/component.h"
 #include "comet/entity/entity_id.h"
 

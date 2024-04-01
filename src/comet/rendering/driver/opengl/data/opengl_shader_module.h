@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_SHADER_MODULE_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_SHADER_MODULE_H_
 
-#include "comet_precompile.h"
-
 #include "glad/glad.h"
 
+#include "comet/core/essentials.h"
 #include "comet/resource/resource.h"
 
 namespace comet {

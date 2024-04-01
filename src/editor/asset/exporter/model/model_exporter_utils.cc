@@ -114,14 +114,14 @@ void LoadStaticNode(resource::StaticModelResource& model,
   auto transform{GetTransform(parent_transform, current_node->mTransformation)};
   resource::ResourceId last_mesh_id{resource::kInvalidResourceId};
 
-  for (uindex index{0}; index < current_node->mNumMeshes; ++index) {
+  for (usize index{0}; index < current_node->mNumMeshes; ++index) {
     const auto* mesh{scene->mMeshes[current_node->mMeshes[index]]};
     last_mesh_id = LoadStaticMesh(model, mesh, scene, parent_id, transform);
   }
 
   parent_id = current_node->mNumMeshes != 1 ? parent_id : last_mesh_id;
 
-  for (uindex index{0}; index < current_node->mNumChildren; ++index) {
+  for (usize index{0}; index < current_node->mNumChildren; ++index) {
     LoadStaticNode(model, current_node->mChildren[index], scene, parent_id,
                    transform);
   }
@@ -149,7 +149,7 @@ resource::ResourceId LoadStaticMesh(resource::StaticModelResource& model,
   math::Vec3 min_extents{kF32Max};
   math::Vec3 max_extents{kF32Min};
 
-  for (uindex index{0}; index < current_mesh->mNumVertices; ++index) {
+  for (usize index{0}; index < current_mesh->mNumVertices; ++index) {
     vertices.push_back({});
     auto& vertex{vertices[vertices.size() - 1]};
 
@@ -217,10 +217,10 @@ resource::ResourceId LoadStaticMesh(resource::StaticModelResource& model,
   mesh_resource.local_max_extents = max_extents - mesh_resource.local_center;
   mesh_resource.parent_id = parent_id;
 
-  for (uindex index{0}; index < current_mesh->mNumFaces; ++index) {
+  for (usize index{0}; index < current_mesh->mNumFaces; ++index) {
     const auto& face{current_mesh->mFaces[index]};
 
-    for (uindex face_index{0}; face_index < face.mNumIndices; ++face_index) {
+    for (usize face_index{0}; face_index < face.mNumIndices; ++face_index) {
       indices.push_back(face.mIndices[face_index]);
     }
   }
@@ -244,14 +244,14 @@ void LoadSkeletalNode(resource::SkeletalModelResource& model,
   auto transform{GetTransform(parent_transform, current_node->mTransformation)};
   resource::ResourceId last_mesh_id{resource::kInvalidResourceId};
 
-  for (uindex index{0}; index < current_node->mNumMeshes; ++index) {
+  for (usize index{0}; index < current_node->mNumMeshes; ++index) {
     const auto* mesh{scene->mMeshes[current_node->mMeshes[index]]};
     last_mesh_id = LoadSkeletalMesh(model, mesh, scene, parent_id, transform);
   }
 
   parent_id = current_node->mNumMeshes != 1 ? parent_id : last_mesh_id;
 
-  for (uindex index{0}; index < current_node->mNumChildren; ++index) {
+  for (usize index{0}; index < current_node->mNumChildren; ++index) {
     LoadSkeletalNode(model, current_node->mChildren[index], scene, parent_id,
                      transform);
   }
@@ -279,7 +279,7 @@ resource::ResourceId LoadSkeletalMesh(resource::SkeletalModelResource& model,
   math::Vec3 min_extents{kF32Max};
   math::Vec3 max_extents{kF32Min};
 
-  for (uindex index{0}; index < current_mesh->mNumVertices; ++index) {
+  for (usize index{0}; index < current_mesh->mNumVertices; ++index) {
     vertices.push_back({});
     auto& vertex{vertices[vertices.size() - 1]};
 
@@ -347,10 +347,10 @@ resource::ResourceId LoadSkeletalMesh(resource::SkeletalModelResource& model,
   mesh_resource.local_max_extents = max_extents - mesh_resource.local_center;
   mesh_resource.parent_id = parent_id;
 
-  for (uindex index{0}; index < current_mesh->mNumFaces; ++index) {
+  for (usize index{0}; index < current_mesh->mNumFaces; ++index) {
     const auto& face{current_mesh->mFaces[index]};
 
-    for (uindex face_index{0}; face_index < face.mNumIndices; ++face_index) {
+    for (usize face_index{0}; face_index < face.mNumIndices; ++face_index) {
       indices.push_back(face.mIndices[face_index]);
     }
   }

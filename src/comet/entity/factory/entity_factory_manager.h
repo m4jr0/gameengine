@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_ENTITY_FACTORY_ENTITY_FACTORY_MANAGER_H_
 #define COMET_COMET_ENTITY_FACTORY_ENTITY_FACTORY_MANAGER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/handler/entity_model_handler.h"

@@ -6,7 +6,7 @@
 
 namespace comet {
 namespace memory {
-TwoFrameAllocator::TwoFrameAllocator(uindex total_capacity)
+TwoFrameAllocator::TwoFrameAllocator(usize total_capacity)
     : stacks_{StackAllocator{total_capacity / 2},
               StackAllocator{total_capacity / 2}} {}
 
@@ -20,7 +20,7 @@ void TwoFrameAllocator::Destroy() {
   stacks_[1].Destroy();
 }
 
-void* TwoFrameAllocator::Allocate(uindex size, u8 align) {
+void* TwoFrameAllocator::Allocate(usize size, u8 align) {
   return stacks_[current_stack_].Allocate(size, align);
 }
 
@@ -30,11 +30,11 @@ void TwoFrameAllocator::SwapFrames() {
 
 void TwoFrameAllocator::ClearCurrent() { stacks_[current_stack_].Clear(); }
 
-uindex TwoFrameAllocator::GetCurrentSize() const noexcept {
+usize TwoFrameAllocator::GetCurrentSize() const noexcept {
   return stacks_[current_stack_].GetSize();
 }
 
-uindex TwoFrameAllocator::GetTotalSize() const noexcept {
+usize TwoFrameAllocator::GetTotalSize() const noexcept {
   return stacks_[0].GetSize() + stacks_[1].GetSize();
 }
 }  // namespace memory

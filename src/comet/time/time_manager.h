@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_TIME_TIME_MANAGER_H_
 #define COMET_COMET_TIME_TIME_MANAGER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 
 #ifdef COMET_MSVC
@@ -26,7 +25,7 @@ class TimeManager : public Manager {
   TimeManager(TimeManager&&) = delete;
   TimeManager& operator=(const TimeManager&) = delete;
   TimeManager& operator=(TimeManager&&) = delete;
-  virtual ~TimeManager() = default;
+  ~TimeManager() = default;
 
   f64 GetRealNow();
   f64 GetNow();
