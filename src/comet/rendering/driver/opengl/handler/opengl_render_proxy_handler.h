@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_PROXY_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_PROXY_HANDLER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/data/opengl_material.h"
 #include "comet/rendering/driver/opengl/data/opengl_mesh.h"

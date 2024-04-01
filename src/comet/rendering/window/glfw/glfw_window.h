@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_RENDERING_WINDOW_GLFW_GLFW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_GLFW_GLFW_WINDOW_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
@@ -36,7 +36,7 @@ class GlfwWindow : public Window {
   operator GLFWwindow*() noexcept;
 
  protected:
-  inline static uindex window_count_{0};
+  inline static usize window_count_{0};
   GLFWwindow* handle_{nullptr};
 
  private:

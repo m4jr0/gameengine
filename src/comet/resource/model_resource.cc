@@ -14,7 +14,7 @@ const ResourceTypeId StaticModelResource::kResourceTypeId{
 const ResourceTypeId SkeletalModelResource::kResourceTypeId{
     COMET_STRING_ID("skeletal_model")};
 
-uindex StaticModelHandler::GetMeshSize(const StaticMeshResource& mesh) const {
+usize StaticModelHandler::GetMeshSize(const StaticMeshResource& mesh) const {
   constexpr auto kModelIdSize{sizeof(ResourceId)};
   constexpr auto kMeshIdSize{sizeof(ResourceId)};
   constexpr auto kMeshType{sizeof(geometry::MeshType)};
@@ -38,9 +38,8 @@ uindex StaticModelHandler::GetMeshSize(const StaticMeshResource& mesh) const {
          kIndexCountSize + kIndexCount * kIndexSize;
 }
 
-uindex StaticModelHandler::GetModelSize(
-    const StaticModelResource& model) const {
-  uindex size{sizeof(ResourceId) + sizeof(ResourceTypeId)};
+usize StaticModelHandler::GetModelSize(const StaticModelResource& model) const {
+  usize size{sizeof(ResourceId) + sizeof(ResourceTypeId)};
 
   for (const auto& mesh : model.meshes) {
     size += GetMeshSize(mesh);
@@ -58,7 +57,7 @@ ResourceFile StaticModelHandler::Pack(const Resource& resource,
   file.compression_mode = compression_mode;
 
   std::vector<u8> data(GetModelSize(model));
-  uindex cursor{0};
+  usize cursor{0};
   auto* buffer{data.data()};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
@@ -68,60 +67,62 @@ ResourceFile StaticModelHandler::Pack(const Resource& resource,
   constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
   constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
   constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(uindex)};
-  constexpr auto kIndexCountSize{sizeof(uindex)};
+  constexpr auto kVertexCountSize{sizeof(usize)};
+  constexpr auto kIndexCountSize{sizeof(usize)};
   constexpr auto kVertexSize{sizeof(geometry::Vertex)};
   constexpr auto kIndexSize{sizeof(geometry::Index)};
 
-  CopyMemory(&buffer[cursor], &model.id, kResourceIdSize);
+  memory::CopyMemory(&buffer[cursor], &model.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&buffer[cursor], &model.type_id, kResourceTypeIdSize);
+  memory::CopyMemory(&buffer[cursor], &model.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   for (const auto& mesh : model.meshes) {
-    CopyMemory(&buffer[cursor], &mesh.resource_id, kResourceIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.resource_id, kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&buffer[cursor], &mesh.internal_id, kResourceIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.internal_id, kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&buffer[cursor], &mesh.type, kMeshTypeSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.type, kMeshTypeSize);
     cursor += kMeshTypeSize;
 
-    CopyMemory(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
     cursor += kMaterialIdSize;
 
-    CopyMemory(&buffer[cursor], &mesh.transform, kTransformSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.transform, kTransformSize);
     cursor += kTransformSize;
 
-    CopyMemory(&buffer[cursor], &mesh.local_center, kLocalCenterSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.local_center, kLocalCenterSize);
     cursor += kLocalCenterSize;
 
-    CopyMemory(&buffer[cursor], &mesh.local_max_extents, kLocalMaxExtentsSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.local_max_extents,
+                       kLocalMaxExtentsSize);
     cursor += kLocalMaxExtentsSize;
 
-    CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
     cursor += kParentMeshIdSize;
 
     const auto vertex_count{mesh.vertices.size()};
     const auto index_count{mesh.indices.size()};
 
-    CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
+    memory::CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
 
     cursor += kVertexCountSize;
     const auto vertex_total_size{kVertexSize * vertex_count};
 
-    CopyMemory(&buffer[cursor], mesh.vertices.data(), vertex_total_size);
+    memory::CopyMemory(&buffer[cursor], mesh.vertices.data(),
+                       vertex_total_size);
 
     cursor += vertex_total_size;
 
-    CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
+    memory::CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
 
     cursor += kIndexCountSize;
     const auto index_total_size{kIndexSize * index_count};
 
-    CopyMemory(&buffer[cursor], mesh.indices.data(), index_total_size);
+    memory::CopyMemory(&buffer[cursor], mesh.indices.data(), index_total_size);
     cursor += index_total_size;
   }
 
@@ -138,7 +139,7 @@ std::unique_ptr<Resource> StaticModelHandler::Unpack(
   const auto data{UnpackResourceData(file)};
   auto data_size{sizeof(u8) * data.size()};
   const auto* buffer{data.data()};
-  uindex cursor{0};
+  usize cursor{0};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   constexpr auto kMeshTypeSize{sizeof(geometry::MeshType)};
@@ -147,15 +148,15 @@ std::unique_ptr<Resource> StaticModelHandler::Unpack(
   constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
   constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
   constexpr auto kParentMeshIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(uindex)};
-  constexpr auto kIndexCountSize{sizeof(uindex)};
+  constexpr auto kVertexCountSize{sizeof(usize)};
+  constexpr auto kIndexCountSize{sizeof(usize)};
   constexpr auto kVertexSize{sizeof(geometry::Vertex)};
   constexpr auto kIndexSize{sizeof(geometry::Index)};
 
-  CopyMemory(&model.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&model.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&model.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&model.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   COMET_ASSERT(model.type_id == StaticModelResource::kResourceTypeId,
@@ -164,46 +165,48 @@ std::unique_ptr<Resource> StaticModelHandler::Unpack(
   while (cursor < data_size) {
     StaticMeshResource mesh{};
 
-    CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
+    memory::CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&mesh.internal_id, &buffer[cursor], kResourceIdSize);
+    memory::CopyMemory(&mesh.internal_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&mesh.type, &buffer[cursor], kMeshTypeSize);
+    memory::CopyMemory(&mesh.type, &buffer[cursor], kMeshTypeSize);
     cursor += kMeshTypeSize;
 
-    CopyMemory(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
+    memory::CopyMemory(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
     cursor += kMaterialIdSize;
 
-    CopyMemory(&mesh.transform, &buffer[cursor], kTransformSize);
+    memory::CopyMemory(&mesh.transform, &buffer[cursor], kTransformSize);
     cursor += kTransformSize;
 
-    CopyMemory(&mesh.local_center, &buffer[cursor], kLocalCenterSize);
+    memory::CopyMemory(&mesh.local_center, &buffer[cursor], kLocalCenterSize);
     cursor += kLocalCenterSize;
 
-    CopyMemory(&mesh.local_max_extents, &buffer[cursor], kLocalMaxExtentsSize);
+    memory::CopyMemory(&mesh.local_max_extents, &buffer[cursor],
+                       kLocalMaxExtentsSize);
     cursor += kLocalMaxExtentsSize;
 
-    CopyMemory(&mesh.parent_id, &buffer[cursor], kParentMeshIdSize);
+    memory::CopyMemory(&mesh.parent_id, &buffer[cursor], kParentMeshIdSize);
     cursor += kParentMeshIdSize;
 
-    uindex vertex_count{0};
-    CopyMemory(&vertex_count, &buffer[cursor], kVertexCountSize);
+    usize vertex_count{0};
+    memory::CopyMemory(&vertex_count, &buffer[cursor], kVertexCountSize);
     cursor += kVertexCountSize;
 
     mesh.vertices.resize(vertex_count);
     const auto vertex_total_size{kVertexSize * vertex_count};
-    CopyMemory(mesh.vertices.data(), &buffer[cursor], vertex_total_size);
+    memory::CopyMemory(mesh.vertices.data(), &buffer[cursor],
+                       vertex_total_size);
     cursor += vertex_total_size;
 
-    uindex index_count{0};
-    CopyMemory(&index_count, &buffer[cursor], kIndexCountSize);
+    usize index_count{0};
+    memory::CopyMemory(&index_count, &buffer[cursor], kIndexCountSize);
     cursor += kIndexCountSize;
 
     mesh.indices.resize(index_count);
     const auto index_total_size{kIndexSize * index_count};
-    CopyMemory(mesh.indices.data(), &buffer[cursor], index_total_size);
+    memory::CopyMemory(mesh.indices.data(), &buffer[cursor], index_total_size);
     cursor += index_total_size;
 
     model.meshes.push_back(std::move(mesh));
@@ -212,7 +215,7 @@ std::unique_ptr<Resource> StaticModelHandler::Unpack(
   return std::make_unique<StaticModelResource>(std::move(model));
 }
 
-uindex SkinnedModelHandler::GetMeshSize(const SkinnedMeshResource& mesh) const {
+usize SkinnedModelHandler::GetMeshSize(const SkinnedMeshResource& mesh) const {
   constexpr auto kModelIdSize{sizeof(ResourceId)};
   constexpr auto kMeshIdSize{sizeof(ResourceId)};
   constexpr auto kMeshType{sizeof(geometry::MeshType)};
@@ -236,9 +239,9 @@ uindex SkinnedModelHandler::GetMeshSize(const SkinnedMeshResource& mesh) const {
          kIndexCountSize + kIndexCount * kIndexSize;
 }
 
-uindex SkinnedModelHandler::GetModelSize(
+usize SkinnedModelHandler::GetModelSize(
     const SkeletalModelResource& model) const {
-  uindex size{sizeof(ResourceId) + sizeof(ResourceTypeId)};
+  usize size{sizeof(ResourceId) + sizeof(ResourceTypeId)};
 
   for (const auto& mesh : model.meshes) {
     size += GetMeshSize(mesh);
@@ -256,7 +259,7 @@ ResourceFile SkinnedModelHandler::Pack(const Resource& resource,
   file.compression_mode = compression_mode;
 
   std::vector<u8> data(GetModelSize(model));
-  uindex cursor{0};
+  usize cursor{0};
   auto* buffer{data.data()};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
@@ -266,60 +269,62 @@ ResourceFile SkinnedModelHandler::Pack(const Resource& resource,
   constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
   constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
   constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(uindex)};
-  constexpr auto kIndexCountSize{sizeof(uindex)};
+  constexpr auto kVertexCountSize{sizeof(usize)};
+  constexpr auto kIndexCountSize{sizeof(usize)};
   constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
   constexpr auto kIndexSize{sizeof(geometry::Index)};
 
-  CopyMemory(&buffer[cursor], &model.id, kResourceIdSize);
+  memory::CopyMemory(&buffer[cursor], &model.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&buffer[cursor], &model.type_id, kResourceTypeIdSize);
+  memory::CopyMemory(&buffer[cursor], &model.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   for (const auto& mesh : model.meshes) {
-    CopyMemory(&buffer[cursor], &mesh.resource_id, kResourceIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.resource_id, kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&buffer[cursor], &mesh.internal_id, kResourceIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.internal_id, kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&buffer[cursor], &mesh.type, kMeshTypeSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.type, kMeshTypeSize);
     cursor += kMeshTypeSize;
 
-    CopyMemory(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
     cursor += kMaterialIdSize;
 
-    CopyMemory(&buffer[cursor], &mesh.transform, kTransformSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.transform, kTransformSize);
     cursor += kTransformSize;
 
-    CopyMemory(&buffer[cursor], &mesh.local_center, kLocalCenterSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.local_center, kLocalCenterSize);
     cursor += kLocalCenterSize;
 
-    CopyMemory(&buffer[cursor], &mesh.local_max_extents, kLocalMaxExtentsSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.local_max_extents,
+                       kLocalMaxExtentsSize);
     cursor += kLocalMaxExtentsSize;
 
-    CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
+    memory::CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
     cursor += kParentMeshIdSize;
 
     const auto vertex_count{mesh.vertices.size()};
     const auto index_count{mesh.indices.size()};
 
-    CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
+    memory::CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
 
     cursor += kVertexCountSize;
     const auto vertex_total_size{kVertexSize * vertex_count};
 
-    CopyMemory(&buffer[cursor], mesh.vertices.data(), vertex_total_size);
+    memory::CopyMemory(&buffer[cursor], mesh.vertices.data(),
+                       vertex_total_size);
 
     cursor += vertex_total_size;
 
-    CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
+    memory::CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
 
     cursor += kIndexCountSize;
     const auto index_total_size{kIndexSize * index_count};
 
-    CopyMemory(&buffer[cursor], mesh.indices.data(), index_total_size);
+    memory::CopyMemory(&buffer[cursor], mesh.indices.data(), index_total_size);
     cursor += index_total_size;
   }
 
@@ -336,7 +341,7 @@ std::unique_ptr<Resource> SkinnedModelHandler::Unpack(
   const auto data{UnpackResourceData(file)};
   auto data_size{sizeof(u8) * data.size()};
   const auto* buffer{data.data()};
-  uindex cursor{0};
+  usize cursor{0};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   constexpr auto kMeshTypeSize{sizeof(geometry::MeshType)};
@@ -345,15 +350,15 @@ std::unique_ptr<Resource> SkinnedModelHandler::Unpack(
   constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
   constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
   constexpr auto kParentMeshIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(uindex)};
-  constexpr auto kIndexCountSize{sizeof(uindex)};
+  constexpr auto kVertexCountSize{sizeof(usize)};
+  constexpr auto kIndexCountSize{sizeof(usize)};
   constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
   constexpr auto kIndexSize{sizeof(geometry::Index)};
 
-  CopyMemory(&model.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&model.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&model.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&model.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   COMET_ASSERT(model.type_id == SkeletalModelResource::kResourceTypeId,
@@ -362,46 +367,48 @@ std::unique_ptr<Resource> SkinnedModelHandler::Unpack(
   while (cursor < data_size) {
     SkinnedMeshResource mesh{};
 
-    CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
+    memory::CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&mesh.internal_id, &buffer[cursor], kResourceIdSize);
+    memory::CopyMemory(&mesh.internal_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
 
-    CopyMemory(&mesh.type, &buffer[cursor], kMeshTypeSize);
+    memory::CopyMemory(&mesh.type, &buffer[cursor], kMeshTypeSize);
     cursor += kMeshTypeSize;
 
-    CopyMemory(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
+    memory::CopyMemory(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
     cursor += kMaterialIdSize;
 
-    CopyMemory(&mesh.transform, &buffer[cursor], kTransformSize);
+    memory::CopyMemory(&mesh.transform, &buffer[cursor], kTransformSize);
     cursor += kTransformSize;
 
-    CopyMemory(&mesh.local_center, &buffer[cursor], kLocalCenterSize);
+    memory::CopyMemory(&mesh.local_center, &buffer[cursor], kLocalCenterSize);
     cursor += kLocalCenterSize;
 
-    CopyMemory(&mesh.local_max_extents, &buffer[cursor], kLocalMaxExtentsSize);
+    memory::CopyMemory(&mesh.local_max_extents, &buffer[cursor],
+                       kLocalMaxExtentsSize);
     cursor += kLocalMaxExtentsSize;
 
-    CopyMemory(&mesh.parent_id, &buffer[cursor], kParentMeshIdSize);
+    memory::CopyMemory(&mesh.parent_id, &buffer[cursor], kParentMeshIdSize);
     cursor += kParentMeshIdSize;
 
-    uindex vertex_count{0};
-    CopyMemory(&vertex_count, &buffer[cursor], kVertexCountSize);
+    usize vertex_count{0};
+    memory::CopyMemory(&vertex_count, &buffer[cursor], kVertexCountSize);
     cursor += kVertexCountSize;
 
     mesh.vertices.resize(vertex_count);
     const auto vertex_total_size{kVertexSize * vertex_count};
-    CopyMemory(mesh.vertices.data(), &buffer[cursor], vertex_total_size);
+    memory::CopyMemory(mesh.vertices.data(), &buffer[cursor],
+                       vertex_total_size);
     cursor += vertex_total_size;
 
-    uindex index_count{0};
-    CopyMemory(&index_count, &buffer[cursor], kIndexCountSize);
+    usize index_count{0};
+    memory::CopyMemory(&index_count, &buffer[cursor], kIndexCountSize);
     cursor += kIndexCountSize;
 
     mesh.indices.resize(index_count);
     const auto index_total_size{kIndexSize * index_count};
-    CopyMemory(mesh.indices.data(), &buffer[cursor], index_total_size);
+    memory::CopyMemory(mesh.indices.data(), &buffer[cursor], index_total_size);
     cursor += index_total_size;
 
     model.meshes.push_back(std::move(mesh));

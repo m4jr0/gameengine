@@ -5,11 +5,10 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_BUFFER_UTILS_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_BUFFER_UTILS_H_
 
-#include "comet_precompile.h"
-
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 
@@ -23,7 +22,7 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
                       VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE);
 void DestroyBuffer(Buffer& buffer);
 void MapBuffer(Buffer& buffer);
-void CopyToBuffer(Buffer& buffer, void const* data, uindex length,
+void CopyToBuffer(Buffer& buffer, void const* data, usize length,
                   sptrdiff offset = 0);
 void UnmapBuffer(Buffer& buffer);
 bool IsBufferInitialized(Buffer& buffer) noexcept;

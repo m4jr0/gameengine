@@ -5,8 +5,7 @@
 #ifndef COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 #define COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "editor/asset/exporter/asset_exporter.h"
 

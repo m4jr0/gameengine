@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_SHADER_MODULE_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_SHADER_MODULE_HANDLER_H_
 
-#include "comet_precompile.h"
-
 #include "glad/glad.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"

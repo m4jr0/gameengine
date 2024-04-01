@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_SHADER_VIEW_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_SHADER_VIEW_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"

@@ -23,16 +23,17 @@ ResourceFile ShaderModuleHandler::Pack(const Resource& resource,
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   const auto data_size{shader_module.data.size()};
   std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize + data_size);
-  uindex cursor{0};
+  usize cursor{0};
   auto* buffer{data.data()};
 
-  CopyMemory(&buffer[cursor], &shader_module.id, kResourceIdSize);
+  memory::CopyMemory(&buffer[cursor], &shader_module.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&buffer[cursor], &shader_module.type_id, kResourceTypeIdSize);
+  memory::CopyMemory(&buffer[cursor], &shader_module.type_id,
+                     kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  CopyMemory(&buffer[cursor], shader_module.data.data(), data_size);
+  memory::CopyMemory(&buffer[cursor], shader_module.data.data(), data_size);
   cursor += data_size;
 
   PackPodResourceDescr(shader_module.descr, file);
@@ -47,19 +48,20 @@ std::unique_ptr<Resource> ShaderModuleHandler::Unpack(
 
   const auto data{UnpackResourceData(file)};
   const auto* buffer{data.data()};
-  uindex cursor{0};
+  usize cursor{0};
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   const auto data_size{data.size() - kResourceIdSize - kResourceTypeIdSize};
 
-  CopyMemory(&shader_module.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&shader_module.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&shader_module.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&shader_module.type_id, &buffer[cursor],
+                     kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   shader_module.data.resize(data_size);
-  CopyMemory(shader_module.data.data(), &buffer[cursor], data_size);
+  memory::CopyMemory(shader_module.data.data(), &buffer[cursor], data_size);
   cursor += data_size;
 
   return std::make_unique<ShaderModuleResource>(std::move(shader_module));

@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_HANDER_VULKAN_PIPELINE_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDER_VULKAN_PIPELINE_HANDLER_H_
 
-#include "comet_precompile.h"
-
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 

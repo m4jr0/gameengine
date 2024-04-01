@@ -26,7 +26,7 @@ void DebuggerDisplayerManager::Draw() {
 #ifdef COMET_IMGUI
   constexpr auto kBufferCapacity{512};
   schar buffer[kBufferCapacity];
-  uindex buffer_len;
+  usize buffer_len;
 
   ImGui::Begin("Mini Profiler");
 
@@ -49,8 +49,8 @@ void DebuggerDisplayerManager::Draw() {
   ImGui::Unindent();
 
   // Memory.
-  GetMemorySizeString(mini_profiler_packet_.memory_use, buffer, kBufferCapacity,
-                      &buffer_len);
+  memory::GetMemorySizeString(mini_profiler_packet_.memory_use, buffer,
+                              kBufferCapacity, &buffer_len);
 
   ImGui::Spacing();
   ImGui::Text("MEMORY");

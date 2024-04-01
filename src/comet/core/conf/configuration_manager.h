@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_CORE_CONF_CONFIGURATION_MANAGER_H_
 #define COMET_COMET_CORE_CONF_CONFIGURATION_MANAGER_H_
 
-#include "comet_precompile.h"
-
 #include "comet/core/c_string.h"
 #include "comet/core/conf/configuration_value.h"
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/core/type/tstring.h"
 
@@ -46,7 +45,7 @@ class ConfigurationManager : public Manager {
   s64 GetS64(ConfKey key) const;
   f32 GetF32(ConfKey key) const;
   f64 GetF64(ConfKey key) const;
-  uindex GetIndex(ConfKey key) const;
+  usize GetIndex(ConfKey key) const;
   ux GetUx(ConfKey key) const;
   sx GetSx(ConfKey key) const;
   fx GetFx(ConfKey key) const;
@@ -55,9 +54,9 @@ class ConfigurationManager : public Manager {
   void Set(ConfKey key, const ConfValue& value);
 
   void SetStr(ConfKey key, const schar* value);
-  void SetStr(ConfKey key, const schar* value, uindex length);
+  void SetStr(ConfKey key, const schar* value, usize length);
   void SetTStr(ConfKey key, const tchar* value);
-  void SetTStr(ConfKey key, const tchar* value, uindex length);
+  void SetTStr(ConfKey key, const tchar* value, usize length);
   void SetU8(ConfKey key, u8 value);
   void SetU16(ConfKey key, u16 value);
   void SetU32(ConfKey key, u32 value);
@@ -68,13 +67,13 @@ class ConfigurationManager : public Manager {
   void SetS64(ConfKey key, s64 value);
   void SetF32(ConfKey key, f32 value);
   void SetF64(ConfKey key, f64 value);
-  void SetIndex(ConfKey key, uindex value);
+  void SetIndex(ConfKey key, usize value);
   void SetUx(ConfKey key, ux value);
   void SetSx(ConfKey key, sx value);
   void SetFx(ConfKey key, fx value);
   void SetBool(ConfKey key, bool value);
-  void ParseKeyValuePair(schar* raw_key, uindex raw_key_len, schar* value,
-                         uindex value_len);
+  void ParseKeyValuePair(schar* raw_key, usize raw_key_len, schar* value,
+                         usize value_len);
 
  private:
   static constexpr auto kConfigFileRelativePath_{

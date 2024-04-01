@@ -5,7 +5,9 @@
 #ifndef COMET_COMET_CORE_TYPE_STRING_ID_H_
 #define COMET_COMET_CORE_TYPE_STRING_ID_H_
 
-#include "comet_precompile.h"
+#include <unordered_map>
+
+#include "comet/core/essentials.h"
 
 #ifdef COMET_DEBUG
 #include "comet/core/memory/allocator/string_id_allocator.h"
@@ -26,8 +28,8 @@ class StringIdHandler {
   StringIdHandler& operator=(StringIdHandler&&) = delete;
   ~StringIdHandler();
 
-  StringId Generate(const schar* str, uindex length);
-  StringId Generate(const wchar* str, uindex length);
+  StringId Generate(const schar* str, usize length);
+  StringId Generate(const wchar* str, usize length);
   StringId Generate(const wchar* str);
   StringId Generate(const schar* str);
 
@@ -39,8 +41,8 @@ class StringIdHandler {
 #ifdef COMET_DEBUG
   std::unordered_map<StringId, schar*> string_id_table{};
   memory::StringIdAllocator string_id_allocator_{
-      2097152, MemoryTag::StringId};  // 2 MiB.
-#endif                                // COMET_DEBUG
+      2097152, memory::MemoryTag::StringId};  // 2 MiB.
+#endif                                        // COMET_DEBUG
 };
 
 extern StringIdHandler* SetHandler(bool is_destroy = false);

@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_RENDER_PROXY_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_RENDER_PROXY_H_
 
+#include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/opengl/data/opengl_material.h"
 #include "comet/rendering/driver/opengl/data/opengl_mesh.h"

@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_ENTITY_ENTITY_COMPONENT_H_
 #define COMET_COMET_ENTITY_ENTITY_COMPONENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/entity/component.h"
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_manager.h"
@@ -32,7 +31,7 @@ class EntityComponentGenerator {
   EntityComponentGenerator& operator=(EntityComponentGenerator&&) = delete;
   ~EntityComponentGenerator() = default;
 
-  EntityComponentGenerator& Reserve(uindex size) {
+  EntityComponentGenerator& Reserve(usize size) {
     component_descrs_.reserve(size);
     return *this;
   }
@@ -110,7 +109,7 @@ class EntityComponentDestroyer {
   EntityComponentDestroyer& operator=(EntityComponentDestroyer&&) = delete;
   ~EntityComponentDestroyer() = default;
 
-  EntityComponentDestroyer& Reserve(uindex size) {
+  EntityComponentDestroyer& Reserve(usize size) {
     component_ids_.reserve(size);
     return *this;
   }

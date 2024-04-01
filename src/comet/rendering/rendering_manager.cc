@@ -71,7 +71,7 @@ void RenderingManager::Shutdown() {
   Manager::Shutdown();
 }
 
-void RenderingManager::Update(time::Interpolation interpolation) {
+void RenderingManager::Update(frame::FramePacket& packet) {
   current_time_ += time::TimeManager::Get().GetDeltaTime();
 
   if (current_time_ > 1000) {
@@ -84,7 +84,7 @@ void RenderingManager::Update(time::Interpolation interpolation) {
     return;
   }
 
-  driver_->Update(interpolation);
+  driver_->Update(packet.interpolation);
   input::InputManager::Get().Update();
   ++counter_;
 }
@@ -189,7 +189,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
     const {
   std::vector<RenderingViewDescr> descrs{};
 
-  uindex size{1};
+  usize size{1};
 
 #ifdef COMET_DEBUG_VIEW
   ++size;
@@ -216,7 +216,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
       static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight)),
   };
 
-  uindex cursor{0};
+  usize cursor{0};
 
   // TODO(m4jr0): Do this from configuration.
   auto& world_view_descr{descrs[cursor]};
@@ -226,7 +226,8 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   world_view_descr.is_last = cursor == descrs.size() - 1;
   world_view_descr.width = window_width;
   world_view_descr.height = window_height;
-  CopyMemory(world_view_descr.clear_color, clear_color, sizeof(clear_color));
+  memory::CopyMemory(world_view_descr.clear_color, clear_color,
+                     sizeof(clear_color));
   world_view_descr.id = COMET_STRING_ID("rendering_world_view");
   ++cursor;
 
@@ -238,7 +239,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   // skybox_view_descr.is_last = cursor == descrs.size() - 1;
   // skybox_view_descr.width = window_width;
   // skybox_view_descr.height = window_height;
-  // CopyMemory(skybox_view_descr.clear_color, clear_color,
+  // memory::CopyMemory(skybox_view_descr.clear_color, clear_color,
   // sizeof(clear_color)); skybox_view_descr.id =
   // COMET_STRING_ID("rendering_skybox_view");
   // ++cursor;
@@ -251,7 +252,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   // light_world_view_descr.is_last = cursor == descrs.size() - 1;
   // light_world_view_descr.width = window_width;
   // light_world_view_descr.height = window_height;
-  // CopyMemory(light_world_view_descr.clear_color, clear_color,
+  // memory::CopyMemory(light_world_view_descr.clear_color, clear_color,
   //             sizeof(clear_color));
   // light_world_view_descr.id = COMET_STRING_ID("rendering_light_world_view");
   // ++cursor;
@@ -264,7 +265,8 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   debug_view_descr.is_last = cursor == descrs.size() - 1;
   debug_view_descr.width = window_width;
   debug_view_descr.height = window_height;
-  CopyMemory(debug_view_descr.clear_color, clear_color, sizeof(clear_color));
+  memory::CopyMemory(debug_view_descr.clear_color, clear_color,
+                     sizeof(clear_color));
   debug_view_descr.id = COMET_STRING_ID("rendering_debug_view");
   ++cursor;
 #endif  // COMET_DEBUG_VIEW
@@ -277,7 +279,8 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   imgui_view_descr.is_last = cursor == descrs.size() - 1;
   imgui_view_descr.width = window_width;
   imgui_view_descr.height = window_height;
-  CopyMemory(imgui_view_descr.clear_color, clear_color, sizeof(clear_color));
+  memory::CopyMemory(imgui_view_descr.clear_color, clear_color,
+                     sizeof(clear_color));
   imgui_view_descr.id = COMET_STRING_ID("rendering_imgui_view");
   ++cursor;
 #endif  // COMET_IMGUI

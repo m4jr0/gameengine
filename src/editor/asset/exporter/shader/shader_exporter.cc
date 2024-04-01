@@ -6,7 +6,7 @@
 
 #include "nlohmann/json.hpp"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
@@ -27,7 +27,7 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
 
   try {
     schar shader_file_raw[4096];
-    uindex shader_file_raw_len;
+    usize shader_file_raw_len;
     ReadStrFromFile(asset_descr.asset_abs_path, shader_file_raw, 4096,
                     &shader_file_raw_len);
 
@@ -59,7 +59,7 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
           shader_file[kCometEditorShaderKeyVertexAttributes];
       shader.descr.vertex_attributes.reserve(raw_vertex_attributes.size());
 
-      for (uindex i{0}; i < raw_vertex_attributes.size(); ++i) {
+      for (usize i{0}; i < raw_vertex_attributes.size(); ++i) {
         const auto& raw_vertex_attribute = raw_vertex_attributes[i];
         rendering::ShaderVertexAttributeDescr vertex_attribute{};
 
@@ -94,7 +94,7 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
       const auto raw_uniforms = shader_file[kCometEditorShaderKeyUniforms];
       shader.descr.uniforms.reserve(raw_uniforms.size());
 
-      for (uindex i{0}; i < raw_uniforms.size(); ++i) {
+      for (usize i{0}; i < raw_uniforms.size(); ++i) {
         const auto& raw_uniform = raw_uniforms[i];
         rendering::ShaderUniformDescr uniform{};
 

@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DRIVER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DRIVER_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 // Add specific debug header first to log VMA's messages. //////////////////////
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -112,7 +112,7 @@ class VulkanDriver : public Driver {
       void* user_data);
   static VKAPI_ATTR VkBool32 VKAPI_CALL LogVulkanDebugReportMessage(
       VkFlags message_flags, VkDebugReportObjectTypeEXT object_type,
-      u64 source_object, uindex location, int32_t message_code,
+      u64 source_object, usize location, int32_t message_code,
       const schar* layer_prefix, const schar* message, void* user_data);
 
   static constexpr std::array<const schar*, 1> kValidationLayers_{

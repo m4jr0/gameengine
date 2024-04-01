@@ -5,10 +5,9 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_H_
 #define COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_H_
 
-#include "comet_precompile.h"
-
 #include "assimp/scene.h"
 
+#include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"

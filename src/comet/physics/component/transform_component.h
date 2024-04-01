@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_PHYSICS_COMPONENT_TRANSFORM_COMPONENT_H_
 #define COMET_COMET_PHYSICS_COMPONENT_TRANSFORM_COMPONENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/entity/entity_id.h"
 #include "comet/math/matrix.h"
 #include "comet/math/quaternion.h"

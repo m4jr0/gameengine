@@ -7,7 +7,7 @@
 #include "shaderc/shaderc.hpp"
 
 #include "comet/core/c_string.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/resource/resource_manager.h"
@@ -69,7 +69,7 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
   shader.descr.driver_type = driver_type;
 
   schar shader_code[4096];
-  uindex shader_code_len;
+  usize shader_code_len;
   ReadStrFromFile(asset_descr.asset_abs_path, shader_code, 4096,
                   &shader_code_len);
 
@@ -114,13 +114,14 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
       }
 
       shader.data.resize((result.cend() - result.cbegin()) * sizeof(u32));
-      CopyMemory(shader.data.data(), result.cbegin(), shader.data.size());
+      memory::CopyMemory(shader.data.data(), result.cbegin(),
+                         shader.data.size());
       break;
     }
     default:
     case rendering::DriverType::OpenGl: {
       shader.data.resize(shader_code_len);
-      CopyMemory(shader.data.data(), shader_code, shader.data.size());
+      memory::CopyMemory(shader.data.data(), shader_code, shader.data.size());
       break;
     }
   }

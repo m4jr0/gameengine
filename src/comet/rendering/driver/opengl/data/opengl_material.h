@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_MATERIAL_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_MATERIAL_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"

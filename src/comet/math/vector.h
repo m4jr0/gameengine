@@ -5,9 +5,9 @@
 #ifndef COMET_COMET_MATH_VECTOR_H_
 #define COMET_COMET_MATH_VECTOR_H_
 
-#include "comet_precompile.h"
-
 #include "glm/glm.hpp"
+
+#include "comet/core/essentials.h"
 
 namespace comet {
 namespace math {

@@ -4,7 +4,16 @@
 
 #include "engine.h"
 
+// >:3
+#include "comet/core/concurrency/job/scheduler_utils.h"
+#include "comet/core/file_system/file_system.h"
+#include "comet/core/logger.h"
+#undef Yield
+// >:3
+
 #include "comet/animation/animation_manager.h"
+#include "comet/core/concurrency/job/scheduler.h"
+#include "comet/core/concurrency/job/scheduler_utils.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/memory/memory_manager.h"
 #include "comet/entity/entity_manager.h"
@@ -29,15 +38,86 @@
 #endif  // COMET_DEBUG
 
 namespace comet {
+// >:3
+static u32 heavy_computations{0};
+static TString path;
+static auto* file{COMET_TCHAR("tmp.txt")};
+
+void WriteTmpFile(fiber::ParamsHandle data) {
+  std::ofstream file_stream;
+  OpenFileToWriteTo(path, file_stream);
+  schar buff[512];
+  auto* retrieved_computations{reinterpret_cast<u32*>(data)};
+  ConvertToStr(*retrieved_computations, buff, 511);
+  WriteStrToFile(path, buff);
+  CloseFile(file_stream);
+}
+
+void DoSomeComputations(fiber::ParamsHandle data) {
+  heavy_computations = 42424242;
+  job::Scheduler::Get().Kick(job::GenerateIOJobDescr(
+      WriteTmpFile, reinterpret_cast<fiber::ParamsHandle>(&heavy_computations),
+      reinterpret_cast<job::Counter*>(data)));
+}
+
+void CreateTmpFile(fiber::ParamsHandle data) {
+  path = GetCurrentDirectory();
+  COMET_ALLOW_STR_ALLOC(path);
+  path /= file;
+  CreateFile(path, true);
+  job::Scheduler::Get().Kick(job::GenerateJobDescr(
+      job::JobPriority::Normal, DoSomeComputations, data,
+      job::JobStackSize::Normal, reinterpret_cast<job::Counter*>(data)));
+}
+
+void ComputeA(fiber::ParamsHandle data) {
+  COMET_LOG_GLOBAL_INFO("Executing ComputeA -- Part 1");
+
+  fiber::Yield();
+
+  COMET_LOG_GLOBAL_INFO("Executing ComputeA -- Part 2");
+  job::Scheduler::Get().Kick(job::GenerateIOJobDescr(
+      CreateTmpFile, data, reinterpret_cast<job::Counter*>(data)));
+}
+
+void ComputeB([[maybe_unused]] fiber::ParamsHandle data) {
+  COMET_LOG_GLOBAL_INFO("Executing ComputeB");
+}
+
+void TestFibers() {
+  auto* counter_a{job::Scheduler::Get().AllocateCounter()};
+
+  job::Scheduler::Get().KickAndWait(
+      job::GenerateJobDescr(job::JobPriority::High, ComputeA,
+                            reinterpret_cast<fiber::ParamsHandle>(counter_a),
+                            job::JobStackSize::Normal, counter_a));
+  job::Scheduler::Get().FreeCounter(counter_a);
+
+  auto job_b{job::GenerateJobDescr(job::JobPriority::Normal, ComputeB)};
+  job::Scheduler::Get().KickAndWait(job_b);
+  job::Scheduler::Get().FreeCounter(job_b.counter);
+}
+
+// >:3
 Engine::~Engine() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for engine, but it is still initialized!");
 }
 
-void Engine::Initialize() {
+void Engine::Populate() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize engine, but it is already done!");
   PreLoad();
+
+  auto start_callback_descr{
+      job::GenerateJobDescr(job::JobPriority::High, OnSchedulerStarted,
+                            reinterpret_cast<fiber::ParamsHandle>(this))};
+  job::Scheduler::Get().Start(start_callback_descr);
+
+  Shutdown();
+}
+
+void Engine::Initialize() {
   Load();
   PostLoad();
   is_initialized_ = true;
@@ -49,6 +129,7 @@ void Engine::Run() {
     time::TimeManager::Get().Initialize();
     // To catch up time taken to render.
     f64 lag{0.0};
+    frame::FrameCount frame_count{0};
     COMET_LOG_CORE_INFO("Comet started");
 
     while (is_running_) {
@@ -56,7 +137,7 @@ void Engine::Run() {
         break;
       }
 
-      Update(lag);
+      Update(frame_count++, lag);
     }
   } catch ([[maybe_unused]] const std::runtime_error& runtime_error) {
     COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
@@ -77,17 +158,30 @@ void Engine::Run() {
   Exit();
 }
 
-void Engine::Update(f64& lag) {
+void Engine::Update(frame::FrameCount frame_count, f64& lag) {
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
-  physics::PhysicsManager::Get().Update(lag);
-  animation::AnimationManager::Get().Update(lag);
+
+  frame_count += frame::kFramePacketCount;
+  auto& frame_packet{*frame::GetResolvedFramePacket(frame_count)};
+  frame_packet.lag = lag;
+
+  physics::PhysicsManager::Get().Update(frame_packet);
+
+  frame_packet.interpolation =
+      lag / time::TimeManager::Get().GetFixedDeltaTime();
+
+  animation::AnimationManager::Get().Update(
+      *frame::GetResolvedFramePacket(frame_count - 1));
+
   rendering::RenderingManager::Get().Update(
-      lag / time::TimeManager::Get().GetFixedDeltaTime());
+      *frame::GetResolvedFramePacket(frame_count - 2));
 
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Update();
 #endif  // COMET_PROFILING
+
+  lag = frame_packet.lag;
 }
 
 void Engine::Stop() {
@@ -104,6 +198,7 @@ void Engine::Shutdown() {
   is_initialized_ = false;
 
   COMET_LOG_CORE_INFO("Comet destroyed");
+  Logger::Get().Dispose();
 }
 
 void Engine::Quit() {
@@ -122,6 +217,7 @@ void Engine::PreLoad() {
 
   conf::ConfigurationManager::Get().Initialize();
   memory::MemoryManager::Get().Initialize();
+  job::Scheduler::Get().Initialize();
   event::EventManager::Get().Initialize();
   resource::ResourceManager::Get().Initialize();
 }
@@ -171,6 +267,7 @@ void Engine::PreUnload() {
 void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
+  job::Scheduler::Get().Shutdown();
   memory::MemoryManager::Get().Shutdown();
   conf::ConfigurationManager::Get().Shutdown();
   is_running_ = false;
@@ -178,6 +275,13 @@ void Engine::Unload() {
 }
 
 void Engine::PostUnload() { Engine::engine_ = nullptr; }
+
+void Engine::OnSchedulerStarted(fiber::ParamsHandle handle) {
+  TestFibers();  // >:3
+  auto* engine{reinterpret_cast<Engine*>(handle)};
+  engine->Initialize();
+  engine->Run();
+}
 
 Engine::Engine() { Engine::engine_ = this; }
 

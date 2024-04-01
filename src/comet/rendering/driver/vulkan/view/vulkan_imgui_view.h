@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_IMGUI_VIEW_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_IMGUI_VIEW_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 #ifdef COMET_IMGUI
 #include "vulkan/vulkan.h"

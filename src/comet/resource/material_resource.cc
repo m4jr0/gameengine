@@ -28,13 +28,13 @@ ResourceFile MaterialHandler::Pack(const Resource& resource,
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
   std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize);
-  uindex cursor{0};
+  usize cursor{0};
   auto* buffer{data.data()};
 
-  CopyMemory(&buffer[cursor], &material.id, kResourceIdSize);
+  memory::CopyMemory(&buffer[cursor], &material.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&buffer[cursor], &material.type_id, kResourceTypeIdSize);
+  memory::CopyMemory(&buffer[cursor], &material.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   PackPodResourceDescr(material.descr, file);
@@ -49,14 +49,14 @@ std::unique_ptr<Resource> MaterialHandler::Unpack(
   const auto data{UnpackResourceData(file)};
 
   const auto* buffer{data.data()};
-  uindex cursor{0};
+  usize cursor{0};
   constexpr auto kResourceIdSize{sizeof(ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
-  CopyMemory(&material.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&material.id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  CopyMemory(&material.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&material.type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
   return std::make_unique<MaterialResource>(material);

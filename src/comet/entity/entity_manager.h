@@ -5,8 +5,9 @@
 #ifndef COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 #define COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 
-#include "comet_precompile.h"
+#include <array>
 
+#include "comet/core/essentials.h"
 #include "comet/core/hash.h"
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
@@ -75,7 +76,7 @@ class EntityManager : public Manager {
     constexpr auto component_id_count{component_type_count +
                                       component_type_ids_count};
 
-    uindex i{0};
+    usize i{0};
     std::array<EntityId, component_id_count> all_ids{};
     (void(all_ids[i++] = component_type_ids), ...);
     (void(all_ids[i++] = ComponentTypeDescrGetter<ComponentTypes>::Get().id),
@@ -98,7 +99,7 @@ class EntityManager : public Manager {
         continue;
       }
 
-      uindex count{0};
+      usize count{0};
 
       for (auto component_type_id : archetype->entity_type) {
         if (component_type_id == all_ids[count]) {
@@ -140,7 +141,7 @@ class EntityManager : public Manager {
     }
 
     archetype->id = archetype_id;
-    uindex i{0};
+    usize i{0};
 
     for (const auto component_type_id : archetype->entity_type) {
       registered_component_types_[component_type_id]
@@ -158,11 +159,11 @@ class EntityManager : public Manager {
       const std::vector<ComponentDescr>& component_type_descrs);
   void UnregisterComponentType(EntityId component_type_id);
   void ResizeArchetype(Archetype* archetype, s16 delta);
-  void PreRemoveEntityFromArchetype(uindex entity_row, Archetype* archetype);
+  void PreRemoveEntityFromArchetype(usize entity_row, Archetype* archetype);
   bool DoesEntityTypeContain(const EntityType& entity_type,
                              EntityId component_type_id);
   void CopyComponent(EntityId entity_id, Archetype* new_archetype,
-                     uindex new_entity_index,
+                     usize new_entity_index,
                      const ComponentDescr& component_descr);
 
   Archetype* root_archetype_{nullptr};

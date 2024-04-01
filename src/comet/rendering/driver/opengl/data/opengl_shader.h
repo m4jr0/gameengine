@@ -5,10 +5,10 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_SHADER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_SHADER_H_
 
-#include "comet_precompile.h"
-
 #include "glad/glad.h"
 
+#include "comet/core/essentials.h"
+#include "comet/core/type/gid.h"
 #include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
@@ -31,7 +31,7 @@ struct ShaderUniform {
   sptrdiff offset{0};
   ShaderUniformSize size{kInvalidShaderUniformSize};
   ShaderUniformLocation location{kInvalidShaderUniformLocation};
-  uindex data_index{kInvalidIndex};
+  usize data_index{kInvalidIndex};
   ShaderUniformIndex index{kInvalidShaderUniformIndex};
   ShaderUniformType type{ShaderUniformType::Unknown};
   ShaderUniformScope scope{ShaderUniformScope::Unknown};
@@ -64,7 +64,7 @@ struct ShaderUniformBufferObjectData {
   u32 uniform_count{0};
   u32 sampler_count{0};
   u32 uniform_block_index{GL_INVALID_VALUE};
-  uindex ubo_size{0};
+  usize ubo_size{0};
   sptrdiff ubo_stride{0};
   sptrdiff ubo_offset{0};
 };

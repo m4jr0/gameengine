@@ -5,10 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_VIEW_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_VIEW_H_
 
-#include "comet_precompile.h"
-
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"

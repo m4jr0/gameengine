@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_EVENT_EVENT_H_
 #define COMET_COMET_EVENT_EVENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/type/stl_types.h"
 
 #define COMET_EVENT_BIND_FUNCTION(function) \
@@ -79,13 +78,13 @@ using EventPointer = custom_unique_ptr<comet::event::Event>;
 // allocator and deleter
 template <typename T, typename... Args>
 EventPointer GenerateEvent(Args&&... args) {
-  two_frame_allocator<T> allocator{};
+  memory::two_frame_allocator<T> allocator{};
   auto* p{allocator.allocate_one()};
 
   // No need to deallocate if an exception occurs: the temporary allocator will
   // be flushed by the end of the frame following the current one.
   EventPointer event(p, [](Event* p) { p->~Event(); });
-  new (event.get()) T(std::forward<Args>(args)...);
+  new (event.get()) T{std::forward<Args>(args)...};
   return event;
 }
 }  // namespace event

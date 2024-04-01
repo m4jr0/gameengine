@@ -5,8 +5,8 @@
 #ifndef COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 #define COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
 
 namespace comet {
@@ -14,7 +14,7 @@ namespace animation {
 class AnimationManager : public Manager {
  public:
   static AnimationManager& Get();
-  void Update(f64& lag);
+  void Update(frame::FramePacket& packet);
 
   AnimationManager() = default;
   AnimationManager(const AnimationManager&) = delete;

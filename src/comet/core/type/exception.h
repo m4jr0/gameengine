@@ -5,19 +5,21 @@
 #ifndef COMET_COMET_CORE_TYPE_EXCEPTION_H_
 #define COMET_COMET_CORE_TYPE_EXCEPTION_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 namespace comet {
-class maximum_capacity_reached_error : public std::runtime_error {
+class MaximumCapacityReachedError : public std::runtime_error {
  public:
-  maximum_capacity_reached_error(uindex capacity)
-      : runtime_error("Structure instance is full (" +
-                      std::to_string(capacity) + ")") {}
+  MaximumCapacityReachedError(usize capacity)
+      : runtime_error(GenerateTmpErrorMessage(capacity)) {}
+
+ private:
+  static const schar* GenerateTmpErrorMessage(usize capacity);
 };
 
-class empty_error : public std::runtime_error {
+class EmptyError : public std::runtime_error {
  public:
-  empty_error() : runtime_error("Structure instance is empty") {}
+  EmptyError() : runtime_error("Structure instance is empty") {}
 };
 }  // namespace comet
 

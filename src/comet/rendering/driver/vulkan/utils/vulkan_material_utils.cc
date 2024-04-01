@@ -5,6 +5,7 @@
 #include "vulkan_material_utils.h"
 
 #include "comet/core/hash.h"
+#include "comet/core/logger.h"
 
 namespace comet {
 namespace rendering {

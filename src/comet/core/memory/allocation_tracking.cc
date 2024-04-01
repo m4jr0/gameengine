@@ -4,48 +4,44 @@
 
 #include "allocation_tracking.h"
 
-#include "comet/core/compiler.h"
-#include "comet/core/debug.h"
-#include "comet/core/logger.h"
-
 namespace comet {
+namespace memory {
 namespace internal {
 static MemoryUse memory_use{};
 }  // namespace internal
 
-uindex GetTotalAllocatedMemory() {
-  return internal::memory_use.total_allocated;
-}
+usize GetTotalAllocatedMemory() { return internal::memory_use.total_allocated; }
 
-uindex GetTotalFreedMemory() { return internal::memory_use.total_freed; }
+usize GetTotalFreedMemory() { return internal::memory_use.total_freed; }
 
-uindex GetMemoryUse() {
+usize GetMemoryUse() {
   COMET_ASSERT(
       internal::memory_use.total_allocated >= internal::memory_use.total_freed,
       "Something wrong happened while allocating memory!");
   return internal::memory_use.total_allocated -
          internal::memory_use.total_freed;
 }
+}  // namespace memory
 }  // namespace comet
 
 #ifdef COMET_DEBUG
 void* operator new(std::size_t size) {
-  comet::internal::memory_use.total_allocated += size;
+  comet::memory::internal::memory_use.total_allocated += size;
   return std::malloc(size);
 }
 
 void operator delete(void* p, std::size_t size) {
-  comet::internal::memory_use.total_freed += size;
+  comet::memory::internal::memory_use.total_freed += size;
   std::free(p);
 }
 
 void* operator new[](std::size_t size) {
-  comet::internal::memory_use.total_allocated += size;
+  comet::memory::internal::memory_use.total_allocated += size;
   return std::malloc(size);
 }
 
 void operator delete[](void* p, std::size_t size) {
-  comet::internal::memory_use.total_freed += size;
+  comet::memory::internal::memory_use.total_freed += size;
   std::free(p);
 }
 

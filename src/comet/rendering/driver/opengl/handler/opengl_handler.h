@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_HANDLER_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 namespace comet {
 namespace rendering {

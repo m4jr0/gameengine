@@ -5,9 +5,10 @@
 #ifndef COMET_COMET_CORE_TYPE_TSTRING_H_
 #define COMET_COMET_CORE_TYPE_TSTRING_H_
 
-#include "comet_precompile.h"
-
 #include "comet/core/c_string.h"
+#include "comet/core/essentials.h"
+#include "comet/core/file_system/slash_helper.h"
+#include "comet/core/type/string_id.h"
 
 namespace comet {
 const auto kSSOCapacityThreshold{15};
@@ -19,7 +20,7 @@ class TString {
   TString() = default;
 
   template <typename TChar>
-  TString(const TChar* str, uindex length) : length_{length} {
+  TString(const TChar* str, usize length) : length_{length} {
     Allocate(length_);
     Copy(GetTStr(), str, length_);
     GetTStr()[length_] = COMET_TCHAR('\0');
@@ -32,18 +33,18 @@ class TString {
   explicit TString(const TChar* str) : TString{str, comet::GetLength(str)} {}
 
   template <typename TChar>
-  TString(uindex length, TChar c) : length_{length} {
+  TString(usize length, TChar c) : length_{length} {
     Allocate(length_);
     Copy(GetTStr(), &c, length_);
     GetTStr()[length_] = COMET_TCHAR('\0');
   }
 
   TString(const TString& other);
-  TString(const TString& other, uindex pos, uindex length = kInvalidIndex);
+  TString(const TString& other, usize pos, usize length = kInvalidIndex);
 
   template <typename TChar>
   TString(const TChar* start, const TChar* end)
-      : length_{static_cast<uindex>(end - start)} {
+      : length_{static_cast<usize>(end - start)} {
     Allocate(length_);
     Copy(GetTStr(), start, length_);
     GetTStr()[length_] = COMET_TCHAR('\0');
@@ -56,12 +57,12 @@ class TString {
   TString& operator=(TString&& other) noexcept;
   ~TString();
 
-  void Reserve(uindex capacity);
-  void Resize(uindex length);
+  void Reserve(usize capacity);
+  void Resize(usize length);
   void Clear();
 
   template <typename TChar>
-  TString& Append(uindex length, TChar c) {
+  TString& Append(usize length, TChar c) {
     auto new_length{length + length_};
 
     // Use >= to take the null terminator into account.
@@ -71,7 +72,7 @@ class TString {
 
     auto offset{length_ - 1};
 
-    for (uindex i{0}; i < length; ++i) {
+    for (usize i{0}; i < length; ++i) {
       GetTStr()[offset++] = c;
     }
 
@@ -81,11 +82,11 @@ class TString {
   }
 
   TString& Append(const TString& str);
-  TString& Append(const TString& str, uindex offset,
-                  uindex length = kInvalidIndex);
+  TString& Append(const TString& str, usize offset,
+                  usize length = kInvalidIndex);
 
   template <typename TChar>
-  TString& Append(const TChar* str, uindex length) {
+  TString& Append(const TChar* str, usize length) {
     auto new_length{length_ + length};
 
     if (new_length > capacity_) {
@@ -108,21 +109,21 @@ class TString {
     return Append(cs.begin(), cs.size());
   }
 
-  TString GenerateSubString(uindex offset = 0,
-                            uindex count = kInvalidIndex) const;
-  uindex GetLastIndexOf(tchar c, uindex offset = kInvalidIndex) const noexcept;
-  uindex GetNthToLastIndexOf(tchar c, uindex count = 0,
-                             uindex offset = kInvalidIndex) const noexcept;
+  TString GenerateSubString(usize offset = 0,
+                            usize count = kInvalidIndex) const;
+  usize GetLastIndexOf(tchar c, usize offset = kInvalidIndex) const noexcept;
+  usize GetNthToLastIndexOf(tchar c, usize count = 0,
+                            usize offset = kInvalidIndex) const noexcept;
 
   friend void Swap(TString& str1, TString& str2);
-  tchar& operator[](uindex index);
-  const tchar& operator[](uindex index) const;
+  tchar& operator[](usize index);
+  const tchar& operator[](usize index) const;
   stringid::StringId GenerateStringId() const;
   const tchar* GetCTStr() const noexcept;
   tchar* GetTStr() noexcept;
-  uindex GetLength() const noexcept;
-  uindex GetLengthWithNullTerminator() const noexcept;
-  uindex GetCapacity() const noexcept;
+  usize GetLength() const noexcept;
+  usize GetLengthWithNullTerminator() const noexcept;
+  usize GetCapacity() const noexcept;
   bool IsEmpty() const noexcept;
   const tchar& GetFirst() const noexcept;
   const tchar& GetLast() const noexcept;
@@ -134,14 +135,14 @@ class TString {
 #endif  // COMET_DEBUG
 
  private:
-  void Allocate(uindex capacity);
+  void Allocate(usize capacity);
   void Deallocate();
 
-  uindex length_{0};
+  usize length_{0};
 #ifdef COMET_DEBUG
   bool is_alloc_allowed_{true};
 #endif  // COMET_DEBUG
-  uindex capacity_{kSSOCapacityThreshold};
+  usize capacity_{kSSOCapacityThreshold};
   tchar* str_{nullptr};
   tchar sso_[kSSOCapacityThreshold + 1]{COMET_TCHAR('\0')};
 };
@@ -161,7 +162,7 @@ class CTStringView {
   constexpr CTStringView(const tchar* str) noexcept
       : str_{str}, length_{comet::GetLength(str)} {}
 
-  constexpr CTStringView(const tchar* str, uindex length) noexcept
+  constexpr CTStringView(const tchar* str, usize length) noexcept
       : str_{str}, length_{length} {}
 
   constexpr CTStringView(const CTStringView& other) noexcept = default;
@@ -172,15 +173,15 @@ class CTStringView {
 
   ~CTStringView() = default;
 
-  constexpr const tchar& operator[](uindex index) const { return str_[index]; }
+  constexpr const tchar& operator[](usize index) const { return str_[index]; }
 
-  TString GenerateSubString(uindex offset = 0,
-                            uindex count = kInvalidIndex) const;
+  TString GenerateSubString(usize offset = 0,
+                            usize count = kInvalidIndex) const;
   stringid::StringId GenerateStringId() const;
 
-  constexpr uindex GetLength() const noexcept { return length_; }
+  constexpr usize GetLength() const noexcept { return length_; }
 
-  constexpr uindex GetLengthWithNullTerminator() const noexcept {
+  constexpr usize GetLengthWithNullTerminator() const noexcept {
     return length_ + 1;
   }
 
@@ -196,7 +197,7 @@ class CTStringView {
 
  private:
   const tchar* str_{nullptr};
-  uindex length_{0};
+  usize length_{0};
 };
 
 std::ostream& operator<<(std::ostream& stream, const TString& str);

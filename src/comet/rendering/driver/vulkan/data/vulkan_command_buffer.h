@@ -5,9 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_COMMAND_BUFFER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_COMMAND_BUFFER_H_
 
-#include "comet_precompile.h"
-
 #include "vulkan/vulkan.h"
+
+#include "comet/core/essentials.h"
 
 namespace comet {
 namespace rendering {

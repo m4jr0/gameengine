@@ -7,6 +7,11 @@
 
 #include "comet/core/os.h"
 
+// Logging.
+#ifdef COMET_DEBUG
+#define COMET_LOG_IS_FIBER_PREFIX
+#endif  // COMET_DEBUG
+
 // String.
 #ifdef COMET_WINDOWS
 #define COMET_WIDE_TCHAR
@@ -19,6 +24,7 @@
 #ifdef COMET_DEBUG
 #define COMET_PROFILING
 #define COMET_IMGUI
+#define COMET_POISON_ALLOCATIONS
 
 #define COMET_RENDERING_DRIVER_DEBUG_MODE
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE

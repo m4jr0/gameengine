@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_GEOMETRY_COMPONENT_MESH_COMPONENT_H_
 #define COMET_COMET_GEOMETRY_COMPONENT_MESH_COMPONENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/model_resource.h"

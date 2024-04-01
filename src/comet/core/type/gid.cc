@@ -24,6 +24,7 @@ BreedHandler& BreedHandler::operator=(BreedHandler&& other) noexcept {
   if (this == &other) {
     return *this;
   }
+
   generations_ = std::move(other.generations_);
   free_ids_ = std::move(other.free_ids_);
   other.generations_.clear();

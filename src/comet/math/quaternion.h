@@ -5,11 +5,10 @@
 #ifndef COMET_COMET_MATH_QUATERNION_H_
 #define COMET_COMET_MATH_QUATERNION_H_
 
-#include "comet_precompile.h"
-
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
 
+#include "comet/core/essentials.h"
 #include "comet/math/vector.h"
 
 namespace comet {

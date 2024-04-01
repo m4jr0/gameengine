@@ -5,10 +5,12 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DEVICE_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DEVICE_H_
 
-#include "comet_precompile.h"
+#include <array>
+#include <optional>
 
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {

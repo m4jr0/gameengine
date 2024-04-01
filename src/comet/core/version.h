@@ -23,8 +23,7 @@ static_assert(false, "COMET_VERSION_PATCH preprocessor macro must be defined!");
 
 #include <string_view>
 
-#include "comet/core/c_string.h"
-#include "comet/core/type/primitive.h"
+#include "comet/core/essentials.h"
 
 using namespace std::literals;
 

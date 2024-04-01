@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_
 #define COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/rendering/rendering_common.h"
 
@@ -20,7 +19,7 @@ struct MiniProfilerPacket {
   u32 rendering_frame_rate{0};
   u32 rendering_draw_count{0};
   DriverType rendering_driver_type{DriverType::Unknown};
-  uindex memory_use{0};
+  usize memory_use{0};
 };
 
 class DebuggerDisplayerManager : public Manager {

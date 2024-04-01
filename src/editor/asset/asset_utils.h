@@ -5,10 +5,9 @@
 #ifndef COMET_EDITOR_ASSET_ASSET_UTILS_H_
 #define COMET_EDITOR_ASSET_ASSET_UTILS_H_
 
-#include "comet_precompile.h"
-
 #include "nlohmann/json.hpp"
 
+#include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
 

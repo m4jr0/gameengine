@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_MATH_PLANE_H_
 #define COMET_COMET_MATH_PLANE_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/math/vector.h"
 
 namespace comet {

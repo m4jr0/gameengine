@@ -26,7 +26,8 @@ Driver::Driver(const DriverDescr& descr)
       app_name_len_{descr.app_name_len},
       rendering_view_descrs_{descr.rendering_view_descrs} {
   Copy(app_name_, descr.app_name, app_name_len_);
-  CopyMemory(clear_color_, descr.clear_color, sizeof(descr.clear_color));
+  memory::CopyMemory(clear_color_, descr.clear_color,
+                     sizeof(descr.clear_color));
 }
 
 Driver ::~Driver() {

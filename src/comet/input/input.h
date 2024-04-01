@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_INPUT_INPUT_H_
 #define COMET_COMET_INPUT_INPUT_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 #define GLFW_INCLUDE_NONE
 

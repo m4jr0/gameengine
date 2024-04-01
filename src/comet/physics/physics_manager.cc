@@ -34,7 +34,7 @@ void PhysicsManager::Shutdown() {
   Manager::Shutdown();
 };
 
-void PhysicsManager::Update(f64& lag) {
+void PhysicsManager::Update(frame::FramePacket& packet) {
   if (current_time_ > 1000) {
     frame_rate_ = counter_;
     current_time_ = 0;
@@ -43,12 +43,12 @@ void PhysicsManager::Update(f64& lag) {
 
   current_time_ += time::TimeManager::Get().GetDeltaTime();
 
-  while (lag > fixed_delta_time_) {
+  while (packet.lag > fixed_delta_time_) {
     memory::MemoryManager::Get().Update();
 
     // TODO(m4jr0): Investigate. This seems to prevent round errors.
     if (counter_ == max_frame_rate_) {
-      lag = 0;
+      packet.lag = 0;
       return;
     }
 
@@ -56,7 +56,7 @@ void PhysicsManager::Update(f64& lag) {
     UpdateEntityTransforms();
 
     ++counter_;
-    lag -= fixed_delta_time_;
+    packet.lag -= fixed_delta_time_;
     event::EventManager::Get().FireAllEvents();
   }
 }

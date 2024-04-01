@@ -4,6 +4,7 @@
 
 #include "vulkan_render_pass_handler.h"
 
+#include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -33,8 +34,8 @@ RenderPass* RenderPassHandler::Generate(const RenderPassDescr& descr) {
   render_pass.clear_flags = descr.clear_flags;
   render_pass.extent = descr.extent;
   render_pass.offset = descr.offset;
-  CopyMemory(render_pass.clear_values.data(), descr.clear_values.data(),
-             sizeof(descr.clear_values[0]) * descr.clear_values.size());
+  memory::CopyMemory(render_pass.clear_values.data(), descr.clear_values.data(),
+                     sizeof(descr.clear_values[0]) * descr.clear_values.size());
 
   auto is_msaa{device.IsMsaa()};
   const auto msaa_samples{is_msaa ? device.GetMsaaSamples()
@@ -169,7 +170,7 @@ RenderPass* RenderPassHandler::Generate(const RenderPassDescr& descr) {
                "subpass, the others would be ignored!");
 
   std::vector<VkAttachmentDescription> attachment_descrs{};
-  attachment_descrs.reserve(static_cast<uindex>(color_attachment_count) +
+  attachment_descrs.reserve(static_cast<usize>(color_attachment_count) +
                             depth_attachment_count + resolve_attachment_count);
 
   for (const auto& vk_descr : color_attachment_descrs) {

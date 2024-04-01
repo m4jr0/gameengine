@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_UTILS_MATH_BOUNDING_VOLUME_H_
 #define COMET_COMET_UTILS_MATH_BOUNDING_VOLUME_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/math/plane.h"
 #include "comet/math/vector.h"

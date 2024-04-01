@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_CAMERA_CAMERA_H_
 #define COMET_COMET_RENDERING_CAMERA_CAMERA_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/event/event.h"
 #include "comet/math/matrix.h"
 #include "comet/math/quaternion.h"

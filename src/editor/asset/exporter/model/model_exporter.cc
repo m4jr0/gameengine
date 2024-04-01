@@ -7,7 +7,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/rendering_common.h"
@@ -181,14 +181,14 @@ void ModelExporter::LoadMaterials(
       {aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_HEIGHT,
        aiTextureType_AMBIENT}};
 
-  for (uindex i{0}; i < scene->mNumMaterials; ++i) {
+  for (usize i{0}; i < scene->mNumMaterials; ++i) {
     const auto raw_material{scene->mMaterials[i]};
 
     COMET_LOG_GLOBAL_DEBUG("Material \"", raw_material->GetName().C_Str(),
                            "\" found.");
 
     resource::MaterialResource material{};
-    CopyMemory(material.descr.shader_name, "default_shader", 14);
+    memory::CopyMemory(material.descr.shader_name, "default_shader", 14);
 
     if (aiGetMaterialFloat(raw_material, AI_MATKEY_SHININESS,
                            &material.descr.shininess) != AI_SUCCESS) {

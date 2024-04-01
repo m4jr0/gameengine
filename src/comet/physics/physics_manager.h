@@ -5,10 +5,11 @@
 #ifndef COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 #define COMET_COMET_PHYSICS_PHYSICS_MANAGER_H_
 
+#include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
 #include "comet/math/matrix.h"
 #include "comet/physics/component/transform_component.h"
-#include "comet_precompile.h"
 
 namespace comet {
 namespace physics {
@@ -25,7 +26,7 @@ class PhysicsManager : public Manager {
 
   void Initialize() override;
   void Shutdown() override;
-  void Update(f64& lag);
+  void Update(frame::FramePacket& packet);
   void SetLocal(TransformComponent* cmp, const math::Mat4& local) const;
   void UpdateTree(entity::EntityId parent_entity_id,
                   const TransformComponent* parent_transform_cmp) const;

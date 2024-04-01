@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_PROXY_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_PROXY_HANDLER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/core/type/stl_types.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/matrix.h"

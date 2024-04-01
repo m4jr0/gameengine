@@ -4,6 +4,8 @@
 
 #include "vulkan_shader_handler.h"
 
+#include <functional>
+
 #include "comet/core/c_string.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
@@ -239,8 +241,8 @@ void ShaderHandler::BindMaterial(Material& material) {
     // TODO(m4jr0): Put texture maps in generic array.
     std::array<TextureMap*, 3> maps{
         &material.diffuse_map, &material.specular_map, &material.normal_map};
-    CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
-               sizeof(TextureMap*) * maps.size());
+    memory::CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
+                       sizeof(TextureMap*) * maps.size());
   }
 
   const auto layout_count{descriptor_set_layout_handles_buffer_.size()};
@@ -836,9 +838,9 @@ void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
                            .limits.minUniformBufferOffsetAlignment};
 
   shader.global_ubo_data.ubo_stride =
-      AlignSize(shader.global_ubo_data.ubo_size, alignment);
+      memory::AlignSize(shader.global_ubo_data.ubo_size, alignment);
   shader.instance_ubo_data.ubo_stride =
-      AlignSize(shader.instance_ubo_data.ubo_size, alignment);
+      memory::AlignSize(shader.instance_ubo_data.ubo_size, alignment);
 
 #ifdef COMET_DEBUG
   const auto max_range{
@@ -894,7 +896,7 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
     uniform.offset =
         static_cast<ShaderOffset>(shader.push_constant_ranges.size());
     uniform.size = static_cast<ShaderUniformSize>(
-        AlignSize(size, GetStd430Alignment(uniform.type)));
+        memory::AlignSize(size, GetStd430Alignment(uniform.type)));
 
     VkPushConstantRange range{};
     range.offset = uniform.offset;

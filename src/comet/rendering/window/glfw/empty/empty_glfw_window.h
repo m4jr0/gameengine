@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_WINDOW_GLFW_EMPTY_EMPTY_GLFW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_GLFW_EMPTY_EMPTY_GLFW_WINDOW_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/window/glfw/glfw_window.h"
 
 namespace comet {

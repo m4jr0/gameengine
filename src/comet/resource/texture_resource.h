@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 

@@ -261,8 +261,8 @@ void ShaderHandler::BindMaterial(Material& material) {
     // TODO(m4jr0): Put texture maps in generic array.
     std::array<TextureMap*, 3> maps{
         &material.diffuse_map, &material.specular_map, &material.normal_map};
-    CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
-               sizeof(TextureMap*) * maps.size());
+    memory::CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
+                       sizeof(TextureMap*) * maps.size());
   }
 
   instance.offset =
@@ -617,16 +617,16 @@ void ShaderHandler::HandleUniformCount(Shader& shader) const {
 ShaderUniformLocation GetSamplerLocation(
     const Shader& shader, const ShaderUniformDescr& uniform_descr,
     TextureType texture_type) {
-  constexpr uindex kBuffLen{32};
+  constexpr usize kBuffLen{32};
   static schar buff[kBuffLen];
-  uindex cursor;
+  usize cursor;
 
   if (uniform_descr.scope == ShaderUniformScope::Global) {
     cursor = 15;
-    CopyMemory(buff, "globalSamplers[", cursor);
+    memory::CopyMemory(buff, "globalSamplers[", cursor);
   } else if (uniform_descr.scope == ShaderUniformScope::Instance) {
     cursor = 12;
-    CopyMemory(buff, "texSamplers[", cursor);
+    memory::CopyMemory(buff, "texSamplers[", cursor);
   } else {
     COMET_ASSERT(false, "Unknown or unsupported sampler scope: ",
                  static_cast<std::underlying_type_t<ShaderUniformScope>>(
@@ -635,7 +635,7 @@ ShaderUniformLocation GetSamplerLocation(
     return kInvalidShaderUniformLocation;
   }
 
-  uindex copy_count;
+  usize copy_count;
   ConvertToStr(static_cast<s16>(texture_type), buff + cursor, kBuffLen - cursor,
                &copy_count);
   cursor += copy_count;
@@ -724,9 +724,9 @@ void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
   s32 alignment;
   glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
   shader.global_ubo_data.ubo_stride =
-      AlignSize(shader.global_ubo_data.ubo_size, alignment);
+      memory::AlignSize(shader.global_ubo_data.ubo_size, alignment);
   shader.instance_ubo_data.ubo_stride =
-      AlignSize(shader.instance_ubo_data.ubo_size, alignment);
+      memory::AlignSize(shader.instance_ubo_data.ubo_size, alignment);
   auto buffer_size{static_cast<GLsizeiptr>(shader.global_ubo_data.ubo_stride +
                                            shader.instance_ubo_data.ubo_stride *
                                                kMaxMaterialInstances)};
@@ -746,7 +746,7 @@ void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
 }
 
 void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
-                               uindex data_index) const {
+                               usize data_index) const {
   COMET_ASSERT(shader.uniforms.size() + 1 <= kMaxShaderUniformCount,
                "Too many uniforms to be added to shader ",
                COMET_STRING_ID_LABEL(shader.id), "! Max uniform count is ",
@@ -782,9 +782,10 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
                      : uniform.scope == ShaderUniformScope::Global
                          ? shader.global_ubo_data.ubo_size
                          : shader.instance_ubo_data.ubo_size;
-    uniform.size = is_sampler ? 0
-                              : static_cast<ShaderUniformSize>(AlignSize(
-                                    size, GetStd140Alignment(uniform.type)));
+    uniform.size = is_sampler
+                       ? 0
+                       : static_cast<ShaderUniformSize>(memory::AlignSize(
+                             size, GetStd140Alignment(uniform.type)));
   }
 
   shader.uniforms.push_back(uniform);

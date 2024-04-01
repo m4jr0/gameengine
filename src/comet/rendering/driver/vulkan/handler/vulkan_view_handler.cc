@@ -54,7 +54,7 @@ void ViewHandler::Shutdown() {
   Handler::Shutdown();
 }
 
-void ViewHandler::Destroy(uindex index) { Destroy(*Get(index)); }
+void ViewHandler::Destroy(usize index) { Destroy(*Get(index)); }
 
 void ViewHandler::Destroy(View& view) { Destroy(view, false); }
 
@@ -70,14 +70,14 @@ void ViewHandler::SetSize(WindowSize width, WindowSize height) {
   }
 }
 
-const View* ViewHandler::Get(uindex index) const {
+const View* ViewHandler::Get(usize index) const {
   auto* view{TryGet(index)};
   COMET_ASSERT(view != nullptr,
                "Requested view with index does not exist: ", index, "!");
   return view;
 }
 
-const View* ViewHandler::TryGet(uindex index) const {
+const View* ViewHandler::TryGet(usize index) const {
   COMET_ASSERT(index < views_.size(), "Requested view at index #", index,
                ", but view count is ", views_.size(), "!");
   return views_[index].get();
@@ -94,8 +94,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.is_last = descr.is_last;
       view_descr.width = descr.width;
       view_descr.height = descr.height;
-      CopyMemory(view_descr.clear_color, descr.clear_color,
-                 sizeof(descr.clear_color[0]) * 4);
+      memory::CopyMemory(view_descr.clear_color, descr.clear_color,
+                         sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
@@ -112,8 +112,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.is_last = descr.is_last;
       view_descr.width = descr.width;
       view_descr.height = descr.height;
-      CopyMemory(view_descr.clear_color, descr.clear_color,
-                 sizeof(descr.clear_color[0]) * 4);
+      memory::CopyMemory(view_descr.clear_color, descr.clear_color,
+                         sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
@@ -140,8 +140,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.is_last = descr.is_last;
       view_descr.width = descr.width;
       view_descr.height = descr.height;
-      CopyMemory(view_descr.clear_color, descr.clear_color,
-                 sizeof(descr.clear_color[0]) * 4);
+      memory::CopyMemory(view_descr.clear_color, descr.clear_color,
+                         sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.window = window_;
@@ -166,14 +166,14 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
   return views_.back().get();
 }
 
-View* ViewHandler::Get(uindex index) {
+View* ViewHandler::Get(usize index) {
   auto* view{TryGet(index)};
   COMET_ASSERT(view != nullptr,
                "Requested view with index does not exist: ", index, "!");
   return view;
 }
 
-View* ViewHandler::TryGet(uindex index) {
+View* ViewHandler::TryGet(usize index) {
   COMET_ASSERT(index < views_.size(), "Requested view at index #", index,
                ", but view count is ", views_.size(), "!");
   return views_[index].get();

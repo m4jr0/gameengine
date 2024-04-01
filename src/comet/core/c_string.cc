@@ -6,7 +6,9 @@
 
 #include <inttypes.h>
 
+#include <cstring>
 #include <cwctype>
+#include <string>
 
 namespace comet {
 s32 Compare(const schar* str1, const schar* str2) {
@@ -17,11 +19,11 @@ s32 Compare(const wchar* str1, const wchar* str2) {
   return std::wcscmp(str1, str2);
 }
 
-s32 Compare(const schar* str1, const schar* str2, uindex length) {
+s32 Compare(const schar* str1, const schar* str2, usize length) {
   return std::strncmp(str1, str2, length);
 }
 
-s32 Compare(const wchar* str1, const wchar* str2, uindex length) {
+s32 Compare(const wchar* str1, const wchar* str2, usize length) {
   return std::wcsncmp(str1, str2, length);
 }
 
@@ -49,8 +51,8 @@ bool AreStringsEqual(const wchar* str1, const wchar* str2) {
   return Compare(str1, str2) == 0;
 }
 
-bool AreStringsEqual(const schar* str1, uindex str1_len, const schar* str2,
-                     uindex str2_len) {
+bool AreStringsEqual(const schar* str1, usize str1_len, const schar* str2,
+                     usize str2_len) {
   if (str1_len != str2_len) {
     return false;
   }
@@ -66,8 +68,8 @@ bool AreStringsEqual(const schar* str1, uindex str1_len, const schar* str2,
   return Compare(str1, str2, str1_len) == 0;
 }
 
-bool AreStringsEqual(const wchar* str1, uindex str1_len, const wchar* str2,
-                     uindex str2_len) {
+bool AreStringsEqual(const wchar* str1, usize str1_len, const wchar* str2,
+                     usize str2_len) {
   if (str1_len != str2_len) {
     return false;
   }
@@ -99,7 +101,7 @@ s32 CompareInsensitive(const wchar* str1, const wchar* str2) {
 #endif  // COMET_GCC
 }
 
-s32 CompareInsensitive(const schar* str1, const schar* str2, uindex length) {
+s32 CompareInsensitive(const schar* str1, const schar* str2, usize length) {
 #ifdef COMET_GCC
   return strncasecmp(str1, str2, length);
 #elif defined(COMET_MSVC)
@@ -107,7 +109,7 @@ s32 CompareInsensitive(const schar* str1, const schar* str2, uindex length) {
 #endif  // COMET_GCC
 }
 
-s32 CompareInsensitive(const wchar* str1, const wchar* str2, uindex length) {
+s32 CompareInsensitive(const wchar* str1, const wchar* str2, usize length) {
 #ifdef COMET_GCC
   return wcsncasecmp(str1, str2, length);
 #elif defined(COMET_MSVC)
@@ -139,8 +141,8 @@ bool AreStringsEqualInsensitive(const wchar* str1, const wchar* str2) {
   return CompareInsensitive(str1, str2) == 0;
 }
 
-bool AreStringsEqualInsensitive(const schar* str1, uindex str1_len,
-                                const schar* str2, uindex str2_len) {
+bool AreStringsEqualInsensitive(const schar* str1, usize str1_len,
+                                const schar* str2, usize str2_len) {
   if (str1_len != str2_len) {
     return false;
   }
@@ -156,8 +158,8 @@ bool AreStringsEqualInsensitive(const schar* str1, uindex str1_len,
   return CompareInsensitive(str1, str2, str1_len) == 0;
 }
 
-bool AreStringsEqualInsensitive(const wchar* str1, uindex str1_len,
-                                const wchar* str2, uindex str2_len) {
+bool AreStringsEqualInsensitive(const wchar* str1, usize str1_len,
+                                const wchar* str2, usize str2_len) {
   if (str1_len != str2_len) {
     return false;
   }
@@ -181,18 +183,18 @@ bool IsAlpha(schar c) { return std::isalpha(c); }
 
 bool IsAlpha(wchar c) { return std::iswalpha(c); }
 
-bool IsEmpty(const schar* str, uindex str_len) {
+bool IsEmpty(const schar* str, usize str_len) {
   COMET_ASSERT(str != nullptr, "String provided is null!");
   return str_len == 0 || str[0] == '\0';
 }
 
-bool IsEmpty(const wchar* str, uindex str_len) {
+bool IsEmpty(const wchar* str, usize str_len) {
   COMET_ASSERT(str != nullptr, "String provided is null!");
   return str_len == 0 || str[0] == L'\0';
 }
 
-schar* Copy(schar* dst, const schar* src, uindex length, uindex dst_offset,
-            uindex src_offset) {
+schar* Copy(schar* dst, const schar* src, usize length, usize dst_offset,
+            usize src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
 #ifdef COMET_MSVC
@@ -205,12 +207,12 @@ schar* Copy(schar* dst, const schar* src, uindex length, uindex dst_offset,
   return dst;
 }
 
-wchar* Copy(wchar* dst, const schar* src, uindex length, uindex dst_offset,
-            uindex src_offset) {
+wchar* Copy(wchar* dst, const schar* src, usize length, usize dst_offset,
+            usize src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
 #ifdef COMET_MSVC
-  [[maybe_unused]] uindex out_count;
+  [[maybe_unused]] usize out_count;
   [[maybe_unused]] auto result{mbstowcs_s(
       &out_count, dst + dst_offset, length + 1, src + src_offset, length)};
   COMET_ASSERT(result == 0, "An error occurred while copying a string");
@@ -220,12 +222,12 @@ wchar* Copy(wchar* dst, const schar* src, uindex length, uindex dst_offset,
   return dst;
 }
 
-schar* Copy(schar* dst, const wchar* src, uindex length, uindex dst_offset,
-            uindex src_offset) {
+schar* Copy(schar* dst, const wchar* src, usize length, usize dst_offset,
+            usize src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
 #ifdef COMET_MSVC
-  [[maybe_unused]] uindex out_count;
+  [[maybe_unused]] usize out_count;
   [[maybe_unused]] auto result{wcstombs_s(
       &out_count, dst + dst_offset, length + 1, src + src_offset, length)};
   COMET_ASSERT(result == 0, "An error occurred while copying a string");
@@ -235,8 +237,8 @@ schar* Copy(schar* dst, const wchar* src, uindex length, uindex dst_offset,
   return dst;
 }
 
-wchar* Copy(wchar* dst, const wchar* src, uindex length, uindex dst_offset,
-            uindex src_offset) {
+wchar* Copy(wchar* dst, const wchar* src, usize length, usize dst_offset,
+            usize src_offset) {
   COMET_ASSERT(src != nullptr, "Source string provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
 #ifdef COMET_MSVC
@@ -249,47 +251,47 @@ wchar* Copy(wchar* dst, const wchar* src, uindex length, uindex dst_offset,
   return dst;
 }
 
-schar* TrimLeft(schar* str, uindex length, uindex* new_length) {
+schar* TrimLeft(schar* str, usize length, usize* new_length) {
   return internal::TrimLeft(str, length, new_length);
 }
 
-wchar* TrimLeft(wchar* str, uindex length, uindex* new_length) {
+wchar* TrimLeft(wchar* str, usize length, usize* new_length) {
   return internal::TrimLeft(str, length, new_length);
 }
 
-schar* TrimRight(schar* str, uindex length, uindex* new_length) {
+schar* TrimRight(schar* str, usize length, usize* new_length) {
   return internal::TrimRight(str, length, new_length);
 }
 
-wchar* TrimRight(wchar* str, uindex length, uindex* new_length) {
+wchar* TrimRight(wchar* str, usize length, usize* new_length) {
   return internal::TrimRight(str, length, new_length);
 }
 
-schar* Trim(schar* str, uindex length, uindex* new_length) {
+schar* Trim(schar* str, usize length, usize* new_length) {
   return internal::Trim(str, length, new_length);
 }
 
-wchar* Trim(wchar* str, uindex length, uindex* new_length) {
+wchar* Trim(wchar* str, usize length, usize* new_length) {
   return internal::Trim(str, length, new_length);
 }
 
-void GetSubString(schar* dst, const schar* src, uindex src_length,
-                  uindex offset, uindex length) {
+void GetSubString(schar* dst, const schar* src, usize src_length, usize offset,
+                  usize length) {
   return internal::GetSubString(dst, src, src_length, offset, length);
 }
 
-void GetSubString(wchar* dst, const wchar* src, uindex src_length,
-                  uindex offset, uindex length) {
+void GetSubString(wchar* dst, const wchar* src, usize src_length, usize offset,
+                  usize length) {
   return internal::GetSubString(dst, src, src_length, offset, length);
 }
 
-void FillWith(schar* str, uindex str_length, schar c, uindex offset,
-              uindex length) {
+void FillWith(schar* str, usize str_length, schar c, usize offset,
+              usize length) {
   internal ::FillWith(str, str_length, c, offset, length);
 }
 
-void FillWith(wchar* str, uindex str_length, wchar c, uindex offset,
-              uindex length) {
+void FillWith(wchar* str, usize str_length, wchar c, usize offset,
+              usize length) {
   internal ::FillWith(str, str_length, c, offset, length);
 }
 
@@ -301,69 +303,69 @@ schar ToLower(schar c) { return static_cast<schar>(std::tolower(c)); }
 
 wchar ToLower(wchar c) { return static_cast<wchar>(std::towlower(c)); }
 
-void Clear(schar* str, uindex str_len) { FillWith(str, str_len, '\0'); }
+void Clear(schar* str, usize str_len) { FillWith(str, str_len, '\0'); }
 
-void Clear(wchar* str, uindex str_len) { FillWith(str, str_len, L'\0'); }
+void Clear(wchar* str, usize str_len) { FillWith(str, str_len, L'\0'); }
 
-uindex GetIndexOf(const schar* str, char c, uindex length, uindex offset) {
+usize GetIndexOf(const schar* str, char c, usize length, usize offset) {
   return internal::GetIndexOf(str, c, length, offset);
 }
 
-uindex GetIndexOf(const wchar* str, char c, uindex length, uindex offset) {
+usize GetIndexOf(const wchar* str, char c, usize length, usize offset) {
   return internal::GetIndexOf(str, c, length, offset);
 }
 
-uindex GetLastIndexOf(const schar* str, uindex length, schar c, uindex offset) {
+usize GetLastIndexOf(const schar* str, usize length, schar c, usize offset) {
   return internal::GetLastIndexOf(str, length, c, offset);
 }
 
-uindex GetLastIndexOf(const wchar* str, uindex length, wchar c, uindex offset) {
+usize GetLastIndexOf(const wchar* str, usize length, wchar c, usize offset) {
   return internal::GetLastIndexOf(str, length, c, offset);
 }
 
-uindex GetNthToLastIndexOf(const schar* str, uindex str_length, schar to_search,
-                           uindex count, uindex offset) {
+usize GetNthToLastIndexOf(const schar* str, usize str_length, schar to_search,
+                          usize count, usize offset) {
   return internal::GetNthToLastIndexOf(str, str_length, to_search, count,
                                        offset);
 }
 
-uindex GetNthToLastIndexOf(const wchar* str, uindex str_length, wchar to_search,
-                           uindex count, uindex offset) {
+usize GetNthToLastIndexOf(const wchar* str, usize str_length, wchar to_search,
+                          usize count, usize offset) {
   return internal::GetNthToLastIndexOf(str, str_length, to_search, count,
                                        offset);
 }
 
-uindex GetFirstNonWhiteSpaceIndex(const schar* str, uindex str_len) {
+usize GetFirstNonWhiteSpaceIndex(const schar* str, usize str_len) {
   return internal::GetFirstNonWhiteSpaceIndex(str, str_len);
 }
 
-uindex GetFirstNonWhiteSpaceIndex(const wchar* str, uindex str_len) {
+usize GetFirstNonWhiteSpaceIndex(const wchar* str, usize str_len) {
   return internal::GetFirstNonWhiteSpaceIndex(str, str_len);
 }
 
-uindex GetFirstDifferentCharacterIndex(const schar* str, uindex str_len,
-                                       schar c) {
+usize GetFirstDifferentCharacterIndex(const schar* str, usize str_len,
+                                      schar c) {
   return internal::GetFirstDifferentCharacterIndex(str, str_len, c);
 }
 
-uindex GetFirstDifferentCharacterIndex(const wchar* str, uindex str_len,
-                                       wchar c) {
+usize GetFirstDifferentCharacterIndex(const wchar* str, usize str_len,
+                                      wchar c) {
   return internal::GetFirstDifferentCharacterIndex(str, str_len, c);
 }
 
-uindex GetLastNonWhiteSpaceIndex(const schar* str, uindex str_len) {
+usize GetLastNonWhiteSpaceIndex(const schar* str, usize str_len) {
   return internal::GetLastNonWhiteSpaceIndex(str, str_len);
 }
 
-uindex GetLastNonWhiteSpaceIndex(const wchar* str, uindex str_len) {
+usize GetLastNonWhiteSpaceIndex(const wchar* str, usize str_len) {
   return internal::GetLastNonWhiteSpaceIndex(str, str_len);
 }
 
-uindex GetLastNonCharacterIndex(const schar* str, uindex str_len, schar c) {
+usize GetLastNonCharacterIndex(const schar* str, usize str_len, schar c) {
   return internal::GetLastNonCharacterIndex(str, str_len, c);
 }
 
-uindex GetLastNonCharacterIndex(const wchar* str, uindex str_len, wchar c) {
+usize GetLastNonCharacterIndex(const wchar* str, usize str_len, wchar c) {
   return internal::GetLastNonCharacterIndex(str, str_len, c);
 }
 
@@ -449,13 +451,13 @@ f64 ParseF64(const wchar* str) {
   return static_cast<f32>(std::wcstold(str, &p));
 }
 
-uindex ParseIndex(const schar* str) {
-  return static_cast<uindex>(std::stoull(str));
+usize ParseIndex(const schar* str) {
+  return static_cast<usize>(std::stoull(str));
 }
 
-uindex ParseIndex(const wchar* str) {
+usize ParseIndex(const wchar* str) {
   wchar* p{nullptr};
-  return static_cast<uindex>(std::wcstoull(str, &p, 10));
+  return static_cast<usize>(std::wcstoull(str, &p, 10));
 }
 
 ux ParseUx(const schar* str) {
@@ -518,187 +520,193 @@ bool ParseBool(const schar* str) { return internal::ParseBool(str); }
 
 bool ParseBool(const wchar* str) { return internal::ParseBool(str); }
 
-void ConvertToStr(u8 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u8 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRIu8, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRIu8, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(u8 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u8 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRIu8, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRIu8, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(u16 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u16 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRIu16, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRIu16, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(u16 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u16 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRIu16, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRIu16, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(u32 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u32 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRIu32, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRIu32, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(u32 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u32 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRIu32, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRIu32, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(u64 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u64 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRIu64, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRIu64, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(u64 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(u64 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRIu64, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRIu64, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s8 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s8 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRId8, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRId8, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s8 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s8 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRId8, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRId8, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s16 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s16 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRId16, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRId16, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s16 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s16 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRId16, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRId16, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s32 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s32 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRId32, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRId32, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s32 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s32 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRId32, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRId32, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s64 number, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s64 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::snprintf(buffer, buffer_len - 1, "%" PRId64, number)};
+  std::snprintf(buffer, buffer_len - 1, "%" PRId64, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(s64 number, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(s64 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRId64, number)};
+  std::swprintf(buffer, buffer_len - 1, L"%" PRId64, number);
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(bool boolean, schar* buffer, uindex buffer_len,
-                  uindex* out_len) {
-  s32 len = snprintf(buffer, buffer_len, "%s", boolean ? "true" : "false");
+void ConvertToStr(bool boolean, schar* buffer, usize buffer_len,
+                  usize* out_len) {
+  snprintf(buffer, buffer_len, "%s", boolean ? "true" : "false");
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
 
-void ConvertToStr(bool boolean, wchar* buffer, uindex buffer_len,
-                  uindex* out_len) {
+void ConvertToStr(bool boolean, wchar* buffer, usize buffer_len,
+                  usize* out_len) {
 #ifdef SID_MSVC
-  s32 len = _snwprintf_s(buffer, buffer_len, buffer_len - 1, L"%ls",
-                         boolean == true ? L"true" : L"false");
+  _snwprintf_s(buffer, buffer_len, buffer_len - 1, L"%ls",
+               boolean == true ? L"true" : L"false");
 #else
-  s32 len = swprintf(buffer, buffer_len - 1, L"%ls",
-                     boolean == true ? L"true" : L"false");
+  swprintf(buffer, buffer_len - 1, L"%ls",
+           boolean == true ? L"true" : L"false");
 #endif  // SID_MSVC
 
   if (out_len != nullptr) {
-    *out_len = len >= 0 ? len : kInvalidIndex;
+    *out_len = GetLength(buffer);
   }
 }
+
+usize GetCharCount(u8) { return kU8MaxCharCountDigits10; }
+
+usize GetCharCount(u16) { return kU16MaxCharCountDigits10; }
+
+usize GetCharCount(u32) { return kU32MaxCharCountDigits10; }
+
+usize GetCharCount(u64) { return kU64MaxCharCountDigits10; }
+
+usize GetCharCount(s8) { return kS8MaxCharCountDigits10; }
+
+usize GetCharCount(s16) { return kS16MaxCharCountDigits10; }
+
+usize GetCharCount(s32) { return kS32MaxCharCountDigits10; }
+
+usize GetCharCount(s64) { return kS64MaxCharCountDigits10; }
+
+usize GetCharCount(f32) { return kF32MaxCharCountDigits10; }
+
+usize GetCharCount(f64) { return kF64MaxCharCountDigits10; }
+
+usize GetCharCount(bool) { return kBoolMaxCharCountDigits10; }
 }  // namespace comet

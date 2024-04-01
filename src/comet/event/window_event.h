@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_EVENT_WINDOW_EVENT_H_
 #define COMET_COMET_EVENT_WINDOW_EVENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/event/event.h"
 #include "comet/rendering/rendering_common.h"
 

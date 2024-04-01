@@ -7,6 +7,8 @@
 
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
+
 namespace comet {
 namespace rendering {
 namespace vk {

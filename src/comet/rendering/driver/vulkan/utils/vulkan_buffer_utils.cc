@@ -66,7 +66,7 @@ void MapBuffer(Buffer& buffer) {
                  "Unable to map memory for buffer!");
 }
 
-void CopyToBuffer(Buffer& buffer, void const* data, uindex length,
+void CopyToBuffer(Buffer& buffer, void const* data, usize length,
                   sptrdiff offset) {
   COMET_ASSERT(buffer.mapped_memory != nullptr, "Buffer is not mapped!");
   COMET_ASSERT(offset >= 0, "Invalid offset provided");
@@ -80,7 +80,7 @@ void CopyToBuffer(Buffer& buffer, void const* data, uindex length,
         reinterpret_cast<sptrdiff>(buffer.mapped_memory) + offset);
   }
 
-  CopyMemory(dest, data, length);
+  memory::CopyMemory(dest, data, length);
 }
 
 void UnmapBuffer(Buffer& buffer) {

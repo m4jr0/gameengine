@@ -4,7 +4,10 @@
 
 #include "vulkan_device.h"
 
+#include <set>
+
 #include "comet/core/c_string.h"
+#include "comet/core/logger.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
@@ -509,12 +512,11 @@ void Device::ResolvePhysicalDeviceHandle() {
 
 #ifdef COMET_DEBUG
 void Device::CheckRequiredExtensions() const {
-  uindex found_extensions_count{0};
+  usize found_extensions_count{0};
 
   for (const auto* extension_name : kRequiredExtensions_) {
     for (const auto* to_check_name : kExtensionsToCheck_) {
-      if (strncmp(extension_name, to_check_name, VK_MAX_EXTENSION_NAME_SIZE) ==
-          0) {
+      if (AreStringsEqual(extension_name, to_check_name)) {
         ++found_extensions_count;
         continue;
       }

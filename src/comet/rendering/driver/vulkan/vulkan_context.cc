@@ -57,7 +57,7 @@ void Context::InitializeCommands() {
       device_->GetQueueFamilyIndices().graphics_family.value(),
       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)};
 
-  for (uindex i = 0; i < max_frames_in_flight_; ++i) {
+  for (usize i = 0; i < max_frames_in_flight_; ++i) {
     COMET_CHECK_VK(vkCreateCommandPool(*device_, &pool_info, VK_NULL_HANDLE,
                                        &frame_data_[i].command_pool_handle),
                    "Failed to create frame command pool!");
@@ -309,7 +309,7 @@ u8 Context::GetVulkanVariantVersion() const noexcept {
   return vulkan_variant_version_;
 }
 
-uindex Context::GetMaxObjectCount() const noexcept { return max_object_count_; }
+usize Context::GetMaxObjectCount() const noexcept { return max_object_count_; }
 
 VmaAllocator Context::GetAllocatorHandle() const noexcept {
   return allocator_handle_;

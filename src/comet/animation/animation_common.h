@@ -5,8 +5,9 @@
 #ifndef COMET_COMET_ANIMATION_ANIMATION_COMMON_H_
 #define COMET_COMET_ANIMATION_ANIMATION_COMMON_H_
 
-#include "comet_precompile.h"
+#include <vector>
 
+#include "comet/core/essentials.h"
 #include "comet/geometry/geometry_common.h"
 
 namespace comet {

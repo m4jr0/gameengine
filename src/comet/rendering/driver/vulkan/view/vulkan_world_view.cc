@@ -42,8 +42,9 @@ void WorldView::Initialize() {
   render_pass_descr.dependency.dependencyFlags = 0;
 
   // TODO(m4jr0): Make clear values more configurable.
-  CopyMemory(&render_pass_descr.clear_values[0].color, clear_color_,
-             sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);
+  memory::CopyMemory(
+      &render_pass_descr.clear_values[0].color, clear_color_,
+      sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);
   render_pass_descr.clear_values[1].depthStencil.depth = 1.0f;
 
   const auto is_msaa{context_->GetDevice().IsMsaa()};

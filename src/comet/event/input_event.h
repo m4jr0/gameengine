@@ -5,8 +5,8 @@
 #ifndef COMET_COMET_EVENT_INPUT_EVENT_H_
 #define COMET_COMET_EVENT_INPUT_EVENT_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
+#include "comet/core/type/string_id.h"
 #include "comet/event/event.h"
 #include "comet/input/input.h"
 #include "comet/math/vector.h"

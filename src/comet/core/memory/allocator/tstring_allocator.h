@@ -5,15 +5,16 @@
 #ifndef COMET_COMET_CORE_MEMORY_ALLOCATOR_TSTRING_ALLOCATOR_H_
 #define COMET_COMET_CORE_MEMORY_ALLOCATOR_TSTRING_ALLOCATOR_H_
 
-#include "comet_precompile.h"
+#include "comet/core/essentials.h"
 
 namespace comet {
+namespace memory {
 using TStringAllocatorMarker = u8*;
 
 class TStringAllocator {
  public:
   TStringAllocator() = delete;
-  explicit TStringAllocator(uindex capacity);
+  explicit TStringAllocator(usize capacity);
   TStringAllocator(const TStringAllocator&) = delete;
   TStringAllocator(TStringAllocator&&) = delete;
   TStringAllocator& operator=(const TStringAllocator&) = delete;
@@ -22,15 +23,16 @@ class TStringAllocator {
 
   void Initialize();
   void Destroy();
-  void* Allocate(uindex size);
+  void* Allocate(usize size);
   void Deallocate(void* p);
   void Clear();
   bool IsInitialized() const noexcept;
-  uindex GetSize() const noexcept;
+  usize GetSize() const noexcept;
 
  private:
   bool is_initialized_{false};
 };
+}  // namespace memory
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_MEMORY_ALLOCATOR_TSTRING_ALLOCATOR_H_

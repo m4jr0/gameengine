@@ -5,6 +5,7 @@
 #include "asset_exporter.h"
 
 #include "comet/core/c_string.h"
+#include "comet/core/logger.h"
 #include "editor/asset/asset_utils.h"
 
 namespace comet {

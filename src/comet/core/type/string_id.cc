@@ -4,6 +4,8 @@
 
 #include "string_id.h"
 
+#include <memory>
+
 #include "comet/core/c_string.h"
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
@@ -24,7 +26,7 @@ StringIdHandler::~StringIdHandler() {
 #endif  // COMET_DEBUG
 }
 
-StringId StringIdHandler::Generate(const schar* str, uindex length) {
+StringId StringIdHandler::Generate(const schar* str, usize length) {
   COMET_ASSERT(str != nullptr,
                "String provided is null! Cannot generate string ID.");
   COMET_ASSERT(length > 0, "Cannot generate ID from empty string.");
@@ -49,7 +51,7 @@ StringId StringIdHandler::Generate(const schar* str, uindex length) {
   return string_id;
 }
 
-StringId StringIdHandler::Generate(const wchar* str, uindex length) {
+StringId StringIdHandler::Generate(const wchar* str, usize length) {
   COMET_ASSERT(length > 0, "Length provided is 0! Cannot generate String ID !");
   return Generate(GenerateForOneFrame<schar>(str, length), length);
 }

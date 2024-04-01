@@ -5,6 +5,7 @@
 #include "rendering_common.h"
 
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/logger.h"
 #include "comet/math/plane.h"
 
 namespace comet {
@@ -257,28 +258,28 @@ Alignment GetStd430Alignment(ShaderUniformType type) {
 }
 
 void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
-             uindex name_len) {
+             usize name_len) {
   descr.name_len = name_len;
 
   if (descr.name_len >= kVertexAttributeDescrMaxNameLen) {
     COMET_LOG_RENDERING_WARNING(
         "Vertex attribute name provided is too long: ", descr.name_len,
         " >= ", kVertexAttributeDescrMaxNameLen, ". It will be truncated.");
-    descr.name_len = static_cast<uindex>(kVertexAttributeDescrMaxNameLen - 1);
+    descr.name_len = static_cast<usize>(kVertexAttributeDescrMaxNameLen - 1);
   }
 
   Copy(descr.name, name, descr.name_len);
   descr.name[descr.name_len + 1] = '\0';
 }
 
-void SetName(ShaderUniformDescr& descr, const schar* name, uindex name_len) {
+void SetName(ShaderUniformDescr& descr, const schar* name, usize name_len) {
   descr.name_len = name_len;
 
   if (descr.name_len >= kShaderUniformDescrMaxNameLen) {
     COMET_LOG_RENDERING_WARNING(
         "Shader uniform name provided is too long: ", descr.name_len,
         " >= ", kShaderUniformDescrMaxNameLen, ". It will be truncated.");
-    descr.name_len = static_cast<uindex>(kShaderUniformDescrMaxNameLen - 1);
+    descr.name_len = static_cast<usize>(kShaderUniformDescrMaxNameLen - 1);
   }
 
   Copy(descr.name, name, descr.name_len);

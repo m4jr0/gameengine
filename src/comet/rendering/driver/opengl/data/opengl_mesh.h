@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_MESH_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_MESH_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/resource/model_resource.h"
 

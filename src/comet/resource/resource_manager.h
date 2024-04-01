@@ -5,8 +5,8 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
 #define COMET_COMET_RESOURCE_RESOURCE_MANAGER_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
+#include "comet/core/logger.h"
 #include "comet/core/manager.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"

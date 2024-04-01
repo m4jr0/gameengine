@@ -5,10 +5,9 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_UTILS_H_
 #define COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_UTILS_H_
 
-#include "comet_precompile.h"
-
 #include "assimp/scene.h"
 
+#include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/resource/model_resource.h"
 #include "comet/resource/resource.h"

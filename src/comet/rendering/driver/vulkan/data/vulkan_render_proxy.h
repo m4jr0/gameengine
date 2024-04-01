@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PROXY_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PROXY_H_
 
+#include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"

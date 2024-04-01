@@ -5,14 +5,13 @@
 #ifndef COMET_COMET_CORE_GENERATOR_H_
 #define COMET_COMET_CORE_GENERATOR_H_
 
-#include "comet_precompile.h"
-
 #include "comet/core/c_string.h"
+#include "comet/core/essentials.h"
 #include "comet/core/memory/memory_manager.h"
 
 namespace comet {
 template <typename TChar>
-TChar* GenerateForOneFrame(uindex length) {
+TChar* GenerateForOneFrame(usize length) {
   COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
   // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<TChar*>(
@@ -23,7 +22,7 @@ TChar* GenerateForOneFrame(uindex length) {
 }
 
 template <typename ReturnedTChar, typename TCharParam>
-ReturnedTChar* GenerateForOneFrame(const TCharParam* str, uindex length) {
+ReturnedTChar* GenerateForOneFrame(const TCharParam* str, usize length) {
   COMET_ASSERT(str != nullptr, "String provided is null!");
   COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
   // Add 1 for null terminator.
@@ -36,7 +35,7 @@ ReturnedTChar* GenerateForOneFrame(const TCharParam* str, uindex length) {
 }
 
 template <typename TChar>
-TChar* GenerateForTwoFrames(uindex length) {
+TChar* GenerateForTwoFrames(usize length) {
   COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
   // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<TChar*>(
@@ -47,7 +46,7 @@ TChar* GenerateForTwoFrames(uindex length) {
 }
 
 template <typename ReturnedTChar, typename TCharParam>
-ReturnedTChar* GenerateForTwoFrames(const TCharParam* str, uindex length) {
+ReturnedTChar* GenerateForTwoFrames(const TCharParam* str, usize length) {
   COMET_ASSERT(str != nullptr, "String provided is null!");
   COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
   // Add 1 for null terminator.

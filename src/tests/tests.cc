@@ -9,6 +9,7 @@
 #include "catch2/reporters/catch_reporter_registrars.hpp"
 
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/essentials.h"
 #include "comet/core/memory/memory_manager.h"
 #include "comet/entity/entity_manager.h"
 

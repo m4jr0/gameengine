@@ -4,7 +4,7 @@
 
 #include "tstring.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/allocator/tstring_allocator.h"
 #include "comet/core/memory/memory.h"
@@ -24,7 +24,7 @@ TString::TString(const TString& other)
   GetTStr()[length_] = COMET_TCHAR('\0');
 }
 
-TString::TString(const TString& other, uindex pos, uindex length)
+TString::TString(const TString& other, usize pos, usize length)
     : TString{other.GenerateSubString(pos, length)} {}
 
 TString::TString(TString&& other) noexcept { Swap(*this, other); }
@@ -70,7 +70,7 @@ TString& TString::operator=(const tchar* other) {
   return operator=(CTStringView{other});
 }
 
-void TString::Reserve(uindex capacity) {
+void TString::Reserve(usize capacity) {
   if (capacity <= capacity_) {
     return;
   }
@@ -78,7 +78,7 @@ void TString::Reserve(uindex capacity) {
   Allocate(capacity);
 }
 
-void TString::Resize(uindex length) {
+void TString::Resize(usize length) {
   length_ = length;
 
   if (length_ > capacity_) {
@@ -101,7 +101,7 @@ TString& TString::Append(const TString& str) {
   return Append(str.GetCTStr(), str.GetLength());
 }
 
-TString& TString::Append(const TString& str, uindex offset, uindex length) {
+TString& TString::Append(const TString& str, usize offset, usize length) {
   auto effective_length{str.GetLength()};
 
   if (length != kInvalidIndex) {
@@ -111,7 +111,7 @@ TString& TString::Append(const TString& str, uindex offset, uindex length) {
   return Append(str.GetCTStr() + offset, length);
 }
 
-TString TString::GenerateSubString(uindex offset, uindex count) const {
+TString TString::GenerateSubString(usize offset, usize count) const {
   TString new_str{};
   auto length{count == kInvalidIndex ? length_ - offset : count};
   new_str.Reserve(length);
@@ -120,12 +120,12 @@ TString TString::GenerateSubString(uindex offset, uindex count) const {
   return new_str;
 }
 
-uindex TString::GetLastIndexOf(tchar c, uindex offset) const noexcept {
+usize TString::GetLastIndexOf(tchar c, usize offset) const noexcept {
   return comet::GetLastIndexOf(GetCTStr(), length_, c, offset);
 }
 
-uindex TString::GetNthToLastIndexOf(tchar c, uindex count,
-                                    uindex offset) const noexcept {
+usize TString::GetNthToLastIndexOf(tchar c, usize count,
+                                   usize offset) const noexcept {
   return comet::GetNthToLastIndexOf(GetCTStr(), length_, c, count, offset);
 }
 
@@ -139,13 +139,13 @@ void Swap(TString& str1, TString& str2) {
   std::swap(str1.sso_, str2.sso_);
 }
 
-tchar& TString::operator[](uindex index) {
+tchar& TString::operator[](usize index) {
   COMET_ASSERT(index <= length_, "Index is out of bounds: ", index, " > ",
                length_, "!");
   return GetTStr()[index];
 }
 
-const tchar& TString::operator[](uindex index) const {
+const tchar& TString::operator[](usize index) const {
   COMET_ASSERT(index <= length_, "Index is out of bounds: ", index, " > ",
                length_, "!");
   return GetCTStr()[index];
@@ -171,13 +171,13 @@ tchar* TString::GetTStr() noexcept {
   return str_;
 }
 
-uindex TString::GetLength() const noexcept { return length_; }
+usize TString::GetLength() const noexcept { return length_; }
 
-uindex TString::GetLengthWithNullTerminator() const noexcept {
+usize TString::GetLengthWithNullTerminator() const noexcept {
   return length_ + 1;
 }
 
-uindex TString::GetCapacity() const noexcept { return capacity_; }
+usize TString::GetCapacity() const noexcept { return capacity_; }
 
 bool TString::IsEmpty() const noexcept { return length_ == 0; }
 
@@ -199,7 +199,7 @@ void TString::AllowAlloc() noexcept { is_alloc_allowed_ = true; }
 void TString::DisallowAlloc() noexcept { is_alloc_allowed_ = false; }
 #endif  // COMET_DEBUG
 
-void TString::Allocate(uindex capacity) {
+void TString::Allocate(usize capacity) {
   if (capacity <= capacity_ || capacity <= kSSOCapacityThreshold) {
     return;
   }
@@ -234,7 +234,7 @@ void TString::Deallocate() {
   capacity_ = length_ = 0;
 }
 
-TString CTStringView::GenerateSubString(uindex offset, uindex count) const {
+TString CTStringView::GenerateSubString(usize offset, usize count) const {
   TString new_str{};
   auto length{count == kInvalidIndex ? length_ - offset : count - offset};
   new_str.Resize(length);
@@ -652,7 +652,7 @@ TString operator/(tchar c, const TString& str) { return operator/(&c, str); }
 TString& operator/=(TString& str1, const TString& str2) {
   // Worst case: adding 1 character to an extra slash.
   str1.Reserve(str1.GetLength() + str2.GetLength() + 1);
-  uindex new_len;
+  usize new_len;
   AppendTo(str2, str1.GetTStr(), str1.GetCapacity() + 1, &new_len);
   str1.Resize(new_len);
   return str1;
@@ -661,7 +661,7 @@ TString& operator/=(TString& str1, const TString& str2) {
 TString& operator/=(TString& str1, const CTStringView& str2) {
   // Worst case: adding 1 character to an extra slash.
   str1.Reserve(str1.GetLength() + str2.GetLength() + 1);
-  uindex new_len;
+  usize new_len;
   AppendTo(str2, str1.GetTStr(), str1.GetCapacity() + 1, &new_len);
   str1.Resize(new_len);
   return str1;

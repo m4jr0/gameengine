@@ -308,7 +308,7 @@ GeneratePipelineColorBlendAttachmentState() {
 
 VkPipelineColorBlendStateCreateInfo GeneratePipelineColorBlendStateCreateInfo(
     const VkPipelineColorBlendAttachmentState* color_blend_attachments,
-    uindex color_blend_attachment_count) {
+    usize color_blend_attachment_count) {
   VkPipelineColorBlendStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   info.logicOpEnable = VK_FALSE;
@@ -442,7 +442,7 @@ VkDescriptorSetLayoutBinding GenerateDescriptorSetLayoutBinding(
 
 VkDescriptorBufferInfo GenerateDescriptorBufferInfo(VkBuffer buffer_handle,
                                                     sptrdiff offset,
-                                                    uindex stride) {
+                                                    usize stride) {
   VkDescriptorBufferInfo info{};
   info.buffer = buffer_handle;
   info.offset = static_cast<VkDeviceSize>(offset);

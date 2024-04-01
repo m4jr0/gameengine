@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_WINDOW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_WINDOW_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
@@ -15,10 +14,10 @@ struct WindowDescr {
   WindowSize width{1280};
   WindowSize height{720};
   schar name[kMaxWindowNameLen]{'\0'};
-  uindex name_len{0};
+  usize name_len{0};
 };
 
-void SetName(WindowDescr& descr, const schar* name, uindex name_len);
+void SetName(WindowDescr& descr, const schar* name, usize name_len);
 
 class Window {
  public:
@@ -45,7 +44,7 @@ class Window {
   WindowSize width_{0};
   WindowSize height_{0};
   schar name_[kMaxWindowNameLen]{'\0'};
-  uindex name_len_{0};
+  usize name_len_{0};
 };
 }  // namespace rendering
 }  // namespace comet

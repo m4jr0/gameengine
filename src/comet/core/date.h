@@ -5,7 +5,9 @@
 #ifndef COMET_COMET_CORE_DATE_H_
 #define COMET_COMET_CORE_DATE_H_
 
-#include "comet_precompile.h"
+#include <chrono>
+
+#include "comet/core/essentials.h"
 
 namespace comet {
 f64 GetNow();

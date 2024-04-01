@@ -5,8 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_VIEW_OPENGL_WORLD_VIEW_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_VIEW_OPENGL_WORLD_VIEW_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_shader_view.h"

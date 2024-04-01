@@ -7,7 +7,8 @@
 #include "comet/core/memory/memory.h"
 
 namespace comet {
-TStringAllocator::TStringAllocator([[maybe_unused]] uindex capacity) {
+namespace memory {
+TStringAllocator::TStringAllocator([[maybe_unused]] usize capacity) {
   // TODO(m4jr0): Implement specific TString allocator.
 }
 
@@ -33,22 +34,27 @@ void TStringAllocator::Destroy() {
   is_initialized_ = false;
 }
 
-void* TStringAllocator::Allocate(uindex size) {
+void* TStringAllocator::Allocate(usize size) {
   // TODO(m4jr0): Implement specific TString allocator.
   return AllocateAligned<tchar>(size, MemoryTag::TString);
 }
 
 void TStringAllocator::Deallocate(void* p) {
   // TODO(m4jr0): Implement specific TString allocator.
-  comet::Deallocate(p);
+  memory::Deallocate(p);
 }
 
 void TStringAllocator::Clear() {
   // TODO(m4jr0): Implement specific TString allocator.
 }
 
-uindex TStringAllocator::GetSize() const noexcept {
+bool TStringAllocator::IsInitialized() const noexcept {
+  return is_initialized_;
+}
+
+usize TStringAllocator::GetSize() const noexcept {
   // TODO(m4jr0): Implement specific TString allocator.
   return 0;
 }
+}  // namespace memory
 }  // namespace comet

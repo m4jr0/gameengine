@@ -5,11 +5,10 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_IMAGE_UTILS_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_IMAGE_UTILS_H_
 
-#include "comet_precompile.h"
-
 #include "vma/vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
+#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"

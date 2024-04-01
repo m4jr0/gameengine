@@ -2,15 +2,15 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_precompile.h"
+#include "comet/core/file_system/file_system.h"
 
-#include "comet/core/file_system.h"
-
+#include <filesystem>
 #include "catch.hpp"
 #include "catch2/reporters/catch_reporter_event_listener.hpp"
 #include "catch2/reporters/catch_reporter_registrars.hpp"
 
 #include "comet/core/c_string.h"
+#include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
 
 #ifndef COMET_NORMALIZE_PATHS
@@ -37,12 +37,12 @@ class TestsFileSystemEventListener : public Catch::EventListenerBase {
 CATCH_REGISTER_LISTENER(TestsFileSystemEventListener)
 
 TString FormatAbsolutePath(CTStringView absolute_path, tchar to_search,
-                           const uindex count) {
+                           const usize count) {
   if (absolute_path.IsEmpty() || count == 0) {
     return TString{absolute_path.GetCTStr()};
   }
 
-  uindex index_to_cut{GetNthToLastIndexOf(
+  usize index_to_cut{GetNthToLastIndexOf(
       absolute_path.GetCTStr(), absolute_path.GetLength(), to_search, count)};
 
   if (index_to_cut == kInvalidIndex) {
@@ -100,7 +100,7 @@ TEST_CASE("File system management", "[comet::filesystem]") {
         test_write));
 
     comet::schar test_read[4096];
-    comet::uindex test_read_len{0};
+    comet::usize test_read_len{0};
 
     REQUIRE(comet::ReadStrFromFile(
         comet::Append(comet::comettests::tmp_dir, COMET_TCHAR("/test7")),
@@ -152,7 +152,7 @@ TEST_CASE("File system management", "[comet::filesystem]") {
         {comet::comettests::tmp_dir / COMET_TCHAR("/test3"),
          comet::comettests::tmp_dir / COMET_TCHAR("/test5"),
          comet::comettests::tmp_dir / COMET_TCHAR("/test9")}};
-    comet::uindex count{0};
+    comet::usize count{0};
 
     comet::ForEachDirectory(comet::comettests::tmp_dir,
                             [&](comet::CTStringView directory_path) {

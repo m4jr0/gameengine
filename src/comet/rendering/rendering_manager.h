@@ -5,8 +5,10 @@
 #ifndef COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 #define COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 
-#include "comet_precompile.h"
+#include <memory>
 
+#include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/rendering_common.h"
@@ -27,7 +29,7 @@ class RenderingManager : public Manager {
 
   void Initialize() override;
   void Shutdown() override;
-  void Update(time::Interpolation interpolation);
+  void Update(frame::FramePacket& packet);
 
   const Window* GetWindow() const;
   rendering::DriverType GetDriverType() const noexcept;

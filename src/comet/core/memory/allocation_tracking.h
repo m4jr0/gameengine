@@ -5,19 +5,27 @@
 #ifndef COMET_COMET_CORE_ALLOCATION_H_
 #define COMET_COMET_CORE_ALLOCATION_H_
 
-#include "comet/core/type/primitive.h"
+#include <atomic>
+
+#include "comet/core/essentials.h"
 
 namespace comet {
+namespace memory {
 namespace internal {
 struct MemoryUse {
-  uindex total_allocated{0};
-  uindex total_freed{0};
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> needs to be always lock-free. Unsupported "
+                "architecture");
+
+  std::atomic<usize> total_allocated{0};
+  std::atomic<usize> total_freed{0};
 };
 }  // namespace internal
 
-uindex GetTotalAllocatedMemory();
-uindex GetTotalFreedMemory();
-uindex GetMemoryUse();
+usize GetTotalAllocatedMemory();
+usize GetTotalFreedMemory();
+usize GetMemoryUse();
+}  // namespace memory
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_ALLOCATION_H_

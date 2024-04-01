@@ -5,10 +5,13 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_RESOURCE_H_
 
-#include "comet_precompile.h"
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include "comet/core/compression.h"
-#include "comet/core/file_system.h"
+#include "comet/core/essentials.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
 
 namespace comet {
@@ -27,10 +30,10 @@ struct ResourceFile {
   ResourceId resource_id{kInvalidResourceId};
   ResourceId resource_type_id{kInvalidResourceTypeId};
   CompressionMode compression_mode{CompressionMode::None};
-  uindex descr_size{0};
-  uindex data_size{0};
-  uindex packed_descr_size{0};
-  uindex packed_data_size{0};
+  usize descr_size{0};
+  usize data_size{0};
+  usize packed_descr_size{0};
+  usize packed_data_size{0};
   std::vector<u8> descr{};
   std::vector<u8> data{};
 };
@@ -69,11 +72,11 @@ class ResourceCache {
 };
 
 ResourceId GenerateResourceIdFromPath(CTStringView resource_path);
-void PackBytes(const u8* bytes, uindex bytes_size,
+void PackBytes(const u8* bytes, usize bytes_size,
                CompressionMode compression_mode, std::vector<u8>* packed_bytes,
-               uindex* packed_bytes_size);
+               usize* packed_bytes_size);
 void PackBytes(const std::vector<u8>& bytes, CompressionMode compression_mode,
-               std::vector<u8>* packed_bytes, uindex* packed_bytes_size);
+               std::vector<u8>* packed_bytes, usize* packed_bytes_size);
 void PackResourceData(const std::vector<u8>& data, ResourceFile& file);
 
 template <typename ResourceDescrType>
@@ -84,11 +87,11 @@ void PackPodResourceDescr(const ResourceDescrType& descr, ResourceFile& file) {
 }
 
 std::vector<u8> UnpackBytes(CompressionMode compression_mode,
-                            const u8* packed_bytes, uindex packed_bytes_size,
-                            uindex decompressed_size);
+                            const u8* packed_bytes, usize packed_bytes_size,
+                            usize decompressed_size);
 std::vector<u8> UnpackBytes(CompressionMode compression_mode,
                             const std::vector<u8>& packed_bytes,
-                            uindex decompressed_size);
+                            usize decompressed_size);
 
 std::vector<u8> UnpackResourceData(const ResourceFile& file);
 
