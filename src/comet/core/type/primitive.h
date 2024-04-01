@@ -7,6 +7,10 @@
 
 #include <float.h>
 
+#ifdef COMET_ARCH_X86
+#include <xmmintrin.h>
+#endif  // COMET_ARCH_X86
+
 #include <climits>
 #include <cstddef>
 #include <cstdint>
@@ -169,6 +173,10 @@ static_assert(sizeof(fx) * kCharBit == 32,
 #endif  // COMET_64
 
 constexpr auto kInvalidIndex{static_cast<uindex>(-1)};
+
+#ifdef COMET_ARCH_X86
+using ms128 = __m128i;
+#endif  // COMET_ARCH_X86
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_TYPE_PRIMITIVE_H_

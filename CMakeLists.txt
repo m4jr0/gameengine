@@ -131,10 +131,10 @@ message(STATUS
   "${MESSAGE_PREFIX}Building ${CMAKE_PROJECT_NAME} "
   "to ${CMAKE_CURRENT_BINARY_DIR}...")
 
-project("Comet Game Engine"
+project("comet_game_engine"
   VERSION 0.1.0
   DESCRIPTION "Simple video game engine"
-  LANGUAGES CXX
+  LANGUAGES CXX ASM ASM_MASM
 )
 
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)

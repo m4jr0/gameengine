@@ -24,4 +24,44 @@
 #define COMET_C
 #endif  // __cplusplus
 
+#ifdef COMET_GCC
+#ifdef __x86_64__
+#define COMET_ARCH_X86_64
+#define COMET_ARCH_X86
+#elif defined(__i386__)
+#define COMET_ARCH_X86_32
+#define COMET_ARCH_X86
+#elif defined(__arm__)
+#define COMET_ARCH_ARM
+#else
+static_assert(false, "Unsupported architecture.");
+#endif  // __x86_64__
+#endif  // COMET_GCC
+
+#ifdef COMET_MSVC
+#ifdef _M_X64
+#define COMET_ARCH_X86_64
+#define COMET_ARCH_X86
+#elif defined(_M_IX86)
+#define COMET_ARCH_X86_32
+#define COMET_ARCH_X86
+#elif defined(_M_ARM)
+#define COMET_ARCH_ARM
+#else
+static_assert(false, "Unsupported architecture.");
+#endif  // _M_X64
+#endif  // COMET_MSVC
+
+#ifdef COMET_MSVC
+#define COMET_FORCE_NOT_INLINE __declspec(noinline)
+#else
+#if __has_attribute(optnone)
+#define COMET_FORCE_NOT_INLINE __attribute__((optnone))
+#elif __has_attribute(noinline)
+#define COMET_FORCE_NOT_INLINE __attribute__((noinline))
+#else
+#define COMET_FORCE_NOT_INLINE
+#endif
+#endif  // COMET_MSVC
+
 #endif  // COMET_COMET_CORE_COMPILER_H_

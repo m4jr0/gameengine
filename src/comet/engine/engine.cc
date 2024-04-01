@@ -6,6 +6,7 @@
 
 #include "comet/animation/animation_manager.h"
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/job/job_manager.h"
 #include "comet/core/memory/memory_manager.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
@@ -122,6 +123,7 @@ void Engine::PreLoad() {
 
   conf::ConfigurationManager::Get().Initialize();
   memory::MemoryManager::Get().Initialize();
+  job::JobManager::Get().Initialize();
   event::EventManager::Get().Initialize();
   resource::ResourceManager::Get().Initialize();
 }
@@ -171,6 +173,7 @@ void Engine::PreUnload() {
 void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
+  job::JobManager::Get().Shutdown();
   memory::MemoryManager::Get().Shutdown();
   conf::ConfigurationManager::Get().Shutdown();
   is_running_ = false;

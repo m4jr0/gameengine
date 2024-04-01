@@ -21,6 +21,8 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "tstring";
     case MemoryTag::Entity:
       return "entity";
+    case MemoryTag::Fiber:
+      return "fiber";
     default:
       return "???";
   }
@@ -46,6 +48,7 @@ void* AllocateAligned(uindex size, u16 alignment,
     throw std::bad_alloc();
   }
 
+  COMET_POISON(ptr, final_size);
   auto* aligned_ptr{AlignPointer(ptr, alignment)};
 
   // Case: pointer is already aligned. We have a minimal shift of 1 byte, so we
@@ -112,6 +115,23 @@ void GetMemorySizeString(uindex size, schar* buffer, uindex buffer_len,
 
   if (out_len != nullptr) {
     *out_len = len;
+  }
+}
+
+void Poison(void* ptr, uindex size) {
+  COMET_ASSERT(ptr != nullptr, "Pointer provided is null!");
+  COMET_ASSERT(size != 0, "Size provided is 0!");
+  constexpr std::array<u8, 4> kPoison{0xef, 0xbe, 0xad, 0xde};
+  constexpr auto kPoisonLen{kPoison.size()};
+
+  uindex i{0};
+  auto* cur{static_cast<u8*>(ptr)};
+  auto* top{cur + size};
+
+  while (cur != top) {
+    *cur = kPoison[i % kPoisonLen];
+    ++i;
+    ++cur;
   }
 }
 }  // namespace comet

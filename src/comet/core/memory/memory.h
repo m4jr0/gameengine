@@ -13,6 +13,11 @@
 
 namespace comet {
 constexpr auto kMaxAlignment{256};
+static_assert((kMaxAlignment & (kMaxAlignment - 1)) == 0,
+              "kMaxAlignment must be a power of 2!");
+constexpr auto kStackAlignment{16};
+static_assert((kStackAlignment & (kStackAlignment - 1)) == 0,
+              "kStackAlignment must be a power of 2!");
 
 enum class MemoryTag {
   Untagged = 0,
@@ -20,7 +25,8 @@ enum class MemoryTag {
   OneFrame,
   TwoFrames,
   TString,
-  Entity
+  Entity,
+  Fiber
 };
 
 const schar* GetMemoryTagLabel(MemoryTag tag);
@@ -75,6 +81,14 @@ inline bool IsAligned(T* ptr, uindex alignment) noexcept {
 
 void GetMemorySizeString(uindex size, schar* buffer, uindex buffer_len,
                          uindex* out_len = nullptr);
+
+void Poison(void* ptr, uindex size);
 }  // namespace comet
+
+#ifdef COMET_POISON_ALLOCATIONS
+#define COMET_POISON(ptr, size) comet::Poison(ptr, size)
+#else
+#define COMET_POISON(ptr, size)
+#endif  // COMET_POISON_ALLOCATIONS
 
 #endif  // COMET_COMET_CORE_MEMORY_MEMORY_H_
