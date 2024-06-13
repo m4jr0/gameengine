@@ -499,6 +499,7 @@ void Device::ResolvePhysicalDeviceHandle() {
 
     if (score > best_score || physical_device_handle_ == VK_NULL_HANDLE) {
       physical_device_handle_ = physical_device_handle;
+      best_score = score;
     }
   }
 

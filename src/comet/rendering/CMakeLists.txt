@@ -146,15 +146,23 @@ target_sources(${COMET_LIBRARY_NAME}
 
 # Compiling ####################################################################
 target_include_directories(${COMET_LIBRARY_NAME}
-  PRIVATE
+  PRIVATE SYSTEM
     ${VCPKG_INCLUDE_DIR}
+  PRIVATE
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 if(WIN32)
   target_include_directories(${COMET_LIBRARY_NAME}
     PRIVATE
-    "${VULKAN_SDK}/Include"
+      "${VULKAN_SDK}/Include"
+  )
+endif()
+
+if(LINUX)
+  target_include_directories(${COMET_LIBRARY_NAME}
+    PRIVATE
+      "${VULKAN_SDK}/include"
   )
 endif()
 

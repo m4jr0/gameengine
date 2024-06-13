@@ -119,12 +119,13 @@ void ImGuiView::Initialize() {
   imgui_info.Queue = device.GetGraphicsQueueHandle();
   imgui_info.PipelineCache = VK_NULL_HANDLE;
   imgui_info.DescriptorPool = descriptor_pool_handle_;
+  imgui_info.RenderPass = render_pass_->handle;
   imgui_info.Subpass = 0;
   imgui_info.MinImageCount = context_->GetImageCount();
   imgui_info.ImageCount = context_->GetImageCount();
   imgui_info.MSAASamples = device.GetMsaaSamples();
 
-  ImGui_ImplVulkan_Init(&imgui_info, render_pass_->handle);
+  ImGui_ImplVulkan_Init(&imgui_info);
   ImGui::StyleColorsDark();
   ImGui_ImplVulkan_CreateFontsTexture();
 }
@@ -152,7 +153,7 @@ void ImGuiView::Update(const ViewPacket& packet) {
   ImGui::Render();
 
   render_pass_handler_->BeginPass(*render_pass_, packet.command_buffer_handle,
-                                  packet.frame_in_flight_index);
+                                  packet.image_index);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(),
                                   packet.command_buffer_handle);
   render_pass_handler_->EndPass(packet.command_buffer_handle);

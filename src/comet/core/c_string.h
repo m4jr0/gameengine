@@ -35,6 +35,7 @@ bool IsSpace(wchar c);
 bool IsAlpha(schar c);
 bool IsAlpha(wchar c);
 bool IsEmpty(const schar* str, uindex str_len);
+bool IsEmpty(const wchar* str, uindex str_len);
 schar* Copy(schar* dst, const schar* src, uindex length, uindex dst_offset = 0,
             uindex src_offset = 0);
 wchar* Copy(wchar* dst, const schar* src, uindex length, uindex dst_offset = 0,
@@ -163,6 +164,10 @@ void ConvertToStr(s32 number, wchar* buffer, uindex buffer_len,
 void ConvertToStr(s64 number, schar* buffer, uindex buffer_len,
                   uindex* out_len = nullptr);
 void ConvertToStr(s64 number, wchar* buffer, uindex buffer_len,
+                  uindex* out_len = nullptr);
+void ConvertToStr(bool boolean, schar* buffer, uindex buffer_len,
+                  uindex* out_len = nullptr);
+void ConvertToStr(bool boolean, wchar* buffer, uindex buffer_len,
                   uindex* out_len = nullptr);
 
 template <typename Float,

@@ -428,11 +428,11 @@ s32 ParseS32(const wchar* str) {
 #endif  // COMET_MSVC
 }
 
-s64 ParseS64(const schar* str) { return static_cast<s64>(std::stol(str)); }
+s64 ParseS64(const schar* str) { return static_cast<s64>(std::stoll(str)); }
 
 s64 ParseS64(const wchar* str) {
   wchar* p{nullptr};
-  return static_cast<s32>(std::wcstol(str, &p, 10));
+  return static_cast<s64>(std::wcstoll(str, &p, 10));
 }
 
 f32 ParseF32(const schar* str) { return static_cast<f32>(std::stod(str)); }
@@ -672,6 +672,30 @@ void ConvertToStr(s64 number, wchar* buffer, uindex buffer_len,
                   uindex* out_len) {
   // TODO(m4jr0): Optimize function.
   auto len{std::swprintf(buffer, buffer_len - 1, L"%" PRId64, number)};
+
+  if (out_len != nullptr) {
+    *out_len = len >= 0 ? len : kInvalidIndex;
+  }
+}
+
+void ConvertToStr(bool boolean, schar* buffer, uindex buffer_len,
+                  uindex* out_len) {
+  s32 len = snprintf(buffer, buffer_len, "%s", boolean ? "true" : "false");
+
+  if (out_len != nullptr) {
+    *out_len = len >= 0 ? len : kInvalidIndex;
+  }
+}
+
+void ConvertToStr(bool boolean, wchar* buffer, uindex buffer_len,
+                  uindex* out_len) {
+#ifdef SID_MSVC
+  s32 len = _snwprintf_s(buffer, buffer_len, buffer_len - 1, L"%ls",
+                         boolean == true ? L"true" : L"false");
+#else
+  s32 len = swprintf(buffer, buffer_len - 1, L"%ls",
+                     boolean == true ? L"true" : L"false");
+#endif  // SID_MSVC
 
   if (out_len != nullptr) {
     *out_len = len >= 0 ? len : kInvalidIndex;

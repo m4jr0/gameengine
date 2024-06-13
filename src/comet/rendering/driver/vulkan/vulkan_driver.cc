@@ -26,7 +26,7 @@ VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
       vulkan_minor_version_{descr.vulkan_minor_version},
       vulkan_patch_version_{descr.vulkan_patch_version},
       vulkan_variant_version_{descr.vulkan_variant_version},
-      max_frames_in_flight_{static_cast<u8>(descr.max_frames_in_flight + 1)} {
+      max_frames_in_flight_{static_cast<u8>(descr.max_frames_in_flight)} {
   WindowDescr window_descr{};
   window_descr.width = descr.window_width;
   window_descr.height = descr.window_height;
@@ -435,6 +435,29 @@ void VulkanDriver::Draw(time::Interpolation interpolation) {
       GenerateCommandData(*device_, frame_data.command_buffer_handle)};
   RecordCommand(command_data);
 
+  VkImageMemoryBarrier barrier = {};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  const auto& swapchain_images{swapchain_->GetImages()};
+  barrier.image = swapchain_images[context_->GetImageIndex()].handle;
+
+  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = 1;
+  barrier.srcAccessMask = 0;
+  barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  vkCmdPipelineBarrier(command_data.command_buffer_handle,
+                       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0,
+                       VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
+
   const auto extent{swapchain_->GetExtent()};
 
   VkViewport viewport{};
@@ -471,7 +494,7 @@ void VulkanDriver::DrawViews(time::Interpolation interpolation) {
   packet.projection_matrix[1][1] *= -1;  // Axis is inverted in Vulkan.
   packet.view_matrix = &camera->GetViewMatrix();
   packet.command_buffer_handle = context_->GetFrameData().command_buffer_handle;
-  packet.frame_in_flight_index = context_->GetFrameInFlightIndex();
+  packet.image_index = context_->GetImageIndex();
   view_handler_->Update(packet);
 }
 

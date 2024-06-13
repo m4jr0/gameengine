@@ -137,13 +137,23 @@ project("Comet Game Engine"
   LANGUAGES CXX
 )
 
+option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
+
 # Compiler specifics.
 if(MSVC)
   # Disable any non-conformant code with Microsoft Visual C++.
   # As to why W4 is used: https://stackoverflow.com/questions/4001736/whats-up-with-the-thousands-of-warnings-in-standard-headers-in-msvc-wall#comment8922238_4001759
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /W4 /WX")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /W4")
+
+  if (COMET_ARE_WARNINGS_ERRORS)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
+  endif()
 else()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+
+  if (COMET_ARE_WARNINGS_ERRORS)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+  endif()
 endif()
 
 if(COMET_DEBUG_RELEASE)

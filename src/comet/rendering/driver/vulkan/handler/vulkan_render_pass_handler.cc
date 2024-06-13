@@ -317,14 +317,14 @@ void RenderPassHandler::Destroy(RenderPass& render_pass) {
   return Destroy(render_pass, false);
 }
 
-void RenderPassHandler::BeginPass(
-    const RenderPass& pass, VkCommandBuffer command_buffer_handle,
-    FrameInFlightIndex frame_in_flight_index) const {
-  COMET_ASSERT(frame_in_flight_index < pass.render_targets.size(),
-               "Frame data index is too high!");
+void RenderPassHandler::BeginPass(const RenderPass& pass,
+                                  VkCommandBuffer command_buffer_handle,
+                                  ImageIndex image_index) const {
+  COMET_ASSERT(image_index < pass.render_targets.size(),
+               "Image index is too high!");
   auto render_pass_begin_info{init::GenerateRenderPassBeginInfo(
       pass.handle, pass.extent,
-      pass.render_targets[frame_in_flight_index].framebuffer_handle)};
+      pass.render_targets[image_index].framebuffer_handle)};
 
   render_pass_begin_info.clearValueCount =
       static_cast<u32>(pass.clear_values.size());
@@ -335,14 +335,14 @@ void RenderPassHandler::BeginPass(
                        VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void RenderPassHandler::BeginPass(
-    RenderPassId render_pass_id, VkCommandBuffer command_buffer_handle,
-    FrameInFlightIndex frame_in_flight_index) const {
+void RenderPassHandler::BeginPass(RenderPassId render_pass_id,
+                                  VkCommandBuffer command_buffer_handle,
+                                  ImageIndex image_index) const {
   auto it{render_passes_.find(render_pass_id)};
   COMET_ASSERT(it != render_passes_.end(),
                "Unable to find render pass with ID: ",
                COMET_STRING_ID_LABEL(render_pass_id), "!");
-  BeginPass(it->second, command_buffer_handle, frame_in_flight_index);
+  BeginPass(it->second, command_buffer_handle, image_index);
 }
 
 void RenderPassHandler::EndPass(VkCommandBuffer command_buffer_handle) const {

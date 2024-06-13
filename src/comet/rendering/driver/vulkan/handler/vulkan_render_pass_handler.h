@@ -41,10 +41,10 @@ class RenderPassHandler : public Handler {
   void Destroy(RenderPassId render_pass_id);
   void Destroy(RenderPass& render_pass);
   void BeginPass(const RenderPass& pass, VkCommandBuffer command_buffer_handle,
-                 FrameInFlightIndex frame_in_flight_index) const;
+                 ImageIndex image_index) const;
   void BeginPass(RenderPassId render_pass_id,
                  VkCommandBuffer command_buffer_handle,
-                 FrameInFlightIndex frame_in_flight_index) const;
+                 ImageIndex image_index) const;
   void EndPass(VkCommandBuffer command_buffer_handle) const;
   void Refresh(RenderPassId render_pass_id);
   void Refresh(RenderPass& render_pass);

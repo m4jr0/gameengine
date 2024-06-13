@@ -26,7 +26,7 @@ namespace rendering {
 namespace vk {
 struct ViewPacket {
   time::Interpolation interpolation{1};
-  FrameInFlightIndex frame_in_flight_index{kInvalidFrameInFlightIndex};
+  ImageIndex image_index{kInvalidImageIndex};
   VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
   math::Mat4 projection_matrix{1.0f};
   const math::Mat4* view_matrix{nullptr};

@@ -7,7 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "vk_mem_alloc.h"
+#include "vma/vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"

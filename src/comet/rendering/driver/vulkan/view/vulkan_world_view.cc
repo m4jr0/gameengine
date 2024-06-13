@@ -93,7 +93,7 @@ void WorldView::Destroy() {
 void WorldView::Update(const ViewPacket& packet) {
   render_proxy_handler_->Update();
   render_pass_handler_->BeginPass(*render_pass_, packet.command_buffer_handle,
-                                  packet.frame_in_flight_index);
+                                  packet.image_index);
   shader_handler_->Bind(*shader_);
   ShaderPacket shader_packet{};
   shader_packet.projection_matrix = &packet.projection_matrix;

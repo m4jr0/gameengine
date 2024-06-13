@@ -106,6 +106,21 @@ void CopyBuffer(const Device& device, VkCommandPool command_pool_handle,
   copy_region.dstOffset = 0;
   copy_region.size = size;
 
+  VkBufferMemoryBarrier barrier = {};
+  barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+  barrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+  barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.buffer = dst_buffer.handle;
+  barrier.offset = 0;
+  barrier.size = VK_WHOLE_SIZE;
+
+  vkCmdPipelineBarrier(command_buffer_handle,
+                       VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                       VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, VK_NULL_HANDLE, 1,
+                       &barrier, 0, VK_NULL_HANDLE);
+
   vkCmdCopyBuffer(command_buffer_handle, src_buffer.handle, dst_buffer.handle,
                   1, &copy_region);
   SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,

@@ -21,7 +21,6 @@ list(APPEND TESTS_EXECUTABLE_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/tests/core/tests_file_system.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/tests/core/type/tests_frame_vector.cc"
   "${PROJECT_SOURCE_DIR}/src/tests/core/type/tests_ring_queue.cc"
 )
 
@@ -51,6 +50,6 @@ target_link_directories(${TESTS_EXECUTABLE_NAME}
 
 target_link_libraries(${TESTS_EXECUTABLE_NAME}
   PRIVATE
-    ${COMET_LIBRARY_NAME}
     Catch2::Catch2WithMain
+    ${COMET_LIBRARY_NAME}
 )
