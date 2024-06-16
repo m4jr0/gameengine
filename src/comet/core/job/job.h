@@ -16,7 +16,14 @@ using EntryPoint = std::function<void(ParamsHandle params)>;
 
 enum class JobPriority { Unknown = 0, Low, Normal, High, Critical };
 
-struct Counter {};
+using CounterCount = uindex;
+constexpr auto kInvalidCounterCount{static_cast<CounterCount>(-1)};
+
+struct Counter {
+  std::mutex mutex{};
+  std::condition_variable cv{};
+  CounterCount value{kInvalidCounterCount};
+};
 
 struct JobDescr {
   EntryPoint entry_point{};

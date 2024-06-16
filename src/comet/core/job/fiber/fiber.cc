@@ -73,6 +73,7 @@ void Destroy(Fiber* fiber) {
 void Switch(Fiber* from, Fiber* to) {
   COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
   COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
+  tls_current_fiber = to;
   SwitchExecutionContext(&from->context, &to->context);
 }
 
@@ -83,6 +84,10 @@ Fiber* SwitchThreadToFiber() {
   fiber->stack_size = 0;
   return fiber;
 }
+
+thread_local Fiber* tls_current_fiber = nullptr;
+
+Fiber* GetCurrentFiber() { return tls_current_fiber; }
 
 void ComputeA(SwitchData* data) {
   s32 a{0};

@@ -32,8 +32,10 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/job/fiber/fiber.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/job/fiber/fiber_primitive.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/job/job.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/job/job_manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/job/worker.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocation_tracking.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory.cc"

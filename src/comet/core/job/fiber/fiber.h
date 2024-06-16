@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_TYPE_FIBER_H_
-#define COMET_COMET_CORE_TYPE_FIBER_H_
+#ifndef COMET_COMET_CORE_JOB_FIBER_H_
+#define COMET_COMET_CORE_JOB_FIBER_H_
 
 #include "comet_precompile.h"
 
@@ -73,21 +73,23 @@ struct SwitchData {
   Fiber** next{nullptr};
 };
 
-constexpr auto kMicroStack{2048};      // 2 KiB.
-constexpr auto kTinyStack{4096};       // 4 KiB.
-constexpr auto kSmallStack{8192};      // 8 KiB.
-constexpr auto kNormalStack{16384};    // 16 KiB.
-constexpr auto kElevatedStack{32768};  // 32 KiB.
-constexpr auto kLargeStack{65536};     // 64 KiB.
-constexpr auto kHugeStack{131072};     // 128 KiB.
-constexpr auto kGiantStack{262144};    // 256 KiB.
+constexpr auto kMicroStack{2048};       // 2 KiB.
+constexpr auto kTinyStack{4096};        // 4 KiB.
+constexpr auto kSmallStack{8192};       // 8 KiB.
+constexpr auto kNormalStack{16384};     // 16 KiB.
+constexpr auto kElevatedStack{32768};   // 32 KiB.
+constexpr auto kLargeStack{65536};      // 64 KiB.
+constexpr auto kHugeStack{131072};      // 128 KiB.
+constexpr auto kGiantStack{262144};     // 256 KiB.
+constexpr auto kGiganticStack{524288};  // 512 KiB.
 
 Fiber* Generate(uindex stack_size, FiberFunc func, SwitchData* data);
 void Destroy(Fiber* fiber);
 void Switch(Fiber* from, Fiber* to);
 Fiber* SwitchThreadToFiber();
+Fiber* GetCurrentFiber();
 void TestFibers();
 }  // namespace job
 }  // namespace comet
 
-#endif  // COMET_COMET_CORE_TYPE_FIBER_H_
+#endif  // COMET_COMET_CORE_JOB_FIBER_H_
