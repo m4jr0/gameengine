@@ -701,4 +701,26 @@ void ConvertToStr(bool boolean, wchar* buffer, uindex buffer_len,
     *out_len = len >= 0 ? len : kInvalidIndex;
   }
 }
+
+uindex GetCharCount(u8) { return kU8MaxCharCountDigits10; }
+
+uindex GetCharCount(u16) { return kU16MaxCharCountDigits10; }
+
+uindex GetCharCount(u32) { return kU32MaxCharCountDigits10; }
+
+uindex GetCharCount(u64) { return kU64MaxCharCountDigits10; }
+
+uindex GetCharCount(s8) { return kS8MaxCharCountDigits10; }
+
+uindex GetCharCount(s16) { return kS16MaxCharCountDigits10; }
+
+uindex GetCharCount(s32) { return kS32MaxCharCountDigits10; }
+
+uindex GetCharCount(s64) { return kS64MaxCharCountDigits10; }
+
+uindex GetCharCount(f32) { return kF32MaxCharCountDigits10; }
+
+uindex GetCharCount(f64) { return kF64MaxCharCountDigits10; }
+
+uindex GetCharCount(bool) { return kBoolMaxCharCountDigits10; }
 }  // namespace comet

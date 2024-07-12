@@ -5,6 +5,7 @@
 #include "memory.h"
 
 #include "comet/core/c_string.h"
+#include <array>
 
 namespace comet {
 const schar* GetMemoryTagLabel(MemoryTag tag) {

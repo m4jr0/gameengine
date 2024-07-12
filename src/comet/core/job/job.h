@@ -5,23 +5,23 @@
 #ifndef COMET_COMET_CORE_JOB_JOB_H_
 #define COMET_COMET_CORE_JOB_JOB_H_
 
-#include "comet_precompile.h"
+#include "comet/core/job/fiber/fiber.h"
+
+#include "comet/core/type/primitive.h"
+
+#include <mutex>
+#include <condition_variable>
 
 namespace comet {
 namespace job {
-using ParamsHandle = uptr;
-constexpr auto kInvalidParamsHandle{static_cast<ParamsHandle>(-1)};
-
-using EntryPoint = std::function<void(ParamsHandle params)>;
-
-enum class JobPriority { Unknown = 0, Low, Normal, High, Critical };
+enum class JobPriority { Unknown = 0, Low, Normal, High };
 
 using CounterCount = uindex;
 constexpr auto kInvalidCounterCount{static_cast<CounterCount>(-1)};
 
 struct Counter {
-  std::mutex mutex{};
-  std::condition_variable cv{};
+  FiberMutex mutex{};
+  FiberCV cv{};
   CounterCount value{kInvalidCounterCount};
 };
 
@@ -30,6 +30,11 @@ struct JobDescr {
   ParamsHandle params_handle{kInvalidParamsHandle};
   JobPriority priority{JobPriority::Unknown};
   Counter* counter{nullptr};
+};
+
+struct IOJobDescr {
+  EntryPoint entry_point{};
+  ParamsHandle params_handle{kInvalidParamsHandle};
 };
 }  // namespace job
 }  // namespace comet

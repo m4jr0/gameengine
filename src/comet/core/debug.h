@@ -9,8 +9,6 @@
 
 #include <cassert>
 
-#include "comet/core/logger.h"
-
 #if defined(_MSC_VER)
 #if defined(_CPPRTTI)
 #define COMET_RTTI
@@ -39,7 +37,6 @@ void HandleCriticalError();
     const auto isOk{static_cast<bool>(assertion)};                \
                                                                   \
     if (!isOk) {                                                  \
-      COMET_LOG_GLOBAL_ERROR("[CRITICAL FAILURE] ", __VA_ARGS__); \
       comet::HandleCriticalError();                               \
     }                                                             \
                                                                   \

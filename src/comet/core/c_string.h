@@ -5,11 +5,50 @@
 #ifndef COMET_COMET_CORE_C_STRING_H_
 #define COMET_COMET_CORE_C_STRING_H_
 
-#include "comet_precompile.h"
-
+#include <string>
+#include "comet/core/type/primitive.h"
 #include "comet/math/math_commons.h"
+#include "comet/core/debug.h"
 
 namespace comet {
+constexpr auto kU8MaxCharCountDigits10{3};
+constexpr auto kU16MaxCharCountDigits10{5};
+constexpr auto kU32MaxCharCountDigits10{10};
+constexpr auto kU64MaxCharCountDigits10{20};
+constexpr auto kS8MaxCharCountDigits10{4};
+constexpr auto kS16MaxCharCountDigits10{6};
+constexpr auto kS32MaxCharCountDigits10{11};
+constexpr auto kS64MaxCharCountDigits10{20};
+constexpr auto kUIndexMaxCharCountDigits10{
+#ifdef COMET_32
+    kU32MaxCharCountDigits10
+#else
+    kU64MaxCharCountDigits10
+#endif  // COMET_32
+};
+constexpr auto kUPtrMaxCharCountDigits10{
+#ifdef COMET_32
+    kU32MaxCharCountDigits10
+#else
+    kU64MaxCharCountDigits10
+#endif  // COMET_32
+};
+constexpr auto kSptrDiffMaxCharCountDigits10{
+#ifdef COMET_32
+    kU32MaxCharCountDigits10
+#else
+    kU64MaxCharCountDigits10
+#endif  // COMET_32
+};
+constexpr auto kSCharMaxCharCountDigits10{kS8MaxCharCountDigits10};
+constexpr auto kUCharMaxCharCountDigits10{kU8MaxCharCountDigits10};
+constexpr auto kWCharMaxCharCountDigits10{kS8MaxCharCountDigits10};
+constexpr auto kF32MaxCharCountDigits10{16};
+constexpr auto kF64MaxCharCountDigits10{24};
+constexpr auto kBoolMaxCharCountDigits10{5};  // true or false.
+constexpr auto kB8MaxCharCountDigits10{kBoolMaxCharCountDigits10};
+constexpr auto kB32MaxCharCountDigits10{kBoolMaxCharCountDigits10};
+
 s32 Compare(const schar* str1, const schar* str2);
 s32 Compare(const wchar* str1, const wchar* str2);
 s32 Compare(const schar* str1, const schar* str2, uindex length);
@@ -169,6 +208,17 @@ void ConvertToStr(bool boolean, schar* buffer, uindex buffer_len,
                   uindex* out_len = nullptr);
 void ConvertToStr(bool boolean, wchar* buffer, uindex buffer_len,
                   uindex* out_len = nullptr);
+uindex GetCharCount(u8);
+uindex GetCharCount(u16);
+uindex GetCharCount(u32);
+uindex GetCharCount(u64);
+uindex GetCharCount(s8);
+uindex GetCharCount(s16);
+uindex GetCharCount(s32);
+uindex GetCharCount(s64);
+uindex GetCharCount(f32);
+uindex GetCharCount(f64);
+uindex GetCharCount(bool);
 
 template <typename Float,
           typename std::enable_if_t<std::is_floating_point_v<Float>>* = nullptr>
@@ -182,6 +232,13 @@ void ConvertToStr(Float number, u8 precision, schar* buffer, uindex buffer_len,
   if (out_len != nullptr) {
     *out_len = len >= 0 ? len : kInvalidIndex;
   }
+}
+
+template <typename Float,
+          typename std::enable_if_t<std::is_floating_point_v<Float>>* = nullptr>
+void ConvertToStr(Float number, schar* buffer, uindex buffer_len,
+                  uindex* out_len = nullptr) {
+  ConvertToStr(number, 3, buffer, buffer_len, out_len);
 }
 
 template <typename Float,

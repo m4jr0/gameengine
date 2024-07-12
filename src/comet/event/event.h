@@ -85,7 +85,7 @@ EventPointer GenerateEvent(Args&&... args) {
   // No need to deallocate if an exception occurs: the temporary allocator will
   // be flushed by the end of the frame following the current one.
   EventPointer event(p, [](Event* p) { p->~Event(); });
-  new (event.get()) T(std::forward<Args>(args)...);
+  new (event.get()) T{std::forward<Args>(args)...};
   return event;
 }
 }  // namespace event

@@ -7,17 +7,19 @@
 
 #include <float.h>
 
-#ifdef COMET_ARCH_X86
-#include <xmmintrin.h>
-#endif  // COMET_ARCH_X86
-
 #include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 
+#include "comet/core/compiler.h"
 #include "comet/core/define.h"
 #include "comet/core/os.h"
+
+#ifdef COMET_ARCH_X86
+#include <emmintrin.h>
+#include <xmmintrin.h>
+#endif  // COMET_ARCH_X86
 
 namespace comet {
 constexpr auto kCharBit{CHAR_BIT};
@@ -122,6 +124,15 @@ constexpr auto kSXMax{kS32Max};
 constexpr auto kFXMin{kF32Min};
 constexpr auto kFXMax{kF32Max};
 #endif  // COMET_64
+
+template <typename T>
+struct is_char_pointer : std::false_type {};
+
+template <>
+struct is_char_pointer<schar*> : std::true_type {};
+
+template <>
+struct is_char_pointer<wchar*> : std::true_type {};
 
 static_assert(sizeof(u8) * kCharBit == 8,
               "u8 is not 8 bits on this architecture.");

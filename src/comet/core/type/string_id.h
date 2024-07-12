@@ -5,7 +5,8 @@
 #ifndef COMET_COMET_CORE_TYPE_STRING_ID_H_
 #define COMET_COMET_CORE_TYPE_STRING_ID_H_
 
-#include "comet_precompile.h"
+#include "comet/core/type/primitive.h"
+#include <unordered_map>
 
 #ifdef COMET_DEBUG
 #include "comet/core/memory/allocator/string_id_allocator.h"

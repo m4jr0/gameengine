@@ -4,6 +4,12 @@
 
 #include "fiber.h"
 
+#include <deque>
+#include <thread>  // >:3 To remove.
+
+#include "comet/core/compiler.h"
+#include "comet/core/define.h"
+#include "comet/core/job/worker.h"  // >:3
 #include "comet/core/memory/memory.h"
 
 // TODO(m4jr0): Support other architectures.
@@ -13,135 +19,86 @@ static_assert(false, "Unsupported architecture.");
 
 namespace comet {
 namespace job {
-extern "C" {
-extern void COMET_FORCE_NOT_INLINE
-SwitchExecutionContext(ExecutionContext* src, const ExecutionContext* dst);
-}
-
-Fiber* Generate(uindex stack_size, FiberFunc func, SwitchData* data) {
-  COMET_ASSERT(stack_size != 0, "Stack size provided is 0!");
-  COMET_ASSERT(func != nullptr, "Function provided is null!");
-
-  auto* fiber{AllocateAligned<Fiber>(MemoryTag::Fiber)};
-  fiber->context = {};
-
+void Fiber::Initialize() {
 #ifdef COMET_MSVC
   constexpr auto kRedZoneOffset{0};
 #else
   constexpr auto kRedZoneOffset{128};
 #endif  // COMET_MSVC
 
-  fiber->stack =
-      static_cast<u8*>(Allocate(stack_size + kRedZoneOffset, MemoryTag::Fiber));
-  fiber->stack_size = stack_size;
-  fiber->func = func;
-
-  auto& context{fiber->context};
-  context.rip = reinterpret_cast<RegisterValue>(fiber->func);
-
+  stack_ = static_cast<u8*>(
+      Allocate(stack_size_ + kRedZoneOffset, MemoryTag::Fiber));
   // On supported architectures, stack grows downwards.
-  auto* stack_top{reinterpret_cast<uptr*>(fiber->stack + fiber->stack_size)};
+  stack_top_ = reinterpret_cast<uptr*>(stack_ + stack_size_);
 
   // Align stack before setting RSP.
-  stack_top = reinterpret_cast<uptr*>(
+  stack_top_ = reinterpret_cast<uptr*>(
       reinterpret_cast<u8*>(
-          (reinterpret_cast<uptr>(&stack_top[-1]) & -kStackAlignment)) -
+          (reinterpret_cast<uptr>(&stack_top_[-1]) & -kStackAlignment)) -
       kStackCallingOffset);
+  *stack_top_ = 0x0;  // Set return address to 0.
 
-  *stack_top = 0x0;  // Set return address to 0.
-  context.rsp = reinterpret_cast<RegisterValue>(stack_top);
+  Reset();
+}
+
+void Fiber::Destroy() {
+  if (stack_ != nullptr) {
+    Deallocate(stack_);
+    stack_ = nullptr;
+  }
+}
+
+void Fiber::Reset() {
+  context_.rsp = reinterpret_cast<RegisterValue>(stack_top_);
+
+  context_.rip = reinterpret_cast<RegisterValue>(Fiber::Run);
 
 #ifdef COMET_MSVC
-  context.rcx = reinterpret_cast<RegisterValue>(data);
+  context_.rcx = reinterpret_cast<RegisterValue>(this);
 #else
-  context.rdi = reinterpret_cast<RegisterValue>(data);
+  context_.rdi = reinterpret_cast<RegisterValue>(this);
 #endif  // COMET_MSVC
-  return fiber;
 }
 
-void Destroy(Fiber* fiber) {
-  COMET_ASSERT(fiber != nullptr, "Fiber provided is null!");
+void Fiber::Attach(EntryPoint entry_point, ParamsHandle params_handle,
+                   OnFiberEndCallback end_callback) {
+  entry_point_ = entry_point;
+  params_handle_ = params_handle;
+  end_callback_ = end_callback;
+}
 
-  if (fiber->stack != nullptr) {
-    Deallocate(fiber->stack);
-    fiber->stack = nullptr;
+void Fiber::Detach() {
+  entry_point_ = nullptr;
+  params_handle_ = kInvalidParamsHandle;
+  end_callback_ = nullptr;
+}
+
+void Fiber::Run(Fiber* fiber) {
+  COMET_ASSERT(fiber->entry_point_ != nullptr,
+               "Entry point is null! Did you attach it?");
+  fiber->entry_point_(fiber->params_handle_);
+
+  if (fiber->end_callback_ != nullptr) {
+    fiber->end_callback_(fiber);
   }
-
-  Deallocate(fiber);
 }
 
-void Switch(Fiber* from, Fiber* to) {
-  COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
-  COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
-  tls_current_fiber = to;
-  SwitchExecutionContext(&from->context, &to->context);
+bool Fiber::IsRunning() const noexcept { return state_ == FiberState::Running; }
+
+bool Fiber::IsYielded() const noexcept {
+  return state_ == FiberState::Suspended;
 }
 
-Fiber* SwitchThreadToFiber() {
-  auto* fiber{AllocateAligned<Fiber>(MemoryTag::Fiber)};
-  fiber->context = {};
-  fiber->stack = nullptr;
-  fiber->stack_size = 0;
-  return fiber;
-}
+ExecutionContext& Fiber::GetContext() noexcept { return context_; }
 
-thread_local Fiber* tls_current_fiber = nullptr;
+FiberId Fiber::GetId() const noexcept { return id_; }
 
-Fiber* GetCurrentFiber() { return tls_current_fiber; }
+FiberState Fiber::GetState() const noexcept { return state_; }
 
-void ComputeA(SwitchData* data) {
-  s32 a{0};
-  std::cout << "ComputeA - A0: " << a << '\n';
+Fiber::Fiber() : state_{FiberState::Running} {}
 
-  Switch(*data->self, *data->next);
-
-  ++a;
-  std::cout << "ComputeA - A2: " << a << '\n';
-
-  Switch(*data->self, *data->next);
-}
-
-void ComputeB(SwitchData* data) {
-  s32 a{1337};
-  std::cout << "ComputeB - A1337: " << a << '\n';
-  ++a;
-  std::cout << "ComputeB - A1338: " << a << '\n';
-
-  Switch(*data->self, *data->next);
-}
-
-Fiber* main;
-Fiber* fiber_a;
-Fiber* fiber_b;
-
-void TestFibers() {
-  main = SwitchThreadToFiber();
-
-  SwitchData data_a{&fiber_a, &main};
-  SwitchData data_b{&fiber_b, &main};
-
-  [[maybe_unused]] auto* data_a_p{&data_a};
-  [[maybe_unused]] auto* data_b_p{&data_b};
-
-  fiber_a = Generate(kNormalStack, ComputeA, &data_a);
-  fiber_b = Generate(kNormalStack, ComputeB, &data_b);
-
-  Switch(main, fiber_a);
-  Switch(main, fiber_b);
-
-  s32 a{42};
-  std::cout << "TestFibers - A42: " << a << '\n';
-  ++a;
-  std::cout << "TestFibers - A43: " << a << '\n';
-
-  Switch(main, fiber_a);
-
-  ++a;
-  std::cout << "TestFibers - A44: " << a << '\n';
-
-  Destroy(fiber_a);
-  Destroy(fiber_b);
-  Destroy(main);
+Fiber::Fiber(uindex stack_size) : stack_size_{stack_size} {
+  COMET_ASSERT(stack_size_ != 0, "Stack size provided is 0!");
 }
 }  // namespace job
 }  // namespace comet

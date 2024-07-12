@@ -125,6 +125,12 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     " \"${CMAKE_TOOLCHAIN_FILE}\".")
 endif()
 
+# CMAKE_TOOLCHAIN_FILE might contain backslashes as path separators,
+# which can be interpreted as escape characters...
+if(WIN32)
+  file(TO_CMAKE_PATH "${CMAKE_TOOLCHAIN_FILE}" CMAKE_TOOLCHAIN_FILE)
+endif()
+
 # Project ######################################################################
 
 message(STATUS

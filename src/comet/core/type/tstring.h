@@ -5,9 +5,10 @@
 #ifndef COMET_COMET_CORE_TYPE_TSTRING_H_
 #define COMET_COMET_CORE_TYPE_TSTRING_H_
 
-#include "comet_precompile.h"
-
+#include "comet/core/define.h"
+#include "comet/core/type/primitive.h"
 #include "comet/core/c_string.h"
+#include "comet/core/type/string_id.h"
 
 namespace comet {
 const auto kSSOCapacityThreshold{15};

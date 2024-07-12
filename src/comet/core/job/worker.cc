@@ -4,7 +4,101 @@
 
 #include "worker.h"
 
+#include <mutex>  // :>3
+
+#include "comet/core/debug.h"
+#include "comet/core/job/fiber/fiber_context.h"
+
 namespace comet {
 namespace job {
+thread_local Worker* tls_current_worker = nullptr;
+
+Worker& Worker::GetCurrent() {
+  COMET_ASSERT(tls_current_worker != nullptr,
+               "Current worker fiber is null! No fiber has been generated for "
+               "this thread!");
+  return *tls_current_worker;
+}
+
+Worker::Worker(std::thread&& thread)
+    : thread_{std::move(thread)}, id_{id_counter_++} {}
+
+Worker::Worker(Worker&& other) noexcept
+    : thread_{std::move(other.thread_)},
+      worker_fiber_{other.worker_fiber_},
+      current_fiber_{other.current_fiber_} {
+  other.worker_fiber_ = nullptr;
+  other.current_fiber_ = nullptr;
+}
+
+Worker& Worker::operator=(Worker&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  thread_ = std::move(other.thread_);
+  worker_fiber_ = other.worker_fiber_;
+  current_fiber_ = other.current_fiber_;
+
+  other.worker_fiber_ = nullptr;
+  other.current_fiber_ = nullptr;
+  return *this;
+}
+
+void Worker::Initialize() {
+  COMET_ASSERT(tls_current_worker == nullptr,
+               "A worker has already been assigned to this thread!");
+  tls_current_worker = this;
+  worker_fiber_ = ConvertThreadToFiber();
+}
+
+void Worker::Destroy() {
+  DestroyFiberFromThread();
+  worker_fiber_ = nullptr;
+
+  if (thread_.joinable()) {
+    thread_.join();
+  }
+}
+
+WorkerId Worker::GetId() const noexcept { return id_; }
+
+static std::mutex test{};
+
+void Worker::DumpData(std::string_view suffix) {
+  return;
+  auto* worker{tls_current_worker};
+  std::unique_lock lock{test};
+
+  // std::cout << "Worker (ID: " << worker->id_
+  //           << ", Fiber ID: " << worker->worker_fiber_->GetId() << ") | "
+  //           << "Current Fiber ID: " << job::GetCurrent()->GetId() << " ---- "
+  //           << suffix << '\n';
+}
+
+IOWorker::IOWorker(std::thread&& thread)
+    : thread_{std::move(thread)}, id_{id_counter_++} {}
+
+IOWorker::IOWorker(IOWorker&& other) noexcept
+    : thread_{std::move(other.thread_)} {}
+
+IOWorker& IOWorker::operator=(IOWorker&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  thread_ = std::move(other.thread_);
+  return *this;
+}
+
+void IOWorker::Initialize() {}
+
+void IOWorker::Destroy() {
+  if (thread_.joinable()) {
+    thread_.join();
+  }
+}
+
+WorkerId IOWorker::GetId() const noexcept { return id_; }
 }  // namespace job
 }  // namespace comet

@@ -4,28 +4,103 @@
 
 #include "logger.h"
 
-namespace comet {
-Logger& Logger::Get(LoggerType logger_type) {
-  const auto it{Logger::loggers_.find(logger_type)};
+#include "comet/core/job/scheduler.h"
 
-  // If the logger does not exist, we create it.
-  if (it == Logger::loggers_.end()) {
-    return *Logger::loggers_.emplace(logger_type, Logger::Generate(logger_type))
-                .first->second;
+namespace comet {
+void Logger::Flush() {
+  if (buffer_index_ == 0) {
+    return;
   }
 
-  return *it->second;
+  buffer_[buffer_index_] = '\0';
+  std::cout << buffer_;
+  buffer_index_ = 0;
 }
 
-Logger::Logger(LoggerType logger_type) { type_ = logger_type; }
+Logger& Logger::Get() {
+  static Logger singleton{};
+  return singleton;
+}
 
-std::shared_ptr<Logger> Logger::Generate(LoggerType logger_type) {
-  // Because the constructor is private, we have to separate the initialization
-  // from the shared pointer construction.
-  // It should be safe though, as this line does nothing else than initializing
-  // a logger instance and saving it to a shared pointer.
-  // Performance-wise, it should be acceptable, as very few loggers will be
-  // instantiated anyway.
-  return std::shared_ptr<Logger>(new Logger(logger_type));
+Logger::Logger() { ScheduleLogsProcessing(); }
+
+void Logger::ProcessLogs() {
+  for (;;) {
+    {
+      job::FiberLock lock{buffer_mutex_};
+      Flush();
+    }
+
+    job::Yield();
+  }
+}
+
+void Logger::ScheduleLogsProcessing() {
+  job::JobDescr descr{};
+  descr.entry_point = OnLogProcessingRequest;
+  descr.priority = job::JobPriority::Low;
+  descr.params_handle = reinterpret_cast<job::ParamsHandle>(this);
+  job::Scheduler::Get().Kick(descr);
+}
+
+void Logger::OnLogProcessingRequest(job::ParamsHandle params_handle) {
+  auto* logger{reinterpret_cast<Logger*>(params_handle)};
+  logger->ProcessLogs();
+  logger->ScheduleLogsProcessing();
+}
+const schar* GetLoggerTypeLabel(LoggerType type) {
+  switch (type) {
+    case LoggerType::Global:
+      return "Global";
+    case LoggerType::Animation:
+      return "Animation";
+    case LoggerType::Core:
+      return "Core";
+    case LoggerType::Event:
+      return "Event";
+    case LoggerType::Entity:
+      return "Entity";
+    case LoggerType::Input:
+      return "Input";
+    case LoggerType::Math:
+      return "Math";
+    case LoggerType::Physics:
+      return "Physics";
+    case LoggerType::Profiler:
+      return "Profiler";
+    case LoggerType::Rendering:
+      return "Rendering";
+    case LoggerType::Resource:
+      return "Resource";
+    case LoggerType::Time:
+      return "Time";
+    default:
+      return "???";
+  }
+}
+
+void Logger::AddToBuffer(CTStringView arg) {
+  // TODO(m4jr0): Use buffer from allocator.
+  constexpr auto kSize{512};
+  schar tmp[kSize]{'\0'};
+  auto len{kSize < arg.GetLengthWithNullTerminator()
+               ? kSize
+               : arg.GetLengthWithNullTerminator()};
+  Copy(tmp, arg.GetCTStr(), len - 1);
+  tmp[len] = '\0';
+  AddToBuffer(tmp);
+}
+
+void Logger::AddToBuffer(std::string_view arg) {
+  job::FiberLock lock{buffer_mutex_};
+  auto len{arg.size()};
+
+  // Take both \0 and \n into account.
+  if (kBufferSize_ - buffer_index_ <= len + 1) {
+    Flush();
+  }
+
+  std::memcpy(buffer_ + buffer_index_, arg.data(), len);
+  buffer_index_ += len;
 }
 }  // namespace comet

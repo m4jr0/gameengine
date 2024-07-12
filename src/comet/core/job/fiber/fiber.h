@@ -5,10 +5,25 @@
 #ifndef COMET_COMET_CORE_JOB_FIBER_H_
 #define COMET_COMET_CORE_JOB_FIBER_H_
 
-#include "comet_precompile.h"
+#include "comet/core/compiler.h"
+#include "comet/core/type/primitive.h"
+
+#ifdef COMET_MSVC
+#undef Yield
+#endif
 
 namespace comet {
 namespace job {
+using FiberId = uindex;
+constexpr auto kInvalidFiberId{static_cast<FiberId>(-1)};
+
+using ParamsHandle = uptr;
+constexpr auto kInvalidParamsHandle{0};
+
+class Fiber;
+using OnFiberEndCallback = void (*)(Fiber*);
+using EntryPoint = void (*)(ParamsHandle);
+
 // Callees expect the tack to be misaligned by sizeof(uptr) due to the call from
 // the caller. Therefore, when generating our own stack, we must simulate that
 // offset ourselves.
@@ -59,18 +74,52 @@ struct ExecutionContext {
 
 struct SwitchData;
 
-using FiberFunc = void (*)(SwitchData*);
-
-struct Fiber {
-  uindex stack_size{0};
-  u8* stack{nullptr};
-  FiberFunc func{nullptr};
-  ExecutionContext context{};
+enum class FiberState {
+	Unknown = 0,
+	Pending,
+	Running,
+	Suspended
 };
 
-struct SwitchData {
-  Fiber** self{nullptr};
-  Fiber** next{nullptr};
+using FiberFunc = void (*)(SwitchData*);
+
+class Fiber {
+ public:
+  Fiber();  // Create empty fiber, usually from a thread.
+  explicit Fiber(uindex stack_size);
+  Fiber(const Fiber&) = delete;
+  Fiber(Fiber&&) = delete;
+  Fiber& operator=(const Fiber&) = delete;
+  Fiber& operator=(Fiber&&) = delete;
+  virtual ~Fiber() = default;
+
+  void Initialize();
+  void Destroy();
+  void Reset();
+
+  void Attach(EntryPoint entry_point, ParamsHandle params_handle,
+              OnFiberEndCallback end_callback = nullptr);
+  void Detach();
+  static void Run(Fiber* fiber);
+  bool IsRunning() const noexcept;
+  bool IsYielded() const noexcept;
+
+  ExecutionContext& GetContext() noexcept;
+  FiberId GetId() const noexcept;
+  FiberState GetState() const noexcept;
+
+ private:
+  static inline FiberId id_counter_{0};
+
+  FiberId id_{id_counter_++};
+  FiberState state_{FiberState::Pending};
+  EntryPoint entry_point_{nullptr};
+  ParamsHandle params_handle_{kInvalidParamsHandle};
+  OnFiberEndCallback end_callback_{nullptr};
+  uindex stack_size_{0};
+  u8* stack_{nullptr};
+  uptr* stack_top_{nullptr};
+  ExecutionContext context_{};
 };
 
 constexpr auto kMicroStack{2048};       // 2 KiB.
@@ -82,13 +131,6 @@ constexpr auto kLargeStack{65536};      // 64 KiB.
 constexpr auto kHugeStack{131072};      // 128 KiB.
 constexpr auto kGiantStack{262144};     // 256 KiB.
 constexpr auto kGiganticStack{524288};  // 512 KiB.
-
-Fiber* Generate(uindex stack_size, FiberFunc func, SwitchData* data);
-void Destroy(Fiber* fiber);
-void Switch(Fiber* from, Fiber* to);
-Fiber* SwitchThreadToFiber();
-Fiber* GetCurrentFiber();
-void TestFibers();
 }  // namespace job
 }  // namespace comet
 

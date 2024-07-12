@@ -4,21 +4,68 @@
 
 #include "fiber_primitive.h"
 
+#include "comet/core/debug.h"
+#include "comet/core/job/fiber/fiber_context.h"
+#include "comet/core/job/worker.h"  // >:3
+#include <string> // >:3
+
 namespace comet {
 namespace job {
-void FiberMutex::Lock() { auto* current{GetCurrentFiber()};
-  while (is_locked_.exchange(true, std::memory_order_acquire)) {
-    awaiting_fibers_.push_back(current);
-    // >:3 ????
+void FiberSpinLock::Lock() {
+  while (flag_.test_and_set(std::memory_order_acquire)) {
+    Yield();
+  }
+
+  Worker::DumpData("Lock #" + std::to_string(id_) + " SpinLock Locked!");
+}
+
+void FiberSpinLock::Unlock() {
+  Worker::DumpData("Lock #" + std::to_string(id_) + " SpinLock Unlocked!");
+  flag_.clear(std::memory_order_release);
+}
+
+FiberSpinLockGuard::FiberSpinLockGuard(FiberSpinLock& spin_lock)
+    : spin_lock_{spin_lock} {
+  spin_lock.Lock();
+}
+
+FiberSpinLockGuard::~FiberSpinLockGuard() { spin_lock_.Unlock(); }
+
+void FiberMutex::Lock() {
+  for (;;) {
+    auto* fiber{GetCurrent()};
+    FiberSpinLockGuard guard{spin_lock_};
+    COMET_ASSERT(fiber != owner_, "Lock is already owned by current fiber!");
+
+    if (owner_ == nullptr) {
+      Worker::DumpData("Lock #" + std::to_string(id_) + " Becoming owner!");
+
+      if (GetCurrent()->GetId() == 128) {
+        int a = 0;
+        ++a;
+      }
+
+      owner_ = fiber;
+      return;
+    }
+
+    Worker::DumpData("Lock #" + std::to_string(id_) +
+                     " Awaiting to become owner!");
+    Yield();
   }
 }
 
-void FiberMutex::Unlock() {}
+void FiberMutex::Unlock() {
+  auto* fiber{GetCurrent()};
+  FiberSpinLockGuard guard{spin_lock_};
+  COMET_ASSERT(fiber == owner_, "Lock is not owned by current fiber!");
+  Worker::DumpData("Lock #" + std::to_string(id_) +
+                   "  Giving ownership back...");
+  owner_ = nullptr;
+}
 
 void FiberCV::Wait(FiberMutex& mtx) {
   mtx.Unlock();
-
-
 
   mtx.Lock();
 }
@@ -26,5 +73,9 @@ void FiberCV::Wait(FiberMutex& mtx) {
 void FiberCV::NotifyOne() {}
 
 void FiberCV::NotifyAll() {}
+
+FiberLock::FiberLock(FiberMutex& mutex) : mutex_{mutex} { mutex_.Lock(); }
+
+FiberLock::~FiberLock() { mutex_.Unlock(); }
 }  // namespace job
 }  // namespace comet

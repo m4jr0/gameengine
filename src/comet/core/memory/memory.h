@@ -7,7 +7,6 @@
 
 #include "comet/core/debug.h"
 #include "comet/core/define.h"
-#include "comet/core/logger.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/type/primitive.h"
 
