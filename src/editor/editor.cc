@@ -4,7 +4,7 @@
 
 #include "editor.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"

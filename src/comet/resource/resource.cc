@@ -7,7 +7,7 @@
 #include <fstream>
 
 #include "comet/core/compression.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory.h"
 

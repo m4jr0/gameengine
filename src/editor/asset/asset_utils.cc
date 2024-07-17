@@ -5,7 +5,7 @@
 #include "asset_utils.h"
 
 #include "comet/core/date.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "editor/asset/asset.h"
 
 namespace comet {

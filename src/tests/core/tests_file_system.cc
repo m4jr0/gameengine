@@ -4,7 +4,7 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 
 #include "catch.hpp"
 #include "catch2/reporters/catch_reporter_event_listener.hpp"

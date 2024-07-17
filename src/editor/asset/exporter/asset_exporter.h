@@ -7,7 +7,7 @@
 
 #include "comet_precompile.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
 #include "editor/asset/asset.h"
 

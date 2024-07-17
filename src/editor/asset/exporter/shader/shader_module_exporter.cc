@@ -7,7 +7,7 @@
 #include "shaderc/shaderc.hpp"
 
 #include "comet/core/c_string.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/resource/resource_manager.h"

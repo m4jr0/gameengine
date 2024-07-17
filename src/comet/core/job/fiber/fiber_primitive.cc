@@ -4,10 +4,11 @@
 
 #include "fiber_primitive.h"
 
+#include <string>  // >:3
+
 #include "comet/core/debug.h"
 #include "comet/core/job/fiber/fiber_context.h"
 #include "comet/core/job/worker.h"  // >:3
-#include <string> // >:3
 
 namespace comet {
 namespace job {
@@ -17,6 +18,10 @@ void FiberSpinLock::Lock() {
   }
 
   Worker::DumpData("Lock #" + std::to_string(id_) + " SpinLock Locked!");
+}
+
+bool FiberSpinLock::TryLock() {
+  return flag_.test_and_set(std::memory_order_acquire);
 }
 
 void FiberSpinLock::Unlock() {
@@ -55,6 +60,11 @@ void FiberMutex::Lock() {
   }
 }
 
+void FiberMutex::WaitForLock() {
+  while (spin_lock_.TryLock())
+    ;
+}
+
 void FiberMutex::Unlock() {
   auto* fiber{GetCurrent()};
   FiberSpinLockGuard guard{spin_lock_};
@@ -74,7 +84,13 @@ void FiberCV::NotifyOne() {}
 
 void FiberCV::NotifyAll() {}
 
-FiberLock::FiberLock(FiberMutex& mutex) : mutex_{mutex} { mutex_.Lock(); }
+FiberLock::FiberLock(FiberMutex& mutex, bool is_blocking) : mutex_{mutex} {
+  if (!is_blocking) {
+    mutex_.Lock();
+  } else {
+    mutex_.WaitForLock();
+  }
+}
 
 FiberLock::~FiberLock() { mutex_.Unlock(); }
 }  // namespace job

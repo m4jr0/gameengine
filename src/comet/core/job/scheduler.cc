@@ -4,7 +4,7 @@
 
 #include "scheduler.h"
 
-#include "comet/core/file_system.h"  // >:3
+#include "comet/core/file_system/file_system.h"  // >:3
 #include "comet/core/job/fiber/fiber.h"
 #include "comet/core/job/fiber/fiber_context.h"
 #include "comet/core/job/fiber/fiber_queue.h"
@@ -21,10 +21,11 @@ static auto* file{COMET_TCHAR("tmp.txt")};
 
 void WriteTmpFile(ParamsHandle data) {
   std::ofstream file;
-  OpenFileToWriteTo(path, file);
+  auto* path{reinterpret_cast<TString*>(data)};
+  OpenFileToWriteTo(*path, file);
   schar buff[512];
   ConvertToStr(jaa, buff, 511);
-  WriteStrToFile(path, buff);
+  WriteStrToFile(*path, buff);
   CloseFile(file);
 }
 
@@ -32,7 +33,7 @@ void DoSomeComputations(ParamsHandle data) {
   jaa = 42424242;
   IOJobDescr io_descr{};
   io_descr.entry_point = WriteTmpFile;
-  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&path[0]);
+  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&path);
   Scheduler::Get().Kick(io_descr);
 }
 
@@ -59,7 +60,7 @@ void ComputeA(ParamsHandle data) {
 
   IOJobDescr io_descr{};
   io_descr.entry_point = CreateTmpFile;
-  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&path[0]);
+  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&file[0]);
   Scheduler::Get().Kick(io_descr);
 
   ++a;
@@ -224,7 +225,7 @@ void Scheduler::Kick(uindex job_count, const JobDescr* job_descrs) {
   }
 }
 
-void Scheduler::Kick(const IOJobDescr& job_descr) {}
+void Scheduler::Kick(const IOJobDescr& job_descr) { SubmitJob(job_descr); }
 
 void Scheduler::Kick(uindex job_count, const IOJobDescr* job_descrs) {
   for (uindex i{0}; i < job_count; ++i) {
@@ -349,7 +350,7 @@ void Scheduler::OnFiberEnd(Fiber* fiber) {
 void Scheduler::SubmitJob(const JobDescr& job_descr) {
   {
     Worker::DumpData("Submitting job...");
-    FiberLock lock{queue_mutex_};
+    FiberLock lock{queue_mutex_, IsBlockableThread()};
 
     switch (job_descr.priority) {
       case JobPriority::High:
@@ -372,12 +373,9 @@ void Scheduler::SubmitJob(const JobDescr& job_descr) {
 }
 
 void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
-  {
-    Worker::DumpData("Submitting job...");
-    FiberLock lock{queue_mutex_};
-    io_queue_.emplace(job_descr);
-    io_cv_.notify_one();
-  }
+  FiberLock lock{io_queue_mutex_, IsBlockableThread()};
+  io_queue_.emplace(job_descr);
+  io_cv_.notify_one();
 }
 
 void Scheduler::PromoteJobs() {

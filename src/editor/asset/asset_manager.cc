@@ -7,7 +7,7 @@
 #include "nlohmann/json.hpp"
 
 #include "comet/core/conf/configuration_manager.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"

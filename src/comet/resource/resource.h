@@ -8,7 +8,7 @@
 #include "comet_precompile.h"
 
 #include "comet/core/compression.h"
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
 
 namespace comet {

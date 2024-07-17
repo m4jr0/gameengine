@@ -5,10 +5,11 @@
 #ifndef COMET_COMET_CORE_TYPE_TSTRING_H_
 #define COMET_COMET_CORE_TYPE_TSTRING_H_
 
+#include "comet/core/c_string.h"
 #include "comet/core/define.h"
 #include "comet/core/type/primitive.h"
-#include "comet/core/c_string.h"
 #include "comet/core/type/string_id.h"
+#include "comet/core/file_system/slash_helper.h"
 
 namespace comet {
 const auto kSSOCapacityThreshold{15};
@@ -87,13 +88,21 @@ class TString {
 
   template <typename TChar>
   TString& Append(const TChar* str, uindex length) {
-    auto new_length{length_ + length};
+    auto separator_len{
+        !IsSlash(GetTStr()[GetLength() - 1]) && !IsSlash(str[length - 1]) ? 1
+                                                                          : 0};
+
+    auto new_length{length_ + length + separator_len};
 
     if (new_length > capacity_) {
       Reserve(new_length);
     }
 
-    Copy(GetTStr(), str, length, length_);
+    if (separator_len == 1) {
+      Copy(GetTStr(), &kNativeSlash, 1, length_);
+    }
+
+    Copy(GetTStr(), str, length, length_ + separator_len);
     length_ = new_length;
     GetTStr()[length_] = COMET_TCHAR('\0');
     return *this;

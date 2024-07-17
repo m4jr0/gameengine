@@ -26,6 +26,7 @@ class FiberSpinLock {
   ~FiberSpinLock() = default;
 
   void Lock();
+  bool TryLock();
   void Unlock();
 
  private:
@@ -60,6 +61,7 @@ class FiberMutex {
   ~FiberMutex() = default;
 
   void Lock();
+  void WaitForLock();
   void Unlock();
 
  private:
@@ -73,7 +75,7 @@ class FiberMutex {
 class FiberLock {
  public:
   FiberLock() = delete;
-  explicit FiberLock(FiberMutex& mutex);
+  explicit FiberLock(FiberMutex& mutex, bool is_blocking = false);
   FiberLock(const FiberLock&) = delete;
   FiberLock(FiberLock&&) = delete;
   FiberLock& operator=(const FiberLock&) = delete;

@@ -15,6 +15,8 @@ namespace job {
 using WorkerId = uindex;
 constexpr auto kInvalidWorkerId{static_cast<WorkerId>(-1)};
 
+bool IsBlockableThread();
+
 class Worker {
  public:
   static Worker& GetCurrent();

@@ -7,7 +7,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/rendering_common.h"

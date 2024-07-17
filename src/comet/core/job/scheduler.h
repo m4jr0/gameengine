@@ -66,6 +66,7 @@ class Scheduler {
   std::mutex sleeping_fibers_mutex_{};
   std::queue<Fiber*> sleeping_fibers_queue_{};
   FiberMutex queue_mutex_{};
+  FiberMutex io_queue_mutex_{};
   std::mutex io_mutex_{};
   std::condition_variable io_cv_{};
 

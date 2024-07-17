@@ -4,7 +4,7 @@
 
 #include "tstring.h"
 
-#include "comet/core/file_system.h"
+#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/allocator/tstring_allocator.h"
 #include "comet/core/memory/memory.h"
