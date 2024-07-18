@@ -6,6 +6,7 @@
 #define COMET_COMET_CORE_JOB_JOB_H_
 
 #include "comet/core/job/fiber/fiber.h"
+#include "comet/core/job/fiber/fiber_primitive.h"
 
 #include "comet/core/type/primitive.h"
 

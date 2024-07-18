@@ -27,7 +27,7 @@ Logger::Logger() { ScheduleLogsProcessing(); }
 void Logger::ProcessLogs() {
   for (;;) {
     {
-      job::FiberLock lock{buffer_mutex_};
+      job::FiberLockGuard lock{buffer_mutex_};
       Flush();
     }
 
@@ -92,7 +92,7 @@ void Logger::AddToBuffer(CTStringView arg) {
 }
 
 void Logger::AddToBuffer(std::string_view arg) {
-  job::FiberLock lock{buffer_mutex_};
+  job::FiberLockGuard lock{buffer_mutex_};
   auto len{arg.size()};
 
   // Take both \0 and \n into account.

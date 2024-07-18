@@ -76,7 +76,7 @@ class Logger final {
   typename std::enable_if<
       std::is_fundamental<T>::value && !is_char_pointer<T>::value, void>::type
   AddToBuffer(const T& arg) {
-    job::FiberLock lock{buffer_mutex_};
+    job::FiberLockGuard lock{buffer_mutex_};
     auto len{GetCharCount(arg)};
 
     // Take both \0 and \n into account.

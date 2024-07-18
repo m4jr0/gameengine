@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include <cassert>
+#include <iostream>
 
 #if defined(_MSC_VER)
 #if defined(_CPPRTTI)
@@ -27,20 +28,30 @@
 
 namespace comet {
 void HandleCriticalError();
+
+namespace internal {
+template <typename... Targs>
+void PrintParams(Targs&&... args) {
+  ((std::cerr << std::forward<Targs>(args) << ' '), ...);
+}
+}  // namespace internal
 }  // namespace comet
 
 #ifndef COMET_DEBUG
 #define COMET_ASSERT(assertion, ...)
 #else
-#define COMET_ASSERT(assertion, ...)                              \
-  do {                                                            \
-    const auto isOk{static_cast<bool>(assertion)};                \
-                                                                  \
-    if (!isOk) {                                                  \
-      comet::HandleCriticalError();                               \
-    }                                                             \
-                                                                  \
-    assert(isOk);                                                 \
+#define COMET_ASSERT(assertion, ...)               \
+  do {                                             \
+    const auto isOk{static_cast<bool>(assertion)}; \
+                                                   \
+    if (!isOk) {                                   \
+      std::cerr << "[CRITICAL FAILURE] ";          \
+      comet::internal::PrintParams(__VA_ARGS__);   \
+      std::cerr << '\n';                           \
+      comet::HandleCriticalError();                \
+    }                                              \
+                                                   \
+    assert(isOk);                                  \
   } while (false)
 #endif
 

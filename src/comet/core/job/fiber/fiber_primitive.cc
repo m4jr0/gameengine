@@ -12,22 +12,35 @@
 
 namespace comet {
 namespace job {
+void SimpleLock::Lock() {
+  while (!TryLock())
+    ;
+}
+
+bool SimpleLock::TryLock() {
+  return !flag_.test_and_set(std::memory_order_acquire);
+}
+
+void SimpleLock::Unlock() { flag_.clear(std::memory_order_release); }
+
 void FiberSpinLock::Lock() {
-  while (flag_.test_and_set(std::memory_order_acquire)) {
+  while (!lock_.TryLock()) {
     Yield();
   }
 
   Worker::DumpData("Lock #" + std::to_string(id_) + " SpinLock Locked!");
 }
 
-bool FiberSpinLock::TryLock() {
-  return flag_.test_and_set(std::memory_order_acquire);
-}
-
 void FiberSpinLock::Unlock() {
   Worker::DumpData("Lock #" + std::to_string(id_) + " SpinLock Unlocked!");
-  flag_.clear(std::memory_order_release);
+  lock_.Unlock();
 }
+
+SimpleLockGuard::SimpleLockGuard(SimpleLock& lock) : lock_{lock} {
+  lock_.Lock();
+}
+
+SimpleLockGuard::~SimpleLockGuard() { lock_.Unlock(); }
 
 FiberSpinLockGuard::FiberSpinLockGuard(FiberSpinLock& spin_lock)
     : spin_lock_{spin_lock} {
@@ -60,11 +73,6 @@ void FiberMutex::Lock() {
   }
 }
 
-void FiberMutex::WaitForLock() {
-  while (spin_lock_.TryLock())
-    ;
-}
-
 void FiberMutex::Unlock() {
   auto* fiber{GetCurrent()};
   FiberSpinLockGuard guard{spin_lock_};
@@ -73,6 +81,12 @@ void FiberMutex::Unlock() {
                    "  Giving ownership back...");
   owner_ = nullptr;
 }
+
+FiberLockGuard::FiberLockGuard(FiberMutex& mutex) : mutex_{mutex} {
+  mutex_.Lock();
+}
+
+FiberLockGuard::~FiberLockGuard() { mutex_.Unlock(); }
 
 void FiberCV::Wait(FiberMutex& mtx) {
   mtx.Unlock();
@@ -83,15 +97,5 @@ void FiberCV::Wait(FiberMutex& mtx) {
 void FiberCV::NotifyOne() {}
 
 void FiberCV::NotifyAll() {}
-
-FiberLock::FiberLock(FiberMutex& mutex, bool is_blocking) : mutex_{mutex} {
-  if (!is_blocking) {
-    mutex_.Lock();
-  } else {
-    mutex_.WaitForLock();
-  }
-}
-
-FiberLock::~FiberLock() { mutex_.Unlock(); }
 }  // namespace job
 }  // namespace comet

@@ -16,6 +16,37 @@ namespace job {
 using FiberPrimitiveId = uindex;
 constexpr auto kInvalidFiberPrimitiveId{static_cast<FiberPrimitiveId>(-1)};
 
+class SimpleLock {
+ public:
+  SimpleLock() = default;
+  SimpleLock(const SimpleLock&) = delete;
+  SimpleLock(SimpleLock&&) = delete;
+  SimpleLock& operator=(const SimpleLock&) = delete;
+  SimpleLock& operator=(SimpleLock&&) = delete;
+  ~SimpleLock() = default;
+
+  void Lock();
+  bool TryLock();
+  void Unlock();
+
+ private:
+  std::atomic_flag flag_{ATOMIC_FLAG_INIT};
+};
+
+class SimpleLockGuard {
+ public:
+  SimpleLockGuard() = delete;
+  explicit SimpleLockGuard(SimpleLock& lock);
+  SimpleLockGuard(const SimpleLockGuard&) = delete;
+  SimpleLockGuard(SimpleLockGuard&&) = delete;
+  SimpleLockGuard& operator=(const SimpleLockGuard&) = delete;
+  SimpleLockGuard& operator=(SimpleLockGuard&&) = delete;
+  ~SimpleLockGuard();
+
+ private:
+  SimpleLock& lock_;
+};
+
 class FiberSpinLock {
  public:
   FiberSpinLock() = default;
@@ -26,13 +57,12 @@ class FiberSpinLock {
   ~FiberSpinLock() = default;
 
   void Lock();
-  bool TryLock();
   void Unlock();
 
  private:
   static inline FiberPrimitiveId id_counter_{0};
   FiberPrimitiveId id_{id_counter_++};
-  std::atomic_flag flag_{ATOMIC_FLAG_INIT};
+  SimpleLock lock_{};
 };
 
 class FiberSpinLockGuard {
@@ -61,7 +91,6 @@ class FiberMutex {
   ~FiberMutex() = default;
 
   void Lock();
-  void WaitForLock();
   void Unlock();
 
  private:
@@ -72,15 +101,15 @@ class FiberMutex {
   std::deque<Fiber*> awaiting_fibers_{};
 };
 
-class FiberLock {
+class FiberLockGuard {
  public:
-  FiberLock() = delete;
-  explicit FiberLock(FiberMutex& mutex, bool is_blocking = false);
-  FiberLock(const FiberLock&) = delete;
-  FiberLock(FiberLock&&) = delete;
-  FiberLock& operator=(const FiberLock&) = delete;
-  FiberLock& operator=(FiberLock&&) = delete;
-  ~FiberLock();
+  FiberLockGuard() = delete;
+  explicit FiberLockGuard(FiberMutex& mutex);
+  FiberLockGuard(const FiberLockGuard&) = delete;
+  FiberLockGuard(FiberLockGuard&&) = delete;
+  FiberLockGuard& operator=(const FiberLockGuard&) = delete;
+  FiberLockGuard& operator=(FiberLockGuard&&) = delete;
+  ~FiberLockGuard();
 
  private:
   static inline FiberPrimitiveId id_counter_{0};

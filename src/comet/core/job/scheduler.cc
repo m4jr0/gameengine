@@ -268,24 +268,26 @@ void Scheduler::WorkerThread(uindex worker_index) {
       continue;
     }
 
-    Worker::DumpData("Near the end...");
     {
-      FiberLock lock{queue_mutex_};
-      Worker::DumpData("Before front!");
+      if (IsBlockableThread()) {
+        queue_lock_.Lock();
+      } else {
+        while (!queue_lock_.TryLock()) {
+          Yield();
+        }
+      }
+
       auto& job{queue->front()};
-      Worker::DumpData("Before resolve!");
       auto* fiber{ResolveFiber(job)};
       COMET_ASSERT(fiber != nullptr, "No fiber available!");
-      Worker::DumpData("Before Attach!");
       fiber->Attach(job.entry_point, job.params_handle, OnFiberEnd);
-      Worker::DumpData("Before Pop!");
       queue->pop();
-      Worker::DumpData("Before get!");
       auto& fiber_queue{FiberQueue::Get()};
-      Worker::DumpData("Before enqueue!");
       fiber_queue.Enqueue(fiber);
+
+      queue_lock_.Unlock();
     }
-    Worker::DumpData("Before yield!");
+
     Yield();
   }
 
@@ -299,9 +301,15 @@ void Scheduler::IOWorkerThread() {
     IOJobDescr job;
 
     {
-      std::unique_lock<std::mutex> lock{io_mutex_};
+      SimpleLockGuard lock{io_queue_lock_};
+
+      if (io_queue_.empty()) {
+        continue;
+      }
+
+      /*std::unique_lock<std::mutex> lock{io_mutex_};
       io_cv_.wait(
-          lock, [this] { return !io_queue_.empty() || is_shutdown_required_; });
+          lock, [this] { return !io_queue_.empty() || is_shutdown_required_; });*/
 
       if (is_shutdown_required_) {
         break;
@@ -318,7 +326,7 @@ void Scheduler::IOWorkerThread() {
 Fiber* Scheduler::ResolveFiber(const JobDescr& job_descr) {
   static int count = 0;
   Worker::DumpData("Resolving fiber...");
-  FiberLock lock{fiber_pool_mutex_};
+  FiberLockGuard lock{fiber_pool_mutex_};
 
   // >:3
   ++count;
@@ -339,7 +347,7 @@ void Scheduler::OnFiberEnd(Fiber* fiber) {
   Worker::DumpData("OnFiberEnd...");
 
   {
-    FiberLock lock{scheduler.fiber_pool_mutex_};
+    FiberLockGuard lock{scheduler.fiber_pool_mutex_};
     fiber->Detach();
     scheduler.large_stack_fibers_.emplace_back(fiber);
   }
@@ -350,7 +358,14 @@ void Scheduler::OnFiberEnd(Fiber* fiber) {
 void Scheduler::SubmitJob(const JobDescr& job_descr) {
   {
     Worker::DumpData("Submitting job...");
-    FiberLock lock{queue_mutex_, IsBlockableThread()};
+
+    if (IsBlockableThread()) {
+      queue_lock_.Lock();
+    } else {
+      while (!queue_lock_.TryLock()) {
+        Yield();
+      }
+    }
 
     switch (job_descr.priority) {
       case JobPriority::High:
@@ -369,18 +384,35 @@ void Scheduler::SubmitJob(const JobDescr& job_descr) {
                      "!");
         break;
     }
+
+    queue_lock_.Unlock();
   }
 }
 
 void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
-  FiberLock lock{io_queue_mutex_, IsBlockableThread()};
+  if (IsBlockableThread()) {
+    io_queue_lock_.Lock();
+  } else {
+    while (!io_queue_lock_.TryLock()) {
+      Yield();
+    }
+  }
+
   io_queue_.emplace(job_descr);
   io_cv_.notify_one();
+  io_queue_lock_.Unlock();
 }
 
 void Scheduler::PromoteJobs() {
   Worker::DumpData("Promotting job...");
-  FiberLock lock{queue_mutex_};
+
+  if (IsBlockableThread()) {
+    queue_lock_.Lock();
+  } else {
+    while (!queue_lock_.TryLock()) {
+      Yield();
+    }
+  }
 
   while (!normal_priority_queue_.empty()) {
     high_priority_queue_.push(normal_priority_queue_.front());
@@ -391,6 +423,8 @@ void Scheduler::PromoteJobs() {
     normal_priority_queue_.push(low_priority_queue_.front());
     low_priority_queue_.pop();
   }
+
+  queue_lock_.Unlock();
 }
 }  // namespace job
 }  // namespace comet

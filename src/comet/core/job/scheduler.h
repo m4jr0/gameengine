@@ -65,8 +65,8 @@ class Scheduler {
   std::queue<IOJobDescr> io_queue_{};
   std::mutex sleeping_fibers_mutex_{};
   std::queue<Fiber*> sleeping_fibers_queue_{};
-  FiberMutex queue_mutex_{};
-  FiberMutex io_queue_mutex_{};
+  SimpleLock queue_lock_{};
+  SimpleLock io_queue_lock_{};
   std::mutex io_mutex_{};
   std::condition_variable io_cv_{};
 
