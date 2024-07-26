@@ -282,14 +282,7 @@ void Scheduler::WorkerThread(uindex worker_index) {
     }
 
     {
-      if (IsBlockableThread()) {
-        queue_lock_.Lock();
-      } else {
-        while (!queue_lock_.TryLock()) {
-          Yield();
-        }
-      }
-
+      FiberAwareLockGuard lock_guard{queue_lock_};
       auto& job{queue->front()};
       auto* fiber{ResolveFiber(job)};
       COMET_ASSERT(fiber != nullptr, "No fiber available!");
@@ -297,8 +290,6 @@ void Scheduler::WorkerThread(uindex worker_index) {
       queue->pop();
       auto& fiber_queue{FiberQueue::Get()};
       fiber_queue.Enqueue(fiber);
-
-      queue_lock_.Unlock();
     }
 
     Yield();
@@ -354,13 +345,7 @@ void Scheduler::OnFiberEnd(Fiber* fiber) {
 
 void Scheduler::SubmitJob(const JobDescr& job_descr) {
   {
-    if (IsBlockableThread()) {
-      queue_lock_.Lock();
-    } else {
-      while (!queue_lock_.TryLock()) {
-        Yield();
-      }
-    }
+    FiberAwareLockGuard lock_guard{queue_lock_};
 
     switch (job_descr.priority) {
       case JobPriority::High:
@@ -379,33 +364,17 @@ void Scheduler::SubmitJob(const JobDescr& job_descr) {
                      "!");
         break;
     }
-
-    queue_lock_.Unlock();
   }
 }
 
 void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
-  if (IsBlockableThread()) {
-    io_queue_lock_.Lock();
-  } else {
-    while (!io_queue_lock_.TryLock()) {
-      Yield();
-    }
-  }
-
+  FiberAwareLockGuard lock_guard{io_queue_lock_};
   io_queue_.emplace(job_descr);
   io_cv_.notify_one();
-  io_queue_lock_.Unlock();
 }
 
 void Scheduler::PromoteJobs() {
-  if (IsBlockableThread()) {
-    queue_lock_.Lock();
-  } else {
-    while (!queue_lock_.TryLock()) {
-      Yield();
-    }
-  }
+  FiberAwareLockGuard lock_guard{queue_lock_};
 
   while (!normal_priority_queue_.empty()) {
     high_priority_queue_.push(normal_priority_queue_.front());
@@ -416,8 +385,6 @@ void Scheduler::PromoteJobs() {
     normal_priority_queue_.push(low_priority_queue_.front());
     low_priority_queue_.pop();
   }
-
-  queue_lock_.Unlock();
 }
 }  // namespace job
 }  // namespace comet

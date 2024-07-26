@@ -29,9 +29,7 @@ void FiberSpinLock::Lock() {
   }
 }
 
-void FiberSpinLock::Unlock() {
-  lock_.Unlock();
-}
+void FiberSpinLock::Unlock() { lock_.Unlock(); }
 
 SimpleLockGuard::SimpleLockGuard(SimpleLock& lock) : lock_{lock} {
   lock_.Lock();
@@ -75,12 +73,13 @@ FiberLockGuard::FiberLockGuard(FiberMutex& mutex) : mutex_{mutex} {
 FiberLockGuard::~FiberLockGuard() { mutex_.Unlock(); }
 
 FiberAwareLockGuard::FiberAwareLockGuard(SimpleLock& lock) : lock_{lock} {
-  if (IsBlockableThread()) {
+  if (IsBlockableThread()) {  // >:3 Check if current fiber is null?
     lock_.Lock();
-  } else {
-    while (!lock_.TryLock()) {
-      Yield();
-    }
+    return;
+  }
+
+  while (!lock_.TryLock()) {
+    Yield();
   }
 }
 
