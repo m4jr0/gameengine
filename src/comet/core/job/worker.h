@@ -33,7 +33,6 @@ class Worker {
   void Destroy();
 
   WorkerId GetId() const noexcept;
-  static void DumpData(std::string_view suffix);  // >:3
 
  private:
   inline static WorkerId id_counter_{0};

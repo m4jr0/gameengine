@@ -88,21 +88,13 @@ class TString {
 
   template <typename TChar>
   TString& Append(const TChar* str, uindex length) {
-    auto separator_len{
-        !IsSlash(GetTStr()[GetLength() - 1]) && !IsSlash(str[length - 1]) ? 1
-                                                                          : 0};
-
-    auto new_length{length_ + length + separator_len};
+    auto new_length{length_ + length};
 
     if (new_length > capacity_) {
       Reserve(new_length);
     }
 
-    if (separator_len == 1) {
-      Copy(GetTStr(), &kNativeSlash, 1, length_);
-    }
-
-    Copy(GetTStr(), str, length, length_ + separator_len);
+    Copy(GetTStr(), str, length, length_);
     length_ = new_length;
     GetTStr()[length_] = COMET_TCHAR('\0');
     return *this;

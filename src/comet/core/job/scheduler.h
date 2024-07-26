@@ -14,6 +14,7 @@
 #include "comet/core/job/job.h"
 #include "comet/core/job/worker.h"
 #include "comet/core/type/primitive.h"
+#include "comet/core/type/ring_queue.h"
 
 namespace comet {
 namespace job {
@@ -52,6 +53,11 @@ class Scheduler {
   std::vector<Fiber*> large_stack_fibers_{};
   std::vector<Fiber*> gigantic_stack_fibers_{};
   FiberMutex fiber_pool_mutex_{};
+
+  const uindex kCounterCount_{256};
+  Counter* counters_{nullptr};
+  ring_queue<Counter*> available_counters_{0};
+  SimpleLock counter_lock_{};
 
   std::vector<Worker> workers_{};
   std::vector<IOWorker> io_workers_{};

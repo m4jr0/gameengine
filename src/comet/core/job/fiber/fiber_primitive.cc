@@ -27,12 +27,9 @@ void FiberSpinLock::Lock() {
   while (!lock_.TryLock()) {
     Yield();
   }
-
-  Worker::DumpData("Lock #" + std::to_string(id_) + " SpinLock Locked!");
 }
 
 void FiberSpinLock::Unlock() {
-  Worker::DumpData("Lock #" + std::to_string(id_) + " SpinLock Unlocked!");
   lock_.Unlock();
 }
 
@@ -56,19 +53,10 @@ void FiberMutex::Lock() {
     COMET_ASSERT(fiber != owner_, "Lock is already owned by current fiber!");
 
     if (owner_ == nullptr) {
-      Worker::DumpData("Lock #" + std::to_string(id_) + " Becoming owner!");
-
-      if (GetCurrent()->GetId() == 128) {
-        int a = 0;
-        ++a;
-      }
-
       owner_ = fiber;
       return;
     }
 
-    Worker::DumpData("Lock #" + std::to_string(id_) +
-                     " Awaiting to become owner!");
     Yield();
   }
 }
@@ -77,8 +65,6 @@ void FiberMutex::Unlock() {
   auto* fiber{GetCurrent()};
   FiberSpinLockGuard guard{spin_lock_};
   COMET_ASSERT(fiber == owner_, "Lock is not owned by current fiber!");
-  Worker::DumpData("Lock #" + std::to_string(id_) +
-                   "  Giving ownership back...");
   owner_ = nullptr;
 }
 
@@ -87,6 +73,18 @@ FiberLockGuard::FiberLockGuard(FiberMutex& mutex) : mutex_{mutex} {
 }
 
 FiberLockGuard::~FiberLockGuard() { mutex_.Unlock(); }
+
+FiberAwareLockGuard::FiberAwareLockGuard(SimpleLock& lock) : lock_{lock} {
+  if (IsBlockableThread()) {
+    lock_.Lock();
+  } else {
+    while (!lock_.TryLock()) {
+      Yield();
+    }
+  }
+}
+
+FiberAwareLockGuard::~FiberAwareLockGuard() { lock_.Unlock(); }
 
 void FiberCV::Wait(FiberMutex& mtx) {
   mtx.Unlock();

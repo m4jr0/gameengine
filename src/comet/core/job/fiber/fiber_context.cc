@@ -41,8 +41,6 @@ void Yield() {
 
 void SwitchTo(Fiber* to) {
   auto* from{GetCurrent()};
-  Worker::DumpData(std::string("Switch from ") + std::to_string(from->GetId()) +
-                   " to " + std::to_string(to->GetId()));
   COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
   COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
   tls_current_fiber = to;

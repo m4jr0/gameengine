@@ -117,6 +117,22 @@ class FiberLockGuard {
   FiberMutex& mutex_;
 };
 
+class FiberAwareLockGuard{
+ public:
+  FiberAwareLockGuard() = delete;
+  explicit FiberAwareLockGuard(SimpleLock& lock);
+  FiberAwareLockGuard(const FiberAwareLockGuard&) = delete;
+  FiberAwareLockGuard(FiberAwareLockGuard&&) = delete;
+  FiberAwareLockGuard& operator=(const FiberAwareLockGuard&) = delete;
+  FiberAwareLockGuard& operator=(FiberAwareLockGuard&&) = delete;
+  ~FiberAwareLockGuard();
+
+ private:
+  static inline FiberPrimitiveId id_counter_{0};
+  FiberPrimitiveId id_{id_counter_++};
+  SimpleLock& lock_;
+};
+
 class FiberCV {
  public:
   FiberCV() = default;

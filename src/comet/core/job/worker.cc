@@ -67,19 +67,6 @@ void Worker::Destroy() {
 
 WorkerId Worker::GetId() const noexcept { return id_; }
 
-static std::mutex test{};
-
-void Worker::DumpData(std::string_view suffix) {
-  return;
-  auto* worker{tls_current_worker};
-  std::unique_lock lock{test};
-
-  // std::cout << "Worker (ID: " << worker->id_
-  //           << ", Fiber ID: " << worker->worker_fiber_->GetId() << ") | "
-  //           << "Current Fiber ID: " << job::GetCurrent()->GetId() << " ---- "
-  //           << suffix << '\n';
-}
-
 IOWorker::IOWorker(std::thread&& thread)
     : thread_{std::move(thread)}, id_{id_counter_++} {}
 

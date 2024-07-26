@@ -39,7 +39,8 @@ void DoSomeComputations(ParamsHandle data) {
 
 void CreateTmpFile(ParamsHandle data) {
   path = GetCurrentDirectory();
-  path.Append(reinterpret_cast<const tchar*>(data));
+  COMET_ALLOW_STR_ALLOC(path);
+  path /= reinterpret_cast<const tchar*>(data);
   CreateFile(path, true);
 
   JobDescr job_descr{};
@@ -213,9 +214,21 @@ void Scheduler::Shutdown() {
   gigantic_stack_fibers_.clear();
 }
 
-Counter* Scheduler::AllocateCounter() { return nullptr; }
+Counter* Scheduler::AllocateCounter() {
+  SimpleLockGuard lock{counter_lock_};
+  COMET_ASSERT(available_counters_.size() > 0,
+               "No counter is available anymore!");
+  auto* counter{available_counters_.front()};
+  available_counters_.pop();
+  return counter;
+}
 
-void Scheduler::FreeCounter([[maybe_unused]] Counter* counter) {}
+void Scheduler::FreeCounter(Counter* counter) {
+  COMET_ASSERT(counter != nullptr, "Counter provided is null!");
+  SimpleLockGuard lock{counter_lock_};
+  counter->value = 0;
+  available_counters_.push(counter);
+}
 
 void Scheduler::Kick(const JobDescr& job_descr) { SubmitJob(job_descr); }
 
@@ -301,18 +314,14 @@ void Scheduler::IOWorkerThread() {
     IOJobDescr job;
 
     {
+      if (is_shutdown_required_) {
+        break;
+      }
+
       SimpleLockGuard lock{io_queue_lock_};
 
       if (io_queue_.empty()) {
         continue;
-      }
-
-      /*std::unique_lock<std::mutex> lock{io_mutex_};
-      io_cv_.wait(
-          lock, [this] { return !io_queue_.empty() || is_shutdown_required_; });*/
-
-      if (is_shutdown_required_) {
-        break;
       }
 
       job = io_queue_.front();
@@ -324,18 +333,7 @@ void Scheduler::IOWorkerThread() {
 }
 
 Fiber* Scheduler::ResolveFiber(const JobDescr& job_descr) {
-  static int count = 0;
-  Worker::DumpData("Resolving fiber...");
   FiberLockGuard lock{fiber_pool_mutex_};
-
-  // >:3
-  ++count;
-
-  if (count == 2) {
-    int a = 0;
-    ++a;
-  }
-
   Fiber* fiber = large_stack_fibers_.back();
   large_stack_fibers_.pop_back();
   fiber->Reset();
@@ -344,7 +342,6 @@ Fiber* Scheduler::ResolveFiber(const JobDescr& job_descr) {
 
 void Scheduler::OnFiberEnd(Fiber* fiber) {
   auto& scheduler{Get()};
-  Worker::DumpData("OnFiberEnd...");
 
   {
     FiberLockGuard lock{scheduler.fiber_pool_mutex_};
@@ -357,8 +354,6 @@ void Scheduler::OnFiberEnd(Fiber* fiber) {
 
 void Scheduler::SubmitJob(const JobDescr& job_descr) {
   {
-    Worker::DumpData("Submitting job...");
-
     if (IsBlockableThread()) {
       queue_lock_.Lock();
     } else {
@@ -404,8 +399,6 @@ void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
 }
 
 void Scheduler::PromoteJobs() {
-  Worker::DumpData("Promotting job...");
-
   if (IsBlockableThread()) {
     queue_lock_.Lock();
   } else {
