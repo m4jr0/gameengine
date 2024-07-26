@@ -13,121 +13,77 @@
 
 namespace comet {
 namespace job {
-static u32 ja{123456};
-static u32 jaa{0};
-static u32 jb{789465};
+static u32 heavy_computations{0};
 static TString path;
 static auto* file{COMET_TCHAR("tmp.txt")};
 
 void WriteTmpFile(ParamsHandle data) {
-  std::ofstream file;
-  auto* path{reinterpret_cast<TString*>(data)};
-  OpenFileToWriteTo(*path, file);
+  std::ofstream file_stream;
+  OpenFileToWriteTo(path, file_stream);
   schar buff[512];
-  ConvertToStr(jaa, buff, 511);
-  WriteStrToFile(*path, buff);
-  CloseFile(file);
+  auto* retrieved_computations{reinterpret_cast<u32*>(data)};
+  ConvertToStr(*retrieved_computations, buff, 511);
+  WriteStrToFile(path, buff);
+  CloseFile(file_stream);
 }
 
 void DoSomeComputations(ParamsHandle data) {
-  jaa = 42424242;
+  heavy_computations = 42424242;
   IOJobDescr io_descr{};
   io_descr.entry_point = WriteTmpFile;
-  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&path);
+  io_descr.counter = reinterpret_cast<Counter*>(data);
+  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&heavy_computations);
   Scheduler::Get().Kick(io_descr);
 }
 
 void CreateTmpFile(ParamsHandle data) {
   path = GetCurrentDirectory();
   COMET_ALLOW_STR_ALLOC(path);
-  path /= reinterpret_cast<const tchar*>(data);
+  path /= file;
   CreateFile(path, true);
 
   JobDescr job_descr{};
   job_descr.entry_point = DoSomeComputations;
-  job_descr.params_handle = kInvalidParamsHandle;
+  job_descr.counter = reinterpret_cast<Counter*>(data);
+  job_descr.params_handle = reinterpret_cast<ParamsHandle>(job_descr.counter);
   job_descr.priority = JobPriority::Normal;
   Scheduler::Get().Kick(job_descr);
 }
 
 void ComputeA(ParamsHandle data) {
-  auto* test{reinterpret_cast<u32*>(data)};
-  *test = 42;
-
-  s32 a{0};
-  std::cout << "ComputeA - A0: " << a << '\n';
+  COMET_LOG_GLOBAL_INFO("Executing ComputeA -- Part 1");
 
   Yield();
 
+  COMET_LOG_GLOBAL_INFO("Executing ComputeA -- Part 2");
   IOJobDescr io_descr{};
   io_descr.entry_point = CreateTmpFile;
-  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&file[0]);
+  io_descr.counter = reinterpret_cast<Counter*>(data);
+  io_descr.params_handle = reinterpret_cast<ParamsHandle>(io_descr.counter);
   Scheduler::Get().Kick(io_descr);
-
-  ++a;
-  std::cout << "ComputeA - A2: " << a << '\n';
 }
 
 void ComputeB(ParamsHandle data) {
-  auto* test{reinterpret_cast<u32*>(data)};
-  s32 a{1337};
-  std::cout << "ComputeB - A1337: " << a << '\n';
-  ++a;
-  std::cout << "ComputeB - A1338: " << a << '\n';
+  COMET_LOG_GLOBAL_INFO("Executing ComputeB");
 }
 
-// Fiber* main;
-// Fiber* fiber_a;
-// Fiber* fiber_b;
-
 void TestFibers() {
-  // main = SwitchThreadToFiber();
-
-  // SwitchData data_a{&fiber_a, &main};
-  // SwitchData data_b{&fiber_b, &main};
-
-  //[[maybe_unused]] auto* data_a_p{&data_a};
-  //[[maybe_unused]] auto* data_b_p{&data_b};
+  auto* counter{Scheduler::Get().AllocateCounter()};
 
   JobDescr descr_a{};
   descr_a.entry_point = ComputeA;
-  descr_a.params_handle = reinterpret_cast<ParamsHandle>(&ja);
+  descr_a.params_handle = reinterpret_cast<ParamsHandle>(counter);
   descr_a.priority = JobPriority::High;
-  descr_a.counter = nullptr;
+  descr_a.counter = counter;
 
   JobDescr descr_b{};
   descr_b.entry_point = ComputeB;
-  descr_b.params_handle = reinterpret_cast<ParamsHandle>(&jb);
+  descr_b.params_handle = kInvalidParamsHandle;
   descr_b.priority = JobPriority::Normal;
-  descr_b.counter = nullptr;
+  descr_b.counter = Scheduler::Get().AllocateCounter();
 
-  Scheduler::Get().Kick(descr_a);
-  Scheduler::Get().Kick(descr_b);
-
-  // u32 params{1337};
-
-  // fiber_a = Generate(kNormalStack);
-  // fiber_b = Generate(kNormalStack);
-
-  // Attach(fiber_a, ComputeA, reinterpret_cast<ParamsHandle>(&params));
-  // Attach(fiber_b, ComputeB, reinterpret_cast<ParamsHandle>(&params));
-
-  // SwitchTo(fiber_a);
-  // SwitchTo(fiber_b);
-
-  // s32 a{42};
-  // std::cout << "TestFibers - A42: " << a << '\n';
-  //++a;
-  // std::cout << "TestFibers - A43: " << a << '\n';
-
-  // SwitchTo(fiber_a);
-
-  //++a;
-  // std::cout << "TestFibers - A44: " << a << '\n';
-
-  // Destroy(fiber_a);
-  // Destroy(fiber_b);
-  //  Destroy(main);
+  Scheduler::Get().KickAndWait(descr_a);
+  Scheduler::Get().KickAndWait(descr_b);
 }
 
 Scheduler& Scheduler::Get() {

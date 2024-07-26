@@ -36,6 +36,7 @@ struct JobDescr {
 struct IOJobDescr {
   EntryPoint entry_point{};
   ParamsHandle params_handle{kInvalidParamsHandle};
+  Counter* counter{nullptr};
 };
 }  // namespace job
 }  // namespace comet
