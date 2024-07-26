@@ -7,7 +7,6 @@
 #include <string>  // >:3
 
 #include "comet/core/debug.h"
-#include "comet/core/job/fiber/fiber_primitive.h"
 #include "comet/core/job/fiber/fiber_queue.h"
 #include "comet/core/job/worker.h"  // >:3 To remove.
 
@@ -20,6 +19,8 @@ extern "C" {
 extern void COMET_FORCE_NOT_INLINE
 SwitchExecutionContext(ExecutionContext* src, const ExecutionContext* dst);
 }
+
+bool IsFiber() { return tls_current_fiber != nullptr; }
 
 Fiber* GetCurrent() {
   COMET_ASSERT(tls_current_fiber != nullptr, "Current fiber is null!");

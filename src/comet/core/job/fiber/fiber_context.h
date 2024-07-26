@@ -13,6 +13,7 @@
 
 namespace comet {
 namespace job {
+bool IsFiber();
 Fiber* GetCurrent();
 void Yield();
 void SwitchTo(Fiber* to);

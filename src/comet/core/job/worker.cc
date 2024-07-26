@@ -12,9 +12,6 @@
 namespace comet {
 namespace job {
 thread_local Worker* tls_current_worker = nullptr;
-thread_local bool tls_is_blockable_thread = true;
-
-bool IsBlockableThread() { return tls_is_blockable_thread; }
 
 Worker& Worker::GetCurrent() {
   COMET_ASSERT(tls_current_worker != nullptr,
@@ -53,7 +50,6 @@ void Worker::Initialize() {
                "A worker has already been assigned to this thread!");
   tls_current_worker = this;
   worker_fiber_ = ConvertThreadToFiber();
-  tls_is_blockable_thread = false;
 }
 
 void Worker::Destroy() {
@@ -82,7 +78,7 @@ IOWorker& IOWorker::operator=(IOWorker&& other) noexcept {
   return *this;
 }
 
-void IOWorker::Initialize() { tls_is_blockable_thread = true; }
+void IOWorker::Initialize() {}
 
 void IOWorker::Destroy() {
   if (thread_.joinable()) {

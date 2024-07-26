@@ -73,7 +73,8 @@ FiberLockGuard::FiberLockGuard(FiberMutex& mutex) : mutex_{mutex} {
 FiberLockGuard::~FiberLockGuard() { mutex_.Unlock(); }
 
 FiberAwareLockGuard::FiberAwareLockGuard(SimpleLock& lock) : lock_{lock} {
-  if (IsBlockableThread()) {  // >:3 Check if current fiber is null?
+  // Case: blockable thread (no fiber is being executed).
+  if (!IsFiber()) {
     lock_.Lock();
     return;
   }
