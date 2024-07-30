@@ -53,6 +53,7 @@
 #define NOMINMAX
 #include <windows.h>
 
+#undef Yield
 #undef MoveMemory
 #undef CopyMemory
 #undef FillMemory

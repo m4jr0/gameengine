@@ -55,8 +55,7 @@ class Scheduler {
   FiberMutex fiber_pool_mutex_{};
 
   const uindex kCounterCount_{256};
-  Counter* counters_{nullptr};
-  ring_queue<Counter*> available_counters_{0};
+  ring_queue<Counter*> available_counters_{kCounterCount_};
   SimpleLock counter_lock_{};
 
   std::vector<Worker> workers_{};
@@ -82,7 +81,7 @@ class Scheduler {
   void WorkerThread(uindex worker_index);
   void IOWorkerThread();
   Fiber* ResolveFiber(const JobDescr& job_descr);
-  static void OnFiberEnd(Fiber* fiber);
+  static void OnFiberEnd(Fiber* fiber, void* data);
   void SubmitJob(const JobDescr& job_descr);
   void SubmitJob(const IOJobDescr& job_descr);
   void PromoteJobs();

@@ -18,10 +18,7 @@
 #include "comet/core/job/fiber/fiber_context.h"
 #include "comet/core/job/fiber/fiber_primitive.h"
 #include "comet/core/type/primitive.h"
-
-#ifdef COMET_MSVC
-#undef Yield
-#endif
+#include "comet/core/job/scheduler.h"
 
 // If issues arise with current terminal, comment this line.
 #define COMET_TERMINAL_COLORS
@@ -76,7 +73,7 @@ class Logger final {
   typename std::enable_if<
       std::is_fundamental<T>::value && !is_char_pointer<T>::value, void>::type
   AddToBuffer(const T& arg) {
-    job::FiberLockGuard lock{buffer_mutex_};
+    job::FiberAwareLockGuard lock{buffer_lock_};
     auto len{GetCharCount(arg)};
 
     // Take both \0 and \n into account.
@@ -156,7 +153,8 @@ class Logger final {
   static constexpr uindex kBufferSize_{4096};
   uindex buffer_index_{0};
   schar buffer_[kBufferSize_]{'\0'};
-  job::FiberMutex buffer_mutex_{};
+  job::SimpleLock buffer_lock_{};
+  job::Counter* last_counter_{nullptr};
 
   Logger();
 

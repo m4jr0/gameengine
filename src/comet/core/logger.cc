@@ -4,7 +4,7 @@
 
 #include "logger.h"
 
-#include "comet/core/job/scheduler.h"
+#include "comet/core/job/scheduler_utils.h"
 
 namespace comet {
 void Logger::Flush() {
@@ -25,29 +25,27 @@ Logger& Logger::Get() {
 Logger::Logger() { ScheduleLogsProcessing(); }
 
 void Logger::ProcessLogs() {
-  for (;;) {
-    {
-      job::FiberLockGuard lock{buffer_mutex_};
-      Flush();
-    }
-
-    job::Yield();
-  }
+  job::FiberAwareLockGuard lock{buffer_lock_};
+  Flush();
 }
 
 void Logger::ScheduleLogsProcessing() {
-  job::JobDescr descr{};
-  descr.entry_point = OnLogProcessingRequest;
-  descr.priority = job::JobPriority::Low;
-  descr.params_handle = reinterpret_cast<job::ParamsHandle>(this);
-  job::Scheduler::Get().Kick(descr);
+  auto& scheduler{job::Scheduler::Get()};
+  last_counter_ = scheduler.AllocateCounter();
+  scheduler.Kick(job::GenerateIOJobDescr(
+      OnLogProcessingRequest, reinterpret_cast<job::ParamsHandle>(this),
+      last_counter_));
 }
 
 void Logger::OnLogProcessingRequest(job::ParamsHandle params_handle) {
   auto* logger{reinterpret_cast<Logger*>(params_handle)};
+  COMET_ASSERT(logger->last_counter_ != nullptr, "Last counter is null!");
+  job::Scheduler::Get().FreeCounter(logger->last_counter_);
+  logger->last_counter_ = nullptr;
   logger->ProcessLogs();
   logger->ScheduleLogsProcessing();
 }
+
 const schar* GetLoggerTypeLabel(LoggerType type) {
   switch (type) {
     case LoggerType::Global:
@@ -92,7 +90,7 @@ void Logger::AddToBuffer(CTStringView arg) {
 }
 
 void Logger::AddToBuffer(std::string_view arg) {
-  job::FiberLockGuard lock{buffer_mutex_};
+  job::FiberAwareLockGuard lock{buffer_lock_};
   auto len{arg.size()};
 
   // Take both \0 and \n into account.

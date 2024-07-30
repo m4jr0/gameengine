@@ -8,10 +8,6 @@
 #include "comet/core/compiler.h"
 #include "comet/core/type/primitive.h"
 
-#ifdef COMET_MSVC
-#undef Yield
-#endif
-
 namespace comet {
 namespace job {
 using FiberId = uindex;
@@ -21,7 +17,7 @@ using ParamsHandle = uptr;
 constexpr auto kInvalidParamsHandle{0};
 
 class Fiber;
-using OnFiberEndCallback = void (*)(Fiber*);
+using OnFiberEndCallback = void (*)(Fiber*, void*);
 using EntryPoint = void (*)(ParamsHandle);
 
 // Callees expect the tack to be misaligned by sizeof(uptr) due to the call from
@@ -74,12 +70,7 @@ struct ExecutionContext {
 
 struct SwitchData;
 
-enum class FiberState {
-	Unknown = 0,
-	Pending,
-	Running,
-	Suspended
-};
+enum class FiberState { Unknown = 0, Pending, Running, Suspended };
 
 using FiberFunc = void (*)(SwitchData*);
 
@@ -98,7 +89,8 @@ class Fiber {
   void Reset();
 
   void Attach(EntryPoint entry_point, ParamsHandle params_handle,
-              OnFiberEndCallback end_callback = nullptr);
+              OnFiberEndCallback end_callback = nullptr,
+              void* end_callback_data = nullptr);
   void Detach();
   static void Run(Fiber* fiber);
   bool IsRunning() const noexcept;
@@ -116,6 +108,7 @@ class Fiber {
   EntryPoint entry_point_{nullptr};
   ParamsHandle params_handle_{kInvalidParamsHandle};
   OnFiberEndCallback end_callback_{nullptr};
+  void* end_callback_data_{nullptr};
   uindex stack_size_{0};
   u8* stack_{nullptr};
   uptr* stack_top_{nullptr};

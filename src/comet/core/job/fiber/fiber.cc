@@ -61,16 +61,19 @@ void Fiber::Reset() {
 }
 
 void Fiber::Attach(EntryPoint entry_point, ParamsHandle params_handle,
-                   OnFiberEndCallback end_callback) {
+                   OnFiberEndCallback end_callback,
+                   void* end_callback_data) {
   entry_point_ = entry_point;
   params_handle_ = params_handle;
   end_callback_ = end_callback;
+  end_callback_data_ = end_callback_data;
 }
 
 void Fiber::Detach() {
   entry_point_ = nullptr;
   params_handle_ = kInvalidParamsHandle;
   end_callback_ = nullptr;
+  end_callback_data_ = nullptr;
 }
 
 void Fiber::Run(Fiber* fiber) {
@@ -79,7 +82,7 @@ void Fiber::Run(Fiber* fiber) {
   fiber->entry_point_(fiber->params_handle_);
 
   if (fiber->end_callback_ != nullptr) {
-    fiber->end_callback_(fiber);
+    fiber->end_callback_(fiber, fiber->end_callback_data_);
   }
 }
 

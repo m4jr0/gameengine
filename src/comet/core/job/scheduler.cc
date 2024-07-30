@@ -9,8 +9,8 @@
 #include "comet/core/job/fiber/fiber_context.h"
 #include "comet/core/job/fiber/fiber_queue.h"
 #include "comet/core/job/job.h"
+#include "comet/core/job/scheduler_utils.h"  // >:3 To remove!
 #include "comet/time/time_manager.h"
-
 namespace comet {
 namespace job {
 static u32 heavy_computations{0};
@@ -29,11 +29,9 @@ void WriteTmpFile(ParamsHandle data) {
 
 void DoSomeComputations(ParamsHandle data) {
   heavy_computations = 42424242;
-  IOJobDescr io_descr{};
-  io_descr.entry_point = WriteTmpFile;
-  io_descr.counter = reinterpret_cast<Counter*>(data);
-  io_descr.params_handle = reinterpret_cast<ParamsHandle>(&heavy_computations);
-  Scheduler::Get().Kick(io_descr);
+  Scheduler::Get().Kick(GenerateIOJobDescr(
+      WriteTmpFile, reinterpret_cast<ParamsHandle>(&heavy_computations),
+      reinterpret_cast<Counter*>(data)));
 }
 
 void CreateTmpFile(ParamsHandle data) {
@@ -41,13 +39,9 @@ void CreateTmpFile(ParamsHandle data) {
   COMET_ALLOW_STR_ALLOC(path);
   path /= file;
   CreateFile(path, true);
-
-  JobDescr job_descr{};
-  job_descr.entry_point = DoSomeComputations;
-  job_descr.counter = reinterpret_cast<Counter*>(data);
-  job_descr.params_handle = reinterpret_cast<ParamsHandle>(job_descr.counter);
-  job_descr.priority = JobPriority::Normal;
-  Scheduler::Get().Kick(job_descr);
+  Scheduler::Get().Kick(GenerateJobDescr(JobPriority::Normal,
+                                         DoSomeComputations, data,
+                                         reinterpret_cast<Counter*>(data)));
 }
 
 void ComputeA(ParamsHandle data) {
@@ -56,11 +50,8 @@ void ComputeA(ParamsHandle data) {
   Yield();
 
   COMET_LOG_GLOBAL_INFO("Executing ComputeA -- Part 2");
-  IOJobDescr io_descr{};
-  io_descr.entry_point = CreateTmpFile;
-  io_descr.counter = reinterpret_cast<Counter*>(data);
-  io_descr.params_handle = reinterpret_cast<ParamsHandle>(io_descr.counter);
-  Scheduler::Get().Kick(io_descr);
+  Scheduler::Get().Kick(GenerateIOJobDescr(CreateTmpFile, data,
+                                           reinterpret_cast<Counter*>(data)));
 }
 
 void ComputeB(ParamsHandle data) {
@@ -68,22 +59,16 @@ void ComputeB(ParamsHandle data) {
 }
 
 void TestFibers() {
-  auto* counter{Scheduler::Get().AllocateCounter()};
+  auto* counter_a{Scheduler::Get().AllocateCounter()};
 
-  JobDescr descr_a{};
-  descr_a.entry_point = ComputeA;
-  descr_a.params_handle = reinterpret_cast<ParamsHandle>(counter);
-  descr_a.priority = JobPriority::High;
-  descr_a.counter = counter;
+  Scheduler::Get().KickAndWait(
+      GenerateJobDescr(JobPriority::High, ComputeA,
+                       reinterpret_cast<ParamsHandle>(counter_a), counter_a));
+  Scheduler::Get().FreeCounter(counter_a);
 
-  JobDescr descr_b{};
-  descr_b.entry_point = ComputeB;
-  descr_b.params_handle = kInvalidParamsHandle;
-  descr_b.priority = JobPriority::Normal;
-  descr_b.counter = Scheduler::Get().AllocateCounter();
-
-  Scheduler::Get().KickAndWait(descr_a);
-  Scheduler::Get().KickAndWait(descr_b);
+  auto job_b{GenerateJobDescr(JobPriority::Normal, ComputeB)};
+  Scheduler::Get().KickAndWait(job_b);
+  Scheduler::Get().FreeCounter(job_b.counter);
 }
 
 Scheduler& Scheduler::Get() {
@@ -107,6 +92,12 @@ void Scheduler::Initialize() {
     auto* fiber{AllocateAligned<Fiber>(MemoryTag::Fiber)};
     new (fiber) Fiber{kGiganticStack};
     gigantic_stack_fibers_.emplace_back(fiber);
+  }
+
+  for (uindex i{0}; i < kCounterCount_; ++i) {
+    auto* counter{AllocateAligned<Counter>(MemoryTag::Fiber)};
+    new (counter) Counter{};
+    available_counters_.push(counter);
   }
 
   is_shutdown_required_ = false;
@@ -168,6 +159,12 @@ void Scheduler::Shutdown() {
   }
 
   gigantic_stack_fibers_.clear();
+
+  for (uindex i{0}; i < available_counters_.size(); ++i) {
+    auto* counter{available_counters_.front()};
+    available_counters_.pop();
+    Deallocate(counter);
+  }
 }
 
 Counter* Scheduler::AllocateCounter() {
@@ -176,13 +173,14 @@ Counter* Scheduler::AllocateCounter() {
                "No counter is available anymore!");
   auto* counter{available_counters_.front()};
   available_counters_.pop();
+  counter->Reset();
   return counter;
 }
 
 void Scheduler::FreeCounter(Counter* counter) {
   COMET_ASSERT(counter != nullptr, "Counter provided is null!");
   SimpleLockGuard lock{counter_lock_};
-  counter->value = 0;
+  counter->Reset();
   available_counters_.push(counter);
 }
 
@@ -202,12 +200,20 @@ void Scheduler::Kick(uindex job_count, const IOJobDescr* job_descrs) {
   }
 }
 
-void Scheduler::Wait([[maybe_unused]] Counter* counter) {}
+void Scheduler::Wait(Counter* counter) { CounterGuard guard{*counter}; }
 
-void Scheduler::KickAndWait([[maybe_unused]] const JobDescr& job_descr) {}
+void Scheduler::KickAndWait(const JobDescr& job_descr) {
+  Kick(job_descr);
+  Wait(job_descr.counter);
+}
 
-void Scheduler::KickAndWait([[maybe_unused]] uindex job_count,
-                            [[maybe_unused]] const JobDescr* job_descrs) {}
+void Scheduler::KickAndWait(uindex job_count, const JobDescr* job_descrs) {
+  Kick(job_count, job_descrs);
+
+  for (uindex i{0}; i < job_count; ++i) {
+    Wait(job_descrs[i].counter);
+  }
+}
 
 void Scheduler::WorkerThread(uindex worker_index) {
   auto& worker{workers_[worker_index]};
@@ -242,7 +248,8 @@ void Scheduler::WorkerThread(uindex worker_index) {
       auto& job{queue->front()};
       auto* fiber{ResolveFiber(job)};
       COMET_ASSERT(fiber != nullptr, "No fiber available!");
-      fiber->Attach(job.entry_point, job.params_handle, OnFiberEnd);
+      fiber->Attach(job.entry_point, job.params_handle, OnFiberEnd,
+                    job.counter);
       queue->pop();
       auto& fiber_queue{FiberQueue::Get()};
       fiber_queue.Enqueue(fiber);
@@ -287,7 +294,8 @@ Fiber* Scheduler::ResolveFiber(const JobDescr& job_descr) {
   return fiber;
 }
 
-void Scheduler::OnFiberEnd(Fiber* fiber) {
+void Scheduler::OnFiberEnd(Fiber* fiber, void* data) {
+  auto* counter{static_cast<Counter*>(data)};
   auto& scheduler{Get()};
 
   {
@@ -296,10 +304,15 @@ void Scheduler::OnFiberEnd(Fiber* fiber) {
     scheduler.large_stack_fibers_.emplace_back(fiber);
   }
 
+  counter->Decrement();
   SwitchTo(FiberQueue::Get().Dequeue());
 }
 
 void Scheduler::SubmitJob(const JobDescr& job_descr) {
+  COMET_ASSERT(job_descr.counter != nullptr,
+               "Counter of job provided is null!");
+  job_descr.counter->Increment();
+
   {
     FiberAwareLockGuard lock_guard{queue_lock_};
 
@@ -324,6 +337,7 @@ void Scheduler::SubmitJob(const JobDescr& job_descr) {
 }
 
 void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
+  job_descr.counter->Increment();
   FiberAwareLockGuard lock_guard{io_queue_lock_};
   io_queue_.emplace(job_descr);
   io_cv_.notify_one();

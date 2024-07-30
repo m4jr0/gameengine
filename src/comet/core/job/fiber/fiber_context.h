@@ -7,10 +7,6 @@
 
 #include "comet/core/job/fiber/fiber.h"
 
-#ifdef COMET_MSVC
-#undef Yield
-#endif
-
 namespace comet {
 namespace job {
 bool IsFiber();
