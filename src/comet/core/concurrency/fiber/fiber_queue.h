@@ -29,7 +29,7 @@ class FiberQueue {
   // TODO(m4jr0): Use configuration.
   static constexpr usize kQueueCount_{128};
 
-  LockFreeMPMCRingQueue<Fiber*> queue_{kQueueCount_};
+  RingQueue<Fiber*> queue_{kQueueCount_};
 };
 }  // namespace fiber
 }  // namespace comet

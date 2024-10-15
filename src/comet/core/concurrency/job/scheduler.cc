@@ -133,7 +133,7 @@ void Scheduler::Start(const JobDescr& callback_descr) {
                "Scheduler appears to have started already!");
 
   for (usize i{0}; i < worker_count_ - 1; ++i) {
-    workers_.emplace_back(std::thread{&Scheduler::WorkerThread, this, i + 1});
+    workers_.emplace_back(std::thread{&Scheduler::WorkerThread, this, i});
   }
 
   for (usize i{0}; i < io_worker_count_; ++i) {
@@ -223,7 +223,6 @@ void Scheduler::WorkerThread(usize worker_index) {
     }
 
     auto& job{job_box.value()};
-
     auto* fiber{ResolveFiber(job)};
     COMET_ASSERT(fiber != nullptr, "No fiber available!");
     fiber->Attach(job.entry_point, job.params_handle, OnFiberEnd, job.counter);

@@ -7,15 +7,20 @@
 namespace comet {
 namespace fiber {
 FiberQueue& FiberQueue::Get() {
-  static FiberQueue singleton{};
+  static thread_local FiberQueue singleton{};
   return singleton;
 }
 
 void FiberQueue::Push(Fiber* fiber) { queue_.Push(fiber); }
 
 Fiber* FiberQueue::Pop() {
-  auto fiber{queue_.Pop()};
-  return fiber.has_value() ? fiber.value() : nullptr;
+  if (queue_.IsEmpty()) {
+    return nullptr;
+  }
+
+  auto* fiber{queue_.Get()};
+  queue_.Pop();
+  return fiber;
 }
 }  // namespace fiber
 }  // namespace comet

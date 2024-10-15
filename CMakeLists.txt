@@ -144,7 +144,7 @@ project("comet_game_engine"
 )
 
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
-option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" OFF)
+option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" ON)
 
 # Compiler specifics.
 if(MSVC)

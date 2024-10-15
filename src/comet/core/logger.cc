@@ -85,7 +85,7 @@ Logger::~Logger() {
 }
 
 Logger::Logger() {
-  is_running_.store(false, std::memory_order_release);
+  is_running_.store(true, std::memory_order_release);
   is_initialized_.store(true, std::memory_order_release);
   flush_thread_ = std::thread{&Logger::ListenToFlushRequests, this};
 }

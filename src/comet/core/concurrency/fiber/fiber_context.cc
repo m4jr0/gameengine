@@ -32,11 +32,17 @@ void Yield() {
     return;
   }
 
-  FiberQueue::Get().Push(fiber);
+  fiber_queue.Push(fiber);
   SwitchTo(sleeping_fiber);
 }
 
 void SwitchTo(Fiber* to) {
+  if (to == nullptr) {
+    auto& queue{fiber::FiberQueue::Get()};
+    int a = 0;
+    ++a;
+  }
+
   auto* from{GetCurrent()};
   COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
   COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
