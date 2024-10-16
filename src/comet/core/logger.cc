@@ -5,11 +5,11 @@
 #include "logger.h"
 
 #include <chrono>
-#include <cstring>
 
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/job/scheduler_utils.h"
 #include "comet/core/concurrency/thread/thread_utils.h"
+#include "comet/core/memory/memory.h"
 
 namespace comet {
 void Logger::Dispose() { is_running_.store(false, std::memory_order_release); }
@@ -220,7 +220,7 @@ void Logger::Send(const schar* str, usize len) {
       continue;
     }
 
-    std::memcpy(buffer.data + old_current_len, str, len);
+    memory::CopyMemory(buffer.data + old_current_len, str, len);
     buffer.active_writer_count.fetch_sub(1, std::memory_order_release);
     break;
   }

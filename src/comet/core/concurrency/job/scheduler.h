@@ -76,8 +76,7 @@ class Scheduler {
   usize worker_count_{0};
   usize io_worker_count_{0};
   internal::SchedulerStarterBarrier starter_barrier_{};
-  f64 last_promotion_time_{0};
-  f64 promotion_interval_{1000};
+  u32 promotion_interval_{1000};
 
   std::vector<fiber::Fiber*> large_stack_fibers_{};
   std::vector<fiber::Fiber*> gigantic_stack_fibers_{};
@@ -89,7 +88,6 @@ class Scheduler {
 
   std::vector<Worker> workers_{};
   std::vector<IOWorker> io_workers_{};
-  std::atomic<usize> worker_ready_count_{0};
   bool is_shutdown_required_{false};
 
   LockFreeMPMCRingQueue<JobDescr> low_priority_queue_{
@@ -102,6 +100,7 @@ class Scheduler {
       static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
 
   void WorkerThread(usize worker_index);
+  void Work();
   void IOWorkerThread();
   fiber::Fiber* ResolveFiber(const JobDescr& job_descr);
   static void OnFiberEnd(fiber::Fiber* fiber, void* data);

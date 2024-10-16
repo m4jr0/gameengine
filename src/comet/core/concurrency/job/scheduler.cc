@@ -14,7 +14,7 @@
 #include "comet/core/concurrency/thread/thread_utils.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
-#include "comet/time/time_manager.h"
+#include "comet/time/chrono.h"
 
 namespace comet {
 namespace job {
@@ -76,7 +76,7 @@ void Scheduler::Initialize() {
     worker_count_ = thread::GetConcurrentThreadCount();
   }
 
-  workers_.reserve(worker_count_ - 1);
+  workers_.reserve(worker_count_);
   io_worker_count_ = COMET_CONF_U8(conf::kCoreForcedIOWorkerCount);
 
   if (io_worker_count_ == 0) {
@@ -132,7 +132,9 @@ void Scheduler::Start(const JobDescr& callback_descr) {
   COMET_ASSERT(!starter_barrier_.IsReady(),
                "Scheduler appears to have started already!");
 
-  for (usize i{0}; i < worker_count_ - 1; ++i) {
+  workers_.emplace_back(std::thread{});
+
+  for (usize i{1}; i < worker_count_; ++i) {
     workers_.emplace_back(std::thread{&Scheduler::WorkerThread, this, i});
   }
 
@@ -141,8 +143,9 @@ void Scheduler::Start(const JobDescr& callback_descr) {
   }
 
   starter_barrier_.Unleash();
+  workers_[0].Initialize();
   Scheduler::Get().Kick(callback_descr);
-  WorkerThread(0);  // Main thread now behaves as a worker.
+  Work();  // Main thread now behaves as a worker.
 }
 
 Counter* Scheduler::AllocateCounter() {
@@ -197,14 +200,17 @@ void Scheduler::WorkerThread(usize worker_index) {
   starter_barrier_.Wait();
   auto& worker{workers_[worker_index]};
   worker.Initialize();
-  ++worker_ready_count_;
+  Work();
+}
+
+void Scheduler::Work() {
+  time::Chrono chrono{};
+  chrono.Start(promotion_interval_);
 
   while (!is_shutdown_required_) {
-    auto current_time{time::TimeManager::Get().GetCurrentTime()};
-
-    if (current_time - last_promotion_time_ >= promotion_interval_) {
+    if (chrono.IsFinished()) {
       PromoteJobs();
-      last_promotion_time_ = current_time;
+      chrono.Restart();
     }
 
     std::optional<JobDescr> job_box{high_priority_queue_.Pop()};
@@ -234,8 +240,6 @@ void Scheduler::WorkerThread(usize worker_index) {
 }
 
 void Scheduler::IOWorkerThread() {
-  ++worker_ready_count_;
-
   while (!is_shutdown_required_) {
     if (is_shutdown_required_) {
       break;

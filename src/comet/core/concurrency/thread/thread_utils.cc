@@ -4,14 +4,18 @@
 
 #include "thread_utils.h"
 
+#include <atomic>
 #include <thread>
 
 namespace comet {
 namespace thread {
-static ThreadId thread_id_counter{0};
+static_assert(std::atomic<ThreadId>::is_always_lock_free,
+              "std::atomic<ThreadId> needs to be always lock-free. Unsupported "
+              "architecture");
+static std::atomic<ThreadId> thread_id_counter{0};
 
 ThreadId GetThreadId() {
-  static thread_local ThreadId thread_id{thread_id_counter++};
+  static thread_local ThreadId thread_id{thread_id_counter.fetch_add(1)};
   return thread_id;
 }
 

@@ -11,6 +11,7 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/time/chrono.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/time/time_manager.cc"
 )
 
