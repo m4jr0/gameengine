@@ -144,7 +144,8 @@ project("comet_game_engine"
 )
 
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
-option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" ON)
+option(COMET_IS_ASAN "Enable TSan (ThreadSanitizer)" ON)
+option(COMET_IS_TSAN "Enable ASan (AddressSanitizer)" ON)
 
 # Compiler specifics.
 if(MSVC)
@@ -155,6 +156,13 @@ if(MSVC)
   if(COMET_ARE_WARNINGS_ERRORS)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
   endif()
+
+  if(COMET_IS_ASAN)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
+    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} /fsanitize=address")
+    add_definitions(-D_DISABLE_STRING_ANNOTATION=1)
+    add_definitions(-D_DISABLE_VECTOR_ANNOTATION=1)
+  endif()
 else()
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 
@@ -164,6 +172,11 @@ else()
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -rdynamic")
+  endif()
+
+  if(COMET_IS_ASAN)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
   endif()
 
   if(COMET_IS_TSAN)

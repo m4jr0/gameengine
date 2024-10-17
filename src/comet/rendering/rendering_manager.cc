@@ -85,7 +85,7 @@ void RenderingManager::Update(frame::FramePacket& packet) {
   }
 
   driver_->Update(packet.interpolation);
-  // input::InputManager::Get().Update();
+  input::InputManager::Get().Update();
   ++counter_;
 }
 
