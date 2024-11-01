@@ -4,11 +4,13 @@
 
 #include "asset_manager.h"
 
-#include "nlohmann/json.hpp"
-
+#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/concurrency/job/scheduler.h"
+#include "comet/core/concurrency/job/scheduler_utils.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
+#include "comet/core/memory/tagged_heap.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/asset_utils.h"
@@ -16,6 +18,7 @@
 #include "editor/asset/exporter/shader/shader_exporter.h"
 #include "editor/asset/exporter/shader/shader_module_exporter.h"
 #include "editor/asset/exporter/texture/texture_exporter.h"
+#include "nlohmann/json.hpp"
 
 namespace comet {
 namespace editor {
@@ -77,16 +80,21 @@ void AssetManager::Shutdown() {
 void AssetManager::Refresh() { Refresh(root_asset_path_); }
 
 void AssetManager::Refresh(CTStringView asset_abs_path) {
+  auto& scheduler{job::Scheduler::Get()};
+  auto* global_counter{scheduler.AllocateCounter()};
+
   if (IsDirectory(asset_abs_path)) {
-    RefreshFolder(asset_abs_path);
+    RefreshFolder(asset_abs_path, global_counter);
   } else if (IsFile(asset_abs_path)) {
-    RefreshAsset(asset_abs_path);
+    RefreshAsset(asset_abs_path, global_counter);
   } else {
     COMET_LOG_GLOBAL_ERROR("Bad path given: ", asset_abs_path);
     return;
   }
 
   RefreshLibraryMetadataFile();
+  scheduler.Wait(global_counter);
+  scheduler.FreeCounter(global_counter);
 }
 
 const TString& AssetManager::GetAssetsRootPath() const noexcept {
@@ -97,7 +105,8 @@ const TString& AssetManager::GetResourcesRootPath() const noexcept {
   return root_resource_path_;
 }
 
-void AssetManager::RefreshFolder(CTStringView asset_abs_path) {
+void AssetManager::RefreshFolder(CTStringView asset_abs_path,
+                                 job::Counter* counter) {
   auto parent_path{GetParentPath(asset_abs_path)};
   auto folder_name{GetName(asset_abs_path)};
 
@@ -122,15 +131,23 @@ void AssetManager::RefreshFolder(CTStringView asset_abs_path) {
     SetAndGetMetadata(metadata_file_path);
   }
 
+  auto& scheduler{job::Scheduler::Get()};
+
   ForEachDirectory(asset_abs_path, [&](CTStringView directory_path) {
-    RefreshFolder(directory_path);
+    auto job{internal::AssetManagerHelper::GenerateItemRefreshJobDescr(
+        directory_path, counter, true)};
+    scheduler.Kick(job);
   });
 
-  ForEachFile(asset_abs_path,
-              [&](CTStringView file_path) { RefreshAsset(file_path); });
+  ForEachFile(asset_abs_path, [&](CTStringView file_path) {
+    auto job{internal::AssetManagerHelper::GenerateItemRefreshJobDescr(
+        file_path, counter, false)};
+    scheduler.Kick(job);
+  });
 }
 
-void AssetManager::RefreshAsset(CTStringView asset_abs_path) {
+void AssetManager::RefreshAsset(CTStringView asset_abs_path,
+                                job::Counter* counter) {
   auto asset_metadata_file_path{GenerateAssetMetadataFilePath(asset_abs_path)};
 
   if (!IsRefreshNeeded(asset_abs_path, asset_metadata_file_path)) {
@@ -143,7 +160,9 @@ void AssetManager::RefreshAsset(CTStringView asset_abs_path) {
 
   for (const auto& exporter : exporters_) {
     if (exporter->IsCompatible(GetExtension(asset_abs_path))) {
-      exporter->Process(asset_abs_path);
+      auto job{internal::AssetManagerHelper::GenerateAssetExportJobDescr(
+          asset_abs_path, exporter.get(), counter)};
+      job::Scheduler::Get().Kick(job);
     }
   }
 }

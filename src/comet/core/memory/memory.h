@@ -28,10 +28,11 @@ enum class MemoryTag {
   TwoFrames = 3,
   TString = 4,
   Entity = 5,
-  Fiber = 6
+  Fiber = 6,
+  Asset = 7
 };
 
-constexpr auto kMaxMemoryTagCount{7};
+constexpr auto kMaxMemoryTagCount{8};
 
 constexpr std::underlying_type_t<MemoryTag> GetMemoryTagIndex(
     MemoryTag tag) noexcept {

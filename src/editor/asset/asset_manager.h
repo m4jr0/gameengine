@@ -5,8 +5,10 @@
 #ifndef COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 #define COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
+#include "editor/asset/asset_manager_helper.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
 namespace comet {
@@ -33,8 +35,10 @@ class AssetManager : public Manager {
   const TString& GetResourcesRootPath() const noexcept;
 
  private:
-  void RefreshFolder(CTStringView asset_abs_path);
-  void RefreshAsset(CTStringView asset_abs_path);
+  friend internal::AssetManagerHelper;
+
+  void RefreshFolder(CTStringView asset_abs_path, job::Counter* counter);
+  void RefreshAsset(CTStringView asset_abs_path, job::Counter* counter);
   bool IsRefreshNeeded(CTStringView asset_abs_path,
                        CTStringView metadata_file_path) const;
 

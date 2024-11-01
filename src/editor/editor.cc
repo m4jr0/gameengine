@@ -47,10 +47,9 @@ void CometEditor::Load() {
 #endif  // COMET_UNIX
 
   LoadTmpCode();
-  asset_manager_ = std::make_unique<asset::AssetManager>();
-  asset_manager_->Initialize();
-  asset_manager_->Refresh();
-
+  auto& asset_manager{asset::AssetManager::Get()};
+  asset_manager.Initialize();
+  asset_manager.Refresh();
   Engine::Load();
 }
 
@@ -62,7 +61,7 @@ void CometEditor::PostLoad() {
 
 void CometEditor::PostUnload() {
   PostUnloadTmpCode();
-  asset_manager_->Shutdown();
+  asset::AssetManager::Get().Shutdown();
   Engine::PostUnload();
 }
 

@@ -30,6 +30,7 @@ target_sources(${EXECUTABLE_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/editor/asset/asset.h"
     "${PROJECT_SOURCE_DIR}/src/editor/asset/asset_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/asset_manager_helper.cc"
     "${PROJECT_SOURCE_DIR}/src/editor/asset/asset_utils.cc"
 
     # Exporters.

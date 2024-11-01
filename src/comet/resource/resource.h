@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "comet/core/compression.h"
+#include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
@@ -68,6 +69,9 @@ class ResourceCache {
   void Destroy(ResourceId resource_id);
 
  private:
+  // TODO(m4jr0): Use a lock-free map instead.
+  // Tags: concurrency lockfree job
+  fiber::FiberMutex mutex_{};
   std::unordered_map<ResourceId, std::unique_ptr<Resource>> cache_{};
 };
 

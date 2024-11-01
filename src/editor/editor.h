@@ -40,7 +40,6 @@ class CometEditor : public Engine {
   void PostLoadTmpCode();
   void PostUnloadTmpCode();
 
-  std::unique_ptr<asset::AssetManager> asset_manager_{nullptr};
   std::unique_ptr<CameraHandler> camera_handler_{nullptr};
 };
 }  // namespace editor
