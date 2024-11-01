@@ -5,18 +5,19 @@
 #include "archetype.h"
 
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_general_alloc.h"
 
 namespace comet {
 namespace entity {
 ArchetypePointer GenerateArchetype() {
-  auto* p{memory::AllocateAligned<Archetype>(memory::MemoryTag::Entity)};
+  auto* p{memory::AllocateOneAndPopulate<Archetype>(
+      memory::kEngineMemoryTagEntity)};
 
   ArchetypePointer archetype(p, [](Archetype* p) {
     p->~Archetype();
     memory::Deallocate(p);
   });
 
-  new (archetype.get()) Archetype();
   return archetype;
 }
 }  // namespace entity

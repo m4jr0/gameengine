@@ -42,6 +42,10 @@ const schar* GetJobStackSizeLabel(JobStackSize stack_size) {
       return "normal";
     case JobStackSize::Large:
       return "large";
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+    case JobStackSize::ExternalLibrary:
+      return "external library";
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
   }
 
   return "???";

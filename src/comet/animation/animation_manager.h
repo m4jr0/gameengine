@@ -14,7 +14,7 @@ namespace animation {
 class AnimationManager : public Manager {
  public:
   static AnimationManager& Get();
-  void Update(frame::FramePacket& packet);
+  void Update(frame::FramePacket* packet);
 
   AnimationManager() = default;
   AnimationManager(const AnimationManager&) = delete;

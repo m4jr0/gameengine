@@ -56,9 +56,36 @@ VkResult CreateDebugReportCallback(const VkInstance instance_handle,
                                    VkDebugReportCallbackEXT& report_callback);
 void DestroyDebugReportCallback(const VkInstance instance_handle,
                                 const VkDebugReportCallbackEXT report_callback);
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+namespace internal {
+static PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT{nullptr};
+static VkDevice device_handle{VK_NULL_HANDLE};
+}  // namespace internal
+
+void InitializeDebugLabels(VkInstance instance_handle, VkDevice device_handle);
+void SetDebugLabel(VkObjectType object_type, u64 object_handle,
+                   const schar* label);
+void SetDebugLabel(VkCommandBuffer command_buffer_handle, const schar* label);
+void SetDebugLabel(VkQueue queue_handle, const schar* label);
+void SetDebugLabel(VkRenderPass render_pass_handle, const schar* label);
+void SetDebugLabel(VkImage image_handle, const schar* label);
+void SetDebugLabel(VkBuffer buffer_handle, const schar* label);
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+#define COMET_VK_INITIALIZE_DEBUG_LABELS(instance_handle, device_handle) \
+  comet::rendering::vk::debug::InitializeDebugLabels(instance_handle,    \
+                                                     device_handle)
+#define COMET_VK_SET_DEBUG_LABEL(object_handle, label) \
+  comet::rendering::vk::debug::SetDebugLabel(object_handle, label)
+#else
+#define COMET_VK_INITIALIZE_DEBUG_LABELS(instance_handle, device_handle)
+#define COMET_VK_SET_DEBUG_LABEL(object_handle, label)
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
 #endif  // COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DEBUG_H_

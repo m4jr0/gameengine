@@ -190,7 +190,8 @@ static_assert(sizeof(fx) * kCharBit == 32,
               "fx is not 32 bits on this architecture.");
 #endif  // COMET_64
 
-constexpr auto kInvalidIndex{static_cast<usize>(-1)};
+constexpr auto kInvalidSize{static_cast<usize>(-1)};
+constexpr auto kInvalidIndex{kInvalidSize};
 
 #ifdef COMET_ARCH_X86
 using ms128 = __m128i;

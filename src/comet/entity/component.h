@@ -6,6 +6,7 @@
 #define COMET_COMET_ENTITY_COMPONENT_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/memory.h"
 #include "comet/entity/entity_id.h"
 
 namespace comet {
@@ -28,7 +29,7 @@ constexpr void CheckComponent() {
 struct ComponentTypeDescr {
   EntityId id{kInvalidEntityId};
   usize size{0};
-  u16 alignment{0};
+  memory::Alignment align{0};
 };
 
 class ComponentIdGenerator {
@@ -54,7 +55,7 @@ class ComponentTypeDescrGetter : public ComponentIdGenerator {
 
     descr_.id = GenerateId();
     descr_.size = sizeof(ComponentType);
-    descr_.alignment = alignof(ComponentType);
+    descr_.align = alignof(ComponentType);
     is_descr_generated = true;
     return descr_;
   }

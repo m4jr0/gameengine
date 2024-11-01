@@ -833,14 +833,14 @@ void ShaderHandler::HandleDescriptorPoolGeneration(Shader& shader) const {
 }
 
 void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
-  const auto alignment{context_->GetDevice()
-                           .GetProperties()
-                           .limits.minUniformBufferOffsetAlignment};
+  const auto align{context_->GetDevice()
+                       .GetProperties()
+                       .limits.minUniformBufferOffsetAlignment};
 
-  shader.global_ubo_data.ubo_stride =
-      memory::AlignSize(shader.global_ubo_data.ubo_size, alignment);
-  shader.instance_ubo_data.ubo_stride =
-      memory::AlignSize(shader.instance_ubo_data.ubo_size, alignment);
+  shader.global_ubo_data.ubo_stride = memory::AlignSize(
+      shader.global_ubo_data.ubo_size, static_cast<memory::Alignment>(align));
+  shader.instance_ubo_data.ubo_stride = memory::AlignSize(
+      shader.instance_ubo_data.ubo_size, static_cast<memory::Alignment>(align));
 
 #ifdef COMET_DEBUG
   const auto max_range{
@@ -857,7 +857,8 @@ void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
 
   shader.uniform_buffer = GenerateBuffer(
       context_->GetAllocatorHandle(), buffer_size,
-      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0,
+      VK_SHARING_MODE_EXCLUSIVE, "uniform_buffer");
 
   const auto layout_count{descriptor_set_layout_handles_buffer_.size()};
   shader.global_uniform_data.descriptor_set_handles.resize(layout_count);
@@ -895,8 +896,9 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
   if (uniform.scope == ShaderUniformScope::Local) {
     uniform.offset =
         static_cast<ShaderOffset>(shader.push_constant_ranges.size());
-    uniform.size = static_cast<ShaderUniformSize>(
-        memory::AlignSize(size, GetStd430Alignment(uniform.type)));
+    uniform.size = static_cast<ShaderUniformSize>(memory::AlignSize(
+        size,
+        static_cast<memory::Alignment>(GetStd430Alignment(uniform.type))));
 
     VkPushConstantRange range{};
     range.offset = uniform.offset;

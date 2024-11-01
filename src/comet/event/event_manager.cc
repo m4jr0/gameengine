@@ -11,9 +11,18 @@ EventManager& EventManager::Get() {
   return singleton;
 }
 
+void EventManager::Initialize() {
+  Manager::Initialize();
+  COMET_ASSERT(max_event_count_ > 0,
+               "Max event count is invalid: ", max_event_count_, ".");
+  event_queue_allocator_.Initialize();
+  event_queue_ = EventQueue{&event_queue_allocator_, max_event_count_};
+}
+
 void EventManager::Shutdown() {
   listeners_.clear();
   event_queue_.Clear();
+  event_queue_allocator_.Destroy();
   Manager::Shutdown();
 }
 
@@ -49,16 +58,27 @@ void EventManager::FireEventNow(EventPointer event) const {
   Dispatch(std::move(event));
 }
 
-void EventManager::FireEvent(EventPointer event) {
-  event_queue_.Push(std::move(event));
-}
+void EventManager::FireEvent(EventPointer event) { Add(std::move(event)); }
 
 void EventManager::FireAllEvents() {
   EventPointer event;
 
-  while (event_queue_.Pop(event)) {
+  while (event_queue_.TryPop(event)) {
     Dispatch(std::move(event));
   }
+
+  event_count_ = 0;
+}
+
+void EventManager::Add(EventPointer event) {
+  if (event_count_ == max_event_count_ - 1) {
+    COMET_LOG_EVENT_WARNING("Max event reached: ", max_event_count_,
+                            "! Ignoring event.");
+    return;
+  }
+
+  event_queue_.Push(std::move(event));
+  ++event_count_;
 }
 
 void EventManager::Dispatch(EventPointer event) const {

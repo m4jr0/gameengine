@@ -5,8 +5,15 @@
 #include "asset_exporter.h"
 
 #include "comet/core/c_string.h"
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
+#include "comet/core/frame/frame_allocator.h"
 #include "comet/core/logger.h"
 #include "editor/asset/asset_utils.h"
+
+#ifdef COMET_FIBER_DEBUG_LABEL
+#include "comet/core/concurrency/fiber/fiber.h"
+#endif  // COMET_FIBER_DEBUG_LABEL
 
 namespace comet {
 namespace editor {
@@ -19,10 +26,14 @@ const TString& AssetExporter::GetRootAssetPath() const {
   return root_asset_path_;
 }
 
-bool AssetExporter::Process(CTStringView asset_abs_path) {
+void AssetExporter::Process(job::Counter* global_counter,
+                            CTStringView asset_abs_path) {
   COMET_LOG_GLOBAL_INFO("Processing asset at path: ", asset_abs_path, ".");
 
-  AssetDescr descr{};
+  auto* data{COMET_FRAME_ALLOC_ONE_AND_POPULATE(ResourceFilesData, )};
+  data->exporter = this;
+  auto& descr{data->asset_descr};
+
   descr.asset_abs_path = asset_abs_path;
 
   Clean(descr.asset_abs_path.GetTStr(), descr.asset_abs_path.GetLength());
@@ -51,25 +62,64 @@ bool AssetExporter::Process(CTStringView asset_abs_path) {
   descr.metadata[kCometEditorAssetMetadataKeyCompressionMode] =
       compression_mode_label;
 
-  auto resource_files{GetResourceFiles(descr)};
+  auto job_stack_size{job::JobStackSize::Large};
 
-  if (resource_files.size() == 0) {
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+  job_stack_size = job::JobStackSize::ExternalLibrary;
+#else
+  COMET_LOG_GLOBAL_WARNING(
+      "External library support is not enabled. Memory corruption may occur if "
+      "a stack overflow happens (stack size is limited).");
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+
+#ifdef COMET_FIBER_DEBUG_LABEL
+  schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1];
+#endif  // COMET_FIBER_DEBUG_LABEL
+
+  job::Scheduler::Get().Kick(job::GenerateJobDescr(
+      job::JobPriority::Normal, OnResourceFilesProcess, data, job_stack_size,
+      global_counter,
+      COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(asset_abs_path, debug_label,
+                                           fiber::Fiber::kDebugLabelMaxLen_)));
+}
+
+void AssetExporter::OnResourceFilesProcess(job::JobParamsHandle params_handle) {
+  auto* data{reinterpret_cast<ResourceFilesData*>(params_handle)};
+  auto& descr{data->asset_descr};
+  auto* global_counter{data->global_counter};
+
+  data->resource_files =
+      data->exporter->GetResourceFiles(global_counter, descr);
+
+  if (data->resource_files.size() == 0) {
     COMET_LOG_GLOBAL_ERROR("Could not process asset at ", descr.asset_abs_path);
-    return false;
+    return;
   }
 
-  for (const auto& resource_file : resource_files) {
+  job::Scheduler::Get().Kick(
+      job::GenerateIOJobDescr(OnResourceFilesWrite, data, global_counter));
+}
+
+void AssetExporter::OnResourceFilesWrite(job::IOJobParamsHandle params_handle) {
+  auto* data{reinterpret_cast<ResourceFilesData*>(params_handle)};
+  auto& descr{data->asset_descr};
+  COMET_LOG_GLOBAL_INFO("Saving processed asset: ", descr.asset_abs_path,
+                        "...");
+
+  for (const auto& resource_file : data->resource_files) {
     if (!resource::SaveResourceFile(
-            GenerateResourcePath(root_resource_path_,
+            GenerateResourcePath(data->exporter->root_resource_path_,
                                  resource_file.resource_id),
             resource_file)) {
       COMET_LOG_GLOBAL_ERROR("Unable to save resource file: ",
+                             resource_file.resource_id);
+    } else {
+      COMET_LOG_GLOBAL_DEBUG("Resource file saved: ",
                              resource_file.resource_id);
     }
   }
 
   SaveMetadata(descr.metadata_path, descr.metadata);
-  return true;
 }
 }  // namespace asset
 }  // namespace editor

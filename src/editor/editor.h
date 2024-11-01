@@ -24,7 +24,8 @@ class CometEditor : public Engine {
   CometEditor& operator=(CometEditor&&) = delete;
   virtual ~CometEditor() = default;
 
-  void Update(frame::FrameCount frame_count, f64& lag) override;
+  void Update(f64& lag) override;
+  void PreLoad() override;
   void Load() override;
   void PostLoad() override;
   void PostUnload() override;

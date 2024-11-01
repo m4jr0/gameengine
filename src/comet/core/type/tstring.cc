@@ -6,12 +6,52 @@
 
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
-#include "comet/core/memory/allocator/tstring_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_manager.h"
+#include "comet/core/memory/memory_general_alloc.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {
+namespace internal {
+thread_local memory::AlignedAllocatorHandle tls_tstring_allocator_handle{
+    nullptr};
+
+memory::AlignedAllocator* GetTStringAllocator() {
+  return tls_tstring_allocator_handle != nullptr
+             ? tls_tstring_allocator_handle->allocator
+             : &TStringAllocator::Get();
+}
+
+TStringAllocator& TStringAllocator::Get() {
+  static TStringAllocator singleton{};
+  return singleton;
+}
+
+void* TStringAllocator::AllocateAligned(usize size, memory::Alignment align) {
+  // TODO(m4jr0): Implement specific TString allocator.
+  return memory::AllocateAligned(size, align, memory::kEngineMemoryTagTString);
+}
+
+void TStringAllocator::Deallocate(void* p) {
+  // TODO(m4jr0): Implement specific TString allocator.
+  memory::Deallocate(p);
+}
+}  // namespace internal
+
+void InitializeTStrings() { internal::TStringAllocator::Get().Initialize(); }
+
+void DestroyTStrings() { internal::TStringAllocator::Get().Destroy(); }
+
+void AttachTStringAllocator(memory::AlignedAllocatorHandle handle) {
+  COMET_ASSERT(handle != nullptr, "TString allocator handle provided is null!");
+  internal::tls_tstring_allocator_handle = handle;
+}
+
+void DetachTStringAllocator() {
+  COMET_ASSERT(internal::tls_tstring_allocator_handle != nullptr,
+               "No TString allocator handle has been provided!");
+  internal::tls_tstring_allocator_handle = nullptr;
+}
+
 TString::TString(const TString& other)
     : length_{other.length_}
 #ifdef COMET_DEBUG
@@ -151,10 +191,6 @@ const tchar& TString::operator[](usize index) const {
   return GetCTStr()[index];
 }
 
-stringid::StringId TString::GenerateStringId() const {
-  return stringid::SetHandler()->Generate(GetCTStr(), length_);
-}
-
 const tchar* TString::GetCTStr() const noexcept {
   if (capacity_ <= kSSOCapacityThreshold) {
     return sso_;
@@ -208,11 +244,11 @@ void TString::Allocate(usize capacity) {
   COMET_ASSERT(is_alloc_allowed_, "Allocation is not allowed on this TString!");
 #endif  // COMET_DEBUG
   auto* old{GetTStr()};
-  auto& tstring_allocator{memory::MemoryManager::Get().GetTStringAllocator()};
+  auto* tstring_allocator{internal::GetTStringAllocator()};
 
   // Add + 1 for the null terminator.
   str_ = reinterpret_cast<tchar*>(
-      tstring_allocator.Allocate(sizeof(tchar) * (capacity + 1)));
+      tstring_allocator->AllocateMany<tchar>(capacity + 1));
   capacity_ = capacity;
 
   if (old != nullptr) {
@@ -220,14 +256,14 @@ void TString::Allocate(usize capacity) {
     str_[length_] = COMET_TCHAR('\0');
 
     if (old != sso_) {
-      tstring_allocator.Deallocate(old);
+      tstring_allocator->Deallocate(old);
     }
   }
 }
 
 void TString::Deallocate() {
   if (str_ != nullptr) {
-    memory::MemoryManager::Get().GetTStringAllocator().Deallocate(str_);
+    internal::GetTStringAllocator()->Deallocate(str_);
     str_ = nullptr;
   }
 
@@ -240,10 +276,6 @@ TString CTStringView::GenerateSubString(usize offset, usize count) const {
   new_str.Resize(length);
   GetSubString(new_str.GetTStr(), str_, length_, offset, length);
   return new_str;
-}
-
-stringid::StringId CTStringView::GenerateStringId() const {
-  return stringid::SetHandler()->Generate(str_, length_);
 }
 
 std::ostream& operator<<(std::ostream& stream, const TString& str) {

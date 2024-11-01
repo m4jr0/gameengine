@@ -5,8 +5,11 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_H_
 #define COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_H_
 
+#include "assimp/Importer.hpp"
 #include "assimp/scene.h"
 
+#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
@@ -31,11 +34,30 @@ class ModelExporter : public AssetExporter {
 
  protected:
   std::vector<resource::ResourceFile> GetResourceFiles(
-      AssetDescr& asset_descr) const override;
+      job::Counter*, AssetDescr& asset_descr) const override;
 
  private:
-  void LoadMaterials(CTStringView directory_path, const aiScene* scene,
-                     std::vector<resource::ResourceFile>& resource_files) const;
+  struct SceneContext {
+    job::IOJobDescr GenerateSceneLoadingJobDescr();
+    job::JobDescr GenerateModelProcessingJobDescr(job::Counter* counter);
+    job::JobDescr GenerateMaterialsProcessingJobDescr(job::Counter* counter);
+    void AddResourceFile(const resource::ResourceFile& file);
+
+    fiber::FiberMutex resource_mutex{};
+    std::vector<resource::ResourceFile>* resource_files{nullptr};
+
+    Assimp::Importer assimp_importer{};
+    const ModelExporter* exporter{nullptr};
+    const aiScene* scene{nullptr};
+    const tchar* asset_abs_path{nullptr};
+    const tchar* asset_path{nullptr};
+  };
+
+  static void OnSceneLoading(job::IOJobParamsHandle params_handle);
+  static void OnModelProcessing(job::JobParamsHandle params_handle);
+  static void OnMaterialsProcessing(job::JobParamsHandle params_handle);
+
+  void LoadMaterials(SceneContext* data) const;
   void LoadMaterialTextures(CTStringView resource_path,
                             resource::MaterialResource& material,
                             aiMaterial* raw_material,

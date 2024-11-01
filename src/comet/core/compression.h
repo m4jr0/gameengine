@@ -6,6 +6,7 @@
 #define COMET_COMET_CORE_COMPRESSION_H_
 
 #include <vector>
+
 #include "lz4.h"
 
 #include "comet/core/essentials.h"

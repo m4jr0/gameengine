@@ -15,14 +15,14 @@
 namespace comet {
 namespace resource {
 Resource* ResourceCache::Set(std::unique_ptr<Resource> resource) {
-  fiber::FiberLockGuard guard{mutex_};
+  fiber::FiberLockGuard lock{mutex_};
   const auto it{cache_.emplace(resource->id, std::move(resource))};
   COMET_ASSERT(it.second, "Unable to save resource to cache!");
   return it.first->second.get();
 }
 
 Resource* ResourceCache::Get(ResourceId resource_id) {
-  fiber::FiberLockGuard guard{mutex_};
+  fiber::FiberLockGuard lock{mutex_};
 
   if (cache_.find(resource_id) == cache_.cend()) {
     return nullptr;
@@ -32,8 +32,8 @@ Resource* ResourceCache::Get(ResourceId resource_id) {
 }
 
 void ResourceCache::Destroy(ResourceId resource_id) {
-  fiber::FiberLockGuard guard{mutex_};
-  
+  fiber::FiberLockGuard lock{mutex_};
+
   COMET_ASSERT(cache_.find(resource_id) != cache_.cend(),
                "Tried to destroy resource with ID ",
                COMET_STRING_ID_LABEL(resource_id), ", but the former is null!");

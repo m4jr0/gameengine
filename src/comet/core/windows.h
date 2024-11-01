@@ -10,10 +10,11 @@
 #include <windows.h>
 
 // Undef annoying Windows macros...
+#undef CopyMemory
 #undef CreateFile
 #undef CreateDirectory
 #undef GetCurrentDirectory
-#undef CopyMemory
+#undef GetCurrentTime
 #undef Yield
 
 #ifdef COMET_DEBUG

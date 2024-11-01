@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_SHADER_DATA_H_
 
 #include <vector>
+
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"

@@ -5,6 +5,8 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_RENDER_PASS_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_RENDER_PASS_HANDLER_H_
 
+#include <unordered_map>
+
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"

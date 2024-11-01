@@ -17,60 +17,107 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/c_string.h"
-#include "comet/core/concurrency/fiber/fiber_context.h"
-#include "comet/core/concurrency/thread/thread_utils.h"
-#include "comet/core/memory/memory.h"
+
+#ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
+#include <atomic>
+#endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
 
 namespace comet {
 namespace memory {
+#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
+namespace internal {
+GetCustomMemoryTagLabelFunc get_custom_memory_tag_label_func{nullptr};
+}  // namespace internal
+
+void AttachGetCustomMemoryTagLabelFunc(GetCustomMemoryTagLabelFunc func) {
+  COMET_ASSERT(func != nullptr,
+               "GetCustomMemoryTagLabelFunc provided is null!");
+  internal::get_custom_memory_tag_label_func = func;
+}
+
+void DetachGetCustomMemoryTagLabelFunc() {
+  internal::get_custom_memory_tag_label_func = nullptr;
+}
+#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
+
 const schar* GetMemoryTagLabel(MemoryTag tag) {
   switch (tag) {
-    case MemoryTag::Untagged:
+    case kEngineMemoryTagUntagged:
       return "untagged";
-    case MemoryTag::StringId:
-      return "string id";
-    case MemoryTag::OneFrame:
-      return "one frame";
-    case MemoryTag::TwoFrames:
-      return "two frames";
-    case MemoryTag::TString:
+    case kEngineMemoryTagTaggedHeap:
+      return "tagged_heap";
+    case kEngineMemoryTagStringId:
+      return "string_id";
+    case kEngineMemoryTagFrame0:
+      return "frame_0";
+    case kEngineMemoryTagFrame1:
+      return "frame_1";
+    case kEngineMemoryTagFrame2:
+      return "frame_2";
+    case kEngineMemoryTagDoubleFrame0:
+      return "double_frame_0";
+    case kEngineMemoryTagDoubleFrame1:
+      return "double_frame_1";
+    case kEngineMemoryTagDoubleFrame2:
+      return "double_frame_2";
+    case kEngineMemoryTagRendering:
+      return "rendering";
+    case kEngineMemoryTagRenderingInternal:
+      return "rendering_internal";
+    case kEngineMemoryTagRenderingDevice:
+      return "rendering_device (VRAM)";
+    case kEngineMemoryTagTString:
       return "tstring";
-    case MemoryTag::Entity:
+    case kEngineMemoryTagEntity:
       return "entity";
-    case MemoryTag::Fiber:
+    case kEngineMemoryTagFiber:
       return "fiber";
+    case kEngineMemoryTagThreadProvider:
+      return "thread_provider";
+    case kEngineMemoryTagEvent:
+      return "event";
+    case kEngineMemoryTagUserBase:
+      return "user_base (should not be used)";
+    case kEngineMemoryTagInvalid:
+      return "invalid (please investigate)";
+#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
     default:
-      return "???";
+      if (internal::get_custom_memory_tag_label_func != nullptr) {
+        const auto* result{internal::get_custom_memory_tag_label_func(tag)};
+
+        if (result != nullptr) {
+          return result;
+        }
+      }
+#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
   }
+
+  return "???";
 }
 
 void* CopyMemory(void* dst, const void* src, usize size) {
   return std::memcpy(dst, src, size);
 }
 
-void* Allocate(usize size, MemoryTag tag) {
-  return AllocateAligned(size, 1, tag);
+void ClearMemory(void* ptr, usize size) {
+  auto* bytes{static_cast<u8*>(ptr)};
+
+  for (usize i{0}; i < size; ++i) {
+    bytes[i] = 0;
+  }
 }
 
-void* AllocateAligned(usize size, u16 alignment,
-                      [[maybe_unused]] MemoryTag tag) {
-  // TODO(m4jr0): Handle memory tag.
-  usize final_size{size + alignment};
-  auto* ptr{new u8[final_size]};
-
-  if (ptr == nullptr) {
-    COMET_ASSERT(false, "Unable to allocate with size ", size, ", alignment ",
-                 alignment, " and tag ", GetMemoryTagLabel(tag), "!");
-    throw std::bad_alloc();
-  }
-
-  COMET_POISON(ptr, final_size);
-  auto* aligned_ptr{AlignPointer(ptr, alignment)};
+void* StoreShiftAndReturnAligned(u8* ptr, [[maybe_unused]] usize data_size,
+                                 [[maybe_unused]] usize allocation_size,
+                                 Alignment align) {
+  COMET_ASSERT(allocation_size > data_size,
+               "Cannot save shift, allocation size is too small!");
+  auto* aligned_ptr{AlignPointer(ptr, align)};
 
   // Case: pointer is already aligned. We have a minimal shift of 1 byte, so we
-  // move the pointer to "alignment" bytes as a convention.
+  // move the pointer to "align" bytes as a convention.
   if (aligned_ptr == ptr) {
-    aligned_ptr += alignment;
+    aligned_ptr += align;
   }
 
   auto shift{aligned_ptr - ptr};
@@ -93,8 +140,8 @@ void* AllocateAligned(usize size, u16 alignment,
   return aligned_ptr;
 }
 
-void Deallocate(void* p) {
-  auto* aligned_ptr{reinterpret_cast<u8*>(p)};
+void* ResolveNonAligned(void* ptr) {
+  auto* aligned_ptr{reinterpret_cast<u8*>(ptr)};
   auto shift{static_cast<u16>(aligned_ptr[-1])};
 
   // Case: alignment is a power of 2, so using 1 byte to store it makes it a
@@ -104,12 +151,20 @@ void Deallocate(void* p) {
     shift = kMaxAlignment;
   }
 
-  auto* ptr{aligned_ptr - shift};
-  delete[] ptr;
+  return aligned_ptr - shift;
 }
 
-void GetMemorySizeString(usize size, schar* buffer, usize buffer_len,
+void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
                          usize* out_len) {
+  COMET_ASSERT(buffer_len > 2, "Buffer provided is too small!");
+
+  if (size < 0) {
+    buffer[0] = '-';
+    ++buffer;
+    --buffer_len;
+    size = -size;
+  }
+
   constexpr std::array kUnits{"bytes", "KiB", "MiB", "GiB", "TiB",
                               "PiB",   "EiB", "ZiB", "YiB"};
   usize l{0};
@@ -140,11 +195,33 @@ void Poison(void* ptr, usize size) {
   constexpr std::array<u8, 4> kPoison{0xde, 0xad, 0xbe, 0xef};
   constexpr auto kPoisonLen{kPoison.size()};
 
+#ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
+  static_assert(std::atomic<u64>::is_always_lock_free,
+                "std::atomic<u64> needs to be always lock-free. Unsupported "
+                "architecture");
+  static std::atomic<u64> allocation_id_counter{0};
+  auto allocation_id{
+      allocation_id_counter.fetch_add(1, std::memory_order_acq_rel)};
+  constexpr auto kAllocationIdSize{sizeof(allocation_id)};
+#endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
+
   usize i{0};
   auto* cur{static_cast<u8*>(ptr)};
   auto* top{cur + size};
 
-  while (cur != top) {
+#ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
+  while (cur + kAllocationIdSize <= top) {
+    CopyMemory(cur, &allocation_id, kAllocationIdSize);
+    cur += kAllocationIdSize;
+
+    for (i = 0; i < kPoisonLen && cur < top; ++i) {
+      *cur = kPoison[i];
+      ++cur;
+    }
+  }
+#endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
+
+  while (cur < top) {
     *cur = kPoison[i % kPoisonLen];
     ++i;
     ++cur;
@@ -168,6 +245,7 @@ MemoryDescr GetMemoryDescr() {
       static_cast<usize>(total_memory_in_kilobytes * 1024);
 
   descr.page_size = system_info.dwPageSize;
+  descr.large_page_size = GetLargePageMinimum();
 #else
   struct sysinfo si;
   sysinfo(&si);
@@ -175,6 +253,33 @@ MemoryDescr GetMemoryDescr() {
   descr.total_memory_size = static_cast<usize>(si.totalram);
 
   descr.page_size = sysconf(_SC_PAGESIZE);
+
+#ifdef _SC_HUGEPAGESIZE
+  descr.large_page_size = sysconf(_SC_HUGEPAGESIZE);
+#else
+  // Fallback: check /proc/meminfo to determine the huge page size.
+  auto* meminfo{fopen("/proc/meminfo", "r")};
+
+  if (meminfo != nullptr) {
+    schar buffer[256];
+    const schar* hugepagesize_key{"Hugepagesize:"};
+    descr.large_page_size = 0;
+
+    while (fgets(buffer, sizeof(buffer), meminfo) != nullptr) {
+      if (strncmp(buffer, hugepagesize_key, strlen(hugepagesize_key)) == 0) {
+        u64 size_kb{0};
+        sscanf(buffer + strlen(hugepagesize_key), "%lu", &size_kb);
+        descr.large_page_size = size_kb * 1024;
+        break;
+      }
+    }
+
+    fclose(meminfo);
+  } else {
+    descr.large_page_size =
+        0;  // If /proc/meminfo can't be opened, fallback to 0
+  }
+#endif  // _SC_HUGEPAGESIZE
 #endif  // COMET_WINDOWS
 
   return descr;

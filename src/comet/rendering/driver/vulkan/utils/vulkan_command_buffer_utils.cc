@@ -27,7 +27,8 @@ CommandData GenerateCommandData(VkDevice device_handle,
   return command_data;
 }
 
-void AllocateCommandData(CommandData& command_data) {
+void AllocateCommandData(CommandData& command_data,
+                         [[maybe_unused]] const schar* debug_label) {
   COMET_ASSERT(!command_data.is_allocated,
                "Tried to allocate command data, but it is already allocated!");
   auto alloc_info{init::GenerateCommandBufferAllocateInfo(
@@ -37,6 +38,9 @@ void AllocateCommandData(CommandData& command_data) {
                                &command_data.command_buffer_handle),
       "Failed to allocate command buffer");
   command_data.is_allocated = true;
+  COMET_VK_SET_DEBUG_LABEL(
+      command_data.command_buffer_handle,
+      debug_label != nullptr ? debug_label : "command_data");
 }
 
 void DestroyCommandData(CommandData& command_data) {

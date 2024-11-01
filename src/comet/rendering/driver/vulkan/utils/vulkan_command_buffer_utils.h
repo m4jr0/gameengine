@@ -18,7 +18,8 @@ CommandData GenerateCommandData(VkDevice device_handle,
                                 VkCommandPool command_pool_handle);
 CommandData GenerateCommandData(VkDevice device_handle,
                                 VkCommandBuffer command_buffer_handle);
-void AllocateCommandData(CommandData& command_data);
+void AllocateCommandData(CommandData& command_data,
+                         const schar* debug_label = nullptr);
 void DestroyCommandData(CommandData& command_data);
 void RecordCommand(VkCommandBuffer command_buffer_handle);
 void RecordCommand(const CommandData& command_data);

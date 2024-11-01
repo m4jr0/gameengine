@@ -21,7 +21,8 @@ void GenerateImage(Image& allocated_image, const Device& device, u32 width,
                    u32 height, u32 mip_levels,
                    VkSampleCountFlagBits num_samples, VkFormat format,
                    VkImageTiling tiling, VkImageUsageFlags usage_flags,
-                   VkMemoryPropertyFlags properties);
+                   VkMemoryPropertyFlags properties,
+                   const schar* debug_label = nullptr);
 void DestroyImage(Image& image);
 VkImageView GenerateImageView(VkDevice device_handle, VkImage image_handle,
                               VkFormat format, VkImageAspectFlags aspect_flags,

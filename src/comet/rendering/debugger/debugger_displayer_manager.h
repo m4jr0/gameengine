@@ -5,8 +5,11 @@
 #ifndef COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_
 #define COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_
 
+#include <unordered_map>
+
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/rendering_common.h"
 
 #ifdef COMET_DEBUG
@@ -20,6 +23,7 @@ struct MiniProfilerPacket {
   u32 rendering_draw_count{0};
   DriverType rendering_driver_type{DriverType::Unknown};
   usize memory_use{0};
+  std::unordered_map<memory::MemoryTag, usize> tag_use{};
 };
 
 class DebuggerDisplayerManager : public Manager {
@@ -37,6 +41,12 @@ class DebuggerDisplayerManager : public Manager {
   void Draw();
 
  private:
+#ifdef COMET_IMGUI
+  void DrawPhysicsSection() const;
+  void DrawRenderingSection() const;
+  void DrawMemorySection() const;
+#endif  // COMET_IMGUI
+
   MiniProfilerPacket mini_profiler_packet_{};
 };
 }  // namespace rendering

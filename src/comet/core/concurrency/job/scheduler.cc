@@ -4,34 +4,119 @@
 
 #include "scheduler.h"
 
-#include <fstream>
+#include <atomic>
 #include <optional>
 
+#include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
-#include "comet/core/concurrency/fiber/fiber_queue.h"
+#include "comet/core/concurrency/fiber/fiber_life_cycle.h"
 #include "comet/core/concurrency/job/job.h"
-#include "comet/core/concurrency/thread/thread_utils.h"
+#include "comet/core/concurrency/job/worker_context.h"
+#include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/logger.h"
+#include "comet/core/memory/memory.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/time/chrono.h"
 
 namespace comet {
 namespace job {
 namespace internal {
-void SchedulerStarterBarrier::Wait() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  cv_.wait(lock, [this] { return is_ready_; });
+FiberPool::FiberPool(usize fiber_count, usize fiber_stack_size)
+    : initial_fiber_count_{fiber_count}, fiber_stack_size_{fiber_stack_size} {}
+
+void FiberPool::Initialize() {
+  queue_allocator_.Initialize();
+
+  fibers_ = LockFreeMPMCRingQueue<fiber::Fiber*>{&queue_allocator_,
+                                                 initial_fiber_count_};
+
+  fiber_allocator_ = memory::PlatformStackAllocator{
+      initial_fiber_count_ * sizeof(fiber::Fiber) + alignof(fiber::Fiber),
+      memory::kEngineMemoryTagFiber};
+  fiber_allocator_.Initialize();
+
+  for (usize i{0}; i < initial_fiber_count_; ++i) {
+    auto* fiber{fiber_allocator_.AllocateOneAndPopulate<fiber::Fiber>(
+        fiber_stack_size_)};
+    fiber->Initialize();
+    fibers_.Push(fiber);
+  }
 }
 
-void SchedulerStarterBarrier::Unleash() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  is_ready_ = true;
-  cv_.notify_all();
+void FiberPool::Destroy() {
+  for (;;) {
+    auto fiber_box{fibers_.TryPop()};
+
+    if (!fiber_box.has_value()) {
+      break;
+    }
+
+    fiber_box.value()->Destroy();
+  }
+
+  fibers_.Clear();
+  fiber_allocator_.Destroy();
+  queue_allocator_.Destroy();
 }
 
-bool SchedulerStarterBarrier::IsReady() const noexcept { return is_ready_; }
+fiber::Fiber* FiberPool::TryPop() {
+  auto fiber_box{fibers_.TryPop()};
+  fiber::Fiber* fiber{fiber_box.value_or(nullptr)};
+
+  if (fiber != nullptr) {
+    fiber->Reset();
+  }
+
+  return fiber;
+}
+
+void FiberPool::Push(fiber::Fiber* fiber) {
+  COMET_ASSERT(fiber->GetStackCapacity() == fiber_stack_size_,
+               "A wrong fiber was pushed to pool (", fiber->GetStackCapacity(),
+               " != ", fiber_stack_size_, ")!");
+  fibers_.Push(fiber);
+}
+
+usize FiberPool::GetTotalAllocatedStackSize() const {
+  return (initial_fiber_count_ + alignof(fiber::Fiber::Stack)) *
+         fiber::Fiber::GetAllocatedStackSize(fiber_stack_size_);
+}
+
+void CounterPool::Initialize() {
+  queue_allocator_.Initialize();
+
+  counters_ = LockFreeMPMCRingQueue<Counter*>{
+      &queue_allocator_,
+      static_cast<usize>(COMET_CONF_U16(conf::kCoreJobCounterCount))};
+
+  auto capacity{counters_.GetCapacity()};
+  counter_allocator_ = memory::PlatformStackAllocator{
+      sizeof(Counter) * capacity + alignof(Counter),
+      memory::kEngineMemoryTagFiber};
+  counter_allocator_.Initialize();
+
+  for (usize i{0}; i < capacity; ++i) {
+    auto* counter{counter_allocator_.AllocateOneAndPopulate<Counter>()};
+    new (counter) Counter{};
+    counters_.Push(counter);
+  }
+}
+
+void CounterPool::Destroy() {
+  counters_.Clear();
+  counter_allocator_.Destroy();
+  queue_allocator_.Destroy();
+}
+
+Counter* CounterPool::TryGet() {
+  auto counter_box{counters_.TryPop()};
+  return counter_box.value_or(nullptr);
+}
+
+void CounterPool::Push(Counter* counter) { counters_.Push(counter); }
 }  // namespace internal
 
 Scheduler& Scheduler::Get() {
@@ -40,147 +125,162 @@ Scheduler& Scheduler::Get() {
 }
 
 void Scheduler::Initialize() {
-  auto large_stack_fiber_count{COMET_CONF_U16(conf::kCoreLargeFiberCount)};
-  large_stack_fibers_.reserve(large_stack_fiber_count);
+  job_queue_allocator_.Initialize();
 
-  for (usize i{0}; i < large_stack_fiber_count; ++i) {
-    auto* fiber{
-        memory::AllocateAligned<fiber::Fiber>(memory::MemoryTag::Fiber)};
-    new (fiber) fiber::Fiber{fiber::kLargeStack};
-    fiber->Initialize();
-    large_stack_fibers_.emplace_back(fiber);
-  }
+  low_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
+      &job_queue_allocator_,
+      static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
+  normal_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
+      &job_queue_allocator_,
+      static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
+  high_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
+      &job_queue_allocator_,
+      static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
+  io_queue_ = LockFreeMPMCRingQueue<IOJobDescr>{
+      &job_queue_allocator_,
+      static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
 
-  auto gigantic_stack_fiber_count{
-      COMET_CONF_U16(conf::kCoreGiganticFiberCount)};
-  gigantic_stack_fibers_.reserve(gigantic_stack_fiber_count);
+  fiber::AllocateFiberStackMemory(
+      large_stack_fibers_.GetTotalAllocatedStackSize() +
+      large_stack_fibers_.GetTotalAllocatedStackSize()
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+      + external_library_stack_fibers_.GetTotalAllocatedStackSize()
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+  );
 
-  for (usize i{0}; i < gigantic_stack_fiber_count; ++i) {
-    auto* fiber{
-        memory::AllocateAligned<fiber::Fiber>(memory::MemoryTag::Fiber)};
-    new (fiber) fiber::Fiber{fiber::kGiganticStack};
-    gigantic_stack_fibers_.emplace_back(fiber);
-  }
+  large_stack_fibers_.Initialize();
+  gigantic_stack_fibers_.Initialize();
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+  external_library_stack_fibers_.Initialize();
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
-  auto counter_count{COMET_CONF_U16(conf::kCoreJobCounterCount)};
+  counters_.Initialize();
+  is_shutdown_required_.store(false, std::memory_order_release);
 
-  for (usize i{0}; i < counter_count; ++i) {
-    auto* counter{memory::AllocateAligned<Counter>(memory::MemoryTag::Fiber)};
-    new (counter) Counter{};
-    available_counters_.Push(counter);
-  }
-
-  is_shutdown_required_ = false;
-  worker_count_ = COMET_CONF_U8(conf::kCoreForcedWorkerCount);
+  auto concurrent_thread_count{thread::GetConcurrentThreadCountLeft()};
+  fiber_worker_count_ = COMET_CONF_U8(conf::kCoreForcedFiberWorkerCount);
   io_worker_count_ = COMET_CONF_U8(conf::kCoreForcedIOWorkerCount);
 
   if (io_worker_count_ == 0) {
     io_worker_count_ = kDefaultIOWorkerCount;
   }
 
-  if (worker_count_ == 0) {
-    auto thread_count{thread::GetConcurrentThreadCount()};
+  if (fiber_worker_count_ == 0) {
+    auto thread_count{concurrent_thread_count};
 
     if (thread_count > io_worker_count_) {
-      worker_count_ = thread_count - io_worker_count_;
+      fiber_worker_count_ = thread_count - io_worker_count_;
     } else {
       COMET_LOG_CORE_WARNING(
           "I/O worker count is too high on this architecture (",
           io_worker_count_, "). Oversubscription will occur.");
-      worker_count_ = thread_count;
+      fiber_worker_count_ = thread_count;
     }
   }
 
-  COMET_LOG_CORE_INFO("Worker count: ", worker_count_,
+  COMET_LOG_CORE_INFO("Worker count: ", fiber_worker_count_,
                       ", I/O worker count: ", io_worker_count_, ".");
-  workers_.reserve(worker_count_);
-  io_workers_.reserve(io_worker_count_);
+  fiber_workers_.resize(fiber_worker_count_);
+  io_workers_.resize(io_worker_count_);
 }
 
 void Scheduler::Shutdown() {
-  is_shutdown_required_ = true;
+  low_priority_queue_.Clear();
+  normal_priority_queue_.Clear();
+  high_priority_queue_.Clear();
+  io_queue_.Clear();
+  job_queue_allocator_.Destroy();
 
-  for (auto& worker : workers_) {
-    worker.Destroy();
+  for (auto& fiber_worker : fiber_workers_) {
+    fiber_worker.Stop();
   }
 
-  for (auto& worker : io_workers_) {
-    worker.Destroy();
+  for (auto& io_worker : io_workers_) {
+    io_worker.Stop();
   }
 
-  for (usize i{0}; i < large_stack_fibers_.size(); ++i) {
-    auto* fiber{large_stack_fibers_[i]};
+  large_stack_fibers_.Destroy();
+  gigantic_stack_fibers_.Destroy();
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+  external_library_stack_fibers_.Destroy();
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
-    if (fiber == nullptr) {
-      continue;
-    }
-
-    fiber->Destroy();
-  }
-
-  large_stack_fibers_.clear();
-
-  for (usize i{0}; i < gigantic_stack_fibers_.size(); ++i) {
-    auto* fiber{gigantic_stack_fibers_[i]};
-
-    if (fiber == nullptr) {
-      continue;
-    }
-
-    fiber->Destroy();
-  }
-
-  gigantic_stack_fibers_.clear();
-
-  for (usize i{0}; i < available_counters_.GetSize(); ++i) {
-    auto* counter{available_counters_.Get()};
-    available_counters_.Pop();
-    memory::Deallocate(counter);
-  }
+  counters_.Destroy();
+  fiber::DestroyFiberStackMemory();
 }
 
-void Scheduler::Start(const JobDescr& callback_descr) {
-  COMET_ASSERT(!starter_barrier_.IsReady(),
-               "Scheduler appears to have started already!");
-
-  workers_.emplace_back(std::thread{});
-
-  for (usize i{1}; i < worker_count_; ++i) {
-    workers_.emplace_back(std::thread{&Scheduler::WorkerThread, this, i});
+void Scheduler::Run(const JobDescr& callback_descr) {
+  for (usize i{1}; i < fiber_worker_count_; ++i) {
+    auto& fiber_worker{fiber_workers_[i]};
+    fiber_worker.Run(&Scheduler::Work, this, &fiber_worker,
+                     &Scheduler::WorkOnFibers);
   }
 
   for (usize i{0}; i < io_worker_count_; ++i) {
-    io_workers_.emplace_back(std::thread{&Scheduler::IOWorkerThread, this});
+    auto& io_worker{io_workers_[i]};
+    io_worker.Run(&Scheduler::Work, this, &io_worker, &Scheduler::WorkOnIO);
   }
 
-  starter_barrier_.Unleash();
-  workers_[0].Initialize();
-  // TODO(m4jr0): Uncomment code and remove the manual callback invocation.
-  // This should only be done after the engine has been fully jobified.
-  // Uncommenting this prematurely increases the risk of memory corruption, as
-  // a fiber's stack size may be insufficient to handle the remaining
-  // execution of the engine.
-  //
-  // Scheduler::Get().Kick(callback_descr);
-  // Work();  // Main thread now behaves as a worker.
-  callback_descr.entry_point(callback_descr.params_handle);
+  auto worker_count{fiber_worker_count_ + io_worker_count_};
+
+  // Subtract one because of main thread's worker.
+  while (GetCurrentWorkerCount() < worker_count - 1) {
+    thread::Yield();
+  }
+
+  bool is_main_thread_worker_disabled{
+#ifdef COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
+      true
+#else
+      COMET_CONF_BOOL(conf::kCoreIsMainThreadWorkerDisabled)
+#endif  // COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
+  };
+
+  if (AreStringsEqual(COMET_CONF_STR(conf::kRenderingDriver),
+                      conf::kRenderingDriverOpengl.data()) &&
+      !is_main_thread_worker_disabled) {
+    COMET_LOG_CORE_WARNING(
+        rendering::GetDriverTypeLabel(rendering::GetDriverTypeFromStr(
+            conf::kRenderingDriverOpengl.data())),
+        " has been picked. Worker will be disabled for main thread.");
+    is_main_thread_worker_disabled = true;
+  }
+
+  if (is_main_thread_worker_disabled) {
+    // Case: main thread. We only need to attach its worker since the thread is
+    // already running.
+    fiber_workers_[0].Attach();
+
+    if (callback_descr.entry_point != nullptr) {
+      callback_descr.entry_point(callback_descr.params_handle);
+    }
+  } else {
+    // From this point onward, the rest of the code must be fully jobified.
+    // Otherwise, a stack overflow or memory corruption could occur, as
+    // non-jobified code may require a large stack that exceeds the capacity of
+    // our fibers.
+    Scheduler::Get().Kick(callback_descr);
+
+    Work(&fiber_workers_[0],
+         &Scheduler::WorkOnFibers);  // Main thread now behaves as a worker.
+  }
 }
 
-Counter* Scheduler::AllocateCounter() {
-  fiber::SimpleLockGuard lock{counter_lock_};
-  COMET_ASSERT(available_counters_.GetSize() > 0,
-               "No counter is available anymore!");
-  auto* counter{available_counters_.Get()};
-  available_counters_.Pop();
+void Scheduler::RequestShutdown() {
+  is_shutdown_required_.store(true, std::memory_order_release);
+}
+
+Counter* Scheduler::GenerateCounter() {
+  auto* counter{counters_.TryGet()};
+  COMET_ASSERT(counter != nullptr, "No counter is available anymore!");
   counter->Reset();
   return counter;
 }
 
-void Scheduler::FreeCounter(Counter* counter) {
+void Scheduler::DestroyCounter(Counter* counter) {
   COMET_ASSERT(counter != nullptr, "Counter provided is null!");
-  fiber::SimpleLockGuard lock{counter_lock_};
   counter->Reset();
-  available_counters_.Push(counter);
+  counters_.Push(counter);
 }
 
 void Scheduler::Kick(const JobDescr& job_descr) { SubmitJob(job_descr); }
@@ -214,56 +314,88 @@ void Scheduler::KickAndWait(usize job_count, const JobDescr* job_descrs) {
   }
 }
 
-void Scheduler::WorkerThread(usize worker_index) {
-  starter_barrier_.Wait();
-  auto& worker{workers_[worker_index]};
-  worker.Initialize();
-  Work();
+void Scheduler::KickAndWait(const IOJobDescr& job_descr) {
+  Kick(job_descr);
+  Wait(job_descr.counter);
 }
 
-void Scheduler::Work() {
+void Scheduler::KickAndWait(usize job_count, const IOJobDescr* job_descrs) {
+  Kick(job_count, job_descrs);
+
+  for (usize i{0}; i < job_count; ++i) {
+    Wait(job_descrs[i].counter);
+  }
+}
+
+usize Scheduler::GetFiberWorkerCount() const noexcept {
+  return fiber_worker_count_;
+}
+
+usize Scheduler::GetIOWorkerCount() const noexcept { return io_worker_count_; }
+
+void Scheduler::Work(Worker* worker, WorkFunc work_func) {
+  COMET_ASSERT(worker != nullptr, "Worker provided is null!");
+  COMET_ASSERT(work_func != nullptr, "Work function provided is null!");
+  worker->Attach();
+  (this->*work_func)();
+  worker->Detach();
+}
+
+void Scheduler::WorkOnFibers() {
+  auto& life_cycle_handler{fiber::FiberLifeCycleHandler::Get()};
+  life_cycle_handler.Initialize();
+
   time::Chrono chrono{};
   chrono.Start(promotion_interval_);
 
-  while (!is_shutdown_required_) {
+  while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
     if (chrono.IsFinished()) {
       PromoteJobs();
       chrono.Restart();
     }
 
-    std::optional<JobDescr> job_box{high_priority_queue_.Pop()};
+    std::optional<JobDescr> job_box{high_priority_queue_.TryPop()};
 
     if (!job_box.has_value()) {
-      job_box = normal_priority_queue_.Pop();
+      job_box = normal_priority_queue_.TryPop();
     }
 
     if (!job_box.has_value()) {
-      job_box = low_priority_queue_.Pop();
+      job_box = low_priority_queue_.TryPop();
     }
 
     if (!job_box.has_value()) {
-      fiber::Yield();
+      CleanAndTryResumeNext();
       continue;
     }
 
-    auto& job{job_box.value()};
-    auto* fiber{ResolveFiber(job)};
-    COMET_ASSERT(fiber != nullptr, "No fiber available!");
-    fiber->Attach(job.entry_point, job.params_handle, OnFiberEnd, job.counter);
-    auto& fiber_queue{fiber::FiberQueue::Get()};
-    fiber_queue.Push(fiber);
+    auto& job_descr{job_box.value()};
+    auto* fibers{ResolveFiberPool(job_descr)};
+    COMET_ASSERT(fibers != nullptr, "Could not resolve which fiber to use!");
+    fiber::Fiber* fiber{nullptr};
 
-    fiber::Yield();
-  }
-}
-
-void Scheduler::IOWorkerThread() {
-  while (!is_shutdown_required_) {
-    if (is_shutdown_required_) {
-      break;
+    while (fiber == nullptr) {
+      fiber = fibers->TryPop();
+      CleanAndTryResumeNext();
     }
 
-    auto job_box{io_queue_.Pop()};
+    fiber->Attach(job_descr.entry_point, job_descr.params_handle, OnFiberEnd,
+                  job_descr.counter
+#ifdef COMET_FIBER_DEBUG_LABEL
+                  ,
+                  job_descr.debug_label
+#endif  // COMET_FIBER_DEBUG_LABEL
+    );
+    life_cycle_handler.PutToSleep(fiber);
+    CleanAndTryResumeNext();
+  }
+
+  life_cycle_handler.Shutdown();
+}
+
+void Scheduler::WorkOnIO() {
+  while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
+    auto job_box{io_queue_.TryPop()};
 
     if (!job_box.has_value()) {
       continue;
@@ -275,9 +407,8 @@ void Scheduler::IOWorkerThread() {
   }
 }
 
-fiber::Fiber* Scheduler::ResolveFiber(const JobDescr& job_descr) {
-  fiber::FiberLockGuard lock{fiber_pool_mutex_};
-  std::vector<fiber::Fiber*>* fibers{nullptr};
+internal::FiberPool* Scheduler::ResolveFiberPool(const JobDescr& job_descr) {
+  internal::FiberPool* fibers{nullptr};
 
   switch (job_descr.stack_size) {
     case JobStackSize::Normal:
@@ -288,30 +419,60 @@ fiber::Fiber* Scheduler::ResolveFiber(const JobDescr& job_descr) {
       fibers = &gigantic_stack_fibers_;
       break;
 
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+    case JobStackSize::ExternalLibrary:
+      fibers = &external_library_stack_fibers_;
+      break;
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+
     default:
       COMET_ASSERT(false, "Unknown or unsupported job stack size: ",
                    GetJobStackSizeLabel(job_descr.stack_size), "!");
   }
 
-  COMET_ASSERT(fibers != nullptr, "Could not resolve which fiber to use!");
-  fiber::Fiber* fiber{fibers->back()};
-  fibers->pop_back();
-  fiber->Reset();
-  return fiber;
+  return fibers;
+}
+
+void Scheduler::CleanAndTryResumeNext() {
+  fiber::Fiber* completed_fiber;
+  auto& life_cycle_handler{fiber::FiberLifeCycleHandler::Get()};
+
+  while ((completed_fiber = life_cycle_handler.TryGetCompleted()) != nullptr) {
+    internal::FiberPool* fibers{nullptr};
+
+    switch (completed_fiber->GetStackCapacity()) {
+      case fiber::kLargeStackSize:
+        fibers = &large_stack_fibers_;
+        break;
+
+      case fiber::kGiganticStackSize:
+        fibers = &gigantic_stack_fibers_;
+        break;
+
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+      case fiber::kNormalExternalLibraryStackSize:
+        fibers = &external_library_stack_fibers_;
+        break;
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+
+      default:
+        COMET_ASSERT(false, "Unknown or unsupported fiber size: ",
+                     completed_fiber->GetStackCapacity(), "!");
+    }
+
+    fibers->Push(completed_fiber);
+  }
+
+  fiber::Yield();
 }
 
 void Scheduler::OnFiberEnd(fiber::Fiber* fiber, void* data) {
   auto* counter{static_cast<Counter*>(data)};
-  auto& scheduler{Get()};
-
-  {
-    fiber::FiberLockGuard lock{scheduler.fiber_pool_mutex_};
-    fiber->Detach();
-    scheduler.large_stack_fibers_.emplace_back(fiber);
-  }
-
+  fiber->Detach();
+  auto& life_cycle_handler{fiber::FiberLifeCycleHandler::Get()};
+  life_cycle_handler.PutToCompleted(fiber);
   counter->Decrement();
-  fiber::SwitchTo(fiber::FiberQueue::Get().Pop());
+  fiber::SwitchTo(life_cycle_handler.TryWakingUp());
 }
 
 void Scheduler::SubmitJob(const JobDescr& job_descr) {
@@ -344,18 +505,18 @@ void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
 }
 
 void Scheduler::PromoteJobs() {
-  std::optional<JobDescr> job_box{normal_priority_queue_.Pop()};
+  std::optional<JobDescr> job_box{normal_priority_queue_.TryPop()};
 
   while (job_box.has_value()) {
     high_priority_queue_.Push(job_box.value());
-    job_box = normal_priority_queue_.Pop();
+    job_box = normal_priority_queue_.TryPop();
   }
 
-  job_box = low_priority_queue_.Pop();
+  job_box = low_priority_queue_.TryPop();
 
   while (job_box.has_value()) {
     normal_priority_queue_.Push(job_box.value());
-    job_box = low_priority_queue_.Pop();
+    job_box = low_priority_queue_.TryPop();
   }
 }
 }  // namespace job

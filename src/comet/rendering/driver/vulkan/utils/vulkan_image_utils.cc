@@ -6,6 +6,7 @@
 
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
 
@@ -16,7 +17,8 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
                    u32 mip_levels, VkSampleCountFlagBits num_samples,
                    VkFormat format, VkImageTiling tiling,
                    VkImageUsageFlags usage_flags,
-                   VkMemoryPropertyFlags properties) {
+                   VkMemoryPropertyFlags properties,
+                   [[maybe_unused]] const schar* debug_label) {
   const auto& queue_family_indices{device.GetQueueFamilyIndices()};
 
   const std::vector<u32> family_indices{
@@ -45,6 +47,8 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
       vmaCreateImage(image.allocator_handle, &create_info, &alloc_info,
                      &image.handle, &image.allocation_handle, VK_NULL_HANDLE),
       "Failed to create image!");
+  COMET_VK_SET_DEBUG_LABEL(image.handle,
+                           debug_label != nullptr ? debug_label : "image");
 
   image.image_view_handle =
       VK_NULL_HANDLE;  // Setting a null view explicitly. Can be
@@ -70,9 +74,11 @@ VkImageView GenerateImageView(VkDevice device_handle, VkImage image_handle,
                                                      aspect_flags, mip_levels)};
   VkImageView image_view_handle{VK_NULL_HANDLE};
 
-  COMET_CHECK_VK(vkCreateImageView(device_handle, &create_info, VK_NULL_HANDLE,
-                                   &image_view_handle),
-                 "Failed to create image view");
+  COMET_CHECK_VK(
+      vkCreateImageView(device_handle, &create_info,
+                        MemoryCallbacks::Get().GetAllocCallbacksHandle(),
+                        &image_view_handle),
+      "Failed to create image view");
 
   return image_view_handle;
 }

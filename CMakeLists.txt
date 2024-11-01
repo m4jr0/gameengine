@@ -13,7 +13,7 @@ cmake_minimum_required(VERSION 3.21)
 # CMake setup ##################################################################
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_VERBOSE_MAKEFILE on)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Generic builds.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -146,6 +146,11 @@ project("comet_game_engine"
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
 option(COMET_IS_ASAN "Enable TSan (ThreadSanitizer)" OFF)
 option(COMET_IS_TSAN "Enable ASan (AddressSanitizer)" OFF)
+option(COMET_ARE_STACK_OVERFLOW_CHECKS "Enable stack overflow checks" ON)
+
+  if(COMET_ARE_STACK_OVERFLOW_CHECKS)
+    add_compile_definitions(COMET_CHECK_STACK_OVERFLOWS)
+  endif()
 
 # Compiler specifics.
 if(MSVC)
@@ -162,6 +167,10 @@ if(MSVC)
     SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} /fsanitize=address")
     add_definitions(-D_DISABLE_STRING_ANNOTATION=1)
     add_definitions(-D_DISABLE_VECTOR_ANNOTATION=1)
+  endif()
+
+  if(COMET_IS_TSAN)
+    message(ERROR "${MESSAGE_PREFIX}Unsupported option on current compiler: COMET_IS_TSAN")
   endif()
 else()
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
@@ -208,6 +217,7 @@ target_compile_definitions(${COMET_LIBRARY_NAME}
     COMET_VERSION_MAJOR=${COMET_VERSION_MAJOR}
     COMET_VERSION_MINOR=${COMET_VERSION_MINOR}
     COMET_VERSION_PATCH=${COMET_VERSION_PATCH}
+    COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 )
 
 # Vcpkg variables ##############################################################

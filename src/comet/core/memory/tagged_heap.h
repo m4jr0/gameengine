@@ -5,12 +5,13 @@
 #ifndef COMET_COMET_CORE_MEMORY_TAGGED_HEAP_H_
 #define COMET_COMET_CORE_MEMORY_TAGGED_HEAP_H_
 
-#include <vector>
-
+#include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/fixed_size_bitset.h"
 
 namespace comet {
 namespace memory {
@@ -34,20 +35,45 @@ class TaggedHeap {
   void Initialize();
   void Destroy();
 
-  void* Allocate(usize size, MemoryTag tag);
-  void Deallocate(MemoryTag tag);
+  void* Allocate(usize size, MemoryTag tag, usize* out_size = nullptr);
+  void* AllocateAligned(usize size, Alignment align, MemoryTag tag,
+                        usize* out_size = nullptr);
+  void* AllocateBlock(MemoryTag tag, usize* out_size = nullptr);
+  void* AllocateBlockAligned(Alignment align, MemoryTag tag,
+                             usize* out_size = nullptr);
+  void* AllocateBlocks(usize count, MemoryTag tag, usize* out_size = nullptr);
+  void* AllocateBlocksAligned(usize count, Alignment align, MemoryTag tag,
+                              usize* out_size = nullptr);
+  void DeallocateAll(MemoryTag tag);
 
   bool IsInitialized() const noexcept;
+  usize GetBlockSize() const noexcept;
 
  private:
+  usize test{0};
+  static inline constexpr usize kBucketCount_{100};
+  static inline constexpr usize kTagsPerBucketCount_{10};
+  static inline constexpr usize kMaxTagCount_{kBucketCount_ *
+                                              kTagsPerBucketCount_};
+
+  struct TagBlockMap {
+    MemoryTag tag{kEngineMemoryTagUntagged};
+    FixedSizeBitset block_map{};
+  };
+
+  void* AllocateInternal(usize size, MemoryTag tag, usize& block_count);
   usize ResolveFreeBlocks(usize block_count) const;
+  TagBlockMap* FindOrAddTag(MemoryTag tag);
+
   bool is_initialized_{false};
   usize total_block_count_{0};
   usize block_size_{0};
-  usize capacity_{COMET_CONF_U32(conf::kCoreTwoFrameAllocatorCapacity)};
+  usize capacity_{COMET_CONF_U32(conf::kCoreTaggedHeapCapacity)};
   MemoryDescr memory_descr_{GetMemoryDescr()};
-  std::vector<bool> free_blocks{};
-  std::vector<std::vector<bool>> tag_bitlist;
+  FixedSizeBitset global_block_map_{};
+  TagBlockMap tag_block_maps_[kBucketCount_][kTagsPerBucketCount_]{};
+  PlatformStackAllocator bitset_allocator_{};
+  mutable fiber::FiberMutex mutex_{};
   void* memory_{nullptr};
 };
 }  // namespace memory

@@ -8,8 +8,8 @@
 #include <array>
 #include <atomic>
 #include <string_view>
-#include <thread>
 
+#include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
 
@@ -64,6 +64,9 @@ class Logger final {
   static_assert(std::atomic<bool>::is_always_lock_free,
                 "std::atomic<bool> needs to be always lock-free. Unsupported "
                 "architecture");
+
+ public:
+  void Destroy();
 
  private:
   void AddToBuffer(schar* buffer, usize len, usize& offset, const TString& arg);
@@ -125,9 +128,9 @@ class Logger final {
     usize offset{0};
 
 #ifdef COMET_LOG_IS_FIBER_PREFIX
-    constexpr auto kFiberPrefixSize{128};
-    schar fiber_prefix[kFiberPrefixSize]{'\0'};
-    PopulateFiberPrefix(fiber_prefix, kFiberPrefixSize);
+    constexpr auto kEngineMemoryTagFiberPrefixSize{256};
+    schar fiber_prefix[kEngineMemoryTagFiberPrefixSize]{'\0'};
+    PopulateFiberPrefix(fiber_prefix, kEngineMemoryTagFiberPrefixSize);
     this->ProcessLog(tmp, kSize, offset, fiber_prefix);
 #endif  // COMET_LOG_IS_FIBER_PREFIX
 
@@ -166,8 +169,6 @@ class Logger final {
         COMET_ASCII(COMET_ASCII_DEBUG_COL), args...);
   }
 
-  void Dispose();
-
  private:
   void Flush();
 #ifdef COMET_LOG_IS_FIBER_PREFIX
@@ -186,9 +187,9 @@ class Logger final {
   static constexpr auto kFlushIntervalInMs_{100};
   std::array<Buffer, kBufferCount_> buffers_{};
   std::atomic<usize> current_buffer_index_{0};
-  std::thread flush_thread_{};
   std::atomic<bool> is_initialized_{false};
   std::atomic<bool> is_running_{false};
+  thread::Thread flush_thread_{};
 
   Logger();
 
@@ -350,6 +351,9 @@ class Logger final {
 #define COMET_LOG_TIME_WARNING(...) \
   comet::Logger::Get().Warning(comet::LoggerType::Time, __VA_ARGS__)
 #endif  // !COMET_DEBUG
+
+#define COMET_LOG_INITIALIZE() comet::Logger::Get()
+#define COMET_LOG_DESTROY() comet::Logger::Get().Destroy();
 
 #define COMET_LOG_ERROR(logger_type, ...) \
   comet::Logger::Get().Error(logger_type, __VA_ARGS__)

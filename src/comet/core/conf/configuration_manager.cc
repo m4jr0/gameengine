@@ -28,21 +28,25 @@ void ConfigurationManager::Initialize() {
   values_.insert(
       {kApplicationPatchVersion, GetDefaultValue(kApplicationPatchVersion)});
   values_.insert({kCoreMsPerUpdate, GetDefaultValue(kCoreMsPerUpdate)});
-  values_.insert(
-      {kCoreForcedWorkerCount, GetDefaultValue(kCoreForcedWorkerCount)});
+  values_.insert({kCoreForcedFiberWorkerCount,
+                  GetDefaultValue(kCoreForcedFiberWorkerCount)});
   values_.insert(
       {kCoreForcedIOWorkerCount, GetDefaultValue(kCoreForcedIOWorkerCount)});
   values_.insert({kCoreLargeFiberCount, GetDefaultValue(kCoreLargeFiberCount)});
   values_.insert(
       {kCoreGiganticFiberCount, GetDefaultValue(kCoreGiganticFiberCount)});
+  values_.insert({kCoreExternalLibraryFiberCount,
+                  GetDefaultValue(kCoreExternalLibraryFiberCount)});
   values_.insert({kCoreJobCounterCount, GetDefaultValue(kCoreJobCounterCount)});
   values_.insert({kCoreJobQueueCount, GetDefaultValue(kCoreJobQueueCount)});
+  values_.insert({kCoreIsMainThreadWorkerDisabled,
+                  GetDefaultValue(kCoreIsMainThreadWorkerDisabled)});
   values_.insert(
       {kCoreTaggedHeapCapacity, GetDefaultValue(kCoreTaggedHeapCapacity)});
-  values_.insert({kCoreOneFrameAllocatorCapacity,
-                  GetDefaultValue(kCoreOneFrameAllocatorCapacity)});
-  values_.insert({kCoreTwoFrameAllocatorCapacity,
-                  GetDefaultValue(kCoreTwoFrameAllocatorCapacity)});
+  values_.insert({kCoreFiberFrameAllocatorBaseCapacity,
+                  GetDefaultValue(kCoreFiberFrameAllocatorBaseCapacity)});
+  values_.insert({kCoreIOFrameAllocatorBaseCapacity,
+                  GetDefaultValue(kCoreIOFrameAllocatorBaseCapacity)});
   values_.insert({kCoreTStringAllocatorCapacity,
                   GetDefaultValue(kCoreTStringAllocatorCapacity)});
   values_.insert({kEventMaxQueueSize, GetDefaultValue(kEventMaxQueueSize)});
@@ -353,15 +357,17 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
   if (key == kApplicationName || key == kRenderingDriver ||
       key == kRenderingAntiAliasing) {
     SetStr(key, value);
-  } else if (key == kCoreForcedWorkerCount || key == kCoreForcedIOWorkerCount) {
+  } else if (key == kCoreForcedFiberWorkerCount ||
+             key == kCoreForcedIOWorkerCount) {
     SetU8(key, ParseU8(value));
   } else if (key == kEventMaxQueueSize || key == kApplicationMajorVersion ||
              key == kApplicationMinorVersion ||
              key == kApplicationPatchVersion || key == kCoreLargeFiberCount ||
-             key == kCoreGiganticFiberCount || key == kCoreJobCounterCount ||
-             key == kCoreJobQueueCount || key == kRenderingWindowWidth ||
-             key == kRenderingWindowHeight || key == kRenderingFpsCap ||
-             key == kRenderingOpenGlMajorVersion ||
+             key == kCoreGiganticFiberCount ||
+             key == kCoreExternalLibraryFiberCount ||
+             key == kCoreJobCounterCount || key == kCoreJobQueueCount ||
+             key == kRenderingWindowWidth || key == kRenderingWindowHeight ||
+             key == kRenderingFpsCap || key == kRenderingOpenGlMajorVersion ||
              key == kRenderingOpenGlMinorVersion ||
              key == kRenderingVulkanVariantVersion ||
              key == kRenderingVulkanMajorVersion ||
@@ -370,8 +376,8 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
              key == kRenderingVulkanMaxFramesInFlight) {
     SetU16(key, ParseU16(value));
   } else if (key == kCoreTaggedHeapCapacity ||
-             key == kCoreOneFrameAllocatorCapacity ||
-             key == kCoreTwoFrameAllocatorCapacity ||
+             key == kCoreFiberFrameAllocatorBaseCapacity ||
+             key == kCoreIOFrameAllocatorBaseCapacity ||
              key == kCoreTStringAllocatorCapacity) {
     SetU32(key, ParseU32(value));
   } else if (key == kRenderingClearColorR || key == kRenderingClearColorG ||
@@ -379,7 +385,8 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
     SetF32(key, ParseF32(value));
   } else if (key == kCoreMsPerUpdate) {
     SetF64(key, ParseF64(value));
-  } else if (key == kRenderingIsVsync || key == kRenderingIsTripleBuffering ||
+  } else if (key == kCoreIsMainThreadWorkerDisabled ||
+             key == kRenderingIsVsync || key == kRenderingIsTripleBuffering ||
              key == kRenderingIsSamplerAnisotropy ||
              key == kRenderingIsSampleRateShading) {
     SetBool(key, ParseBool(value));

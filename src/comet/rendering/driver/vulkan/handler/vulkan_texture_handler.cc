@@ -4,6 +4,12 @@
 
 #include "vulkan_texture_handler.h"
 
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+#include "comet/core/c_string.h"
+#include "comet/core/file_system/file_system.h"
+#include "comet/core/type/string_id.h"
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
+
 #include "comet/math/math_commons.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
@@ -11,6 +17,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 #include "comet/resource/texture_resource.h"
 
@@ -51,18 +58,30 @@ const Texture* TextureHandler::Generate(
                      VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_AUTO,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+                     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+                     VK_SHARING_MODE_EXCLUSIVE, "texture_stating_buffer");
 
   MapBuffer(staging_buffer);
   CopyToBuffer(staging_buffer, resource->data.data(), image_size);
   UnmapBuffer(staging_buffer);
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+  constexpr auto kDebugLabelLen{kMaxPathLength};
+  schar debug_label[kDebugLabelLen + 1]{'\0'};
+  auto image_len{GetLength("image_")};
+  Copy(debug_label, "image_", image_len);
+  auto* resource_label{COMET_STRING_ID_LABEL(resource->id)};
+  Copy(debug_label + image_len, resource_label, GetLength(resource_label));
+#else
+  const schar* debug_label{nullptr};
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
   GenerateImage(
       texture.image, device, texture.width, texture.height, texture.mip_levels,
       VK_SAMPLE_COUNT_1_BIT, texture.format, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
           VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debug_label);
 
   auto old_layout{VK_IMAGE_LAYOUT_UNDEFINED};
   auto new_layout{VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL};
@@ -142,7 +161,7 @@ Texture* TextureHandler::TryGet(TextureId texture_id) {
 void TextureHandler::Destroy(Texture& texture, bool is_destroying_handler) {
   if (texture.image.image_view_handle != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->GetDevice(), texture.image.image_view_handle,
-                       VK_NULL_HANDLE);
+                       MemoryCallbacks::Get().GetAllocCallbacksHandle());
     texture.image.image_view_handle = VK_NULL_HANDLE;
   }
 

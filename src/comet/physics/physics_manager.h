@@ -26,7 +26,7 @@ class PhysicsManager : public Manager {
 
   void Initialize() override;
   void Shutdown() override;
-  void Update(frame::FramePacket& packet);
+  void Update(frame::FramePacket* packet);
   void SetLocal(TransformComponent* cmp, const math::Mat4& local) const;
   void UpdateTree(entity::EntityId parent_entity_id,
                   const TransformComponent* parent_transform_cmp) const;

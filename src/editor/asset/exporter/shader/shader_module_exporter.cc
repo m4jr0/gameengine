@@ -7,6 +7,8 @@
 #include "shaderc/shaderc.hpp"
 
 #include "comet/core/c_string.h"
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory.h"
@@ -21,7 +23,7 @@ bool ShaderModuleExporter::IsCompatible(CTStringView extension) const {
 }
 
 std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
-    AssetDescr& asset_descr) const {
+    job::Counter*, AssetDescr& asset_descr) const {
   const auto driver_keyword_pos{
       asset_descr.asset_path.GetNthToLastIndexOf(COMET_TCHAR('.'), 2)};
 
@@ -68,10 +70,14 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
   shader.descr.shader_type = shader_type;
   shader.descr.driver_type = driver_type;
 
-  schar shader_code[4096];
-  usize shader_code_len;
-  ReadStrFromFile(asset_descr.asset_abs_path, shader_code, 4096,
-                  &shader_code_len);
+  ShaderCodeContext shader_code_context{};
+  shader_code_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
+
+  job::Scheduler::Get().KickAndWait(
+      job::GenerateIOJobDescr(OnShaderModuleLoading, &shader_code_context));
+
+  COMET_LOG_GLOBAL_DEBUG("Processing shader module at: ",
+                         shader_code_context.asset_abs_path, "...");
 
   switch (driver_type) {
     case rendering::DriverType::Vulkan: {
@@ -104,8 +110,8 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
       const auto* input_file_name{tmp_input_file_name.GetCTStr()};
 #endif  // COMET_WIDE_TCHAR
 
-      const auto result{compiler.CompileGlslToSpv(shader_code, shader_kind,
-                                                  input_file_name, options)};
+      const auto result{compiler.CompileGlslToSpv(
+          shader_code_context.code, shader_kind, input_file_name, options)};
 
       if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
         COMET_LOG_GLOBAL_ERROR("Shaderc compilation error! At ",
@@ -120,15 +126,27 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
     }
     default:
     case rendering::DriverType::OpenGl: {
-      shader.data.resize(shader_code_len);
-      memory::CopyMemory(shader.data.data(), shader_code, shader.data.size());
+      shader.data.resize(shader_code_context.code_len);
+      memory::CopyMemory(shader.data.data(), shader_code_context.code,
+                         shader.data.size());
       break;
     }
   }
 
+  COMET_LOG_GLOBAL_DEBUG("Shader module processed at: ",
+                         shader_code_context.asset_abs_path);
+
   return std::vector<resource::ResourceFile>{
       resource::ResourceManager::Get().GetResourceFile(shader,
                                                        compression_mode_)};
+}
+
+void ShaderModuleExporter::OnShaderModuleLoading(
+    job::IOJobParamsHandle params_handle) {
+  auto* shader_code_context{static_cast<ShaderCodeContext*>(params_handle)};
+  ReadStrFromFile(
+      shader_code_context->asset_abs_path, shader_code_context->code,
+      ShaderCodeContext::kMaxShaderCodeLen_, &shader_code_context->code_len);
 }
 }  // namespace asset
 }  // namespace editor

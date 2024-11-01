@@ -7,6 +7,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/resource/resource.h"
@@ -23,36 +25,39 @@ bool TextureExporter::IsCompatible(CTStringView extension) const {
 }
 
 std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
-    AssetDescr& asset_descr) const {
+    job::Counter*, AssetDescr& asset_descr) const {
   std::vector<resource::ResourceFile> resource_files{};
-  s32 tex_width{0};
-  s32 tex_height{0};
-  s32 tex_channels{0};
-#ifdef COMET_WIDE_TCHAR
-  auto* asset_abs_path{
-      GenerateForOneFrame<schar>(asset_descr.asset_abs_path.GetCTStr(),
-                                 asset_descr.asset_abs_path.GetLength())};
-#else
-  auto* asset_abs_path{asset_descr.asset_abs_path.GetCTStr()};
-#endif  // COMET_WIDE_TCHAR
-  auto* pixel_data{stbi_load(asset_abs_path, &tex_width, &tex_height,
-                             &tex_channels, STBI_rgb_alpha)};
 
-  if (pixel_data == nullptr) {
+  TextureContext texture_context{};
+#ifdef COMET_WIDE_TCHAR
+  texture_context.path =
+      GenerateForOneFrame<schar>(asset_descr.asset_abs_path.GetCTStr(),
+                                 asset_descr.asset_abs_path.GetLength());
+#else
+  texture_context.path = asset_descr.asset_abs_path.GetCTStr();
+#endif  // COMET_WIDE_TCHAR
+
+  job::Scheduler::Get().KickAndWait(
+      job::GenerateIOJobDescr(OnTextureLoading, &texture_context));
+
+  if (texture_context.pixel_data == nullptr) {
     COMET_LOG_GLOBAL_ERROR("Failed to load texture image");
     return resource_files;
   }
 
+  COMET_LOG_GLOBAL_DEBUG("Processing texture at ", texture_context.path, "...");
   resource::TextureResource texture{};
   texture.id = resource::GenerateResourceIdFromPath(asset_descr.asset_path);
   texture.type_id = resource::TextureResource::kResourceTypeId;
-  texture.descr.size = static_cast<comet::u64>(tex_width) * tex_height * 4;
-  texture.descr.resolution[0] = tex_width;
-  texture.descr.resolution[1] = tex_height;
+  texture.descr.size = static_cast<comet::u64>(texture_context.tex_width) *
+                       texture_context.tex_height * 4;
+  texture.descr.resolution[0] = texture_context.tex_width;
+  texture.descr.resolution[1] = texture_context.tex_height;
   texture.descr.resolution[2] = 0;
-  texture.descr.channel_count = static_cast<u8>(tex_channels);
+  texture.descr.channel_count = static_cast<u8>(texture_context.tex_channels);
   texture.descr.format = rendering::TextureFormat::Rgba8;
-  texture.data = {pixel_data, pixel_data + texture.descr.size};
+  texture.data = {texture_context.pixel_data,
+                  texture_context.pixel_data + texture.descr.size};
 
   asset_descr.metadata[kCometEditorTextureMetadataKeyFormat] =
       kCometEditorTextureFormatRgba8;
@@ -64,8 +69,17 @@ std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
 
   resource_files.push_back(resource::ResourceManager::Get().GetResourceFile(
       texture, compression_mode_));
-  stbi_image_free(pixel_data);
+  stbi_image_free(texture_context.pixel_data);
+  COMET_LOG_GLOBAL_DEBUG("Texture processed at ", texture_context.path);
   return resource_files;
+}
+
+void TextureExporter::OnTextureLoading(job::IOJobParamsHandle params_handle) {
+  auto* texture_context{static_cast<TextureContext*>(params_handle)};
+  texture_context->pixel_data =
+      stbi_load(texture_context->path, &texture_context->tex_width,
+                &texture_context->tex_height, &texture_context->tex_channels,
+                STBI_rgb_alpha);
 }
 }  // namespace asset
 }  // namespace editor

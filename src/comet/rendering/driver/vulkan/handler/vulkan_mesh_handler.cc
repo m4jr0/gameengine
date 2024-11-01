@@ -108,7 +108,8 @@ void MeshHandler::InitializeStagingBuffer() {
       VMA_MEMORY_USAGE_AUTO,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
           VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+      VK_SHARING_MODE_EXCLUSIVE, "mesh_stating_buffer");
 }
 
 void MeshHandler::DestroyStagingBuffer() { DestroyBuffer(staging_buffer_); }
@@ -167,7 +168,8 @@ void MeshHandler::Upload(MeshProxy& proxy) {
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VMA_MEMORY_USAGE_AUTO, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VMA_MEMORY_USAGE_AUTO, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0,
+        VK_SHARING_MODE_EXCLUSIVE, "vertex_buffer");
   }
 
   CopyBuffer(context_->GetDevice(),

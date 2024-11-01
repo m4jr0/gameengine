@@ -98,7 +98,8 @@
         "numbers": "cpp",
         "semaphore": "cpp",
         "charconv": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "cassert": "cpp"
     },
     "C_Cpp.clang_format_style": "Google",
     "editor.tabSize": 4

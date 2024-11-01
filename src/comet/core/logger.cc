@@ -6,13 +6,14 @@
 
 #include <chrono>
 
+#include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
-#include "comet/core/concurrency/job/scheduler_utils.h"
-#include "comet/core/concurrency/thread/thread_utils.h"
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
-void Logger::Dispose() { is_running_.store(false, std::memory_order_release); }
+void Logger::Destroy() { is_running_.store(false, std::memory_order_release); }
 
 void Logger::Flush() {
   // current_buffer_index_ will always be synchronized by the flush thread (only
@@ -25,7 +26,7 @@ void Logger::Flush() {
   auto& buffer{buffers_[current_buffer_index]};
 
   while (buffer.active_writer_count.load(std::memory_order_acquire) != 0) {
-    std::this_thread::yield();
+    thread::Yield();
   }
 
   auto len{buffers_[current_buffer_index].write_index.load(
@@ -59,9 +60,18 @@ void Logger::PopulateFiberPrefix(schar* buffer, usize buffer_len) {
   cur_len = 0;
 
   if (fiber::IsFiber()) {
-    auto fiber_id{fiber::GetCurrent()->GetId()};
+    const auto* fiber{fiber::GetFiber()};
+    auto fiber_id{fiber->GetId()};
     ConvertToStr(fiber_id, buffer, buffer_len, &cur_len);
     buffer += cur_len;
+#ifdef COMET_FIBER_DEBUG_LABEL
+    const auto* fiber_label{fiber->GetDebugLabel()};
+    auto fiber_label_len{GetLength(fiber_label)};
+    buffer[0] = '#';
+    ++buffer;
+    Copy(buffer, fiber_label, fiber_label_len);
+    buffer += fiber_label_len;
+#endif  // COMET_FIBER_DEBUG_LABEL
   } else {
     Copy(buffer, "I/O", 3);
     buffer += 3;
@@ -78,27 +88,24 @@ Logger& Logger::Get() {
 
 Logger::~Logger() {
   is_running_.store(false, std::memory_order_release);
-
-  if (flush_thread_.joinable()) {
-    flush_thread_.join();
-  }
+  flush_thread_.TryJoin();
 }
 
 Logger::Logger() {
   is_running_.store(true, std::memory_order_release);
   is_initialized_.store(true, std::memory_order_release);
-  flush_thread_ = std::thread{&Logger::ListenToFlushRequests, this};
+  flush_thread_.Run(&Logger::ListenToFlushRequests, this);
 }
 
 void Logger::ListenToFlushRequests() {
   while (!is_initialized_.load(std::memory_order_acquire)) {
-    std::this_thread::yield();
+    thread::Yield();
   }
 
   auto start{std::chrono::steady_clock::now()};
 
   while (is_running_.load(std::memory_order_acquire)) {
-    std::this_thread::yield();
+    thread::Yield();
 
     // current_buffer_index_ will always be synchronized by the flush thread
     // (only this thread modifies this value).

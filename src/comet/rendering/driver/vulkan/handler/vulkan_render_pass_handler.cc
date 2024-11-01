@@ -275,6 +275,7 @@ RenderPass* RenderPassHandler::Generate(const RenderPassDescr& descr) {
                                     &render_pass.handle),
                  "Failed to create render pass!");
 
+  COMET_VK_SET_DEBUG_LABEL(render_pass.handle, "main_render_pass");
   GenerateFrameBuffers(render_pass);
 
   auto insert_pair{render_passes_.emplace(render_pass.id, render_pass)};

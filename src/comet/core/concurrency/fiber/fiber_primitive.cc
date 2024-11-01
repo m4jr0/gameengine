@@ -42,7 +42,7 @@ FiberSpinLockGuard::~FiberSpinLockGuard() { spin_lock_.Unlock(); }
 
 void FiberMutex::Lock() {
   for (;;) {
-    auto* fiber{GetCurrent()};
+    auto* fiber{GetFiber()};
     FiberSpinLockGuard guard{spin_lock_};
     COMET_ASSERT(fiber != owner_, "Lock is already owned by current fiber!");
 
@@ -56,7 +56,7 @@ void FiberMutex::Lock() {
 }
 
 void FiberMutex::Unlock() {
-  auto* fiber{GetCurrent()};
+  [[maybe_unused]] auto* fiber{GetFiber()};
   FiberSpinLockGuard guard{spin_lock_};
   COMET_ASSERT(fiber == owner_, "Lock is not owned by current fiber!");
   owner_ = nullptr;
@@ -82,14 +82,71 @@ FiberAwareLockGuard::FiberAwareLockGuard(SimpleLock& lock) : lock_{lock} {
 
 FiberAwareLockGuard::~FiberAwareLockGuard() { lock_.Unlock(); }
 
-void FiberCV::Wait(FiberMutex& mtx) {
-  mtx.Unlock();
-
-  mtx.Lock();
+FiberUniqueLock::FiberUniqueLock(FiberMutex& mtx, bool is_lock_deferred)
+    : mtx_{mtx}, is_mutex_owned_{!is_lock_deferred} {
+  if (is_mutex_owned_) {
+    mtx_.Lock();
+  }
 }
 
-void FiberCV::NotifyOne() {}
+FiberUniqueLock::~FiberUniqueLock() { Unlock(); }
 
-void FiberCV::NotifyAll() {}
+void FiberUniqueLock::Lock() {
+  if (!is_mutex_owned_) {
+    mtx_.Lock();
+    is_mutex_owned_ = true;
+  }
+}
+
+void FiberUniqueLock::Unlock() {
+  if (is_mutex_owned_) {
+    mtx_.Unlock();
+    is_mutex_owned_ = false;
+  }
+}
+
+void FiberCV::Wait(FiberUniqueLock& lock) {
+  auto* fiber{GetFiber()};
+  COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+
+  {
+    FiberSpinLockGuard spin_lock{spin_lock_};
+    awaiting_fibers_.push_back(fiber);
+  }
+
+  lock.Unlock();
+  fiber::Yield();
+  lock.Lock();
+}
+
+void FiberCV::NotifyOne() {
+  Fiber* to_resume{nullptr};
+
+  {
+    FiberSpinLockGuard lock{spin_lock_};
+
+    if (!awaiting_fibers_.empty()) {
+      to_resume = awaiting_fibers_.front();
+      awaiting_fibers_.pop_front();
+    }
+
+    if (to_resume != nullptr) {
+      fiber::SwitchTo(to_resume);
+    }
+  }
+}
+
+void FiberCV::NotifyAll() {
+  std::deque<Fiber*> to_resume{};
+
+  {
+    FiberSpinLockGuard lock{spin_lock_};
+    to_resume.swap(awaiting_fibers_);
+  }
+
+  for (auto* fiber : to_resume) {
+    SwitchTo(fiber);
+  }
+}
 }  // namespace fiber
 }  // namespace comet

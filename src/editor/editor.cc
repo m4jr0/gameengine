@@ -13,16 +13,23 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/file_system/file_system.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/physics/component/transform_component.h"
+#include "editor/memory/memory.h"
 
 namespace comet {
 namespace editor {
-void CometEditor::Update(frame::FrameCount frame_count, f64& lag) {
-  Engine::Update(frame_count, lag);
+void CometEditor::Update(f64& lag) {
+  Engine::Update(lag);
   camera_handler_->Update();
+}
+
+void CometEditor::PreLoad() {
+  Engine::PreLoad();
+  COMET_ATTACH_CUSTOM_MEMORY_LABEL_FUNC(memory::GetEditorMemoryTagLabel);
 }
 
 void CometEditor::Load() {
@@ -63,6 +70,7 @@ void CometEditor::PostUnload() {
   PostUnloadTmpCode();
   asset::AssetManager::Get().Shutdown();
   Engine::PostUnload();
+  COMET_DETACH_CUSTOM_MEMORY_LABEL_FUNC();
 }
 
 #ifdef COMET_WINDOWS

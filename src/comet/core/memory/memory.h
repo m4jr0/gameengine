@@ -9,87 +9,103 @@
 
 namespace comet {
 namespace memory {
-constexpr auto kMaxAlignment{256};
+using Alignment = u16;
+constexpr auto kInvalidAlignment{static_cast<Alignment>(-1)};
+
+constexpr u16 kMaxAlignment{256};
 static_assert((kMaxAlignment & (kMaxAlignment - 1)) == 0,
               "kMaxAlignment must be a power of 2!");
-constexpr auto kStackAlignment{16};
+constexpr Alignment kStackAlignment{16};
 static_assert((kStackAlignment & (kStackAlignment - 1)) == 0,
               "kStackAlignment must be a power of 2!");
 
 struct MemoryDescr {
   usize total_memory_size;
   usize page_size{0};
+  usize large_page_size{0};
 };
 
-enum class MemoryTag {
-  Untagged = 0,
-  StringId = 1,
-  OneFrame = 2,
-  TwoFrames = 3,
-  TString = 4,
-  Entity = 5,
-  Fiber = 6,
-  Asset = 7
+using MemoryTag = u64;
+
+enum EngineMemoryTag : MemoryTag {
+  kEngineMemoryTagUntagged = 0,
+  kEngineMemoryTagTaggedHeap,
+  kEngineMemoryTagStringId,
+  kEngineMemoryTagFrame0,
+  kEngineMemoryTagFrame1,
+  kEngineMemoryTagFrame2,
+  kEngineMemoryTagDoubleFrame0,
+  kEngineMemoryTagDoubleFrame1,
+  kEngineMemoryTagDoubleFrame2,
+  kEngineMemoryTagRendering,
+  kEngineMemoryTagRenderingInternal,
+  kEngineMemoryTagRenderingDevice,
+  kEngineMemoryTagTString,
+  kEngineMemoryTagEntity,
+  kEngineMemoryTagFiber,
+  kEngineMemoryTagThreadProvider,
+  kEngineMemoryTagEvent,
+  kEngineMemoryTagUserBase = kU32Max,
+  kEngineMemoryTagInvalid = kU64Max
 };
 
-constexpr auto kMaxMemoryTagCount{8};
+#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
+using GetCustomMemoryTagLabelFunc = const schar* (*)(MemoryTag);
 
-constexpr std::underlying_type_t<MemoryTag> GetMemoryTagIndex(
-    MemoryTag tag) noexcept {
-  return static_cast<std::underlying_type_t<MemoryTag>>(tag);
-}
+namespace internal {
+extern GetCustomMemoryTagLabelFunc get_custom_memory_tag_label_func;
+}  // namespace internal
+
+void AttachGetCustomMemoryTagLabelFunc(GetCustomMemoryTagLabelFunc func);
+void DetachGetCustomMemoryTagLabelFunc();
+#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
 
 const schar* GetMemoryTagLabel(MemoryTag tag);
 void* CopyMemory(void* dst, const void* src, usize size);
+void ClearMemory(void* ptr, usize size);
 
-inline uptr AlignAddress(uptr address, usize alignment) {
-  if (alignment == 0) {
+inline uptr AlignAddress(uptr address, Alignment align) {
+  if (align == 0) {
     return address;
   }
 
-  const usize mask{alignment - 1};
-  COMET_ASSERT((alignment & mask) == 0, "Bad alignment provided for address ",
-               reinterpret_cast<void*>(address), ": ", alignment,
+  const usize mask{static_cast<usize>(align) - 1};
+  COMET_ASSERT((align & mask) == 0, "Bad alignment provided for address ",
+               reinterpret_cast<void*>(address), ": ", align,
                "! Must be a power of 2.");
   return (address + mask) & ~mask;
 }
 
-inline usize AlignSize(usize size, usize alignment) {
-  const usize mask{alignment - 1};
-  COMET_ASSERT((alignment & mask) == 0, "Bad alignment provided for size ",
-               size, ": ", alignment, "! Must be a power of 2.");
+inline usize AlignSize(usize size, Alignment align) {
+  const auto mask{static_cast<usize>(align) - 1};
+  COMET_ASSERT((align & mask) == 0, "Bad alignment provided for size ", size,
+               ": ", align, "! Must be a power of 2.");
   return (size + mask) & ~mask;
 }
 
 template <typename T>
-inline T* AlignPointer(T* ptr, usize alignment) {
-  return reinterpret_cast<T*>(
-      AlignAddress(reinterpret_cast<uptr>(ptr), alignment));
+inline T* AlignPointer(T* ptr, Alignment align) {
+  return reinterpret_cast<T*>(AlignAddress(reinterpret_cast<uptr>(ptr), align));
 }
 
-void* Allocate(usize size, MemoryTag tag = MemoryTag::Untagged);
-void* AllocateAligned(usize size, u16 alignment, MemoryTag tag);
-
-template <typename T>
-T* AllocateAligned(MemoryTag tag) {
-  return AllocateAligned<T>(1, tag);
+template <typename T, typename... Targs>
+T* Populate(void* memory, Targs&&... args) {
+  COMET_ASSERT(memory != nullptr, "Memory provided is null!");
+  return new (memory) T(std::forward<Targs>(args)...);
 }
 
-template <typename T>
-T* AllocateAligned(usize count, MemoryTag tag) {
-  return reinterpret_cast<T*>(
-      AllocateAligned(sizeof(T) * count, alignof(T), tag));
-}
-
-void Deallocate(void* p);
+void* StoreShiftAndReturnAligned(u8* ptr, usize data_size,
+                                 [[maybe_unused]] usize allocation_size,
+                                 Alignment align);
+void* ResolveNonAligned(void* ptr);
 
 template <typename T>
-inline bool IsAligned(T* ptr, usize alignment) noexcept {
+inline bool IsAligned(T* ptr, usize align) noexcept {
   auto tmp{reinterpret_cast<uptr>(ptr)};
-  return tmp % alignment == 0;
+  return tmp % align == 0;
 }
 
-void GetMemorySizeString(usize size, schar* buffer, usize buffer_len,
+void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
                          usize* out_len = nullptr);
 
 void Poison(void* ptr, usize size);
@@ -107,5 +123,15 @@ void ConvertAddressToHex(void* address, schar* buffer, usize buffer_len);
 #else
 #define COMET_POISON(ptr, size)
 #endif  // COMET_POISON_ALLOCATIONS
+
+#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
+#define COMET_ATTACH_CUSTOM_MEMORY_LABEL_FUNC(func) \
+  comet::memory::AttachGetCustomMemoryTagLabelFunc(func)
+#define COMET_DETACH_CUSTOM_MEMORY_LABEL_FUNC() \
+  comet::memory::DetachGetCustomMemoryTagLabelFunc()
+#else
+#define COMET_ATTACH_CUSTOM_MEMORY_LABEL_FUNC(func)
+#define COMET_DETACH_CUSTOM_MEMORY_LABEL_FUNC()
+#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
 
 #endif  // COMET_COMET_CORE_MEMORY_MEMORY_H_

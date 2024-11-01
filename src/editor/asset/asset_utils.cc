@@ -7,6 +7,7 @@
 #include "comet/core/date.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger.h"
+#include "comet/math/math_commons.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
@@ -114,6 +115,17 @@ TString GenerateResourcePath(CTStringView folder_path,
   resource_id_path[10] = COMET_TCHAR('\0');
   return folder_path / resource_id_path;
 }
+
+namespace internal {
+schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,
+                                       usize buffer_len) {
+  auto name{GetName(path)};
+  auto len{math::Min(buffer_len, name.GetLength())};
+  Copy(buffer, name.GetCTStr(), len);
+  buffer[len] = '\0';
+  return buffer;
+}
+}  // namespace internal
 }  // namespace asset
 }  // namespace editor
 }  // namespace comet

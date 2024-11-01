@@ -25,7 +25,7 @@ ConfValue GetDefaultValue(ConfKey key) {
     default_value.u16_value = 0;
   } else if (key == kCoreMsPerUpdate) {
     default_value.f64_value = 16.66;
-  } else if (key == kCoreForcedWorkerCount) {
+  } else if (key == kCoreForcedFiberWorkerCount) {
     default_value.u8_value = 0;
   } else if (key == kCoreForcedIOWorkerCount) {
     default_value.u8_value = 0;
@@ -33,20 +33,20 @@ ConfValue GetDefaultValue(ConfKey key) {
     default_value.u16_value = 128;
   } else if (key == kCoreGiganticFiberCount) {
     default_value.u16_value = 32;
+  } else if (key == kCoreExternalLibraryFiberCount) {
+    default_value.u16_value = 32;
   } else if (key == kCoreJobCounterCount) {
-    default_value.u16_value = 256;
+    default_value.u16_value = 2048;
   } else if (key == kCoreJobQueueCount) {
     default_value.u16_value = 256;
+  } else if (key == kCoreIsMainThreadWorkerDisabled) {
+    default_value.bool_value = false;
   } else if (key == kCoreTaggedHeapCapacity) {
-    default_value.u32_value = 268435456;  // 256 MiB.
-#ifdef COMET_DEBUG
-  } else if (key == kCoreOneFrameAllocatorCapacity) {
-    default_value.u32_value = 2097152;  // 2 MiB.
-#endif                                  // COMET_DEBUG
-  } else if (key == kCoreOneFrameAllocatorCapacity) {
-    default_value.u32_value = 268435456;  // 256 MiB.
-  } else if (key == kCoreTwoFrameAllocatorCapacity) {
-    default_value.u32_value = 268435456;  // 256 MiB.
+    default_value.u32_value = 2147483648;  // 2 GiB.
+  } else if (key == kCoreFiberFrameAllocatorBaseCapacity) {
+    default_value.u32_value = 4194304;  // 4 MiB.
+  } else if (key == kCoreIOFrameAllocatorBaseCapacity) {
+    default_value.u32_value = 4194304;  // 4 MiB.
   } else if (key == kCoreTStringAllocatorCapacity) {
     default_value.u32_value = 134217728;  // 128 MiB.
   } else if (key == kEventMaxQueueSize) {

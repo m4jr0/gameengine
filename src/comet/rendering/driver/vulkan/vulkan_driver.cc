@@ -16,6 +16,8 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
@@ -61,6 +63,11 @@ void VulkanDriver::Initialize() {
   device_descr.anti_aliasing_type = anti_aliasing_type_;
   device_ = std::make_unique<Device>(device_descr);
   device_->Initialize();
+
+  COMET_VK_INITIALIZE_DEBUG_LABELS(instance_handle_, device_->GetHandle());
+  COMET_VK_SET_DEBUG_LABEL(device_->GetGraphicsQueueHandle(), "graphics_queue");
+  COMET_VK_SET_DEBUG_LABEL(device_->GetPresentQueueHandle(), "present_queue");
+  COMET_VK_SET_DEBUG_LABEL(device_->GetTransferQueueHandle(), "transfer_queue");
 
   ContextDescr context_descr{};
   context_descr.vulkan_major_version = vulkan_major_version_;
@@ -260,7 +267,9 @@ void VulkanDriver::InitializeVulkanInstance() {
 #endif  // !COMET_RENDERING_DRIVER_DEBUG_MODE
 
   COMET_CHECK_VK(
-      vkCreateInstance(&create_info, VK_NULL_HANDLE, &instance_handle_),
+      vkCreateInstance(&create_info,
+                       MemoryCallbacks::Get().GetAllocCallbacksHandle(),
+                       &instance_handle_),
       "Failed to create instance!");
 }
 
@@ -357,7 +366,8 @@ void VulkanDriver::DestroyInstance() {
     return;
   }
 
-  vkDestroyInstance(instance_handle_, VK_NULL_HANDLE);
+  vkDestroyInstance(instance_handle_,
+                    MemoryCallbacks::Get().GetAllocCallbacksHandle());
   instance_handle_ = VK_NULL_HANDLE;
 }
 

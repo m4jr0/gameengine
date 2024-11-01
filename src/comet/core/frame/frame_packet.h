@@ -24,7 +24,19 @@ struct StageTimes {
 
 constexpr auto kFrameStageCount{4};
 
+#ifdef COMET_DEBUG
+using FramePacketDebugId = usize;
+constexpr auto kInvalidFramePacketDebugId{static_cast<FramePacketDebugId>(-1)};
+#endif  // COMET_DEBUG
+
 struct FramePacket {
+#ifdef COMET_DEBUG
+ private:
+  inline static FramePacketDebugId debug_id_counter_{0};
+
+ public:
+  FramePacketDebugId debug_id{FramePacket::debug_id_counter_++};
+#endif  // COMET_DEBUG
   FrameCount frame_count{0};
   f64 lag{.0f};
   time::Interpolation interpolation{.0f};
@@ -35,14 +47,6 @@ struct FramePacket {
 
 bool IsFrameStageStarted(const FramePacket& packet, FrameStage stage);
 bool IsFrameStageFinished(const FramePacket& packet, FrameStage stage);
-
-constexpr auto kFramePacketCount{16};
-
-using FramePacketIndex = u8;
-constexpr auto kInvalidFramePacketIndex{static_cast<FramePacketIndex>(-1)};
-
-FramePacket* GetFramePacket(FramePacketIndex index);
-FramePacket* GetResolvedFramePacket(usize index);
 }  // namespace frame
 }  // namespace comet
 

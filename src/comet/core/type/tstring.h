@@ -8,9 +8,32 @@
 #include "comet/core/c_string.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/slash_helper.h"
-#include "comet/core/type/string_id.h"
+#include "comet/core/memory/allocator/aligned_allocator.h"
 
 namespace comet {
+namespace internal {
+memory::AlignedAllocator* GetTStringAllocator();
+
+class TStringAllocator : public memory::AlignedAllocator {
+ public:
+  static TStringAllocator& Get();
+
+  TStringAllocator() = default;
+  TStringAllocator(const TStringAllocator&) = delete;
+  TStringAllocator(TStringAllocator&&) = delete;
+  TStringAllocator& operator=(const TStringAllocator&) = delete;
+  TStringAllocator& operator=(TStringAllocator&&) = delete;
+
+  void* AllocateAligned(usize size, memory::Alignment align) override;
+  void Deallocate(void* ptr) override;
+};
+}  // namespace internal
+
+void InitializeTStrings();
+void DestroyTStrings();
+void AttachTStringAllocator(memory::AlignedAllocatorHandle handle);
+void DetachTStringAllocator();
+
 const auto kSSOCapacityThreshold{15};
 
 class CTStringView;
@@ -118,7 +141,6 @@ class TString {
   friend void Swap(TString& str1, TString& str2);
   tchar& operator[](usize index);
   const tchar& operator[](usize index) const;
-  stringid::StringId GenerateStringId() const;
   const tchar* GetCTStr() const noexcept;
   tchar* GetTStr() noexcept;
   usize GetLength() const noexcept;
@@ -177,7 +199,6 @@ class CTStringView {
 
   TString GenerateSubString(usize offset = 0,
                             usize count = kInvalidIndex) const;
-  stringid::StringId GenerateStringId() const;
 
   constexpr usize GetLength() const noexcept { return length_; }
 

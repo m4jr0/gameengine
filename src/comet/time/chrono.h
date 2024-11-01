@@ -25,7 +25,9 @@ class Chrono {
   bool IsFinished();
 
  private:
-  std::chrono::steady_clock::time_point start_time_{};
+  static std::chrono::milliseconds GetNow() noexcept;
+
+  std::chrono::milliseconds start_time_{};
   std::chrono::milliseconds duration_ms_{0};
   bool is_finished_{false};
 };

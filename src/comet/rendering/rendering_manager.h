@@ -29,7 +29,7 @@ class RenderingManager : public Manager {
 
   void Initialize() override;
   void Shutdown() override;
-  void Update(frame::FramePacket& packet);
+  void Update(frame::FramePacket* packet);
 
   const Window* GetWindow() const;
   rendering::DriverType GetDriverType() const noexcept;

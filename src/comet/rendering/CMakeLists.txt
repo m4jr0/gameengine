@@ -56,6 +56,7 @@ target_sources(${COMET_LIBRARY_NAME}
 
       # Debugger.
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/debugger_displayer_manager.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/imgui_utils.cc"
 
       # Driver.
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"
@@ -127,6 +128,7 @@ target_sources(${COMET_LIBRARY_NAME}
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_view.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_world_view.cc"
 
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_alloc.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_context.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_debug.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_device.cc"

@@ -120,7 +120,6 @@ class FiberMutex {
 #endif  // COMET_DEBUG
   FiberSpinLock spin_lock_{};
   Fiber* owner_{nullptr};
-  std::deque<Fiber*> awaiting_fibers_{};
 };
 
 class FiberLockGuard {
@@ -167,6 +166,24 @@ class FiberAwareLockGuard {
   SimpleLock& lock_;
 };
 
+class FiberUniqueLock {
+ public:
+  FiberUniqueLock() = delete;
+  explicit FiberUniqueLock(FiberMutex& mtx, bool is_lock_deferred = false);
+  FiberUniqueLock(const FiberUniqueLock&) = delete;
+  FiberUniqueLock(FiberUniqueLock&&) noexcept = delete;
+  FiberUniqueLock& operator=(const FiberUniqueLock&) = delete;
+  FiberUniqueLock& operator=(FiberUniqueLock&&) noexcept = delete;
+  ~FiberUniqueLock();
+
+  void Lock();
+  void Unlock();
+
+ private:
+  FiberMutex& mtx_;
+  bool is_mutex_owned_{false};
+};
+
 class FiberCV {
  public:
   FiberCV() = default;
@@ -176,16 +193,15 @@ class FiberCV {
   FiberCV& operator=(FiberCV&&) = delete;
   ~FiberCV() = default;
 
-  void Wait(FiberMutex& mtx);
+  void Wait(FiberUniqueLock& lock);
 
   template <typename Predicate>
-  void Wait(FiberMutex& mutex, Predicate&& pred) {
-    if (pred()) {
-      return;
-    }
-
+  void Wait(FiberUniqueLock& lock, Predicate&& pred) {
     COMET_ASSERT(IsFiber(), "Current thread is not a fiber!");
-    mutex.Lock();
+
+    while (!pred()) {
+      Wait(lock);
+    }
   }
 
   void NotifyOne();
@@ -200,8 +216,7 @@ class FiberCV {
   static inline std::atomic<FiberPrimitiveDebugId> id_counter_{0};
   FiberPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG
-  std::atomic<usize> waiting_count_{0};
-  std::atomic<usize> waiting_on_pred_count_{0};
+  FiberSpinLock spin_lock_{};
   std::deque<Fiber*> awaiting_fibers_{};
 };
 }  // namespace fiber

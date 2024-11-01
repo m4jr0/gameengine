@@ -4,12 +4,18 @@
 
 #include "asset_manager.h"
 
+#include "nlohmann/json.hpp"
+
 #include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/concurrency/job/job.h"
+#include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/concurrency/job/scheduler_utils.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/file_system/file_system.h"
+#include "comet/core/frame/frame_manager.h"
 #include "comet/core/generator.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/allocator/stack_allocator.h"
 #include "comet/core/memory/tagged_heap.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
@@ -18,7 +24,7 @@
 #include "editor/asset/exporter/shader/shader_exporter.h"
 #include "editor/asset/exporter/shader/shader_module_exporter.h"
 #include "editor/asset/exporter/texture/texture_exporter.h"
-#include "nlohmann/json.hpp"
+#include "editor/memory/memory.h"
 
 namespace comet {
 namespace editor {
@@ -77,24 +83,15 @@ void AssetManager::Shutdown() {
   Manager::Shutdown();
 }
 
-void AssetManager::Refresh() { Refresh(root_asset_path_); }
-
-void AssetManager::Refresh(CTStringView asset_abs_path) {
+void AssetManager::Refresh() {
   auto& scheduler{job::Scheduler::Get()};
-  auto* global_counter{scheduler.AllocateCounter()};
+  auto* counter{job::Scheduler::Get().GenerateCounter()};
+  auto job{job::GenerateIOJobDescr(OnRefresh, counter, counter)};
 
-  if (IsDirectory(asset_abs_path)) {
-    RefreshFolder(asset_abs_path, global_counter);
-  } else if (IsFile(asset_abs_path)) {
-    RefreshAsset(asset_abs_path, global_counter);
-  } else {
-    COMET_LOG_GLOBAL_ERROR("Bad path given: ", asset_abs_path);
-    return;
-  }
+  scheduler.Kick(job);
+  scheduler.Wait(job.counter);
 
-  RefreshLibraryMetadataFile();
-  scheduler.Wait(global_counter);
-  scheduler.FreeCounter(global_counter);
+  scheduler.DestroyCounter(counter);
 }
 
 const TString& AssetManager::GetAssetsRootPath() const noexcept {
@@ -105,8 +102,18 @@ const TString& AssetManager::GetResourcesRootPath() const noexcept {
   return root_resource_path_;
 }
 
-void AssetManager::RefreshFolder(CTStringView asset_abs_path,
-                                 job::Counter* counter) {
+void AssetManager::OnRefresh(job::IOJobParamsHandle params_handle) {
+  auto* global_counter{reinterpret_cast<job::Counter*>(params_handle)};
+  AssetManager::Get().RefreshLibrary(global_counter);
+}
+
+void AssetManager::RefreshLibrary(job::Counter* global_counter) {
+  RefreshFolder(global_counter, root_asset_path_);
+  RefreshLibraryMetadataFile();
+}
+
+void AssetManager::RefreshFolder(job::Counter* global_counter,
+                                 CTStringView asset_abs_path) {
   auto parent_path{GetParentPath(asset_abs_path)};
   auto folder_name{GetName(asset_abs_path)};
 
@@ -131,23 +138,17 @@ void AssetManager::RefreshFolder(CTStringView asset_abs_path,
     SetAndGetMetadata(metadata_file_path);
   }
 
-  auto& scheduler{job::Scheduler::Get()};
-
   ForEachDirectory(asset_abs_path, [&](CTStringView directory_path) {
-    auto job{internal::AssetManagerHelper::GenerateItemRefreshJobDescr(
-        directory_path, counter, true)};
-    scheduler.Kick(job);
+    RefreshFolder(global_counter, directory_path);
   });
 
   ForEachFile(asset_abs_path, [&](CTStringView file_path) {
-    auto job{internal::AssetManagerHelper::GenerateItemRefreshJobDescr(
-        file_path, counter, false)};
-    scheduler.Kick(job);
+    RefreshAsset(global_counter, file_path);
   });
 }
 
-void AssetManager::RefreshAsset(CTStringView asset_abs_path,
-                                job::Counter* counter) {
+void AssetManager::RefreshAsset(job::Counter* global_counter,
+                                CTStringView asset_abs_path) {
   auto asset_metadata_file_path{GenerateAssetMetadataFilePath(asset_abs_path)};
 
   if (!IsRefreshNeeded(asset_abs_path, asset_metadata_file_path)) {
@@ -160,9 +161,7 @@ void AssetManager::RefreshAsset(CTStringView asset_abs_path,
 
   for (const auto& exporter : exporters_) {
     if (exporter->IsCompatible(GetExtension(asset_abs_path))) {
-      auto job{internal::AssetManagerHelper::GenerateAssetExportJobDescr(
-          asset_abs_path, exporter.get(), counter)};
-      job::Scheduler::Get().Kick(job);
+      exporter->Process(global_counter, asset_abs_path);
     }
   }
 }

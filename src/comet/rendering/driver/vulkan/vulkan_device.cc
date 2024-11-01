@@ -9,6 +9,7 @@
 #include "comet/core/c_string.h"
 #include "comet/core/logger.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
 
@@ -249,9 +250,11 @@ void Device::Initialize() {
       queue_create_info, physical_device_features, kRequiredExtensions_.data(),
       static_cast<u32>(kRequiredExtensions_.size()));
 
-  COMET_CHECK_VK(vkCreateDevice(physical_device_handle_, &create_info,
-                                VK_NULL_HANDLE, &handle_),
-                 "Failed to create logical device!");
+  COMET_CHECK_VK(
+      vkCreateDevice(physical_device_handle_, &create_info,
+                     MemoryCallbacks::Get().GetAllocCallbacksHandle(),
+                     &handle_),
+      "Failed to create logical device!");
 
   vkGetDeviceQueue(handle_, queue_family_indices_.graphics_family.value(), 0,
                    &graphics_queue_handle_);
@@ -275,7 +278,7 @@ void Device::Destroy() {
   COMET_ASSERT(is_initialized_,
                "Tried to destroy device, but it is not initialized!");
   if (handle_ != VK_NULL_HANDLE) {
-    vkDestroyDevice(handle_, VK_NULL_HANDLE);
+    vkDestroyDevice(handle_, MemoryCallbacks::Get().GetAllocCallbacksHandle());
     handle_ = VK_NULL_HANDLE;
   }
 

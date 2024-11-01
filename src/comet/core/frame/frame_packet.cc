@@ -17,20 +17,5 @@ bool IsFrameStageFinished(const FramePacket& packet, FrameStage stage) {
                "Invalid frame stage: ", stage, "!");
   return packet.stage_times[stage].end > 0;
 }
-
-FramePacket* GetFramePacket(FramePacketIndex index) {
-  static FramePacket frame_packets[kFramePacketCount]{};
-  COMET_ASSERT(index != kInvalidFramePacketIndex,
-               "Invalid frame packet index: ", index, "!");
-  COMET_ASSERT(index < kFramePacketCount,
-               "Index provided for a frame packet is too big: ", index,
-               " >= ", kFramePacketCount, "!");
-  return &frame_packets[index];
-}
-
-FramePacket* GetResolvedFramePacket(usize index) {
-  return GetFramePacket(
-      static_cast<FramePacketIndex>(index % kFramePacketCount));
-}
 }  // namespace frame
 }  // namespace comet

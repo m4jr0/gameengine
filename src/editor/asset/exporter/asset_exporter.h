@@ -5,6 +5,7 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_ASSET_EXPORTER_H_
 #define COMET_EDITOR_ASSET_EXPORTER_ASSET_EXPORTER_H_
 
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
@@ -23,7 +24,7 @@ class AssetExporter {
   virtual ~AssetExporter() = default;
 
   virtual bool IsCompatible(CTStringView extension) const = 0;
-  bool Process(CTStringView asset_path);
+  void Process(job::Counter* global_counter, CTStringView asset_path);
 
   template <typename ResourcePath>
   void SetRootResourcePath(ResourcePath&& path) {
@@ -41,12 +42,21 @@ class AssetExporter {
   const TString& GetRootAssetPath() const;
 
  protected:
+  static void OnResourceFilesProcess(job::JobParamsHandle params_handle);
+  static void OnResourceFilesWrite(job::IOJobParamsHandle params_handle);
+
   virtual std::vector<resource::ResourceFile> GetResourceFiles(
-      AssetDescr& asset_descr) const = 0;
+      job::Counter* global_counter, AssetDescr& asset_descr) const = 0;
 
   resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
   TString root_asset_path_{};
   TString root_resource_path_{};
+};
+struct ResourceFilesData {
+  AssetDescr asset_descr{};
+  AssetExporter* exporter{nullptr};
+  job::Counter* global_counter{nullptr};
+  std::vector<resource::ResourceFile> resource_files{};
 };
 }  // namespace asset
 }  // namespace editor

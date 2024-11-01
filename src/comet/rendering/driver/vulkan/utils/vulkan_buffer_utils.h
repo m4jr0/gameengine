@@ -19,7 +19,8 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
                       VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
                       VkMemoryPropertyFlags memory_property_flags = 0,
                       VmaAllocationCreateFlags vma_flags = 0,
-                      VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE);
+                      VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
+                      const schar* debug_label = nullptr);
 void DestroyBuffer(Buffer& buffer);
 void MapBuffer(Buffer& buffer);
 void CopyToBuffer(Buffer& buffer, void const* data, usize length,

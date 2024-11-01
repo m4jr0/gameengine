@@ -11,6 +11,10 @@
       "name": "catch2"
     },
     {
+      "name": "detours",
+      "platform": "windows"
+    },
+    {
       "name": "glad"
     },
     {

@@ -71,7 +71,7 @@ void RenderingManager::Shutdown() {
   Manager::Shutdown();
 }
 
-void RenderingManager::Update(frame::FramePacket& packet) {
+void RenderingManager::Update(frame::FramePacket* packet) {
   current_time_ += time::TimeManager::Get().GetDeltaTime();
 
   if (current_time_ > 1000) {
@@ -84,7 +84,7 @@ void RenderingManager::Update(frame::FramePacket& packet) {
     return;
   }
 
-  driver_->Update(packet.interpolation);
+  driver_->Update(packet->interpolation);
   input::InputManager::Get().Update();
   ++counter_;
 }

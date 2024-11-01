@@ -5,27 +5,46 @@
 #include "worker.h"
 
 #include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/concurrency/job/worker_context.h"
+#include "comet/core/frame/frame_allocator.h"
+#include "comet/core/frame/frame_manager.h"
+#include "comet/core/type/tstring.h"
 
 namespace comet {
 namespace job {
-thread_local Worker* tls_current_worker = nullptr;
-
-Worker& Worker::GetCurrent() {
-  COMET_ASSERT(tls_current_worker != nullptr,
-               "Current worker fiber is null! No fiber has been generated for "
-               "this thread!");
-  return *tls_current_worker;
+void Worker::Attach() {
+  internal::AttachWorker(this);
+  frame::AttachFrameAllocator(
+      frame::FrameManager::Get().GetFrameAllocatorHandle());
+  frame::AttachDoubleFrameAllocator(
+      frame::FrameManager::Get().GetDoubleFrameAllocatorHandle());
 }
 
-Worker::Worker(std::thread&& thread)
-    : id_{id_counter_++}, thread_{std::move(thread)} {}
+void Worker::Detach() {
+  internal::DetachWorker();
+  frame::DetachFrameAllocator();
+  frame::DetachDoubleFrameAllocator();
+}
+
+void Worker::Stop() { thread_.TryJoin(); }
+
+WorkerId Worker::GetId() const noexcept {
+  return (static_cast<WorkerId>(tag_) << 32) + static_cast<u32>(type_index_);
+}
+
+WorkerTag Worker::GetTag() const noexcept { return tag_; }
+
+WorkerTypeIndex Worker::GetTypeIndex() const noexcept { return type_index_; }
+
+Worker::Worker(WorkerTag tag, WorkerTypeIndex type_index)
+    : tag_{tag}, type_index_{type_index} {}
 
 Worker::Worker(Worker&& other) noexcept
-    : thread_{std::move(other.thread_)},
-      worker_fiber_{other.worker_fiber_},
-      current_fiber_{other.current_fiber_} {
-  other.worker_fiber_ = nullptr;
-  other.current_fiber_ = nullptr;
+    : tag_{other.tag_},
+      type_index_{other.type_index_},
+      thread_{std::move(other.thread_)} {
+  other.type_index_ = kInvalidWorkerTypeIndex;
+  other.tag_ = kInvalidWorkerTag;
 }
 
 Worker& Worker::operator=(Worker&& other) noexcept {
@@ -33,56 +52,76 @@ Worker& Worker::operator=(Worker&& other) noexcept {
     return *this;
   }
 
+  tag_ = other.tag_;
+  type_index_ = other.type_index_;
   thread_ = std::move(other.thread_);
+
+  other.type_index_ = kInvalidWorkerTypeIndex;
+  other.tag_ = kInvalidWorkerTag;
+  return *this;
+}
+
+FiberWorker::FiberWorker()
+    : Worker{kTag_, index_counter_.fetch_add(1, std::memory_order_acq_rel)} {}
+
+FiberWorker::FiberWorker(FiberWorker&& other) noexcept
+    : Worker{std::move(other)},
+      worker_fiber_{other.worker_fiber_},
+      current_fiber_{other.current_fiber_} {
+  other.worker_fiber_ = nullptr;
+  other.current_fiber_ = nullptr;
+}
+
+FiberWorker& FiberWorker::operator=(FiberWorker&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+
+  Worker::operator=(std::move(other));
   worker_fiber_ = other.worker_fiber_;
   current_fiber_ = other.current_fiber_;
-
   other.worker_fiber_ = nullptr;
   other.current_fiber_ = nullptr;
   return *this;
 }
 
-void Worker::Initialize() {
-  COMET_ASSERT(tls_current_worker == nullptr,
-               "A worker has already been assigned to this thread!");
-  tls_current_worker = this;
+void FiberWorker::Attach() {
+  Worker::Attach();
+  internal::AttachFiberWorker(this);
   worker_fiber_ = fiber::ConvertThreadToFiber();
 }
 
-void Worker::Destroy() {
+void FiberWorker::Detach() {
+  Worker::Detach();
   fiber::DestroyFiberFromThread();
   worker_fiber_ = nullptr;
-
-  if (thread_.joinable()) {
-    thread_.join();
-  }
+  internal::DetachFiberWorker();
 }
 
-WorkerId Worker::GetId() const noexcept { return id_; }
+IOWorker::IOWorker()
+    : Worker{kTag_, index_counter_.fetch_add(1, std::memory_order_acq_rel)} {}
 
-IOWorker::IOWorker(std::thread&& thread)
-    : id_{id_counter_++}, thread_{std::move(thread)} {}
-
-IOWorker::IOWorker(IOWorker&& other) noexcept
-    : thread_{std::move(other.thread_)} {}
+IOWorker::IOWorker(IOWorker&& other) noexcept : Worker{std::move(other)} {}
 
 IOWorker& IOWorker::operator=(IOWorker&& other) noexcept {
   if (this == &other) {
     return *this;
   }
 
-  thread_ = std::move(other.thread_);
+  Worker::operator=(std::move(other));
   return *this;
 }
 
-void IOWorker::Initialize() {}
-
-void IOWorker::Destroy() {
-  if (thread_.joinable()) {
-    thread_.join();
-  }
+void IOWorker::Attach() {
+  Worker::Attach();
+  AttachTStringAllocator(frame::FrameManager::Get().GetFrameAllocatorHandle());
+  internal::AttachIOWorker(this);
 }
 
-WorkerId IOWorker::GetId() const noexcept { return id_; }
+void IOWorker::Detach() {
+  Worker::Detach();
+  DetachTStringAllocator();
+  internal::DetachIOWorker();
+}
 }  // namespace job
 }  // namespace comet

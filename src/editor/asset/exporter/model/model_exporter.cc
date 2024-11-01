@@ -4,17 +4,25 @@
 
 #include "model_exporter.h"
 
-#include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
+#include "comet/core/frame/frame_allocator.h"
 #include "comet/core/generator.h"
+#include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/model_resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
+#include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model/model_exporter_utils.h"
+
+#ifdef COMET_FIBER_DEBUG_LABEL
+#include "comet/core/concurrency/fiber/fiber.h"
+#endif  // COMET_FIBER_DEBUG_LABEL
 
 namespace comet {
 namespace editor {
@@ -24,41 +32,33 @@ bool ModelExporter::IsCompatible(CTStringView extension) const {
 }
 
 std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
-    AssetDescr& asset_descr) const {
+    job::Counter*, AssetDescr& asset_descr) const {
   std::vector<resource::ResourceFile> resource_files{};
-  Assimp::Importer importer;
 
-#ifdef COMET_WIDE_TCHAR
-  auto* asset_abs_path{
-      GenerateForOneFrame<schar>(asset_descr.asset_abs_path.GetCTStr(),
-                                 asset_descr.asset_abs_path.GetLength())};
-#else
-  auto* asset_abs_path{asset_descr.asset_abs_path.GetCTStr()};
-#endif  // COMET_WIDE_TCHAR
+  SceneContext scene_context{};
+  scene_context.resource_files = &resource_files;
+  scene_context.exporter = this;
+  scene_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
+  scene_context.asset_path = asset_descr.asset_path.GetCTStr();
 
-  const auto* scene{importer.ReadFile(
-      asset_abs_path,
-      aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace)};
+  auto& scheduler{job::Scheduler::Get()};
 
-  if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
-      scene->mRootNode == nullptr) {
-    COMET_LOG_RESOURCE_ERROR("Assimp error: ", importer.GetErrorString());
+  auto io_job_descr{scene_context.GenerateSceneLoadingJobDescr()};
+  scheduler.KickAndWait(io_job_descr);
+
+  if (scene_context.scene == nullptr) {
     return resource_files;
   }
 
+  auto* counter{scheduler.GenerateCounter()};
+
   // N material resources, and 1 model.
-  resource_files.reserve(scene->mNumMaterials + 1);
+  scene_context.resource_files->reserve(
+      static_cast<usize>(scene_context.scene->mNumMaterials + 1));
 
-  if (scene->HasAnimations()) {
-    resource_files.push_back(resource::ResourceManager::Get().GetResourceFile(
-        LoadSkeletalModel(scene, asset_descr.asset_path), compression_mode_));
-  } else {
-    resource_files.push_back(resource::ResourceManager::Get().GetResourceFile(
-        LoadStaticModel(scene, asset_descr.asset_path), compression_mode_));
-  }
-
-  LoadMaterials(GetDirectoryPath(asset_descr.asset_abs_path), scene,
-                resource_files);
+  scheduler.Kick(scene_context.GenerateModelProcessingJobDescr(counter));
+  scheduler.Kick(scene_context.GenerateMaterialsProcessingJobDescr(counter));
+  scheduler.Wait(counter);
 
   return resource_files;
 }
@@ -110,9 +110,9 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
 
   aiString raw_texture_path;
   raw_material->GetTexture(raw_texture_type, 0, &raw_texture_path);
-  auto texture_path{resource_path / GetTmpTChar(raw_texture_path.C_Str())};
-  Clean(texture_path);
-  map->texture_id = resource::GenerateResourceIdFromPath(texture_path);
+  auto path{resource_path / GetTmpTChar(raw_texture_path.C_Str())};
+  Clean(path);
+  map->texture_id = resource::GenerateResourceIdFromPath(path);
   map->type = texture_type;
   aiTextureMapMode raw_texture_repeat_mode;
 
@@ -173,9 +173,70 @@ void ModelExporter::LoadDefaultTextures(
   }
 }
 
-void ModelExporter::LoadMaterials(
-    CTStringView directory_path, const aiScene* scene,
-    std::vector<resource::ResourceFile>& resource_files) const {
+void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
+  auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
+
+#ifdef COMET_WIDE_TCHAR
+  auto length{GetLength(scene_context->asset_abs_path)};
+  auto* scene_path{static_cast<schar*>(
+      COMET_FRAME_ALLOC_ALIGNED(length * sizeof(tchar), alignof(tchar)))};
+  Copy(scene_path, scene_context->asset_abs_path, length);
+  scene_path[length] = COMET_TCHAR('\0');
+#else
+  auto* scene_path{scene_context->asset_abs_path};
+#endif  // COMET_WIDE_TCHAR
+
+  COMET_LOG_GLOBAL_DEBUG("Loading scene at ", scene_path, "...");
+
+  const auto* scene{scene_context->assimp_importer.ReadFile(
+      scene_path,
+      aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace)};
+
+  if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+      scene->mRootNode == nullptr) {
+    COMET_LOG_RESOURCE_ERROR("Assimp error: ",
+                             scene_context->assimp_importer.GetErrorString());
+  }
+
+  scene_context->scene = scene;
+  COMET_LOG_GLOBAL_DEBUG("Scene loaded at ", scene_path);
+}
+
+void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
+  auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
+  auto* exporter{scene_context->exporter};
+  auto* scene{scene_context->scene};
+  COMET_LOG_GLOBAL_DEBUG("Processing model at: ", scene_context->asset_abs_path,
+                         "...");
+
+  if (scene->HasAnimations()) {
+    scene_context->AddResourceFile(
+        resource::ResourceManager::Get().GetResourceFile(
+            LoadSkeletalModel(scene, scene_context->asset_path),
+            exporter->compression_mode_));
+  } else {
+    scene_context->AddResourceFile(
+        resource::ResourceManager::Get().GetResourceFile(
+            LoadStaticModel(scene, scene_context->asset_path),
+            exporter->compression_mode_));
+  }
+
+  COMET_LOG_GLOBAL_DEBUG("Model processed at: ", scene_context->asset_abs_path);
+}
+
+void ModelExporter::OnMaterialsProcessing(job::JobParamsHandle params_handle) {
+  auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
+  auto* exporter{scene_context->exporter};
+  COMET_LOG_GLOBAL_DEBUG(
+      "Processing model materials at: ", scene_context->asset_abs_path, "...");
+  exporter->LoadMaterials(scene_context);
+  COMET_LOG_GLOBAL_DEBUG("Model materials processed at: ",
+                         scene_context->asset_abs_path);
+}
+
+void ModelExporter::LoadMaterials(SceneContext* data) const {
+  auto* scene{data->scene};
+  auto directory_path{GetDirectoryPath(data->asset_abs_path)};
   const auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
   constexpr std::array<aiTextureType, 4> exported_texture_types{
       {aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_HEIGHT,
@@ -221,7 +282,7 @@ void ModelExporter::LoadMaterials(
     material.id = resource::GenerateMaterialId(raw_material->GetName().C_Str());
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
-    resource_files.push_back(resource::ResourceManager::Get().GetResourceFile(
+    data->AddResourceFile(resource::ResourceManager::Get().GetResourceFile(
         material, compression_mode_));
   }
 }
@@ -263,6 +324,44 @@ rendering::TextureRepeatMode ModelExporter::GetTextureRepeatMode(
     default:
       return rendering::TextureRepeatMode::Unknown;
   }
+}
+
+job::IOJobDescr ModelExporter::SceneContext::GenerateSceneLoadingJobDescr() {
+  return job::GenerateIOJobDescr(OnSceneLoading, this);
+}
+
+job::JobDescr ModelExporter::SceneContext::GenerateModelProcessingJobDescr(
+    job::Counter* counter) {
+#ifdef COMET_FIBER_DEBUG_LABEL
+  auto* buffer{reinterpret_cast<schar*>(COMET_FRAME_ALLOC_ALIGNED(
+      (fiber::Fiber::kDebugLabelMaxLen_ + 1) * sizeof(schar), alignof(schar)))};
+#endif  // COMET_FIBER_DEBUG_LABEL
+
+  return job::GenerateJobDescr(
+      job::JobPriority::Normal, ModelExporter::OnModelProcessing, this,
+      job::JobStackSize::Normal, counter,
+      COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(asset_path, buffer,
+                                           fiber::Fiber::kDebugLabelMaxLen_));
+}
+
+job::JobDescr ModelExporter::SceneContext::GenerateMaterialsProcessingJobDescr(
+    job::Counter* counter) {
+#ifdef COMET_FIBER_DEBUG_LABEL
+  auto* buffer{reinterpret_cast<schar*>(COMET_FRAME_ALLOC_ALIGNED(
+      (fiber::Fiber::kDebugLabelMaxLen_ + 1) * sizeof(schar), alignof(schar)))};
+#endif  // COMET_FIBER_DEBUG_LABEL
+
+  return job::GenerateJobDescr(
+      job::JobPriority::Normal, ModelExporter::OnMaterialsProcessing, this,
+      job::JobStackSize::Normal, counter,
+      COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(asset_path, buffer,
+                                           fiber::Fiber::kDebugLabelMaxLen_));
+}
+
+void ModelExporter::SceneContext::AddResourceFile(
+    const resource::ResourceFile& file) {
+  fiber::FiberLockGuard lock{resource_mutex};
+  resource_files->push_back(file);
 }
 }  // namespace asset
 }  // namespace editor

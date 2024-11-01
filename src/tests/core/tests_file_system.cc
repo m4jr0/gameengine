@@ -5,6 +5,7 @@
 #include "comet/core/file_system/file_system.h"
 
 #include <filesystem>
+
 #include "catch.hpp"
 #include "catch2/reporters/catch_reporter_event_listener.hpp"
 #include "catch2/reporters/catch_reporter_registrars.hpp"

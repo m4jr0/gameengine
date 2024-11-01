@@ -9,6 +9,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 
@@ -160,11 +161,14 @@ void Swapchain::Initialize() {
   create_info.oldSwapchain = old_handle_;
 
   COMET_CHECK_VK(
-      vkCreateSwapchainKHR(device, &create_info, VK_NULL_HANDLE, &handle_),
+      vkCreateSwapchainKHR(device, &create_info,
+                           MemoryCallbacks::Get().GetAllocCallbacksHandle(),
+                           &handle_),
       "Failed to create swap chain");
 
   if (old_handle_ != VK_NULL_HANDLE) {
-    vkDestroySwapchainKHR(device, old_handle_, VK_NULL_HANDLE);
+    vkDestroySwapchainKHR(device, old_handle_,
+                          MemoryCallbacks::Get().GetAllocCallbacksHandle());
     old_handle_ = VK_NULL_HANDLE;
   }
 
@@ -201,12 +205,14 @@ void Swapchain::Destroy() {
   DestroyColorResources();
 
   if (old_handle_ != VK_NULL_HANDLE) {
-    vkDestroySwapchainKHR(context_->GetDevice(), old_handle_, VK_NULL_HANDLE);
+    vkDestroySwapchainKHR(context_->GetDevice(), old_handle_,
+                          MemoryCallbacks::Get().GetAllocCallbacksHandle());
     old_handle_ = VK_NULL_HANDLE;
   }
 
   if (handle_ != VK_NULL_HANDLE) {
-    vkDestroySwapchainKHR(context_->GetDevice(), handle_, VK_NULL_HANDLE);
+    vkDestroySwapchainKHR(context_->GetDevice(), handle_,
+                          MemoryCallbacks::Get().GetAllocCallbacksHandle());
     handle_ = VK_NULL_HANDLE;
   }
 
@@ -360,7 +366,7 @@ void Swapchain::DestroyImageViews() {
     }
 
     vkDestroyImageView(context_->GetDevice(), image.image_view_handle,
-                       VK_NULL_HANDLE);
+                       MemoryCallbacks::Get().GetAllocCallbacksHandle());
     image.image_view_handle = VK_NULL_HANDLE;
   }
 
@@ -370,7 +376,7 @@ void Swapchain::DestroyImageViews() {
 void Swapchain::DestroyDepthResources() {
   if (depth_image_.image_view_handle != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->GetDevice(), depth_image_.image_view_handle,
-                       VK_NULL_HANDLE);
+                       MemoryCallbacks::Get().GetAllocCallbacksHandle());
     depth_image_.image_view_handle = VK_NULL_HANDLE;
   }
 
@@ -382,7 +388,7 @@ void Swapchain::DestroyDepthResources() {
 void Swapchain::DestroyColorResources() {
   if (color_image_.image_view_handle != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->GetDevice(), color_image_.image_view_handle,
-                       VK_NULL_HANDLE);
+                       MemoryCallbacks::Get().GetAllocCallbacksHandle());
     color_image_.image_view_handle = VK_NULL_HANDLE;
   }
 

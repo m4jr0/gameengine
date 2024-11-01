@@ -9,7 +9,8 @@
             "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet tests (build) [Unix]",
@@ -18,7 +19,8 @@
             "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet (clean + build) [Unix]",
@@ -27,7 +29,8 @@
             "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet tests (clean + build) [Unix]",
@@ -36,7 +39,8 @@
             "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet (no build) [Unix]",
@@ -44,7 +48,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor",
             "cwd": "${workspaceFolder}/build/",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet tests (no build) [Unix]",
@@ -52,7 +57,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests",
             "cwd": "${workspaceFolder}/build/",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         // Windows /////////////////////////////////////////////////////////////
         {
@@ -62,7 +68,8 @@
             "program": "${workspaceFolder}/build/comet_editor.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet tests (build) [Windows]",
@@ -71,7 +78,8 @@
             "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cmake_build",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet (clean + build) [Windows]",
@@ -80,7 +88,8 @@
             "program": "${workspaceFolder}/build/comet_editor.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet tests (clean + build) [Windows]",
@@ -89,7 +98,8 @@
             "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
             "preLaunchTask": "cleanbuild",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet (no build) [Windows]",
@@ -97,7 +107,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_editor.exe",
             "cwd": "${workspaceFolder}/build/",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         },
         {
             "name": "Comet tests (no build) [Windows]",
@@ -105,7 +116,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/comet_tests.exe",
             "cwd": "${workspaceFolder}/build/",
-            "externalConsole": true
+            "externalConsole": true,
+            "visualizerFile": "${workspaceFolder}/natvis/core_types.natvis"
         }
     ]
 }

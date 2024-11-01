@@ -4,6 +4,7 @@
 
 #include "entity_manager.h"
 
+#include "comet/core/memory/memory_general_alloc.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {
@@ -290,7 +291,7 @@ void EntityManager::ResizeArchetype(Archetype* archetype, s16 delta) {
     const auto& cmp_type_descr{
         registered_component_types_[cmp_type_id].type_descr};
     const auto cmp_size{cmp_type_descr.size};
-    const auto cmp_alignment{cmp_type_descr.alignment};
+    const auto cmp_align{cmp_type_descr.align};
 
     usize new_size{0};
     auto tmp{static_cast<s32>(old_cmp_size) +
@@ -308,7 +309,7 @@ void EntityManager::ResizeArchetype(Archetype* archetype, s16 delta) {
     if (new_size > 0) {
       archetype->components[i].elements =
           reinterpret_cast<u8*>(memory::AllocateAligned(
-              new_size, cmp_alignment, memory::MemoryTag::Entity));
+              new_size, cmp_align, memory::kEngineMemoryTagEntity));
     }
 
     if (copy_size != 0) {

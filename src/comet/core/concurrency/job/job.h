@@ -7,7 +7,7 @@
 
 #include <atomic>
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/essentials.h"
 
 namespace comet {
@@ -37,22 +37,47 @@ class Counter {
   std::atomic<CounterCount> value_{kInvalidCounterCount};
 };
 
-enum class JobStackSize { Unknown = 0, Normal, Large };
+enum class JobStackSize {
+  Unknown = 0,
+  Normal,
+  Large,
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+  ExternalLibrary
+#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+};
 const schar* GetJobStackSizeLabel(JobStackSize stack_size);
+
+using JobEntryPoint = fiber::EntryPoint;
+using JobParamsHandle = fiber::ParamsHandle;
+constexpr auto kInvalidJobParamsHandle{nullptr};
 
 struct JobDescr {
   JobStackSize stack_size{JobStackSize::Unknown};
-  fiber::EntryPoint entry_point{};
-  fiber::ParamsHandle params_handle{fiber::kInvalidParamsHandle};
+  JobEntryPoint entry_point{};
+  JobParamsHandle params_handle{kInvalidJobParamsHandle};
   JobPriority priority{JobPriority::Unknown};
+  Counter* counter{nullptr};
+#ifdef COMET_FIBER_DEBUG_LABEL
+  schar debug_label[fiber::Fiber::kDebugLabelMaxLen_]{"no_label"};
+#endif  // COMET_FIBER_DEBUG_LABEL
+};
+
+using IOJobParamsHandle = void*;
+constexpr auto kInvalidIOJobParamsHandle{nullptr};
+
+using IOEntryPoint = void (*)(IOJobParamsHandle);
+
+struct IOJobDescr {
+  IOEntryPoint entry_point{};
+  IOJobParamsHandle params_handle{kInvalidIOJobParamsHandle};
   Counter* counter{nullptr};
 };
 
-struct IOJobDescr {
-  fiber::EntryPoint entry_point{};
-  fiber::ParamsHandle params_handle{fiber::kInvalidParamsHandle};
-  Counter* counter{nullptr};
-};
+#ifdef COMET_DEBUG
+using JobPrimitiveDebugId = usize;
+constexpr auto kInvalidJobPrimitiveDebugId{
+    static_cast<JobPrimitiveDebugId>(-1)};
+#endif  // COMET_DEBUG
 
 class CounterGuard {
  public:
@@ -65,8 +90,14 @@ class CounterGuard {
   ~CounterGuard() = default;
 
  private:
-  static inline fiber::FiberPrimitiveDebugId id_counter_{0};
-  fiber::FiberPrimitiveDebugId id_{id_counter_++};
+#ifdef COMET_DEBUG
+  static_assert(std::atomic<JobPrimitiveDebugId>::is_always_lock_free,
+                "std::atomic<JobPrimitiveDebugId> needs to be always "
+                "lock-free. Unsupported "
+                "architecture");
+  static inline std::atomic<JobPrimitiveDebugId> id_counter_{0};
+  JobPrimitiveDebugId id_{id_counter_++};
+#endif  // COMET_DEBUG
   Counter& counter_;
 };
 }  // namespace job

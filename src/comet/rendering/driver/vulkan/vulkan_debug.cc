@@ -73,6 +73,61 @@ void DestroyDebugReportCallback(
 
   func(instance_handle, report_callback, nullptr);
 }
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+void InitializeDebugLabels(VkInstance instance_handle, VkDevice device_handle) {
+  if (internal::vkSetDebugUtilsObjectNameEXT != nullptr) {
+    return;
+  }
+
+  internal::device_handle = device_handle;
+
+  internal::vkSetDebugUtilsObjectNameEXT =
+      (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(
+          instance_handle, "vkSetDebugUtilsObjectNameEXT");
+
+  COMET_ASSERT(internal::vkSetDebugUtilsObjectNameEXT != nullptr,
+               "Cound not load vkSetDebugUtilsObjectNameEXT!");
+}
+
+void SetDebugLabel(VkObjectType object_type, u64 object_handle,
+                   const schar* label) {
+  COMET_ASSERT(internal::vkSetDebugUtilsObjectNameEXT != nullptr,
+               "Debug names are not initialized!");
+
+  VkDebugUtilsObjectNameInfoEXT name_info = {};
+  name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+  name_info.objectType = object_type;
+  name_info.objectHandle = object_handle;
+  name_info.pObjectName = label;
+  internal::vkSetDebugUtilsObjectNameEXT(internal::device_handle, &name_info);
+}
+
+void SetDebugLabel(VkCommandBuffer command_buffer_handle, const schar* label) {
+  SetDebugLabel(VK_OBJECT_TYPE_COMMAND_BUFFER,
+                reinterpret_cast<uint64_t>(command_buffer_handle), label);
+}
+
+void SetDebugLabel(VkQueue queue_handle, const schar* label) {
+  SetDebugLabel(VK_OBJECT_TYPE_QUEUE, reinterpret_cast<uint64_t>(queue_handle),
+                label);
+}
+
+void SetDebugLabel(VkRenderPass render_pass_handle, const schar* label) {
+  SetDebugLabel(VK_OBJECT_TYPE_RENDER_PASS,
+                reinterpret_cast<uint64_t>(render_pass_handle), label);
+}
+
+void SetDebugLabel(VkImage image_handle, const schar* label) {
+  SetDebugLabel(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(image_handle),
+                label);
+}
+
+void SetDebugLabel(VkBuffer buffer_handle, const schar* label) {
+  SetDebugLabel(VK_OBJECT_TYPE_BUFFER,
+                reinterpret_cast<uint64_t>(buffer_handle), label);
+}
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace vk
 }  // namespace rendering

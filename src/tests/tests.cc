@@ -8,9 +8,21 @@
 #include "catch2/reporters/catch_reporter_event_listener.hpp"
 #include "catch2/reporters/catch_reporter_registrars.hpp"
 
+#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/concurrency/job/job.h"
+#include "comet/core/concurrency/job/scheduler.h"
+#include "comet/core/concurrency/job/worker.h"
+#include "comet/core/concurrency/provider/thread_provider_manager.h"
+#include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/conf/configuration_value.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/memory_manager.h"
+#include "comet/core/frame/frame_manager.h"
+#include "comet/core/logger.h"
+#include "comet/core/memory/allocation_tracking.h"
+#include "comet/core/memory/tagged_heap.h"
+#include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 
 class TestsEventListener : public Catch::EventListenerBase {
@@ -18,21 +30,34 @@ class TestsEventListener : public Catch::EventListenerBase {
   using Catch::EventListenerBase::EventListenerBase;
 
   void testRunStarting(Catch::TestRunInfo const&) override {
+    comet::thread::Thread::AttachMainThread();
+    COMET_INITIALIZE_ALLOCATION_TRACKING();
+    COMET_LOG_INITIALIZE();
     auto& configuration_manager{comet::conf::ConfigurationManager::Get()};
     configuration_manager.Initialize();
-    auto& memory_manager{comet::memory::MemoryManager::Get()};
-    memory_manager.Initialize();
-    auto& entity_manager{comet::entity::EntityManager::Get()};
-    entity_manager.Initialize();
+    configuration_manager.SetBool(comet::conf::kCoreIsMainThreadWorkerDisabled,
+                                  true);
+    comet::job::Scheduler::Get().Initialize();
+    comet::job::Scheduler::Get().Run(comet::job::JobDescr{});
+    comet::memory::TaggedHeap::Get().Initialize();
+    comet::thread::ThreadProviderManager::Get().Initialize();
+    comet::frame::FrameManager::Get().Initialize();
+    comet::InitializeTStrings();
+    comet::entity::EntityManager::Get().Initialize();
   }
 
   void testRunEnded(Catch::TestRunStats const&) override {
-    auto& configuration_manager{comet::conf::ConfigurationManager::Get()};
-    configuration_manager.Shutdown();
-    auto& memory_manager{comet::memory::MemoryManager::Get()};
-    memory_manager.Shutdown();
-    auto& entity_manager{comet::entity::EntityManager::Get()};
-    entity_manager.Shutdown();
+    comet::entity::EntityManager::Get().Shutdown();
+    comet::DestroyTStrings();
+    comet::frame::FrameManager::Get().Shutdown();
+    comet::thread::ThreadProviderManager::Get().Shutdown();
+    comet::memory::TaggedHeap::Get().Destroy();
+    comet::job::Scheduler::Get().Shutdown();
+    comet::conf::ConfigurationManager::Get().Shutdown();
+    COMET_LOG_DESTROY();
+    comet::thread::Thread::DetachMainThread();
+    COMET_STRING_ID_DESTROY();
+    COMET_DESTROY_ALLOCATION_TRACKING();
   }
 };
 

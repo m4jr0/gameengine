@@ -6,6 +6,8 @@
 
 #include "nlohmann/json.hpp"
 
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
@@ -19,25 +21,29 @@ bool ShaderExporter::IsCompatible(CTStringView extension) const {
 }
 
 std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
-    AssetDescr& asset_descr) const {
+    job::Counter*, AssetDescr& asset_descr) const {
   resource::ShaderResource shader{};
   shader.id = resource::GenerateResourceIdFromPath(asset_descr.asset_path);
   shader.type_id = resource::ShaderResource::kResourceTypeId;
   std::vector<resource::ResourceFile> to_return{};
 
+  ShaderContext shader_context{};
+  shader_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
+
+  job::Scheduler::Get().KickAndWait(
+      job::GenerateIOJobDescr(OnShaderLoading, &shader_context));
+
+  if (shader_context.file_len == 0) {
+    return to_return;
+  }
+
+  COMET_LOG_GLOBAL_DEBUG("Processing shader at ", shader_context.asset_abs_path,
+                         "...");
+
   try {
-    schar shader_file_raw[4096];
-    usize shader_file_raw_len;
-    ReadStrFromFile(asset_descr.asset_abs_path, shader_file_raw, 4096,
-                    &shader_file_raw_len);
-
-    if (shader_file_raw_len == 0) {
-      return to_return;
-    }
-
     // Every time we get an object, we must use assignment to prevent a bug with
     // GCC where the generated type is an array (which is wrong).
-    const auto shader_file = nlohmann::json::parse(shader_file_raw);
+    const auto shader_file = nlohmann::json::parse(shader_context.file);
     to_return.reserve(1);
     shader.descr.is_wireframe =
         shader_file.value(kCometEditorShaderKeyIsWireframe, false);
@@ -135,6 +141,9 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
 
   to_return.push_back(resource::ResourceManager::Get().GetResourceFile(
       shader, compression_mode_));
+
+  COMET_LOG_GLOBAL_DEBUG("Shader processed at ", shader_context.asset_abs_path,
+                         "...");
   return to_return;
 }
 
@@ -378,6 +387,12 @@ rendering::ShaderUniformScope ShaderExporter::GetShaderUniformScope(
       "! Setting \"unknown\" mode instead.");
 
   return rendering::ShaderUniformScope::Unknown;
+}
+
+void ShaderExporter::OnShaderLoading(job::IOJobParamsHandle params_handle) {
+  auto* shader_context{static_cast<ShaderContext*>(params_handle)};
+  ReadStrFromFile(shader_context->asset_abs_path, shader_context->file,
+                  ShaderContext::kMaxShaderFileLen_, &shader_context->file_len);
 }
 }  // namespace asset
 }  // namespace editor

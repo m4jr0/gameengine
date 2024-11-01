@@ -22,6 +22,7 @@ set_target_properties(${EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF CXX_RTTI 
 
 # Subdirectories ###############################################################
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor/asset")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor/memory")
 
 # Compiling ####################################################################
 target_link_libraries(${EXECUTABLE_NAME}

@@ -5,7 +5,12 @@
 #include "vulkan_context.h"
 
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+#include "comet/core/c_string.h"
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
 namespace comet {
 namespace rendering {
@@ -42,14 +47,18 @@ void Context::Initialize() {
 }
 
 void Context::InitializeAllocator() {
-  VmaAllocatorCreateInfo allocatorCreateInfo{};
-  allocatorCreateInfo.vulkanApiVersion =
+  VmaAllocatorCreateInfo create_info{};
+  create_info.vulkanApiVersion =
       VK_MAKE_API_VERSION(vulkan_variant_version_, vulkan_major_version_,
                           vulkan_minor_version_, vulkan_patch_version_);
-  allocatorCreateInfo.physicalDevice = device_->GetPhysicalDeviceHandle();
-  allocatorCreateInfo.device = *device_;
-  allocatorCreateInfo.instance = instance_handle_;
-  vmaCreateAllocator(&allocatorCreateInfo, &allocator_handle_);
+  create_info.physicalDevice = device_->GetPhysicalDeviceHandle();
+  create_info.device = *device_;
+  create_info.instance = instance_handle_;
+  create_info.pAllocationCallbacks =
+      MemoryCallbacks::Get().GetAllocCallbacksHandle();
+  create_info.pDeviceMemoryCallbacks =
+      MemoryCallbacks::Get().GetDeviceCallbacksHandle();
+  vmaCreateAllocator(&create_info, &allocator_handle_);
 }
 
 void Context::InitializeCommands() {
@@ -69,6 +78,15 @@ void Context::InitializeCommands() {
         vkAllocateCommandBuffers(*device_, &allocate_info,
                                  &frame_data_[i].command_buffer_handle),
         "Failed to allocate frame command buffer!");
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+    constexpr auto kDebugLabelLen{31};
+    schar debug_label[kDebugLabelLen + 1]{'\0'};
+    auto frame_data_len{GetLength("frame_data_")};
+    Copy(debug_label, "frame_data_", frame_data_len);
+    ConvertToStr(i, debug_label + frame_data_len,
+                 kDebugLabelLen - frame_data_len);
+    COMET_VK_SET_DEBUG_LABEL(frame_data_[i].command_buffer_handle, debug_label);
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
   }
 
   pool_info.flags = 0;

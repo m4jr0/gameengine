@@ -721,12 +721,12 @@ ShaderUniformIndex ShaderHandler::HandleUniformIndex(
 }
 
 void ShaderHandler::HandleBufferGeneration(Shader& shader) const {
-  s32 alignment;
-  glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
-  shader.global_ubo_data.ubo_stride =
-      memory::AlignSize(shader.global_ubo_data.ubo_size, alignment);
-  shader.instance_ubo_data.ubo_stride =
-      memory::AlignSize(shader.instance_ubo_data.ubo_size, alignment);
+  s32 align;
+  glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &align);
+  shader.global_ubo_data.ubo_stride = memory::AlignSize(
+      shader.global_ubo_data.ubo_size, static_cast<memory::Alignment>(align));
+  shader.instance_ubo_data.ubo_stride = memory::AlignSize(
+      shader.instance_ubo_data.ubo_size, static_cast<memory::Alignment>(align));
   auto buffer_size{static_cast<GLsizeiptr>(shader.global_ubo_data.ubo_stride +
                                            shader.instance_ubo_data.ubo_stride *
                                                kMaxMaterialInstances)};
@@ -785,7 +785,8 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
     uniform.size = is_sampler
                        ? 0
                        : static_cast<ShaderUniformSize>(memory::AlignSize(
-                             size, GetStd140Alignment(uniform.type)));
+                             size, static_cast<memory::Alignment>(
+                                       GetStd140Alignment(uniform.type))));
   }
 
   shader.uniforms.push_back(uniform);

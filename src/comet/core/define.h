@@ -7,6 +7,34 @@
 
 #include "comet/core/os.h"
 
+// String ID.
+#ifdef COMET_DEBUG
+// TODO(m4jr0): Find lock-free solution.
+// #define COMET_LABELIZE_STRING_IDS
+#endif  // COMET_DEBUG
+// Memory.
+#ifdef COMET_DEBUG
+// TODO(m4jr0): Find lock-free solution.
+// #define COMET_TRACK_ALLOCATIONS
+
+// #define COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
+#endif  // COMET_DEBUG
+
+// Thread.
+#define COMET_RESERVE_SYSTEM_THREADS
+
+// Fiber.
+#ifdef COMET_DEBUG
+#define COMET_FIBER_DEBUG_LABEL
+#endif  // COMET_DEBUG
+
+// Jobs.
+#ifdef COMET_DEBUG
+// TODO(m4jr0): Remove the define once the engine's jobification is
+// complete.
+#define COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
+#endif  // COMET_DEBUG
+
 // Logging.
 #ifdef COMET_DEBUG
 #define COMET_LOG_IS_FIBER_PREFIX
@@ -28,6 +56,9 @@
 
 #define COMET_RENDERING_DRIVER_DEBUG_MODE
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+// Assign a name to driver's objects (when available).
+// #define COMET_RENDERING_USE_DEBUG_LABELS
+
 // View used for debugging the world.
 // #define COMET_DEBUG_VIEW
 

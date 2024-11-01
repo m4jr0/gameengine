@@ -5,19 +5,57 @@
 #ifndef COMET_COMET_CORE_TYPE_STRING_ID_H_
 #define COMET_COMET_CORE_TYPE_STRING_ID_H_
 
-#include <unordered_map>
+#include <atomic>
 
 #include "comet/core/essentials.h"
-
-#ifdef COMET_DEBUG
-#include "comet/core/memory/allocator/string_id_allocator.h"
+#ifdef COMET_LABELIZE_STRING_IDS
 #include "comet/core/memory/memory.h"
-#endif  // COMET_DEBUG
+#endif  // COMET_LABELIZE_STRING_IDS
 
 namespace comet {
 namespace stringid {
 using StringId = u32;
 constexpr auto kInvalidStringId{static_cast<StringId>(-1)};
+
+#ifdef COMET_LABELIZE_STRING_IDS
+namespace internal {
+class StringIdAllocator {
+ public:
+  StringIdAllocator() = delete;
+  StringIdAllocator(usize capacity);
+  StringIdAllocator(const StringIdAllocator&) = delete;
+  StringIdAllocator(StringIdAllocator&&) = delete;
+  StringIdAllocator& operator=(const StringIdAllocator&) = delete;
+  StringIdAllocator& operator=(StringIdAllocator&&) = delete;
+  ~StringIdAllocator();
+
+  void Initialize();
+  void Destroy();
+
+  void* Allocate(usize size);
+
+  // These functions are not thread-safe and must only be called during specific
+  // synchronization points.
+  void Clear();
+  void Reset();
+
+  bool IsInitialized() const noexcept;
+
+ private:
+  using StringIdAllocatorOffset = sptrdiff;
+  static inline constexpr StringIdAllocatorOffset kInvalidOffset_{-1};
+
+  bool is_initialized_{false};
+  usize capacity_{0};
+  static_assert(std::atomic<StringIdAllocatorOffset>::is_always_lock_free,
+                "std::atomic<StringIdAllocatorOffset> needs to be always "
+                "lock-free. Unsupported "
+                "architecture");
+  std::atomic<StringIdAllocatorOffset> offset_{kInvalidOffset_};
+  u8* root_{nullptr};
+};
+}  // namespace internal
+#endif  // COMET_LABELIZE_STRING_IDS
 
 class StringIdHandler {
  public:
@@ -36,13 +74,6 @@ class StringIdHandler {
   // Return temporary string for debug purposes. The schar* returned SHOULD NOT
   // be stored.
   const schar* Labelize(StringId string_id) const;
-
- private:
-#ifdef COMET_DEBUG
-  std::unordered_map<StringId, schar*> string_id_table{};
-  memory::StringIdAllocator string_id_allocator_{
-      2097152, memory::MemoryTag::StringId};  // 2 MiB.
-#endif                                        // COMET_DEBUG
 };
 
 extern StringIdHandler* SetHandler(bool is_destroy = false);

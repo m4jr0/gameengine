@@ -16,7 +16,8 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
                       VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
                       VkMemoryPropertyFlags memory_property_flags,
                       VmaAllocationCreateFlags vma_flags,
-                      VkSharingMode sharing_mode) {
+                      VkSharingMode sharing_mode,
+                      [[maybe_unused]] const schar* debug_label) {
   Buffer buffer{};
   buffer.allocator_handle = allocator_handle;
 
@@ -37,7 +38,8 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
       vmaCreateBuffer(buffer.allocator_handle, &buffer_info, &alloc_info,
                       &buffer.handle, &buffer.allocation_handle, nullptr),
       "Failed to create buffer");
-
+  COMET_VK_SET_DEBUG_LABEL(buffer.handle,
+                           debug_label != nullptr ? debug_label : "buffer");
   return buffer;
 }
 

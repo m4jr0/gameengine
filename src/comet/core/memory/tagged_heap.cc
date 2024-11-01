@@ -4,6 +4,9 @@
 
 #include "tagged_heap.h"
 
+#include <new>
+
+#include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/virtual_memory.h"
 
 namespace comet {
@@ -22,19 +25,35 @@ TaggedHeap& TaggedHeap::Get() {
 void TaggedHeap::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize tagged heap, but it is already done!");
-  block_size_ = memory_descr_.page_size;
+  block_size_ = memory_descr_.large_page_size != 0
+                    ? memory_descr_.large_page_size
+                    : memory_descr_.page_size;
+
   total_block_count_ = capacity_ / block_size_;
   COMET_ASSERT(total_block_count_ > 0,
                "Total capacity must be at least one block.");
 
   memory_ = ReserveVirtualMemory(capacity_);
   memory_ = CommitVirtualMemory(memory_, capacity_);
-  COMET_ASSERT(memory_ != nullptr, "Failed to allocate memory!");
-  free_blocks.resize(total_block_count_, true);
-  tag_bitlist.resize(kMaxMemoryTagCount);
 
-  for (usize i{0}; i < kMaxMemoryTagCount; ++i) {
-    tag_bitlist[i].resize(total_block_count_, false);
+  COMET_ASSERT(memory_ != nullptr, "Failed to allocate memory!");
+  COMET_REGISTER_TAGGED_HEAP_POOL_ALLOCATION(capacity_);
+
+  // Set the capacity for all bitsets (including the global one), with
+  // additional alignment overhead.
+  bitset_allocator_ = PlatformStackAllocator{
+      FixedSizeBitset::GetWordCountFromBitCount(total_block_count_) *
+              sizeof(FixedSizeBitset::Word) * (kMaxTagCount_ + 1) +
+          alignof(FixedSizeBitset::Word),
+      kEngineMemoryTagTaggedHeap};
+  bitset_allocator_.Initialize();
+  global_block_map_ = FixedSizeBitset{&bitset_allocator_, total_block_count_};
+
+  for (auto& bucket : tag_block_maps_) {
+    for (auto& entry : bucket) {
+      entry.block_map = FixedSizeBitset{&bitset_allocator_, total_block_count_};
+      entry.tag = kEngineMemoryTagInvalid;
+    }
   }
 
   is_initialized_ = true;
@@ -44,57 +63,159 @@ void TaggedHeap::Destroy() {
   COMET_ASSERT(is_initialized_,
                "Tried to destroy tagged heap, but it is not initialized!");
 
+  global_block_map_ = {};
+
+  for (auto& bucket : tag_block_maps_) {
+    for (auto& entry : bucket) {
+      entry.block_map = {};
+      entry.tag = kEngineMemoryTagInvalid;
+    }
+  }
+
+  // Free all bitsets at once.
+  bitset_allocator_.Destroy();
+
   if (memory_ != nullptr) {
     FreeVirtualMemory(memory_, capacity_);
+    COMET_REGISTER_TAGGED_HEAP_POOL_DEALLOCATION(capacity_);
   }
 
   is_initialized_ = false;
 }
 
-void* TaggedHeap::Allocate(usize size, MemoryTag tag) {
-  COMET_ASSERT(memory_ != nullptr,
-               "Cannot allocate! No memory is available...");
-  auto block_count{(size + block_size_ - 1) / block_size_};
-  COMET_ASSERT(size <= capacity_, "Max capacity reached!");
-  auto tag_index{GetMemoryTagIndex(tag)};
-  COMET_ASSERT(tag_index >= 0 && tag_index < kMaxMemoryTagCount,
-               "Invalid tag: ", GetMemoryTagLabel(tag), "!");
-
-  auto free_blocks_index{ResolveFreeBlocks(block_count)};
-  COMET_ASSERT(free_blocks_index != kInvalidIndex,
-               "No sufficient memory available for allocation with size ", size,
-               " and tag ", GetMemoryTagLabel(tag), "!");
-
-  for (usize i{0}; i < block_count; ++i) {
-    free_blocks[free_blocks_index + i] = false;
-    tag_bitlist[tag_index][free_blocks_index + i] = true;
-  }
-
-  return static_cast<u8*>(memory_) + free_blocks_index * block_size_;
+void* TaggedHeap::Allocate(usize size, MemoryTag tag, usize* out_size) {
+  return AllocateAligned(size, 1, tag, out_size);
 }
 
-void TaggedHeap::Deallocate(MemoryTag tag) {
-  auto tag_index{GetMemoryTagIndex(tag)};
-  COMET_ASSERT(tag_index >= 0 && tag_index < kMaxMemoryTagCount,
-               "Invalid tag: ", GetMemoryTagLabel(tag), "!");
+void* TaggedHeap::AllocateAligned(usize size, Alignment align, MemoryTag tag,
+                                  usize* out_size) {
+  usize final_size{size + align};
+  usize block_count;
+  auto* ptr{static_cast<u8*>(AllocateInternal(final_size, tag, block_count))};
+  final_size = block_count * block_size_;
 
-  for (usize i{0}; i < free_blocks.size(); ++i) {
-    if (!tag_bitlist[tag_index][i]) {
-      continue;
+  if (out_size != nullptr) {
+    *out_size = final_size;
+  }
+
+  if (ptr == nullptr) {
+    COMET_ASSERT(false, "Unable to allocate with size ", size, ", alignment ",
+                 align, " and tag ", GetMemoryTagLabel(tag), "!");
+    throw std::bad_alloc();
+  }
+
+  COMET_REGISTER_TAGGED_HEAP_ALLOCATION(final_size, tag);
+  auto* aligned_ptr{AlignPointer(static_cast<u8*>(ptr), align)};
+
+  // Case: pointer is already aligned. We have a minimal shift of 1 byte, so we
+  // move the pointer to "align" bytes as a convention.
+  if (aligned_ptr == ptr) {
+    aligned_ptr += align;
+  }
+
+  auto shift{aligned_ptr - ptr};
+  COMET_ASSERT(shift > 0 && shift <= kMaxAlignment,
+               "Invalid shift in memory allocation! Shift is ", shift,
+               ", but it must be between ", 0, " and ", kMaxAlignment, ".");
+
+#ifdef COMET_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif  // COMET_GCC
+  // Set shift to 0 if it equals kMaxAlignment.
+  aligned_ptr[-1] = shift & (static_cast<u8>(kMaxAlignment - 1));
+#ifdef COMET_GCC
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#endif  // COMET_GCC
+  return aligned_ptr;
+}
+
+void* TaggedHeap::AllocateBlock(MemoryTag tag, usize* out_size) {
+  return AllocateBlockAligned(1, tag, out_size);
+}
+
+void* TaggedHeap::AllocateBlockAligned(Alignment align, MemoryTag tag,
+                                       usize* out_size) {
+  return AllocateAligned(block_size_ - align, align, tag, out_size);
+}
+
+void* TaggedHeap::AllocateBlocks(usize count, MemoryTag tag, usize* out_size) {
+  return AllocateBlocksAligned(count, 1, tag, out_size);
+}
+
+void* TaggedHeap::AllocateBlocksAligned(usize count, Alignment align,
+                                        MemoryTag tag, usize* out_size) {
+  return AllocateAligned(block_size_ * count - align, align, tag, out_size);
+}
+
+void TaggedHeap::DeallocateAll(MemoryTag tag) {
+  {
+    fiber::FiberLockGuard lock{mutex_};
+    auto* block_map{FindOrAddTag(tag)};
+
+    if (block_map == nullptr) {
+      return;
     }
 
-    free_blocks[i] = true;
-    tag_bitlist[tag_index][i] = false;
+    for (usize i{0}; i < total_block_count_; ++i) {
+      if (!block_map->block_map.Test(i)) {
+        continue;
+      }
+
+      block_map->block_map.Reset(i);
+      global_block_map_.Reset(i);
+    }
   }
+
+  COMET_REGISTER_TAGGED_HEAP_DEALLOCATION(tag);
 }
 
 bool TaggedHeap::IsInitialized() const noexcept { return is_initialized_; }
+
+usize TaggedHeap::GetBlockSize() const noexcept { return block_size_; }
+
+void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
+                                   usize& block_count) {
+  COMET_ASSERT(memory_ != nullptr,
+               "Cannot allocate! No memory is available...");
+  block_count = (size + block_size_ - 1) / block_size_;
+  test += block_count;
+  COMET_ASSERT(size <= capacity_, "Max capacity reached!");
+  usize free_blocks_index;
+
+  {
+    fiber::FiberLockGuard lock{mutex_};
+    free_blocks_index = ResolveFreeBlocks(block_count);
+
+    if (free_blocks_index == kInvalidIndex) {
+      COMET_ASSERT(false,
+                   "No sufficient memory available for allocation with size ",
+                   size, " and tag ", GetMemoryTagLabel(tag), "!");
+      throw std::bad_alloc();
+    }
+
+    auto* block_map{FindOrAddTag(tag)};
+
+    for (usize i{0}; i < block_count; ++i) {
+      auto map_index{free_blocks_index + i};
+      global_block_map_.Set(map_index);
+      block_map->block_map.Set(map_index);
+    }
+  }
+
+  auto* ptr{static_cast<u8*>(memory_) + free_blocks_index * block_size_};
+  COMET_POISON(ptr, size);
+  return ptr;
+}
 
 usize TaggedHeap::ResolveFreeBlocks(usize block_count) const {
   usize contiguous_block_count{0};
 
   for (usize i{0}; i < total_block_count_; ++i) {
-    if (!free_blocks[i]) {
+    if (global_block_map_.Test(i)) {
       contiguous_block_count = 0;
       continue;
     }
@@ -107,6 +228,25 @@ usize TaggedHeap::ResolveFreeBlocks(usize block_count) const {
   }
 
   return kInvalidIndex;
+}
+
+TaggedHeap::TagBlockMap* TaggedHeap::FindOrAddTag(MemoryTag tag) {
+  auto bucket_index{static_cast<usize>(tag % kBucketCount_)};
+  auto& bucket{tag_block_maps_[bucket_index]};
+
+  for (auto& entry : bucket) {
+    if (entry.tag == tag) {
+      return &entry;
+    }
+
+    if (entry.tag == kEngineMemoryTagInvalid) {
+      entry.tag = tag;
+      return &entry;
+    }
+  }
+
+  COMET_ASSERT(false, "No entry found: the bucket seems to be full!");
+  return nullptr;
 }
 }  // namespace memory
 }  // namespace comet

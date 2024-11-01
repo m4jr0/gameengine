@@ -5,10 +5,15 @@
 #include "engine.h"
 
 #include "comet/animation/animation_manager.h"
+#include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/concurrency/job/scheduler_utils.h"
+#include "comet/core/concurrency/provider/thread_provider_manager.h"
+#include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/conf/configuration_manager.h"
-#include "comet/core/memory/memory_manager.h"
+#include "comet/core/frame/frame_manager.h"
+#include "comet/core/memory/allocation_tracking.h"
+#include "comet/core/memory/tagged_heap.h"
+#include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event.h"
@@ -37,14 +42,19 @@ Engine::~Engine() {
 }
 
 void Engine::Populate() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize engine, but it is already done!");
+  COMET_CASSERT(!is_initialized_,
+                "Tried to initialize engine, but it is already done!");
+  COMET_INITIALIZE_ALLOCATION_TRACKING();
+  thread::Thread::AttachMainThread();
+  COMET_LOG_INITIALIZE();
   PreLoad();
 
-  auto start_callback_descr{
-      job::GenerateJobDescr(job::JobPriority::High, OnSchedulerStarted,
-                            reinterpret_cast<fiber::ParamsHandle>(this))};
-  job::Scheduler::Get().Start(start_callback_descr);
+  auto run_callback_descr{job::GenerateJobDescr(
+      job::JobPriority::High, OnSchedulerStarted, this,
+      job::JobStackSize::Normal, nullptr, "scheduler_start")};
+  job::Scheduler::Get().Run(run_callback_descr);
+
+  Shutdown();
 }
 
 void Engine::Initialize() {
@@ -59,7 +69,6 @@ void Engine::Run() {
     time::TimeManager::Get().Initialize();
     // To catch up time taken to render.
     f64 lag{0.0};
-    frame::FrameCount frame_count{0};
     COMET_LOG_CORE_INFO("Comet started");
 
     while (is_running_) {
@@ -67,7 +76,7 @@ void Engine::Run() {
         break;
       }
 
-      Update(frame_count++, lag);
+      Update(lag);
     }
   } catch ([[maybe_unused]] const std::runtime_error& runtime_error) {
     COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
@@ -88,30 +97,30 @@ void Engine::Run() {
   Exit();
 }
 
-void Engine::Update(frame::FrameCount frame_count, f64& lag) {
+void Engine::Update(f64& lag) {
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
 
-  frame_count += frame::kFramePacketCount;
-  auto& frame_packet{*frame::GetResolvedFramePacket(frame_count)};
-  frame_packet.lag = lag;
+  auto& frame_manager{frame::FrameManager::Get()};
+  frame_manager.Update();
+  auto& active_frames{frame_manager.GetInFlightFrames()};
+
+  auto& frame_packet{active_frames.lead_frame};
+  frame_packet->lag = lag;
 
   physics::PhysicsManager::Get().Update(frame_packet);
 
-  frame_packet.interpolation =
+  frame_packet->interpolation =
       lag / time::TimeManager::Get().GetFixedDeltaTime();
 
-  animation::AnimationManager::Get().Update(
-      *frame::GetResolvedFramePacket(frame_count - 1));
-
-  rendering::RenderingManager::Get().Update(
-      *frame::GetResolvedFramePacket(frame_count - 2));
+  animation::AnimationManager::Get().Update(active_frames.middle_frame);
+  rendering::RenderingManager::Get().Update(active_frames.trail_frame);
 
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Update();
 #endif  // COMET_PROFILING
 
-  lag = frame_packet.lag;
+  lag = frame_packet->lag;
 }
 
 void Engine::Stop() {
@@ -128,7 +137,10 @@ void Engine::Shutdown() {
   is_initialized_ = false;
 
   COMET_LOG_CORE_INFO("Comet destroyed");
-  Logger::Get().Dispose();
+  COMET_LOG_DESTROY();
+  thread::Thread::DetachMainThread();
+  COMET_STRING_ID_DESTROY();
+  COMET_DESTROY_ALLOCATION_TRACKING();
 }
 
 void Engine::Quit() {
@@ -144,12 +156,8 @@ void Engine::PreLoad() {
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Initialize();
 #endif  // COMET_PROFILING
-
   conf::ConfigurationManager::Get().Initialize();
-  memory::MemoryManager::Get().Initialize();
   job::Scheduler::Get().Initialize();
-  event::EventManager::Get().Initialize();
-  resource::ResourceManager::Get().Initialize();
 }
 
 void Engine::Load() {
@@ -190,14 +198,16 @@ void Engine::PreUnload() {
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Shutdown();
 #endif  // COMET_PROFILING
-  COMET_STRING_ID_DESTROY();
 }
 
 void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
+  DestroyTStrings();
+  frame::FrameManager::Get().Shutdown();
+  thread::ThreadProviderManager::Get().Shutdown();
+  memory::TaggedHeap::Get().Destroy();
   job::Scheduler::Get().Shutdown();
-  memory::MemoryManager::Get().Shutdown();
   conf::ConfigurationManager::Get().Shutdown();
   is_running_ = false;
   is_exit_requested_ = false;
@@ -205,11 +215,17 @@ void Engine::Unload() {
 
 void Engine::PostUnload() { Engine::engine_ = nullptr; }
 
-void Engine::OnSchedulerStarted(fiber::ParamsHandle handle) {
+void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   auto* engine{reinterpret_cast<Engine*>(handle)};
+  memory::TaggedHeap::Get().Initialize();
+  thread::ThreadProviderManager::Get().Initialize();
+  frame::FrameManager::Get().Initialize();
+  InitializeTStrings();
+  event::EventManager::Get().Initialize();
+  resource::ResourceManager::Get().Initialize();
   engine->Initialize();
   engine->Run();
-  engine->Shutdown();
+  job::Scheduler::Get().RequestShutdown();
 }
 
 Engine::Engine() { Engine::engine_ = this; }

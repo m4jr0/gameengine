@@ -51,7 +51,7 @@ constexpr f32 FastInvSqrt(f32 x) {
 }
 
 template <typename T>
-constexpr T Abs(T x) {
+T Abs(T x) {
   if (x >= 0) {
     return x;
   }

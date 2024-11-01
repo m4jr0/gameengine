@@ -5,6 +5,8 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DRIVER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DRIVER_H_
 
+#include "vulkan/vulkan.h"
+
 #include "comet/core/essentials.h"
 
 // Add specific debug header first to log VMA's messages. //////////////////////

@@ -14,7 +14,7 @@ AnimationManager& AnimationManager::Get() {
   return singleton;
 }
 
-void AnimationManager::Update([[maybe_unused]] frame::FramePacket& packet) {
+void AnimationManager::Update([[maybe_unused]] frame::FramePacket* packet) {
   auto& entity_manager{entity::EntityManager::Get()};
 
   entity_manager.Each<geometry::MeshComponent, geometry::SkeletonComponent>(

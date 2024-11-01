@@ -195,7 +195,7 @@ bool ReadStrFromFile(CTStringView path, schar* buff,
   // Get character count.
   input_stream.ignore(kSStreamSizeMax);
   const auto file_size{input_stream.gcount()};
-  COMET_ASSERT(file_size > 0 && buff_len > static_cast<usize>(file_size),
+  COMET_ASSERT(buff_len > static_cast<usize>(file_size),
                "File is too big for buffer: ", file_size, " >= ", buff_len,
                "!");
   input_stream.clear();  // Reset file (EOF flag is set).

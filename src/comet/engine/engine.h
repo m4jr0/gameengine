@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_CORE_ENGINE_H_
 #define COMET_COMET_CORE_ENGINE_H_
 
-#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/event/event.h"
@@ -22,7 +22,7 @@ class Engine {
   void Populate();
   void Initialize();
   void Run();
-  virtual void Update(frame::FrameCount frame_count, f64& lag);
+  virtual void Update(f64& lag);
   void Stop();
   void Shutdown();
   void Quit();
@@ -33,7 +33,7 @@ class Engine {
  protected:
   // Not accessible to prevent some spaghetti code.
   inline static Engine* engine_{nullptr};
-  static void OnSchedulerStarted(fiber::ParamsHandle handle);
+  static void OnSchedulerStarted(job::JobParamsHandle handle);
 
   Engine();
 

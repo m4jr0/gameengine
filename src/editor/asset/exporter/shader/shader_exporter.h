@@ -5,6 +5,7 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_SHADER_SHADER_EXPORTER_H_
 #define COMET_EDITOR_ASSET_EXPORTER_SHADER_SHADER_EXPORTER_H_
 
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
@@ -101,9 +102,17 @@ class ShaderExporter : public AssetExporter {
 
  protected:
   std::vector<resource::ResourceFile> GetResourceFiles(
-      AssetDescr& asset_descr) const override;
+      job::Counter*, AssetDescr& asset_descr) const override;
 
  private:
+  struct ShaderContext {
+    static inline constexpr usize kMaxShaderFileLen_{4095};
+
+    schar file[kMaxShaderFileLen_ + 1];
+    usize file_len;
+    const tchar* asset_abs_path{nullptr};
+  };
+
   static rendering::CullMode GetCullMode(std::string_view raw_cull_mode);
   static rendering::ShaderVertexAttributeType GetShaderVertexAttributeType(
       std::string_view raw_vertex_attribute_type);
@@ -111,6 +120,7 @@ class ShaderExporter : public AssetExporter {
       std::string_view raw_uniform_type);
   static rendering::ShaderUniformScope GetShaderUniformScope(
       std::string_view raw_uniform_scope);
+  static void OnShaderLoading(job::IOJobParamsHandle params_handle);
 };
 }  // namespace asset
 }  // namespace editor

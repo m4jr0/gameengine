@@ -10,6 +10,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "comet/core/define.h"
+#include "comet/core/os.h"
 #include "comet/core/type/primitive.h"
 
 #if defined(_MSC_VER)
@@ -34,18 +36,20 @@ void HandleCriticalError();
 
 namespace internal {
 template <typename... Targs>
-void PrintParams(Targs&&... args) {
+void PrintParams(Targs &&...args) {
   ((std::cerr << std::forward<Targs>(args) << ' '), ...);
 }
 }  // namespace internal
 
-void GenerateStackTrace(schar* buffer, usize buffer_len);
+void GenerateStackTrace(schar *buffer, usize buffer_len);
 }  // namespace debug
 }  // namespace comet
 
 #ifndef COMET_DEBUG
+#define COMET_CASSERT(assertion, message)
 #define COMET_ASSERT(assertion, ...)
 #else
+#define COMET_CASSERT(assertion, message) assert(assertion &&message)
 #define COMET_ASSERT(assertion, ...)                    \
   do {                                                  \
     const auto isOk{static_cast<bool>(assertion)};      \
@@ -57,7 +61,7 @@ void GenerateStackTrace(schar* buffer, usize buffer_len);
       comet::debug::HandleCriticalError();              \
     }                                                   \
                                                         \
-    assert(isOk);                                       \
+    COMET_CASSERT(isOk, "Critical failure!");           \
   } while (false)
 #endif
 

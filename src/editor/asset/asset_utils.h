@@ -22,8 +22,21 @@ nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path);
 bool IsMetadataFile(CTStringView file_path);
 TString GenerateResourcePath(CTStringView folder_path,
                              resource::ResourceId resource_id);
+
+namespace internal {
+schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,
+                                       usize buffer_len);
+}  // namespace internal
 }  // namespace asset
 }  // namespace editor
 }  // namespace comet
+
+#ifdef COMET_FIBER_DEBUG_LABEL
+#define COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(path, buffer, buffer_len) \
+  comet::editor::asset::internal::GenerateTmpAssetFiberDebugLabel(     \
+      path, buffer, buffer_len)
+#else
+#define COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(path, buffer, buffer_len) nullptr
+#endif  // COMET_FIBER_DEBUG_LABEL
 
 #endif  // COMET_EDITOR_ASSET_ASSET_UTILS_H_

@@ -8,8 +8,10 @@
 #include <atomic>
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/stl/two_frame_allocator.h"
 #include "comet/core/logger.h"
 #include "comet/core/type/stl_types.h"
+#include "comet/core/type/string_id.h"
 
 #define COMET_EVENT_BIND_FUNCTION(function) \
   [this](const comet::event::Event& event) { return this->function(event); }
@@ -85,7 +87,7 @@ using EventPointer = custom_unique_ptr<comet::event::Event>;
 // allocator and deleter
 template <typename T, typename... Args>
 EventPointer GenerateEvent(Args&&... args) {
-  memory::two_frame_allocator<T> allocator{};
+  frame::two_cycle_frame_allocator<T> allocator{};
   auto* p{allocator.allocate_one()};
 
   // No need to deallocate if an exception occurs: the temporary allocator will

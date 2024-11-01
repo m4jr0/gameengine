@@ -24,23 +24,45 @@
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
 
+#ifdef COMET_CHECK_STACK_OVERFLOWS
+#ifdef COMET_UNIX
+
+#include "comet/core/concurrency/fiber/fiber_context.h"
+#endif  // COMET_UNIX
+#endif  // COMET_CHECK_STACK_OVERFLOWS
+
 namespace comet {
 namespace debug {
 // TODO(m4jr0): Handle critical error properly.
-void HandleCriticalError() { COMET_LOG_GLOBAL_ERROR("Aborting."); }
+void HandleCriticalError() {
+  std::cerr
+      << "A critical error has occurred. The application must now terminate.\n";
+
+  constexpr auto kBufferLen{4096};
+  schar buffer[kBufferLen]{'\0'};
+  GenerateStackTrace(buffer, kBufferLen);
+
+  std::cerr << buffer << '\n';
+  std::cerr << "Aborting...\n";
+}
 
 void GenerateStackTrace(schar* buffer, usize buffer_len) {
   constexpr auto* kPrefix{"Stacktrace:\n"};
   constexpr auto kPrefixLen{GetLength(kPrefix)};
 
-  COMET_ASSERT(buffer_len > kPrefixLen,
-               "Insufficient buffer length provided: ", buffer_len,
-               " <= ", kPrefixLen);
-  Copy(buffer, "Stacktrace:\n", kPrefixLen);
+  COMET_CASSERT(buffer_len > kPrefixLen, "Buffer provided is too small!");
+  Copy(buffer, kPrefix, kPrefixLen);
   buffer += kPrefixLen;
   buffer_len -= kPrefixLen;
 
 #ifdef COMET_MSVC
+#ifndef COMET_DEBUG
+  constexpr auto* kReleaseStr{"Not available in release builds."};
+  constexpr auto kkReleaseStrLen{GetLength(kReleaseStr)};
+  COMET_CASSERT(buffer_len > kReleaseStr, "Buffer provided is too small!");
+  Copy(buffer, kReleaseStr, kkReleaseStrLen);
+  return;
+#else
   constexpr auto max_frame_count{128};
   void* frames[max_frame_count]{nullptr};
   auto frame_count{CaptureStackBackTrace(0, max_frame_count, frames, nullptr)};
@@ -63,17 +85,20 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
     symbol->MaxNameLen = MAX_SYM_NAME;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-    auto [[maybe_unused]] is_ok{
-        SymFromAddr(process_handle, address, nullptr, symbol)};
-    COMET_ASSERT(is_ok, "Failed to retrieve stack trace symbol from ", address,
-                 "! Error: ", GetLastError());
+    if (!SymFromAddr(process_handle, address, nullptr, symbol)) {
+      break;
+    }
+
     memory::ConvertAddressToHex(symbol->Address, hex_address,
                                 kHexAddressBufferLen);
     ConvertToStr(i - 1, depth, kDepthBufferLen, &depth_len);
 
     auto required_len{7 + symbol->NameLen + kHexAddressLen + depth_len};
-    COMET_ASSERT(buffer_len > required_len,
-                 "Insufficient buffer length provided!");
+
+    if (buffer_len <= required_len) {
+      break;
+    }
+
     buffer[0] = '\t';
     Copy(buffer, depth, depth_len, 1);
     Copy(buffer, ": [", 3, 1 + depth_len);
@@ -86,14 +111,18 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
   }
 
   SymCleanup(process_handle);
-  COMET_ASSERT(buffer_len > 1, "Insufficient buffer length provided!");
+  COMET_CASSERT(buffer_len > 1, "Buffer provided is too small!");
   buffer[0] = '\0';
+#endif  // !COMET_DEBUG
 #else
   constexpr auto max_frame_count{128};
   void* frames[max_frame_count]{nullptr};
   auto frame_count{static_cast<usize>(backtrace(frames, max_frame_count))};
   char** symbols{backtrace_symbols(frames, frame_count)};
-  COMET_ASSERT(symbols != nullptr, "Failed to retrieve stack trace symbols!");
+  if (symbols == nullptr) {
+    buffer[0] = '\0';
+    return;
+  }
 
   constexpr usize kDepthBufferLen{4};
   schar depth[kDepthBufferLen]{'\0'};
@@ -124,8 +153,10 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
       ConvertToStr(i - 1, depth, kDepthBufferLen, &depth_len);
 
       auto required_len{9 + function_name_len + kHexAddressLen * 2 + depth_len};
-      COMET_ASSERT(buffer_len > required_len,
-                   "Insufficient buffer length provided!");
+
+      if (buffer_len <= required_len) {
+        break;
+      }
 
       buffer[0] = '\t';
       Copy(buffer, depth, depth_len, 1);
@@ -146,8 +177,11 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
       auto symbol_len{GetLength(symbols[i])};
       ConvertToStr(i - 1, depth, kDepthBufferLen, &depth_len);
       auto required_len{4 + symbol_len + depth_len};
-      COMET_ASSERT(buffer_len > required_len,
-                   "Insufficient buffer length provided!");
+
+      if (buffer_len <= required_len) {
+        break;
+      }
+
       buffer[0] = '\t';
       Copy(buffer, depth, depth_len, 1);
       Copy(buffer, ": ", 2, 1 + depth_len);
@@ -159,7 +193,7 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
   }
 
   free(symbols);
-  COMET_ASSERT(buffer_len > 1, "Insufficient buffer length provided!");
+  COMET_CASSERT(buffer_len > 1, "Buffer provided is too small!");
   buffer[0] = '\0';
 #endif  // COMET_MSVC
 }

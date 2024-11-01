@@ -30,24 +30,28 @@ static const ConfKey kApplicationPatchVersion{
 
 // Core. /////////////////////////////////////////////////////////////////
 static const ConfKey kCoreMsPerUpdate{COMET_STRING_ID("core_ms_per_update")};
-static const ConfKey kCoreForcedWorkerCount{
-    COMET_STRING_ID("core_forced_worker_count")};
+static const ConfKey kCoreForcedFiberWorkerCount{
+    COMET_STRING_ID("core_forced_fiber_worker_count")};
 static const ConfKey kCoreForcedIOWorkerCount{
     COMET_STRING_ID("core_forced_io_worker_count")};
 static const ConfKey kCoreLargeFiberCount{
     COMET_STRING_ID("core_large_fiber_count")};
 static const ConfKey kCoreGiganticFiberCount{
     COMET_STRING_ID("core_gigantic_fiber_count")};
+static const ConfKey kCoreExternalLibraryFiberCount{
+    COMET_STRING_ID("core_external_library_fiber_count")};
 static const ConfKey kCoreJobCounterCount{
     COMET_STRING_ID("core_job_counter_count")};
 static const ConfKey kCoreJobQueueCount{
     COMET_STRING_ID("core_job_queue_count")};
+static const ConfKey kCoreIsMainThreadWorkerDisabled{
+    COMET_STRING_ID("core_is_main_thread_worker_disabled")};
 static const ConfKey kCoreTaggedHeapCapacity{
     COMET_STRING_ID("core_tagged_heap_capacity")};
-static const ConfKey kCoreOneFrameAllocatorCapacity{
-    COMET_STRING_ID("core_one_frame_allocator_capacity")};
-static const ConfKey kCoreTwoFrameAllocatorCapacity{
-    COMET_STRING_ID("core_two_frame_allocator_capacity")};
+static const ConfKey kCoreFiberFrameAllocatorBaseCapacity{
+    COMET_STRING_ID("core_fiber_frame_allocator_base_capacity")};
+static const ConfKey kCoreIOFrameAllocatorBaseCapacity{
+    COMET_STRING_ID("core_io_frame_allocator_base_capacity")};
 static const ConfKey kCoreTStringAllocatorCapacity{
     COMET_STRING_ID("core_tstring_allocator_capacity")};
 

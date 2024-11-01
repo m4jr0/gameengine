@@ -8,7 +8,6 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
-#include "editor/asset/asset_manager_helper.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
 namespace comet {
@@ -29,16 +28,16 @@ class AssetManager : public Manager {
   void Shutdown() override;
   void RefreshLibraryMetadataFile();
   void Refresh();
-  void Refresh(CTStringView asset_abs_path);
 
   const TString& GetAssetsRootPath() const noexcept;
   const TString& GetResourcesRootPath() const noexcept;
 
  private:
-  friend internal::AssetManagerHelper;
+  static void OnRefresh(job::IOJobParamsHandle params_handle);
 
-  void RefreshFolder(CTStringView asset_abs_path, job::Counter* counter);
-  void RefreshAsset(CTStringView asset_abs_path, job::Counter* counter);
+  void RefreshLibrary(job::Counter* global_counter);
+  void RefreshFolder(job::Counter* global_counter, CTStringView asset_abs_path);
+  void RefreshAsset(job::Counter* global_counter, CTStringView asset_abs_path);
   bool IsRefreshNeeded(CTStringView asset_abs_path,
                        CTStringView metadata_file_path) const;
 
