@@ -15,9 +15,9 @@
 // Memory.
 #ifdef COMET_DEBUG
 // TODO(m4jr0): Find lock-free solution.
-// #define COMET_TRACK_ALLOCATIONS
+#define COMET_TRACK_ALLOCATIONS  // >:3
 
-// #define COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
+#define COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
 #endif  // COMET_DEBUG
 
 // Thread.
