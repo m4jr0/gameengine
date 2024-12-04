@@ -5,11 +5,10 @@
 #ifndef COMET_COMET_CORE_HASH_H_
 #define COMET_COMET_CORE_HASH_H_
 
-#include "picosha2.h"
-
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
 #include "comet/math/math_commons.h"
+#include "picosha2.h"
 
 namespace comet {
 namespace internal {
@@ -51,6 +50,31 @@ template <typename T1, typename T2,
 std::size_t HashCombine(T1 lhs, T2 rhs) {
   return HashCombine(internal::Convert(lhs), internal::Convert(rhs));
 }
+
+using HashValue = usize;
+constexpr HashValue kInvalidHashValue{0};
+
+template <typename Key>
+struct Hash {
+  HashValue operator()(const Key& key) const {
+    if constexpr (std::is_integral_v<Key> || std::is_enum_v<Key>) {
+      return static_cast<HashValue>(key);
+    }
+
+    if constexpr (std::is_pointer_v<Key>) {
+      return reinterpret_cast<HashValue>(key);
+    }
+
+    HashValue hash{0};
+    const auto* ptr{reinterpret_cast<const schar*>(&key)};
+
+    for (usize i{0}; i < sizeof(Key); ++i) {
+      hash = hash * 31 + static_cast<u8>(ptr[i]);
+    }
+
+    return hash;
+  }
+};
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_HASH_H_

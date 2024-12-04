@@ -173,6 +173,10 @@ class DynamicArray : public internal::BaseArray<T> {
     this->size_ = 0;
   }
 
+  DynamicArray<T> GenerateEmpty(usize capacity = 0) {
+    return DynamicArray<T>{allocator_, capacity};
+  }
+
   void Reserve(usize new_capacity) {
     this->data_ = comet::Reserve(this->allocator_, this->data_, this->size_,
                                  this->capacity_, new_capacity);
@@ -220,7 +224,7 @@ class DynamicArray : public internal::BaseArray<T> {
   }
 
   template <typename... Targs>
-  T& EmplaceBack(usize index, Targs&&... args) {
+  T& EmplaceBack(Targs&&... args) {
     if (this->size_ <= this->capacity_) {
       Reserve(this->capacity_ == 0 ? 1 : this->capacity_ * 2);
     }
@@ -228,6 +232,16 @@ class DynamicArray : public internal::BaseArray<T> {
     memory::Populate<T>(&this->data_[this->size_],
                         std::forward<Targs>(args)...);
     return this->data_[this->size_++];
+  }
+
+  ContiguousIterator<T> Remove(ContiguousIterator<T> pos) {
+    if (pos + 1 != this->end()) {
+      std::move(pos + 1, this->end(), pos);
+    }
+
+    --this->size_;
+    this->data_[this->size_].~T();
+    return pos;
   }
 
   void Clear() {

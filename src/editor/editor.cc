@@ -14,6 +14,7 @@
 
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
@@ -128,6 +129,13 @@ void CometEditor::PostLoadTmpCode() {
 
   camera_handler_ = std::make_unique<CameraHandler>();
   camera_handler_->Initialize();
+
+  memory::PlatformAllocator allocator{memory::kEditorMemoryTagAsset};
+  allocator.Initialize();
+  Map<s32, s32> map_test{&allocator};
+  map_test.Set(42, 1337);
+  auto test1{map_test[42]};
+  allocator.Destroy();
 }
 
 void CometEditor::PostUnloadTmpCode() { camera_handler_->Shutdown(); }
