@@ -8,7 +8,7 @@
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/aligned_allocator.h"
-#include "comet/core/type/fixed_size_array.h"
+#include "comet/core/type/array.h"
 
 namespace comet {
 namespace thread {
@@ -75,7 +75,7 @@ class ThreadProvider {
   }
 
   bool is_initialized_ = false;
-  FixedSizeArray<T> array_{};
+  FixedArray<T> array_{};
 };  // namespace thread
 
 template <typename T>
@@ -122,8 +122,7 @@ class FiberThreadProvider : public ThreadProvider<T> {
 
   void Initialize() override {
     ThreadProvider<T>::Initialize();
-    this->array_ =
-        FixedSizeArray<T>{allocator_, job::GetCurrentFiberWorkerCount()};
+    this->array_ = FixedArray<T>{allocator_, job::GetCurrentFiberWorkerCount()};
   }
 
   T& Get() override {
@@ -183,8 +182,7 @@ class IOThreadProvider : public ThreadProvider<T> {
 
   void Initialize() override {
     ThreadProvider<T>::Initialize();
-    this->array_ =
-        FixedSizeArray<T>{allocator_, job::GetCurrentIOWorkerCount()};
+    this->array_ = FixedArray<T>{allocator_, job::GetCurrentIOWorkerCount()};
   }
 
   T& Get() override {

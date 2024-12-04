@@ -4,6 +4,7 @@
 
 #include "vulkan_pipeline_handler.h"
 
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -108,16 +109,16 @@ const Pipeline* PipelineHandler::GenerateGraphics(const PipelineDescr& descr) {
   const auto color_blend_info{init::GeneratePipelineColorBlendStateCreateInfo(
       &descr.color_blend_attachment_state, 1)};
 
-  constexpr std::array<VkDynamicState, 3> dynamic_states{
-      {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
-       VK_DYNAMIC_STATE_DEPTH_BIAS}};
+  constexpr StaticArray<VkDynamicState, 3> dynamic_states{
+      VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+      VK_DYNAMIC_STATE_DEPTH_BIAS};
 
   VkPipelineDynamicStateCreateInfo dynamic_state_info{};
   dynamic_state_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   dynamic_state_info.dynamicStateCount =
-      static_cast<u32>(dynamic_states.size());
-  dynamic_state_info.pDynamicStates = dynamic_states.data();
+      static_cast<u32>(dynamic_states.GetSize());
+  dynamic_state_info.pDynamicStates = dynamic_states.GetData();
 
   auto vertex_input_state_info{init::GeneratePipelineVertexInputStateCreateInfo(
       &descr.vertex_input_binding_description, 1,

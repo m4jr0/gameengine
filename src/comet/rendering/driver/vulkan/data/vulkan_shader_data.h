@@ -10,6 +10,7 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/gid.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
@@ -61,13 +62,13 @@ using BindingIndex = u32;
 constexpr auto kInvalidBindingIndex{static_cast<BindingIndex>(-1)};
 
 struct DescriptorSetLayoutBinding {
-  std::array<VkDescriptorSetLayoutBinding, kDescriptorBindingCount> bindings{};
+  StaticArray<VkDescriptorSetLayoutBinding, kDescriptorBindingCount> bindings{};
   BindingIndex sampler_binding_index{kInvalidBindingIndex};
   u32 binding_count{0};
 };
 
 struct DescriptorSetLayoutBindings {
-  std::array<DescriptorSetLayoutBinding, kDescriptorSetMaxLayoutCount> list{};
+  StaticArray<DescriptorSetLayoutBinding, kDescriptorSetMaxLayoutCount> list{};
   u8 count{0};
 };
 

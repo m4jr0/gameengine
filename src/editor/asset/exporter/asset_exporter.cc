@@ -26,15 +26,16 @@ const TString& AssetExporter::GetRootAssetPath() const {
   return root_asset_path_;
 }
 
-void AssetExporter::Process(job::Counter* global_counter,
-                            CTStringView asset_abs_path) {
-  COMET_LOG_GLOBAL_INFO("Processing asset at path: ", asset_abs_path, ".");
+void AssetExporter::Process(const AssetExportDescr& export_descr) {
+  COMET_LOG_GLOBAL_INFO(
+      "Processing asset at path: ", export_descr.asset_abs_path, ".");
 
-  auto* data{COMET_FRAME_ALLOC_ONE_AND_POPULATE(ResourceFilesData, )};
-  data->exporter = this;
-  auto& descr{data->asset_descr};
-
-  descr.asset_abs_path = asset_abs_path;
+  auto* asset_export{COMET_FRAME_ALLOC_ONE_AND_POPULATE(AssetExport, )};
+  asset_export->exporter = this;
+  auto& context{asset_export->context};
+  context.files = ResourceFiles{export_descr.file_allocator_};
+  auto& descr{context.asset_descr};
+  descr.asset_abs_path = export_descr.asset_abs_path;
 
   Clean(descr.asset_abs_path.GetTStr(), descr.asset_abs_path.GetLength());
   descr.asset_path = GetRelativePath(descr.asset_abs_path, root_asset_path_);
@@ -77,38 +78,38 @@ void AssetExporter::Process(job::Counter* global_counter,
 #endif  // COMET_FIBER_DEBUG_LABEL
 
   job::Scheduler::Get().Kick(job::GenerateJobDescr(
-      job::JobPriority::Normal, OnResourceFilesProcess, data, job_stack_size,
-      global_counter,
-      COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(asset_abs_path, debug_label,
+      job::JobPriority::Normal, OnResourceFilesProcess, asset_export,
+      job_stack_size, export_descr.global_counter,
+      COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(export_descr.asset_abs_path,
+                                           debug_label,
                                            fiber::Fiber::kDebugLabelMaxLen_)));
 }
 
 void AssetExporter::OnResourceFilesProcess(job::JobParamsHandle params_handle) {
-  auto* data{reinterpret_cast<ResourceFilesData*>(params_handle)};
-  auto& descr{data->asset_descr};
-  auto* global_counter{data->global_counter};
+  auto* asset_export{reinterpret_cast<AssetExport*>(params_handle)};
+  auto& context{asset_export->context};
+  auto& descr{context.asset_descr};
+  asset_export->exporter->PopulateFiles(context);
 
-  data->resource_files =
-      data->exporter->GetResourceFiles(global_counter, descr);
-
-  if (data->resource_files.size() == 0) {
+  if (context.files.IsEmpty()) {
     COMET_LOG_GLOBAL_ERROR("Could not process asset at ", descr.asset_abs_path);
     return;
   }
 
-  job::Scheduler::Get().Kick(
-      job::GenerateIOJobDescr(OnResourceFilesWrite, data, global_counter));
+  job::Scheduler::Get().Kick(job::GenerateIOJobDescr(
+      OnResourceFilesWrite, asset_export, context.global_counter));
 }
 
 void AssetExporter::OnResourceFilesWrite(job::IOJobParamsHandle params_handle) {
-  auto* data{reinterpret_cast<ResourceFilesData*>(params_handle)};
-  auto& descr{data->asset_descr};
+  auto* asset_export{reinterpret_cast<AssetExport*>(params_handle)};
+  auto& context{asset_export->context};
+  auto& descr{context.asset_descr};
   COMET_LOG_GLOBAL_INFO("Saving processed asset: ", descr.asset_abs_path,
                         "...");
 
-  for (const auto& resource_file : data->resource_files) {
+  for (const auto& resource_file : context.files) {
     if (!resource::SaveResourceFile(
-            GenerateResourcePath(data->exporter->root_resource_path_,
+            GenerateResourcePath(asset_export->exporter->root_resource_path_,
                                  resource_file.resource_id),
             resource_file)) {
       COMET_LOG_GLOBAL_ERROR("Unable to save resource file: ",

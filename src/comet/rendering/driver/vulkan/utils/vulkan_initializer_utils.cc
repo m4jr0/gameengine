@@ -335,7 +335,7 @@ VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
     info.pSetLayouts = VK_NULL_HANDLE;
     info.setLayoutCount = 0;
   } else {
-    info.pSetLayouts = descr.descriptor_set_layout_handles->data();
+    info.pSetLayouts = descr.descriptor_set_layout_handles->GetData();
     info.setLayoutCount = static_cast<u32>(descr.descriptor_set_layout_count);
   }
 
@@ -423,7 +423,7 @@ VkDescriptorSetLayoutCreateInfo GenerateDescriptorSetLayoutCreateInfo(
     const DescriptorSetLayoutBinding& descriptor_set_data) {
   VkDescriptorSetLayoutCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  info.pBindings = descriptor_set_data.bindings.data();
+  info.pBindings = descriptor_set_data.bindings.GetData();
   info.bindingCount = descriptor_set_data.binding_count;
   info.pNext = VK_NULL_HANDLE;
   return info;

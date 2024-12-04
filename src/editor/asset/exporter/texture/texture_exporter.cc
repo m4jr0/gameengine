@@ -24,9 +24,9 @@ bool TextureExporter::IsCompatible(CTStringView extension) const {
          extension == COMET_TCHAR("tga");
 }
 
-std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
-    job::Counter*, AssetDescr& asset_descr) const {
-  std::vector<resource::ResourceFile> resource_files{};
+void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
+  auto& asset_descr{context.asset_descr};
+  auto& resource_files{context.files};
 
   TextureContext texture_context{};
 #ifdef COMET_WIDE_TCHAR
@@ -42,7 +42,7 @@ std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
 
   if (texture_context.pixel_data == nullptr) {
     COMET_LOG_GLOBAL_ERROR("Failed to load texture image");
-    return resource_files;
+    return;
   }
 
   COMET_LOG_GLOBAL_DEBUG("Processing texture at ", texture_context.path, "...");
@@ -67,11 +67,10 @@ std::vector<resource::ResourceFile> TextureExporter::GetResourceFiles(
       texture.descr.resolution[1];
   asset_descr.metadata[kCometEditorTextureMetadataKeySize] = texture.descr.size;
 
-  resource_files.push_back(resource::ResourceManager::Get().GetResourceFile(
+  resource_files.PushBack(resource::ResourceManager::Get().GetResourceFile(
       texture, compression_mode_));
   stbi_image_free(texture_context.pixel_data);
   COMET_LOG_GLOBAL_DEBUG("Texture processed at ", texture_context.path);
-  return resource_files;
 }
 
 void TextureExporter::OnTextureLoading(job::IOJobParamsHandle params_handle) {

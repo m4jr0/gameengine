@@ -180,8 +180,11 @@ void Scheduler::Initialize() {
 
   COMET_LOG_CORE_INFO("Worker count: ", fiber_worker_count_,
                       ", I/O worker count: ", io_worker_count_, ".");
-  fiber_workers_.resize(fiber_worker_count_);
-  io_workers_.resize(io_worker_count_);
+  worker_allocator.Initialize();
+  fiber_workers_ = DynamicArray<FiberWorker>{&worker_allocator};
+  fiber_workers_.Resize(fiber_worker_count_);
+  io_workers_ = DynamicArray<IOWorker>{&worker_allocator};
+  io_workers_.Resize(io_worker_count_);
 }
 
 void Scheduler::Shutdown() {
@@ -199,6 +202,7 @@ void Scheduler::Shutdown() {
     io_worker.Stop();
   }
 
+  worker_allocator.Destroy();
   large_stack_fibers_.Destroy();
   gigantic_stack_fibers_.Destroy();
 #ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT

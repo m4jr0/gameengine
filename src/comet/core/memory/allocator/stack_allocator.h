@@ -11,7 +11,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/aligned_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/fixed_size_array.h"
+#include "comet/core/type/array.h"
 
 namespace comet {
 namespace memory {

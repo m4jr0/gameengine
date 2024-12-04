@@ -13,6 +13,7 @@
 #include "comet/core/generator.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/model_resource.h"
 #include "comet/resource/resource_manager.h"
@@ -31,12 +32,11 @@ bool ModelExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("obj") || extension == COMET_TCHAR("fbx");
 }
 
-std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
-    job::Counter*, AssetDescr& asset_descr) const {
-  std::vector<resource::ResourceFile> resource_files{};
+void ModelExporter::PopulateFiles(ResourceFilesContext& context) const {
+  auto& asset_descr{context.asset_descr};
 
   SceneContext scene_context{};
-  scene_context.resource_files = &resource_files;
+  scene_context.resource_files = &context.files;
   scene_context.exporter = this;
   scene_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
   scene_context.asset_path = asset_descr.asset_path.GetCTStr();
@@ -47,20 +47,18 @@ std::vector<resource::ResourceFile> ModelExporter::GetResourceFiles(
   scheduler.KickAndWait(io_job_descr);
 
   if (scene_context.scene == nullptr) {
-    return resource_files;
+    return;
   }
 
   auto* counter{scheduler.GenerateCounter()};
 
   // N material resources, and 1 model.
-  scene_context.resource_files->reserve(
+  scene_context.resource_files->Reserve(
       static_cast<usize>(scene_context.scene->mNumMaterials + 1));
 
   scheduler.Kick(scene_context.GenerateModelProcessingJobDescr(counter));
   scheduler.Kick(scene_context.GenerateMaterialsProcessingJobDescr(counter));
   scheduler.Wait(counter);
-
-  return resource_files;
 }
 
 void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
@@ -175,7 +173,6 @@ void ModelExporter::LoadDefaultTextures(
 
 void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
   auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
-
 #ifdef COMET_WIDE_TCHAR
   auto length{GetLength(scene_context->asset_abs_path)};
   auto* scene_path{static_cast<schar*>(
@@ -187,7 +184,6 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
 #endif  // COMET_WIDE_TCHAR
 
   COMET_LOG_GLOBAL_DEBUG("Loading scene at ", scene_path, "...");
-
   const auto* scene{scene_context->assimp_importer.ReadFile(
       scene_path,
       aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace)};
@@ -238,9 +234,9 @@ void ModelExporter::LoadMaterials(SceneContext* data) const {
   auto* scene{data->scene};
   auto directory_path{GetDirectoryPath(data->asset_abs_path)};
   const auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
-  constexpr std::array<aiTextureType, 4> exported_texture_types{
-      {aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_HEIGHT,
-       aiTextureType_AMBIENT}};
+  constexpr StaticArray<aiTextureType, 4> exported_texture_types{
+      aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_HEIGHT,
+      aiTextureType_AMBIENT};
 
   for (usize i{0}; i < scene->mNumMaterials; ++i) {
     const auto raw_material{scene->mMaterials[i]};
@@ -361,7 +357,7 @@ job::JobDescr ModelExporter::SceneContext::GenerateMaterialsProcessingJobDescr(
 void ModelExporter::SceneContext::AddResourceFile(
     const resource::ResourceFile& file) {
   fiber::FiberLockGuard lock{resource_mutex};
-  resource_files->push_back(file);
+  resource_files->PushBack(file);
 }
 }  // namespace asset
 }  // namespace editor

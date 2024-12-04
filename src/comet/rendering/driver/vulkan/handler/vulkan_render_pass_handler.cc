@@ -34,8 +34,9 @@ RenderPass* RenderPassHandler::Generate(const RenderPassDescr& descr) {
   render_pass.clear_flags = descr.clear_flags;
   render_pass.extent = descr.extent;
   render_pass.offset = descr.offset;
-  memory::CopyMemory(render_pass.clear_values.data(), descr.clear_values.data(),
-                     sizeof(descr.clear_values[0]) * descr.clear_values.size());
+  memory::CopyMemory(
+      render_pass.clear_values.GetData(), descr.clear_values.GetData(),
+      sizeof(descr.clear_values[0]) * descr.clear_values.GetSize());
 
   auto is_msaa{device.IsMsaa()};
   const auto msaa_samples{is_msaa ? device.GetMsaaSamples()
@@ -329,8 +330,8 @@ void RenderPassHandler::BeginPass(const RenderPass& pass,
       pass.render_targets[image_index].framebuffer_handle)};
 
   render_pass_begin_info.clearValueCount =
-      static_cast<u32>(pass.clear_values.size());
-  render_pass_begin_info.pClearValues = pass.clear_values.data();
+      static_cast<u32>(pass.clear_values.GetSize());
+  render_pass_begin_info.pClearValues = pass.clear_values.GetData();
   render_pass_begin_info.renderArea.offset = pass.offset;
 
   vkCmdBeginRenderPass(command_buffer_handle, &render_pass_begin_info,

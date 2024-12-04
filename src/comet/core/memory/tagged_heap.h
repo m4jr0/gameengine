@@ -11,7 +11,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/fixed_size_bitset.h"
+#include "comet/core/type/bitset.h"
 
 namespace comet {
 namespace memory {
@@ -58,7 +58,7 @@ class TaggedHeap {
 
   struct TagBlockMap {
     MemoryTag tag{kEngineMemoryTagUntagged};
-    FixedSizeBitset block_map{};
+    FixedBitset block_map{};
   };
 
   void* AllocateInternal(usize size, MemoryTag tag, usize& block_count);
@@ -70,7 +70,7 @@ class TaggedHeap {
   usize block_size_{0};
   usize capacity_{COMET_CONF_U32(conf::kCoreTaggedHeapCapacity)};
   MemoryDescr memory_descr_{GetMemoryDescr()};
-  FixedSizeBitset global_block_map_{};
+  FixedBitset global_block_map_{};
   TagBlockMap tag_block_maps_[kBucketCount_][kTagsPerBucketCount_]{};
   PlatformStackAllocator bitset_allocator_{};
   mutable fiber::FiberMutex mutex_{};

@@ -12,6 +12,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 
 #ifndef COMET_NORMALIZE_PATHS
@@ -149,10 +150,10 @@ TEST_CASE("File system management", "[comet::filesystem]") {
   }
 
   SECTION("Files and folders operations.") {
-    std::array<const comet::TString, 3> dir_to_test{
-        {comet::comettests::tmp_dir / COMET_TCHAR("/test3"),
-         comet::comettests::tmp_dir / COMET_TCHAR("/test5"),
-         comet::comettests::tmp_dir / COMET_TCHAR("/test9")}};
+    comet::StaticArray<const comet::TString, 3> dir_to_test{
+        comet::comettests::tmp_dir / COMET_TCHAR("/test3"),
+        comet::comettests::tmp_dir / COMET_TCHAR("/test5"),
+        comet::comettests::tmp_dir / COMET_TCHAR("/test9")};
     comet::usize count{0};
 
     comet::ForEachDirectory(comet::comettests::tmp_dir,
@@ -165,11 +166,11 @@ TEST_CASE("File system management", "[comet::filesystem]") {
                               }
                             });
 
-    REQUIRE(count == dir_to_test.size());
+    REQUIRE(count == dir_to_test.GetSize());
 
-    std::array<const comet::TString, 2> files_to_test{
-        {comet::comettests::tmp_dir / COMET_TCHAR("/test"),
-         comet::comettests::tmp_dir / COMET_TCHAR("/test8")}};
+    comet::StaticArray<const comet::TString, 2> files_to_test{
+        comet::comettests::tmp_dir / COMET_TCHAR("/test"),
+        comet::comettests::tmp_dir / COMET_TCHAR("/test8")};
     count = 0;
 
     comet::ForEachFile(comet::comettests::tmp_dir,
@@ -182,14 +183,14 @@ TEST_CASE("File system management", "[comet::filesystem]") {
                          }
                        });
 
-    REQUIRE(count == files_to_test.size());
+    REQUIRE(count == files_to_test.GetSize());
 
-    std::array<const comet::TString, 5> all_test{
-        {comet::comettests::tmp_dir / COMET_TCHAR("/test"),
-         comet::comettests::tmp_dir / COMET_TCHAR("/test3"),
-         comet::comettests::tmp_dir / COMET_TCHAR("/test5"),
-         comet::comettests::tmp_dir / COMET_TCHAR("/test8"),
-         comet::comettests::tmp_dir / COMET_TCHAR("/test9")}};
+    comet::StaticArray<const comet::TString, 5> all_test{
+        comet::comettests::tmp_dir / COMET_TCHAR("/test"),
+        comet::comettests::tmp_dir / COMET_TCHAR("/test3"),
+        comet::comettests::tmp_dir / COMET_TCHAR("/test5"),
+        comet::comettests::tmp_dir / COMET_TCHAR("/test8"),
+        comet::comettests::tmp_dir / COMET_TCHAR("/test9")};
     count = 0;
 
     comet::ForEachFileAndDirectory(comet::comettests::tmp_dir,
@@ -202,10 +203,10 @@ TEST_CASE("File system management", "[comet::filesystem]") {
                                      }
                                    });
 
-    REQUIRE(count == all_test.size());
+    REQUIRE(count == all_test.GetSize());
 
-    std::array<const comet::TString, 1> does_not_exist{
-        {comet::comettests::tmp_dir / COMET_TCHAR("/DOESNOTEXIST")}};
+    comet::StaticArray<const comet::TString, 1> does_not_exist{
+        comet::comettests::tmp_dir / COMET_TCHAR("/DOESNOTEXIST")};
     count = 0;
 
     comet::ForEachDirectory(comet::comettests::tmp_dir,

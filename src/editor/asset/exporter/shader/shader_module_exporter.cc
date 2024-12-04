@@ -22,8 +22,8 @@ bool ShaderModuleExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("vert") || extension == COMET_TCHAR("frag");
 }
 
-std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
-    job::Counter*, AssetDescr& asset_descr) const {
+void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
+  auto& asset_descr{context.asset_descr};
   const auto driver_keyword_pos{
       asset_descr.asset_path.GetNthToLastIndexOf(COMET_TCHAR('.'), 2)};
 
@@ -31,7 +31,7 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
     COMET_LOG_GLOBAL_ERROR(
         "Unable to retrieve driver keyword from asset shader path: ",
         asset_descr.asset_path, ".");
-    return {};
+    return;
   }
 
   auto driver_keyword{
@@ -135,10 +135,8 @@ std::vector<resource::ResourceFile> ShaderModuleExporter::GetResourceFiles(
 
   COMET_LOG_GLOBAL_DEBUG("Shader module processed at: ",
                          shader_code_context.asset_abs_path);
-
-  return std::vector<resource::ResourceFile>{
-      resource::ResourceManager::Get().GetResourceFile(shader,
-                                                       compression_mode_)};
+  context.files.PushBack(resource::ResourceManager::Get().GetResourceFile(
+      shader, compression_mode_));
 }
 
 void ShaderModuleExporter::OnShaderModuleLoading(

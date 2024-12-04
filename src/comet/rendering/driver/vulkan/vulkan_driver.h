@@ -13,6 +13,7 @@
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/type/array.h"
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
@@ -117,7 +118,7 @@ class VulkanDriver : public Driver {
       u64 source_object, usize location, int32_t message_code,
       const schar* layer_prefix, const schar* message, void* user_data);
 
-  static constexpr std::array<const schar*, 1> kValidationLayers_{
+  static constexpr StaticArray<const schar*, 1> kValidationLayers_{
       "VK_LAYER_KHRONOS_validation"};
   VkDebugUtilsMessengerEXT debug_messenger_handle_{VK_NULL_HANDLE};
   VkDebugReportCallbackEXT debug_report_callback_handle_{VK_NULL_HANDLE};

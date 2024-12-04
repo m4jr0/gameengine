@@ -8,6 +8,7 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
@@ -31,7 +32,7 @@ struct PipelineDescr {
   std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
   VkVertexInputBindingDescription vertex_input_binding_description;
   std::vector<VkVertexInputAttributeDescription>* vertex_attributes{nullptr};
-  std::array<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>*
+  StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>*
       descriptor_set_layout_handles{nullptr};
   std::vector<VkPushConstantRange>* push_constant_ranges{nullptr};
 

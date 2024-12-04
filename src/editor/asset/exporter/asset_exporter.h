@@ -8,12 +8,28 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/file_system.h"
+#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
+struct AssetExportDescr {
+  job::Counter* global_counter{nullptr};
+  const tchar* asset_abs_path{nullptr};
+  memory::AlignedAllocator* file_allocator_{nullptr};
+};
+
+using ResourceFiles = DynamicArray<resource::ResourceFile>;
+
+struct ResourceFilesContext {
+  AssetDescr asset_descr{};
+  job::Counter* global_counter{nullptr};
+  ResourceFiles files{};
+};
+
 class AssetExporter {
  public:
   AssetExporter() = default;
@@ -24,7 +40,7 @@ class AssetExporter {
   virtual ~AssetExporter() = default;
 
   virtual bool IsCompatible(CTStringView extension) const = 0;
-  void Process(job::Counter* global_counter, CTStringView asset_path);
+  void Process(const AssetExportDescr& descr);
 
   template <typename ResourcePath>
   void SetRootResourcePath(ResourcePath&& path) {
@@ -45,18 +61,16 @@ class AssetExporter {
   static void OnResourceFilesProcess(job::JobParamsHandle params_handle);
   static void OnResourceFilesWrite(job::IOJobParamsHandle params_handle);
 
-  virtual std::vector<resource::ResourceFile> GetResourceFiles(
-      job::Counter* global_counter, AssetDescr& asset_descr) const = 0;
+  virtual void PopulateFiles(ResourceFilesContext& context) const = 0;
 
   resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
   TString root_asset_path_{};
   TString root_resource_path_{};
 };
-struct ResourceFilesData {
-  AssetDescr asset_descr{};
+
+struct AssetExport {
   AssetExporter* exporter{nullptr};
-  job::Counter* global_counter{nullptr};
-  std::vector<resource::ResourceFile> resource_files{};
+  ResourceFilesContext context{};
 };
 }  // namespace asset
 }  // namespace editor

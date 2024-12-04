@@ -7,6 +7,7 @@
 
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
@@ -25,8 +26,7 @@ class ShaderModuleExporter : public AssetExporter {
   bool IsCompatible(CTStringView extension) const override;
 
  protected:
-  std::vector<resource::ResourceFile> GetResourceFiles(
-      job::Counter*, AssetDescr& asset_descr) const override;
+  void PopulateFiles(ResourceFilesContext& context) const override;
 
  private:
   struct ShaderCodeContext {

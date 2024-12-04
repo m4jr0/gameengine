@@ -5,12 +5,12 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PASS_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PASS_H_
 
-#include <array>
 #include <vector>
 
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/string_id.h"
 
 namespace comet {
@@ -55,7 +55,7 @@ struct RenderPassDescr {
   RenderPassId id{kInvalidRenderPassId};
   VkSubpassDependency dependency{};
   std::vector<AttachmentDescr> attachment_descrs{};
-  std::array<VkClearValue, 2> clear_values{};
+  StaticArray<VkClearValue, 2> clear_values{};
 };
 
 struct RenderPass {
@@ -65,7 +65,7 @@ struct RenderPass {
   RenderPassId id{kInvalidRenderPassId};
   VkRenderPass handle{VK_NULL_HANDLE};
   std::vector<VulkanRenderTarget> render_targets{};
-  std::array<VkClearValue, 2> clear_values{};
+  StaticArray<VkClearValue, 2> clear_values{};
 };
 }  // namespace vk
 }  // namespace rendering

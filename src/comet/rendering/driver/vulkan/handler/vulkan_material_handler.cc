@@ -4,6 +4,7 @@
 
 #include "vulkan_material_handler.h"
 
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
@@ -148,7 +149,7 @@ void MaterialHandler::UpdateInstance(Material& material, ShaderId shader_id) {
                                 &material.shininess);
 
     VkDescriptorBufferInfo buffer_info;
-    std::array<VkWriteDescriptorSet, kDescriptorBindingCount>
+    StaticArray<VkWriteDescriptorSet, kDescriptorBindingCount>
         write_descriptor_sets{};
 
     // TODO(m4jr0): Check if this needs to be updated.
@@ -192,7 +193,8 @@ void MaterialHandler::UpdateInstance(Material& material, ShaderId shader_id) {
 
     if (descriptor_count > 0) {
       vkUpdateDescriptorSets(context_->GetDevice(), descriptor_count,
-                             write_descriptor_sets.data(), 0, VK_NULL_HANDLE);
+                             write_descriptor_sets.GetData(), 0,
+                             VK_NULL_HANDLE);
     }
   }
 
@@ -247,7 +249,7 @@ void MaterialHandler::Destroy(Material& material, bool is_destroying_handler) {
   material.diffuse_color = {kColorWhite, 1.0f};
 
   if (!is_destroying_handler) {
-    std::array<TextureMap*, 3> texture_maps = {
+    StaticArray<TextureMap*, 3> texture_maps = {
         &material.diffuse_map, &material.specular_map, &material.normal_map};
 
     for (auto* texture_map : texture_maps) {

@@ -5,12 +5,11 @@
 #ifndef COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 #define COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 
-#include <array>
-
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 #include "comet/entity/archetype.h"
 #include "comet/entity/component.h"
 #include "comet/entity/entity_id.h"
@@ -77,12 +76,12 @@ class EntityManager : public Manager {
                                       component_type_ids_count};
 
     usize i{0};
-    std::array<EntityId, component_id_count> all_ids{};
+    StaticArray<EntityId, component_id_count> all_ids{};
     (void(all_ids[i++] = component_type_ids), ...);
     (void(all_ids[i++] = ComponentTypeDescrGetter<ComponentTypes>::Get().id),
      ...);
 
-    if (all_ids.size() == 0) {
+    if (all_ids.GetSize() == 0) {
       for (const auto& archetype : archetypes_) {
         for (auto entity_id : archetype->entity_ids) {
           func(entity_id);
@@ -95,7 +94,7 @@ class EntityManager : public Manager {
     std::sort(all_ids.begin(), all_ids.end());
 
     for (auto& archetype : archetypes_) {
-      if (archetype->entity_type.size() < all_ids.size()) {
+      if (archetype->entity_type.size() < all_ids.GetSize()) {
         continue;
       }
 
@@ -106,7 +105,7 @@ class EntityManager : public Manager {
           ++count;
         }
 
-        if (count == all_ids.size()) {
+        if (count == all_ids.GetSize()) {
           for (auto entity_id : archetype->entity_ids) {
             func(entity_id);
           }

@@ -20,12 +20,12 @@ bool ShaderExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("cshader");
 }
 
-std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
-    job::Counter*, AssetDescr& asset_descr) const {
+void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
   resource::ShaderResource shader{};
+  auto& asset_descr{context.asset_descr};
   shader.id = resource::GenerateResourceIdFromPath(asset_descr.asset_path);
   shader.type_id = resource::ShaderResource::kResourceTypeId;
-  std::vector<resource::ResourceFile> to_return{};
+  auto& resource_files{context.files};
 
   ShaderContext shader_context{};
   shader_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
@@ -34,7 +34,7 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
       job::GenerateIOJobDescr(OnShaderLoading, &shader_context));
 
   if (shader_context.file_len == 0) {
-    return to_return;
+    return;
   }
 
   COMET_LOG_GLOBAL_DEBUG("Processing shader at ", shader_context.asset_abs_path,
@@ -44,7 +44,7 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
     // Every time we get an object, we must use assignment to prevent a bug with
     // GCC where the generated type is an array (which is wrong).
     const auto shader_file = nlohmann::json::parse(shader_context.file);
-    to_return.reserve(1);
+    resource_files.Reserve(1);
     shader.descr.is_wireframe =
         shader_file.value(kCometEditorShaderKeyIsWireframe, false);
     shader.descr.cull_mode = GetCullMode(shader_file.value(
@@ -136,15 +136,14 @@ std::vector<resource::ResourceFile> ShaderExporter::GetResourceFiles(
   } catch (const nlohmann::json::exception& error) {
     COMET_LOG_GLOBAL_ERROR("An error occurred while processing shader file: ",
                            error.what());
-    return to_return;
+    return;
   }
 
-  to_return.push_back(resource::ResourceManager::Get().GetResourceFile(
+  resource_files.PushBack(resource::ResourceManager::Get().GetResourceFile(
       shader, compression_mode_));
 
   COMET_LOG_GLOBAL_DEBUG("Shader processed at ", shader_context.asset_abs_path,
                          "...");
-  return to_return;
 }
 
 rendering::CullMode ShaderExporter::GetCullMode(

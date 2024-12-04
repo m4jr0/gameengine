@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_CORE_TYPE_TSTRING_H_
 #define COMET_COMET_CORE_TYPE_TSTRING_H_
 
+#include "comet/core/c_array.h"
 #include "comet/core/c_string.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/slash_helper.h"
@@ -134,10 +135,11 @@ class TString {
 
   TString GenerateSubString(usize offset = 0,
                             usize count = kInvalidIndex) const;
+  bool IsContained(tchar c) const;
+  usize GetIndex(tchar c) const;
   usize GetLastIndexOf(tchar c, usize offset = kInvalidIndex) const noexcept;
   usize GetNthToLastIndexOf(tchar c, usize count = 0,
                             usize offset = kInvalidIndex) const noexcept;
-
   friend void Swap(TString& str1, TString& str2);
   tchar& operator[](usize index);
   const tchar& operator[](usize index) const;
@@ -199,6 +201,20 @@ class CTStringView {
 
   TString GenerateSubString(usize offset = 0,
                             usize count = kInvalidIndex) const;
+
+  bool IsContained(tchar c) const {
+    return comet::IsContained(str_, length_, c);
+  }
+
+  usize GetIndex(tchar c) const { return comet::GetIndex(str_, length_, c); }
+
+  usize GetLastIndexOf(tchar c, usize offset) const noexcept {
+    return comet::GetLastIndexOf(GetCTStr(), length_, c, offset);
+  }
+
+  usize GetNthToLastIndexOf(tchar c, usize count, usize offset) const noexcept {
+    return comet::GetNthToLastIndexOf(GetCTStr(), length_, c, count, offset);
+  }
 
   constexpr usize GetLength() const noexcept { return length_; }
 

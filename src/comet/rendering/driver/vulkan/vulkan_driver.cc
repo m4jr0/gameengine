@@ -8,6 +8,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/logger.h"
+#include "comet/core/type/array.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
 #include "comet/rendering/camera/camera.h"
@@ -258,8 +259,9 @@ void VulkanDriver::InitializeVulkanInstance() {
   COMET_ASSERT(AreValidationLayersSupported(),
                "At least one validation layer is not available!");
 
-  create_info.enabledLayerCount = static_cast<u32>(kValidationLayers_.size());
-  create_info.ppEnabledLayerNames = kValidationLayers_.data();
+  create_info.enabledLayerCount =
+      static_cast<u32>(kValidationLayers_.GetSize());
+  create_info.ppEnabledLayerNames = kValidationLayers_.GetData();
   auto debug_create_info{init::GenerateDebugUtilsMessengerCreateInfo(
       VulkanDriver::LogVulkanValidationMessage)};
   create_info.pNext =
@@ -488,12 +490,12 @@ void VulkanDriver::Draw(time::Interpolation interpolation) {
 
   DrawViews(interpolation);
 
-  std::array<VkPipelineStageFlags, 1> wait_stages{
-      {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}};
+  StaticArray<VkPipelineStageFlags, 1> wait_stages{
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   SubmitCommand(command_data, device_->GetGraphicsQueueHandle(),
                 frame_data.render_fence_handle,
                 &frame_data.present_semaphore_handle,
-                &frame_data.render_semaphore_handle, wait_stages.data());
+                &frame_data.render_semaphore_handle, wait_stages.GetData());
 }
 
 void VulkanDriver::DrawViews(time::Interpolation interpolation) {

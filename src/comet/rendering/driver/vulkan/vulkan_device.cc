@@ -247,8 +247,9 @@ void Device::Initialize() {
   physical_device_features.fillModeNonSolid = VK_TRUE;
 
   auto create_info = init::GenerateDeviceCreateInfo(
-      queue_create_info, physical_device_features, kRequiredExtensions_.data(),
-      static_cast<u32>(kRequiredExtensions_.size()));
+      queue_create_info, physical_device_features,
+      kRequiredExtensions_.GetData(),
+      static_cast<u32>(kRequiredExtensions_.GetSize()));
 
   COMET_CHECK_VK(
       vkCreateDevice(physical_device_handle_, &create_info,
@@ -441,7 +442,7 @@ PhysicalDeviceScore Device::GetPhysicalDeviceScore(
 
 bool Device::AreDeviceExtensionsAvailable(
     VkPhysicalDevice physical_device_handle) const {
-  if (kRequiredExtensions_.empty()) {
+  if (kRequiredExtensions_.IsEmpty()) {
     return true;
   }
 
@@ -526,7 +527,7 @@ void Device::CheckRequiredExtensions() const {
     }
   }
 
-  COMET_ASSERT(found_extensions_count >= kExtensionsToCheck_.size(),
+  COMET_ASSERT(found_extensions_count >= kExtensionsToCheck_.GetSize(),
                "At least one mandatory extension is missing!");
 }
 #endif  // COMET_DEBUG

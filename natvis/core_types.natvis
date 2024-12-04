@@ -1,110 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-	<Type Name="comet::FixedSizeArray&lt;*&gt;">
-		<DisplayString>size={size_}</DisplayString>
-		<Expand>
-			<Item Name="Size">size_</Item>
-			<Item Name="Data Pointer">data_</Item>
-			<ArrayItems>
-				<Size>size_</Size>
-				<ValuePointer>data_</ValuePointer>
-			</ArrayItems>
-		</Expand>
-	</Type>
+  <Type Name="comet::FixedArray&lt;*&gt;">
+    <DisplayString>size={size_}</DisplayString>
+    <Expand>
+      <Item Name="Size">size_</Item>
+      <Item Name="Data Pointer">data_</Item>
+      <ArrayItems>
+        <Size>size_</Size>
+        <ValuePointer>data_</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
 
-	<Type Name="comet::FixedSizeBitset">
-		<DisplayString>size={bit_count_}</DisplayString>
-		<Expand>
-			<Item Name="Size">bit_count_</Item>
-			<IndexListItems>
-				<Size>bit_count_</Size>
-				<ValueNode>
-					(words_[$i / kWorkBitCount_] &gt;&gt; ($i % kWorkBitCount_)) &amp; 1,d
-				</ValueNode>
-			</IndexListItems>
-		</Expand>
-	</Type>
+  <Type Name="comet::DynamicArray&lt;*&gt;">
+    <DisplayString>size={size_}, capacity={capacity_}</DisplayString>
+    <Expand>
+      <Item Name="Size">size_</Item>
+      <Item Name="Capacity">capacity_</Item>
+      <Item Name="Data Pointer">data_</Item>
+      <ArrayItems>
+        <Size>size_</Size>
+        <ValuePointer>data_</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
 
-	<Type Name="comet::TString">
-		<DisplayString>length={length_}, capacity={capacity_}, data="{str_ != nullptr ? str_ : sso_}"</DisplayString>
-		<Expand>
-			<Item Name="Length">length_</Item>
-			<Item Name="Capacity">capacity_</Item>
-			<Item Name="Data (Heap)">str_</Item>
-			<Item Name="Data (SSO)">sso_</Item>
-			<ArrayItems Condition="str_ != nullptr">
-				<Size>length_</Size>
-				<ValuePointer>str_</ValuePointer>
-			</ArrayItems>
-			<ArrayItems Condition="str_ == nullptr">
-				<Size>length_</Size>
-				<ValuePointer>sso_</ValuePointer>
-			</ArrayItems>
-		</Expand>
-	</Type>
+  <Type Name="comet::StaticArray&lt;*,*&gt;">
+    <DisplayString>{{ size = {size_} }}</DisplayString>
 
-	<Type Name="comet::CTStringView">
-		<DisplayString>length={length_}, data="{str_}"</DisplayString>
-		<Expand>
-			<Item Name="Length">length_</Item>
-			<Item Name="Data">str_</Item>
-			<ArrayItems>
-				<Size>length_</Size>
-				<ValuePointer>str_</ValuePointer>
-			</ArrayItems>
-		</Expand>
-	</Type>
+    <Expand>
+      <Item Name="Size">size_</Item>
+      <Item Name="Data Pointer">data_</Item>
+      <ArrayItems>
+        <Size>size_</Size>
+        <ValuePointer>buffer_</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
 
-	<Type Name="comet::RingQueue&lt;*&gt;">
-		<DisplayString>size={size_}, capacity={capacity_}</DisplayString>
-		<Expand>
-			<Item Name="Size">size_</Item>
-			<Item Name="Capacity">capacity_</Item>
-			<Item Name="Head">head_</Item>
-			<IndexListItems>
-				<Size>size_</Size>
-				<ValueNode>(&amp;elements_[0] + ((head_ + $i) % capacity_))</ValueNode>
-			</IndexListItems>
-		</Expand>
-	</Type>
+  <Type Name="comet::FixedBitset">
+    <DisplayString>size={bit_count_}</DisplayString>
+    <Expand>
+      <Item Name="Size">bit_count_</Item>
+      <IndexListItems>
+        <Size>bit_count_</Size>
+        <ValueNode>
+          (words_[$i / kWorkBitCount_] &gt;&gt; ($i % kWorkBitCount_)) &amp; 1,d
+        </ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
 
-	<Type Name="comet::LockFreeMPSCRingQueue&lt;*&gt;">
-		<DisplayString>size={(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())}, capacity={capacity_}</DisplayString>
-		<Expand>
-			<Item Name="Size">(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Item>
-			<Item Name="Capacity">capacity_</Item>
-			<Item Name="Head">head_.value()</Item>
-			<Item Name="Tail">tail_.value()</Item>
-			<IndexListItems>
-				<Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
-				<ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
-			</IndexListItems>
-		</Expand>
-	</Type>
+  <Type Name="comet::TString">
+    <DisplayString>length={length_}, capacity={capacity_}, data="{str_ != nullptr ? str_ : sso_}"</DisplayString>
+    <Expand>
+      <Item Name="Length">length_</Item>
+      <Item Name="Capacity">capacity_</Item>
+      <Item Name="Data (Heap)">str_</Item>
+      <Item Name="Data (SSO)">sso_</Item>
+      <ArrayItems Condition="str_ != nullptr">
+        <Size>length_</Size>
+        <ValuePointer>str_</ValuePointer>
+      </ArrayItems>
+      <ArrayItems Condition="str_ == nullptr">
+        <Size>length_</Size>
+        <ValuePointer>sso_</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
 
-	<Type Name="comet::LockFreeMPMCRingQueue&lt;*&gt;">
-		<DisplayString>size={(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())}, capacity={capacity_}</DisplayString>
-		<Expand>
-			<Item Name="Size">(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Item>
-			<Item Name="Capacity">capacity_</Item>
-			<Item Name="Head">head_.value()</Item>
-			<Item Name="Tail">tail_.value()</Item>
-			<IndexListItems>
-				<Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
-				<ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
-			</IndexListItems>
-		</Expand>
-	</Type>
+  <Type Name="comet::CTStringView">
+    <DisplayString>length={length_}, data="{str_}"</DisplayString>
+    <Expand>
+      <Item Name="Length">length_</Item>
+      <Item Name="Data">str_</Item>
+      <ArrayItems>
+        <Size>length_</Size>
+        <ValuePointer>str_</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
 
-	<Type Name="comet::fiber::Fiber">
-		<DisplayString>id={id_}, stack capacity={stack_capacity_}</DisplayString>
-		<Expand>
-			<Item Name="ID">id_</Item>
-			<Item Name="Stack Capacity">stack_capacity_</Item>
-			<Item Name="Stack">stack_</Item>
-			<Item Name="Stack Top">stack_top_</Item>
-			<Item Name="Entry Point">entry_point_</Item>
-			<Item Name="Params Handle">params_handle_</Item>
-		</Expand>
-	</Type>
+  <Type Name="comet::RingQueue&lt;*&gt;">
+    <DisplayString>size={size_}, capacity={capacity_}</DisplayString>
+    <Expand>
+      <Item Name="Size">size_</Item>
+      <Item Name="Capacity">capacity_</Item>
+      <Item Name="Head">head_</Item>
+      <IndexListItems>
+        <Size>size_</Size>
+        <ValueNode>(&amp;elements_[0] + ((head_ + $i) % capacity_))</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="comet::LockFreeMPSCRingQueue&lt;*&gt;">
+    <DisplayString>size={(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())}, capacity={capacity_}</DisplayString>
+    <Expand>
+      <Item Name="Size">(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Item>
+      <Item Name="Capacity">capacity_</Item>
+      <Item Name="Head">head_.value()</Item>
+      <Item Name="Tail">tail_.value()</Item>
+      <IndexListItems>
+        <Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
+        <ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="comet::LockFreeMPMCRingQueue&lt;*&gt;">
+    <DisplayString>size={(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())}, capacity={capacity_}</DisplayString>
+    <Expand>
+      <Item Name="Size">(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Item>
+      <Item Name="Capacity">capacity_</Item>
+      <Item Name="Head">head_.value()</Item>
+      <Item Name="Tail">tail_.value()</Item>
+      <IndexListItems>
+        <Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
+        <ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="comet::fiber::Fiber">
+    <DisplayString>id={id_}, stack capacity={stack_capacity_}</DisplayString>
+    <Expand>
+      <Item Name="ID">id_</Item>
+      <Item Name="Stack Capacity">stack_capacity_</Item>
+      <Item Name="Stack">stack_</Item>
+      <Item Name="Stack Top">stack_top_</Item>
+      <Item Name="Entry Point">entry_point_</Item>
+      <Item Name="Params Handle">params_handle_</Item>
+    </Expand>
+  </Type>
 </AutoVisualizer>

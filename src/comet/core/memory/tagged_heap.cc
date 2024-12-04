@@ -42,16 +42,16 @@ void TaggedHeap::Initialize() {
   // Set the capacity for all bitsets (including the global one), with
   // additional alignment overhead.
   bitset_allocator_ = PlatformStackAllocator{
-      FixedSizeBitset::GetWordCountFromBitCount(total_block_count_) *
-              sizeof(FixedSizeBitset::Word) * (kMaxTagCount_ + 1) +
-          alignof(FixedSizeBitset::Word),
+      FixedBitset::GetWordCountFromBitCount(total_block_count_) *
+              sizeof(FixedBitset::Word) * (kMaxTagCount_ + 1) +
+          alignof(FixedBitset::Word),
       kEngineMemoryTagTaggedHeap};
   bitset_allocator_.Initialize();
-  global_block_map_ = FixedSizeBitset{&bitset_allocator_, total_block_count_};
+  global_block_map_ = FixedBitset{&bitset_allocator_, total_block_count_};
 
   for (auto& bucket : tag_block_maps_) {
     for (auto& entry : bucket) {
-      entry.block_map = FixedSizeBitset{&bitset_allocator_, total_block_count_};
+      entry.block_map = FixedBitset{&bitset_allocator_, total_block_count_};
       entry.tag = kEngineMemoryTagInvalid;
     }
   }

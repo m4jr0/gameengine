@@ -160,6 +160,14 @@ TString TString::GenerateSubString(usize offset, usize count) const {
   return new_str;
 }
 
+bool TString::IsContained(tchar c) const {
+  return comet::IsContained(str_, length_, c);
+}
+
+usize TString::GetIndex(tchar c) const {
+  return comet::GetIndex(str_, length_, c);
+}
+
 usize TString::GetLastIndexOf(tchar c, usize offset) const noexcept {
   return comet::GetLastIndexOf(GetCTStr(), length_, c, offset);
 }

@@ -11,6 +11,7 @@
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
@@ -33,8 +34,7 @@ class ModelExporter : public AssetExporter {
   bool IsCompatible(CTStringView extension) const override;
 
  protected:
-  std::vector<resource::ResourceFile> GetResourceFiles(
-      job::Counter*, AssetDescr& asset_descr) const override;
+  void PopulateFiles(ResourceFilesContext& context) const override;
 
  private:
   struct SceneContext {
@@ -44,7 +44,7 @@ class ModelExporter : public AssetExporter {
     void AddResourceFile(const resource::ResourceFile& file);
 
     fiber::FiberMutex resource_mutex{};
-    std::vector<resource::ResourceFile>* resource_files{nullptr};
+    ResourceFiles* resource_files{nullptr};
 
     Assimp::Importer assimp_importer{};
     const ModelExporter* exporter{nullptr};

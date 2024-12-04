@@ -4,10 +4,11 @@
 
 #include "memory.h"
 
-#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+
+#include "comet/core/type/array.h"
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"
@@ -165,8 +166,8 @@ void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
     size = -size;
   }
 
-  constexpr std::array kUnits{"bytes", "KiB", "MiB", "GiB", "TiB",
-                              "PiB",   "EiB", "ZiB", "YiB"};
+  constexpr StaticArray kUnits{"bytes", "KiB", "MiB", "GiB", "TiB",
+                               "PiB",   "EiB", "ZiB", "YiB"};
   usize l{0};
   auto n{static_cast<f64>(size)};
 
@@ -174,7 +175,7 @@ void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
     n = n / 1024;
   }
 
-  COMET_ASSERT(l < kUnits.size(), "Size is too big: ", size, "!");
+  COMET_ASSERT(l < kUnits.GetSize(), "Size is too big: ", size, "!");
   usize len;
   ConvertToStr(n, n < 10 && l > 0 ? 1 : 0, buffer, buffer_len, &len);
 
@@ -189,11 +190,12 @@ void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
   }
 }
 
+#ifdef COMET_POISON_ALLOCATIONS
 void Poison(void* ptr, usize size) {
   COMET_ASSERT(ptr != nullptr, "Pointer provided is null!");
   COMET_ASSERT(size != 0, "Size provided is 0!");
-  constexpr std::array<u8, 4> kPoison{0xde, 0xad, 0xbe, 0xef};
-  constexpr auto kPoisonLen{kPoison.size()};
+  constexpr StaticArray<u8, 4> kPoison{0xde, 0xad, 0xbe, 0xef};
+  constexpr auto kPoisonLen{kPoison.GetSize()};
 
 #ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
   static_assert(std::atomic<u64>::is_always_lock_free,
@@ -227,6 +229,7 @@ void Poison(void* ptr, usize size) {
     ++cur;
   }
 }
+#endif  //  COMET_POISON_ALLOCATIONS
 
 MemoryDescr GetMemoryDescr() {
   MemoryDescr descr{};

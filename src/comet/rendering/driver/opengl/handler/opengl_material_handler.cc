@@ -4,6 +4,7 @@
 
 #include "opengl_material_handler.h"
 
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/resource/texture_resource.h"
 
@@ -191,7 +192,7 @@ void MaterialHandler::Destroy(Material& material, bool is_destroying_handler) {
   material.diffuse_color = {kColorWhite, 1.0f};
 
   if (!is_destroying_handler) {
-    std::array<TextureMap*, 3> texture_maps = {
+    StaticArray<TextureMap*, 3> texture_maps = {
         &material.diffuse_map, &material.specular_map, &material.normal_map};
 
     for (auto* texture_map : texture_maps) {

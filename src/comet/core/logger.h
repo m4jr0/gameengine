@@ -5,12 +5,12 @@
 #ifndef COMET_COMET_CORE_LOGGER_H_
 #define COMET_COMET_CORE_LOGGER_H_
 
-#include <array>
 #include <atomic>
 #include <string_view>
 
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 
 // If issues arise with current terminal, comment this line.
@@ -185,7 +185,7 @@ class Logger final {
 
   static constexpr auto kBufferCount_{2};
   static constexpr auto kFlushIntervalInMs_{100};
-  std::array<Buffer, kBufferCount_> buffers_{};
+  StaticArray<Buffer, kBufferCount_> buffers_{};
   std::atomic<usize> current_buffer_index_{0};
   std::atomic<bool> is_initialized_{false};
   std::atomic<bool> is_running_{false};

@@ -9,6 +9,7 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
@@ -43,7 +44,7 @@ struct Shader {
   DescriptorSetLayoutBindings layout_bindings{};
   // One per frame
   std::vector<VkVertexInputAttributeDescription> vertex_attributes{};
-  std::array<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>
+  StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>
       layout_handles{};
   std::vector<ShaderUniform> uniforms{};
   ShaderUniformIndices uniform_indices{};

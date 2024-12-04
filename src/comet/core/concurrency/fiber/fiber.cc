@@ -7,6 +7,7 @@
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
 #include "comet/core/c_string.h"
@@ -155,8 +156,8 @@ const schar* Fiber::GetDebugLabel() const noexcept { return debug_label_; }
 void Fiber::PoisonStack() {
   COMET_ASSERT(stack_ != nullptr, "Stack is null!");
   COMET_ASSERT(stack_capacity_ != 0, "Stack capacity is 0!");
-  constexpr std::array<u8, 4> kPoison{0xde, 0xad, 0xbe, 0xef};
-  constexpr auto kPoisonLen{kPoison.size()};
+  constexpr StaticArray<u8, 4> kPoison{0xde, 0xad, 0xbe, 0xef};
+  constexpr auto kPoisonLen{kPoison.GetSize()};
   constexpr auto kAllocationIdSize{sizeof(id_)};
 
   usize i{0};

@@ -8,6 +8,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
@@ -239,10 +240,10 @@ void ShaderHandler::BindMaterial(Material& material) {
     instance.uniform_data.texture_maps.resize(instance_texture_count);
 
     // TODO(m4jr0): Put texture maps in generic array.
-    std::array<TextureMap*, 3> maps{
+    StaticArray<TextureMap*, 3> maps{
         &material.diffuse_map, &material.specular_map, &material.normal_map};
-    memory::CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
-                       sizeof(TextureMap*) * maps.size());
+    memory::CopyMemory(instance.uniform_data.texture_maps.data(),
+                       maps.GetData(), sizeof(TextureMap*) * maps.GetSize());
   }
 
   const auto layout_count{descriptor_set_layout_handles_buffer_.size()};

@@ -259,10 +259,10 @@ void ShaderHandler::BindMaterial(Material& material) {
     instance.uniform_data.texture_maps.resize(instance_texture_count);
 
     // TODO(m4jr0): Put texture maps in generic array.
-    std::array<TextureMap*, 3> maps{
+    StaticArray<TextureMap*, 3> maps{
         &material.diffuse_map, &material.specular_map, &material.normal_map};
-    memory::CopyMemory(instance.uniform_data.texture_maps.data(), maps.data(),
-                       sizeof(TextureMap*) * maps.size());
+    memory::CopyMemory(instance.uniform_data.texture_maps.data(),
+                       maps.GetData(), sizeof(TextureMap*) * maps.GetSize());
   }
 
   instance.offset =

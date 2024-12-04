@@ -58,10 +58,15 @@ void AssetManager::Initialize() {
   root_resource_path_ = resource::ResourceManager::Get().GetRootResourcePath();
   COMET_DISALLOW_STR_ALLOC(root_resource_path_);
 
-  exporters_.push_back(std::make_unique<ModelExporter>());
-  exporters_.push_back(std::make_unique<ShaderExporter>());
-  exporters_.push_back(std::make_unique<ShaderModuleExporter>());
-  exporters_.push_back(std::make_unique<TextureExporter>());
+  exporters_allocator_.Initialize();
+  resource_files_allocator_.Initialize();
+  exporters_ =
+      DynamicArray<std::unique_ptr<AssetExporter>>{&exporters_allocator_};
+  exporters_.Reserve(4);
+  exporters_.PushBack(std::make_unique<ModelExporter>());
+  exporters_.PushBack(std::make_unique<ShaderExporter>());
+  exporters_.PushBack(std::make_unique<ShaderModuleExporter>());
+  exporters_.PushBack(std::make_unique<TextureExporter>());
 
   for (const auto& exporter : exporters_) {
     exporter->SetRootResourcePath(root_resource_path_);
@@ -79,7 +84,9 @@ void AssetManager::Shutdown() {
   root_asset_path_.Clear();
   root_resource_path_.Clear();
   library_meta_path_.Clear();
-  exporters_.clear();
+  exporters_.Clear();
+  exporters_allocator_.Destroy();
+  resource_files_allocator_.Destroy();
   Manager::Shutdown();
 }
 
@@ -159,9 +166,14 @@ void AssetManager::RefreshAsset(job::Counter* global_counter,
     return;
   }
 
+  AssetExportDescr descr{};
+  descr.global_counter = global_counter;
+  descr.asset_abs_path = asset_abs_path.GetCTStr();
+  descr.file_allocator_ = &resource_files_allocator_;
+
   for (const auto& exporter : exporters_) {
     if (exporter->IsCompatible(GetExtension(asset_abs_path))) {
-      exporter->Process(global_counter, asset_abs_path);
+      exporter->Process(descr);
     }
   }
 }

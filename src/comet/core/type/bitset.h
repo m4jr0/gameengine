@@ -2,26 +2,26 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_TYPE_FIXED_SIZE_BITSET_H_
-#define COMET_COMET_CORE_TYPE_FIXED_SIZE_BITSET_H_
+#ifndef COMET_COMET_CORE_TYPE_BITSET_H_
+#define COMET_COMET_CORE_TYPE_BITSET_H_
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/aligned_allocator.h"
 
 namespace comet {
-class FixedSizeBitset {
+class FixedBitset {
  public:
   using Word = u64;
 
   static usize GetWordCountFromBitCount(usize bit_count);
 
-  FixedSizeBitset() = default;
-  FixedSizeBitset(memory::AlignedAllocator* allocator, usize bit_count);
-  FixedSizeBitset(const FixedSizeBitset& other);
-  FixedSizeBitset(FixedSizeBitset&& other) noexcept;
-  FixedSizeBitset& operator=(const FixedSizeBitset& other);
-  FixedSizeBitset& operator=(FixedSizeBitset&& other) noexcept;
-  ~FixedSizeBitset();
+  FixedBitset() = default;
+  FixedBitset(memory::AlignedAllocator* allocator, usize bit_count);
+  FixedBitset(const FixedBitset& other);
+  FixedBitset(FixedBitset&& other) noexcept;
+  FixedBitset& operator=(const FixedBitset& other);
+  FixedBitset& operator=(FixedBitset&& other) noexcept;
+  ~FixedBitset();
 
   void Destroy();
   void Set(usize index);
@@ -45,4 +45,4 @@ class FixedSizeBitset {
 };
 }  // namespace comet
 
-#endif  // COMET_COMET_CORE_TYPE_FIXED_SIZE_BITSET_H_
+#endif  // COMET_COMET_CORE_TYPE_BITSET_H_

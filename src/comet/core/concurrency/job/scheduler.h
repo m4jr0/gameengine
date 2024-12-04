@@ -6,7 +6,6 @@
 #define COMET_COMET_CORE_JOB_SCHEDULER_H_
 
 #include <atomic>
-#include <vector>
 
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/job/job.h"
@@ -15,7 +14,7 @@
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/memory/allocator/stack_allocator.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/ring_queue.h"
 
 namespace comet {
@@ -122,8 +121,9 @@ class Scheduler {
 
   internal::CounterPool counters_{};
 
-  std::vector<FiberWorker> fiber_workers_{};
-  std::vector<IOWorker> io_workers_{};
+  memory::PlatformAllocator worker_allocator{memory::kEngineMemoryTagFiber};
+  DynamicArray<FiberWorker> fiber_workers_{};
+  DynamicArray<IOWorker> io_workers_{};
   static_assert(std::atomic<bool>::is_always_lock_free,
                 "std::atomic<bool> needs to be always "
                 "lock-free. Unsupported "

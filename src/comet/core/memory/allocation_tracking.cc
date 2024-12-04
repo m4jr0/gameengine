@@ -41,8 +41,8 @@ void TrackedTags::IncreasePlatform(void* ptr, usize size,
 
 void TrackedTags::DecreasePlatform(void* ptr) {
   std::unique_lock lock{platform_mutex_};
-
   auto it = platform_allocations_.find(ptr);
+
   if (it == platform_allocations_.end()) {
     return;
   }

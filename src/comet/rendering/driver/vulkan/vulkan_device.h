@@ -5,13 +5,12 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DEVICE_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DEVICE_H_
 
-#include <array>
 #include <optional>
 
-#include "vulkan/vulkan.h"
-
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/rendering_common.h"
+#include "vulkan/vulkan.h"
 
 namespace comet {
 namespace rendering {
@@ -89,7 +88,7 @@ class Device {
   void CheckRequiredExtensions() const;
 #endif  // COMET_DEBUG
 
-  static constexpr std::array<const schar*, 1> kExtensionsToCheck_{
+  static constexpr StaticArray<const schar*, 1> kExtensionsToCheck_{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
   bool is_initialized_{false};
@@ -111,13 +110,13 @@ class Device {
       VK_NULL_HANDLE};  // Will be destroyed automatically.
   VkQueue transfer_queue_handle_{
       VK_NULL_HANDLE};  // Will be destroyed automatically.
-  static constexpr std::array<const schar*,
+  static constexpr StaticArray<const schar*,
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
-                              2
+                               2
 #else
-                              1
+                               1
 #endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
-                              >
+                               >
       kRequiredExtensions_{VK_KHR_SWAPCHAIN_EXTENSION_NAME
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
                            ,

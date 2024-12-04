@@ -5,10 +5,14 @@
 #ifndef COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 #define COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 
+#include <memory>
+
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
+#include "comet/core/type/array.h"
 #include "editor/asset/exporter/asset_exporter.h"
+#include "editor/memory/memory.h"
 
 namespace comet {
 namespace editor {
@@ -46,7 +50,10 @@ class AssetManager : public Manager {
   TString root_asset_path_{};
   TString root_resource_path_{};
   TString library_meta_path_{};
-  std::vector<std::unique_ptr<AssetExporter>> exporters_{};
+  memory::PlatformAllocator exporters_allocator_{memory::kEditorMemoryTagAsset};
+  memory::PlatformAllocator resource_files_allocator_{
+      memory::kEditorMemoryTagAsset};
+  DynamicArray<std::unique_ptr<AssetExporter>> exporters_{};
 };
 }  // namespace asset
 }  // namespace editor

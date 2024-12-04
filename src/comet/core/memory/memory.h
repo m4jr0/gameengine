@@ -91,7 +91,7 @@ inline T* AlignPointer(T* ptr, Alignment align) {
 template <typename T, typename... Targs>
 T* Populate(void* memory, Targs&&... args) {
   COMET_ASSERT(memory != nullptr, "Memory provided is null!");
-  return new (memory) T(std::forward<Targs>(args)...);
+  return new (memory) T{std::forward<Targs>(args)...};
 }
 
 void* StoreShiftAndReturnAligned(u8* ptr, usize data_size,
@@ -108,7 +108,9 @@ inline bool IsAligned(T* ptr, usize align) noexcept {
 void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
                          usize* out_len = nullptr);
 
+#ifdef COMET_POISON_ALLOCATIONS
 void Poison(void* ptr, usize size);
+#endif  // COMET_POISON_ALLOCATIONS
 
 MemoryDescr GetMemoryDescr();
 

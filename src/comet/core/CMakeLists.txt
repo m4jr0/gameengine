@@ -20,9 +20,11 @@ endif()
 
 # Source files #################################################################
 set(COMET_LIBRARY_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/comet/core/c_string.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/compiler.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/compiler.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/compression.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/c_array.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/c_string.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/date.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/debug.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/define.h"
@@ -75,9 +77,9 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/free_list_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/stack_allocator.cc"
 
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/array.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/bitset.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/exception.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/type/fixed_size_array.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/type/fixed_size_bitset.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/iterator.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/primitive.h"
