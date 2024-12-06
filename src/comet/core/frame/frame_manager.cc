@@ -19,58 +19,59 @@ FrameManager::FrameManager()
     : fiber_frame_allocator_capacity_{COMET_CONF_U32(
           conf::kCoreFiberFrameAllocatorBaseCapacity)},
       io_frame_allocator_capacity_{
-          COMET_CONF_U32(conf::kCoreIOFrameAllocatorBaseCapacity)},
-      fiber_frame_allocators_{
-          FiberFrameAllocator{fiber_frame_allocator_capacity_,
-                              memory::kEngineMemoryTagFrame0},
-          FiberFrameAllocator{fiber_frame_allocator_capacity_,
-                              memory::kEngineMemoryTagFrame1},
-          FiberFrameAllocator{fiber_frame_allocator_capacity_,
-                              memory::kEngineMemoryTagFrame2}},
-      io_frame_allocators_{IOFrameAllocator{io_frame_allocator_capacity_,
-                                            memory::kEngineMemoryTagFrame0},
-                           IOFrameAllocator{io_frame_allocator_capacity_,
-                                            memory::kEngineMemoryTagFrame1},
-                           IOFrameAllocator{io_frame_allocator_capacity_,
-                                            memory::kEngineMemoryTagFrame2}},
-      fiber_double_frame_allocators_{
-          FiberDoubleFrameAllocator{fiber_frame_allocator_capacity_,
-                                    memory::kEngineMemoryTagDoubleFrame0},
-          FiberDoubleFrameAllocator{fiber_frame_allocator_capacity_,
-                                    memory::kEngineMemoryTagDoubleFrame1},
-          FiberDoubleFrameAllocator{fiber_frame_allocator_capacity_,
-                                    memory::kEngineMemoryTagDoubleFrame2}},
-      io_double_frame_allocators_{
-          IODoubleFrameAllocator{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame0},
-          IODoubleFrameAllocator{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame1},
-          IODoubleFrameAllocator{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame2}},
-      fiber_frame_allocator_box_{&fiber_frame_allocators_[0]},
-      io_frame_allocator_box_{&io_frame_allocators_[0]},
-      fiber_double_frame_allocator_box_{&fiber_double_frame_allocators_[0]},
-      io_double_frame_allocator_box_{&io_double_frame_allocators_[0]} {}
+          COMET_CONF_U32(conf::kCoreIOFrameAllocatorBaseCapacity)} {}
 
 void FrameManager::Initialize() {
   Manager::Initialize();
 
-  for (usize i{0}; i < kInFlightFramePacketCount_; ++i) {
-    fiber_frame_allocators_[i].Initialize();
-    fiber_double_frame_allocators_[i].Initialize();
-    io_frame_allocators_[i].Initialize();
-    io_double_frame_allocators_[i].Initialize();
-  }
+  fiber_frame_allocators_[0] = std::make_unique<FiberFrameAllocator>(
+      fiber_frame_allocator_capacity_, memory::kEngineMemoryTagFrame0);
+  fiber_frame_allocators_[1] = std::make_unique<FiberFrameAllocator>(
+      fiber_frame_allocator_capacity_, memory::kEngineMemoryTagFrame1);
+  fiber_frame_allocators_[2] = std::make_unique<FiberFrameAllocator>(
+      fiber_frame_allocator_capacity_, memory::kEngineMemoryTagFrame2);
+
+  io_frame_allocators_[0] = std::make_unique<IOFrameAllocator>(
+      io_frame_allocator_capacity_, memory::kEngineMemoryTagFrame0);
+  io_frame_allocators_[1] = std::make_unique<IOFrameAllocator>(
+      io_frame_allocator_capacity_, memory::kEngineMemoryTagFrame1);
+  io_frame_allocators_[2] = std::make_unique<IOFrameAllocator>(
+      io_frame_allocator_capacity_, memory::kEngineMemoryTagFrame2);
+
+  fiber_double_frame_allocators_[0] =
+      std::make_unique<FiberDoubleFrameAllocator>(
+          fiber_frame_allocator_capacity_,
+          memory::kEngineMemoryTagDoubleFrame0);
+  fiber_double_frame_allocators_[1] =
+      std::make_unique<FiberDoubleFrameAllocator>(
+          fiber_frame_allocator_capacity_,
+          memory::kEngineMemoryTagDoubleFrame1);
+  fiber_double_frame_allocators_[2] =
+      std::make_unique<FiberDoubleFrameAllocator>(
+          fiber_frame_allocator_capacity_,
+          memory::kEngineMemoryTagDoubleFrame2);
+
+  io_double_frame_allocators_[0] = std::make_unique<IODoubleFrameAllocator>(
+      io_frame_allocator_capacity_, memory::kEngineMemoryTagDoubleFrame0);
+  io_double_frame_allocators_[1] = std::make_unique<IODoubleFrameAllocator>(
+      io_frame_allocator_capacity_, memory::kEngineMemoryTagDoubleFrame1);
+  io_double_frame_allocators_[2] = std::make_unique<IODoubleFrameAllocator>(
+      io_frame_allocator_capacity_, memory::kEngineMemoryTagDoubleFrame2);
+
+  fiber_frame_allocator_box_ = {fiber_frame_allocators_[0].get()},
+  io_frame_allocator_box_ = {io_frame_allocators_[0].get()},
+  fiber_double_frame_allocator_box_ = {fiber_double_frame_allocators_[0].get()};
+  io_double_frame_allocator_box_ = {io_double_frame_allocators_[0].get()};
 }
 
 void FrameManager::Shutdown() {
   Manager::Shutdown();
 
   for (usize i{0}; i < kInFlightFramePacketCount_; ++i) {
-    fiber_frame_allocators_[i].Destroy();
-    fiber_double_frame_allocators_[i].Destroy();
-    io_frame_allocators_[i].Destroy();
-    io_double_frame_allocators_[i].Destroy();
+    fiber_frame_allocators_[i]->Destroy();
+    fiber_double_frame_allocators_[i]->Destroy();
+    io_frame_allocators_[i]->Destroy();
+    io_double_frame_allocators_[i]->Destroy();
   }
 }
 
@@ -89,34 +90,35 @@ void FrameManager::Update() {
   ++frame_count_;
   frame_allocator_cursor_ = frame_count_ % kInFlightFramePacketCount_;
 
-  auto& new_fiber_frame_allocator{
-      fiber_frame_allocators_[frame_allocator_cursor_]};
-  auto& new_fiber_double_frame_allocator{
-      fiber_double_frame_allocators_[frame_allocator_cursor_]};
+  auto* new_fiber_frame_allocator{
+      fiber_frame_allocators_[frame_allocator_cursor_].get()};
+  auto* new_fiber_double_frame_allocator{
+      fiber_double_frame_allocators_[frame_allocator_cursor_].get()};
 
-  new_fiber_frame_allocator.Clear();
-  new_fiber_double_frame_allocator.SwapStacks();
-  new_fiber_double_frame_allocator.ClearCurrent();
+  new_fiber_frame_allocator->Clear();
+  new_fiber_double_frame_allocator->SwapStacks();
+  new_fiber_double_frame_allocator->ClearCurrent();
 
-  fiber_frame_allocator_box_.allocator = &new_fiber_frame_allocator;
+  fiber_frame_allocator_box_.allocator = new_fiber_frame_allocator;
   fiber_double_frame_allocator_box_.allocator =
-      &new_fiber_double_frame_allocator;
+      new_fiber_double_frame_allocator;
 
-  auto& new_io_frame_allocator{io_frame_allocators_[frame_allocator_cursor_]};
-  auto& new_io_double_frame_allocator{
-      io_double_frame_allocators_[frame_allocator_cursor_]};
+  auto* new_io_frame_allocator{
+      io_frame_allocators_[frame_allocator_cursor_].get()};
+  auto* new_io_double_frame_allocator{
+      io_double_frame_allocators_[frame_allocator_cursor_].get()};
 
-  new_io_frame_allocator.Clear();
-  new_io_double_frame_allocator.SwapStacks();
-  new_io_double_frame_allocator.ClearCurrent();
+  new_io_frame_allocator->Clear();
+  new_io_double_frame_allocator->SwapStacks();
+  new_io_double_frame_allocator->ClearCurrent();
 
-  io_frame_allocator_box_.allocator = &new_io_frame_allocator;
-  io_double_frame_allocator_box_.allocator = &new_io_double_frame_allocator;
+  io_frame_allocator_box_.allocator = new_io_frame_allocator;
+  io_double_frame_allocator_box_.allocator = new_io_double_frame_allocator;
 }
 
 InFlightFrames& FrameManager::GetInFlightFrames() { return in_flight_frames_; }
 
-memory::AlignedAllocatorHandle FrameManager::GetFrameAllocatorHandle() {
+memory::AllocatorHandle FrameManager::GetFrameAllocatorHandle() {
   if (job::IsFiberWorker()) {
     return &fiber_frame_allocator_box_;
   }
@@ -131,7 +133,7 @@ memory::AlignedAllocatorHandle FrameManager::GetFrameAllocatorHandle() {
   return nullptr;
 }
 
-memory::AlignedAllocatorHandle FrameManager::GetDoubleFrameAllocatorHandle() {
+memory::AllocatorHandle FrameManager::GetDoubleFrameAllocatorHandle() {
   if (job::IsFiberWorker()) {
     return &fiber_double_frame_allocator_box_;
   }

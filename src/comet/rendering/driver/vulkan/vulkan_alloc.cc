@@ -5,7 +5,7 @@
 #include "vulkan_alloc.h"
 
 #include "comet/core/memory/allocation_tracking.h"
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace rendering {

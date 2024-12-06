@@ -7,7 +7,7 @@
 
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/type/ring_queue.h"
 
@@ -17,7 +17,7 @@ namespace internal {
 class FiberLifeCycleQueue {
  public:
   FiberLifeCycleQueue() = default;
-  FiberLifeCycleQueue(memory::AlignedAllocator* allocator, usize capacity);
+  FiberLifeCycleQueue(memory::Allocator* allocator, usize capacity);
   FiberLifeCycleQueue(const FiberLifeCycleQueue&) = delete;
   FiberLifeCycleQueue(FiberLifeCycleQueue&& other) noexcept;
   FiberLifeCycleQueue& operator=(const FiberLifeCycleQueue&) = delete;
@@ -28,7 +28,7 @@ class FiberLifeCycleQueue {
   Fiber* TryPop();
 
  private:
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
   RingQueue<Fiber*> queue_{};
 };
 }  // namespace internal

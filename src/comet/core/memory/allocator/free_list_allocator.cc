@@ -5,6 +5,7 @@
 #include "free_list_allocator.h"
 
 #include "comet/core/memory/tagged_heap.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace memory {
@@ -16,11 +17,12 @@ FiberFreeListAllocator::FiberFreeListAllocator(usize allocation_unit,
       memory_tag_{memory_tag} {
   COMET_ASSERT(block_size_ > 0, "Invalid block size!");
   COMET_ASSERT(block_count_ > 0, "Invalid block count!");
+  head_ = Grow(block_size_ * block_count_);
 }
 
 FiberFreeListAllocator::FiberFreeListAllocator(
     FiberFreeListAllocator&& other) noexcept
-    : AlignedAllocator{std::move(other)},
+    : Allocator{std::move(other)},
       block_size_{other.block_size_},
       block_count_{other.block_count_},
       memory_tag_{other.memory_tag_},
@@ -39,7 +41,7 @@ FiberFreeListAllocator& FiberFreeListAllocator::operator=(
     return *this;
   }
 
-  AlignedAllocator::operator=(std::move(other));
+  Allocator::operator=(std::move(other));
   block_size_ = other.block_size_;
   block_count_ = other.block_count_;
   memory_tag_ = other.memory_tag_;
@@ -51,22 +53,20 @@ FiberFreeListAllocator& FiberFreeListAllocator::operator=(
   other.memory_tag_ = kEngineMemoryTagUntagged;
   other.head_ = nullptr;
   other.tail_ = nullptr;
-
-  other.is_initialized_ = false;
   return *this;
 }
 
-void FiberFreeListAllocator::Initialize() {
-  AlignedAllocator::Initialize();
-  head_ = Grow(block_size_ * block_count_);
-}
+FiberFreeListAllocator::~FiberFreeListAllocator() { Destroy(); }
 
 void FiberFreeListAllocator::Destroy() {
+  if (block_count_ == 0) {
+    return;
+  }
+
   DeallocateAll();
   memory_tag_ = kEngineMemoryTagUntagged;
   block_size_ = 0;
   block_count_ = 0;
-  AlignedAllocator::Destroy();
 }
 
 void* FiberFreeListAllocator::AllocateAligned(usize size, Alignment align) {

@@ -11,7 +11,7 @@
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 

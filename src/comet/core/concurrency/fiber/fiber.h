@@ -170,7 +170,6 @@ class FiberInternalAllocator {
   FiberInternalAllocator& operator=(FiberInternalAllocator&& other) noexcept;
   ~FiberInternalAllocator();
 
-  void Initialize();
   void Destroy();
 
   Fiber::Stack Allocate(usize size);

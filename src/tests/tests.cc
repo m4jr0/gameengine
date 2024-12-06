@@ -22,7 +22,6 @@
 #include "comet/core/logger.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
-#include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 
 class TestsEventListener : public Catch::EventListenerBase {
@@ -42,13 +41,11 @@ class TestsEventListener : public Catch::EventListenerBase {
     comet::memory::TaggedHeap::Get().Initialize();
     comet::thread::ThreadProviderManager::Get().Initialize();
     comet::frame::FrameManager::Get().Initialize();
-    comet::InitializeTStrings();
     comet::entity::EntityManager::Get().Initialize();
   }
 
   void testRunEnded(Catch::TestRunStats const&) override {
     comet::entity::EntityManager::Get().Shutdown();
-    comet::DestroyTStrings();
     comet::frame::FrameManager::Get().Shutdown();
     comet::thread::ThreadProviderManager::Get().Shutdown();
     comet::memory::TaggedHeap::Get().Destroy();

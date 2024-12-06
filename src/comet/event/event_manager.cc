@@ -15,14 +15,12 @@ void EventManager::Initialize() {
   Manager::Initialize();
   COMET_ASSERT(max_event_count_ > 0,
                "Max event count is invalid: ", max_event_count_, ".");
-  event_queue_allocator_.Initialize();
   event_queue_ = EventQueue{&event_queue_allocator_, max_event_count_};
 }
 
 void EventManager::Shutdown() {
   listeners_.clear();
   event_queue_.Clear();
-  event_queue_allocator_.Destroy();
   Manager::Shutdown();
 }
 

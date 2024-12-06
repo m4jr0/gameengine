@@ -5,7 +5,7 @@
 #include "archetype.h"
 
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace entity {

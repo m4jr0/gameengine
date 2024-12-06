@@ -5,10 +5,13 @@
 #ifndef COMET_COMET_CORE_FRAME_MANAGER_H_
 #define COMET_COMET_CORE_FRAME_MANAGER_H_
 
+#include <memory>
+
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_allocator.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
+#include "comet/core/type/array.h"
 
 namespace comet {
 namespace frame {
@@ -34,8 +37,8 @@ class FrameManager : public Manager {
   void Update();
 
   InFlightFrames& GetInFlightFrames();
-  memory::AlignedAllocatorHandle GetFrameAllocatorHandle();
-  memory::AlignedAllocatorHandle GetDoubleFrameAllocatorHandle();
+  memory::AllocatorHandle GetFrameAllocatorHandle();
+  memory::AllocatorHandle GetDoubleFrameAllocatorHandle();
 
  private:
   static inline constexpr usize kInFlightFramePacketCount_{3};
@@ -52,19 +55,22 @@ class FrameManager : public Manager {
   usize fiber_frame_allocator_capacity_{0};
   usize io_frame_allocator_capacity_{0};
 
-  FiberFrameAllocator fiber_frame_allocators_[kInFlightFramePacketCount_];
-  IOFrameAllocator io_frame_allocators_[kInFlightFramePacketCount_];
+  StaticArray<std::unique_ptr<FiberFrameAllocator>, kInFlightFramePacketCount_>
+      fiber_frame_allocators_{};
+  StaticArray<std::unique_ptr<IOFrameAllocator>, kInFlightFramePacketCount_>
+      io_frame_allocators_{};
+  StaticArray<std::unique_ptr<FiberDoubleFrameAllocator>,
+              kInFlightFramePacketCount_>
+      fiber_double_frame_allocators_{};
+  StaticArray<std::unique_ptr<IODoubleFrameAllocator>,
+              kInFlightFramePacketCount_>
+      io_double_frame_allocators_{};
 
-  FiberDoubleFrameAllocator
-      fiber_double_frame_allocators_[kInFlightFramePacketCount_];
-  IODoubleFrameAllocator
-      io_double_frame_allocators_[kInFlightFramePacketCount_];
+  memory::AllocatorBox fiber_frame_allocator_box_{};
+  memory::AllocatorBox io_frame_allocator_box_{};
 
-  memory::AlignedAllocatorBox fiber_frame_allocator_box_{};
-  memory::AlignedAllocatorBox io_frame_allocator_box_{};
-
-  memory::AlignedAllocatorBox fiber_double_frame_allocator_box_{};
-  memory::AlignedAllocatorBox io_double_frame_allocator_box_{};
+  memory::AllocatorBox fiber_double_frame_allocator_box_{};
+  memory::AllocatorBox io_double_frame_allocator_box_{};
 };
 }  // namespace frame
 }  // namespace comet

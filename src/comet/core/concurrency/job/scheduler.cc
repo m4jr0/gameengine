@@ -18,6 +18,7 @@
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/time/chrono.h"
 
@@ -28,15 +29,12 @@ FiberPool::FiberPool(usize fiber_count, usize fiber_stack_size)
     : initial_fiber_count_{fiber_count}, fiber_stack_size_{fiber_stack_size} {}
 
 void FiberPool::Initialize() {
-  queue_allocator_.Initialize();
-
   fibers_ = LockFreeMPMCRingQueue<fiber::Fiber*>{&queue_allocator_,
                                                  initial_fiber_count_};
 
   fiber_allocator_ = memory::PlatformStackAllocator{
       initial_fiber_count_ * sizeof(fiber::Fiber) + alignof(fiber::Fiber),
       memory::kEngineMemoryTagFiber};
-  fiber_allocator_.Initialize();
 
   for (usize i{0}; i < initial_fiber_count_; ++i) {
     auto* fiber{fiber_allocator_.AllocateOneAndPopulate<fiber::Fiber>(
@@ -59,7 +57,6 @@ void FiberPool::Destroy() {
 
   fibers_.Clear();
   fiber_allocator_.Destroy();
-  queue_allocator_.Destroy();
 }
 
 fiber::Fiber* FiberPool::TryPop() {
@@ -86,8 +83,6 @@ usize FiberPool::GetTotalAllocatedStackSize() const {
 }
 
 void CounterPool::Initialize() {
-  queue_allocator_.Initialize();
-
   counters_ = LockFreeMPMCRingQueue<Counter*>{
       &queue_allocator_,
       static_cast<usize>(COMET_CONF_U16(conf::kCoreJobCounterCount))};
@@ -96,8 +91,7 @@ void CounterPool::Initialize() {
   counter_allocator_ = memory::PlatformStackAllocator{
       sizeof(Counter) * capacity + alignof(Counter),
       memory::kEngineMemoryTagFiber};
-  counter_allocator_.Initialize();
-
+  
   for (usize i{0}; i < capacity; ++i) {
     auto* counter{counter_allocator_.AllocateOneAndPopulate<Counter>()};
     new (counter) Counter{};
@@ -108,7 +102,6 @@ void CounterPool::Initialize() {
 void CounterPool::Destroy() {
   counters_.Clear();
   counter_allocator_.Destroy();
-  queue_allocator_.Destroy();
 }
 
 Counter* CounterPool::TryGet() {
@@ -125,8 +118,6 @@ Scheduler& Scheduler::Get() {
 }
 
 void Scheduler::Initialize() {
-  job_queue_allocator_.Initialize();
-
   low_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
       &job_queue_allocator_,
       static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
@@ -180,10 +171,9 @@ void Scheduler::Initialize() {
 
   COMET_LOG_CORE_INFO("Worker count: ", fiber_worker_count_,
                       ", I/O worker count: ", io_worker_count_, ".");
-  worker_allocator.Initialize();
-  fiber_workers_ = DynamicArray<FiberWorker>{&worker_allocator};
+  fiber_workers_ = Array<FiberWorker>{&worker_allocator};
   fiber_workers_.Resize(fiber_worker_count_);
-  io_workers_ = DynamicArray<IOWorker>{&worker_allocator};
+  io_workers_ = Array<IOWorker>{&worker_allocator};
   io_workers_.Resize(io_worker_count_);
 }
 
@@ -192,7 +182,6 @@ void Scheduler::Shutdown() {
   normal_priority_queue_.Clear();
   high_priority_queue_.Clear();
   io_queue_.Clear();
-  job_queue_allocator_.Destroy();
 
   for (auto& fiber_worker : fiber_workers_) {
     fiber_worker.Stop();
@@ -202,7 +191,6 @@ void Scheduler::Shutdown() {
     io_worker.Stop();
   }
 
-  worker_allocator.Destroy();
   large_stack_fibers_.Destroy();
   gigantic_stack_fibers_.Destroy();
 #ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT

@@ -16,11 +16,6 @@ ThreadProviderManager& ThreadProviderManager::Get() {
 ThreadProviderManager::ThreadProviderManager()
     : allocator_{128, 32, kEngineMemoryTag_} {}
 
-void ThreadProviderManager::Initialize() {
-  Manager::Initialize();
-  allocator_.Initialize();
-}
-
 void ThreadProviderManager::Shutdown() {
   Manager::Shutdown();
   allocator_.Destroy();

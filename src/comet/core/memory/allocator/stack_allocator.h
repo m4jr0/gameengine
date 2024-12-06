@@ -9,13 +9,13 @@
 #include "comet/core/concurrency/provider/thread_provider.h"
 #include "comet/core/concurrency/provider/thread_provider_manager.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 
 namespace comet {
 namespace memory {
-class StackAllocator : public AlignedAllocator {
+class StackAllocator : public Allocator {
  public:
   StackAllocator() = default;
   StackAllocator(usize capacity, MemoryTag memory_tag);
@@ -24,8 +24,7 @@ class StackAllocator : public AlignedAllocator {
   StackAllocator& operator=(const StackAllocator&) = delete;
   StackAllocator& operator=(StackAllocator&& other) noexcept;
 
-  void Initialize() override;
-  void Destroy() override;
+  void Destroy();
 
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
@@ -37,13 +36,14 @@ class StackAllocator : public AlignedAllocator {
  private:
   using StackAllocatorMarker = u8*;
 
+  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize capacity_{0};
   u8* root_{nullptr};
   StackAllocatorMarker marker_{nullptr};
 };
 
-class FiberStackAllocator : public AlignedAllocator {
+class FiberStackAllocator : public Allocator {
  public:
   FiberStackAllocator() = delete;
   FiberStackAllocator(usize base_capacity, MemoryTag memory_tag);
@@ -51,9 +51,9 @@ class FiberStackAllocator : public AlignedAllocator {
   FiberStackAllocator(FiberStackAllocator&&) = delete;
   FiberStackAllocator& operator=(const FiberStackAllocator&) = delete;
   FiberStackAllocator& operator=(FiberStackAllocator&&) = delete;
+  ~FiberStackAllocator();
 
-  void Initialize() override;
-  void Destroy() override;
+  void Destroy();
 
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
@@ -74,6 +74,7 @@ class FiberStackAllocator : public AlignedAllocator {
 
   void AllocateCommonMemory();
 
+  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize base_capacity_{0};
   usize current_capacity_{0};
@@ -85,7 +86,7 @@ class FiberStackAllocator : public AlignedAllocator {
   FiberStackAllocatorMarker marker_{nullptr};
 };
 
-class IOStackAllocator : public AlignedAllocator {
+class IOStackAllocator : public Allocator {
  public:
   IOStackAllocator() = delete;
   IOStackAllocator(usize thread_capacity, MemoryTag memory_tag);
@@ -93,9 +94,9 @@ class IOStackAllocator : public AlignedAllocator {
   IOStackAllocator(IOStackAllocator&&) = delete;
   IOStackAllocator& operator=(const IOStackAllocator&) = delete;
   IOStackAllocator& operator=(IOStackAllocator&&) = delete;
+  ~IOStackAllocator();
 
-  void Initialize() override;
-  void Destroy() override;
+  void Destroy();
 
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
@@ -114,13 +115,14 @@ class IOStackAllocator : public AlignedAllocator {
 
   using ThreadContexts = thread::IOThreadProvider<ThreadContext>;
 
+  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize thread_capacity_{0};
   ThreadContexts thread_contexts_{
       thread::ThreadProviderManager::Get().AllocateIOProvider<ThreadContext>()};
 };
 
-class LockFreeStackAllocator : public AlignedAllocator {
+class LockFreeStackAllocator : public Allocator {
  public:
   LockFreeStackAllocator() = delete;
   LockFreeStackAllocator(usize capacity, MemoryTag memory_tag);
@@ -128,9 +130,9 @@ class LockFreeStackAllocator : public AlignedAllocator {
   LockFreeStackAllocator(LockFreeStackAllocator&&) = delete;
   LockFreeStackAllocator& operator=(const LockFreeStackAllocator&) = delete;
   LockFreeStackAllocator& operator=(LockFreeStackAllocator&&) = delete;
+  ~LockFreeStackAllocator();
 
-  void Initialize() override;
-  void Destroy() override;
+  void Destroy();
 
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
@@ -143,6 +145,7 @@ class LockFreeStackAllocator : public AlignedAllocator {
   using LockFreeStackAllocatorOffset = sptrdiff;
   static inline constexpr LockFreeStackAllocatorOffset kInvalidOffset_{-1};
 
+  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize capacity_{0};
   static_assert(std::atomic<LockFreeStackAllocatorOffset>::is_always_lock_free,
@@ -154,7 +157,7 @@ class LockFreeStackAllocator : public AlignedAllocator {
 };
 
 template <typename Stack>
-class DoubleStackAllocator : public memory::AlignedAllocator {
+class DoubleStackAllocator : public memory::Allocator {
  public:
   DoubleStackAllocator(usize stack_capacity, MemoryTag memory_tag)
       : stacks_{Stack{stack_capacity, memory_tag},
@@ -164,16 +167,10 @@ class DoubleStackAllocator : public memory::AlignedAllocator {
   DoubleStackAllocator(DoubleStackAllocator&&) = delete;
   DoubleStackAllocator& operator=(const DoubleStackAllocator&) = delete;
   DoubleStackAllocator& operator=(DoubleStackAllocator&&) = delete;
-  ~DoubleStackAllocator() = default;
 
-  void Initialize() override {
-    AlignedAllocator::Initialize();
-    stacks_[0].Initialize();
-    stacks_[1].Initialize();
-  }
+  ~DoubleStackAllocator() { Destroy(); }
 
-  void Destroy() override {
-    AlignedAllocator::Destroy();
+  void Destroy() {
     stacks_[0].Destroy();
     stacks_[1].Destroy();
   }

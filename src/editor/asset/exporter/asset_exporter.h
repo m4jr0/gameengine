@@ -8,7 +8,7 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "editor/asset/asset.h"
@@ -19,10 +19,10 @@ namespace asset {
 struct AssetExportDescr {
   job::Counter* global_counter{nullptr};
   const tchar* asset_abs_path{nullptr};
-  memory::AlignedAllocator* file_allocator_{nullptr};
+  memory::Allocator* file_allocator_{nullptr};
 };
 
-using ResourceFiles = DynamicArray<resource::ResourceFile>;
+using ResourceFiles = Array<resource::ResourceFile>;
 
 struct ResourceFilesContext {
   AssetDescr asset_descr{};

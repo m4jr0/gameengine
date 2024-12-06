@@ -8,6 +8,7 @@
 
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/virtual_memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace memory {
@@ -46,7 +47,6 @@ void TaggedHeap::Initialize() {
               sizeof(FixedBitset::Word) * (kMaxTagCount_ + 1) +
           alignof(FixedBitset::Word),
       kEngineMemoryTagTaggedHeap};
-  bitset_allocator_.Initialize();
   global_block_map_ = FixedBitset{&bitset_allocator_, total_block_count_};
 
   for (auto& bucket : tag_block_maps_) {

@@ -7,7 +7,7 @@
 
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 
 namespace comet {
@@ -39,6 +39,7 @@ class ThreadProvider {
   virtual T& Get() = 0;
   T& GetFromIndex(usize index) { return this->array_[index]; }
   usize GetSize() const noexcept { return this->array_.GetSize(); }
+  bool IsInitialized() const noexcept { return this->is_initialized_; }
 
  protected:
   ThreadProvider() = default;
@@ -83,8 +84,7 @@ class FiberThreadProvider : public ThreadProvider<T> {
  public:
   FiberThreadProvider() = default;
 
-  FiberThreadProvider(memory::AlignedAllocator* allocator)
-      : allocator_{allocator} {
+  FiberThreadProvider(memory::Allocator* allocator) : allocator_{allocator} {
     COMET_ASSERT(allocator_ != nullptr, "Allocator is null!");
   }
 
@@ -135,7 +135,7 @@ class FiberThreadProvider : public ThreadProvider<T> {
   }
 
  private:
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
 };
 
 template <typename T>
@@ -143,8 +143,7 @@ class IOThreadProvider : public ThreadProvider<T> {
  public:
   IOThreadProvider() = default;
 
-  IOThreadProvider(memory::AlignedAllocator* allocator)
-      : allocator_{allocator} {
+  IOThreadProvider(memory::Allocator* allocator) : allocator_{allocator} {
     COMET_ASSERT(allocator_ != nullptr, "Allocator is null!");
   }
 
@@ -195,7 +194,7 @@ class IOThreadProvider : public ThreadProvider<T> {
   }
 
  private:
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
 };
 }  // namespace thread
 }  // namespace comet

@@ -4,7 +4,7 @@
 
 #include "platform_allocator.h"
 
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace memory {
@@ -22,11 +22,15 @@ PlatformStackAllocator::PlatformStackAllocator(usize capacity,
     : memory_tag_{memory_tag},
       capacity_{capacity},
       root_{nullptr},
-      marker_{root_} {}
+      marker_{root_} {
+  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
+  root_ = memory::AllocateMany<u8>(capacity_, memory_tag_);
+  marker_ = root_;
+}
 
 PlatformStackAllocator::PlatformStackAllocator(
     PlatformStackAllocator&& other) noexcept
-    : AlignedAllocator{std::move(other)},
+    : Allocator{std::move(other)},
       memory_tag_{other.memory_tag_},
       capacity_{other.capacity_},
       root_{other.root_},
@@ -47,7 +51,7 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
     memory::Deallocate(root_);
   }
 
-  AlignedAllocator::operator=(other);
+  Allocator::operator=(other);
   memory_tag_ = other.memory_tag_;
   capacity_ = other.capacity_;
   root_ = other.root_;
@@ -61,16 +65,13 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
   return *this;
 }
 
-void PlatformStackAllocator::Initialize() {
-  AlignedAllocator::Initialize();
-  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
-  root_ = memory::AllocateMany<u8>(capacity_, memory_tag_);
-  marker_ = root_;
-}
+PlatformStackAllocator::~PlatformStackAllocator() { Destroy(); }
 
 void PlatformStackAllocator::Destroy() {
-  AlignedAllocator::Destroy();
-  memory::Deallocate(root_);
+  if (root_ != nullptr) {
+    memory::Deallocate(root_);
+  }
+
   root_ = nullptr;
   capacity_ = 0;
   marker_ = nullptr;

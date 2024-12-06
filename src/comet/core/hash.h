@@ -6,7 +6,7 @@
 #define COMET_COMET_CORE_HASH_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/math/math_commons.h"
 #include "picosha2.h"
 

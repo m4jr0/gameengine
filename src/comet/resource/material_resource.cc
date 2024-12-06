@@ -4,7 +4,7 @@
 
 #include "material_resource.h"
 
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {

@@ -6,6 +6,7 @@
 
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/logger.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 
@@ -193,11 +194,7 @@ Fiber::Fiber(usize stack_size) : stack_capacity_{stack_size} {
 }
 
 namespace internal {
-FiberInternalAllocator::~FiberInternalAllocator() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for fiber internal allocator, but it is "
-               "still initialized!");
-}
+FiberInternalAllocator::~FiberInternalAllocator() { Destroy(); }
 
 FiberInternalAllocator& FiberInternalAllocator::Get() {
   static FiberInternalAllocator singleton{};
@@ -227,21 +224,7 @@ FiberInternalAllocator& FiberInternalAllocator::operator=(
   return *this;
 }
 
-void FiberInternalAllocator::Initialize() {
-  COMET_ASSERT(
-      !is_initialized_,
-      "Tried to initialize fiber internal allocator, but it is already done!");
-  allocator_.Initialize();
-  is_initialized_ = true;
-}
-
-void FiberInternalAllocator::Destroy() {
-  COMET_ASSERT(
-      is_initialized_,
-      "Tried to shutdown fiber internal allocator, but it is not initialized!");
-  allocator_.Destroy();
-  is_initialized_ = false;
-}
+void FiberInternalAllocator::Destroy() { allocator_.Destroy(); }
 
 Fiber::Stack FiberInternalAllocator::Allocate(usize size) {
   return static_cast<Fiber::Stack>(allocator_.Allocate(size));
@@ -263,7 +246,6 @@ bool FiberInternalAllocator::IsInitialized() const noexcept {
 void AllocateFiberStackMemory(usize capacity) {
   auto& allocator{internal::FiberInternalAllocator::Get()};
   allocator = internal::FiberInternalAllocator{capacity};
-  allocator.Initialize();
 }
 
 void DestroyFiberStackMemory() {

@@ -58,10 +58,8 @@ void AssetManager::Initialize() {
   root_resource_path_ = resource::ResourceManager::Get().GetRootResourcePath();
   COMET_DISALLOW_STR_ALLOC(root_resource_path_);
 
-  exporters_allocator_.Initialize();
-  resource_files_allocator_.Initialize();
   exporters_ =
-      DynamicArray<std::unique_ptr<AssetExporter>>{&exporters_allocator_};
+      Array<std::unique_ptr<AssetExporter>>{&exporters_allocator_};
   exporters_.Reserve(4);
   exporters_.PushBack(std::make_unique<ModelExporter>());
   exporters_.PushBack(std::make_unique<ShaderExporter>());
@@ -85,8 +83,6 @@ void AssetManager::Shutdown() {
   root_resource_path_.Clear();
   library_meta_path_.Clear();
   exporters_.Clear();
-  exporters_allocator_.Destroy();
-  resource_files_allocator_.Destroy();
   Manager::Shutdown();
 }
 

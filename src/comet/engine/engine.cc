@@ -203,7 +203,6 @@ void Engine::PreUnload() {
 void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
-  DestroyTStrings();
   frame::FrameManager::Get().Shutdown();
   thread::ThreadProviderManager::Get().Shutdown();
   memory::TaggedHeap::Get().Destroy();
@@ -220,7 +219,6 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   memory::TaggedHeap::Get().Initialize();
   thread::ThreadProviderManager::Get().Initialize();
   frame::FrameManager::Get().Initialize();
-  InitializeTStrings();
   event::EventManager::Get().Initialize();
   resource::ResourceManager::Get().Initialize();
   engine->Initialize();

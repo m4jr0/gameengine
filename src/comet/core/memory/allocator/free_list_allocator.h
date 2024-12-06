@@ -7,12 +7,12 @@
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace memory {
-class FiberFreeListAllocator : public AlignedAllocator {
+class FiberFreeListAllocator : public Allocator {
  public:
   FiberFreeListAllocator() = default;
   FiberFreeListAllocator(usize allocation_unit, usize block_count,
@@ -21,10 +21,9 @@ class FiberFreeListAllocator : public AlignedAllocator {
   FiberFreeListAllocator(FiberFreeListAllocator&&) noexcept;
   FiberFreeListAllocator& operator=(const FiberFreeListAllocator&) = delete;
   FiberFreeListAllocator& operator=(FiberFreeListAllocator&&) noexcept;
-  ~FiberFreeListAllocator() = default;
+  ~FiberFreeListAllocator();
 
-  void Initialize() override;
-  void Destroy() override;
+  void Destroy();
 
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void* ptr) override;

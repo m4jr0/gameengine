@@ -10,7 +10,7 @@
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/logger.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace resource {

@@ -7,7 +7,7 @@
 namespace comet {
 namespace fiber {
 namespace internal {
-FiberLifeCycleQueue::FiberLifeCycleQueue(memory::AlignedAllocator* allocator,
+FiberLifeCycleQueue::FiberLifeCycleQueue(memory::Allocator* allocator,
                                          usize capacity)
     : allocator_{allocator} {
   queue_ = RingQueue<Fiber*>{allocator_, capacity};
@@ -59,14 +59,12 @@ FiberLifeCycleHandler::~FiberLifeCycleHandler() {
 void FiberLifeCycleHandler::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize handler, but it is already done!");
-  queue_allocator_.Initialize();
   is_initialized_ = true;
 }
 
 void FiberLifeCycleHandler::Shutdown() {
   COMET_ASSERT(is_initialized_,
                "Tried to shutdown handler, but it is not initialized!");
-  queue_allocator_.Destroy();
   is_initialized_ = false;
 }
 

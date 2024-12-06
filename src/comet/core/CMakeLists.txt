@@ -67,12 +67,12 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/provider/thread_provider_manager.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocation_tracking.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory_general_alloc.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/memory_utils.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/tagged_heap.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/virtual_memory.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/aligned_allocator.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/platform_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/free_list_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/stack_allocator.cc"
