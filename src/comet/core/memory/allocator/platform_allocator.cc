@@ -4,7 +4,7 @@
 
 #include "platform_allocator.h"
 
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace memory {
@@ -26,7 +26,7 @@ PlatformStackAllocator::PlatformStackAllocator(usize capacity,
 
 PlatformStackAllocator::PlatformStackAllocator(
     PlatformStackAllocator&& other) noexcept
-    : AlignedAllocator{std::move(other)},
+    : Allocator{std::move(other)},
       memory_tag_{other.memory_tag_},
       capacity_{other.capacity_},
       root_{other.root_},
@@ -47,7 +47,7 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
     memory::Deallocate(root_);
   }
 
-  AlignedAllocator::operator=(other);
+  Allocator::operator=(other);
   memory_tag_ = other.memory_tag_;
   capacity_ = other.capacity_;
   root_ = other.root_;
@@ -62,14 +62,14 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
 }
 
 void PlatformStackAllocator::Initialize() {
-  AlignedAllocator::Initialize();
+  Allocator::Initialize();
   COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
   root_ = memory::AllocateMany<u8>(capacity_, memory_tag_);
   marker_ = root_;
 }
 
 void PlatformStackAllocator::Destroy() {
-  AlignedAllocator::Destroy();
+  Allocator::Destroy();
   memory::Deallocate(root_);
   root_ = nullptr;
   capacity_ = 0;

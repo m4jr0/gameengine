@@ -5,7 +5,7 @@
 #include "opengl_shader_handler.h"
 
 #include "comet/core/c_string.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 

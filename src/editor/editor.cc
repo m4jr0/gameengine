@@ -13,7 +13,7 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"

@@ -6,7 +6,7 @@
 #define COMET_COMET_CORE_FRAME_FRAME_ALLOCATOR_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/stack_allocator.h"
 #include "comet/core/memory/memory.h"
 
@@ -19,11 +19,11 @@ using FiberDoubleFrameAllocator =
 using IOFrameAllocator = memory::IOStackAllocator;
 using IODoubleFrameAllocator = memory::DoubleStackAllocator<IOFrameAllocator>;
 
-memory::AlignedAllocator& GetFrameAllocator();
-memory::AlignedAllocator& GetDoubleFrameAllocator();
+memory::Allocator& GetFrameAllocator();
+memory::Allocator& GetDoubleFrameAllocator();
 
-void AttachFrameAllocator(memory::AlignedAllocatorHandle handle);
-void AttachDoubleFrameAllocator(memory::AlignedAllocatorHandle handle);
+void AttachFrameAllocator(memory::AllocatorHandle handle);
+void AttachDoubleFrameAllocator(memory::AllocatorHandle handle);
 void DetachFrameAllocator();
 void DetachDoubleFrameAllocator();
 }  // namespace frame

@@ -3,13 +3,14 @@
 // license that can be found in the LICENSE file.
 
 #include "bitset.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 usize FixedBitset::GetWordCountFromBitCount(usize bit_count) {
   return (bit_count + kWorkBitCount_ - 1) / kWorkBitCount_;
 }
 
-FixedBitset::FixedBitset(memory::AlignedAllocator* allocator, usize bit_count)
+FixedBitset::FixedBitset(memory::Allocator* allocator, usize bit_count)
     : bit_count_{bit_count},
       word_count_{GetWordCountFromBitCount(bit_count_)},
       allocator_{allocator},

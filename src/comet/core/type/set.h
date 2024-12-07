@@ -9,7 +9,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 
 namespace comet {
@@ -38,17 +38,16 @@ struct DefaultSetFuncs : public SetFuncs<T, T> {
 template <typename T, typename Funcs = internal::DefaultSetFuncs<T>>
 class Set {
  public:
-  using Bucket = DynamicArray<T>;
-  using Buckets = DynamicArray<Bucket>;
+  using Bucket = Array<T>;
+  using Buckets = Array<Bucket>;
   using Hashable = typename Funcs::Hashable;
 
   static inline constexpr usize kDefaultObjCount{16};
 
   Set() = default;
 
-  Set(memory::AlignedAllocator* allocator,
-      usize default_obj_count = kDefaultObjCount)
-      : buckets_{allocator} {
+  Set(memory::Allocator* allocator, usize default_obj_count = kDefaultObjCount)
+      : buckets_{allocator}, allocator_{allocator} {
     if (default_obj_count == 0) {
       return;
     }
@@ -60,16 +59,19 @@ class Set {
       : max_load_factor_{other.max_load_factor_},
         capacity_{other.capacity_},
         size_{other.size_},
-        buckets_{other.buckets_} {}
+        buckets_{other.buckets_},
+        allocator_{other.allocator_} {}
 
   Set(Set&& other) noexcept
       : max_load_factor_{other.max_load_factor_},
         capacity_{std::move(other.capacity_)},
         size_{std::move(other.size_)},
-        buckets_{std::move(other.buckets_)} {
+        buckets_{std::move(other.buckets_)},
+        allocator_{other.allocator_} {
     other.max_load_factor_ = 1.0f;
     other.capacity_ = 0;
     other.size_ = 0;
+    other.allocator_ = nullptr;
   }
 
   Set& operator=(const Set& other) {
@@ -81,6 +83,7 @@ class Set {
     this->capacity_ = other.capacity_;
     this->size_ = other.size_;
     this->buckets_ = other.buckets_;
+    this->allocator_ = other.allocator_;
 
     return *this;
   }
@@ -94,10 +97,12 @@ class Set {
     this->capacity_ = other.capacity_;
     this->size_ = other.size_;
     this->buckets_ = std::move(other.buckets_);
+    this->allocator_ = other.allocator_;
 
     other.max_load_factor_ = 1.0f;
     other.capacity_ = 0;
     other.size_ = 0;
+    other.allocator_ = nullptr;
     return *this;
   }
 
@@ -191,7 +196,7 @@ class Set {
       new_capacity = this->capacity_;
     }
 
-    Buckets new_buckets{this->buckets_.GenerateEmpty(new_capacity)};
+    Buckets new_buckets{this->allocator_};
     new_buckets.Resize(new_capacity);
 
     for (usize i{0}; i < this->capacity_; ++i) {
@@ -209,6 +214,7 @@ class Set {
   usize capacity_{0};
   usize size_{0};
   Buckets buckets_{};
+  memory::Allocator* allocator_{nullptr};
 };
 }  // namespace comet
 

@@ -9,12 +9,12 @@
 #include <utility>
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace memory {
-class PlatformAllocator : public AlignedAllocator {
+class PlatformAllocator : public Allocator {
  public:
   PlatformAllocator(MemoryTag memory_tag);
   PlatformAllocator(const PlatformAllocator&) = default;
@@ -30,7 +30,7 @@ class PlatformAllocator : public AlignedAllocator {
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
 };
 
-class PlatformStackAllocator : public AlignedAllocator {
+class PlatformStackAllocator : public Allocator {
  public:
   PlatformStackAllocator() = default;
   PlatformStackAllocator(usize capacity, MemoryTag memory_tag);

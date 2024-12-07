@@ -8,7 +8,7 @@
 #include <functional>
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/set.h"
 
 namespace comet {
@@ -82,7 +82,7 @@ class Map {
 
   Map() = default;
 
-  Map(memory::AlignedAllocator* allocator, usize capacity = kDefaultCapacity_)
+  Map(memory::Allocator* allocator, usize capacity = kDefaultCapacity_)
       : pairs_{allocator, capacity} {}
 
   Map(const Map& other) : pairs_{other.pairs_} {}

@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/memory_utils.h"
 #include "exception.h"
 
 namespace comet {
@@ -19,7 +19,7 @@ template <class T>
 class RingQueue {
  public:
   RingQueue() = default;
-  explicit RingQueue(memory::AlignedAllocator* allocator, usize capacity);
+  explicit RingQueue(memory::Allocator* allocator, usize capacity);
   RingQueue(const RingQueue& other);
   RingQueue(RingQueue&& other) noexcept;
   RingQueue& operator=(const RingQueue&);
@@ -40,12 +40,12 @@ class RingQueue {
   usize capacity_{0};
   usize head_{0};
   usize size_{0};
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
   std::vector<T> elements_{};
 };
 
 template <class T>
-inline RingQueue<T>::RingQueue(memory::AlignedAllocator* allocator,
+inline RingQueue<T>::RingQueue(memory::Allocator* allocator,
                                usize capacity)
     : capacity_{capacity},
       allocator_{allocator},
@@ -177,7 +177,7 @@ class LockFreeMPSCRingQueue {
 
  public:
   LockFreeMPSCRingQueue() = default;
-  LockFreeMPSCRingQueue(memory::AlignedAllocator* allocator, usize capacity);
+  LockFreeMPSCRingQueue(memory::Allocator* allocator, usize capacity);
   LockFreeMPSCRingQueue(const LockFreeMPSCRingQueue& other);
   LockFreeMPSCRingQueue(LockFreeMPSCRingQueue&& other) noexcept;
   LockFreeMPSCRingQueue& operator=(const LockFreeMPSCRingQueue& other);
@@ -193,7 +193,7 @@ class LockFreeMPSCRingQueue {
   usize capacity_{0};
   std::atomic<usize> head_{0};
   std::atomic<usize> tail_{0};
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
   std::vector<T> elements_{};
 
   usize Increment(usize index) const;
@@ -201,7 +201,7 @@ class LockFreeMPSCRingQueue {
 
 template <class T>
 inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
-    memory::AlignedAllocator* allocator, usize capacity)
+    memory::Allocator* allocator, usize capacity)
     : capacity_{capacity},
       allocator_{allocator},
       elements_{std::vector<T>(capacity)} {
@@ -349,7 +349,7 @@ class LockFreeMPMCRingQueue {
 
  public:
   LockFreeMPMCRingQueue() = default;
-  LockFreeMPMCRingQueue(memory::AlignedAllocator* allocator, usize capacity);
+  LockFreeMPMCRingQueue(memory::Allocator* allocator, usize capacity);
   LockFreeMPMCRingQueue(const LockFreeMPMCRingQueue&) = delete;
   LockFreeMPMCRingQueue(LockFreeMPMCRingQueue&& other) noexcept;
   LockFreeMPMCRingQueue& operator=(const LockFreeMPMCRingQueue&) = delete;
@@ -380,12 +380,12 @@ class LockFreeMPMCRingQueue {
   std::atomic<usize> tail_{0};
   CachelinePad pad3_{};
   usize capacity_{0};
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
 };
 
 template <class T>
 inline LockFreeMPMCRingQueue<T>::LockFreeMPMCRingQueue(
-    memory::AlignedAllocator* allocator, usize capacity)
+    memory::Allocator* allocator, usize capacity)
     : mask_{capacity - 1},
       elements_{static_cast<Node*>(
           allocator->AllocateAligned(capacity * sizeof(Node), alignof(Node)))},

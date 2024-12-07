@@ -5,7 +5,7 @@
 #include "vulkan_render_pass_handler.h"
 
 #include "comet/core/logger.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 

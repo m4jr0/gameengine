@@ -6,7 +6,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/conf/configuration_value.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace rendering {

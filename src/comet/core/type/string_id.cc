@@ -9,7 +9,7 @@
 #include "comet/core/c_string.h"
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_LABELIZE_STRING_IDS
 #include <unordered_map>

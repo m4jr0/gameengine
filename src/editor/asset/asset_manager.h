@@ -53,7 +53,7 @@ class AssetManager : public Manager {
   memory::PlatformAllocator exporters_allocator_{memory::kEditorMemoryTagAsset};
   memory::PlatformAllocator resource_files_allocator_{
       memory::kEditorMemoryTagAsset};
-  DynamicArray<std::unique_ptr<AssetExporter>> exporters_{};
+  Array<std::unique_ptr<AssetExporter>> exporters_{};
 };
 }  // namespace asset
 }  // namespace editor

@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_DEBUG
 #ifdef COMET_IMGUI

@@ -61,7 +61,7 @@ void AssetManager::Initialize() {
   exporters_allocator_.Initialize();
   resource_files_allocator_.Initialize();
   exporters_ =
-      DynamicArray<std::unique_ptr<AssetExporter>>{&exporters_allocator_};
+      Array<std::unique_ptr<AssetExporter>>{&exporters_allocator_};
   exporters_.Reserve(4);
   exporters_.PushBack(std::make_unique<ModelExporter>());
   exporters_.PushBack(std::make_unique<ShaderExporter>());

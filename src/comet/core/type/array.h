@@ -12,7 +12,8 @@
 
 #include "comet/core/c_array.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/iterator.h"
 
 namespace comet {
@@ -55,11 +56,13 @@ class BaseArray {
 }  // namespace internal
 
 template <typename T>
-class DynamicArray : public internal::BaseArray<T> {
+class Array : public internal::BaseArray<T> {
  public:
-  DynamicArray() = default;
+  Array() = default;
 
-  DynamicArray(memory::AlignedAllocator* allocator, usize size)
+  explicit Array(memory::Allocator* allocator) : allocator_{allocator} {}
+
+  Array(memory::Allocator* allocator, usize size)
       : internal::BaseArray<T>(
             size, size == 0 ? nullptr
                             : static_cast<T*>(allocator->AllocateAligned(
@@ -72,7 +75,7 @@ class DynamicArray : public internal::BaseArray<T> {
   }
 
   template <typename... Targs>
-  DynamicArray(memory::AlignedAllocator* allocator, Targs&&... args)
+  Array(memory::Allocator* allocator, Targs&&... args)
       : internal::BaseArray<T>(
             sizeof...(Targs),
             sizeof...(Targs) == 0
@@ -85,7 +88,7 @@ class DynamicArray : public internal::BaseArray<T> {
     ((memory::Populate<T>(&this->data_[index++], std::forward<T>(args))), ...);
   }
 
-  DynamicArray(const DynamicArray& other)
+  Array(const Array& other)
       : internal::BaseArray<T>(
             other.size_,
             other.size_ == 0
@@ -101,7 +104,7 @@ class DynamicArray : public internal::BaseArray<T> {
     }
   }
 
-  DynamicArray(DynamicArray&& other) noexcept
+  Array(Array&& other) noexcept
       : internal::BaseArray<T>(other.size_, other.data_),
         capacity_{other.capacity_},
         allocator_{other.allocator_} {
@@ -111,7 +114,7 @@ class DynamicArray : public internal::BaseArray<T> {
     other.allocator_ = nullptr;
   }
 
-  DynamicArray& operator=(const DynamicArray& other) {
+  Array& operator=(const Array& other) {
     if (this == &other) {
       return *this;
     }
@@ -135,7 +138,7 @@ class DynamicArray : public internal::BaseArray<T> {
     return *this;
   }
 
-  DynamicArray& operator=(DynamicArray&& other) noexcept {
+  Array& operator=(Array&& other) noexcept {
     if (this == &other) {
       return *this;
     }
@@ -156,7 +159,7 @@ class DynamicArray : public internal::BaseArray<T> {
     return *this;
   }
 
-  ~DynamicArray() {
+  ~Array() {
     if (this->data_ == nullptr) {
       return;
     }
@@ -173,10 +176,6 @@ class DynamicArray : public internal::BaseArray<T> {
     this->size_ = 0;
   }
 
-  DynamicArray<T> GenerateEmpty(usize capacity = 0) {
-    return DynamicArray<T>{allocator_, capacity};
-  }
-
   void Reserve(usize new_capacity) {
     this->data_ = comet::Reserve(this->allocator_, this->data_, this->size_,
                                  this->capacity_, new_capacity);
@@ -189,7 +188,7 @@ class DynamicArray : public internal::BaseArray<T> {
     }
 
     for (usize i{this->size_}; i < new_size; ++i) {
-      memory::Populate<T>(&this->data_[i]);
+      memory::Populate<T>(&this->data_[i], allocator_);
     }
 
     for (usize i{new_size}; i < this->size_; ++i) {
@@ -253,7 +252,7 @@ class DynamicArray : public internal::BaseArray<T> {
 
  private:
   usize capacity_{0};
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
 };
 
 template <typename T>
@@ -261,7 +260,7 @@ class FixedArray : public internal::BaseArray<T> {
  public:
   FixedArray() = default;
 
-  FixedArray(memory::AlignedAllocator* allocator, usize size)
+  FixedArray(memory::Allocator* allocator, usize size)
       : internal::BaseArray<T>(
             size, size == 0 ? nullptr
                             : static_cast<T*>(allocator->AllocateAligned(
@@ -273,7 +272,7 @@ class FixedArray : public internal::BaseArray<T> {
   }
 
   template <typename... Targs>
-  FixedArray(memory::AlignedAllocator* allocator, Targs&&... args)
+  FixedArray(memory::Allocator* allocator, Targs&&... args)
       : internal::BaseArray<T>(
             sizeof...(Targs),
             sizeof...(Targs) == 0
@@ -372,7 +371,7 @@ class FixedArray : public internal::BaseArray<T> {
   }
 
  private:
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
 };
 
 template <typename T, usize N>
@@ -381,7 +380,7 @@ class StaticArray {
   COMET_POPULATE_ITERATOR(ContiguousIterator<T>, ConstContiguousIterator<T>,
                           this->data_, this->size_)
 
-  constexpr StaticArray() : data_{}, size_{N} {}
+  constexpr StaticArray() = default;
 
   template <typename... Targs,
             typename = std::enable_if_t<(sizeof...(Targs) == N)>>
@@ -422,7 +421,7 @@ class StaticArray {
 
  private:
   T data_[N]{};
-  usize size_;
+  usize size_{N};
 };
 
 template <typename T>
