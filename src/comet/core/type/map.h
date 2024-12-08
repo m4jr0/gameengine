@@ -141,6 +141,11 @@ class Map {
  private:
   Pairs pairs_{};
 };
+
+// https://nullprogram.com/blog/2023/09/30/
+// https://nullprogram.com/blog/2022/08/08/
+// https://nrk.neocities.org/articles/hash-trees-and-tries
+// https://github.com/skeeto/lstack/blob/master/lstack.c
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_TYPE_MAP_H_
