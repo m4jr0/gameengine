@@ -135,6 +135,30 @@ void CometEditor::PostLoadTmpCode() {
   Map<s32, s32> map_test{&allocator};
   map_test.Set(42, 1337);
   auto test1{map_test[42]};
+
+  LockFreeMap<usize, std::string> map{&allocator};
+
+  auto worker{[&](usize thread_id) {
+    for (usize i{0}; i < 10; ++i) {
+      map.Set(thread_id * 10 + i, "Thread " + std::to_string(thread_id) +
+                                      ", Value " + std::to_string(i));
+    }
+  }};
+
+  std::thread t1{worker, 1};
+  std::thread t2{worker, 2};
+
+  t1.join();
+  t2.join();
+
+  for (usize i{0}; i < 20; ++i) {
+    auto* value{map.TryGet(i)};
+
+    if (value != nullptr) {
+      std::cout << "Key: " << i << ", Value: " << *value << std::endl;
+    }
+  }
+
   allocator.Destroy();
 }
 
