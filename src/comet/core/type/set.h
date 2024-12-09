@@ -14,16 +14,16 @@
 
 namespace comet {
 template <typename T, typename THashable>
-struct SetFuncs {
+struct SetHashLogic {
   using Value = T;
   using Hashable = THashable;
 };
 
 namespace internal {
 template <typename T>
-struct DefaultSetFuncs : public SetFuncs<T, T> {
-  using Value = typename SetFuncs<T, T>::Value;
-  using Hashable = typename SetFuncs<T, T>::Hashable;
+struct DefaultSetHashLogic : public SetHashLogic<T, T> {
+  using Value = typename SetHashLogic<T, T>::Value;
+  using Hashable = typename SetHashLogic<T, T>::Hashable;
 
   static const typename Hashable& GetHashable(const Value& obj) { return obj; }
 
@@ -35,12 +35,12 @@ struct DefaultSetFuncs : public SetFuncs<T, T> {
 };
 }  // namespace internal
 
-template <typename T, typename Funcs = internal::DefaultSetFuncs<T>>
+template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
 class Set {
  public:
   using Bucket = Array<T>;
   using Buckets = Array<Bucket>;
-  using Hashable = typename Funcs::Hashable;
+  using Hashable = typename HashLogic::Hashable;
 
   static inline constexpr usize kDefaultObjCount{16};
 
@@ -107,11 +107,11 @@ class Set {
   }
 
   bool Add(const T& obj) {
-    auto& hashable{Funcs::GetHashable(obj)};
+    auto& hashable{HashLogic::GetHashable(obj)};
     auto index{GetBucketIndex(hashable)};
 
     for (const auto& existing_obj : this->buckets_[index]) {
-      if (Funcs::AreEqual(Funcs::GetHashable(existing_obj), hashable)) {
+      if (HashLogic::AreEqual(HashLogic::GetHashable(existing_obj), hashable)) {
         return false;
       }
     }
@@ -122,11 +122,11 @@ class Set {
   }
 
   bool Remove(const T& obj) {
-    auto index{GetBucketIndex(Funcs::GetHashable(obj))};
+    auto index{GetBucketIndex(HashLogic::GetHashable(obj))};
     auto& bucket{this->buckets_[index]};
 
     for (auto it{bucket.begin()}; it != bucket.end(); ++it) {
-      if (Funcs::AreEqual(*it, obj)) {
+      if (HashLogic::AreEqual(*it, obj)) {
         bucket.Remove(it);
         --this->size_;
         return true;
@@ -146,7 +146,7 @@ class Set {
     auto index{GetBucketIndex(hashable)};
 
     for (auto& obj : this->buckets_[index]) {
-      if (Funcs::AreEqual(Funcs::GetHashable(obj), hashable)) {
+      if (HashLogic::AreEqual(HashLogic::GetHashable(obj), hashable)) {
         return &obj;
       }
     }
@@ -168,7 +168,7 @@ class Set {
     auto index{GetBucketIndex(obj)};
 
     for (const auto& existing_obj : this->buckets_[index]) {
-      if (Funcs::AreEqual(existing_obj, obj)) {
+      if (HashLogic::AreEqual(existing_obj, obj)) {
         return true;
       }
     }
@@ -188,7 +188,7 @@ class Set {
 
  private:
   usize GetBucketIndex(const Hashable& hashable) const {
-    return Funcs::Hash(hashable) % this->capacity_;
+    return HashLogic::Hash(hashable) % this->capacity_;
   }
 
   void Rehash(usize new_capacity = kInvalidSize) {
@@ -201,7 +201,8 @@ class Set {
 
     for (usize i{0}; i < this->capacity_; ++i) {
       for (const auto& obj : this->buckets_[i]) {
-        auto new_index{Funcs::Hash(Funcs::GetHashable(obj)) % new_capacity};
+        auto new_index{HashLogic::Hash(HashLogic::GetHashable(obj)) %
+                       new_capacity};
         new_buckets[new_index].EmplaceBack(obj);
       }
     }
