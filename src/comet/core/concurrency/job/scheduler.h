@@ -122,8 +122,8 @@ class Scheduler {
   internal::CounterPool counters_{};
 
   memory::PlatformAllocator worker_allocator{memory::kEngineMemoryTagFiber};
-  DynamicArray<FiberWorker> fiber_workers_{};
-  DynamicArray<IOWorker> io_workers_{};
+  Array<FiberWorker> fiber_workers_{};
+  Array<IOWorker> io_workers_{};
   static_assert(std::atomic<bool>::is_always_lock_free,
                 "std::atomic<bool> needs to be always "
                 "lock-free. Unsupported "

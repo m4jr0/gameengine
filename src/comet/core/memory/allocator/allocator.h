@@ -2,20 +2,21 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_MEMORY_ALLOCATOR_ALIGNED_ALLOCATOR_H_
-#define COMET_COMET_CORE_MEMORY_ALLOCATOR_ALIGNED_ALLOCATOR_H_
+#ifndef COMET_COMET_CORE_MEMORY_ALLOCATOR_ALLOCATOR_H_
+#define COMET_COMET_CORE_MEMORY_ALLOCATOR_ALLOCATOR_H_
 
 #include <functional>
 #include <utility>
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace memory {
-class AlignedAllocator {
+class Allocator {
  public:
-  virtual ~AlignedAllocator();
+  virtual ~Allocator();
 
   virtual void Initialize();
   virtual void Destroy();
@@ -47,12 +48,12 @@ class AlignedAllocator {
   bool is_initialized_{false};
 };
 
-struct AlignedAllocatorBox {
-  memory::AlignedAllocator* allocator{nullptr};
+struct AllocatorBox {
+  memory::Allocator* allocator{nullptr};
 };
 
-using AlignedAllocatorHandle = AlignedAllocatorBox*;
+using AllocatorHandle = AllocatorBox*;
 }  // namespace memory
 }  // namespace comet
 
-#endif  // COMET_COMET_CORE_MEMORY_ALLOCATOR_ALIGNED_ALLOCATOR_H_
+#endif  // COMET_COMET_CORE_MEMORY_ALLOCATOR_ALLOCATOR_H_

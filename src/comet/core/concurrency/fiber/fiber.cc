@@ -7,6 +7,7 @@
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL

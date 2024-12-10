@@ -18,6 +18,7 @@
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/time/chrono.h"
 
@@ -181,9 +182,9 @@ void Scheduler::Initialize() {
   COMET_LOG_CORE_INFO("Worker count: ", fiber_worker_count_,
                       ", I/O worker count: ", io_worker_count_, ".");
   worker_allocator.Initialize();
-  fiber_workers_ = DynamicArray<FiberWorker>{&worker_allocator};
+  fiber_workers_ = Array<FiberWorker>{&worker_allocator};
   fiber_workers_.Resize(fiber_worker_count_);
-  io_workers_ = DynamicArray<IOWorker>{&worker_allocator};
+  io_workers_ = Array<IOWorker>{&worker_allocator};
   io_workers_.Resize(io_worker_count_);
 }
 

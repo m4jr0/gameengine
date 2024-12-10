@@ -5,7 +5,7 @@
 #include "rendering_manager.h"
 
 #include "comet/core/conf/configuration_manager.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/input/input_manager.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/empty/empty_driver.h"

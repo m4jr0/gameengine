@@ -9,6 +9,7 @@
 #include "comet/core/frame/frame_allocator.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
+#include "comet/core/type/array.h"
 
 namespace comet {
 namespace frame {
@@ -34,8 +35,8 @@ class FrameManager : public Manager {
   void Update();
 
   InFlightFrames& GetInFlightFrames();
-  memory::AlignedAllocatorHandle GetFrameAllocatorHandle();
-  memory::AlignedAllocatorHandle GetDoubleFrameAllocatorHandle();
+  memory::AllocatorHandle GetFrameAllocatorHandle();
+  memory::AllocatorHandle GetDoubleFrameAllocatorHandle();
 
  private:
   static inline constexpr usize kInFlightFramePacketCount_{3};
@@ -54,17 +55,16 @@ class FrameManager : public Manager {
 
   FiberFrameAllocator fiber_frame_allocators_[kInFlightFramePacketCount_];
   IOFrameAllocator io_frame_allocators_[kInFlightFramePacketCount_];
-
   FiberDoubleFrameAllocator
       fiber_double_frame_allocators_[kInFlightFramePacketCount_];
   IODoubleFrameAllocator
       io_double_frame_allocators_[kInFlightFramePacketCount_];
 
-  memory::AlignedAllocatorBox fiber_frame_allocator_box_{};
-  memory::AlignedAllocatorBox io_frame_allocator_box_{};
+  memory::AllocatorBox fiber_frame_allocator_box_{};
+  memory::AllocatorBox io_frame_allocator_box_{};
 
-  memory::AlignedAllocatorBox fiber_double_frame_allocator_box_{};
-  memory::AlignedAllocatorBox io_double_frame_allocator_box_{};
+  memory::AllocatorBox fiber_double_frame_allocator_box_{};
+  memory::AllocatorBox io_double_frame_allocator_box_{};
 };
 }  // namespace frame
 }  // namespace comet

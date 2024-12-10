@@ -7,6 +7,7 @@
 #include <new>
 
 #include "comet/core/memory/allocation_tracking.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/virtual_memory.h"
 
 namespace comet {

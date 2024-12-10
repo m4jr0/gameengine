@@ -12,7 +12,7 @@
 #include "comet/core/frame/frame_allocator.h"
 #include "comet/core/generator.h"
 #include "comet/core/logger.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/model_resource.h"

@@ -22,7 +22,7 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/logger.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_CHECK_STACK_OVERFLOWS
 #ifdef COMET_UNIX

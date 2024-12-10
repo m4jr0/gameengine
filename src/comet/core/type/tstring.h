@@ -9,13 +9,13 @@
 #include "comet/core/c_string.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/slash_helper.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 
 namespace comet {
 namespace internal {
-memory::AlignedAllocator* GetTStringAllocator();
+memory::Allocator* GetTStringAllocator();
 
-class TStringAllocator : public memory::AlignedAllocator {
+class TStringAllocator : public memory::Allocator {
  public:
   static TStringAllocator& Get();
 
@@ -32,7 +32,7 @@ class TStringAllocator : public memory::AlignedAllocator {
 
 void InitializeTStrings();
 void DestroyTStrings();
-void AttachTStringAllocator(memory::AlignedAllocatorHandle handle);
+void AttachTStringAllocator(memory::AllocatorHandle handle);
 void DetachTStringAllocator();
 
 const auto kSSOCapacityThreshold{15};

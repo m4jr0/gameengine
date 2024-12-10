@@ -6,8 +6,9 @@
 #define COMET_COMET_CORE_C_ARRAY_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 template <typename T>
@@ -46,8 +47,8 @@ void Clear(T* data, usize size) {
 }
 
 template <typename T>
-T* Reserve(memory::AlignedAllocator* allocator, T* data, usize size,
-           usize capacity, usize new_capacity) {
+T* Reserve(memory::Allocator* allocator, T* data, usize size, usize capacity,
+           usize new_capacity) {
   COMET_ASSERT(allocator != nullptr, "Allocator provided is null!");
   COMET_ASSERT(size == 0 || data != nullptr, "Data provided is null!");
   COMET_ASSERT(new_capacity > 0, "Capacity is 0!");

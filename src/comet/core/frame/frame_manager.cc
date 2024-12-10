@@ -116,7 +116,7 @@ void FrameManager::Update() {
 
 InFlightFrames& FrameManager::GetInFlightFrames() { return in_flight_frames_; }
 
-memory::AlignedAllocatorHandle FrameManager::GetFrameAllocatorHandle() {
+memory::AllocatorHandle FrameManager::GetFrameAllocatorHandle() {
   if (job::IsFiberWorker()) {
     return &fiber_frame_allocator_box_;
   }
@@ -131,7 +131,7 @@ memory::AlignedAllocatorHandle FrameManager::GetFrameAllocatorHandle() {
   return nullptr;
 }
 
-memory::AlignedAllocatorHandle FrameManager::GetDoubleFrameAllocatorHandle() {
+memory::AllocatorHandle FrameManager::GetDoubleFrameAllocatorHandle() {
   if (job::IsFiberWorker()) {
     return &fiber_double_frame_allocator_box_;
   }

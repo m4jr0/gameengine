@@ -9,7 +9,7 @@
 #include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"

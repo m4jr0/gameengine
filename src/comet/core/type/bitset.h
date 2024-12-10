@@ -6,7 +6,7 @@
 #define COMET_COMET_CORE_TYPE_BITSET_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 
 namespace comet {
 class FixedBitset {
@@ -16,7 +16,7 @@ class FixedBitset {
   static usize GetWordCountFromBitCount(usize bit_count);
 
   FixedBitset() = default;
-  FixedBitset(memory::AlignedAllocator* allocator, usize bit_count);
+  FixedBitset(memory::Allocator* allocator, usize bit_count);
   FixedBitset(const FixedBitset& other);
   FixedBitset(FixedBitset&& other) noexcept;
   FixedBitset& operator=(const FixedBitset& other);
@@ -40,7 +40,7 @@ class FixedBitset {
 
   usize bit_count_{0};
   usize word_count_{0};
-  memory::AlignedAllocator* allocator_{nullptr};
+  memory::Allocator* allocator_{nullptr};
   Word* words_{nullptr};
 };
 }  // namespace comet

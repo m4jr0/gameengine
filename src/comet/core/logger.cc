@@ -10,7 +10,7 @@
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/thread/thread_context.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 void Logger::Destroy() { is_running_.store(false, std::memory_order_release); }
