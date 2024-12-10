@@ -4,7 +4,7 @@
 
 #include "model_resource.h"
 
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace resource {

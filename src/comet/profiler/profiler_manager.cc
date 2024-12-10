@@ -8,10 +8,6 @@
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/rendering_manager.h"
 
-#ifdef COMET_DEBUG
-#include "comet/rendering/debugger/debugger_displayer_manager.h"
-#endif  // COMET_DEBUG
-
 #ifdef COMET_PROFILING
 namespace comet {
 namespace profiler {
@@ -20,24 +16,23 @@ ProfilerManager& ProfilerManager::Get() {
   return singleton;
 }
 
-void ProfilerManager::Update() const {
+void ProfilerManager::Update() {
 #ifdef COMET_DEBUG
   auto& physics_manager{physics::PhysicsManager::Get()};
   auto& rendering_manager{rendering::RenderingManager::Get()};
 
-  rendering::MiniProfilerPacket packet{};
-  packet.physics_frame_time = physics_manager.GetFrameTime();
-  packet.physics_frame_rate = physics_manager.GetFrameRate();
-  packet.rendering_driver_type = rendering_manager.GetDriverType();
-  packet.rendering_frame_time = rendering_manager.GetFrameTime();
-  packet.rendering_frame_rate = rendering_manager.GetFrameRate();
-  packet.rendering_draw_count = rendering_manager.GetDrawCount();
-  COMET_GET_MEMORY_USE(packet.memory_use);
-  COMET_GET_TAG_USE(packet.tag_use);
-
-  rendering::DebuggerDisplayerManager::Get().Update(packet);
+  data_.physics_frame_time = physics_manager.GetFrameTime();
+  data_.physics_frame_rate = physics_manager.GetFrameRate();
+  data_.rendering_driver_type = rendering_manager.GetDriverType();
+  data_.rendering_frame_time = rendering_manager.GetFrameTime();
+  data_.rendering_frame_rate = rendering_manager.GetFrameRate();
+  data_.rendering_draw_count = rendering_manager.GetDrawCount();
+  COMET_GET_MEMORY_USE(data_.memory_use);
+  COMET_GET_TAG_USE(data_.tag_use);
 #endif  // COMET_DEBUG
 }
+
+const ProfilerData& ProfilerManager::GetData() const noexcept { return data_; }
 }  // namespace profiler
 }  // namespace comet
 #endif  // COMET_PROFILING

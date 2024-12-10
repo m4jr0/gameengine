@@ -4,7 +4,7 @@
 
 #include "entity_manager.h"
 
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {

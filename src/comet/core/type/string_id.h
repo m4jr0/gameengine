@@ -9,6 +9,7 @@
 
 #include "comet/core/essentials.h"
 #ifdef COMET_LABELIZE_STRING_IDS
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 #endif  // COMET_LABELIZE_STRING_IDS
 
@@ -19,7 +20,7 @@ constexpr auto kInvalidStringId{static_cast<StringId>(-1)};
 
 #ifdef COMET_LABELIZE_STRING_IDS
 namespace internal {
-class StringIdAllocator {
+class StringIdAllocator : public memory::Allocator {
  public:
   StringIdAllocator() = delete;
   StringIdAllocator(usize capacity);
@@ -32,7 +33,8 @@ class StringIdAllocator {
   void Initialize();
   void Destroy();
 
-  void* Allocate(usize size);
+  void* AllocateAligned(usize size, memory::Alignment align) override;
+  void Deallocate(void*) override;
 
   // These functions are not thread-safe and must only be called during specific
   // synchronization points.
@@ -45,7 +47,6 @@ class StringIdAllocator {
   using StringIdAllocatorOffset = sptrdiff;
   static inline constexpr StringIdAllocatorOffset kInvalidOffset_{-1};
 
-  bool is_initialized_{false};
   usize capacity_{0};
   static_assert(std::atomic<StringIdAllocatorOffset>::is_always_lock_free,
                 "std::atomic<StringIdAllocatorOffset> needs to be always "

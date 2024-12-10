@@ -11,6 +11,7 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/profiler/profiler_data.h"
     "${PROJECT_SOURCE_DIR}/src/comet/profiler/profiler_manager.cc"
 )
 

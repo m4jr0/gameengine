@@ -9,13 +9,13 @@
 #include "comet/core/concurrency/provider/thread_provider.h"
 #include "comet/core/concurrency/provider/thread_provider_manager.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 
 namespace comet {
 namespace memory {
-class StackAllocator : public AlignedAllocator {
+class StackAllocator : public Allocator {
  public:
   StackAllocator() = default;
   StackAllocator(usize capacity, MemoryTag memory_tag);
@@ -37,13 +37,14 @@ class StackAllocator : public AlignedAllocator {
  private:
   using StackAllocatorMarker = u8*;
 
+  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize capacity_{0};
   u8* root_{nullptr};
   StackAllocatorMarker marker_{nullptr};
 };
 
-class FiberStackAllocator : public AlignedAllocator {
+class FiberStackAllocator : public Allocator {
  public:
   FiberStackAllocator() = delete;
   FiberStackAllocator(usize base_capacity, MemoryTag memory_tag);
@@ -85,7 +86,7 @@ class FiberStackAllocator : public AlignedAllocator {
   FiberStackAllocatorMarker marker_{nullptr};
 };
 
-class IOStackAllocator : public AlignedAllocator {
+class IOStackAllocator : public Allocator {
  public:
   IOStackAllocator() = delete;
   IOStackAllocator(usize thread_capacity, MemoryTag memory_tag);
@@ -114,13 +115,14 @@ class IOStackAllocator : public AlignedAllocator {
 
   using ThreadContexts = thread::IOThreadProvider<ThreadContext>;
 
+  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize thread_capacity_{0};
   ThreadContexts thread_contexts_{
       thread::ThreadProviderManager::Get().AllocateIOProvider<ThreadContext>()};
 };
 
-class LockFreeStackAllocator : public AlignedAllocator {
+class LockFreeStackAllocator : public Allocator {
  public:
   LockFreeStackAllocator() = delete;
   LockFreeStackAllocator(usize capacity, MemoryTag memory_tag);
@@ -154,7 +156,7 @@ class LockFreeStackAllocator : public AlignedAllocator {
 };
 
 template <typename Stack>
-class DoubleStackAllocator : public memory::AlignedAllocator {
+class DoubleStackAllocator : public memory::Allocator {
  public:
   DoubleStackAllocator(usize stack_capacity, MemoryTag memory_tag)
       : stacks_{Stack{stack_capacity, memory_tag},
@@ -167,13 +169,13 @@ class DoubleStackAllocator : public memory::AlignedAllocator {
   ~DoubleStackAllocator() = default;
 
   void Initialize() override {
-    AlignedAllocator::Initialize();
+    Allocator::Initialize();
     stacks_[0].Initialize();
     stacks_[1].Initialize();
   }
 
   void Destroy() override {
-    AlignedAllocator::Destroy();
+    Allocator::Destroy();
     stacks_[0].Destroy();
     stacks_[1].Destroy();
   }

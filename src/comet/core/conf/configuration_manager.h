@@ -5,17 +5,17 @@
 #ifndef COMET_COMET_CORE_CONF_CONFIGURATION_MANAGER_H_
 #define COMET_COMET_CORE_CONF_CONFIGURATION_MANAGER_H_
 
-#include <unordered_map>
-
 #include "comet/core/c_string.h"
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
 
 namespace comet {
 namespace conf {
-using ConfValues = std::unordered_map<ConfKey, ConfValue>;
+using ConfValues = Map<ConfKey, ConfValue>;
 
 class ConfigurationManager : public Manager {
  public:
@@ -80,6 +80,7 @@ class ConfigurationManager : public Manager {
  private:
   static constexpr auto kConfigFileRelativePath_{
       COMET_CTSTRING_VIEW("./comet_config.cfg")};
+  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagConfig};
   ConfValues values_{};
 };
 }  // namespace conf

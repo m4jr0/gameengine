@@ -4,14 +4,18 @@
 
 #include "debugger_displayer_manager.h"
 
+#ifdef COMET_PROFILING
 #include <algorithm>
 
+#include "comet/core/frame/frame_manager.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
+#include "comet/profiler/profiler_manager.h"
 
-#ifdef COMET_DEBUG
 #ifdef COMET_IMGUI
-#include "comet/rendering/debugger/imgui_utils.h"
 #include "imgui.h"
+
+#include "comet/rendering/debugger/imgui_utils.h"
 #endif  // COMET_IMGUI
 
 namespace comet {
@@ -21,21 +25,19 @@ DebuggerDisplayerManager& DebuggerDisplayerManager::Get() {
   return singleton;
 }
 
-void DebuggerDisplayerManager::Update(const MiniProfilerPacket& packet) {
-  mini_profiler_packet_ = packet;
-}
-
 void DebuggerDisplayerManager::Draw() {
 #ifdef COMET_IMGUI
+  auto& profiler_data{profiler::ProfilerManager::Get().GetData()};
+
   ImGui::Begin("Mini Profiler");
 
-  DrawPhysicsSection();
+  DrawPhysicsSection(profiler_data);
   ImGui::Spacing();
-  DrawRenderingSection();
+  DrawRenderingSection(profiler_data);
 
 #ifdef COMET_TRACK_ALLOCATIONS
   ImGui::Spacing();
-  DrawMemorySection();
+  DrawMemorySection(profiler_data);
 #endif  // COMET_TRACK_ALLOCATIONS
 
   ImGui::End();
@@ -43,32 +45,35 @@ void DebuggerDisplayerManager::Draw() {
 }
 
 #ifdef COMET_IMGUI
-void DebuggerDisplayerManager::DrawPhysicsSection() const {
+void DebuggerDisplayerManager::DrawPhysicsSection(
+    const profiler::ProfilerData& profiler_data) const {
   ImGui::Text("PHYSICS");
   ImGui::Indent();
-  ImGui::Text("Frame Time: %f ms", mini_profiler_packet_.physics_frame_time);
-  ImGui::Text("Framerate: %u Hz", mini_profiler_packet_.physics_frame_rate);
+  ImGui::Text("Frame Time: %f ms", profiler_data.physics_frame_time);
+  ImGui::Text("Framerate: %u Hz", profiler_data.physics_frame_rate);
   ImGui::Unindent();
 }
 
-void DebuggerDisplayerManager::DrawRenderingSection() const {
+void DebuggerDisplayerManager::DrawRenderingSection(
+    const profiler::ProfilerData& profiler_data) const {
   ImGui::Text("RENDERING");
   ImGui::Indent();
   ImGui::Text("Driver: %s",
-              GetDriverTypeLabel(mini_profiler_packet_.rendering_driver_type));
-  ImGui::Text("Frame Time: %f ms", mini_profiler_packet_.rendering_frame_time);
-  ImGui::Text("Framerate: %u FPS", mini_profiler_packet_.rendering_frame_rate);
-  ImGui::Text("Draw count: %u", mini_profiler_packet_.rendering_draw_count);
+              GetDriverTypeLabel(profiler_data.rendering_driver_type));
+  ImGui::Text("Frame Time: %f ms", profiler_data.rendering_frame_time);
+  ImGui::Text("Framerate: %u FPS", profiler_data.rendering_frame_rate);
+  ImGui::Text("Draw count: %u", profiler_data.rendering_draw_count);
   ImGui::Unindent();
 }
 
-void DebuggerDisplayerManager::DrawMemorySection() const {
+void DebuggerDisplayerManager::DrawMemorySection(
+    const profiler::ProfilerData& profiler_data) const {
   constexpr auto kBufferCapacity{512};
   schar buffer[kBufferCapacity];
   usize buffer_len;
 
-  memory::GetMemorySizeString(mini_profiler_packet_.memory_use, buffer,
-                              kBufferCapacity, &buffer_len);
+  memory::GetMemorySizeString(profiler_data.memory_use, buffer, kBufferCapacity,
+                              &buffer_len);
 
   ImGui::Text("MEMORY");
   ImGui::Indent();
@@ -86,28 +91,31 @@ void DebuggerDisplayerManager::DrawMemorySection() const {
       ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthStretch);
       ImGui::TableHeadersRow();
 
-      std::vector<std::pair<memory::MemoryTag, usize>> sorted_tags{
-          mini_profiler_packet_.tag_use.begin(),
-          mini_profiler_packet_.tag_use.end()};
+      Array<Pair<memory::MemoryTag, usize>> sorted_tags{
+          frame::FrameManager::Get().GetFrameAllocatorHandle()->allocator,
+          profiler_data.tag_use.GetEntryCount()};
 
-      std::sort(sorted_tags.begin(), sorted_tags.end(),
-                [](const auto& lhs, const auto& rhs) {
-                  return lhs.first < rhs.first;
-                });
+      for (auto& pair : profiler_data.tag_use) {
+        sorted_tags.PushBack(pair);
+      }
+
+      std::sort(
+          sorted_tags.begin(), sorted_tags.end(),
+          [](const auto& lhs, const auto& rhs) { return lhs.key < rhs.key; });
 
       usize total_size{0};
 
       AddTableEntries(
           sorted_tags,
           [](const auto& entry) -> const schar* {
-            return memory::GetMemoryTagLabel(entry.first);
+            return memory::GetMemoryTagLabel(entry.key);
           },
           [&](const auto& entry) {
-            memory::GetMemorySizeString(entry.second, buffer, kBufferCapacity,
+            memory::GetMemorySizeString(entry.value, buffer, kBufferCapacity,
                                         &buffer_len);
 
-            if (entry.first != memory::kEngineMemoryTagRenderingDevice) {
-              total_size += entry.second;
+            if (entry.key != memory::kEngineMemoryTagRenderingDevice) {
+              total_size += entry.value;
             }
 
             ImGui::Text("%s", buffer);
@@ -121,7 +129,7 @@ void DebuggerDisplayerManager::DrawMemorySection() const {
 
       AddTableRow("UNTRACKED", [&]() -> const schar* {
         memory::GetMemorySizeString(
-            static_cast<ssize>(mini_profiler_packet_.memory_use) -
+            static_cast<ssize>(profiler_data.memory_use) -
                 static_cast<ssize>(total_size),
             buffer, kBufferCapacity, &buffer_len);
         return buffer;
@@ -136,4 +144,4 @@ void DebuggerDisplayerManager::DrawMemorySection() const {
 #endif  // COMET_IMGUI
 }  // namespace rendering
 }  // namespace comet
-#endif  // COMET_DEBUG
+#endif  //  COMET_PROFILING

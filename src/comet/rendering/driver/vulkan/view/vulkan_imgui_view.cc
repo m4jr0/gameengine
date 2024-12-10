@@ -9,7 +9,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/stl_types.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -161,9 +161,9 @@ void ImGuiView::Update(const ViewPacket& packet) {
 }
 
 void vk::ImGuiView::Draw() const {
-#ifdef COMET_DEBUG
+#ifdef COMET_PROFILING
   DebuggerDisplayerManager::Get().Draw();
-#endif  // COMET_DEBUG
+#endif  // COMET_PROFILING
 }
 }  // namespace vk
 }  // namespace rendering

@@ -53,9 +53,9 @@ class ShaderHandler : public Handler {
   void Shutdown() override;
 
   Shader* Generate(const ShaderDescr& descr);
-  Shader* Get(ShaderId shader_id);
-  Shader* TryGet(ShaderId shader_id);
-  void Destroy(ShaderId shader_id);
+  Shader* Get(ShaderId id);
+  Shader* TryGet(ShaderId id);
+  void Destroy(ShaderId id);
   void Destroy(Shader& shader);
   void Bind(Shader& shader);
   void BindGlobal(Shader& shader) const;

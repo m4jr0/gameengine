@@ -58,7 +58,7 @@ class TaggedHeap {
 
   struct TagBlockMap {
     MemoryTag tag{kEngineMemoryTagUntagged};
-    FixedBitset block_map{};
+    Bitset block_map{};
   };
 
   void* AllocateInternal(usize size, MemoryTag tag, usize& block_count);
@@ -70,7 +70,7 @@ class TaggedHeap {
   usize block_size_{0};
   usize capacity_{COMET_CONF_U32(conf::kCoreTaggedHeapCapacity)};
   MemoryDescr memory_descr_{GetMemoryDescr()};
-  FixedBitset global_block_map_{};
+  Bitset global_block_map_{};
   TagBlockMap tag_block_maps_[kBucketCount_][kTagsPerBucketCount_]{};
   PlatformStackAllocator bitset_allocator_{};
   mutable fiber::FiberMutex mutex_{};

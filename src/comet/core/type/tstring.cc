@@ -6,16 +6,16 @@
 
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
+#include "comet/core/hash.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {
 namespace internal {
-thread_local memory::AlignedAllocatorHandle tls_tstring_allocator_handle{
-    nullptr};
+thread_local memory::AllocatorHandle tls_tstring_allocator_handle{nullptr};
 
-memory::AlignedAllocator* GetTStringAllocator() {
+memory::Allocator* GetTStringAllocator() {
   return tls_tstring_allocator_handle != nullptr
              ? tls_tstring_allocator_handle->allocator
              : &TStringAllocator::Get();
@@ -41,7 +41,7 @@ void InitializeTStrings() { internal::TStringAllocator::Get().Initialize(); }
 
 void DestroyTStrings() { internal::TStringAllocator::Get().Destroy(); }
 
-void AttachTStringAllocator(memory::AlignedAllocatorHandle handle) {
+void AttachTStringAllocator(memory::AllocatorHandle handle) {
   COMET_ASSERT(handle != nullptr, "TString allocator handle provided is null!");
   internal::tls_tstring_allocator_handle = handle;
 }
@@ -133,8 +133,8 @@ void TString::Clear() {
     return;
   }
 
+  Deallocate();
   GetTStr()[0] = COMET_TCHAR('\0');
-  length_ = 0;
 }
 
 TString& TString::Append(const TString& str) {
@@ -712,4 +712,12 @@ TString& operator/=(TString& str1, const tchar* str2) {
 }
 
 TString& operator/=(TString& str, tchar c) { return operator/=(str, &c); }
+
+u32 Generatehash(const TString& value) {
+  return GenerateHash(value.GetCTStr());
+}
+
+u32 Generatehash(const CTStringView& value) {
+  return GenerateHash(value.GetCTStr());
+}
 }  // namespace comet

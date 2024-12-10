@@ -57,7 +57,7 @@ class ShaderHandler : public Handler {
   void Destroy(Shader& shader);
   void Bind(Shader& shader);
   void BindGlobal(Shader& shader) const;
-  void BindInstance(Shader& shader, MaterialId instance_id) const;
+  void BindInstance(Shader& shader, MaterialInstanceId instance_id) const;
   void Reset();
   void UpdateGlobal(Shader& shader, const ShaderPacket& packet) const;
   void UpdateLocal(Shader& shader, const ShaderLocalPacket& packet);

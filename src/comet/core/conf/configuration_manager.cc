@@ -18,82 +18,84 @@ ConfigurationManager& ConfigurationManager::Get() {
 
 void ConfigurationManager::Initialize() {
   Manager::Initialize();
+  allocator_.Initialize();
+  values_ = ConfValues{&allocator_};
 
-  values_.insert({kApplicationName, GetDefaultValue(kApplicationName)});
-
-  values_.insert(
-      {kApplicationMajorVersion, GetDefaultValue(kApplicationMajorVersion)});
-  values_.insert(
-      {kApplicationMinorVersion, GetDefaultValue(kApplicationMinorVersion)});
-  values_.insert(
-      {kApplicationPatchVersion, GetDefaultValue(kApplicationPatchVersion)});
-  values_.insert({kCoreMsPerUpdate, GetDefaultValue(kCoreMsPerUpdate)});
-  values_.insert({kCoreForcedFiberWorkerCount,
-                  GetDefaultValue(kCoreForcedFiberWorkerCount)});
-  values_.insert(
-      {kCoreForcedIOWorkerCount, GetDefaultValue(kCoreForcedIOWorkerCount)});
-  values_.insert({kCoreLargeFiberCount, GetDefaultValue(kCoreLargeFiberCount)});
-  values_.insert(
-      {kCoreGiganticFiberCount, GetDefaultValue(kCoreGiganticFiberCount)});
-  values_.insert({kCoreExternalLibraryFiberCount,
-                  GetDefaultValue(kCoreExternalLibraryFiberCount)});
-  values_.insert({kCoreJobCounterCount, GetDefaultValue(kCoreJobCounterCount)});
-  values_.insert({kCoreJobQueueCount, GetDefaultValue(kCoreJobQueueCount)});
-  values_.insert({kCoreIsMainThreadWorkerDisabled,
-                  GetDefaultValue(kCoreIsMainThreadWorkerDisabled)});
-  values_.insert(
-      {kCoreTaggedHeapCapacity, GetDefaultValue(kCoreTaggedHeapCapacity)});
-  values_.insert({kCoreFiberFrameAllocatorBaseCapacity,
-                  GetDefaultValue(kCoreFiberFrameAllocatorBaseCapacity)});
-  values_.insert({kCoreIOFrameAllocatorBaseCapacity,
-                  GetDefaultValue(kCoreIOFrameAllocatorBaseCapacity)});
-  values_.insert({kCoreTStringAllocatorCapacity,
-                  GetDefaultValue(kCoreTStringAllocatorCapacity)});
-  values_.insert({kEventMaxQueueSize, GetDefaultValue(kEventMaxQueueSize)});
-  values_.insert({kRenderingDriver, GetDefaultValue(kRenderingDriver)});
-  values_.insert(
-      {kRenderingWindowWidth, GetDefaultValue(kRenderingWindowWidth)});
-  values_.insert(
-      {kRenderingWindowHeight, GetDefaultValue(kRenderingWindowHeight)});
-  values_.insert(
-      {kRenderingClearColorR, GetDefaultValue(kRenderingClearColorR)});
-  values_.insert(
-      {kRenderingClearColorG, GetDefaultValue(kRenderingClearColorG)});
-  values_.insert(
-      {kRenderingClearColorB, GetDefaultValue(kRenderingClearColorB)});
-  values_.insert(
-      {kRenderingClearColorA, GetDefaultValue(kRenderingClearColorA)});
-  values_.insert({kRenderingIsVsync, GetDefaultValue(kRenderingIsVsync)});
-  values_.insert({kRenderingIsTripleBuffering,
-                  GetDefaultValue(kRenderingIsTripleBuffering)});
-  values_.insert({kRenderingFpsCap, GetDefaultValue(kRenderingFpsCap)});
-  values_.insert(
-      {kRenderingAntiAliasing, GetDefaultValue(kRenderingAntiAliasing)});
-  values_.insert({kRenderingIsSamplerAnisotropy,
-                  GetDefaultValue(kRenderingIsSamplerAnisotropy)});
-  values_.insert({kRenderingIsSampleRateShading,
-                  GetDefaultValue(kRenderingIsSampleRateShading)});
-  values_.insert({kRenderingOpenGlMajorVersion,
-                  GetDefaultValue(kRenderingOpenGlMajorVersion)});
-  values_.insert({kRenderingOpenGlMinorVersion,
-                  GetDefaultValue(kRenderingOpenGlMinorVersion)});
-  values_.insert({kRenderingVulkanVariantVersion,
-                  GetDefaultValue(kRenderingVulkanVariantVersion)});
-  values_.insert({kRenderingVulkanMajorVersion,
-                  GetDefaultValue(kRenderingVulkanMajorVersion)});
-  values_.insert({kRenderingVulkanMinorVersion,
-                  GetDefaultValue(kRenderingVulkanMinorVersion)});
-  values_.insert({kRenderingVulkanPatchVersion,
-                  GetDefaultValue(kRenderingVulkanPatchVersion)});
-  values_.insert({kRenderingVulkanMaxFramesInFlight,
-                  GetDefaultValue(kRenderingVulkanMaxFramesInFlight)});
-  values_.insert({kResourceRootPath, GetDefaultValue(kResourceRootPath)});
+  values_.Emplace(kApplicationName, GetDefaultValue(kApplicationName));
+  values_.Emplace(kApplicationMajorVersion,
+                  GetDefaultValue(kApplicationMajorVersion));
+  values_.Emplace(kApplicationMinorVersion,
+                  GetDefaultValue(kApplicationMinorVersion));
+  values_.Emplace(kApplicationPatchVersion,
+                  GetDefaultValue(kApplicationPatchVersion));
+  values_.Emplace(kCoreMsPerUpdate, GetDefaultValue(kCoreMsPerUpdate));
+  values_.Emplace(kCoreForcedFiberWorkerCount,
+                  GetDefaultValue(kCoreForcedFiberWorkerCount));
+  values_.Emplace(kCoreForcedIOWorkerCount,
+                  GetDefaultValue(kCoreForcedIOWorkerCount));
+  values_.Emplace(kCoreLargeFiberCount, GetDefaultValue(kCoreLargeFiberCount));
+  values_.Emplace(kCoreGiganticFiberCount,
+                  GetDefaultValue(kCoreGiganticFiberCount));
+  values_.Emplace(kCoreExternalLibraryFiberCount,
+                  GetDefaultValue(kCoreExternalLibraryFiberCount));
+  values_.Emplace(kCoreJobCounterCount, GetDefaultValue(kCoreJobCounterCount));
+  values_.Emplace(kCoreJobQueueCount, GetDefaultValue(kCoreJobQueueCount));
+  values_.Emplace(kCoreIsMainThreadWorkerDisabled,
+                  GetDefaultValue(kCoreIsMainThreadWorkerDisabled));
+  values_.Emplace(kCoreTaggedHeapCapacity,
+                  GetDefaultValue(kCoreTaggedHeapCapacity));
+  values_.Emplace(kCoreFiberFrameAllocatorBaseCapacity,
+                  GetDefaultValue(kCoreFiberFrameAllocatorBaseCapacity));
+  values_.Emplace(kCoreIOFrameAllocatorBaseCapacity,
+                  GetDefaultValue(kCoreIOFrameAllocatorBaseCapacity));
+  values_.Emplace(kCoreTStringAllocatorCapacity,
+                  GetDefaultValue(kCoreTStringAllocatorCapacity));
+  values_.Emplace(kEventMaxQueueSize, GetDefaultValue(kEventMaxQueueSize));
+  values_.Emplace(kRenderingDriver, GetDefaultValue(kRenderingDriver));
+  values_.Emplace(kRenderingWindowWidth,
+                  GetDefaultValue(kRenderingWindowWidth));
+  values_.Emplace(kRenderingWindowHeight,
+                  GetDefaultValue(kRenderingWindowHeight));
+  values_.Emplace(kRenderingClearColorR,
+                  GetDefaultValue(kRenderingClearColorR));
+  values_.Emplace(kRenderingClearColorG,
+                  GetDefaultValue(kRenderingClearColorG));
+  values_.Emplace(kRenderingClearColorB,
+                  GetDefaultValue(kRenderingClearColorB));
+  values_.Emplace(kRenderingClearColorA,
+                  GetDefaultValue(kRenderingClearColorA));
+  values_.Emplace(kRenderingIsVsync, GetDefaultValue(kRenderingIsVsync));
+  values_.Emplace(kRenderingIsTripleBuffering,
+                  GetDefaultValue(kRenderingIsTripleBuffering));
+  values_.Emplace(kRenderingFpsCap, GetDefaultValue(kRenderingFpsCap));
+  values_.Emplace(kRenderingAntiAliasing,
+                  GetDefaultValue(kRenderingAntiAliasing));
+  values_.Emplace(kRenderingIsSamplerAnisotropy,
+                  GetDefaultValue(kRenderingIsSamplerAnisotropy));
+  values_.Emplace(kRenderingIsSampleRateShading,
+                  GetDefaultValue(kRenderingIsSampleRateShading));
+  values_.Emplace(kRenderingOpenGlMajorVersion,
+                  GetDefaultValue(kRenderingOpenGlMajorVersion));
+  values_.Emplace(kRenderingOpenGlMinorVersion,
+                  GetDefaultValue(kRenderingOpenGlMinorVersion));
+  values_.Emplace(kRenderingVulkanVariantVersion,
+                  GetDefaultValue(kRenderingVulkanVariantVersion));
+  values_.Emplace(kRenderingVulkanMajorVersion,
+                  GetDefaultValue(kRenderingVulkanMajorVersion));
+  values_.Emplace(kRenderingVulkanMinorVersion,
+                  GetDefaultValue(kRenderingVulkanMinorVersion));
+  values_.Emplace(kRenderingVulkanPatchVersion,
+                  GetDefaultValue(kRenderingVulkanPatchVersion));
+  values_.Emplace(kRenderingVulkanMaxFramesInFlight,
+                  GetDefaultValue(kRenderingVulkanMaxFramesInFlight));
+  values_.Emplace(kResourceRootPath, GetDefaultValue(kResourceRootPath));
 
   ParseConfFile();
 }
 
 void ConfigurationManager::Shutdown() {
-  values_.clear();
+  values_.Clear();
+  allocator_.Destroy();
   Manager::Shutdown();
 }
 
@@ -158,17 +160,17 @@ void ConfigurationManager::ParseConfFile() {
 }
 
 ConfValue& ConfigurationManager::Get(ConfKey key) {
-  auto it{values_.find(key)};
-  COMET_ASSERT(it != values_.end(),
+  auto* value{values_.TryGet(key)};
+  COMET_ASSERT(value != nullptr,
                "Unknown configuration key: ", COMET_STRING_ID_LABEL(key), "!");
-  return it->second;
+  return *value;
 }
 
 const ConfValue& ConfigurationManager::Get(ConfKey key) const {
-  const auto it{values_.find(key)};
-  COMET_ASSERT(it != values_.end(),
+  const auto* value{values_.TryGet(key)};
+  COMET_ASSERT(value != nullptr,
                "Unknown configuration key: ", COMET_STRING_ID_LABEL(key), "!");
-  return it->second;
+  return *value;
 }
 
 const schar* ConfigurationManager::GetStr(ConfKey key) const {
@@ -242,7 +244,7 @@ bool ConfigurationManager::GetBool(ConfKey key) const {
 }
 
 void ConfigurationManager::Set(ConfKey key, const ConfValue& value) {
-  values_.emplace(key, value);
+  values_.Emplace(key, value);
 }
 
 void ConfigurationManager::SetStr(ConfKey key, const schar* value) {

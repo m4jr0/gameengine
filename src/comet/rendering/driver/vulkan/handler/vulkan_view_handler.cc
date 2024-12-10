@@ -6,7 +6,7 @@
 
 #include "vulkan/vulkan.h"
 
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"

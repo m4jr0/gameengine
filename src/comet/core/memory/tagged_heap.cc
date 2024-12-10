@@ -7,6 +7,7 @@
 #include <new>
 
 #include "comet/core/memory/allocation_tracking.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/virtual_memory.h"
 
 namespace comet {
@@ -42,16 +43,16 @@ void TaggedHeap::Initialize() {
   // Set the capacity for all bitsets (including the global one), with
   // additional alignment overhead.
   bitset_allocator_ = PlatformStackAllocator{
-      FixedBitset::GetWordCountFromBitCount(total_block_count_) *
-              sizeof(FixedBitset::Word) * (kMaxTagCount_ + 1) +
-          alignof(FixedBitset::Word),
+      Bitset::GetWordCountFromBitCount(total_block_count_) *
+              sizeof(Bitset::Word) * (kMaxTagCount_ + 1) +
+          alignof(Bitset::Word),
       kEngineMemoryTagTaggedHeap};
   bitset_allocator_.Initialize();
-  global_block_map_ = FixedBitset{&bitset_allocator_, total_block_count_};
+  global_block_map_ = Bitset{&bitset_allocator_, total_block_count_};
 
   for (auto& bucket : tag_block_maps_) {
     for (auto& entry : bucket) {
-      entry.block_map = FixedBitset{&bitset_allocator_, total_block_count_};
+      entry.block_map = Bitset{&bitset_allocator_, total_block_count_};
       entry.tag = kEngineMemoryTagInvalid;
     }
   }
@@ -63,11 +64,11 @@ void TaggedHeap::Destroy() {
   COMET_ASSERT(is_initialized_,
                "Tried to destroy tagged heap, but it is not initialized!");
 
-  global_block_map_ = {};
+  global_block_map_.Clear();
 
   for (auto& bucket : tag_block_maps_) {
     for (auto& entry : bucket) {
-      entry.block_map = {};
+      entry.block_map.Clear();
       entry.tag = kEngineMemoryTagInvalid;
     }
   }

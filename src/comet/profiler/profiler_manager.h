@@ -9,6 +9,7 @@
 
 #ifdef COMET_PROFILING
 #include "comet/core/manager.h"
+#include "comet/profiler/profiler_data.h"
 
 namespace comet {
 namespace profiler {
@@ -23,7 +24,12 @@ class ProfilerManager : public Manager {
   ProfilerManager& operator=(ProfilerManager&&) = delete;
   virtual ~ProfilerManager() = default;
 
-  void Update() const;
+  void Update();
+
+  const ProfilerData& GetData() const noexcept;
+
+ private:
+  ProfilerData data_{};
 };
 }  // namespace profiler
 }  // namespace comet

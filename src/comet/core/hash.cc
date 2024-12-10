@@ -4,8 +4,6 @@
 
 #include "hash.h"
 
-#include <vector>
-
 namespace comet {
 constexpr static u32 kCrc32Table[] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
@@ -67,8 +65,72 @@ void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len) {
   COMET_ASSERT(buffer_len >= kSha256DigestSize,
                "Buffer length is too small: ", buffer_len, " < ",
                kSha256DigestSize, "!");
-
-  auto checksum{std::vector<u8>(picosha2::k_digest_size)};
   picosha2::hash256(stream, buffer, buffer + buffer_len);
+}
+
+u32 GenerateHash(s32 value) { return static_cast<u32>(value) * kFnvPrime32; }
+
+u32 GenerateHash(u32 value) { return static_cast<u32>(value) * kFnvPrime32; }
+
+u32 GenerateHash(s64 value) {
+  return static_cast<u32>(value) ^ static_cast<u32>(value >> 32);
+}
+
+u32 GenerateHash(u64 value) {
+  return static_cast<u32>(value) ^ static_cast<u32>(value >> 32);
+}
+
+u32 GenerateHash(f32 value) {
+  return *reinterpret_cast<const u32*>(&value) * kFnvPrime32;
+}
+
+u32 GenerateHash(f64 value) {
+  auto cast{*reinterpret_cast<const u64*>(&value)};
+  return static_cast<u32>(cast ^ (cast >> 32)) * kFnvPrime32;
+}
+
+u32 GenerateHash(schar value) { return static_cast<u32>(value) * kFnvPrime32; }
+
+u32 GenerateHash(wchar value) { return static_cast<u32>(value) * kFnvPrime32; }
+
+u32 GenerateHash(const schar* value) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  u32 hash{kFnvOffsetBasis32};
+
+  while (*value != '\0') {
+    hash ^= static_cast<u32>(*value);
+    hash *= kFnvPrime32;
+    ++value;
+  }
+
+  return hash;
+}
+
+u32 GenerateHash(const wchar* value) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  u32 hash{kFnvOffsetBasis32};
+
+  while (*value != L'\0') {
+    hash ^= static_cast<u32>(*value);
+    hash *= kFnvPrime32;
+    ++value;
+  }
+
+  return hash;
+}
+
+u32 GenerateHash(const void* value) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  auto cast{reinterpret_cast<uptr>(value)};
+  return static_cast<u32>(cast) ^ static_cast<u32>(cast >> 32);
 }
 }  // namespace comet

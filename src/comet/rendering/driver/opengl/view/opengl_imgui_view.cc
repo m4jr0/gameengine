@@ -52,9 +52,9 @@ void ImGuiView::Update(const ViewPacket&) {
 }
 
 void gl::ImGuiView::Draw() const {
-#ifdef COMET_DEBUG
+#ifdef COMET_PROFILING
   DebuggerDisplayerManager::Get().Draw();
-#endif  // COMET_DEBUG
+#endif  // COMET_PROFILING
 }
 }  // namespace gl
 }  // namespace rendering

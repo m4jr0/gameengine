@@ -5,27 +5,15 @@
 #ifndef COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_
 #define COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_
 
-#include <unordered_map>
-
 #include "comet/core/essentials.h"
+
+#ifdef COMET_PROFILING
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/profiler/profiler_data.h"
 
-#ifdef COMET_DEBUG
 namespace comet {
 namespace rendering {
-struct MiniProfilerPacket {
-  f32 physics_frame_time{0};
-  u32 physics_frame_rate{0};
-  f32 rendering_frame_time{0};
-  u32 rendering_frame_rate{0};
-  u32 rendering_draw_count{0};
-  DriverType rendering_driver_type{DriverType::Unknown};
-  usize memory_use{0};
-  std::unordered_map<memory::MemoryTag, usize> tag_use{};
-};
-
 class DebuggerDisplayerManager : public Manager {
  public:
   static DebuggerDisplayerManager& Get();
@@ -37,20 +25,17 @@ class DebuggerDisplayerManager : public Manager {
   DebuggerDisplayerManager& operator=(DebuggerDisplayerManager&&) = delete;
   virtual ~DebuggerDisplayerManager() = default;
 
-  void Update(const MiniProfilerPacket& packet);
   void Draw();
 
  private:
 #ifdef COMET_IMGUI
-  void DrawPhysicsSection() const;
-  void DrawRenderingSection() const;
-  void DrawMemorySection() const;
+  void DrawPhysicsSection(const profiler::ProfilerData& profiler_data) const;
+  void DrawRenderingSection(const profiler::ProfilerData& profiler_data) const;
+  void DrawMemorySection(const profiler::ProfilerData& profiler_data) const;
 #endif  // COMET_IMGUI
-
-  MiniProfilerPacket mini_profiler_packet_{};
 };
 }  // namespace rendering
 }  // namespace comet
-#endif  // COMET_DEBUG
+#endif  // COMET_PROFILING
 
 #endif  // COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_

@@ -7,12 +7,12 @@
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/aligned_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace memory {
-class FiberFreeListAllocator : public AlignedAllocator {
+class FiberFreeListAllocator : public Allocator {
  public:
   FiberFreeListAllocator() = default;
   FiberFreeListAllocator(usize allocation_unit, usize block_count,

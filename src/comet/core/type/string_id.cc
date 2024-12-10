@@ -9,10 +9,15 @@
 #include "comet/core/c_string.h"
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
-#include "comet/core/memory/memory_general_alloc.h"
+#include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_LABELIZE_STRING_IDS
-#include <unordered_map>
+#include <atomic>
+#include <mutex>
+#include <shared_mutex>
+
+#include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/map.h"
 #endif  // COMET_LABELIZE_STRING_IDS
 
 namespace comet {
@@ -20,9 +25,32 @@ namespace stringid {
 #ifdef COMET_LABELIZE_STRING_IDS
 namespace internal {
 struct DebugData {
-  // TODO(m4jr0): Find lock-free solution.
-  std::unordered_map<StringId, schar*> string_id_table{};
-  StringIdAllocator string_id_allocator_{2097152};  // 2 MiB.
+  StringIdAllocator string_id_allocator{2097152};  // 2 MiB.
+  // TODO(m4jr0): Consider lock-free solution.
+  Map<StringId, schar*> label_table{};
+  std::shared_mutex label_mutex{};
+
+  void Initialize() {
+    string_id_allocator.Initialize();
+    label_table = Map<StringId, schar*>{&string_id_allocator};
+  }
+
+  void Destroy() {
+    label_table.Clear();
+    string_id_allocator.Destroy();
+  }
+
+  bool IsInitialized() const noexcept {
+    return string_id_allocator.IsInitialized();
+  }
+
+  void InitializeIfNeeded() {
+    if (IsInitialized()) {
+      return;
+    }
+
+    Initialize();
+  }
 };
 
 StringIdAllocator::StringIdAllocator(usize capacity)
@@ -55,25 +83,36 @@ void StringIdAllocator::Destroy() {
   is_initialized_ = false;
 }
 
-void* StringIdAllocator::Allocate(usize size) {
+void* StringIdAllocator::AllocateAligned(usize size, memory::Alignment align) {
+  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
   auto current_offset{offset_.load(std::memory_order_relaxed)};
   COMET_ASSERT(current_offset >= 0, "Invalid offset: ", current_offset, "!");
-  auto aligned_offset{memory::AlignAddress(current_offset, alignof(schar))};
+  auto aligned_offset{
+      memory::AlignAddress(reinterpret_cast<uptr>(root_ + current_offset),
+                           align) -
+      reinterpret_cast<uptr>(root_)};
   auto new_offset{aligned_offset + size};
 
-  COMET_ASSERT(new_offset <= capacity_, "Could not allocate enough memory (",
+  COMET_ASSERT(new_offset < capacity_, "Could not allocate enough memory (",
                size, ")!");
 
   while (!offset_.compare_exchange_weak(current_offset, new_offset,
                                         std::memory_order_acquire)) {
     COMET_ASSERT(current_offset >= 0, "Invalid offset: ", current_offset, "!");
-    aligned_offset = memory::AlignAddress(current_offset, alignof(schar));
+    aligned_offset = memory::AlignAddress(
+        reinterpret_cast<uptr>(root_ + current_offset), align);
     new_offset = aligned_offset + size;
-    COMET_ASSERT(new_offset <= capacity_, "Could not allocate enough memory (",
+    COMET_ASSERT(new_offset > capacity_, "Could not allocate enough memory (",
                  size, ")!");
   }
 
   return root_ + aligned_offset;
+}
+
+void StringIdAllocator::Deallocate(void*) {
+  // A stack allocator does not support individual deallocations, as it is
+  // intended for temporary data only. Memory is only released when Clear() is
+  // called, which resets the entire stack.
 }
 
 void StringIdAllocator::Clear() { offset_.store(0, std::memory_order_release); }
@@ -93,14 +132,17 @@ static DebugData& GetDebugData() {
 
 StringIdHandler::~StringIdHandler() {
 #ifdef COMET_LABELIZE_STRING_IDS
-  if (internal::GetDebugData().string_id_table.size() == 0) {
+  auto& debug_data{internal::GetDebugData()};
+  std::unique_lock<std::shared_mutex> lock{debug_data.label_mutex};
+
+  if (debug_data.label_table.GetEntryCount() == 0) {
     return;
   }
 
-  internal::GetDebugData().string_id_table.clear();
+  debug_data.label_table.Clear();
 
-  if (internal::GetDebugData().string_id_allocator_.IsInitialized()) {
-    internal::GetDebugData().string_id_allocator_.Destroy();
+  if (debug_data.string_id_allocator.IsInitialized()) {
+    debug_data.string_id_allocator.Destroy();
   }
 #endif  // COMET_LABELIZE_STRING_IDS
 }
@@ -112,18 +154,16 @@ StringId StringIdHandler::Generate(const schar* str, usize length) {
   const auto string_id{HashCrC32(str, length)};
 
 #ifdef COMET_LABELIZE_STRING_IDS
-  const auto it{internal::GetDebugData().string_id_table.find(string_id)};
+  auto& debug_data{internal::GetDebugData()};
+  std::unique_lock<std::shared_mutex> lock{debug_data.label_mutex};
+  debug_data.InitializeIfNeeded();
 
-  if (it == internal::GetDebugData().string_id_table.end()) {
-    if (!internal::GetDebugData().string_id_allocator_.IsInitialized()) {
-      internal::GetDebugData().string_id_allocator_.Initialize();
-    }
-
-    auto* saved_str{reinterpret_cast<schar*>(
-        internal::GetDebugData().string_id_allocator_.Allocate(length + 1))};
+  if (!debug_data.label_table.IsContained(string_id)) {
+    auto* saved_str{
+        debug_data.string_id_allocator.AllocateMany<schar>(length + 1)};
     Copy(saved_str, str, length);
     saved_str[length] = '\0';
-    internal::GetDebugData().string_id_table[string_id] = saved_str;
+    debug_data.label_table.Emplace(string_id, saved_str);
   }
 #endif  // COMET_LABELIZE_STRING_IDS
 
@@ -147,20 +187,23 @@ StringId StringIdHandler::Generate(const wchar* str) {
 // stored.
 const schar* StringIdHandler::Labelize(StringId string_id) const {
 #ifdef COMET_LABELIZE_STRING_IDS
-  const auto it{internal::GetDebugData().string_id_table.find(string_id)};
+  auto& debug_data{internal::GetDebugData()};
+  std::shared_lock<std::shared_mutex> lock{debug_data.label_mutex};
+  debug_data.InitializeIfNeeded();
+  const auto* label{debug_data.label_table.TryGet(string_id)};
 
-  if (it == internal::GetDebugData().string_id_table.end()) {
+  if (label == nullptr) {
 #endif  // COMET_LABELIZE_STRING_IDS
-    auto* label{GenerateForOneFrame<schar>(12)};
-    label[0] = '?';
-    ConvertToStr(string_id, label + 1, 12);
-    label[11] = '?';
-    label[12] = '\0';
-    return label;
+    auto* placeholder{GenerateForOneFrame<schar>(12)};
+    placeholder[0] = '?';
+    ConvertToStr(string_id, placeholder + 1, 12);
+    placeholder[11] = '?';
+    placeholder[12] = '\0';
+    return placeholder;
 #ifdef COMET_LABELIZE_STRING_IDS
   }
 
-  return internal::GetDebugData().string_id_table.at(string_id);
+  return *label;
 #endif  // COMET_LABELIZE_STRING_IDS
 }
 

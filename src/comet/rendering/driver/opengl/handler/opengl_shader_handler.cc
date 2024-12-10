@@ -5,7 +5,7 @@
 #include "opengl_shader_handler.h"
 
 #include "comet/core/c_string.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 
@@ -105,15 +105,16 @@ Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   return &insert_pair.first->second;
 }
 
-Shader* ShaderHandler::Get(ShaderId shader_id) {
-  auto* shader{TryGet(shader_id)};
-  COMET_ASSERT(shader != nullptr, "Requested shader does not exist: ",
-               COMET_STRING_ID_LABEL(shader_id), "!");
+Shader* ShaderHandler::Get(ShaderId id) {
+  auto* shader{TryGet(id)};
+  COMET_ASSERT(shader != nullptr,
+               "Requested shader does not exist: ", COMET_STRING_ID_LABEL(id),
+               "!");
   return shader;
 }
 
-Shader* ShaderHandler::TryGet(ShaderId shader_id) {
-  auto it{shaders_.find(shader_id)};
+Shader* ShaderHandler::TryGet(ShaderId id) {
+  auto it{shaders_.find(id)};
 
   if (it == shaders_.end()) {
     return nullptr;
@@ -122,7 +123,7 @@ Shader* ShaderHandler::TryGet(ShaderId shader_id) {
   return &it->second;
 }
 
-void ShaderHandler::Destroy(ShaderId shader_id) { Destroy(*Get(shader_id)); }
+void ShaderHandler::Destroy(ShaderId id) { Destroy(*Get(id)); }
 
 void ShaderHandler::Destroy(Shader& shader) { Destroy(shader, false); }
 
@@ -224,12 +225,9 @@ void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
   }
 }
 
-void ShaderHandler::SetUniform(ShaderHandle handle,
-                               const ShaderUniform& uniform, const void* value,
-                               bool is_update) {
-  auto* shader{Get(handle)};
-  COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from handle ",
-               handle, ", but instance is null!");
+void ShaderHandler::SetUniform(ShaderId id, const ShaderUniform& uniform,
+                               const void* value, bool is_update) {
+  auto* shader{Get(id)};
   SetUniform(*shader, uniform, value, is_update);
 }
 
@@ -241,11 +239,9 @@ void ShaderHandler::SetUniform(Shader& shader, ShaderUniformLocation index,
   SetUniform(shader, shader.uniforms[index], value, is_update);
 }
 
-void ShaderHandler::SetUniform(ShaderHandle handle, ShaderUniformLocation index,
+void ShaderHandler::SetUniform(ShaderId id, ShaderUniformLocation index,
                                const void* value, bool is_update) {
-  auto* shader{Get(handle)};
-  COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from handle ",
-               handle, ", but instance is null!");
+  auto* shader{Get(id)};
   SetUniform(*shader, index, value, is_update);
 }
 

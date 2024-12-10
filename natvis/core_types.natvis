@@ -1,18 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-  <Type Name="comet::FixedArray&lt;*&gt;">
-    <DisplayString>size={size_}</DisplayString>
-    <Expand>
-      <Item Name="Size">size_</Item>
-      <Item Name="Data Pointer">data_</Item>
-      <ArrayItems>
-        <Size>size_</Size>
-        <ValuePointer>data_</ValuePointer>
-      </ArrayItems>
-    </Expand>
-  </Type>
-
-  <Type Name="comet::DynamicArray&lt;*&gt;">
+  <Type Name="comet::Array&lt;*&gt;">
     <DisplayString>size={size_}, capacity={capacity_}</DisplayString>
     <Expand>
       <Item Name="Size">size_</Item>
@@ -38,7 +26,7 @@
     </Expand>
   </Type>
 
-  <Type Name="comet::FixedBitset">
+  <Type Name="comet::Bitset">
     <DisplayString>size={bit_count_}</DisplayString>
     <Expand>
       <Item Name="Size">bit_count_</Item>
@@ -89,7 +77,7 @@
       <Item Name="Head">head_</Item>
       <IndexListItems>
         <Size>size_</Size>
-        <ValueNode>(&amp;elements_[0] + ((head_ + $i) % capacity_))</ValueNode>
+        <ValueNode>(&amp;pairents_[0] + ((head_ + $i) % capacity_))</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
@@ -103,7 +91,7 @@
       <Item Name="Tail">tail_.value()</Item>
       <IndexListItems>
         <Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
-        <ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
+        <ValueNode>(&amp;pairents_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
@@ -117,7 +105,7 @@
       <Item Name="Tail">tail_.value()</Item>
       <IndexListItems>
         <Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
-        <ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
+        <ValueNode>(&amp;pairents_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
@@ -131,6 +119,72 @@
       <Item Name="Stack Top">stack_top_</Item>
       <Item Name="Entry Point">entry_point_</Item>
       <Item Name="Params Handle">params_handle_</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="comet::Pair&lt;*,*&gt;">
+    <DisplayString>key={key}, value={value}</DisplayString>
+    <Expand>
+      <Item Name="Key">key</Item>
+      <Item Name="Value">value</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="comet::HashSet&lt;*&gt;">
+    <DisplayString>entry_count={entry_count_}</DisplayString>
+    <Expand>
+      <Item Name="Entry Count">entry_count_</Item>
+      <Item Name="Bucket Count">bucket_count_</Item>
+      <Item Name="Max Load Factor">max_load_factor_</Item>
+
+      <CustomListItems>
+        <Variable Name="bucket_i" InitialValue="-1" />
+        <Variable Name="bucket" InitialValue="buckets_.data_ == nullptr ? nullptr : buckets_.data_" />
+        <Variable Name="entry_i" InitialValue="-1" />
+
+        <Loop>
+          <Exec>++bucket_i</Exec>
+          <Break Condition="bucket_i &gt;= buckets_.size_"></Break>
+          <Exec>bucket = buckets_.data_ + bucket_i</Exec>
+
+          <Loop>
+            <Exec>++entry_i</Exec>
+            <Break Condition="entry_i &gt;= bucket->size_"></Break>
+            <Item>bucket->data_[entry_i]</Item>
+          </Loop>
+
+          <Exec>entry_i = -1</Exec>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="comet::Map&lt;*,*&gt;">
+    <DisplayString>entry_count={pairs_.entry_count_}</DisplayString>
+    <Expand>
+      <Item Name="Entry Count">pairs_.entry_count_</Item>
+      <Item Name="Bucket Count">pairs_.bucket_count_</Item>
+      <Item Name="Max Load Factor">pairs_.max_load_factor_</Item>
+
+      <CustomListItems>
+        <Variable Name="bucket_i" InitialValue="-1" />
+        <Variable Name="bucket" InitialValue="pairs_.buckets_.data_ == nullptr ? nullptr : pairs_.buckets_.data_" />
+        <Variable Name="entry_i" InitialValue="-1" />
+
+        <Loop>
+          <Exec>++bucket_i</Exec>
+          <Break Condition="bucket_i &gt;= pairs_.buckets_.size_"></Break>
+          <Exec>bucket = pairs_.buckets_.data_ + bucket_i</Exec>
+
+          <Loop>
+            <Exec>++entry_i</Exec>
+            <Break Condition="entry_i &gt;= bucket->size_"></Break>
+            <Item Name="[{bucket->data_[entry_i].key}]">bucket->data_[entry_i].value</Item>
+          </Loop>
+
+          <Exec>entry_i = -1</Exec>
+        </Loop>
+      </CustomListItems>
     </Expand>
   </Type>
 </AutoVisualizer>

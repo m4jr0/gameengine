@@ -12,6 +12,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
+#include "comet/time/chrono.h"
 
 // If issues arise with current terminal, comment this line.
 #define COMET_TERMINAL_COLORS
@@ -66,6 +67,7 @@ class Logger final {
                 "architecture");
 
  public:
+  void Initialize();
   void Destroy();
 
  private:
@@ -170,6 +172,8 @@ class Logger final {
   }
 
  private:
+  Logger() = default;
+  void ListenToFlushRequests();
   void Flush();
 #ifdef COMET_LOG_IS_FIBER_PREFIX
   void PopulateFiberPrefix(schar* buffer, usize buffer_len);
@@ -190,10 +194,7 @@ class Logger final {
   std::atomic<bool> is_initialized_{false};
   std::atomic<bool> is_running_{false};
   thread::Thread flush_thread_{};
-
-  Logger();
-
-  void ListenToFlushRequests();
+  time::Chrono flush_chrono_{};
 };
 
 #ifndef COMET_DEBUG
@@ -352,8 +353,8 @@ class Logger final {
   comet::Logger::Get().Warning(comet::LoggerType::Time, __VA_ARGS__)
 #endif  // !COMET_DEBUG
 
-#define COMET_LOG_INITIALIZE() comet::Logger::Get()
-#define COMET_LOG_DESTROY() comet::Logger::Get().Destroy();
+#define COMET_LOG_INITIALIZE() comet::Logger::Get().Initialize()
+#define COMET_LOG_DESTROY() comet::Logger::Get().Destroy()
 
 #define COMET_LOG_ERROR(logger_type, ...) \
   comet::Logger::Get().Error(logger_type, __VA_ARGS__)

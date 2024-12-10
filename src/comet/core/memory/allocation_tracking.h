@@ -16,10 +16,12 @@
 #include <atomic>
 #include <mutex>
 #include <shared_mutex>
-#include <unordered_map>
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type/map.h"
 #include "comet/math/math_commons.h"
 
 #ifdef COMET_MSVC
@@ -42,17 +44,28 @@ struct AllocationInfo {
 // TODO(m4jr0): Consider using a lock-free solution (though it's primarily for
 // debugging, so... yeah...).
 struct TrackedAllocations {
+  TrackedAllocations(memory::Allocator* allocator);
+
+  void Initialize();
+  void Destroy();
+
   void Push(void* ptr, usize size);
   usize Pop(void* ptr);
 
  private:
-  std::recursive_mutex mutex_{};
-  std::unordered_map<void*, usize> allocations_{};
+  std::recursive_mutex mutex{};
+  Map<void*, usize> allocations{};
+  memory::Allocator* allocator{nullptr};
 };
 
 // TODO(m4jr0): Consider using a lock-free solution (though it's primarily for
 // debugging, so... yeah...).
 struct TrackedTags {
+  TrackedTags(memory::Allocator* allocator);
+
+  void Initialize();
+  void Destroy();
+
   void IncreasePlatform(void* ptr, usize size, MemoryTag memory_tag);
   void DecreasePlatform(void* ptr);
   void IncreaseTag(usize size, MemoryTag memory_tag);
@@ -63,18 +76,24 @@ struct TrackedTags {
   void DecreaseTaggedHeap(MemoryTag memory_tag);
   // TODO(m4jr0): Consider using a thread-unsafe function.
   // It might be suitable at specific points to avoid locking overhead.
-  std::unordered_map<MemoryTag, usize> GetTagUse();
+  Map<MemoryTag, usize> GetTagUse();
 
  private:
-  std::shared_mutex platform_mutex_{};
-  std::shared_mutex tagged_heap_mutex_{};
-  std::unordered_map<void*, AllocationInfo> platform_allocations_{};
-  std::unordered_map<MemoryTag, usize> platform_tags_{};
-  std::unordered_map<MemoryTag, usize> tagged_heap_tags_{};
+  std::shared_mutex platform_mutex{};
+  std::shared_mutex tagged_heap_mutex{};
+  Map<void*, AllocationInfo> platform_allocations{};
+  Map<MemoryTag, usize> platform_tags{};
+  Map<MemoryTag, usize> tagged_heap_tags{};
+  memory::Allocator* allocator{nullptr};
 };
 
 struct MemoryUse {
   static MemoryUse& Get();
+
+  void Initialize();
+  void Destroy();
+
+  bool is_tracking{false};
 
   static_assert(std::atomic<usize>::is_always_lock_free,
                 "std::atomic<usize> needs to be always lock-free. Unsupported "
@@ -82,8 +101,19 @@ struct MemoryUse {
 
   std::atomic<usize> total_allocated{0};
   std::atomic<usize> total_freed{0};
-  TrackedAllocations allocations{};
-  TrackedTags tags{};
+  memory::PlatformAllocator allocator{memory::kEngineMemoryTagDebug};
+  TrackedAllocations allocations{&allocator};
+  TrackedTags tags{&allocator};
+};
+
+class ScopedFlagToggle {
+ public:
+  explicit ScopedFlagToggle(bool& flag);
+  ~ScopedFlagToggle();
+
+ private:
+  bool previous_state_{false};
+  bool& flag_;
 };
 
 void* MallocHooked(std::size_t size);
@@ -129,7 +159,7 @@ void RegisterTaggedHeapDeallocation(MemoryTag memory_tag);
 usize GetTotalAllocatedMemory();
 usize GetTotalFreedMemory();
 usize GetMemoryUse();
-std::unordered_map<MemoryTag, usize> GetTagUse();
+Map<MemoryTag, usize> GetTagUse();
 }  // namespace memory
 }  // namespace comet
 

@@ -4,12 +4,14 @@
 
 #include "bitset.h"
 
+#include "comet/core/memory/memory_utils.h"
+
 namespace comet {
-usize FixedBitset::GetWordCountFromBitCount(usize bit_count) {
+usize Bitset::GetWordCountFromBitCount(usize bit_count) {
   return (bit_count + kWorkBitCount_ - 1) / kWorkBitCount_;
 }
 
-FixedBitset::FixedBitset(memory::AlignedAllocator* allocator, usize bit_count)
+Bitset::Bitset(memory::Allocator* allocator, usize bit_count)
     : bit_count_{bit_count},
       word_count_{GetWordCountFromBitCount(bit_count_)},
       allocator_{allocator},
@@ -20,7 +22,7 @@ FixedBitset::FixedBitset(memory::AlignedAllocator* allocator, usize bit_count)
   memory::ClearMemory(words_, word_count_ * sizeof(Word));
 }
 
-FixedBitset::FixedBitset(const FixedBitset& other)
+Bitset::Bitset(const Bitset& other)
     : bit_count_{other.bit_count_}, allocator_{other.allocator_} {
   if (bit_count_ == 0) {
     words_ = nullptr;
@@ -32,7 +34,7 @@ FixedBitset::FixedBitset(const FixedBitset& other)
   memory::CopyMemory(words_, other.words_, word_count_ * sizeof(Word));
 }
 
-FixedBitset::FixedBitset(FixedBitset&& other) noexcept
+Bitset::Bitset(Bitset&& other) noexcept
     : bit_count_{other.bit_count_},
       word_count_{other.word_count_},
       allocator_{other.allocator_},
@@ -43,15 +45,12 @@ FixedBitset::FixedBitset(FixedBitset&& other) noexcept
   other.words_ = nullptr;
 }
 
-FixedBitset& FixedBitset::operator=(const FixedBitset& other) {
+Bitset& Bitset::operator=(const Bitset& other) {
   if (this == &other) {
     return *this;
   }
 
-  if (words_ != nullptr) {
-    Destroy();
-  }
-
+  Clear();
   bit_count_ = other.bit_count_;
   word_count_ = other.word_count_;
   allocator_ = other.allocator_;
@@ -67,15 +66,12 @@ FixedBitset& FixedBitset::operator=(const FixedBitset& other) {
   return *this;
 }
 
-FixedBitset& FixedBitset::operator=(FixedBitset&& other) noexcept {
+Bitset& Bitset::operator=(Bitset&& other) noexcept {
   if (this == &other) {
     return *this;
   }
 
-  if (words_ != nullptr) {
-    Destroy();
-  }
-
+  Clear();
   bit_count_ = other.bit_count_;
   word_count_ = other.word_count_;
   allocator_ = other.allocator_;
@@ -88,49 +84,44 @@ FixedBitset& FixedBitset::operator=(FixedBitset&& other) noexcept {
   return *this;
 }
 
-FixedBitset::~FixedBitset() {
-  if (words_ == nullptr) {
-    return;
-  }
+Bitset::~Bitset() { Clear(); }
 
-  Destroy();
-}
-
-void FixedBitset::Destroy() {
-  COMET_ASSERT(words_ != nullptr, "Static array has already been destroyed!");
-
-  allocator_->Deallocate(words_);
-  words_ = nullptr;
-  bit_count_ = 0;
-  word_count_ = 0;
-}
-
-void FixedBitset::Set(usize index) {
+void Bitset::Set(usize index) {
   COMET_ASSERT(index < bit_count_, "Index out of bounds: ", index,
                " >= ", bit_count_, "!");
   words_[index / kWorkBitCount_] |=
       (static_cast<Word>(1) << (index % kWorkBitCount_));
 }
 
-void FixedBitset::Reset(usize index) {
+void Bitset::Reset(usize index) {
   COMET_ASSERT(index < bit_count_, "Index out of bounds: ", index,
                " >= ", bit_count_, "!");
   words_[index / kWorkBitCount_] &=
       ~(static_cast<Word>(1) << (index % kWorkBitCount_));
 }
 
-bool FixedBitset::Test(usize index) const {
+bool Bitset::Test(usize index) const {
   COMET_ASSERT(index < bit_count_, "Index out of bounds: ", index,
                " >= ", bit_count_, "!");
   return words_[index / kWorkBitCount_] &
          (static_cast<Word>(1) << (index % kWorkBitCount_));
 }
 
-void FixedBitset::ResetAll() {
+void Bitset::ResetAll() {
   memory::ClearMemory(words_, word_count_ * sizeof(Word));
 }
 
-bool FixedBitset::operator[](usize index) const { return Test(index); }
+void Bitset::Clear() {
+  if (words_ != nullptr) {
+    allocator_->Deallocate(words_);
+    words_ = nullptr;
+  }
 
-usize FixedBitset::GetSize() const noexcept { return bit_count_; }
+  bit_count_ = 0;
+  word_count_ = 0;
+}
+
+bool Bitset::operator[](usize index) const { return Test(index); }
+
+usize Bitset::GetSize() const noexcept { return bit_count_; }
 }  // namespace comet

@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "comet/core/c_string.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"

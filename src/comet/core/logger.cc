@@ -4,126 +4,13 @@
 
 #include "logger.h"
 
-#include <chrono>
-
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/thread/thread_context.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
-void Logger::Destroy() { is_running_.store(false, std::memory_order_release); }
-
-void Logger::Flush() {
-  // current_buffer_index_ will always be synchronized by the flush thread (only
-  // this thread modifies this value).
-  auto current_buffer_index{
-      current_buffer_index_.load(std::memory_order_relaxed)};
-  current_buffer_index_.exchange((current_buffer_index + 1) % kBufferCount_,
-                                 std::memory_order_release);
-
-  auto& buffer{buffers_[current_buffer_index]};
-
-  while (buffer.active_writer_count.load(std::memory_order_acquire) != 0) {
-    thread::Yield();
-  }
-
-  auto len{buffers_[current_buffer_index].write_index.load(
-      std::memory_order_acquire)};
-
-  if (len == 0) {
-    return;
-  }
-
-  auto* str{buffer.data};
-  std::cout << str;
-  Clear(str, Buffer::kBufferSize);
-  buffer.write_index.store(0, std::memory_order_release);
-  buffer.is_flush_requested.store(false, std::memory_order_release);
-}
-
-#ifdef COMET_LOG_IS_FIBER_PREFIX
-void Logger::PopulateFiberPrefix(schar* buffer, usize buffer_len) {
-  // This code doesn't check for buffer overflows.
-  // That's fine for now, as it's only used for debugging.
-  auto thread_id{thread::GetThreadId()};
-
-  buffer[0] = '[';
-  ++buffer;
-  --buffer_len;
-  usize cur_len;
-  ConvertToStr(thread_id, buffer, buffer_len, &cur_len);
-  buffer += cur_len;
-  Copy(buffer, "] [", 3);
-  buffer += 3;
-  cur_len = 0;
-
-  if (fiber::IsFiber()) {
-    const auto* fiber{fiber::GetFiber()};
-    auto fiber_id{fiber->GetId()};
-    ConvertToStr(fiber_id, buffer, buffer_len, &cur_len);
-    buffer += cur_len;
-#ifdef COMET_FIBER_DEBUG_LABEL
-    const auto* fiber_label{fiber->GetDebugLabel()};
-    auto fiber_label_len{GetLength(fiber_label)};
-    buffer[0] = '#';
-    ++buffer;
-    Copy(buffer, fiber_label, fiber_label_len);
-    buffer += fiber_label_len;
-#endif  // COMET_FIBER_DEBUG_LABEL
-  } else {
-    Copy(buffer, "I/O", 3);
-    buffer += 3;
-  }
-
-  Copy(buffer, "] | \0", 5);
-}
-#endif  // COMET_LOG_IS_FIBER_PREFIX
-
-Logger& Logger::Get() {
-  static Logger singleton{};
-  return singleton;
-}
-
-Logger::~Logger() {
-  is_running_.store(false, std::memory_order_release);
-  flush_thread_.TryJoin();
-}
-
-Logger::Logger() {
-  is_running_.store(true, std::memory_order_release);
-  is_initialized_.store(true, std::memory_order_release);
-  flush_thread_.Run(&Logger::ListenToFlushRequests, this);
-}
-
-void Logger::ListenToFlushRequests() {
-  while (!is_initialized_.load(std::memory_order_acquire)) {
-    thread::Yield();
-  }
-
-  auto start{std::chrono::steady_clock::now()};
-
-  while (is_running_.load(std::memory_order_acquire)) {
-    thread::Yield();
-
-    // current_buffer_index_ will always be synchronized by the flush thread
-    // (only this thread modifies this value).
-    auto current_buffer_index{
-        current_buffer_index_.load(std::memory_order_relaxed)};
-
-    auto now{std::chrono::steady_clock::now()};
-    auto elapsed{
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - start)};
-
-    if (elapsed.count() >= kFlushIntervalInMs_ ||
-        buffers_[current_buffer_index].is_flush_requested.load(
-            std::memory_order_acquire)) {
-      Flush();
-    }
-  }
-}
-
 const schar* GetLoggerTypeLabel(LoggerType type) {
   switch (type) {
     case LoggerType::Global:
@@ -153,6 +40,24 @@ const schar* GetLoggerTypeLabel(LoggerType type) {
     default:
       return "???";
   }
+}
+
+void Logger::Initialize() {
+  is_running_.store(true, std::memory_order_release);
+  is_initialized_.store(true, std::memory_order_release);
+  flush_thread_.Run(&Logger::ListenToFlushRequests, this);
+}
+
+void Logger::Destroy() { is_running_.store(false, std::memory_order_release); }
+
+Logger& Logger::Get() {
+  static Logger singleton{};
+  return singleton;
+}
+
+Logger::~Logger() {
+  is_running_.store(false, std::memory_order_release);
+  flush_thread_.TryJoin();
 }
 
 void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
@@ -232,4 +137,95 @@ void Logger::Send(const schar* str, usize len) {
     break;
   }
 }
+
+void Logger::ListenToFlushRequests() {
+  while (!is_initialized_.load(std::memory_order_acquire)) {
+    thread::Yield();
+  }
+
+  flush_chrono_.Start(kFlushIntervalInMs_);
+
+  while (is_running_.load(std::memory_order_acquire)) {
+    thread::Yield();
+
+    // current_buffer_index_ will always be synchronized by the flush thread
+    // (only this thread modifies this value).
+    auto current_buffer_index{
+        current_buffer_index_.load(std::memory_order_relaxed)};
+
+    if (flush_chrono_.IsFinished() ||
+        buffers_[current_buffer_index].is_flush_requested.load(
+            std::memory_order_acquire)) {
+      Flush();
+    }
+  }
+}
+
+void Logger::Flush() {
+  flush_chrono_.Restart();
+
+  // current_buffer_index_ will always be synchronized by the flush thread (only
+  // this thread modifies this value).
+  auto current_buffer_index{
+      current_buffer_index_.load(std::memory_order_relaxed)};
+  current_buffer_index_.exchange((current_buffer_index + 1) % kBufferCount_,
+                                 std::memory_order_release);
+
+  auto& buffer{buffers_[current_buffer_index]};
+
+  while (buffer.active_writer_count.load(std::memory_order_acquire) != 0) {
+    thread::Yield();
+  }
+
+  auto len{buffers_[current_buffer_index].write_index.load(
+      std::memory_order_acquire)};
+
+  if (len == 0) {
+    return;
+  }
+
+  auto* str{buffer.data};
+  std::cout << str;
+  Clear(str, Buffer::kBufferSize);
+  buffer.write_index.store(0, std::memory_order_release);
+  buffer.is_flush_requested.store(false, std::memory_order_release);
+}
+
+#ifdef COMET_LOG_IS_FIBER_PREFIX
+void Logger::PopulateFiberPrefix(schar* buffer, usize buffer_len) {
+  // This code doesn't check for buffer overflows.
+  // That's fine for now, as it's only used for debugging.
+  auto thread_id{thread::GetThreadId()};
+
+  buffer[0] = '[';
+  ++buffer;
+  --buffer_len;
+  usize cur_len;
+  ConvertToStr(thread_id, buffer, buffer_len, &cur_len);
+  buffer += cur_len;
+  Copy(buffer, "] [", 3);
+  buffer += 3;
+  cur_len = 0;
+
+  if (fiber::IsFiber()) {
+    const auto* fiber{fiber::GetFiber()};
+    auto fiber_id{fiber->GetId()};
+    ConvertToStr(fiber_id, buffer, buffer_len, &cur_len);
+    buffer += cur_len;
+#ifdef COMET_FIBER_DEBUG_LABEL
+    const auto* fiber_label{fiber->GetDebugLabel()};
+    auto fiber_label_len{GetLength(fiber_label)};
+    buffer[0] = '#';
+    ++buffer;
+    Copy(buffer, fiber_label, fiber_label_len);
+    buffer += fiber_label_len;
+#endif  // COMET_FIBER_DEBUG_LABEL
+  } else {
+    Copy(buffer, "I/O", 3);
+    buffer += 3;
+  }
+
+  Copy(buffer, "] | \0", 5);
+}
+#endif  // COMET_LOG_IS_FIBER_PREFIX
 }  // namespace comet
