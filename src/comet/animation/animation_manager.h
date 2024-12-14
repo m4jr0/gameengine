@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 #define COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
@@ -22,6 +23,9 @@ class AnimationManager : public Manager {
   AnimationManager& operator=(const AnimationManager&) = delete;
   AnimationManager& operator=(AnimationManager&&) = delete;
   virtual ~AnimationManager() = default;
+
+ private:
+  static void OnAssetProcessing(job::JobParamsHandle params_handle);
 };
 }  // namespace animation
 }  // namespace comet

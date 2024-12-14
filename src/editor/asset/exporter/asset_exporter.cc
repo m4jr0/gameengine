@@ -74,7 +74,7 @@ void AssetExporter::Process(const AssetExportDescr& export_descr) {
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
 #ifdef COMET_FIBER_DEBUG_LABEL
-  schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1];
+  schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1]{'\0'};
 #endif  // COMET_FIBER_DEBUG_LABEL
 
   job::Scheduler::Get().Kick(job::GenerateJobDescr(
