@@ -5,8 +5,6 @@
 #ifndef COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 #define COMET_EDITOR_ASSET_ASSET_MANAGER_H_
 
-#include <memory>
-
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
@@ -51,7 +49,7 @@ class AssetManager : public Manager {
   TString root_resource_path_{};
   TString library_meta_path_{};
   memory::PlatformAllocator exporters_allocator_{memory::kEditorMemoryTagAsset};
-  memory::PlatformAllocator resource_files_allocator_{
+  memory::PlatformAllocator resource_file_allocator_{
       memory::kEditorMemoryTagAsset};
   Array<std::unique_ptr<AssetExporter>> exporters_{};
 };

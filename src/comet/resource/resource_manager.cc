@@ -21,6 +21,12 @@ ResourceManager& ResourceManager::Get() {
 
 void ResourceManager::Initialize() {
   Manager::Initialize();
+  handler_allocator_.Initialize();
+  resource_file_allocator_.Initialize();
+  loading_resources_allocator_.Initialize();
+  loading_resource_allocator_.Initialize();
+
+  handlers_ = ResourceHandlers{&handler_allocator_, 6};
   root_resource_path_.Reserve(conf::kMaxStrValueLength);
   root_resource_path_ = COMET_CONF_TSTR(conf::kResourceRootPath);
   COMET_DISALLOW_STR_ALLOC(root_resource_path_);
@@ -29,7 +35,7 @@ void ResourceManager::Initialize() {
 
   AddHandler<MaterialHandler>(MaterialResource::kResourceTypeId);
   AddHandler<StaticModelHandler>(StaticModelResource::kResourceTypeId);
-  AddHandler<SkinnedModelHandler>(SkeletalModelResource::kResourceTypeId);
+  AddHandler<SkeletalModelHandler>(SkeletalModelResource::kResourceTypeId);
   AddHandler<ShaderHandler>(ShaderResource::kResourceTypeId);
   AddHandler<ShaderModuleHandler>(ShaderModuleResource::kResourceTypeId);
   AddHandler<TextureHandler>(TextureResource::kResourceTypeId);
@@ -37,7 +43,17 @@ void ResourceManager::Initialize() {
 
 void ResourceManager::Shutdown() {
   root_resource_path_.Clear();
-  handlers_.clear();
+
+  for (auto& handler : handlers_) {
+    handler.value->Shutdown();
+    handler_allocator_.Deallocate(handler.value);
+  }
+
+  handlers_ = {};
+  loading_resource_allocator_.Destroy();
+  loading_resources_allocator_.Destroy();
+  resource_file_allocator_.Destroy();
+  handler_allocator_.Destroy();
   Manager::Shutdown();
 }
 
@@ -49,6 +65,19 @@ void ResourceManager::InitializeResourcesDirectory() {
 
 const TString& ResourceManager::GetRootResourcePath() {
   return root_resource_path_;
+}
+
+void ResourceManager::RemoveHandler(ResourceTypeId resource_type_id) {
+  if (!handlers_.IsContained(resource_type_id)) {
+    COMET_LOG_RESOURCE_ERROR(
+        "Removing unknown handler supposedly bound to resource type ID: ",
+        resource_type_id, ". Aborting.");
+    return;
+  }
+
+  auto* handler{handlers_.Pop(resource_type_id)};
+  handler->~ResourceHandler();
+  handler_allocator_.Deallocate(handler);
 }
 }  // namespace resource
 }  // namespace comet

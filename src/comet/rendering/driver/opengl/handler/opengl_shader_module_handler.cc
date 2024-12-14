@@ -157,8 +157,8 @@ void ShaderModuleHandler::Destroy(ShaderModule& shader_module,
 
 ShaderModule ShaderModuleHandler::CompileShader(
     const resource::ShaderModuleResource* resource) const {
-  const auto* code{reinterpret_cast<const schar*>(resource->data.data())};
-  const auto code_size{static_cast<s32>(resource->data.size())};
+  const auto* code{reinterpret_cast<const schar*>(resource->data.GetData())};
+  const auto code_size{static_cast<s32>(resource->data.GetSize())};
 
   ShaderModule shader_module{};
   shader_module.type = GetOpenGlType(resource->descr.shader_type);

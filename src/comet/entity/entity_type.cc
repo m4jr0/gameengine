@@ -6,22 +6,23 @@
 
 #include <algorithm>
 
+#include "comet/entity/entity_memory_manager.h"
+
 namespace comet {
 namespace entity {
-EntityType GenerateEntityType(
-    const std::vector<ComponentDescr>& component_descrs) {
-  EntityType entity_type{};
-  entity_type.reserve(component_descrs.size());
+EntityType GenerateEntityType(const Array<ComponentDescr>& component_descrs) {
+  EntityType entity_type{&EntityMemoryManager::Get().GetEntityTypeAllocator()};
+  entity_type.Reserve(component_descrs.GetSize());
 
   for (const auto& descr : component_descrs) {
-    entity_type.push_back(descr.type_descr.id);
+    entity_type.PushBack(descr.type_descr.id);
   }
 
   CleanEntityType(entity_type);
   return entity_type;
 }
 
-EntityType GenerateEntityType(std::vector<EntityId> component_type_ids) {
+EntityType GenerateEntityType(Array<EntityId> component_type_ids) {
   EntityType entity_type{std::move(component_type_ids)};
   CleanEntityType(entity_type);
   return entity_type;
@@ -29,15 +30,15 @@ EntityType GenerateEntityType(std::vector<EntityId> component_type_ids) {
 
 EntityType AddToEntityType(const EntityType& entity_type,
                            const EntityType& to_add) {
-  EntityType new_type{};
-  new_type.reserve(entity_type.size() + to_add.size());
+  EntityType new_type{&EntityMemoryManager::Get().GetEntityTypeAllocator()};
+  new_type.Reserve(entity_type.GetSize() + to_add.GetSize());
 
-  for (usize i{0}; i < entity_type.size(); ++i) {
-    new_type.push_back(entity_type[i]);
+  for (usize i{0}; i < entity_type.GetSize(); ++i) {
+    new_type.PushBack(entity_type[i]);
   }
 
-  for (usize i{0}; i < new_type.capacity() - entity_type.size(); ++i) {
-    new_type.push_back(to_add[i]);
+  for (usize i{0}; i < new_type.GetCapacity() - entity_type.GetSize(); ++i) {
+    new_type.PushBack(to_add[i]);
   }
 
   CleanEntityType(new_type);
@@ -46,15 +47,15 @@ EntityType AddToEntityType(const EntityType& entity_type,
 
 EntityType RemoveFromEntityType(const EntityType& from_entity_type,
                                 const EntityType& to_remove) {
-  const auto from_size{from_entity_type.size()};
-  const auto to_remove_size{to_remove.size()};
+  const auto from_size{from_entity_type.GetSize()};
+  const auto to_remove_size{to_remove.GetSize()};
 
   COMET_ASSERT(from_size >= to_remove_size,
                "Tried to remove too many components from entity type!");
 
-  EntityType entity_type{};
+  EntityType entity_type{&EntityMemoryManager::Get().GetEntityTypeAllocator()};
   usize size{from_size - to_remove_size};
-  entity_type.resize(size);
+  entity_type.Resize(size);
 
   usize i{0};
   usize j{0};

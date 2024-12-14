@@ -5,6 +5,7 @@
 #include "material_resource.h"
 
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
@@ -16,20 +17,24 @@ ResourceId GenerateMaterialId(const schar* material_name) {
   return COMET_STRING_ID(material_name);
 }
 
-ResourceFile MaterialHandler::Pack(const Resource& resource,
+ResourceFile MaterialHandler::Pack(memory::Allocator& allocator,
+                                   const Resource& resource,
                                    CompressionMode compression_mode) const {
   const auto& material{static_cast<const MaterialResource&>(resource)};
   ResourceFile file{};
   file.resource_id = material.id;
   file.resource_type_id = MaterialResource::kResourceTypeId;
   file.compression_mode = compression_mode;
+  file.descr = Array<u8>{&allocator};
+  file.data = Array<u8>{&allocator};
 
   constexpr auto kResourceIdSize{sizeof(ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
-  std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize);
+  Array<u8> data{&allocator};
+  data.Resize(kResourceIdSize + kResourceTypeIdSize);
   usize cursor{0};
-  auto* buffer{data.data()};
+  auto* buffer{data.GetData()};
 
   memory::CopyMemory(&buffer[cursor], &material.id, kResourceIdSize);
   cursor += kResourceIdSize;
@@ -42,27 +47,35 @@ ResourceFile MaterialHandler::Pack(const Resource& resource,
   return file;
 }
 
-std::unique_ptr<Resource> MaterialHandler::Unpack(
-    const ResourceFile& file) const {
-  MaterialResource material{};
-  material.descr = UnpackPodResourceDescr<MaterialResourceDescr>(file);
-  const auto data{UnpackResourceData(file)};
+Resource* MaterialHandler::Unpack(memory::Allocator& allocator,
+                                  const ResourceFile& file) {
+  auto* material{
+      resource_allocator_.AllocateOneAndPopulate<MaterialResource>()};
+  UnpackPodResourceDescr<MaterialResourceDescr>(file, material->descr);
 
-  const auto* buffer{data.data()};
+  Array<u8> data{&allocator};
+  UnpackResourceData(file, data);
+
+  const auto* buffer{data.GetData()};
   usize cursor{0};
   constexpr auto kResourceIdSize{sizeof(ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
-  memory::CopyMemory(&material.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&material->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  memory::CopyMemory(&material.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&material->type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  return std::make_unique<MaterialResource>(material);
+  return material;
 }
 
-const Resource* MaterialHandler::GetDefaultResource() {
+MaterialHandler::MaterialHandler(memory::Allocator* loading_resources_allocator,
+                                 memory::Allocator* loading_resource_allocator)
+    : ResourceHandler{sizeof(MaterialResource), loading_resources_allocator,
+                      loading_resource_allocator} {}
+
+Resource* MaterialHandler::GetDefaultResource() {
   if (default_material_ == nullptr) {
     default_material_ = std::make_unique<MaterialResource>();
     default_material_->id = kDefaultResourceId;

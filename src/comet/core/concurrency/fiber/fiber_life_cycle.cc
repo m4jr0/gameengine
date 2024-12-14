@@ -4,6 +4,8 @@
 
 #include "fiber_life_cycle.h"
 
+#include "comet/core/concurrency/fiber/fiber_context.h"
+
 namespace comet {
 namespace fiber {
 namespace internal {
@@ -69,6 +71,12 @@ void FiberLifeCycleHandler::Shutdown() {
   queue_allocator_.Destroy();
   is_initialized_ = false;
 }
+
+void FiberLifeCycleHandler::AttachWorkerFiber(Fiber* fiber) {
+  tls_worker_fiber_ = fiber;
+}
+
+void FiberLifeCycleHandler::DetachWorkerFiber() { tls_worker_fiber_ = nullptr; }
 
 void FiberLifeCycleHandler::PutToSleep(Fiber* fiber) {
   sleeping_fibers_.Push(fiber);

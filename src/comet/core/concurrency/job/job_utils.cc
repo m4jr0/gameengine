@@ -21,8 +21,7 @@ JobDescr GenerateJobDescr(JobPriority priority, JobEntryPoint entry_point,
   descr.priority = priority;
   descr.entry_point = entry_point;
   descr.params_handle = params_handle;
-  descr.counter =
-      counter == nullptr ? Scheduler::Get().GenerateCounter() : counter;
+  descr.counter = counter;
 #ifdef COMET_FIBER_DEBUG_LABEL
   if (debug_label == nullptr) {
     debug_label = fiber::Fiber::kDefaultDebugLabel_;
@@ -41,8 +40,7 @@ IOJobDescr GenerateIOJobDescr(IOEntryPoint entry_point,
   IOJobDescr descr{};
   descr.entry_point = entry_point;
   descr.params_handle = params_handle;
-  descr.counter =
-      counter == nullptr ? Scheduler::Get().GenerateCounter() : counter;
+  descr.counter = counter;
   return descr;
 }
 }  // namespace job

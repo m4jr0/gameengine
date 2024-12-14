@@ -13,6 +13,7 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/iterator.h"
+#include "comet/math/math_commons.h"
 
 namespace comet {
 namespace internal {
@@ -208,6 +209,22 @@ class Array : public internal::BaseArray<T> {
 
   ~Array() { Clear(); }
 
+  bool operator==(const Array& other) {
+    if (this->size_ != other.size_) {
+      return false;
+    }
+
+    for (usize i{0}; i < this->size_; ++i) {
+      if (!(this->data_[i] == other.data_[i])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool operator!=(const Array& other) { return !operator=(other); }
+
   void Reserve(usize new_capacity) {
     this->data_ = comet::Reserve(this->allocator_, this->data_, this->size_,
                                  this->capacity_, new_capacity);
@@ -215,35 +232,36 @@ class Array : public internal::BaseArray<T> {
   }
 
   void Resize(usize new_size) {
-    if (new_size >= this->capacity_) {
+    if (new_size > this->capacity_) {
       Reserve(new_size);
     }
 
-    for (usize i{this->size_}; i < new_size; ++i) {
-      memory::Populate<T>(&this->data_[i], allocator_);
-    }
+    if constexpr (std::is_trivially_constructible_v<T>) {
+      if (new_size > this->size_) {
+        memory::ClearMemory(this->data_ + this->size_,
+                            (new_size - this->size_) * sizeof(T));
+      }
+    } else {
+      for (usize i{this->size_}; i < new_size; ++i) {
+        memory::Populate<T>(&this->data_[i], allocator_);
+      }
 
-    for (usize i{new_size}; i < this->size_; ++i) {
-      this->data_[i].~T();
+      for (usize i{new_size}; i < this->size_; ++i) {
+        this->data_[i].~T();
+      }
     }
 
     this->size_ = new_size;
   }
 
-  void PushBack(const T& value) {
+  template <typename U>
+  void PushBack(U&& value) {
     if (this->size_ == this->capacity_) {
       Reserve(this->capacity_ == 0 ? 1 : this->capacity_ * 2);
     }
 
-    memory::Populate<T>(&this->data_[this->size_++], value);
-  }
-
-  void PushBack(T&& value) {
-    if (this->size_ == this->capacity_) {
-      Reserve(this->capacity_ == 0 ? 1 : this->capacity_ * 2);
-    }
-
-    memory::Populate<T>(&this->data_[this->size_++], std::move(value));
+    memory::Populate<T>(&this->data_[this->size_++],
+                        static_cast<T>(std::forward<U>(value)));
   }
 
   template <typename... Targs>
@@ -265,7 +283,7 @@ class Array : public internal::BaseArray<T> {
     return this->data_[this->size_++];
   }
 
-  ContiguousIterator<T> Remove(ContiguousIterator<T> pos) {
+  ContiguousIterator<T> RemoveFromPos(ContiguousIterator<T> pos) {
     if (pos + 1 != this->end()) {
       std::move(pos + 1, this->end(), pos);
     }
@@ -275,7 +293,7 @@ class Array : public internal::BaseArray<T> {
     return pos;
   }
 
-  ContiguousIterator<T> Remove(const T& value) {
+  ContiguousIterator<T> RemoveFromValue(const T& value) {
     auto it{this->begin()};
 
     for (; it != this->end(); ++it) {
@@ -288,13 +306,45 @@ class Array : public internal::BaseArray<T> {
       return this->end();
     }
 
-    return Remove(it);
+    return RemoveFromPos(it);
   }
 
-  ContiguousIterator<T> Remove(usize index) {
+  ContiguousIterator<T> RemoveFromIndex(usize index) {
     COMET_ASSERT(index < this->size_, "Index out of bounds: ", index,
                  " >= ", this->size_, "!");
-    return Remove(this->begin() + index);
+    return RemoveFromPos(this->begin() + index);
+  }
+
+  void PushFromRange(const T* src, usize src_size, usize count = kInvalidIndex,
+                     usize dst_offset = kInvalidIndex, usize src_offset = 0) {
+    COMET_ASSERT(src != nullptr, "Source array is null!");
+
+    if (count == 0) {
+      return;
+    }
+
+    if (count == kInvalidIndex) {
+      count = src_size;
+    }
+
+    if (dst_offset == kInvalidIndex) {
+      dst_offset = this->size_;
+    }
+
+    auto new_size{math::Max(this->size_, dst_offset + count)};
+    Reserve(new_size);
+    comet::Copy(this->data_, this->capacity_, src, src_size, count, dst_offset,
+                src_offset);
+    this->size_ = new_size;
+  }
+
+  template <typename TArray>
+  void PushFromRange(const TArray& src, usize count = kInvalidIndex,
+                     usize dst_offset = kInvalidIndex, usize src_offset = 0) {
+    static_assert(std::is_same_v<decltype(src.GetData()), const T*> &&
+                      std::is_same_v<decltype(src.GetSize()), usize>,
+                  "TArray must have GetData() and GetSize() methods!");
+    PushFromRange(src.GetData(), src.GetSize(), count, dst_offset, src_offset);
   }
 
   void Clear() {
@@ -307,6 +357,8 @@ class Array : public internal::BaseArray<T> {
 
     this->capacity_ = 0;
   }
+
+  usize GetCapacity() const noexcept { return this->capacity_; };
 
  private:
   usize capacity_{0};
@@ -328,6 +380,20 @@ class StaticArray {
   constexpr const T& operator[](usize index) const { return data_[index]; }
 
   constexpr T& operator[](usize index) { return data_[index]; }
+
+  constexpr bool operator==(const StaticArray& other) {
+    for (usize i{0}; i < N; ++i) {
+      if (!(this->data_[i] == other.data_[i])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  constexpr bool operator!=(const StaticArray& other) {
+    return !operator==(other);
+  }
 
   constexpr bool IsContained(const T& value) const {
     for (usize i{0}; i < size_; ++i) {
@@ -355,7 +421,7 @@ class StaticArray {
 
   constexpr usize GetSize() const noexcept { return size_; }
 
-  constexpr bool IsEmpty() const noexcept { return size_ > 0; }
+  constexpr bool IsEmpty() const noexcept { return size_ == 0; }
 
   T& GetFirst() { return this->data_[0]; }
 
@@ -413,11 +479,17 @@ class StaticArray<T, 0> {
 
   constexpr StaticArray() {}
 
+  constexpr bool operator==(const StaticArray&) { return true; }
+
+  constexpr bool operator!=(const StaticArray&) { return false; }
+
   constexpr bool IsContained(const T& value) const { return false; }
 
   constexpr usize GetIndex(const T& value) const { return kInvalidIndex; }
 
   constexpr usize GetSize() const noexcept { return 0; }
+
+  constexpr bool IsEmpty() const noexcept { return true; }
 
   constexpr T* GetData() noexcept { return nullptr; }
 

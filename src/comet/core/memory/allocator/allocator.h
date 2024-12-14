@@ -47,12 +47,6 @@ class Allocator {
  protected:
   bool is_initialized_{false};
 };
-
-struct AllocatorBox {
-  memory::Allocator* allocator{nullptr};
-};
-
-using AllocatorHandle = AllocatorBox*;
 }  // namespace memory
 }  // namespace comet
 

@@ -50,7 +50,7 @@ const Texture* TextureHandler::Generate(
   glBindTexture(GL_TEXTURE_2D, texture.handle);
   glTexImage2D(GL_TEXTURE_2D, 0, texture.internal_format,
                resource->descr.resolution[0], resource->descr.resolution[1], 0,
-               texture.format, GL_UNSIGNED_BYTE, resource->data.data());
+               texture.format, GL_UNSIGNED_BYTE, resource->data.GetData());
 
   glGenerateMipmap(GL_TEXTURE_2D);
 

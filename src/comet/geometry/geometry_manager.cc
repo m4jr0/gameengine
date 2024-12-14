@@ -14,24 +14,48 @@ GeometryManager& GeometryManager::Get() {
   return singleton;
 }
 
+GeometryManager::GeometryManager()
+    : mesh_allocator_{sizeof(Mesh), 1024, memory::kEngineMemoryTagGeometry},
+      mesh_pair_allocator_{sizeof(Pair<MeshId, Mesh*>), 1024,
+                           memory::kEngineMemoryTagGeometry},
+      vertex_allocator_{sizeof(Vertex), 1024, memory::kEngineMemoryTagGeometry},
+      index_allocator_{sizeof(Index), 1024, memory::kEngineMemoryTagGeometry} {}
+
+void GeometryManager::Initialize() {
+  Manager::Initialize();
+  mesh_allocator_.Initialize();
+  mesh_pair_allocator_.Initialize();
+  vertex_allocator_.Initialize();
+  index_allocator_.Initialize();
+
+  meshes_ = Map<MeshId, Mesh*>{&mesh_pair_allocator_};
+}
+
 void GeometryManager::Shutdown() {
   for (auto& it : meshes_) {
-    Destroy(it.second, true);
+    Destroy(it.value, true);
   }
 
-  meshes_.clear();
+  meshes_.Clear();
+
+  index_allocator_.Destroy();
+  vertex_allocator_.Destroy();
+  mesh_pair_allocator_.Destroy();
+  mesh_allocator_.Destroy();
   Manager::Shutdown();
 }
 
 Mesh* GeometryManager::Generate(const resource::StaticMeshResource* resource) {
   auto* mesh{GenerateInternal(resource)};
-  mesh->vertices = resource->vertices;
+  mesh->vertices = Array<geometry::Vertex>{&vertex_allocator_};
+  mesh->vertices.PushFromRange(resource->vertices);
   return mesh;
 }
 
 Mesh* GeometryManager::Generate(const resource::SkinnedMeshResource* resource) {
   auto* mesh{GenerateInternal(resource)};
-  mesh->vertices.reserve(resource->vertices.size());
+  mesh->vertices = Array<geometry::Vertex>{&vertex_allocator_};
+  mesh->vertices.Reserve(resource->vertices.GetSize());
 
   for (const auto& skinned_vertex : resource->vertices) {
     Vertex vertex{};
@@ -41,7 +65,7 @@ Mesh* GeometryManager::Generate(const resource::SkinnedMeshResource* resource) {
     vertex.bitangent = skinned_vertex.bitangent;
     vertex.uv = skinned_vertex.uv;
     vertex.color = skinned_vertex.color;
-    mesh->vertices.push_back(std::move(vertex));
+    mesh->vertices.PushBack(std::move(vertex));
   }
 
   return mesh;
@@ -59,13 +83,14 @@ Mesh* GeometryManager::Get(const resource::MeshResource* resource) {
 }
 
 Mesh* GeometryManager::TryGet(MeshId mesh_id) {
-  auto it{meshes_.find(mesh_id)};
+  Mesh** result;
 
-  if (it != meshes_.end()) {
-    return &it->second;
+  {
+    fiber::FiberLockGuard lock{mutex_};
+    result = meshes_.TryGet(mesh_id);
   }
 
-  return nullptr;
+  return result != nullptr ? *result : nullptr;
 }
 
 Mesh* GeometryManager::TryGet(const resource::MeshResource* resource) {
@@ -93,9 +118,9 @@ Mesh* GeometryManager::GetOrGenerate(const resource::MeshResource* resource) {
   }
 }
 
-void GeometryManager::Destroy(MeshId mesh_id) { Destroy(*Get(mesh_id)); }
+void GeometryManager::Destroy(MeshId mesh_id) { Destroy(Get(mesh_id)); }
 
-void GeometryManager::Destroy(Mesh& mesh) { Destroy(mesh, false); }
+void GeometryManager::Destroy(Mesh* mesh) { Destroy(mesh, false); }
 
 MeshId GeometryManager::GenerateMeshId(
     const resource::MeshResource* resource) const {
@@ -129,21 +154,28 @@ SkeletalComponents GeometryManager::GenerateComponents(
 
 Mesh* GeometryManager::GenerateInternal(
     const resource::MeshResource* resource) {
-  Mesh mesh{};
+  auto* mesh{mesh_allocator_.AllocateOneAndPopulate<Mesh>()};
 
-  mesh.id = GenerateMeshId(resource);
-  mesh.type = resource->type;
-  mesh.transform = resource->transform;
-  mesh.local_center = resource->local_center;
-  mesh.local_max_extents = resource->local_max_extents;
-  mesh.indices = resource->indices;
+  mesh->id = GenerateMeshId(resource);
+  mesh->type = resource->type;
+  mesh->transform = resource->transform;
+  mesh->local_center = resource->local_center;
+  mesh->local_max_extents = resource->local_max_extents;
+
+  mesh->indices = Array<geometry::Index>{&index_allocator_};
+  mesh->indices.PushFromRange(resource->indices);
 
 #ifdef COMET_DEBUG
-  const auto mesh_id{mesh.id};
+  const auto mesh_id{mesh->id};
 #endif  // COMET_DEBUG
 
-  const auto insert_pair{meshes_.emplace(mesh.id, std::move(mesh))};
-  Mesh* to_return{insert_pair.second ? &insert_pair.first->second : nullptr};
+  Mesh* to_return;
+
+  {
+    fiber::FiberLockGuard lock{mutex_};
+    auto& insert_pair{meshes_.Emplace(mesh->id, std::move(mesh))};
+    to_return = insert_pair.value;
+  }
 
   if (to_return == nullptr) {
     COMET_ASSERT(false, "Could not insert mesh #", mesh_id, "!");
@@ -152,16 +184,16 @@ Mesh* GeometryManager::GenerateInternal(
   return to_return;
 }
 
-void GeometryManager::Destroy(Mesh& mesh, bool is_destroying_handler) {
-  mesh.type = MeshType::Unknown;
-  mesh.indices.clear();
-  mesh.vertices.clear();
-
+void GeometryManager::Destroy(Mesh* mesh, bool is_destroying_handler) {
+  COMET_ASSERT(mesh != nullptr, "Mesh provided is null!");
   if (!is_destroying_handler) {
-    meshes_.erase(mesh.id);
-  }
+    {
+      fiber::FiberLockGuard lock{mutex_};
+      meshes_.Remove(mesh->id);
+    }
 
-  mesh.id = kInvalidMeshId;
+    mesh_allocator_.Deallocate(mesh);
+  }
 }
 }  // namespace geometry
 }  // namespace comet

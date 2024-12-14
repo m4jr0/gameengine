@@ -4,7 +4,6 @@
 
 #include "scheduler.h"
 
-#include <atomic>
 #include <optional>
 
 #include "comet/core/c_string.h"
@@ -186,6 +185,7 @@ void Scheduler::Initialize() {
   fiber_workers_.Resize(fiber_worker_count_);
   io_workers_ = Array<IOWorker>{&worker_allocator};
   io_workers_.Resize(io_worker_count_);
+  fiber::FiberLifeCycleHandler::Get().Initialize();
 }
 
 void Scheduler::Shutdown() {
@@ -203,6 +203,7 @@ void Scheduler::Shutdown() {
     io_worker.Stop();
   }
 
+  fiber::FiberLifeCycleHandler::Get().Shutdown();
   worker_allocator.Destroy();
   large_stack_fibers_.Destroy();
   gigantic_stack_fibers_.Destroy();
@@ -304,7 +305,13 @@ void Scheduler::Kick(usize job_count, const IOJobDescr* job_descrs) {
   }
 }
 
-void Scheduler::Wait(Counter* counter) { CounterGuard guard{*counter}; }
+void Scheduler::Wait(Counter* counter) {
+  if (counter == nullptr) {
+    return;
+  }
+
+  CounterGuard guard{*counter};
+}
 
 void Scheduler::KickAndWait(const JobDescr& job_descr) {
   Kick(job_descr);
@@ -347,9 +354,6 @@ void Scheduler::Work(Worker* worker, WorkFunc work_func) {
 }
 
 void Scheduler::WorkOnFibers() {
-  auto& life_cycle_handler{fiber::FiberLifeCycleHandler::Get()};
-  life_cycle_handler.Initialize();
-
   time::Chrono chrono{};
   chrono.Start(promotion_interval_);
 
@@ -370,7 +374,7 @@ void Scheduler::WorkOnFibers() {
     }
 
     if (!job_box.has_value()) {
-      CleanAndTryResumeNext();
+      CleanCompletedAndTryResumeNext();
       continue;
     }
 
@@ -381,7 +385,7 @@ void Scheduler::WorkOnFibers() {
 
     while (fiber == nullptr) {
       fiber = fibers->TryPop();
-      CleanAndTryResumeNext();
+      CleanCompletedAndTryResumeNext();
     }
 
     fiber->Attach(job_descr.entry_point, job_descr.params_handle, OnFiberEnd,
@@ -391,11 +395,10 @@ void Scheduler::WorkOnFibers() {
                   job_descr.debug_label
 #endif  // COMET_FIBER_DEBUG_LABEL
     );
-    life_cycle_handler.PutToSleep(fiber);
-    CleanAndTryResumeNext();
-  }
 
-  life_cycle_handler.Shutdown();
+    fiber::internal::RunOrResume(fiber);
+    CleanCompletedAndTryResumeNext();
+  }
 }
 
 void Scheduler::WorkOnIO() {
@@ -408,7 +411,10 @@ void Scheduler::WorkOnIO() {
 
     auto& job{job_box.value()};
     job.entry_point(job.params_handle);
-    job.counter->Decrement();
+
+    if (job.counter != nullptr) {
+      job.counter->Decrement();
+    }
   }
 }
 
@@ -438,7 +444,7 @@ internal::FiberPool* Scheduler::ResolveFiberPool(const JobDescr& job_descr) {
   return fibers;
 }
 
-void Scheduler::CleanAndTryResumeNext() {
+void Scheduler::CleanCompletedAndTryResumeNext() {
   fiber::Fiber* completed_fiber;
   auto& life_cycle_handler{fiber::FiberLifeCycleHandler::Get()};
 
@@ -468,7 +474,11 @@ void Scheduler::CleanAndTryResumeNext() {
     fibers->Push(completed_fiber);
   }
 
-  fiber::Yield();
+  auto* sleeping_fiber{life_cycle_handler.TryWakingUp()};
+
+  if (sleeping_fiber != nullptr) {
+    fiber::internal::RunOrResume(sleeping_fiber);
+  }
 }
 
 void Scheduler::OnFiberEnd(fiber::Fiber* fiber, void* data) {
@@ -476,14 +486,18 @@ void Scheduler::OnFiberEnd(fiber::Fiber* fiber, void* data) {
   fiber->Detach();
   auto& life_cycle_handler{fiber::FiberLifeCycleHandler::Get()};
   life_cycle_handler.PutToCompleted(fiber);
-  counter->Decrement();
-  fiber::SwitchTo(life_cycle_handler.TryWakingUp());
+
+  if (counter != nullptr) {
+    counter->Decrement();
+  }
+
+  fiber::internal::ResumeWorker();
 }
 
 void Scheduler::SubmitJob(const JobDescr& job_descr) {
-  COMET_ASSERT(job_descr.counter != nullptr,
-               "Counter of job provided is null!");
-  job_descr.counter->Increment();
+  if (job_descr.counter != nullptr) {
+    job_descr.counter->Increment();
+  }
 
   switch (job_descr.priority) {
     case JobPriority::High:
@@ -505,7 +519,10 @@ void Scheduler::SubmitJob(const JobDescr& job_descr) {
 }
 
 void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
-  job_descr.counter->Increment();
+  if (job_descr.counter != nullptr) {
+    job_descr.counter->Increment();
+  }
+
   io_queue_.Push(job_descr);
 }
 

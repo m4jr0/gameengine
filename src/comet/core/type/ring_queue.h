@@ -11,7 +11,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
-#include "exception.h"
+#include "comet/core/type/exception.h"
 
 namespace comet {
 template <class T>
@@ -286,7 +286,8 @@ inline void LockFreeMPSCRingQueue<T>::Push(T&& element) {
     next_tail = Increment(current_tail);
 
     if (next_tail == this->head_.load(std::memory_order_acquire)) {
-      throw MaximumCapacityReachedError(this->capacity_);
+      // Case: queue is full.
+      return;
     }
   } while (!this->tail_.compare_exchange_weak(current_tail, next_tail,
                                               std::memory_order_release));
@@ -314,7 +315,7 @@ inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
 
 template <class T>
 inline bool LockFreeMPSCRingQueue<T>::TryPop(T& element) {
-  auto current_head = this->head_.load(std::memory_order_relaxed);
+  auto current_head{this->head_.load(std::memory_order_relaxed)};
 
   if (current_head == this->tail_.load(std::memory_order_acquire)) {
     return false;

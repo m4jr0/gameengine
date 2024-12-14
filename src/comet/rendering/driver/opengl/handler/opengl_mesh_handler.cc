@@ -4,6 +4,8 @@
 
 #include "opengl_mesh_handler.h"
 
+#include "comet/profiler/profiler.h"
+
 namespace comet {
 namespace rendering {
 namespace gl {
@@ -54,6 +56,7 @@ void MeshHandler::Shutdown() {
 }
 
 MeshProxy* MeshHandler::Generate(const geometry::Mesh* mesh) {
+  COMET_PROFILE("MeshHandler::Generate");
   MeshProxy proxy{};
   proxy.id = mesh->id;
   proxy.mesh = mesh;
@@ -136,6 +139,7 @@ MeshProxy* MeshHandler::Register(MeshProxy& proxy) {
 }
 
 void MeshHandler::Destroy(MeshProxy& proxy, bool is_destroying_handler) {
+  COMET_PROFILE("MeshHandler::Destroy");
   if (!is_destroying_handler) {
     if (proxy.vao_handle != kInvalidVertexArrayObjectHandle) {
       glDeleteVertexArrays(1, &proxy.vao_handle);
@@ -184,14 +188,14 @@ void MeshHandler::Upload(MeshProxy& proxy) const {
   constexpr auto kVertexSize{sizeof(geometry::Vertex)};
   const auto* mesh{proxy.mesh};
 
-  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * kVertexSize,
-               mesh->vertices.data(), usage);
+  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.GetSize() * kVertexSize,
+               mesh->vertices.GetData(), usage);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, proxy.ebo_handle);
 
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               mesh->indices.size() * sizeof(geometry::Index),
-               mesh->indices.data(), usage);
+               mesh->indices.GetSize() * sizeof(geometry::Index),
+               mesh->indices.GetData(), usage);
 
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kVertexSize,

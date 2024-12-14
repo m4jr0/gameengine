@@ -6,6 +6,7 @@
       <Item Name="Size">size_</Item>
       <Item Name="Capacity">capacity_</Item>
       <Item Name="Data Pointer">data_</Item>
+      <Item Name="Allocator">allocator_,na</Item>
       <ArrayItems>
         <Size>size_</Size>
         <ValuePointer>data_</ValuePointer>
@@ -30,6 +31,7 @@
     <DisplayString>size={bit_count_}</DisplayString>
     <Expand>
       <Item Name="Size">bit_count_</Item>
+      <Item Name="Allocator">allocator_,na</Item>
       <IndexListItems>
         <Size>bit_count_</Size>
         <ValueNode>
@@ -40,12 +42,14 @@
   </Type>
 
   <Type Name="comet::TString">
-    <DisplayString>length={length_}, capacity={capacity_}, data="{str_ != nullptr ? str_ : sso_}"</DisplayString>
+    <DisplayString Condition="str_ != nullptr">{str_,na}</DisplayString>
+    <DisplayString Condition="str_ == nullptr">{sso_,na}</DisplayString>
     <Expand>
       <Item Name="Length">length_</Item>
       <Item Name="Capacity">capacity_</Item>
       <Item Name="Data (Heap)">str_</Item>
       <Item Name="Data (SSO)">sso_</Item>
+      <Item Name="Allocator">allocator_,na</Item>
       <ArrayItems Condition="str_ != nullptr">
         <Size>length_</Size>
         <ValuePointer>str_</ValuePointer>
@@ -58,7 +62,7 @@
   </Type>
 
   <Type Name="comet::CTStringView">
-    <DisplayString>length={length_}, data="{str_}"</DisplayString>
+    <DisplayString>{str_,na}</DisplayString>
     <Expand>
       <Item Name="Length">length_</Item>
       <Item Name="Data">str_</Item>
@@ -75,9 +79,10 @@
       <Item Name="Size">size_</Item>
       <Item Name="Capacity">capacity_</Item>
       <Item Name="Head">head_</Item>
+      <Item Name="Allocator">allocator_,na</Item>
       <IndexListItems>
         <Size>size_</Size>
-        <ValueNode>(&amp;pairents_[0] + ((head_ + $i) % capacity_))</ValueNode>
+        <ValueNode>(&amp;elements_[0] + ((head_ + $i) % capacity_))</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
@@ -89,9 +94,10 @@
       <Item Name="Capacity">capacity_</Item>
       <Item Name="Head">head_.value()</Item>
       <Item Name="Tail">tail_.value()</Item>
+      <Item Name="Allocator">allocator_,na</Item>
       <IndexListItems>
         <Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
-        <ValueNode>(&amp;pairents_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
+        <ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
@@ -103,9 +109,10 @@
       <Item Name="Capacity">capacity_</Item>
       <Item Name="Head">head_.value()</Item>
       <Item Name="Tail">tail_.value()</Item>
+      <Item Name="Allocator">allocator_,na</Item>
       <IndexListItems>
         <Size>(tail_.value() >= head_.value() ? tail_.value() - head_.value() : head_.value() - tail_.value())</Size>
-        <ValueNode>(&amp;pairents_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
+        <ValueNode>(&amp;elements_[0] + ((head_.value() + $i) % capacity_))</ValueNode>
       </IndexListItems>
     </Expand>
   </Type>
@@ -136,6 +143,7 @@
       <Item Name="Entry Count">entry_count_</Item>
       <Item Name="Bucket Count">bucket_count_</Item>
       <Item Name="Max Load Factor">max_load_factor_</Item>
+      <Item Name="Allocator">allocator_,na</Item>
 
       <CustomListItems>
         <Variable Name="bucket_i" InitialValue="-1" />
@@ -165,6 +173,7 @@
       <Item Name="Entry Count">pairs_.entry_count_</Item>
       <Item Name="Bucket Count">pairs_.bucket_count_</Item>
       <Item Name="Max Load Factor">pairs_.max_load_factor_</Item>
+      <Item Name="Allocator">allocator_,na</Item>
 
       <CustomListItems>
         <Variable Name="bucket_i" InitialValue="-1" />

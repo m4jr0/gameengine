@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_CORE_FRAME_MANAGER_H_
 #define COMET_COMET_CORE_FRAME_MANAGER_H_
 
+#include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_allocator.h"
 #include "comet/core/frame/frame_packet.h"
@@ -34,17 +35,26 @@ class FrameManager : public Manager {
   void Shutdown() override;
   void Update();
 
+  void WaitForNextFrame();
+
   InFlightFrames& GetInFlightFrames();
-  memory::AllocatorHandle GetFrameAllocatorHandle();
-  memory::AllocatorHandle GetDoubleFrameAllocatorHandle();
+  memory::Allocator* GetFrameAllocator();
+  memory::Allocator* GetDoubleFrameAllocator();
 
  private:
+  void ClearAndSwapAllocators();
+  void ClearAndSwapAllocator(FiberFrameAllocator& frame_allocator,
+                             FiberDoubleFrameAllocator& double_allocator);
+  void ClearAndSwapAllocator(IOFrameAllocator& frame_allocator,
+                             IODoubleFrameAllocator& double_allocator);
+  void UpdateInFlightFrames();
+
   static inline constexpr usize kInFlightFramePacketCount_{3};
   static inline constexpr usize kFramePacketCount_{16};
   static_assert(kFramePacketCount_ >= kInFlightFramePacketCount_,
                 "Frame packet count must be >= kInFlightFramePacketCount_!");
 
-  FrameCount frame_count_{kInFlightFramePacketCount_ - 1};
+  FrameCount frame_count_{0};
   usize frame_allocator_cursor_{0};
   InFlightFrames in_flight_frames_{nullptr, nullptr, nullptr};
   FramePacket frame_packets_[kFramePacketCount_]{};
@@ -53,18 +63,13 @@ class FrameManager : public Manager {
   usize fiber_frame_allocator_capacity_{0};
   usize io_frame_allocator_capacity_{0};
 
-  FiberFrameAllocator fiber_frame_allocators_[kInFlightFramePacketCount_];
-  IOFrameAllocator io_frame_allocators_[kInFlightFramePacketCount_];
-  FiberDoubleFrameAllocator
-      fiber_double_frame_allocators_[kInFlightFramePacketCount_];
-  IODoubleFrameAllocator
-      io_double_frame_allocators_[kInFlightFramePacketCount_];
+  FiberFrameAllocator fiber_frame_allocator_;
+  IOFrameAllocator io_frame_allocator_;
+  FiberDoubleFrameAllocator fiber_double_frame_allocator_;
+  IODoubleFrameAllocator io_double_frame_allocator_;
 
-  memory::AllocatorBox fiber_frame_allocator_box_{};
-  memory::AllocatorBox io_frame_allocator_box_{};
-
-  memory::AllocatorBox fiber_double_frame_allocator_box_{};
-  memory::AllocatorBox io_double_frame_allocator_box_{};
+  fiber::FiberMutex frame_mutex_{};
+  fiber::FiberCV frame_cv_{};
 };
 }  // namespace frame
 }  // namespace comet

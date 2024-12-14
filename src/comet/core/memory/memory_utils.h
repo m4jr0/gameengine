@@ -23,6 +23,9 @@ void DetachGetCustomMemoryTagLabelFunc();
 
 const schar* GetMemoryTagLabel(MemoryTag tag);
 void* CopyMemory(void* dst, const void* src, usize size);
+void Memset(void* ptr, u8 value, usize size);
+void AVXMemset(void* ptr, u8 value, usize size);
+void FastMemset(void* ptr, u8 value, usize size);
 void ClearMemory(void* ptr, usize size);
 
 inline uptr AlignAddress(uptr address, Alignment align) {
@@ -59,12 +62,12 @@ template <typename T, typename Allocator, typename... Targs>
 T* Populate(void* memory, Allocator* allocator, Targs&&... args) {
   COMET_ASSERT(memory != nullptr, "Memory provided is null!");
 
-  if constexpr (std::is_constructible_v<T, Allocator&, Targs...>) {
-    return new (memory) T{allocator, std::forward<Targs>(args)...};
+  if constexpr (std::is_constructible_v<T, Allocator*, Targs...>) {
+    return new (memory) T(allocator, std::forward<Targs>(args)...);
   } else if constexpr (std::is_constructible_v<T, Allocator*>) {
-    return new (memory) T{allocator};
+    return new (memory) T(allocator);
   } else {
-    return new (memory) T{std::forward<Targs>(args)...};
+    return new (memory) T(std::forward<Targs>(args)...);
   }
 }
 

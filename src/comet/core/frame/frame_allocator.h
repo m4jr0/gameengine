@@ -22,8 +22,8 @@ using IODoubleFrameAllocator = memory::DoubleStackAllocator<IOFrameAllocator>;
 memory::Allocator& GetFrameAllocator();
 memory::Allocator& GetDoubleFrameAllocator();
 
-void AttachFrameAllocator(memory::AllocatorHandle handle);
-void AttachDoubleFrameAllocator(memory::AllocatorHandle handle);
+void AttachFrameAllocator(memory::Allocator* allocator);
+void AttachDoubleFrameAllocator(memory::Allocator* allocator);
 void DetachFrameAllocator();
 void DetachDoubleFrameAllocator();
 }  // namespace frame

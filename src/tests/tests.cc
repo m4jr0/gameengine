@@ -22,6 +22,7 @@
 #include "comet/core/logger.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
+#include "comet/core/type/gid.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 
@@ -42,17 +43,22 @@ class TestsEventListener : public Catch::EventListenerBase {
     comet::memory::TaggedHeap::Get().Initialize();
     comet::thread::ThreadProviderManager::Get().Initialize();
     comet::frame::FrameManager::Get().Initialize();
+    comet::gid::InitializeGids();
     comet::InitializeTStrings();
     comet::entity::EntityManager::Get().Initialize();
   }
 
   void testRunEnded(Catch::TestRunStats const&) override {
+    auto& scheduler{comet::job::Scheduler::Get()};
+    scheduler.RequestShutdown();
+
     comet::entity::EntityManager::Get().Shutdown();
     comet::DestroyTStrings();
+    comet::gid::DestroyGids();
     comet::frame::FrameManager::Get().Shutdown();
     comet::thread::ThreadProviderManager::Get().Shutdown();
     comet::memory::TaggedHeap::Get().Destroy();
-    comet::job::Scheduler::Get().Shutdown();
+    scheduler.Shutdown();
     comet::conf::ConfigurationManager::Get().Shutdown();
     COMET_LOG_DESTROY();
     comet::thread::Thread::DetachMainThread();

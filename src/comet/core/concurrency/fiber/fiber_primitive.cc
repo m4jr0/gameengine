@@ -115,7 +115,7 @@ void FiberCV::Wait(FiberUniqueLock& lock) {
   }
 
   lock.Unlock();
-  fiber::Yield();
+  Yield();
   lock.Lock();
 }
 
@@ -131,7 +131,7 @@ void FiberCV::NotifyOne() {
     }
 
     if (to_resume != nullptr) {
-      fiber::SwitchTo(to_resume);
+      internal::Sleep(to_resume);
     }
   }
 }
@@ -145,7 +145,61 @@ void FiberCV::NotifyAll() {
   }
 
   for (auto* fiber : to_resume) {
-    SwitchTo(fiber);
+    internal::Sleep(fiber);
+  }
+}
+
+void FiberSharedMutex::LockExclusive() {
+  FiberUniqueLock lock{mutex_};
+
+  while (reader_count_.load(std::memory_order_acquire) > 0) {
+    cv_.Wait(lock);
+  }
+
+  is_writer_ = true;
+}
+
+void FiberSharedMutex::UnlockExclusive() {
+  FiberLockGuard lock{mutex_};
+  is_writer_ = false;
+  cv_.NotifyAll();
+}
+
+void FiberSharedMutex::LockShared() {
+  FiberUniqueLock lock{mutex_};
+  cv_.Wait(lock, [this] { return !is_writer_; });
+  reader_count_.fetch_add(std::memory_order_acq_rel);
+}
+
+void FiberSharedMutex::UnlockShared() {
+  FiberLockGuard lock{mutex_};
+
+  if (reader_count_.fetch_sub(std::memory_order_acq_rel) == 1) {
+    cv_.NotifyAll();
+  }
+}
+
+FiberSharedLockGuard::FiberSharedLockGuard(FiberSharedMutex& mutex,
+                                           FiberSharedLockType type)
+    : mutex_{mutex}, type_{type} {
+  COMET_ASSERT(type_ == FiberSharedLockType::Exclusive ||
+                   type_ == FiberSharedLockType::Shared,
+               "Unknown or unsupported lock type provided: ",
+               static_cast<std::underlying_type_t<FiberSharedLockType>>(type_),
+               "!");
+
+  if (type_ == FiberSharedLockType::Exclusive) {
+    mutex_.LockExclusive();
+  } else {
+    mutex_.LockShared();
+  }
+}
+
+FiberSharedLockGuard::~FiberSharedLockGuard() {
+  if (type_ == FiberSharedLockType::Exclusive) {
+    mutex_.UnlockExclusive();
+  } else {
+    mutex_.UnlockShared();
   }
 }
 }  // namespace fiber

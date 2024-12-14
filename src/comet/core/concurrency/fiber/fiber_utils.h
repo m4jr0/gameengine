@@ -10,6 +10,8 @@
 namespace comet {
 namespace fiber {
 void SleepMs(u32 duration_ms);
+void WaitForNextFrame();
+void WaitForEntityUpdates();
 }  // namespace fiber
 }  // namespace comet
 

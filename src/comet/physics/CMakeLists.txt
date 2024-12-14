@@ -12,6 +12,7 @@
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/physics/physics_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/physics/physics_tmp_code.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/physics/component/transform_component.h"
 )

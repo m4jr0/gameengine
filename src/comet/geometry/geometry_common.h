@@ -5,9 +5,8 @@
 #ifndef COMET_COMET_GEOMETRY_GEOMETRY_COMMON_H_
 #define COMET_COMET_GEOMETRY_GEOMETRY_COMMON_H_
 
-#include <vector>
-
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/string_id.h"
 #include "comet/math/matrix.h"
 #include "comet/math/quaternion.h"
@@ -35,7 +34,7 @@ struct Joint {
 
 struct Skeleton {
   usize joint_count{0};
-  std::vector<Joint> joints{};
+  Array<Joint> joints{};
 };
 
 struct JointPose {
@@ -78,8 +77,8 @@ struct Mesh {
   math::Mat4 transform{1.0f};
   math::Vec3 local_center{0.0f};
   math::Vec3 local_max_extents{0.0f};
-  std::vector<geometry::Index> indices{};
-  std::vector<geometry::Vertex> vertices{};
+  Array<geometry::Index> indices{};
+  Array<geometry::Vertex> vertices{};
 };
 }  // namespace geometry
 }  // namespace comet

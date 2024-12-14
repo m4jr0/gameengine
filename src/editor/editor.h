@@ -38,8 +38,6 @@ class CometEditor : public Engine {
  private:
   // TODO(m4jr0): Remove temporary code.
   void LoadTmpCode();
-  void PostLoadTmpCode();
-  void PostUnloadTmpCode();
 
   std::unique_ptr<CameraHandler> camera_handler_{nullptr};
 };

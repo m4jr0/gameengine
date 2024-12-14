@@ -50,14 +50,14 @@ Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
       resource::ResourceManager::Get().Load<resource::ShaderResource>(
           descr.resource_path)};
   COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
-  COMET_ASSERT(shader_resource->descr.vertex_attributes.size() == 0,
+  COMET_ASSERT(shader_resource->descr.vertex_attributes.IsEmpty(),
                "Custom vertex attributes are not supported on OpenGL!");
   Shader shader{};
   shader.id = shader_resource->id;
   shader.is_wireframe = shader_resource->descr.is_wireframe;
   shader.cull_mode = GetCullMode(shader_resource->descr.cull_mode);
   shader.handle = glCreateProgram();
-  shader.modules.reserve(shader_resource->descr.shader_module_paths.size());
+  shader.modules.reserve(shader_resource->descr.shader_module_paths.GetSize());
 
   const auto& shader_module_paths{shader_resource->descr.shader_module_paths};
 

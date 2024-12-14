@@ -11,11 +11,12 @@
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/frame/frame_manager.h"
+#include "comet/core/game_state_manager.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
+#include "comet/core/type/gid.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
-#include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
@@ -52,8 +53,9 @@ void Engine::Populate() {
   auto run_callback_descr{job::GenerateJobDescr(
       job::JobPriority::High, OnSchedulerStarted, this,
       job::JobStackSize::Normal, nullptr, "scheduler_start")};
-  job::Scheduler::Get().Run(run_callback_descr);
 
+  auto& scheduler{job::Scheduler::Get()};
+  scheduler.Run(run_callback_descr);
   Shutdown();
 }
 
@@ -102,19 +104,21 @@ void Engine::Update(f64& lag) {
   lag += time::TimeManager::Get().GetDeltaTime();
 
   auto& frame_manager{frame::FrameManager::Get()};
-  frame_manager.Update();
   auto& active_frames{frame_manager.GetInFlightFrames()};
 
   auto& frame_packet{active_frames.lead_frame};
   frame_packet->lag = lag;
 
   physics::PhysicsManager::Get().Update(frame_packet);
+  entity::EntityManager::Get().DispatchComponentChanges();
 
   frame_packet->interpolation =
       lag / time::TimeManager::Get().GetFixedDeltaTime();
 
   animation::AnimationManager::Get().Update(active_frames.middle_frame);
   rendering::RenderingManager::Get().Update(active_frames.trail_frame);
+  event::EventManager::Get().FireAllEvents();
+  frame_manager.Update();
 
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Update();
@@ -153,9 +157,6 @@ void Engine::Quit() {
 }
 
 void Engine::PreLoad() {
-#ifdef COMET_PROFILING
-  profiler::ProfilerManager::Get().Initialize();
-#endif  // COMET_PROFILING
   conf::ConfigurationManager::Get().Initialize();
   job::Scheduler::Get().Initialize();
 }
@@ -176,35 +177,37 @@ void Engine::Load() {
   animation::AnimationManager::Get().Initialize();
   entity::EntityManager::Get().Initialize();
   geometry::GeometryManager::Get().Initialize();
-  entity::EntityFactoryManager::Get().Initialize();
 }
 
-void Engine::PostLoad() { input::InputManager::Get().Initialize(); }
+void Engine::PostLoad() {
+  input::InputManager::Get().Initialize();
+  GameStateManager::Get().Initialize();
+}
 
 void Engine::PreUnload() {
-  entity::EntityFactoryManager::Get().Shutdown();
+  GameStateManager::Get().Shutdown();
+  input::InputManager::Get().Shutdown();
   geometry::GeometryManager::Get().Shutdown();
   entity::EntityManager::Get().Shutdown();
   animation::AnimationManager::Get().Shutdown();
   physics::PhysicsManager::Get().Shutdown();
-  input::InputManager::Get().Shutdown();
   rendering::CameraManager::Get().Shutdown();
   rendering::RenderingManager::Get().Shutdown();
 #ifdef COMET_DEBUG
   rendering::DebuggerDisplayerManager::Get().Shutdown();
 #endif  // COMET_DEBUG
   time::TimeManager::Get().Shutdown();
-
-#ifdef COMET_PROFILING
-  profiler::ProfilerManager::Get().Shutdown();
-#endif  // COMET_PROFILING
 }
 
 void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
   DestroyTStrings();
+  gid::DestroyGids();
   frame::FrameManager::Get().Shutdown();
+#ifdef COMET_PROFILING
+  profiler::ProfilerManager::Get().Shutdown();
+#endif  // COMET_PROFILING
   thread::ThreadProviderManager::Get().Shutdown();
   memory::TaggedHeap::Get().Destroy();
   job::Scheduler::Get().Shutdown();
@@ -219,7 +222,11 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   auto* engine{reinterpret_cast<Engine*>(handle)};
   memory::TaggedHeap::Get().Initialize();
   thread::ThreadProviderManager::Get().Initialize();
+#ifdef COMET_PROFILING
+  profiler::ProfilerManager::Get().Initialize();
+#endif  // COMET_PROFILING
   frame::FrameManager::Get().Initialize();
+  gid::InitializeGids();
   InitializeTStrings();
   event::EventManager::Get().Initialize();
   resource::ResourceManager::Get().Initialize();

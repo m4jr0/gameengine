@@ -198,9 +198,21 @@ class FiberCV {
   template <typename Predicate>
   void Wait(FiberUniqueLock& lock, Predicate&& pred) {
     COMET_ASSERT(IsFiber(), "Current thread is not a fiber!");
+    auto* fiber{GetFiber()};
+    COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+
+    {
+      FiberSpinLockGuard spin_lock{spin_lock_};
+
+      if (!pred()) {
+        awaiting_fibers_.push_back(fiber);
+      }
+    }
 
     while (!pred()) {
-      Wait(lock);
+      lock.Unlock();
+      Yield();
+      lock.Lock();
     }
   }
 
@@ -218,6 +230,47 @@ class FiberCV {
 #endif  // COMET_DEBUG
   FiberSpinLock spin_lock_{};
   std::deque<Fiber*> awaiting_fibers_{};
+};
+
+class FiberSharedMutex {
+ public:
+  FiberSharedMutex() = default;
+  FiberSharedMutex(const FiberSharedMutex&) = delete;
+  FiberSharedMutex(FiberSharedMutex&&) = delete;
+  FiberSharedMutex& operator=(const FiberSharedMutex&) = delete;
+  FiberSharedMutex& operator=(FiberSharedMutex&&) = delete;
+  ~FiberSharedMutex() = default;
+
+  void LockExclusive();
+  void UnlockExclusive();
+
+  void LockShared();
+  void UnlockShared();
+
+ private:
+  FiberMutex mutex_{};
+  FiberCV cv_{};
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> needs to be always lock-free. Unsupported "
+                "architecture");
+  std::atomic<usize> reader_count_{0};
+  bool is_writer_{false};
+};
+
+enum class FiberSharedLockType { Unknown = 0, Shared, Exclusive };
+
+class FiberSharedLockGuard {
+ public:
+  FiberSharedLockGuard(FiberSharedMutex& mutex, FiberSharedLockType type);
+  FiberSharedLockGuard(const FiberSharedLockGuard&) = delete;
+  FiberSharedLockGuard(FiberSharedLockGuard&&) = delete;
+  FiberSharedLockGuard& operator=(const FiberSharedLockGuard&) = delete;
+  FiberSharedLockGuard& operator=(FiberSharedLockGuard&&) = delete;
+  ~FiberSharedLockGuard();
+
+ private:
+  FiberSharedMutex& mutex_;
+  FiberSharedLockType type_{FiberSharedLockType::Unknown};
 };
 }  // namespace fiber
 }  // namespace comet

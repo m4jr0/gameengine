@@ -10,6 +10,7 @@
 #include "comet/math/geometry.h"
 #include "comet/math/math_commons.h"
 #include "comet/math/vector.h"
+#include "comet/physics/physics_tmp_code.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -42,6 +43,7 @@ void PhysicsManager::Update(frame::FramePacket* packet) {
   }
 
   current_time_ += time::TimeManager::Get().GetDeltaTime();
+  LoadTmp();
 
   while (packet->lag > fixed_delta_time_) {
     // TODO(m4jr0): Investigate. This seems to prevent round errors.
@@ -55,7 +57,6 @@ void PhysicsManager::Update(frame::FramePacket* packet) {
 
     ++counter_;
     packet->lag -= fixed_delta_time_;
-    event::EventManager::Get().FireAllEvents();
   }
 }
 

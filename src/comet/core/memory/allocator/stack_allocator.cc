@@ -93,7 +93,7 @@ FiberStackAllocator::FiberStackAllocator(usize base_capacity,
 
 void FiberStackAllocator::Initialize() {
   Allocator::Initialize();
-  thread_capacity_ = TaggedHeap::Get().GetBlockSize();
+  thread_capacity_ = TaggedHeap::Get().GetBlockSize() - 1;
   thread_contexts_.Initialize();
   COMET_ASSERT(base_capacity_ > 0, "Capacity is ", base_capacity_, "!");
 
@@ -147,11 +147,8 @@ void FiberStackAllocator::Deallocate(void*) {
 }
 
 void FiberStackAllocator::Clear() {
-  auto size{thread_contexts_.GetSize()};
-
-  for (usize i{0}; i < size; ++i) {
-    auto& context{thread_contexts_.GetFromIndex(i)};
-    context.root = context.marker;
+  for (auto& context : thread_contexts_) {
+    context.marker = context.root;
   }
 
   marker_ = root_;
@@ -202,11 +199,8 @@ void IOStackAllocator::Deallocate(void*) {
 }
 
 void IOStackAllocator::Clear() {
-  auto size{thread_contexts_.GetSize()};
-
-  for (usize i{0}; i < size; ++i) {
-    auto& context{thread_contexts_.GetFromIndex(i)};
-    context.root = context.marker;
+  for (auto& context : thread_contexts_) {
+    context.marker = context.root;
   }
 }
 

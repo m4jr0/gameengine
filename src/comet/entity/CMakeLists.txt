@@ -13,14 +13,15 @@ target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/entity/archetype.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/component.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_component.h"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_id.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_memory_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/entity_type.cc"
   
     "${PROJECT_SOURCE_DIR}/src/comet/entity/factory/entity_factory_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/factory/handler/entity_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/factory/handler/entity_model_handler.cc"
+
 )
 
 # Compiling ####################################################################

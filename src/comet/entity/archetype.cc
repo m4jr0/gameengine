@@ -6,17 +6,26 @@
 
 #include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/entity/entity_memory_manager.h"
 
 namespace comet {
 namespace entity {
-ArchetypePointer GenerateArchetype() {
-  auto* p{memory::AllocateOneAndPopulate<Archetype>(
-      memory::kEngineMemoryTagEntity)};
+ArchetypePtr GenerateArchetype() {
+  auto& memory_manager{EntityMemoryManager::Get()};
 
-  ArchetypePointer archetype(p, [](Archetype* p) {
-    p->~Archetype();
-    memory::Deallocate(p);
-  });
+  auto* p{memory_manager.GetArchetypeAllocator()
+              .AllocateOneAndPopulate<Archetype>()};
+
+  p->entity_type = EntityType{&memory_manager.GetEntityTypeAllocator()};
+  p->entity_ids = Array<EntityId>{&memory_manager.GetEntityIdAllocator()};
+  p->components =
+      Array<ComponentArray>{&memory_manager.GetComponentArrayAllocator()};
+
+  ArchetypePtr archetype{
+      p, [](Archetype* ptr) {
+        ptr->~Archetype();
+        EntityMemoryManager::Get().GetArchetypeAllocator().Deallocate(ptr);
+      }};
 
   return archetype;
 }

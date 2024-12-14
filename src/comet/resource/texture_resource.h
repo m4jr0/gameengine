@@ -5,7 +5,11 @@
 #ifndef COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 
+#include <memory>
+
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
@@ -28,31 +32,39 @@ struct TextureResource : public Resource {
   static const ResourceTypeId kResourceTypeId;
 
   TextureResourceDescr descr{};
-  std::vector<u8> data{};
+  Array<u8> data{};
 };
 
 class TextureHandler : public ResourceHandler {
  public:
-  TextureHandler() = default;
+  TextureHandler(memory::Allocator* loading_resources_allocator,
+                 memory::Allocator* loading_resource_allocator);
   TextureHandler(const TextureHandler&) = delete;
   TextureHandler(TextureHandler&&) = delete;
   TextureHandler& operator=(const TextureHandler&) = delete;
   TextureHandler& operator=(TextureHandler&&) = delete;
   virtual ~TextureHandler() = default;
 
+  void Initialize() override;
+  void Shutdown() override;
+
   void Destroy(ResourceId resource_id) override;
-  const Resource* GetDefaultResource() override;
+  Resource* GetDefaultResource() override;
   Resource* GetDefaultDiffuseTexture();
   Resource* GetDefaultSpecularTexture();
   Resource* GetDefaultNormalTexture();
 
  protected:
   virtual Resource* GetInternal(ResourceId resource_id) override;
-  ResourceFile Pack(const Resource& resource,
+  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
                     CompressionMode compression_mode) const override;
-  std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
+  Resource* Unpack(memory::Allocator& allocator,
+                   const ResourceFile& file) override;
 
  private:
+  // TODO(m4jr0): Use another allocator;
+  memory::PlatformAllocator resource_data_allocator_{
+      memory::kEngineMemoryTagResource};
   std::unique_ptr<TextureResource> default_texture_{nullptr};
   std::unique_ptr<TextureResource> diffuse_texture_{nullptr};
   std::unique_ptr<TextureResource> normal_texture_{nullptr};

@@ -57,6 +57,13 @@ target_sources(${COMET_LIBRARY_NAME}
       # Debugger.
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/debugger_displayer_manager.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/imgui_utils.cc"
+      
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/memory/allocation_tracker_displayer.cc"
+
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_displayer.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_displayer_context.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_graph.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_tree.cc"
 
       # Driver.
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"

@@ -6,11 +6,14 @@
 #define COMET_COMET_CORE_TYPE_HASH_SET_H_
 
 #include <functional>
+#include <type_traits>
 
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type/traits.h"
+#include "comet/math/math_commons.h"
 
 namespace comet {
 template <typename T, typename THashable>
@@ -62,9 +65,13 @@ class HashSet {
     IteratorImpl() = default;
 
     IteratorImpl(BucketIterator bucket_it, BucketIterator bucket_end,
-                 EntryIterator entry_it)
-        : bucket_it_{bucket_it}, bucket_end_{bucket_end}, entry_it_{entry_it} {
-      SkipEmptyBuckets();
+                 EntryIterator entry_it, usize entry_count)
+        : bucket_it_{entry_count == 0 ? bucket_end : bucket_it},
+          bucket_end_{bucket_end},
+          entry_it_{entry_it} {
+      if (entry_count > 0) {
+        SkipEmptyBuckets();
+      }
     }
 
     reference operator*() const noexcept { return *entry_it_; }
@@ -120,23 +127,25 @@ class HashSet {
   Iterator begin() {
     return Iterator{
         buckets_.begin(), buckets_.end(),
-        buckets_.IsEmpty() ? typename Bucket::Iterator{} : buckets_[0].begin()};
+        buckets_.IsEmpty() ? typename Bucket::Iterator{} : buckets_[0].begin(),
+        entry_count_};
   }
 
   Iterator end() {
-    return Iterator{buckets_.end(), buckets_.end(),
-                    typename Bucket::Iterator{}};
+    return Iterator{buckets_.end(), buckets_.end(), typename Bucket::Iterator{},
+                    entry_count_};
   }
 
   ConstIterator begin() const {
     return ConstIterator{buckets_.begin(), buckets_.end(),
                          buckets_.IsEmpty() ? typename Bucket::ConstIterator{}
-                                            : buckets_[0].begin()};
+                                            : buckets_[0].begin(),
+                         entry_count_};
   }
 
   ConstIterator end() const {
     return ConstIterator{buckets_.end(), buckets_.end(),
-                         typename Bucket::ConstIterator{}};
+                         typename Bucket::ConstIterator{}, entry_count_};
   }
 
   ConstIterator cbegin() const { return begin(); }
@@ -207,9 +216,30 @@ class HashSet {
     return *this;
   }
 
-  void Add(const T& obj) {
+  bool operator==(const HashSet& other) const {
+    if (this->entry_count_ != other.entry_count_) {
+      return false;
+    }
+
+    for (const auto& bucket : this->buckets_) {
+      for (const auto& entry : bucket) {
+        if (!other.IsContained(HashLogic::GetHashable(entry))) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  bool operator!=(const HashSet& other) const { return !(*this == other); }
+
+  template <typename V>
+  void Add(V&& obj) {
+    CheckSize();
     auto& hashable{HashLogic::GetHashable(obj)};
     auto index{GetBucketIndex(hashable)};
+    COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
 
     for (const auto& existing_obj : this->buckets_[index]) {
       if (HashLogic::AreEqual(HashLogic::GetHashable(existing_obj), hashable)) {
@@ -217,15 +247,17 @@ class HashSet {
       }
     }
 
-    this->buckets_[index].PushBack(obj);
+    this->buckets_[index].PushBack(std::forward<V>(obj));
     ++this->entry_count_;
   }
 
   template <typename... Targs>
   T& Emplace(Targs&&... args) {
+    CheckSize();
     T obj{std::forward<Targs>(args)...};
     auto& hashable{HashLogic::GetHashable(obj)};
     auto index{GetBucketIndex(hashable)};
+    COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
     auto& bucket{this->buckets_[index]};
 
     for (auto& existing_obj : bucket) {
@@ -241,12 +273,17 @@ class HashSet {
 
   bool Remove(const Hashable& hashable) {
     auto index{GetBucketIndex(hashable)};
+
+    if (index == kInvalidIndex) {
+      return false;
+    }
+
     auto& bucket{this->buckets_[index]};
     auto bucket_size{bucket.GetSize()};
 
     for (usize i{0}; i < bucket_size; ++i) {
       if (HashLogic::AreEqual(HashLogic::GetHashable(bucket[i]), hashable)) {
-        bucket.Remove(i);
+        bucket.RemoveFromIndex(i);
         --this->entry_count_;
         return true;
       }
@@ -264,6 +301,10 @@ class HashSet {
   T* Find(const Hashable& hashable) {
     auto index{GetBucketIndex(hashable)};
 
+    if (index == kInvalidIndex) {
+      return nullptr;
+    }
+
     for (auto& obj : this->buckets_[index]) {
       if (HashLogic::AreEqual(HashLogic::GetHashable(obj), hashable)) {
         return &obj;
@@ -276,6 +317,10 @@ class HashSet {
   const T* Find(const Hashable& hashable) const {
     auto index{GetBucketIndex(hashable)};
 
+    if (index == kInvalidIndex) {
+      return nullptr;
+    }
+
     for (auto& obj : this->buckets_[index]) {
       if (HashLogic::AreEqual(HashLogic::GetHashable(obj), hashable)) {
         return &obj;
@@ -285,8 +330,28 @@ class HashSet {
     return nullptr;
   }
 
+  T Pop(const Hashable& hashable) {
+    T popped;
+    auto index{GetBucketIndex(hashable)};
+    COMET_ASSERT(index != kInvalidIndex, "HashSet is unallocated!");
+    auto& bucket{buckets_[index]};
+
+    for (usize i{0}; i < bucket.GetSize(); ++i) {
+      if (HashLogic::AreEqual(HashLogic::GetHashable(bucket[i]), hashable)) {
+        popped = std::move(bucket[i]);
+        bucket.RemoveFromIndex(i);
+        --entry_count_;
+        return popped;
+      }
+    }
+
+    COMET_ASSERT(false, "Value not found in HashSet!");
+    return popped;
+  }
+
   void Reserve(usize entry_count) {
-    auto bucket_count{static_cast<usize>(entry_count / max_load_factor_)};
+    auto bucket_count{
+        static_cast<usize>(math::Ceil(entry_count / max_load_factor_))};
 
     if (bucket_count <= this->bucket_count_) {
       return;
@@ -295,8 +360,18 @@ class HashSet {
     Rehash(bucket_count);
   }
 
+  void CheckSize() {
+    if (this->entry_count_ + 1 > this->bucket_count_ * max_load_factor_) {
+      Reserve(this->entry_count_ * 2);
+    }
+  }
+
   bool IsContained(const Hashable& hashable) const {
     auto index{GetBucketIndex(hashable)};
+
+    if (index == kInvalidIndex) {
+      return false;
+    }
 
     for (const auto& existing_obj : this->buckets_[index]) {
       if (HashLogic::AreEqual(HashLogic::GetHashable(existing_obj), hashable)) {
@@ -319,6 +394,10 @@ class HashSet {
 
  private:
   usize GetBucketIndex(const Hashable& hashable) const {
+    if (this->bucket_count_ == 0) {
+      return kInvalidIndex;
+    }
+
     return HashLogic::Hash(hashable) % this->bucket_count_;
   }
 
@@ -331,10 +410,17 @@ class HashSet {
     new_buckets.Resize(bucket_count);
 
     for (usize i{0}; i < this->bucket_count_; ++i) {
-      for (const auto& obj : this->buckets_[i]) {
+      for (auto& obj : this->buckets_[i]) {
         auto new_index{HashLogic::Hash(HashLogic::GetHashable(obj)) %
                        bucket_count};
-        new_buckets[new_index].EmplaceBack(obj);
+        if constexpr (std::is_move_constructible_v<decltype(obj)>) {
+          new_buckets[new_index].EmplaceBack(std::move(obj));
+        } else if constexpr (std::is_copy_constructible_v<decltype(obj)>) {
+          new_buckets[new_index].EmplaceBack(obj);
+        } else {
+          static_assert(always_false_v<decltype(obj)>,
+                        "Object type must be moveable or copyable!");
+        }
       }
     }
 

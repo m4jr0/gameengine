@@ -59,6 +59,15 @@ T Abs(T x) {
   return -x;
 }
 
+template <typename T>
+s8 Sign(T x) {
+  if (x >= 0) {
+    return 1;
+  }
+
+  return -1;
+}
+
 template <class T>
 const T& Min(const T& a, const T& b) {
   return (a < b) ? a : b;

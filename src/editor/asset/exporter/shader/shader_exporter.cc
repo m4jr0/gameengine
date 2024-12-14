@@ -25,13 +25,24 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
   auto& asset_descr{context.asset_descr};
   shader.id = resource::GenerateResourceIdFromPath(asset_descr.asset_path);
   shader.type_id = resource::ShaderResource::kResourceTypeId;
+  shader.descr.shader_module_paths = Array<TString>{context.allocator};
+  shader.descr.vertex_attributes =
+      Array<rendering::ShaderVertexAttributeDescr>{context.allocator};
+  shader.descr.uniforms =
+      Array<rendering::ShaderUniformDescr>{context.allocator};
+
   auto& resource_files{context.files};
 
   ShaderContext shader_context{};
   shader_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
 
-  job::Scheduler::Get().KickAndWait(
-      job::GenerateIOJobDescr(OnShaderLoading, &shader_context));
+  auto& scheduler{job::Scheduler::Get()};
+  auto* counter{scheduler.GenerateCounter()};
+
+  scheduler.KickAndWait(
+      job::GenerateIOJobDescr(OnShaderLoading, &shader_context, counter));
+
+  scheduler.DestroyCounter(counter);
 
   if (shader_context.file_len == 0) {
     return;
@@ -51,19 +62,19 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
         kCometEditorShaderKeyCullMode, kCometEditorShaderCullModeNone));
     const auto& raw_module_paths{
         shader_file[kCometEditorShaderKeyShaderModulePaths]};
-    shader.descr.shader_module_paths.reserve(raw_module_paths.size());
+    shader.descr.shader_module_paths.Reserve(raw_module_paths.size());
 
     for (const auto& raw_module_path : raw_module_paths) {
       const auto& raw_module_path_str{
           raw_module_path.get_ref<const nlohmann::json::string_t&>()};
-      shader.descr.shader_module_paths.push_back(
+      shader.descr.shader_module_paths.PushBack(
           TString{GetTmpTChar(raw_module_path_str.c_str())});
     }
 
     if (shader_file.contains(kCometEditorShaderKeyVertexAttributes)) {
       const auto raw_vertex_attributes =
           shader_file[kCometEditorShaderKeyVertexAttributes];
-      shader.descr.vertex_attributes.reserve(raw_vertex_attributes.size());
+      shader.descr.vertex_attributes.Reserve(raw_vertex_attributes.size());
 
       for (usize i{0}; i < raw_vertex_attributes.size(); ++i) {
         const auto& raw_vertex_attribute = raw_vertex_attributes[i];
@@ -92,13 +103,13 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
         vertex_attribute.type = GetShaderVertexAttributeType(
             raw_vertex_attribute[kCometEditorShaderKeyVertexAttributeType]);
 #endif  // COMET_GCC
-        shader.descr.vertex_attributes.push_back(std::move(vertex_attribute));
+        shader.descr.vertex_attributes.PushBack(std::move(vertex_attribute));
       }
     }
 
     if (shader_file.contains(kCometEditorShaderKeyUniforms)) {
       const auto raw_uniforms = shader_file[kCometEditorShaderKeyUniforms];
-      shader.descr.uniforms.reserve(raw_uniforms.size());
+      shader.descr.uniforms.Reserve(raw_uniforms.size());
 
       for (usize i{0}; i < raw_uniforms.size(); ++i) {
         const auto& raw_uniform = raw_uniforms[i];
@@ -130,7 +141,7 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
         uniform.scope = GetShaderUniformScope(
             raw_uniform[kCometEditorShaderKeyUniformScope]);
 #endif  // COMET_GCC
-        shader.descr.uniforms.push_back(std::move(uniform));
+        shader.descr.uniforms.PushBack(std::move(uniform));
       }
     }
   } catch (const nlohmann::json::exception& error) {

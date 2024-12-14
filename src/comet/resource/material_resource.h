@@ -6,6 +6,7 @@
 #define COMET_COMET_RESOURCE_MATERIAL_RESOURCE_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
@@ -48,19 +49,21 @@ ResourceId GenerateMaterialId(const schar* material_name);
 
 class MaterialHandler : public ResourceHandler {
  public:
-  MaterialHandler() = default;
+  MaterialHandler(memory::Allocator* loading_resources_allocator,
+                  memory::Allocator* loading_resource_allocator);
   MaterialHandler(const MaterialHandler&) = delete;
   MaterialHandler(MaterialHandler&&) = delete;
   MaterialHandler& operator=(const MaterialHandler&) = delete;
   MaterialHandler& operator=(MaterialHandler&&) = delete;
   virtual ~MaterialHandler() = default;
 
-  const Resource* GetDefaultResource() override;
+  Resource* GetDefaultResource() override;
 
  protected:
-  ResourceFile Pack(const Resource& resource,
+  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
                     CompressionMode compression_mode) const override;
-  std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
+  Resource* Unpack(memory::Allocator& allocator,
+                   const ResourceFile& file) override;
 
  private:
   std::unique_ptr<MaterialResource> default_material_{nullptr};

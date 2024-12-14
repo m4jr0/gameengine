@@ -29,10 +29,15 @@ class TestsFileSystemEventListener : public Catch::EventListenerBase {
   using Catch::EventListenerBase::EventListenerBase;
 
  public:
-  void testCaseStarting(Catch::TestCaseInfo const&) override {
+  void testRunStarting(Catch::TestRunInfo const&) override {
     current_dir = comet::GetCurrentDirectory();
     tmp_dir = comet::comettests::current_dir / comet::comettests::test_dir;
     comet::Remove(comet::comettests::tmp_dir, true);
+  }
+
+  void testRunEnded(Catch::TestRunStats const&) override {
+    current_dir.Clear();
+    tmp_dir.Clear();
   }
 };
 

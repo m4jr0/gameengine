@@ -73,8 +73,13 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   ShaderCodeContext shader_code_context{};
   shader_code_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
 
-  job::Scheduler::Get().KickAndWait(
-      job::GenerateIOJobDescr(OnShaderModuleLoading, &shader_code_context));
+  auto& scheduler{job::Scheduler::Get()};
+  auto* counter{scheduler.GenerateCounter()};
+
+  scheduler.KickAndWait(job::GenerateIOJobDescr(OnShaderModuleLoading,
+                                                &shader_code_context, counter));
+
+  scheduler.DestroyCounter(counter);
 
   COMET_LOG_GLOBAL_DEBUG("Processing shader module at: ",
                          shader_code_context.asset_abs_path, "...");
@@ -119,16 +124,18 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
         COMET_LOG_GLOBAL_ERROR("\t", result.GetErrorMessage());
       }
 
-      shader.data.resize((result.cend() - result.cbegin()) * sizeof(u32));
-      memory::CopyMemory(shader.data.data(), result.cbegin(),
-                         shader.data.size());
+      shader.data = Array<u8>{context.allocator};
+      shader.data.Resize((result.cend() - result.cbegin()) * sizeof(u32));
+      memory::CopyMemory(shader.data.GetData(), result.cbegin(),
+                         shader.data.GetSize());
       break;
     }
     default:
     case rendering::DriverType::OpenGl: {
-      shader.data.resize(shader_code_context.code_len);
-      memory::CopyMemory(shader.data.data(), shader_code_context.code,
-                         shader.data.size());
+      shader.data = Array<u8>{context.allocator};
+      shader.data.Resize(shader_code_context.code_len);
+      memory::CopyMemory(shader.data.GetData(), shader_code_context.code,
+                         shader.data.GetSize());
       break;
     }
   }

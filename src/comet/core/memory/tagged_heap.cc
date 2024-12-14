@@ -30,6 +30,8 @@ void TaggedHeap::Initialize() {
                     ? memory_descr_.large_page_size
                     : memory_descr_.page_size;
 
+  COMET_ASSERT(block_size_ > kMaxAlignment, "Invalid block size!");
+
   total_block_count_ = capacity_ / block_size_;
   COMET_ASSERT(total_block_count_ > 0,
                "Total capacity must be at least one block.");
@@ -183,8 +185,7 @@ void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
   COMET_ASSERT(memory_ != nullptr,
                "Cannot allocate! No memory is available...");
   block_count = (size + block_size_ - 1) / block_size_;
-  test += block_count;
-  COMET_ASSERT(size <= capacity_, "Max capacity reached!");
+  COMET_ASSERT(block_count <= total_block_count_, "Max capacity reached!");
   usize free_blocks_index;
 
   {
@@ -208,7 +209,7 @@ void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
   }
 
   auto* ptr{static_cast<u8*>(memory_) + free_blocks_index * block_size_};
-  COMET_POISON(ptr, size);
+  COMET_POISON(ptr, block_count * block_size_);
   return ptr;
 }
 

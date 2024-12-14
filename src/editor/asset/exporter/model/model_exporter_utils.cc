@@ -98,16 +98,19 @@ math::Mat4 GetTransform(const math::Mat4& current_transform,
   return result;
 }
 
-resource::StaticModelResource LoadStaticModel(const aiScene* scene,
+resource::StaticModelResource LoadStaticModel(memory::Allocator* allocator,
+                                              const aiScene* scene,
                                               CTStringView path) {
   resource::StaticModelResource model{};
   model.id = resource::GenerateResourceIdFromPath(path);
   model.type_id = resource::StaticModelResource::kResourceTypeId;
-  LoadStaticNode(model, scene->mRootNode, scene);
+  model.meshes = Array<resource::StaticMeshResource>{allocator};
+  LoadStaticNode(allocator, model, scene->mRootNode, scene);
   return model;
 }
 
-void LoadStaticNode(resource::StaticModelResource& model,
+void LoadStaticNode(memory::Allocator* allocator,
+                    resource::StaticModelResource& model,
                     const aiNode* current_node, const aiScene* scene,
                     resource::ResourceId parent_id,
                     const math::Mat4& parent_transform) {
@@ -116,27 +119,30 @@ void LoadStaticNode(resource::StaticModelResource& model,
 
   for (usize index{0}; index < current_node->mNumMeshes; ++index) {
     const auto* mesh{scene->mMeshes[current_node->mMeshes[index]]};
-    last_mesh_id = LoadStaticMesh(model, mesh, scene, parent_id, transform);
+    last_mesh_id =
+        LoadStaticMesh(allocator, model, mesh, scene, parent_id, transform);
   }
 
   parent_id = current_node->mNumMeshes != 1 ? parent_id : last_mesh_id;
 
   for (usize index{0}; index < current_node->mNumChildren; ++index) {
-    LoadStaticNode(model, current_node->mChildren[index], scene, parent_id,
-                   transform);
+    LoadStaticNode(allocator, model, current_node->mChildren[index], scene,
+                   parent_id, transform);
   }
 }
 
-resource::ResourceId LoadStaticMesh(resource::StaticModelResource& model,
+resource::ResourceId LoadStaticMesh(memory::Allocator* allocator,
+                                    resource::StaticModelResource& model,
                                     const aiMesh* current_mesh,
                                     const aiScene* scene,
                                     resource::ResourceId parent_id,
                                     const math::Mat4& transform) {
-  model.meshes.push_back({});
-  auto& mesh_resource{model.meshes[model.meshes.size() - 1]};
+  model.meshes.PushBack(resource::StaticMeshResource{});
+  auto& mesh_resource{model.meshes[model.meshes.GetSize() - 1]};
+  mesh_resource.vertices = Array<geometry::Vertex>{allocator};
   mesh_resource.resource_id = model.id;
   mesh_resource.internal_id =
-      static_cast<resource::ResourceId>(model.meshes.size());
+      static_cast<resource::ResourceId>(model.meshes.GetSize());
   mesh_resource.type = geometry::MeshType::Static;
 
   auto* raw_material{scene->mMaterials[current_mesh->mMaterialIndex]};
@@ -144,14 +150,16 @@ resource::ResourceId LoadStaticMesh(resource::StaticModelResource& model,
       resource::GenerateMaterialId(raw_material->GetName().C_Str());
 
   auto& vertices{mesh_resource.vertices};
+  vertices = Array<geometry::Vertex>{allocator};
   auto& indices{mesh_resource.indices};
+  indices = Array<geometry::Index>{allocator};
 
   math::Vec3 min_extents{kF32Max};
   math::Vec3 max_extents{kF32Min};
 
   for (usize index{0}; index < current_mesh->mNumVertices; ++index) {
-    vertices.push_back({});
-    auto& vertex{vertices[vertices.size() - 1]};
+    vertices.PushBack(geometry::Vertex{});
+    auto& vertex{vertices[vertices.GetSize() - 1]};
 
     if (current_mesh->mVertices) {
       vertex.position = math::Vec3{current_mesh->mVertices[index].x,
@@ -221,23 +229,26 @@ resource::ResourceId LoadStaticMesh(resource::StaticModelResource& model,
     const auto& face{current_mesh->mFaces[index]};
 
     for (usize face_index{0}; face_index < face.mNumIndices; ++face_index) {
-      indices.push_back(face.mIndices[face_index]);
+      indices.PushBack(face.mIndices[face_index]);
     }
   }
 
   return mesh_resource.internal_id;
 }
 
-resource::SkeletalModelResource LoadSkeletalModel(const aiScene* scene,
+resource::SkeletalModelResource LoadSkeletalModel(memory::Allocator* allocator,
+                                                  const aiScene* scene,
                                                   CTStringView path) {
   resource::SkeletalModelResource model{};
   model.id = resource::GenerateResourceIdFromPath(path);
   model.type_id = resource::SkeletalModelResource::kResourceTypeId;
-  LoadSkeletalNode(model, scene->mRootNode, scene);
+  model.meshes = Array<resource::SkinnedMeshResource>{allocator};
+  LoadSkeletalNode(allocator, model, scene->mRootNode, scene);
   return model;
 }
 
-void LoadSkeletalNode(resource::SkeletalModelResource& model,
+void LoadSkeletalNode(memory::Allocator* allocator,
+                      resource::SkeletalModelResource& model,
                       const aiNode* current_node, const aiScene* scene,
                       resource::ResourceId parent_id,
                       const math::Mat4& parent_transform) {
@@ -246,27 +257,30 @@ void LoadSkeletalNode(resource::SkeletalModelResource& model,
 
   for (usize index{0}; index < current_node->mNumMeshes; ++index) {
     const auto* mesh{scene->mMeshes[current_node->mMeshes[index]]};
-    last_mesh_id = LoadSkeletalMesh(model, mesh, scene, parent_id, transform);
+    last_mesh_id =
+        LoadSkeletalMesh(allocator, model, mesh, scene, parent_id, transform);
   }
 
   parent_id = current_node->mNumMeshes != 1 ? parent_id : last_mesh_id;
 
   for (usize index{0}; index < current_node->mNumChildren; ++index) {
-    LoadSkeletalNode(model, current_node->mChildren[index], scene, parent_id,
-                     transform);
+    LoadSkeletalNode(allocator, model, current_node->mChildren[index], scene,
+                     parent_id, transform);
   }
 }
 
-resource::ResourceId LoadSkeletalMesh(resource::SkeletalModelResource& model,
+resource::ResourceId LoadSkeletalMesh(memory::Allocator* allocator,
+                                      resource::SkeletalModelResource& model,
                                       const aiMesh* current_mesh,
                                       const aiScene* scene,
                                       resource::ResourceId parent_id,
                                       const math::Mat4& transform) {
-  model.meshes.push_back({});
-  auto& mesh_resource{model.meshes[model.meshes.size() - 1]};
+  model.meshes.PushBack(resource::SkinnedMeshResource{});
+  auto& mesh_resource{model.meshes[model.meshes.GetSize() - 1]};
+  mesh_resource.vertices = Array<geometry::SkinnedVertex>{allocator};
   mesh_resource.resource_id = model.id;
   mesh_resource.internal_id =
-      static_cast<resource::ResourceId>(model.meshes.size());
+      static_cast<resource::ResourceId>(model.meshes.GetSize());
   mesh_resource.type = geometry::MeshType::Skinned;
 
   auto* raw_material{scene->mMaterials[current_mesh->mMaterialIndex]};
@@ -274,14 +288,16 @@ resource::ResourceId LoadSkeletalMesh(resource::SkeletalModelResource& model,
       resource::GenerateMaterialId(raw_material->GetName().C_Str());
 
   auto& vertices{mesh_resource.vertices};
+  vertices = Array<geometry::SkinnedVertex>{allocator};
   auto& indices{mesh_resource.indices};
+  indices = Array<geometry::Index>{allocator};
 
   math::Vec3 min_extents{kF32Max};
   math::Vec3 max_extents{kF32Min};
 
   for (usize index{0}; index < current_mesh->mNumVertices; ++index) {
-    vertices.push_back({});
-    auto& vertex{vertices[vertices.size() - 1]};
+    vertices.PushBack(geometry::SkinnedVertex{});
+    auto& vertex{vertices[vertices.GetSize() - 1]};
 
     if (current_mesh->mVertices) {
       vertex.position = math::Vec3{current_mesh->mVertices[index].x,
@@ -351,7 +367,7 @@ resource::ResourceId LoadSkeletalMesh(resource::SkeletalModelResource& model,
     const auto& face{current_mesh->mFaces[index]};
 
     for (usize face_index{0}; face_index < face.mNumIndices; ++face_index) {
-      indices.push_back(face.mIndices[face_index]);
+      indices.PushBack(face.mIndices[face_index]);
     }
   }
 

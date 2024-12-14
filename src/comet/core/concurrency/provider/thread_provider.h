@@ -9,12 +9,15 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type/iterator.h"
 
 namespace comet {
 namespace thread {
 template <typename T>
 class ThreadProvider {
  public:
+  COMET_POPULATE_ITERATOR(T, this->array_.GetData(), this->array_.GetSize())
+
   virtual ~ThreadProvider() {
     COMET_ASSERT(!is_initialized_,
                  "Destructor called for thread provider, but it is still "
@@ -38,6 +41,11 @@ class ThreadProvider {
 
   virtual T& Get() = 0;
   T& GetFromIndex(usize index) { return this->array_[index]; }
+
+  thread::ThreadId GetThreadIdFromIndex(usize index) {
+    return static_cast<thread::ThreadId>(index);
+  }
+
   usize GetSize() const noexcept { return this->array_.GetSize(); }
   bool IsInitialized() const noexcept { return this->is_initialized_; }
 

@@ -5,6 +5,8 @@
 #include "fiber_utils.h"
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/frame/frame_manager.h"
+#include "comet/entity/entity_manager.h"
 #include "comet/time/chrono.h"
 
 namespace comet {
@@ -20,6 +22,12 @@ void SleepMs(u32 duration_ms) {
   time::Chrono chrono{};
   chrono.Start(duration_ms);
   cv.Wait(lock, [&] { return chrono.IsFinished(); });
+}
+
+void WaitForNextFrame() { frame::FrameManager::Get().WaitForNextFrame(); }
+
+void WaitForEntityUpdates() {
+  entity::EntityManager::Get().WaitForEntityUpdates();
 }
 }  // namespace fiber
 }  // namespace comet

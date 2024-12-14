@@ -144,7 +144,7 @@ class Scheduler {
   void WorkOnFibers();
   void WorkOnIO();
   internal::FiberPool* ResolveFiberPool(const JobDescr& job_descr);
-  void CleanAndTryResumeNext();
+  void CleanCompletedAndTryResumeNext();
   static void OnFiberEnd(fiber::Fiber* fiber, void* data);
   void SubmitJob(const JobDescr& job_descr);
   void SubmitJob(const IOJobDescr& job_descr);

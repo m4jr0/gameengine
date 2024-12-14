@@ -7,10 +7,11 @@
 
 #include "comet/core/essentials.h"
 
-#ifdef COMET_PROFILING
+#ifdef COMET_DEBUG
 #include "comet/core/manager.h"
-#include "comet/core/memory/memory.h"
-#include "comet/profiler/profiler_data.h"
+#include "comet/profiler/profiler.h"
+#include "comet/rendering/debugger/memory/allocation_tracker_displayer.h"
+#include "comet/rendering/debugger/profiler/cpu_profiler_displayer.h"
 
 namespace comet {
 namespace rendering {
@@ -28,14 +29,20 @@ class DebuggerDisplayerManager : public Manager {
   void Draw();
 
  private:
+#ifdef COMET_PROFILING
 #ifdef COMET_IMGUI
   void DrawPhysicsSection(const profiler::ProfilerData& profiler_data) const;
   void DrawRenderingSection(const profiler::ProfilerData& profiler_data) const;
   void DrawMemorySection(const profiler::ProfilerData& profiler_data) const;
+  void DrawProfilingSection(const profiler::ProfilerData& profiler_data);
+
+  CpuProfilerDisplayer cpu_profiler_displayer_{};
+  AllocationTrackerDisplayer allocation_tracker_displayer_{};
 #endif  // COMET_IMGUI
+#endif  // COMET_PROFILING
 };
 }  // namespace rendering
 }  // namespace comet
-#endif  // COMET_PROFILING
+#endif  // COMET_DEBUG
 
 #endif  // COMET_COMET_RENDERING_DEBUGGER_DEBUGGUER_DISPLAYER_MANAGER_H_

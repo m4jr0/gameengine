@@ -62,7 +62,7 @@ const Texture* TextureHandler::Generate(
                      VK_SHARING_MODE_EXCLUSIVE, "texture_stating_buffer");
 
   MapBuffer(staging_buffer);
-  CopyToBuffer(staging_buffer, resource->data.data(), image_size);
+  CopyToBuffer(staging_buffer, resource->data.GetData(), image_size);
   UnmapBuffer(staging_buffer);
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS

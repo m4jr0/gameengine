@@ -11,6 +11,7 @@
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
@@ -51,6 +52,7 @@ class ModelExporter : public AssetExporter {
     const aiScene* scene{nullptr};
     const tchar* asset_abs_path{nullptr};
     const tchar* asset_path{nullptr};
+    memory::Allocator* allocator{nullptr};
   };
 
   static void OnSceneLoading(job::IOJobParamsHandle params_handle);

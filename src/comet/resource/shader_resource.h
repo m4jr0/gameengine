@@ -6,6 +6,8 @@
 #define COMET_COMET_RESOURCE_SHADER_RESOURCE_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/rendering_common.h"
@@ -17,9 +19,9 @@ namespace resource {
 struct ShaderResourceDescr {
   bool is_wireframe{false};
   rendering::CullMode cull_mode{rendering::CullMode::Unknown};
-  std::vector<TString> shader_module_paths{};
-  std::vector<rendering::ShaderVertexAttributeDescr> vertex_attributes{};
-  std::vector<rendering::ShaderUniformDescr> uniforms{};
+  Array<TString> shader_module_paths{};
+  Array<rendering::ShaderVertexAttributeDescr> vertex_attributes{};
+  Array<rendering::ShaderUniformDescr> uniforms{};
 };
 
 struct ShaderResource : Resource {
@@ -30,7 +32,8 @@ struct ShaderResource : Resource {
 
 class ShaderHandler : public ResourceHandler {
  public:
-  ShaderHandler() = default;
+  ShaderHandler(memory::Allocator* loading_resources_allocator,
+                memory::Allocator* loading_resource_allocator);
   ShaderHandler(const ShaderHandler&) = delete;
   ShaderHandler(ShaderHandler&&) = delete;
   ShaderHandler& operator=(const ShaderHandler&) = delete;
@@ -38,11 +41,14 @@ class ShaderHandler : public ResourceHandler {
   virtual ~ShaderHandler() = default;
 
  protected:
-  ResourceFile Pack(const Resource& resource,
+  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
                     CompressionMode compression_mode) const override;
-  std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
-  std::vector<u8> DumpDescr(const ShaderResourceDescr& descr) const;
-  ShaderResourceDescr ParseDescr(const std::vector<u8>& dumped_descr) const;
+  Resource* Unpack(memory::Allocator& allocator,
+                   const ResourceFile& file) override;
+  Array<u8> DumpDescr(memory::Allocator& allocator,
+                      const ShaderResourceDescr& descr) const;
+  ShaderResourceDescr ParseDescr(const Array<u8>& dumped_descr,
+                                 ShaderResourceDescr& descr) const;
 };
 }  // namespace resource
 }  // namespace comet

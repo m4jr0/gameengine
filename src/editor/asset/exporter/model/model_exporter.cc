@@ -40,11 +40,13 @@ void ModelExporter::PopulateFiles(ResourceFilesContext& context) const {
   scene_context.exporter = this;
   scene_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
   scene_context.asset_path = asset_descr.asset_path.GetCTStr();
+  scene_context.allocator = context.allocator;
 
   auto& scheduler{job::Scheduler::Get()};
 
   auto io_job_descr{scene_context.GenerateSceneLoadingJobDescr()};
   scheduler.KickAndWait(io_job_descr);
+  scheduler.DestroyCounter(io_job_descr.counter);
 
   if (scene_context.scene == nullptr) {
     return;
@@ -208,12 +210,14 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
   if (scene->HasAnimations()) {
     scene_context->AddResourceFile(
         resource::ResourceManager::Get().GetResourceFile(
-            LoadSkeletalModel(scene, scene_context->asset_path),
+            LoadSkeletalModel(scene_context->allocator, scene,
+                              scene_context->asset_path),
             exporter->compression_mode_));
   } else {
     scene_context->AddResourceFile(
         resource::ResourceManager::Get().GetResourceFile(
-            LoadStaticModel(scene, scene_context->asset_path),
+            LoadStaticModel(scene_context->allocator, scene,
+                            scene_context->asset_path),
             exporter->compression_mode_));
   }
 
@@ -230,9 +234,9 @@ void ModelExporter::OnMaterialsProcessing(job::JobParamsHandle params_handle) {
                          scene_context->asset_abs_path);
 }
 
-void ModelExporter::LoadMaterials(SceneContext* data) const {
-  auto* scene{data->scene};
-  auto directory_path{GetDirectoryPath(data->asset_abs_path)};
+void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
+  auto* scene{scene_context->scene};
+  auto directory_path{GetDirectoryPath(scene_context->asset_abs_path)};
   const auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
   constexpr StaticArray<aiTextureType, 4> exported_texture_types{
       aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_HEIGHT,
@@ -278,8 +282,9 @@ void ModelExporter::LoadMaterials(SceneContext* data) const {
     material.id = resource::GenerateMaterialId(raw_material->GetName().C_Str());
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
-    data->AddResourceFile(resource::ResourceManager::Get().GetResourceFile(
-        material, compression_mode_));
+    scene_context->AddResourceFile(
+        resource::ResourceManager::Get().GetResourceFile(material,
+                                                         compression_mode_));
   }
 }
 
@@ -323,7 +328,8 @@ rendering::TextureRepeatMode ModelExporter::GetTextureRepeatMode(
 }
 
 job::IOJobDescr ModelExporter::SceneContext::GenerateSceneLoadingJobDescr() {
-  return job::GenerateIOJobDescr(OnSceneLoading, this);
+  return job::GenerateIOJobDescr(OnSceneLoading, this,
+                                 job::Scheduler::Get().GenerateCounter());
 }
 
 job::JobDescr ModelExporter::SceneContext::GenerateModelProcessingJobDescr(

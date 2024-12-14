@@ -4,10 +4,9 @@
 
 #include "tests_entity.h"
 
-#include "comet/entity/entity_component.h"
-#include "comet/entity/entity_manager.h"
-
 #include "catch.hpp"
+
+#include "comet/entity/entity_manager.h"
 
 TEST_CASE("Components management", "[comet::entity]") {
   auto& entity_manager{comet::entity::EntityManager::Get()};
@@ -15,21 +14,19 @@ TEST_CASE("Components management", "[comet::entity]") {
   const comet::entity::EntityId entity_id2{entity_manager.Generate()};
   const comet::entity::EntityId entity_id3{entity_manager.Generate()};
 
-  auto entity_cmp_gen1{comet::entity::GetEntityComponentGenerator(entity_id1)};
-  auto entity_cmp_gen2{comet::entity::GetEntityComponentGenerator(entity_id2)};
-  auto entity_cmp_gen3{comet::entity::GetEntityComponentGenerator(entity_id3)};
-
-  auto entity_cmp_des1{comet::entity::GetEntityComponentDestroyer(entity_id1)};
-
   SECTION("Create operations.") {
-    entity_cmp_gen1.AddComponent(comet::comettests::DummyTagComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id1,
+                                 comet::comettests::DummyTagComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id1) != nullptr);
 
-    entity_cmp_gen1.AddComponent(comet::comettests::DummyMeshComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id1,
+                                 comet::comettests::DummyMeshComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id1) != nullptr);
@@ -37,9 +34,11 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyMeshComponent>(
                 entity_id1) != nullptr);
 
-    entity_cmp_gen1.AddComponent(comet::comettests::DummyTransformComponent{})
-        .AddComponent(comet::comettests::DummyHpComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id1,
+                                 comet::comettests::DummyTransformComponent{},
+                                 comet::comettests::DummyHpComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id1) != nullptr);
@@ -54,14 +53,18 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyHpComponent>(
                 entity_id1) != nullptr);
 
-    entity_cmp_gen2.AddComponent(comet::comettests::DummyTagComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id2,
+                                 comet::comettests::DummyTagComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id2) != nullptr);
 
-    entity_cmp_gen2.AddComponent(comet::comettests::DummyMeshComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id2,
+                                 comet::comettests::DummyMeshComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id2) != nullptr);
@@ -69,9 +72,11 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyMeshComponent>(
                 entity_id2) != nullptr);
 
-    entity_cmp_gen2.AddComponent(comet::comettests::DummyTransformComponent{})
-        .AddComponent(comet::comettests::DummyHpComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id2,
+                                 comet::comettests::DummyTransformComponent{},
+                                 comet::comettests::DummyHpComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id2) != nullptr);
@@ -86,14 +91,18 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyHpComponent>(
                 entity_id2) != nullptr);
 
-    entity_cmp_gen3.AddComponent(comet::comettests::DummyTagComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id3,
+                                 comet::comettests::DummyTagComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id3) != nullptr);
 
-    entity_cmp_gen3.AddComponent(comet::comettests::DummyMeshComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id3,
+                                 comet::comettests::DummyMeshComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id3) != nullptr);
@@ -101,9 +110,11 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyMeshComponent>(
                 entity_id3) != nullptr);
 
-    entity_cmp_gen3.AddComponent(comet::comettests::DummyTransformComponent{})
-        .AddComponent(comet::comettests::DummyHpComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id3,
+                                 comet::comettests::DummyTransformComponent{},
+                                 comet::comettests::DummyHpComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id3) != nullptr);
@@ -120,22 +131,25 @@ TEST_CASE("Components management", "[comet::entity]") {
   }
 
   SECTION("Remove operations.") {
-    entity_cmp_gen1.AddComponent(comet::comettests::DummyTagComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id1,
+                                 comet::comettests::DummyTagComponent{});
 
-    entity_cmp_des1.RemoveComponent<comet::comettests::DummyTagComponent>()
-        .Submit();
+    entity_manager.RemoveComponents<comet::comettests::DummyTagComponent>(
+        entity_id1);
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyTagComponent>(
                 entity_id1) == nullptr);
 
-    entity_cmp_gen1.AddComponent(comet::comettests::DummyTransformComponent{})
-        .AddComponent(comet::comettests::DummyHpComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id1,
+                                 comet::comettests::DummyTransformComponent{},
+                                 comet::comettests::DummyHpComponent{});
 
-    entity_cmp_des1
-        .RemoveComponent<comet::comettests::DummyTransformComponent>()
-        .Submit();
+    entity_manager.RemoveComponents<comet::comettests::DummyTransformComponent>(
+        entity_id1);
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(
         entity_manager.GetComponent<comet::comettests::DummyTransformComponent>(
@@ -144,13 +158,14 @@ TEST_CASE("Components management", "[comet::entity]") {
     REQUIRE(entity_manager.GetComponent<comet::comettests::DummyHpComponent>(
                 entity_id1) != nullptr);
 
-    entity_cmp_gen1.AddComponent(comet::comettests::DummyTransformComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id1,
+                                 comet::comettests::DummyTransformComponent{});
 
-    entity_cmp_des1
-        .RemoveComponent<comet::comettests::DummyTransformComponent>()
-        .RemoveComponent<comet::comettests::DummyHpComponent>()
-        .Submit();
+    entity_manager.RemoveComponents<comet::comettests::DummyTransformComponent,
+                                    comet::comettests::DummyHpComponent>(
+        entity_id1);
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(
         entity_manager.GetComponent<comet::comettests::DummyTransformComponent>(
@@ -167,17 +182,23 @@ TEST_CASE("Components management", "[comet::entity]") {
 
     entity_manager.Destroy(entity_id1);
 
+    entity_manager.DispatchComponentChanges();
+
     REQUIRE(!entity_manager.IsEntity(entity_id1));
     REQUIRE(entity_manager.IsEntity(entity_id2));
     REQUIRE(entity_manager.IsEntity(entity_id3));
 
     entity_manager.Destroy(entity_id2);
 
+    entity_manager.DispatchComponentChanges();
+
     REQUIRE(!entity_manager.IsEntity(entity_id1));
     REQUIRE(!entity_manager.IsEntity(entity_id2));
     REQUIRE(entity_manager.IsEntity(entity_id3));
 
     entity_manager.Destroy(entity_id3);
+
+    entity_manager.DispatchComponentChanges();
 
     REQUIRE(!entity_manager.IsEntity(entity_id1));
     REQUIRE(!entity_manager.IsEntity(entity_id2));
@@ -189,12 +210,14 @@ TEST_CASE("Components management", "[comet::entity]") {
     auto is_entity_id2{false};
     auto is_entity_id3{false};
 
-    entity_cmp_gen1.AddComponent(comet::comettests::DummyTransformComponent{})
-        .AddComponent(comet::comettests::DummyHpComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id1,
+                                 comet::comettests::DummyTransformComponent{},
+                                 comet::comettests::DummyHpComponent{});
 
-    entity_cmp_gen2.AddComponent(comet::comettests::DummyTransformComponent{})
-        .Submit();
+    entity_manager.AddComponents(entity_id2,
+                                 comet::comettests::DummyTransformComponent{});
+
+    entity_manager.DispatchComponentChanges();
 
     entity_manager.Each<comet::comettests::DummyTransformComponent,
                         comet::comettests::DummyHpComponent>(

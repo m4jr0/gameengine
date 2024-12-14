@@ -11,6 +11,7 @@
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
@@ -37,8 +38,13 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
   texture_context.path = asset_descr.asset_abs_path.GetCTStr();
 #endif  // COMET_WIDE_TCHAR
 
-  job::Scheduler::Get().KickAndWait(
-      job::GenerateIOJobDescr(OnTextureLoading, &texture_context));
+  auto& scheduler{job::Scheduler::Get()};
+  auto* counter{scheduler.GenerateCounter()};
+
+  scheduler.KickAndWait(
+      job::GenerateIOJobDescr(OnTextureLoading, &texture_context, counter));
+
+  scheduler.DestroyCounter(counter);
 
   if (texture_context.pixel_data == nullptr) {
     COMET_LOG_GLOBAL_ERROR("Failed to load texture image");
@@ -56,8 +62,11 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
   texture.descr.resolution[2] = 0;
   texture.descr.channel_count = static_cast<u8>(texture_context.tex_channels);
   texture.descr.format = rendering::TextureFormat::Rgba8;
-  texture.data = {texture_context.pixel_data,
-                  texture_context.pixel_data + texture.descr.size};
+
+  texture.data = Array<u8>{context.allocator};
+  texture.data.Resize(texture.descr.size);
+  memory::CopyMemory(texture.data.GetData(), texture_context.pixel_data,
+                     texture.descr.size);
 
   asset_descr.metadata[kCometEditorTextureMetadataKeyFormat] =
       kCometEditorTextureFormatRgba8;

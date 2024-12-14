@@ -8,48 +8,42 @@
 
 namespace comet {
 namespace frame {
-thread_local memory::AllocatorHandle tls_frame_allocator_handle{nullptr};
-thread_local memory::AllocatorHandle tls_double_frame_allocator_handle{nullptr};
+thread_local memory::Allocator* tls_frame_allocator{nullptr};
+thread_local memory::Allocator* tls_double_frame_allocator{nullptr};
 
 memory::Allocator& GetFrameAllocator() {
-  COMET_ASSERT(tls_frame_allocator_handle != nullptr,
-               "Current frame allocator handle is null! No allocator handle "
-               "has been attached for this thread!");
-  COMET_ASSERT(tls_frame_allocator_handle->allocator != nullptr,
+  COMET_ASSERT(tls_frame_allocator != nullptr,
                "Current frame allocator is null for this thread!");
-  return *tls_frame_allocator_handle->allocator;
+  return *tls_frame_allocator;
 }
 
 memory::Allocator& GetDoubleFrameAllocator() {
-  COMET_ASSERT(tls_double_frame_allocator_handle != nullptr,
-               "Current double frame allocator handle is null! No allocator "
-               "handle has been attached for this thread!");
-  COMET_ASSERT(tls_double_frame_allocator_handle->allocator != nullptr,
+  COMET_ASSERT(tls_double_frame_allocator != nullptr,
                "Current frame allocator is null for this thread!");
-  return *tls_double_frame_allocator_handle->allocator;
+  return *tls_double_frame_allocator;
 }
 
-void AttachFrameAllocator(memory::AllocatorHandle handle) {
-  COMET_ASSERT(handle != nullptr, "Frame allocator handle provided is null!");
-  tls_frame_allocator_handle = handle;
+void AttachFrameAllocator(memory::Allocator* allocator) {
+  COMET_ASSERT(allocator != nullptr, "Frame allocator provided is null!");
+  tls_frame_allocator = allocator;
 }
 
-void AttachDoubleFrameAllocator(memory::AllocatorHandle handle) {
-  COMET_ASSERT(handle != nullptr,
-               "Double frame allocator handle provided is null!");
-  tls_double_frame_allocator_handle = handle;
+void AttachDoubleFrameAllocator(memory::Allocator* allocator) {
+  COMET_ASSERT(allocator != nullptr,
+               "Double frame allocator provided is null!");
+  tls_double_frame_allocator = allocator;
 }
 
 void DetachFrameAllocator() {
-  COMET_ASSERT(tls_frame_allocator_handle != nullptr,
-               "No frame allocator handle has been provided!");
-  tls_frame_allocator_handle = nullptr;
+  COMET_ASSERT(tls_frame_allocator != nullptr,
+               "No frame allocator has been provided!");
+  tls_frame_allocator = nullptr;
 }
 
 void DetachDoubleFrameAllocator() {
-  COMET_ASSERT(tls_double_frame_allocator_handle != nullptr,
-               "No double frame allocator handle has been provided!");
-  tls_double_frame_allocator_handle = nullptr;
+  COMET_ASSERT(tls_double_frame_allocator != nullptr,
+               "No double frame allocator has been provided!");
+  tls_double_frame_allocator = nullptr;
 }
 }  // namespace frame
 }  // namespace comet

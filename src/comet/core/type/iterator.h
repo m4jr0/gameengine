@@ -5,7 +5,6 @@
 #ifndef COMET_COMET_CORE_TYPE_ITERATOR_H_
 #define COMET_COMET_CORE_TYPE_ITERATOR_H_
 
-#include <cstddef>
 #include <iterator>
 #include <type_traits>
 
@@ -121,60 +120,52 @@ template <typename T>
 using ConstContiguousIterator = ContiguousIteratorImpl<T, true>;
 }  // namespace comet
 
-/*
-
-ContiguousIterator<T>, ConstContiguousIterator<T>
-
-*/
-
-#define COMET_POPULATE_ITERATOR(DataType, DataPointer, SizeValue)           \
-  using Iterator = comet::ContiguousIterator<DataType>;                     \
-  using ConstIterator = comet::ConstContiguousIterator<DataType>;           \
-                                                                            \
-  constexpr Iterator begin() noexcept { return Iterator{DataPointer}; }     \
-                                                                            \
-  constexpr Iterator end() noexcept {                                       \
-    return Iterator{DataPointer + SizeValue};                               \
-  }                                                                         \
-                                                                            \
-  constexpr ConstIterator begin() const noexcept {                          \
-    return ConstIterator{DataPointer};                                      \
-  }                                                                         \
-                                                                            \
-  constexpr ConstIterator end() const noexcept {                            \
-    return ConstIterator{DataPointer + SizeValue};                          \
-  }                                                                         \
-                                                                            \
-  constexpr ConstIterator cbegin() const noexcept {                         \
-    return ConstIterator{DataPointer};                                      \
-  }                                                                         \
-                                                                            \
-  constexpr ConstIterator cend() const noexcept {                           \
-    return ConstIterator{DataPointer + SizeValue};                          \
-  }                                                                         \
-                                                                            \
-  constexpr std::reverse_iterator<Iterator> rbegin() noexcept {             \
-    return std::reverse_iterator<Iterator>(end());                          \
-  }                                                                         \
-                                                                            \
-  constexpr std::reverse_iterator<Iterator> rend() noexcept {               \
-    return std::reverse_iterator<Iterator>(begin());                        \
-  }                                                                         \
-                                                                            \
-  constexpr std::reverse_iterator<ConstIterator> rbegin() const noexcept {  \
-    return std::reverse_iterator<ConstIterator>(end());                     \
-  }                                                                         \
-                                                                            \
-  constexpr std::reverse_iterator<ConstIterator> rend() const noexcept {    \
-    return std::reverse_iterator<ConstIterator>(begin());                   \
-  }                                                                         \
-                                                                            \
-  constexpr std::reverse_iterator<ConstIterator> crbegin() const noexcept { \
-    return std::reverse_iterator<ConstIterator>(end());                     \
-  }                                                                         \
-                                                                            \
-  constexpr std::reverse_iterator<ConstIterator> crend() const noexcept {   \
-    return std::reverse_iterator<ConstIterator>(begin());                   \
+#define COMET_POPULATE_ITERATOR(DataType, DataPtr, SizeValue)                 \
+  using Iterator = comet::ContiguousIterator<DataType>;                       \
+  using ConstIterator = comet::ConstContiguousIterator<DataType>;             \
+                                                                              \
+  constexpr Iterator begin() noexcept { return Iterator{DataPtr}; }           \
+                                                                              \
+  constexpr Iterator end() noexcept { return Iterator{DataPtr + SizeValue}; } \
+                                                                              \
+  constexpr ConstIterator begin() const noexcept {                            \
+    return ConstIterator{DataPtr};                                            \
+  }                                                                           \
+                                                                              \
+  constexpr ConstIterator end() const noexcept {                              \
+    return ConstIterator{DataPtr + SizeValue};                                \
+  }                                                                           \
+                                                                              \
+  constexpr ConstIterator cbegin() const noexcept {                           \
+    return ConstIterator{DataPtr};                                            \
+  }                                                                           \
+                                                                              \
+  constexpr ConstIterator cend() const noexcept {                             \
+    return ConstIterator{DataPtr + SizeValue};                                \
+  }                                                                           \
+                                                                              \
+  constexpr std::reverse_iterator<Iterator> rbegin() noexcept {               \
+    return std::reverse_iterator<Iterator>(end());                            \
+  }                                                                           \
+                                                                              \
+  constexpr std::reverse_iterator<Iterator> rend() noexcept {                 \
+    return std::reverse_iterator<Iterator>(begin());                          \
+  }                                                                           \
+                                                                              \
+  constexpr std::reverse_iterator<ConstIterator> rbegin() const noexcept {    \
+    return std::reverse_iterator<ConstIterator>(end());                       \
+  }                                                                           \
+                                                                              \
+  constexpr std::reverse_iterator<ConstIterator> rend() const noexcept {      \
+    return std::reverse_iterator<ConstIterator>(begin());                     \
+  }                                                                           \
+                                                                              \
+  constexpr std::reverse_iterator<ConstIterator> crbegin() const noexcept {   \
+    return std::reverse_iterator<ConstIterator>(end());                       \
+  }                                                                           \
+                                                                              \
+  constexpr std::reverse_iterator<ConstIterator> crend() const noexcept {     \
+    return std::reverse_iterator<ConstIterator>(begin());                     \
   }
 
 #endif  // COMET_COMET_CORE_TYPE_ITERATOR_H_

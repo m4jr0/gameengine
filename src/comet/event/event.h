@@ -8,9 +8,11 @@
 #include <atomic>
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/stl/two_frame_allocator.h"
+#include "comet/core/frame/frame_allocator.h"
+#include "comet/core/frame/frame_manager.h"
 #include "comet/core/logger.h"
-#include "comet/core/type/stl_types.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/string_id.h"
 
 #define COMET_EVENT_BIND_FUNCTION(function) \
@@ -81,19 +83,18 @@ class Event {
   SequenceNumber sequence_number_{0};
 };
 
-using EventPointer = custom_unique_ptr<comet::event::Event>;
+using EventPtr = memory::CustomUniquePtr<comet::event::Event>;
 
 // Function that creates and returns a custom unique pointer using custom
 // allocator and deleter
 template <typename T, typename... Args>
-EventPointer GenerateEvent(Args&&... args) {
-  frame::two_cycle_frame_allocator<T> allocator{};
-  auto* p{allocator.allocate_one()};
+EventPtr GenerateEvent(Args&&... args) {
+  auto* p{frame::GetDoubleFrameAllocator().AllocateOne<T>()};
 
   // No need to deallocate if an exception occurs: the temporary allocator will
   // be flushed by the end of the frame following the current one.
-  EventPointer event(p, [](Event* p) { p->~Event(); });
-  new (event.get()) T{std::forward<Args>(args)...};
+  EventPtr event(p, [](Event* p) { p->~Event(); });
+  memory::Populate<T>(event.get(), std::forward<Args>(args)...);
   return event;
 }
 }  // namespace event

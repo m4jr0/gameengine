@@ -32,7 +32,7 @@ class TStringAllocator : public memory::Allocator {
 
 void InitializeTStrings();
 void DestroyTStrings();
-void AttachTStringAllocator(memory::AllocatorHandle handle);
+void AttachTStringAllocator(memory::Allocator* allocator);
 void DetachTStringAllocator();
 
 const auto kSSOCapacityThreshold{15};

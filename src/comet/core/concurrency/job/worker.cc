@@ -5,6 +5,7 @@
 #include "worker.h"
 
 #include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/concurrency/fiber/fiber_life_cycle.h"
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/frame/frame_allocator.h"
 #include "comet/core/frame/frame_manager.h"
@@ -14,10 +15,9 @@ namespace comet {
 namespace job {
 void Worker::Attach() {
   internal::AttachWorker(this);
-  frame::AttachFrameAllocator(
-      frame::FrameManager::Get().GetFrameAllocatorHandle());
+  frame::AttachFrameAllocator(frame::FrameManager::Get().GetFrameAllocator());
   frame::AttachDoubleFrameAllocator(
-      frame::FrameManager::Get().GetDoubleFrameAllocatorHandle());
+      frame::FrameManager::Get().GetDoubleFrameAllocator());
 }
 
 void Worker::Detach() {
@@ -89,11 +89,13 @@ void FiberWorker::Attach() {
   Worker::Attach();
   internal::AttachFiberWorker(this);
   worker_fiber_ = fiber::ConvertThreadToFiber();
+  fiber::FiberLifeCycleHandler::Get().AttachWorkerFiber(worker_fiber_);
 }
 
 void FiberWorker::Detach() {
   Worker::Detach();
   fiber::DestroyFiberFromThread();
+  fiber::FiberLifeCycleHandler::Get().DetachWorkerFiber();
   worker_fiber_ = nullptr;
   internal::DetachFiberWorker();
 }
@@ -114,7 +116,7 @@ IOWorker& IOWorker::operator=(IOWorker&& other) noexcept {
 
 void IOWorker::Attach() {
   Worker::Attach();
-  AttachTStringAllocator(frame::FrameManager::Get().GetFrameAllocatorHandle());
+  AttachTStringAllocator(frame::FrameManager::Get().GetFrameAllocator());
   internal::AttachIOWorker(this);
 }
 

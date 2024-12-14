@@ -129,6 +129,8 @@ sptrdiff Fiber::GetCurrentStackSize() const {
   return &anchor - stack_;
 }
 
+const void* Fiber::GetStack() const noexcept { return stack_; }
+
 usize Fiber::GetStackCapacity() const noexcept { return stack_capacity_; }
 
 sptrdiff Fiber::GetCurrentStackSizeLeft() const {
@@ -239,7 +241,7 @@ void FiberInternalAllocator::Initialize() {
 void FiberInternalAllocator::Destroy() {
   COMET_ASSERT(
       is_initialized_,
-      "Tried to shutdown fiber internal allocator, but it is not initialized!");
+      "Tried to destroy fiber internal allocator, but it is not initialized!");
   allocator_.Destroy();
   is_initialized_ = false;
 }

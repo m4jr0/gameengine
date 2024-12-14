@@ -34,8 +34,8 @@ const ShaderModule* ShaderModuleHandler::Generate(
   ShaderModule shader_module{};
   shader_module.id = shader_module_resource->id;
   shader_module.code =
-      reinterpret_cast<const u32*>(shader_module_resource->data.data());
-  shader_module.code_size = shader_module_resource->data.size();
+      reinterpret_cast<const u32*>(shader_module_resource->data.GetData());
+  shader_module.code_size = shader_module_resource->data.GetSize();
   shader_module.type = GetVulkanType(shader_module_resource->descr.shader_type);
 
   VkShaderModuleCreateInfo create_info{};

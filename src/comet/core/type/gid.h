@@ -6,9 +6,10 @@
 #define COMET_COMET_CORE_TYPE_GID_H_
 
 #include <deque>
-#include <vector>
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/type/array.h"
 
 namespace comet {
 namespace gid {
@@ -34,9 +35,36 @@ constexpr Gid GetIndex(Gid id) noexcept { return id & kIdMask; }
 constexpr Gid GetGeneration(Gid id) noexcept { return id & kGenerationMask; }
 Gid GenerateNewGeneration(Gid id) noexcept;
 
+namespace internal {
+class IdGenerationAllocator : public memory::Allocator {
+ public:
+  static memory::Allocator& Get();
+
+  IdGenerationAllocator() = default;
+  explicit IdGenerationAllocator(usize base_capacity);
+  IdGenerationAllocator(const IdGenerationAllocator&) = delete;
+  IdGenerationAllocator(IdGenerationAllocator&& other) noexcept;
+  IdGenerationAllocator& operator=(const IdGenerationAllocator&) = delete;
+  IdGenerationAllocator& operator=(IdGenerationAllocator&& other) noexcept;
+  ~IdGenerationAllocator() = default;
+
+  void Initialize();
+  void Destroy();
+
+  void* AllocateAligned(usize size, memory::Alignment align) override;
+  void Deallocate(void* ptr) override;
+
+ private:
+  memory::FiberFreeListAllocator allocator_{};
+};
+}  // namespace internal
+
+void InitializeGids();
+void DestroyGids();
+
 class BreedHandler {
  public:
-  BreedHandler() = default;
+  BreedHandler();
   BreedHandler(const BreedHandler&) = delete;
   BreedHandler(BreedHandler&& other) noexcept;
   BreedHandler& operator=(const BreedHandler&) = delete;
@@ -50,7 +78,7 @@ class BreedHandler {
   void Destroy(Gid breed_id);
 
  private:
-  std::vector<gid::IdGeneration> generations_{};
+  Array<gid::IdGeneration> generations_{};
   std::deque<Gid> free_ids_{};
 };
 }  // namespace gid

@@ -13,11 +13,7 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/tstring.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/entity/factory/entity_factory_manager.h"
-#include "comet/physics/component/transform_component.h"
 #include "editor/memory/memory.h"
 
 namespace comet {
@@ -63,11 +59,12 @@ void CometEditor::Load() {
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::PostLoad() {
   Engine::PostLoad();
-  PostLoadTmpCode();
+  camera_handler_ = std::make_unique<CameraHandler>();
+  camera_handler_->Initialize();
 }
 
 void CometEditor::PostUnload() {
-  PostUnloadTmpCode();
+  camera_handler_->Shutdown();
   asset::AssetManager::Get().Shutdown();
   Engine::PostUnload();
   COMET_DETACH_CUSTOM_MEMORY_LABEL_FUNC();
@@ -99,38 +96,6 @@ void CometEditor::LoadTmpCode() {
   //  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
   //                COMET_CTSTRING_VIEW("models/sponza/sponza.obj.meta"));
 }
-
-void CometEditor::PostLoadTmpCode() {
-  auto character_id{
-      entity::EntityFactoryManager::Get().GetModel()->GenerateSkeletal(
-          COMET_CTSTRING_VIEW("models/kate/kate.fbx"))};
-
-  auto* character_transform{
-      entity::EntityManager::Get().GetComponent<physics::TransformComponent>(
-          character_id)};
-
-  constexpr auto kCharacterScaleFactor{0.15f};
-  character_transform->local[0][0] *= kCharacterScaleFactor;
-  character_transform->local[1][1] *= kCharacterScaleFactor;
-  character_transform->local[2][2] *= kCharacterScaleFactor;
-
-  auto sponza_id{entity::EntityFactoryManager::Get().GetModel()->GenerateStatic(
-      COMET_CTSTRING_VIEW("models/sponza/sponza.obj"))};
-
-  auto* sponza_transform{
-      entity::EntityManager::Get().GetComponent<physics::TransformComponent>(
-          sponza_id)};
-
-  constexpr auto kSponzaScaleFactor{0.17f};
-  sponza_transform->local[0][0] *= kSponzaScaleFactor;
-  sponza_transform->local[1][1] *= kSponzaScaleFactor;
-  sponza_transform->local[2][2] *= kSponzaScaleFactor;
-
-  camera_handler_ = std::make_unique<CameraHandler>();
-  camera_handler_->Initialize();
-}
-
-void CometEditor::PostUnloadTmpCode() { camera_handler_->Shutdown(); }
 }  // namespace editor
 
 std::unique_ptr<Engine> GenerateEngine() {

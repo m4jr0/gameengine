@@ -15,11 +15,17 @@
 
 namespace comet {
 namespace fiber {
+namespace internal {
+void SleepTo(Fiber* to);
+void Sleep(Fiber* fiber);
+void RunOrResume(Fiber* to);
+void ResumeWorker();
+}  // namespace internal
+
 bool IsFiber();
 FiberId GetFiberId();
 Fiber* GetFiber();
 void Yield();
-void SwitchTo(Fiber* to);
 Fiber* ConvertThreadToFiber();
 void DestroyFiberFromThread();
 usize GetStackCapacity();

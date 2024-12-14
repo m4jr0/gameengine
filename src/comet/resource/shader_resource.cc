@@ -11,19 +11,28 @@ namespace comet {
 namespace resource {
 const ResourceTypeId ShaderResource::kResourceTypeId{COMET_STRING_ID("shader")};
 
-ResourceFile ShaderHandler::Pack(const Resource& resource,
+ShaderHandler::ShaderHandler(memory::Allocator* loading_resources_allocator,
+                             memory::Allocator* loading_resource_allocator)
+    : ResourceHandler{sizeof(ShaderHandler), loading_resources_allocator,
+                      loading_resource_allocator} {}
+
+ResourceFile ShaderHandler::Pack(memory::Allocator& allocator,
+                                 const Resource& resource,
                                  CompressionMode compression_mode) const {
   const auto& shader{static_cast<const ShaderResource&>(resource)};
   ResourceFile file{};
   file.resource_id = shader.id;
   file.resource_type_id = ShaderResource::kResourceTypeId;
   file.compression_mode = compression_mode;
+  file.descr = Array<u8>{&allocator};
+  file.data = Array<u8>{&allocator};
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize);
+  Array<u8> data{&allocator};
+  data.Resize(kResourceIdSize + kResourceTypeIdSize);
   usize cursor{0};
-  auto* buffer{data.data()};
+  auto* buffer{data.GetData()};
 
   memory::CopyMemory(&buffer[cursor], &shader.id, kResourceIdSize);
   cursor += kResourceIdSize;
@@ -31,38 +40,47 @@ ResourceFile ShaderHandler::Pack(const Resource& resource,
   memory::CopyMemory(&buffer[cursor], &shader.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  const auto dumped_descr{DumpDescr(shader.descr)};
-  file.descr_size = dumped_descr.size();
+  const auto dumped_descr{DumpDescr(allocator, shader.descr)};
+  file.descr_size = dumped_descr.GetSize();
   PackBytes(dumped_descr, file.compression_mode, &file.descr,
             &file.packed_descr_size);
   PackResourceData(data, file);
   return file;
 }
 
-std::unique_ptr<Resource> ShaderHandler::Unpack(
-    const ResourceFile& file) const {
-  ShaderResource shader{};
-  auto dumpedDescr{
-      UnpackBytes(file.compression_mode, file.descr, file.descr_size)};
-  shader.descr = ParseDescr(dumpedDescr);
+Resource* ShaderHandler::Unpack(memory::Allocator& allocator,
+                                const ResourceFile& file) {
+  auto* shader{resource_allocator_.AllocateOneAndPopulate<ShaderResource>()};
 
-  const auto data{UnpackResourceData(file)};
-  const auto* buffer{data.data()};
+  Array<u8> dumped_descr{&allocator};
+  UnpackBytes(file.compression_mode, file.descr, file.descr_size, dumped_descr);
+
+  ShaderResourceDescr descr{};
+  descr.shader_module_paths = Array<TString>{&allocator};
+  descr.vertex_attributes =
+      Array<rendering::ShaderVertexAttributeDescr>{&allocator};
+  descr.uniforms = Array<rendering::ShaderUniformDescr>{&allocator};
+  shader->descr = ParseDescr(dumped_descr, descr);
+
+  Array<u8> data{&allocator};
+  UnpackResourceData(file, data);
+  const auto* buffer{data.GetData()};
   usize cursor{0};
+
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
 
-  memory::CopyMemory(&shader.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&shader->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  memory::CopyMemory(&shader.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&shader->type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  return std::make_unique<ShaderResource>(std::move(shader));
+  return shader;
 }
 
-std::vector<u8> ShaderHandler::DumpDescr(
-    const ShaderResourceDescr& descr) const {
+Array<u8> ShaderHandler::DumpDescr(memory::Allocator& allocator,
+                                   const ShaderResourceDescr& descr) const {
   constexpr auto kBoolSize{sizeof(bool)};
   constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
   constexpr auto kUIndexSize(sizeof(usize));
@@ -94,10 +112,10 @@ std::vector<u8> ShaderHandler::DumpDescr(
   }
 
   const auto data_size{total_size};
-  std::vector<u8> dumped_descr{};
-  dumped_descr.resize(data_size);
+  Array<u8> dumped_descr{&allocator};
+  dumped_descr.Resize(data_size);
   usize cursor{0};
-  auto* buffer{dumped_descr.data()};
+  auto* buffer{dumped_descr.GetData()};
 
   memory::CopyMemory(&buffer[cursor], &descr.is_wireframe, kBoolSize);
   cursor += kBoolSize;
@@ -105,7 +123,7 @@ std::vector<u8> ShaderHandler::DumpDescr(
   memory::CopyMemory(&buffer[cursor], &descr.cull_mode, kCullModeSize);
   cursor += kCullModeSize;
 
-  const auto module_path_count{descr.shader_module_paths.size()};
+  const auto module_path_count{descr.shader_module_paths.GetSize()};
   memory::CopyMemory(&buffer[cursor], &module_path_count, kUIndexSize);
   cursor += kUIndexSize;
 
@@ -120,7 +138,7 @@ std::vector<u8> ShaderHandler::DumpDescr(
     cursor += module_path_size;
   }
 
-  const auto vertex_attribute_count{descr.vertex_attributes.size()};
+  const auto vertex_attribute_count{descr.vertex_attributes.GetSize()};
   memory::CopyMemory(&buffer[cursor], &vertex_attribute_count, kUIndexSize);
   cursor += kUIndexSize;
 
@@ -139,7 +157,7 @@ std::vector<u8> ShaderHandler::DumpDescr(
     cursor += vertex_attribute_name_size;
   }
 
-  const auto uniform_count{descr.uniforms.size()};
+  const auto uniform_count{descr.uniforms.GetSize()};
   memory::CopyMemory(&buffer[cursor], &uniform_count, kUIndexSize);
   cursor += kUIndexSize;
 
@@ -163,7 +181,7 @@ std::vector<u8> ShaderHandler::DumpDescr(
 }
 
 ShaderResourceDescr ShaderHandler::ParseDescr(
-    const std::vector<u8>& dumped_descr) const {
+    const Array<u8>& dumped_descr, ShaderResourceDescr& descr) const {
   constexpr auto kBoolSize{sizeof(bool)};
   constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
   constexpr auto kUIndexSize(sizeof(usize));
@@ -172,9 +190,8 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
   constexpr auto kShaderUniformTypeSize(sizeof(rendering::ShaderUniformType));
   constexpr auto kShaderUniformScopeSize(sizeof(rendering::ShaderUniformScope));
 
-  const auto* buffer{dumped_descr.data()};
+  const auto* buffer{dumped_descr.GetData()};
   usize cursor{0};
-  ShaderResourceDescr descr{};
 
   memory::CopyMemory(&descr.is_wireframe, &buffer[cursor], kBoolSize);
   cursor += kBoolSize;
@@ -186,7 +203,7 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
   memory::CopyMemory(&module_path_count, &buffer[cursor], kUIndexSize);
   cursor += kUIndexSize;
 
-  descr.shader_module_paths.reserve(module_path_count);
+  descr.shader_module_paths.Reserve(module_path_count);
 
   for (usize i{0}; i < module_path_count; ++i) {
     usize module_path_size;
@@ -198,14 +215,14 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
     TString module_path{str, str + module_path_size};
     cursor += module_path_size;
 
-    descr.shader_module_paths.push_back(std::move(module_path));
+    descr.shader_module_paths.PushBack(std::move(module_path));
   }
 
   usize vertex_attribute_count;
   memory::CopyMemory(&vertex_attribute_count, &buffer[cursor], kUIndexSize);
   cursor += kUIndexSize;
 
-  descr.vertex_attributes.reserve(vertex_attribute_count);
+  descr.vertex_attributes.Reserve(vertex_attribute_count);
 
   for (usize i{0}; i < vertex_attribute_count; ++i) {
     rendering::ShaderVertexAttributeDescr vertex_attribute_descr{};
@@ -224,14 +241,14 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
             vertex_attribute_name_len);
     cursor += vertex_attribute_name_len;
 
-    descr.vertex_attributes.push_back(std::move(vertex_attribute_descr));
+    descr.vertex_attributes.PushBack(std::move(vertex_attribute_descr));
   }
 
   usize uniform_count;
   memory::CopyMemory(&uniform_count, &buffer[cursor], kUIndexSize);
   cursor += kUIndexSize;
 
-  descr.uniforms.reserve(uniform_count);
+  descr.uniforms.Reserve(uniform_count);
 
   for (usize i{0}; i < uniform_count; ++i) {
     rendering::ShaderUniformDescr uniform_descr{};
@@ -252,7 +269,7 @@ ShaderResourceDescr ShaderHandler::ParseDescr(
             uniform_name_len);
     cursor += uniform_name_len;
 
-    descr.uniforms.push_back(std::move(uniform_descr));
+    descr.uniforms.PushBack(std::move(uniform_descr));
   }
 
   return descr;

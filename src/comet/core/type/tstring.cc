@@ -13,12 +13,11 @@
 
 namespace comet {
 namespace internal {
-thread_local memory::AllocatorHandle tls_tstring_allocator_handle{nullptr};
+thread_local memory::Allocator* tls_tstring_allocator{nullptr};
 
 memory::Allocator* GetTStringAllocator() {
-  return tls_tstring_allocator_handle != nullptr
-             ? tls_tstring_allocator_handle->allocator
-             : &TStringAllocator::Get();
+  return tls_tstring_allocator != nullptr ? tls_tstring_allocator
+                                          : &TStringAllocator::Get();
 }
 
 TStringAllocator& TStringAllocator::Get() {
@@ -41,15 +40,15 @@ void InitializeTStrings() { internal::TStringAllocator::Get().Initialize(); }
 
 void DestroyTStrings() { internal::TStringAllocator::Get().Destroy(); }
 
-void AttachTStringAllocator(memory::AllocatorHandle handle) {
-  COMET_ASSERT(handle != nullptr, "TString allocator handle provided is null!");
-  internal::tls_tstring_allocator_handle = handle;
+void AttachTStringAllocator(memory::Allocator* handle) {
+  COMET_ASSERT(handle != nullptr, "TString allocator provided is null!");
+  internal::tls_tstring_allocator = handle;
 }
 
 void DetachTStringAllocator() {
-  COMET_ASSERT(internal::tls_tstring_allocator_handle != nullptr,
+  COMET_ASSERT(internal::tls_tstring_allocator != nullptr,
                "No TString allocator handle has been provided!");
-  internal::tls_tstring_allocator_handle = nullptr;
+  internal::tls_tstring_allocator = nullptr;
 }
 
 TString::TString(const TString& other)

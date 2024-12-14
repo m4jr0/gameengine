@@ -4,6 +4,8 @@
 
 #include "memory_utils.h"
 
+#include <immintrin.h>
+
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -19,6 +21,7 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/c_string.h"
+#include "comet/core/processor.h"
 
 #ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
 #include <atomic>
@@ -50,6 +53,8 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "config";
     case kEngineMemoryTagTaggedHeap:
       return "tagged_heap";
+    case kEngineMemoryTagGid:
+      return "gid";
     case kEngineMemoryTagStringId:
       return "string_id";
     case kEngineMemoryTagFrame0:
@@ -64,12 +69,16 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "double_frame_1";
     case kEngineMemoryTagDoubleFrame2:
       return "double_frame_2";
+    case kEngineMemoryTagGeometry:
+      return "geometry";
     case kEngineMemoryTagRendering:
       return "rendering";
     case kEngineMemoryTagRenderingInternal:
       return "rendering_internal";
     case kEngineMemoryTagRenderingDevice:
       return "rendering_device (VRAM)";
+    case kEngineMemoryTagResource:
+      return "resource";
     case kEngineMemoryTagTString:
       return "tstring";
     case kEngineMemoryTagEntity:
@@ -105,13 +114,37 @@ void* CopyMemory(void* dst, const void* src, usize size) {
   return std::memcpy(dst, src, size);
 }
 
-void ClearMemory(void* ptr, usize size) {
-  auto* bytes{static_cast<u8*>(ptr)};
+void Memset(void* ptr, u8 value, usize size) {
+  // std::memset casts the value to an unsigned char anyway, so taking a value
+  // as a u8 is OK.
+  std::memset(ptr, static_cast<int>(value), size);
+}
 
-  for (usize i{0}; i < size; ++i) {
-    bytes[i] = 0;
+void AVXMemset(void* ptr, u8 value, usize size) {
+  auto* cur{static_cast<u8*>(ptr)};
+  auto* end{cur + size};
+
+  __m256i avx_value{_mm256_set1_epi8(static_cast<char>(value))};
+
+  while (cur + 32 <= end) {
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(cur), avx_value);
+    cur += 32;
+  }
+
+  while (cur < end) {
+    *cur++ = value;
   }
 }
+
+void FastMemset(void* ptr, u8 value, usize size) {
+  if (IsAVXSupported()) {
+    AVXMemset(ptr, value, size);
+  } else {
+    Memset(ptr, value, size);
+  }
+}
+
+void ClearMemory(void* ptr, usize size) { FastMemset(ptr, 0, size); }
 
 void* StoreShiftAndReturnAligned(u8* ptr, [[maybe_unused]] usize data_size,
                                  [[maybe_unused]] usize allocation_size,
@@ -120,8 +153,8 @@ void* StoreShiftAndReturnAligned(u8* ptr, [[maybe_unused]] usize data_size,
                "Cannot save shift, allocation size is too small!");
   auto* aligned_ptr{AlignPointer(ptr, align)};
 
-  // Case: pointer is already aligned. We have a minimal shift of 1 byte, so we
-  // move the pointer to "align" bytes as a convention.
+  // Case: pointer is already aligned. We have a minimal shift of 1 byte, so
+  // we move the pointer to "align" bytes as a convention.
   if (aligned_ptr == ptr) {
     aligned_ptr += align;
   }

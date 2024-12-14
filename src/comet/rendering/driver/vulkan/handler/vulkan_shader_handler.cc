@@ -544,11 +544,11 @@ void ShaderHandler::HandleShaderModulesGeneration(
 void ShaderHandler::HandleAttributesGeneration(
     Shader& shader, const resource::ShaderResource& resource) const {
   auto vertex_attribute_count{
-      static_cast<u32>(resource.descr.vertex_attributes.size())};
+      static_cast<u32>(resource.descr.vertex_attributes.GetSize())};
   u32 offset{0};
   shader.vertex_attributes.reserve(vertex_attribute_count);
 
-  for (u32 i{0}; i < resource.descr.vertex_attributes.size(); ++i) {
+  for (u32 i{0}; i < resource.descr.vertex_attributes.GetSize(); ++i) {
     VkVertexInputAttributeDescription vertex_attribute{};
     const auto& vertex_attribute_descr{resource.descr.vertex_attributes[i]};
     vertex_attribute.location = i;

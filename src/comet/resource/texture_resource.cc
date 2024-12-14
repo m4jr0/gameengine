@@ -5,6 +5,7 @@
 #include "texture_resource.h"
 
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
 
 namespace comet {
 namespace resource {
@@ -28,6 +29,21 @@ ResourceId GetDefaultTextureFromType(rendering::TextureType texture_type) {
   }
 }
 
+TextureHandler::TextureHandler(memory::Allocator* loading_resources_allocator,
+                               memory::Allocator* loading_resource_allocator)
+    : ResourceHandler{sizeof(TextureResource), loading_resources_allocator,
+                      loading_resource_allocator} {}
+
+void TextureHandler::Initialize() {
+  ResourceHandler::Initialize();
+  resource_data_allocator_.Initialize();
+}
+
+void TextureHandler::Shutdown() {
+  resource_data_allocator_.Destroy();
+  ResourceHandler::Shutdown();
+}
+
 void TextureHandler::Destroy(ResourceId resource_id) {
   COMET_ASSERT(resource_id != kDefaultDiffuseTextureResourceId,
                "Cannot unload default diffuse texture resource!");
@@ -38,7 +54,7 @@ void TextureHandler::Destroy(ResourceId resource_id) {
   return ResourceHandler::Destroy(resource_id);
 }
 
-const Resource* TextureHandler::GetDefaultResource() {
+Resource* TextureHandler::GetDefaultResource() {
   if (default_texture_ == nullptr) {
     constexpr auto kDimension{256};
     constexpr auto kPatternThreshold{kDimension / 16};
@@ -58,8 +74,9 @@ const Resource* TextureHandler::GetDefaultResource() {
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
 
+    default_texture_->data = Array<u8>{&resource_data_allocator_};
     auto& data{default_texture_->data};
-    data.resize(descr.size);
+    data.Resize(descr.size);
     auto is_color_1{false};
 
     for (usize col{0}; col < kDimension; ++col) {
@@ -105,8 +122,9 @@ Resource* TextureHandler::GetDefaultDiffuseTexture() {
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
 
+    diffuse_texture_->data = Array<u8>{&resource_data_allocator_};
     auto& data{diffuse_texture_->data};
-    data.resize(descr.size);
+    data.Resize(descr.size);
 
     for (usize i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
@@ -134,8 +152,9 @@ Resource* TextureHandler::GetDefaultSpecularTexture() {
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
 
+    specular_texture_->data = Array<u8>{&resource_data_allocator_};
     auto& data{specular_texture_->data};
-    data.resize(descr.size);
+    data.Resize(descr.size);
 
     for (usize i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
@@ -163,8 +182,9 @@ Resource* TextureHandler::GetDefaultNormalTexture() {
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
 
+    normal_texture_->data = Array<u8>{&resource_data_allocator_};
     auto& data{normal_texture_->data};
-    data.resize(descr.size);
+    data.Resize(descr.size);
 
     for (usize i{0}; i < descr.size; ++i) {
       data[i] = kColor[i % kChannelCount];
@@ -190,21 +210,25 @@ Resource* TextureHandler::GetInternal(ResourceId resource_id) {
   return ResourceHandler::GetInternal(resource_id);
 }
 
-ResourceFile TextureHandler::Pack(const Resource& resource,
+ResourceFile TextureHandler::Pack(memory::Allocator& allocator,
+                                  const Resource& resource,
                                   CompressionMode compression_mode) const {
   const auto& texture{static_cast<const TextureResource&>(resource)};
   ResourceFile file{};
   file.resource_id = texture.id;
   file.resource_type_id = TextureResource::kResourceTypeId;
   file.compression_mode = compression_mode;
+  file.descr = Array<u8>{&allocator};
+  file.data = Array<u8>{&allocator};
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  const auto data_size{sizeof(u8) * texture.data.size()};
+  const auto data_size{sizeof(u8) * texture.data.GetSize()};
 
-  std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize + data_size);
+  Array<u8> data{&allocator};
+  data.Resize(kResourceIdSize + kResourceTypeIdSize + data_size);
   usize cursor{0};
-  auto* buffer{data.data()};
+  auto* buffer{data.GetData()};
 
   memory::CopyMemory(&buffer[cursor], &texture.id, kResourceIdSize);
   cursor += kResourceIdSize;
@@ -212,7 +236,7 @@ ResourceFile TextureHandler::Pack(const Resource& resource,
   memory::CopyMemory(&buffer[cursor], &texture.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  memory::CopyMemory(&buffer[cursor], texture.data.data(), data_size);
+  memory::CopyMemory(&buffer[cursor], texture.data.GetData(), data_size);
   cursor += data_size;
 
   PackPodResourceDescr(texture.descr, file);
@@ -220,30 +244,33 @@ ResourceFile TextureHandler::Pack(const Resource& resource,
   return file;
 }
 
-std::unique_ptr<Resource> TextureHandler::Unpack(
-    const ResourceFile& file) const {
-  TextureResource texture{};
-  texture.descr = UnpackPodResourceDescr<TextureResourceDescr>(file);
-  const auto data{UnpackResourceData(file)};
+Resource* TextureHandler::Unpack(memory::Allocator& allocator,
+                                 const ResourceFile& file) {
+  auto* texture{resource_allocator_.AllocateOneAndPopulate<TextureResource>()};
+  UnpackPodResourceDescr<TextureResourceDescr>(file, texture->descr);
 
-  const auto* buffer{data.data()};
+  Array<u8> data{&allocator};
+  UnpackResourceData(file, data);
+  const auto* buffer{data.GetData()};
   usize cursor{0};
+
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  const auto data_size{sizeof(u8) * data.size() - kResourceIdSize -
+  const auto data_size{sizeof(u8) * data.GetSize() - kResourceIdSize -
                        kResourceTypeIdSize};
 
-  memory::CopyMemory(&texture.id, &buffer[cursor], kResourceIdSize);
+  memory::CopyMemory(&texture->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
 
-  memory::CopyMemory(&texture.type_id, &buffer[cursor], kResourceTypeIdSize);
+  memory::CopyMemory(&texture->type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  texture.data.resize(data_size);
-  memory::CopyMemory(texture.data.data(), &buffer[cursor], data_size);
+  texture->data = Array<u8>{&resource_data_allocator_};
+  texture->data.Resize(data_size);
+  memory::CopyMemory(texture->data.GetData(), &buffer[cursor], data_size);
   cursor += data_size;
 
-  return std::make_unique<TextureResource>(std::move(texture));
+  return texture;
 }
 }  // namespace resource
 }  // namespace comet

@@ -4,6 +4,7 @@
 
 #include "vulkan_mesh_handler.h"
 
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/rendering_common.h"
@@ -29,6 +30,7 @@ void MeshHandler::Shutdown() {
 }
 
 MeshProxy* MeshHandler::Generate(geometry::Mesh* mesh) {
+  COMET_PROFILE("MeshHandler::Generate");
   MeshProxy proxy{};
   proxy.id = mesh->id;
   proxy.mesh = mesh;
@@ -92,7 +94,7 @@ void MeshHandler::Bind(geometry::MeshId proxy_id) { Bind(Get(proxy_id)); }
 void MeshHandler::Bind(const MeshProxy* proxy) {
   auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
   const auto vertex_buffer_size{static_cast<VkDeviceSize>(
-      proxy->mesh->vertices.size() * sizeof(geometry::Vertex))};
+      proxy->mesh->vertices.GetSize() * sizeof(geometry::Vertex))};
   VkDeviceSize offset{0};
   vkCmdBindVertexBuffers(command_buffer_handle, 0, 1,
                          &proxy->vertex_buffer.handle, &offset);
@@ -133,6 +135,7 @@ MeshProxy* MeshHandler::Register(MeshProxy& proxy) {
 }
 
 void MeshHandler::Destroy(MeshProxy& proxy, bool is_destroying_handler) {
+  COMET_PROFILE("MeshHandler::Destroy");
   if (proxy.vertex_buffer.allocation_handle != VK_NULL_HANDLE) {
     DestroyBuffer(proxy.vertex_buffer);
   }
@@ -149,17 +152,17 @@ void MeshHandler::Destroy(MeshProxy& proxy, bool is_destroying_handler) {
 
 void MeshHandler::Upload(MeshProxy& proxy) {
   const auto vertex_buffer_size{static_cast<VkDeviceSize>(
-      proxy.mesh->vertices.size() * sizeof(geometry::Vertex))};
-  const auto index_buffer_size{
-      static_cast<u32>(proxy.mesh->indices.size() * sizeof(geometry::Index))};
+      proxy.mesh->vertices.GetSize() * sizeof(geometry::Vertex))};
+  const auto index_buffer_size{static_cast<u32>(proxy.mesh->indices.GetSize() *
+                                                sizeof(geometry::Index))};
 
   const auto buffer_size{vertex_buffer_size + index_buffer_size};
 
   MapBuffer(staging_buffer_);
-  CopyToBuffer(staging_buffer_, proxy.mesh->vertices.data(),
+  CopyToBuffer(staging_buffer_, proxy.mesh->vertices.GetData(),
                vertex_buffer_size);
-  CopyToBuffer(staging_buffer_, proxy.mesh->indices.data(), index_buffer_size,
-               vertex_buffer_size);
+  CopyToBuffer(staging_buffer_, proxy.mesh->indices.GetData(),
+               index_buffer_size, vertex_buffer_size);
   UnmapBuffer(staging_buffer_);
 
   if (proxy.vertex_buffer.handle == VK_NULL_HANDLE) {

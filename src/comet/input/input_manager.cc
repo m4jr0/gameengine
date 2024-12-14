@@ -4,6 +4,7 @@
 
 #include "input_manager.h"
 
+#include "comet/core/game_state_manager.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/input_event.h"
 
@@ -26,8 +27,17 @@ void InputManager::Initialize() {
 #ifdef COMET_IMGUI
     if (is_imgui_) {
       ImGui_ImplGlfw_ScrollCallback(handle, x_offset, y_offset);
+
+      if (ImGui::GetIO().WantCaptureMouse) {
+        return;
+      }
     }
 #endif  // COMET_IMGUI
+
+    if (GameStateManager::Get().IsPaused()) {
+      return;
+    }
+
     event::EventManager::Get().FireEvent<event::MouseScrollEvent>(x_offset,
                                                                   y_offset);
   });
@@ -40,6 +50,11 @@ void InputManager::Initialize() {
           ImGui_ImplGlfw_CursorPosCallback(handle, x_pos, y_pos);
         }
 #endif  // COMET_IMGUI
+
+        if (GameStateManager::Get().IsPaused()) {
+          return;
+        }
+
         event::EventManager::Get().FireEvent<event::MouseMoveEvent>(
             math::Vec2{x_pos, y_pos});
       });
@@ -50,8 +65,17 @@ void InputManager::Initialize() {
 #ifdef COMET_IMGUI
         if (is_imgui_) {
           ImGui_ImplGlfw_KeyCallback(handle, key, scan_code, action, mods);
+
+          if (ImGui::GetIO().WantCaptureKeyboard) {
+            return;
+          }
         }
 #endif  // COMET_IMGUI
+
+        if (GameStateManager::Get().IsPaused()) {
+          return;
+        }
+
         event::EventManager::Get().FireEvent<event::KeyboardEvent>(
             static_cast<input::KeyCode>(key),
             static_cast<input::ScanCode>(scan_code),
@@ -65,8 +89,16 @@ void InputManager::Initialize() {
         if (is_imgui_) {
           ImGui_ImplGlfw_MouseButtonCallback(handle, raw_button, raw_action,
                                              raw_mods);
+
+          if (ImGui::GetIO().WantCaptureMouse) {
+            return;
+          }
         }
 #endif  // COMET_IMGUI
+
+        if (GameStateManager::Get().IsPaused()) {
+          return;
+        }
 
         auto action{static_cast<Action>(raw_action)};
 
@@ -136,42 +168,70 @@ void InputManager::Shutdown() {
 void InputManager::Update() { glfwPollEvents(); }
 
 bool InputManager::IsKeyPressed(KeyCode key_code) const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return glfwGetKey(window_handle_,
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_PRESS;
 }
 
 bool InputManager::IsKeyUp(KeyCode key_code) const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return glfwGetKey(window_handle_,
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_RELEASE;
 }
 
 bool InputManager::IsKeyDown(KeyCode key_code) const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return glfwGetKey(window_handle_,
                     static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
          GLFW_PRESS;
 }
 
 bool InputManager::IsMousePressed(MouseButton key_code) const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return glfwGetMouseButton(window_handle_,
                             static_cast<std::underlying_type_t<MouseButton>>(
                                 key_code)) == GLFW_REPEAT;
 }
 
 bool InputManager::IsMouseDown(MouseButton key_code) const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return glfwGetMouseButton(window_handle_,
                             static_cast<std::underlying_type_t<MouseButton>>(
                                 key_code)) == GLFW_PRESS;
 }
 
 bool InputManager::IsMouseUp(MouseButton key_code) const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return glfwGetMouseButton(window_handle_,
                             static_cast<std::underlying_type_t<MouseButton>>(
                                 key_code)) == GLFW_RELEASE;
 }
 
 math::Vec2 InputManager::GetMousePosition() const {
+  if (GameStateManager::Get().IsPaused()) {
+    return math::Vec2{};
+  }
+
   f64 current_mouse_y_pos;
   f64 current_mouse_x_pos;
   glfwGetCursorPos(window_handle_, &current_mouse_x_pos, &current_mouse_y_pos);
@@ -199,10 +259,18 @@ void InputManager::EnableImGui() { is_imgui_ = true; }
 #endif  // COMET_IMGUI
 
 bool InputManager::IsAltPressed() const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return IsKeyPressed(KeyCode::LeftAlt) || IsKeyPressed(KeyCode::RightAlt);
 }
 
 bool InputManager::IsShiftPressed() const {
+  if (GameStateManager::Get().IsPaused()) {
+    return false;
+  }
+
   return IsKeyPressed(KeyCode::LeftShift) || IsKeyPressed(KeyCode::RightShift);
 }
 }  // namespace input

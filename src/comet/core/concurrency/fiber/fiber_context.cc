@@ -4,8 +4,15 @@
 
 #include "fiber_context.h"
 
+#ifdef COMET_IS_ASAN
+#include <sanitizer/asan_interface.h>
+#endif  // COMET_IS_ASAN
+
+#ifdef COMET_IS_TSAN
+#include <sanitizer/tsan_interface.h>
+#endif  // COMET_IS_TSAN
+
 #include "comet/core/concurrency/fiber/fiber_life_cycle.h"
-#include "comet/core/logger.h"
 
 namespace comet {
 namespace fiber {
@@ -16,6 +23,62 @@ extern "C" {
 extern void COMET_FORCE_NOT_INLINE
 SwitchExecutionContext(ExecutionContext* src, const ExecutionContext* dst);
 }
+
+namespace internal {
+void SleepTo(Fiber* to) {
+  auto* fiber{GetFiber()};
+  FiberLifeCycleHandler::Get().PutToSleep(fiber);
+  RunOrResume(to);
+}
+
+void Sleep(Fiber* fiber) { FiberLifeCycleHandler::Get().PutToSleep(fiber); }
+
+void RunOrResume(Fiber* to) {
+  auto* from{GetFiber()};
+  COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
+  COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
+  COMET_ASSERT(from != to, "Trying to switch from and to the same fiber!");
+  COMET_ASSERT(!IsStackOverflow(), "Stack overflow detected! ",
+               from->GetCurrentStackSize(), " > ", from->GetStackCapacity(),
+               "!");
+  tls_current_fiber = to;
+#ifdef COMET_IS_ASAN
+  void* fake_stack{nullptr};
+  __sanitizer_start_switch_fiber(&fake_stack, to->GetStack(),
+                                 to->GetStackCapacity());
+#endif  //  COMET_IS_ASAN
+
+#ifdef COMET_IS_TSAN
+  auto* this_fiber{__tsan_get_current_fiber()};
+  auto* next_fiber{__tsan_create_fiber(0)};
+  __tsan_switch_to_fiber(next_fiber, nullptr);
+#endif  // COMET_IS_TSAN
+
+  SwitchExecutionContext(&from->GetContext(), &to->GetContext());
+
+#ifdef COMET_IS_ASAN
+  __sanitizer_finish_switch_fiber(fake_stack, nullptr, nullptr);
+#endif  //  COMET_IS_ASAN
+
+#ifdef COMET_IS_TSAN
+  __tsan_destroy_fiber(this_fiber);
+#endif  // COMET_IS_TSAN
+}
+
+void ResumeWorker() {
+  auto* from{GetFiber()};
+  auto* to{&tls_thread_fiber};
+  COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
+  COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
+  COMET_ASSERT(from != to, "Trying to switch from and to the same fiber!");
+  COMET_ASSERT(!IsStackOverflow(), "Stack overflow detected! ",
+               from->GetCurrentStackSize(), " > ", from->GetStackCapacity(),
+               "!");
+
+  tls_current_fiber = to;
+  SwitchExecutionContext(&from->GetContext(), &to->GetContext());
+}
+}  // namespace internal
 
 bool IsFiber() { return tls_current_fiber != nullptr; }
 
@@ -30,27 +93,12 @@ Fiber* GetFiber() {
 }
 
 void Yield() {
-  auto* fiber{GetFiber()};
-  auto& life_cycle_handler{FiberLifeCycleHandler::Get()};
-  auto* sleeping_fiber{life_cycle_handler.TryWakingUp()};
-
-  if (sleeping_fiber == nullptr) {
+  if (tls_current_fiber == &tls_thread_fiber) {
     return;
   }
 
-  life_cycle_handler.PutToSleep(fiber);
-  SwitchTo(sleeping_fiber);
-}
-
-void SwitchTo(Fiber* to) {
-  auto* from{GetFiber()};
-  COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
-  COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
-  COMET_ASSERT(!IsStackOverflow(), "Stack overflow detected! ",
-               from->GetCurrentStackSize(), " > ", from->GetStackCapacity(),
-               "!");
-  tls_current_fiber = to;
-  SwitchExecutionContext(&from->GetContext(), &to->GetContext());
+  FiberLifeCycleHandler::Get().PutToSleep(GetFiber());
+  internal::ResumeWorker();
 }
 
 Fiber* ConvertThreadToFiber() {

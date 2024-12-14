@@ -5,9 +5,7 @@
 #ifndef COMET_COMET_CORE_TYPE_MAP_H_
 #define COMET_COMET_CORE_TYPE_MAP_H_
 
-#include <atomic>
 #include <functional>
-#include <optional>
 
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
@@ -29,7 +27,7 @@ struct Pair {
 
   template <typename K, typename V>
   Pair(K&& key, V&& value)
-      : key(std::forward<K>(key)), value(std::forward<V>(value)) {}
+      : key{std::forward<K>(key)}, value{std::forward<V>(value)} {}
 
   Pair& operator=(const Pair& other) {
     if (this == &other) {
@@ -94,16 +92,22 @@ class Map {
   ConstIterator cbegin() const { return pairs_.cbegin(); }
   ConstIterator cend() const { return pairs_.cend(); }
 
-  static inline constexpr usize kDefaultCapacity_{16};
+  static inline constexpr usize kDefaultCapacity{16};
 
   Map() = default;
 
-  Map(memory::Allocator* allocator, usize capacity = kDefaultCapacity_)
-      : pairs_{allocator, capacity} {}
+  Map(memory::Allocator* allocator)
+      : Map(allocator, allocator != nullptr ? kDefaultCapacity : 0) {}
 
-  Map(const Map& other) : pairs_{other.pairs_} {}
+  Map(memory::Allocator* allocator, usize capacity)
+      : pairs_{allocator, capacity}, allocator_{allocator} {}
 
-  Map(Map&& other) noexcept : pairs_{std::move(other.pairs_)} {}
+  Map(const Map& other) : pairs_{other.pairs_}, allocator_{other.allocator_} {}
+
+  Map(Map&& other) noexcept
+      : pairs_{std::move(other.pairs_)}, allocator_{other.allocator_} {
+    other.allocator_ = nullptr;
+  }
 
   Map& operator=(const Map& other) {
     if (this == &other) {
@@ -112,6 +116,7 @@ class Map {
 
     Clear();
     this->pairs_ = other.pairs_;
+    this->allocator_ = other.allocator_;
     return *this;
   }
 
@@ -122,12 +127,21 @@ class Map {
 
     Clear();
     this->pairs_ = std::move(other.pairs_);
+    this->allocator_ = other.allocator_;
+
+    other.allocator_ = nullptr;
     return *this;
   }
 
   ~Map() { Clear(); }
 
   Value& operator[](const Key& key) { return Get(key); }
+
+  bool operator==(const Map& other) const {
+    return this->pairs_ == other.pairs_;
+  }
+
+  bool operator!=(const Map& other) const { return !(*this == other); }
 
   Value& Get(const Key& key) {
     auto* value = TryGet(key);
@@ -136,8 +150,12 @@ class Map {
       return *value;
     }
 
-    if constexpr (std::is_default_constructible_v<Value>) {
-      auto& new_pair = pairs_.Emplace(KVPair{key, Value{}});
+    if constexpr (std::is_constructible_v<Value, memory::Allocator*>) {
+      auto& new_pair =
+          this->pairs_.Emplace(KVPair{key, Value(this->allocator_)});
+      return new_pair.value;
+    } else if constexpr (std::is_default_constructible_v<Value>) {
+      auto& new_pair = this->pairs_.Emplace(KVPair{key, Value{}});
       return new_pair.value;
     } else {
       COMET_ASSERT(false,
@@ -181,6 +199,11 @@ class Map {
 
   bool Remove(const Key& key) { return this->pairs_.Remove(key); }
 
+  Value Pop(const Key& key) {
+    auto pair{this->pairs_.Pop(key)};
+    return pair.value;
+  }
+
   void Clear() { this->pairs_.Clear(); }
 
   bool IsContained(const Key& key) const {
@@ -197,6 +220,7 @@ class Map {
 
  private:
   Pairs pairs_{};
+  memory::Allocator* allocator_{nullptr};
 };
 }  // namespace comet
 

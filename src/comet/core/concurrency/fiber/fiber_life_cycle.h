@@ -50,6 +50,8 @@ class FiberLifeCycleHandler {
   void Initialize();
   void Shutdown();
 
+  void AttachWorkerFiber(Fiber* fiber);
+  void DetachWorkerFiber();
   void PutToSleep(Fiber* fiber);
   Fiber* TryWakingUp();
 
@@ -61,6 +63,7 @@ class FiberLifeCycleHandler {
  private:
   // TODO(m4jr0): Use configuration.
   static constexpr usize kQueueCount_{128};
+  static inline thread_local Fiber* tls_worker_fiber_{nullptr};
 
   bool is_initialized_{false};
   // Platform allocator is used because it is only allocated once, during engine

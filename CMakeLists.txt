@@ -144,13 +144,21 @@ project("comet_game_engine"
 )
 
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
-option(COMET_IS_ASAN "Enable TSan (ThreadSanitizer)" OFF)
-option(COMET_IS_TSAN "Enable ASan (AddressSanitizer)" OFF)
+option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" OFF)
+option(COMET_IS_ASAN "Enable ASan (AddressSanitizer)" OFF)
 option(COMET_ARE_STACK_OVERFLOW_CHECKS "Enable stack overflow checks" ON)
 
-  if(COMET_ARE_STACK_OVERFLOW_CHECKS)
-    add_compile_definitions(COMET_CHECK_STACK_OVERFLOWS)
-  endif()
+if(COMET_ARE_STACK_OVERFLOW_CHECKS)
+  add_compile_definitions(COMET_CHECK_STACK_OVERFLOWS)
+endif()
+
+if(COMET_IS_ASAN)
+  add_compile_definitions(COMET_IS_ASAN)
+endif()
+
+if(COMET_IS_TSAN)
+  # add_compile_definitions(COMET_IS_TSAN)
+endif()
 
 # Compiler specifics.
 if(MSVC)
@@ -173,7 +181,7 @@ if(MSVC)
     message(ERROR "${MESSAGE_PREFIX}Unsupported option on current compiler: COMET_IS_TSAN")
   endif()
 else()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -mavx")
 
   if(COMET_ARE_WARNINGS_ERRORS)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")

@@ -8,6 +8,7 @@
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 
@@ -31,6 +32,7 @@ void RenderProxyHandler::Shutdown() {
 }
 
 void RenderProxyHandler::Update() {
+  COMET_PROFILE("RenderProxyHandler::Update");
   auto frame_count{context_->GetFrameCount()};
 
   if (update_frame_ == frame_count) {
@@ -120,8 +122,8 @@ void RenderProxyHandler::Draw(const RenderProxy& proxy) {
   }
 
   vkCmdDrawIndexed(context_->GetFrameData().command_buffer_handle,
-                   static_cast<u32>(proxy.mesh_proxy->mesh->indices.size()), 1,
-                   0, 0, 0);
+                   static_cast<u32>(proxy.mesh_proxy->mesh->indices.GetSize()),
+                   1, 0, 0, 0);
 }
 }  // namespace vk
 }  // namespace rendering

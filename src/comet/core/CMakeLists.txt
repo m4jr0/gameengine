@@ -21,7 +21,6 @@ endif()
 # Source files #################################################################
 set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/compiler.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/compiler.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/compression.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/c_array.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/c_string.cc"
@@ -31,11 +30,13 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/essentials.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/file_system/file_system.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/file_system/slash_helper.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/game_state_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/generator.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/hash.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/logger.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/os.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/processor.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/version.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_manager.cc"
@@ -44,9 +45,9 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_packet.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_utils.h"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/stl/one_frame_allocator.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/stl/two_frame_allocator.h"
   
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/fiber/fiber.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/fiber/fiber_context.cc"
@@ -88,6 +89,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/ring_queue.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/stl_types.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/string_id.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/traits.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/tstring.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/windows.h"

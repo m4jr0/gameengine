@@ -7,6 +7,8 @@
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
+#include "comet/core/game_state_manager.h"
+#include "comet/profiler/profiler_manager.h"
 
 namespace comet {
 namespace frame {
@@ -20,61 +22,117 @@ FrameManager::FrameManager()
           conf::kCoreFiberFrameAllocatorBaseCapacity)},
       io_frame_allocator_capacity_{
           COMET_CONF_U32(conf::kCoreIOFrameAllocatorBaseCapacity)},
-      fiber_frame_allocators_{
-          FiberFrameAllocator{fiber_frame_allocator_capacity_,
-                              memory::kEngineMemoryTagFrame0},
-          FiberFrameAllocator{fiber_frame_allocator_capacity_,
-                              memory::kEngineMemoryTagFrame1},
-          FiberFrameAllocator{fiber_frame_allocator_capacity_,
-                              memory::kEngineMemoryTagFrame2}},
-      io_frame_allocators_{IOFrameAllocator{io_frame_allocator_capacity_,
-                                            memory::kEngineMemoryTagFrame0},
-                           IOFrameAllocator{io_frame_allocator_capacity_,
-                                            memory::kEngineMemoryTagFrame1},
-                           IOFrameAllocator{io_frame_allocator_capacity_,
-                                            memory::kEngineMemoryTagFrame2}},
-      fiber_double_frame_allocators_{
-          FiberDoubleFrameAllocator{fiber_frame_allocator_capacity_,
+      fiber_frame_allocator_{fiber_frame_allocator_capacity_,
+                             memory::kEngineMemoryTagFrame0},
+      io_frame_allocator_{io_frame_allocator_capacity_,
+                          memory::kEngineMemoryTagFrame0},
+      fiber_double_frame_allocator_{fiber_frame_allocator_capacity_,
                                     memory::kEngineMemoryTagDoubleFrame0},
-          FiberDoubleFrameAllocator{fiber_frame_allocator_capacity_,
-                                    memory::kEngineMemoryTagDoubleFrame1},
-          FiberDoubleFrameAllocator{fiber_frame_allocator_capacity_,
-                                    memory::kEngineMemoryTagDoubleFrame2}},
-      io_double_frame_allocators_{
-          IODoubleFrameAllocator{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame0},
-          IODoubleFrameAllocator{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame1},
-          IODoubleFrameAllocator{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame2}},
-      fiber_frame_allocator_box_{&fiber_frame_allocators_[0]},
-      io_frame_allocator_box_{&io_frame_allocators_[0]},
-      fiber_double_frame_allocator_box_{&fiber_double_frame_allocators_[0]},
-      io_double_frame_allocator_box_{&io_double_frame_allocators_[0]} {}
+      io_double_frame_allocator_{io_frame_allocator_capacity_,
+                                 memory::kEngineMemoryTagDoubleFrame0} {}
 
 void FrameManager::Initialize() {
   Manager::Initialize();
 
-  for (usize i{0}; i < kInFlightFramePacketCount_; ++i) {
-    fiber_frame_allocators_[i].Initialize();
-    fiber_double_frame_allocators_[i].Initialize();
-    io_frame_allocators_[i].Initialize();
-    io_double_frame_allocators_[i].Initialize();
-  }
+  fiber_frame_allocator_.Initialize();
+  fiber_double_frame_allocator_.Initialize();
+  io_frame_allocator_.Initialize();
+  io_double_frame_allocator_.Initialize();
+
+  UpdateInFlightFrames();
 }
 
 void FrameManager::Shutdown() {
   Manager::Shutdown();
 
-  for (usize i{0}; i < kInFlightFramePacketCount_; ++i) {
-    fiber_frame_allocators_[i].Destroy();
-    fiber_double_frame_allocators_[i].Destroy();
-    io_frame_allocators_[i].Destroy();
-    io_double_frame_allocators_[i].Destroy();
-  }
+  fiber_frame_allocator_.Destroy();
+  fiber_double_frame_allocator_.Destroy();
+  io_frame_allocator_.Destroy();
+  io_double_frame_allocator_.Destroy();
 }
 
 void FrameManager::Update() {
+  if (GameStateManager::Get().IsPaused()) {
+    ClearAndSwapAllocators();
+    return;
+  }
+
+  COMET_PROFILER_END_FRAME();
+  UpdateInFlightFrames();
+
+  {
+    fiber::FiberLockGuard lock{frame_mutex_};
+    ++frame_count_;
+  }
+
+  COMET_PROFILER_START_FRAME(frame_count_);
+  ClearAndSwapAllocators();
+  frame_cv_.NotifyAll();
+}
+
+void FrameManager::WaitForNextFrame() {
+  fiber::FiberUniqueLock lock{frame_mutex_};
+  auto current_frame_count{frame_count_};
+
+  frame_cv_.Wait(lock, [this, current_frame_count] {
+    return current_frame_count < frame_count_;
+  });
+}
+
+InFlightFrames& FrameManager::GetInFlightFrames() { return in_flight_frames_; }
+
+memory::Allocator* FrameManager::GetFrameAllocator() {
+  if (job::IsFiberWorker()) {
+    return &fiber_frame_allocator_;
+  }
+
+  if (job::IsIOWorker()) {
+    return &io_frame_allocator_;
+  }
+
+  COMET_ASSERT(false,
+               "No frame allocator available: no worker has been "
+               "attached on this thread!");
+  return nullptr;
+}
+
+memory::Allocator* FrameManager::GetDoubleFrameAllocator() {
+  if (job::IsFiberWorker()) {
+    return &fiber_double_frame_allocator_;
+  }
+
+  if (job::IsIOWorker()) {
+    return &io_double_frame_allocator_;
+  }
+
+  COMET_ASSERT(false,
+               "No double frame allocator available: no worker has been "
+               "attached on this thread!");
+  return nullptr;
+}
+
+void FrameManager::ClearAndSwapAllocators() {
+  ClearAndSwapAllocator(fiber_frame_allocator_, fiber_double_frame_allocator_);
+  ClearAndSwapAllocator(io_frame_allocator_, io_double_frame_allocator_);
+}
+
+void FrameManager::ClearAndSwapAllocator(
+    FiberFrameAllocator& frame_allocator,
+    FiberDoubleFrameAllocator& double_allocator) {
+  frame_allocator.Clear();
+  double_allocator.SwapStacks();
+  double_allocator.ClearCurrent();
+}
+
+void FrameManager::ClearAndSwapAllocator(
+    IOFrameAllocator& frame_allocator,
+    IODoubleFrameAllocator& double_allocator) {
+  frame_allocator.Clear();
+  double_allocator.SwapStacks();
+  double_allocator.ClearCurrent();
+}
+
+void FrameManager::UpdateInFlightFrames() {
   in_flight_frames_.lead_frame =
       &frame_packets_[frame_count_ % kFramePacketCount_];
   in_flight_frames_.middle_frame =
@@ -85,65 +143,6 @@ void FrameManager::Update() {
   in_flight_frames_.lead_frame->frame_count = frame_count_;
   in_flight_frames_.middle_frame->frame_count = frame_count_ - 1;
   in_flight_frames_.trail_frame->frame_count = frame_count_ - 2;
-
-  ++frame_count_;
-  frame_allocator_cursor_ = frame_count_ % kInFlightFramePacketCount_;
-
-  auto& new_fiber_frame_allocator{
-      fiber_frame_allocators_[frame_allocator_cursor_]};
-  auto& new_fiber_double_frame_allocator{
-      fiber_double_frame_allocators_[frame_allocator_cursor_]};
-
-  new_fiber_frame_allocator.Clear();
-  new_fiber_double_frame_allocator.SwapStacks();
-  new_fiber_double_frame_allocator.ClearCurrent();
-
-  fiber_frame_allocator_box_.allocator = &new_fiber_frame_allocator;
-  fiber_double_frame_allocator_box_.allocator =
-      &new_fiber_double_frame_allocator;
-
-  auto& new_io_frame_allocator{io_frame_allocators_[frame_allocator_cursor_]};
-  auto& new_io_double_frame_allocator{
-      io_double_frame_allocators_[frame_allocator_cursor_]};
-
-  new_io_frame_allocator.Clear();
-  new_io_double_frame_allocator.SwapStacks();
-  new_io_double_frame_allocator.ClearCurrent();
-
-  io_frame_allocator_box_.allocator = &new_io_frame_allocator;
-  io_double_frame_allocator_box_.allocator = &new_io_double_frame_allocator;
-}
-
-InFlightFrames& FrameManager::GetInFlightFrames() { return in_flight_frames_; }
-
-memory::AllocatorHandle FrameManager::GetFrameAllocatorHandle() {
-  if (job::IsFiberWorker()) {
-    return &fiber_frame_allocator_box_;
-  }
-
-  if (job::IsIOWorker()) {
-    return &io_frame_allocator_box_;
-  }
-
-  COMET_ASSERT(false,
-               "No frame allocator handle available: no worker has been "
-               "attached on this thread!");
-  return nullptr;
-}
-
-memory::AllocatorHandle FrameManager::GetDoubleFrameAllocatorHandle() {
-  if (job::IsFiberWorker()) {
-    return &fiber_double_frame_allocator_box_;
-  }
-
-  if (job::IsIOWorker()) {
-    return &io_double_frame_allocator_box_;
-  }
-
-  COMET_ASSERT(false,
-               "No double frame allocator handle available: no worker has been "
-               "attached on this thread!");
-  return nullptr;
 }
 }  // namespace frame
 }  // namespace comet

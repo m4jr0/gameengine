@@ -8,6 +8,8 @@
 #include "comet/core/essentials.h"
 #include "comet/core/logger.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/allocator/stack_allocator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
 
@@ -31,30 +33,37 @@ class ResourceManager : public Manager {
   const TString& GetRootResourcePath();
 
   template <typename ResourceHandlerType>
-  void AddHandler(ResourceId resource_id) {
-    if (handlers_.find(resource_id) != handlers_.cend()) {
+  void AddHandler(ResourceTypeId resource_type_id) {
+    if (handlers_.IsContained(resource_type_id)) {
       COMET_LOG_RESOURCE_ERROR(
-          "Adding handler to an already known resource ID: ", resource_id,
-          ". Aborting.");
+          "Adding handler to an already known resource type ID: ",
+          resource_type_id, ". Aborting.");
       return;
     }
 
-    handlers_[resource_id] = std::make_unique<ResourceHandlerType>();
+    auto& pair{handlers_.Emplace(
+        resource_type_id,
+        handler_allocator_.AllocateOneAndPopulate<ResourceHandlerType>(
+            &loading_resources_allocator_, &loading_resource_allocator_))};
+
+    pair.value->Initialize();
   }
+
+  void RemoveHandler(ResourceTypeId resource_type_id);
 
   template <typename ResourceType>
   const ResourceType* Load(
       ResourceId resource_id,
       [[maybe_unused]] ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
-    COMET_ASSERT(
-        handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
-        "Unknown resource type ID: ", ResourceType::kResourceTypeId,
-        ". Aborting.");
-    auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
+    COMET_ASSERT(handlers_.IsContained(ResourceType::kResourceTypeId),
+                 "Unknown resource type ID: ", ResourceType::kResourceTypeId,
+                 ". Aborting.");
+    auto* handler{handlers_.Get(ResourceType::kResourceTypeId)};
 
 #ifdef COMET_DEBUG
-    const auto* resource{static_cast<const ResourceType*>(
-        handler->Load(root_resource_path_, resource_id))};
+
+    const auto* resource{static_cast<const ResourceType*>(handler->Load(
+        resource_file_allocator_, root_resource_path_, resource_id))};
 
     if (resource != nullptr) {
       COMET_ASSERT(resource->type_id == ResourceType::kResourceTypeId,
@@ -82,12 +91,11 @@ class ResourceManager : public Manager {
 
   template <typename ResourceType>
   void Unload(ResourceId resource_id) {
-    COMET_ASSERT(
-        handlers_.find(ResourceType::kResourceTypeId) != handlers_.cend(),
-        "Unknown resource type ID: ", ResourceType::kResourceTypeId,
-        ". Aborting.");
-    auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
-    handler->Unload(root_resource_path_, resource_id);
+    COMET_ASSERT(handlers_.IsContained(ResourceType::kResourceTypeId),
+                 "Unknown resource type ID: ", ResourceType::kResourceTypeId,
+                 ". Aborting.");
+    auto* handler{handlers_[ResourceType::kResourceTypeId].get()};
+    handler->Unload(resource_file_allocator_, root_resource_path_, resource_id);
   }
 
   template <typename ResourceType>
@@ -98,16 +106,30 @@ class ResourceManager : public Manager {
   template <typename ResourceType>
   ResourceFile GetResourceFile(const ResourceType& resource,
                                CompressionMode compression_mode) {
-    COMET_ASSERT(handlers_.find(resource.kResourceTypeId) != handlers_.cend(),
+    COMET_ASSERT(handlers_.IsContained(resource.kResourceTypeId),
                  "Unknown resource ID: ", resource.kResourceTypeId);
 
-    auto* handler{handlers_.at(resource.kResourceTypeId).get()};
-    return handler->GetResourceFile(resource, compression_mode);
+    auto* handler{handlers_.Get(resource.kResourceTypeId)};
+    return handler->GetResourceFile(resource_file_allocator_, resource,
+                                    compression_mode);
   }
 
  private:
+  using ResourceHandlers = Map<ResourceId, ResourceHandler*>;
+
   TString root_resource_path_{};
-  std::unordered_map<ResourceId, std::unique_ptr<ResourceHandler>> handlers_{};
+  // Good enough for something that will never be updated...
+  memory::PlatformAllocator handler_allocator_{
+      memory::kEngineMemoryTagResource};
+  memory::FiberFreeListAllocator loading_resources_allocator_{
+      sizeof(internal::LoadingResourceState*), 1024,
+      memory::kEngineMemoryTagResource};
+  memory::FiberFreeListAllocator loading_resource_allocator_{
+      sizeof(internal::LoadingResourceState), 1024,
+      memory::kEngineMemoryTagResource};
+  memory::FiberFreeListAllocator resource_file_allocator_{
+      1024, 2048, memory::kEngineMemoryTagResource};
+  ResourceHandlers handlers_{};
 };
 }  // namespace resource
 }  // namespace comet

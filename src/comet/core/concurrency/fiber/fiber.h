@@ -101,6 +101,7 @@ class Fiber {
   ExecutionContext& GetContext() noexcept;
   FiberId GetId() const noexcept;
   sptrdiff GetCurrentStackSize() const;
+  const void* GetStack() const noexcept;
   usize GetStackCapacity() const noexcept;
   sptrdiff GetCurrentStackSizeLeft() const;
   bool IsStackOverflow() const;

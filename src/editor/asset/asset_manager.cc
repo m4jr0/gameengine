@@ -59,7 +59,7 @@ void AssetManager::Initialize() {
   COMET_DISALLOW_STR_ALLOC(root_resource_path_);
 
   exporters_allocator_.Initialize();
-  resource_files_allocator_.Initialize();
+  resource_file_allocator_.Initialize();
   exporters_ = Array<std::unique_ptr<AssetExporter>>{&exporters_allocator_};
   exporters_.Reserve(4);
   exporters_.PushBack(std::make_unique<ModelExporter>());
@@ -85,7 +85,7 @@ void AssetManager::Shutdown() {
   library_meta_path_.Clear();
   exporters_.Clear();
   exporters_allocator_.Destroy();
-  resource_files_allocator_.Destroy();
+  resource_file_allocator_.Destroy();
   Manager::Shutdown();
 }
 
@@ -168,7 +168,7 @@ void AssetManager::RefreshAsset(job::Counter* global_counter,
   AssetExportDescr descr{};
   descr.global_counter = global_counter;
   descr.asset_abs_path = asset_abs_path.GetCTStr();
-  descr.file_allocator_ = &resource_files_allocator_;
+  descr.allocator = &resource_file_allocator_;
 
   for (const auto& exporter : exporters_) {
     if (exporter->IsCompatible(GetExtension(asset_abs_path))) {

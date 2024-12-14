@@ -135,7 +135,7 @@ bool WriteBinaryToFile(CTStringView path, const u8* buff, usize buff_len,
   return true;
 }
 
-bool ReadBinaryFromFile(CTStringView path, std::vector<u8>& buff) {
+bool ReadBinaryFromFile(CTStringView path, Array<u8>& buff) {
   std::ifstream input_stream;
 
   if (!OpenFileToReadFrom(path, input_stream, true, true)) {
@@ -143,9 +143,9 @@ bool ReadBinaryFromFile(CTStringView path, std::vector<u8>& buff) {
   }
 
   const auto file_size{input_stream.tellg()};
-  buff.resize(file_size);
+  buff.Resize(file_size);
   input_stream.seekg(0);
-  input_stream.read(reinterpret_cast<schar*>(buff.data()), file_size);
+  input_stream.read(reinterpret_cast<schar*>(buff.GetData()), file_size);
 
   CloseFile(input_stream);
   return true;
