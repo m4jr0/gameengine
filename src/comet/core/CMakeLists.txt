@@ -88,6 +88,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/ring_queue.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/stl_types.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/string_id.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/traits.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/tstring.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/windows.h"

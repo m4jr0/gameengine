@@ -12,6 +12,7 @@
 #include "comet/core/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type/traits.h"
 
 namespace comet {
 template <typename T, typename THashable>
@@ -383,7 +384,8 @@ class HashSet {
         } else if constexpr (std::is_copy_constructible_v<decltype(obj)>) {
           new_buckets[new_index].EmplaceBack(obj);
         } else {
-          static_assert(false, "Object type must be moveable or copyable!");
+          static_assert(always_false_v<decltype(obj)>,
+                        "Object type must be moveable or copyable!");
         }
       }
     }
