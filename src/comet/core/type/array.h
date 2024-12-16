@@ -208,6 +208,22 @@ class Array : public internal::BaseArray<T> {
 
   ~Array() { Clear(); }
 
+  bool operator==(const Array& other) {
+    if (this->size_ != other.size_) {
+      return false;
+    }
+
+    for (usize i{0}; i < this->size_; ++i) {
+      if (!(this->data_[i] == other.data_[i])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool operator!=(const Array& other) { return !operator=(other); }
+
   void Reserve(usize new_capacity) {
     this->data_ = comet::Reserve(this->allocator_, this->data_, this->size_,
                                  this->capacity_, new_capacity);
@@ -308,6 +324,8 @@ class Array : public internal::BaseArray<T> {
     this->capacity_ = 0;
   }
 
+  usize GetCapacity() const noexcept { return this->capacity_; };
+
  private:
   usize capacity_{0};
   memory::Allocator* allocator_{nullptr};
@@ -328,6 +346,20 @@ class StaticArray {
   constexpr const T& operator[](usize index) const { return data_[index]; }
 
   constexpr T& operator[](usize index) { return data_[index]; }
+
+  constexpr bool operator==(const StaticArray& other) {
+    for (usize i{0}; i < N; ++i) {
+      if (!(this->data_[i] == other.data_[i])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  constexpr bool operator!=(const StaticArray& other) {
+    return !operator==(other);
+  }
 
   constexpr bool IsContained(const T& value) const {
     for (usize i{0}; i < size_; ++i) {
@@ -412,6 +444,10 @@ class StaticArray<T, 0> {
   }
 
   constexpr StaticArray() {}
+
+  constexpr bool operator==(const StaticArray&) { return true; }
+
+  constexpr bool operator!=(const StaticArray&) { return false; }
 
   constexpr bool IsContained(const T& value) const { return false; }
 

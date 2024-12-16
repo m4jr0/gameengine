@@ -4,7 +4,6 @@
 
 #include "entity_model_handler.h"
 
-#include "comet/core/type/stl_types.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_component.h"
 #include "comet/geometry/component/mesh_component.h"
@@ -24,7 +23,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
     return kInvalidEntityId;
   }
 
-  auto root_entity_id{GetEntityComponentGenerator<one_frame_vector>()
+  auto root_entity_id{EntityComponentGenerator::Generate()
                           .AddComponent(physics::TransformComponent{})
                           .AddComponent(physics::TransformRootComponent{})
                           .Submit()};
@@ -52,7 +51,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
     transform_cmp.local = mesh.transform;
 
     entity_ids[mesh.internal_id] =
-        GetEntityComponentGenerator<one_frame_vector>()
+        EntityComponentGenerator::Generate()
             .AddComponent(mesh_cmp)
             .AddComponent(transform_cmp)
             .AddParent(transform_cmp.parent_entity_id)
@@ -71,7 +70,7 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
     return kInvalidEntityId;
   }
 
-  auto root_entity_id{GetEntityComponentGenerator<one_frame_vector>()
+  auto root_entity_id{EntityComponentGenerator::Generate()
                           .AddComponent(physics::TransformComponent{})
                           .AddComponent(physics::TransformRootComponent{})
                           .Submit()};
@@ -103,7 +102,7 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
     transform_cmp.local = mesh.transform;
 
     entity_ids[mesh.internal_id] =
-        GetEntityComponentGenerator<one_frame_vector>()
+        EntityComponentGenerator::Generate()
             .AddComponent(mesh_cmp)
             .AddComponent(skeleton_cmp)
             .AddComponent(transform_cmp)

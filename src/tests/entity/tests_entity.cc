@@ -15,11 +15,15 @@ TEST_CASE("Components management", "[comet::entity]") {
   const comet::entity::EntityId entity_id2{entity_manager.Generate()};
   const comet::entity::EntityId entity_id3{entity_manager.Generate()};
 
-  auto entity_cmp_gen1{comet::entity::GetEntityComponentGenerator(entity_id1)};
-  auto entity_cmp_gen2{comet::entity::GetEntityComponentGenerator(entity_id2)};
-  auto entity_cmp_gen3{comet::entity::GetEntityComponentGenerator(entity_id3)};
+  auto entity_cmp_gen1{
+      comet::entity::EntityComponentGenerator::Generate(entity_id1)};
+  auto entity_cmp_gen2{
+      comet::entity::EntityComponentGenerator::Generate(entity_id2)};
+  auto entity_cmp_gen3{
+      comet::entity::EntityComponentGenerator::Generate(entity_id3)};
 
-  auto entity_cmp_des1{comet::entity::GetEntityComponentDestroyer(entity_id1)};
+  auto entity_cmp_des1{
+      comet::entity::EntityComponentDestroyer::Generate(entity_id1)};
 
   SECTION("Create operations.") {
     entity_cmp_gen1.AddComponent(comet::comettests::DummyTagComponent{})

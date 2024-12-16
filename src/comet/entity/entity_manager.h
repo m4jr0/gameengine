@@ -32,16 +32,16 @@ class EntityManager : public Manager {
   void Shutdown() override;
 
   EntityId Generate();
-  EntityId Generate(const std::vector<ComponentDescr>& component_descrs);
+  EntityId Generate(const Array<ComponentDescr>& component_descrs);
 
   bool IsEntity(const EntityId& entity) const;
   void Destroy(EntityId entity);
 
   bool HasComponent(EntityId entity_id, EntityId component_id) const;
   void AddComponents(EntityId entity_id,
-                     const std::vector<ComponentDescr>& component_descrs);
+                     const Array<ComponentDescr>& component_descrs);
   void RemoveComponents(EntityId entity_id,
-                        const std::vector<EntityId>& component_ids);
+                        const Array<EntityId>& component_ids);
 
   template <typename ComponentType>
   ComponentType* GetComponent(EntityId entity_id) {
@@ -56,8 +56,8 @@ class EntityManager : public Manager {
 
     const auto& record{records_[entity_id]};
     const auto& archetype_record{
-        registered_component_types_.at(component_type_id)
-            .archetype_map.at(record.archetype->id)};
+        registered_component_types_.Get(component_type_id)
+            .archetype_map.Get(record.archetype->id)};
 
     return reinterpret_cast<ComponentType*>(
                record.archetype->components[archetype_record.cmp_array_index]
@@ -94,7 +94,7 @@ class EntityManager : public Manager {
     std::sort(all_ids.begin(), all_ids.end());
 
     for (auto& archetype : archetypes_) {
-      if (archetype->entity_type.size() < all_ids.GetSize()) {
+      if (archetype->entity_type.GetSize() < all_ids.GetSize()) {
         continue;
       }
 
@@ -136,7 +136,7 @@ class EntityManager : public Manager {
 
     for (const auto component_type_id : archetype->entity_type) {
       archetype_id = HashCombine(archetype_id, component_type_id);
-      archetype->components.push_back(ComponentArray{nullptr, 0});
+      archetype->components.EmplaceBack(ComponentArray{nullptr, 0});
     }
 
     archetype->id = archetype_id;
@@ -149,13 +149,13 @@ class EntityManager : public Manager {
     }
 
     auto* archetype_p{archetype.get()};
-    archetypes_.push_back(std::move(archetype));
+    archetypes_.PushBack(std::move(archetype));
     return archetype_p;
   }
 
   void RegisterComponentType(const ComponentDescr& component_descr);
   void RegisterComponentTypes(
-      const std::vector<ComponentDescr>& component_type_descrs);
+      const Array<ComponentDescr>& component_type_descrs);
   void UnregisterComponentType(EntityId component_type_id);
   void ResizeArchetype(Archetype* archetype, s16 delta);
   void PreRemoveEntityFromArchetype(usize entity_row, Archetype* archetype);
@@ -166,7 +166,7 @@ class EntityManager : public Manager {
                      const ComponentDescr& component_descr);
 
   Archetype* root_archetype_{nullptr};
-  std::vector<ArchetypePointer> archetypes_{};
+  Array<ArchetypePointer> archetypes_{};
   gid::BreedHandler entity_id_handler_{};
   gid::BreedHandler component_id_handler_{};
   Records records_{};

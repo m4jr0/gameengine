@@ -70,8 +70,6 @@ class ResourceCache {
   void Destroy(ResourceId resource_id);
 
  private:
-  // TODO(m4jr0): Use a lock-free map instead.
-  // Tags: concurrency lockfree job
   mutable fiber::FiberMutex mutex_{};
   std::unordered_map<ResourceId, std::unique_ptr<Resource>> cache_{};
 };

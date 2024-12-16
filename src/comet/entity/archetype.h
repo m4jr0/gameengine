@@ -6,6 +6,8 @@
 #define COMET_COMET_ENTITY_ARCHETYPE_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
+#include "comet/core/type/map.h"
 #include "comet/core/type/stl_types.h"
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_type.h"
@@ -23,8 +25,8 @@ constexpr auto kInvalidArchetypeId{static_cast<ArchetypeId>(-1)};
 struct Archetype {
   ArchetypeId id{kInvalidArchetypeId};
   EntityType entity_type{};
-  std::vector<EntityId> entity_ids{};
-  std::vector<ComponentArray> components{};
+  Array<EntityId> entity_ids{};
+  Array<ComponentArray> components{};
 };
 
 struct Record {
@@ -32,14 +34,14 @@ struct Record {
   usize row{kInvalidIndex};
 };
 
-using Records = std::unordered_map<EntityId, Record>;
+using Records = Map<EntityId, Record>;
 
 struct ArchetypeRecord {
   usize cmp_array_index{kInvalidIndex};
 };
 
-using ArchetypeMap = std::unordered_map<ArchetypeId, ArchetypeRecord>;
-using EntityArchetypeMap = std::unordered_map<EntityId, Archetype*>;
+using ArchetypeMap = Map<ArchetypeId, ArchetypeRecord>;
+using EntityArchetypeMap = Map<EntityId, Archetype*>;
 
 struct RegisteredComponentType {
   ComponentTypeDescr type_descr{};
@@ -47,12 +49,12 @@ struct RegisteredComponentType {
   usize use_count{0};
 };
 
-using RegisteredComponentTypeMap =
-    std::unordered_map<EntityId, RegisteredComponentType>;
+using RegisteredComponentTypeMap = Map<EntityId, RegisteredComponentType>;
 
 using ArchetypePointer = custom_unique_ptr<Archetype>;
 
 ArchetypePointer GenerateArchetype();
 }  // namespace entity
 }  // namespace comet
+
 #endif  // COMET_COMET_ENTITY_ARCHETYPE_H_

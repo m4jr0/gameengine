@@ -183,7 +183,6 @@ void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
   COMET_ASSERT(memory_ != nullptr,
                "Cannot allocate! No memory is available...");
   block_count = (size + block_size_ - 1) / block_size_;
-  test += block_count;
   COMET_ASSERT(size <= capacity_, "Max capacity reached!");
   usize free_blocks_index;
 

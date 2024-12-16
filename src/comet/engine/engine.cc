@@ -15,7 +15,6 @@
 #include "comet/core/memory/tagged_heap.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
-#include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/event/window_event.h"
@@ -176,13 +175,11 @@ void Engine::Load() {
   animation::AnimationManager::Get().Initialize();
   entity::EntityManager::Get().Initialize();
   geometry::GeometryManager::Get().Initialize();
-  entity::EntityFactoryManager::Get().Initialize();
 }
 
 void Engine::PostLoad() { input::InputManager::Get().Initialize(); }
 
 void Engine::PreUnload() {
-  entity::EntityFactoryManager::Get().Shutdown();
   geometry::GeometryManager::Get().Shutdown();
   entity::EntityManager::Get().Shutdown();
   animation::AnimationManager::Get().Shutdown();

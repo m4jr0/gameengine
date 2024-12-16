@@ -50,7 +50,6 @@ class TaggedHeap {
   usize GetBlockSize() const noexcept;
 
  private:
-  usize test{0};
   static inline constexpr usize kBucketCount_{100};
   static inline constexpr usize kTagsPerBucketCount_{10};
   static inline constexpr usize kMaxTagCount_{kBucketCount_ *

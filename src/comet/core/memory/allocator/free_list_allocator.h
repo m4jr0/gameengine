@@ -32,6 +32,7 @@ class FiberFreeListAllocator : public Allocator {
 
  private:
   struct Block {
+    inline static usize debug_counter{0};
     bool is_free{false};
     Block* next{nullptr};
     usize size{0};

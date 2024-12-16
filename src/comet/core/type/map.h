@@ -29,7 +29,7 @@ struct Pair {
 
   template <typename K, typename V>
   Pair(K&& key, V&& value)
-      : key(std::forward<K>(key)), value(std::forward<V>(value)) {}
+      : key{std::forward<K>(key)}, value{std::forward<V>(value)} {}
 
   Pair& operator=(const Pair& other) {
     if (this == &other) {
@@ -128,6 +128,12 @@ class Map {
   ~Map() { Clear(); }
 
   Value& operator[](const Key& key) { return Get(key); }
+
+  bool operator==(const Map& other) const {
+    return this->pairs_ == other.pairs_;
+  }
+
+  bool operator!=(const Map& other) const { return !(*this == other); }
 
   Value& Get(const Key& key) {
     auto* value = TryGet(key);
