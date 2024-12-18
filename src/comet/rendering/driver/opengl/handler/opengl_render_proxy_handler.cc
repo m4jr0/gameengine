@@ -8,6 +8,7 @@
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 
@@ -31,6 +32,7 @@ void RenderProxyHandler::Shutdown() {
 }
 
 void RenderProxyHandler::Update(FrameIndex frame_count) {
+  COMET_PROFILE("RenderProxyHandler::Update");
   if (update_frame_ == frame_count) {
     return;
   }

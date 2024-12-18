@@ -32,6 +32,8 @@ class DebuggerDisplayerManager : public Manager {
   void DrawPhysicsSection(const profiler::ProfilerData& profiler_data) const;
   void DrawRenderingSection(const profiler::ProfilerData& profiler_data) const;
   void DrawMemorySection(const profiler::ProfilerData& profiler_data) const;
+  void DrawProfilingSection(const profiler::ProfilerData& profiler_data) const;
+  void DrawProfilerNode(const profiler::ProfilerNode* node) const;
 #endif  // COMET_IMGUI
 };
 }  // namespace rendering

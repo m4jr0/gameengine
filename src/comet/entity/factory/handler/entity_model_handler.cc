@@ -10,12 +10,14 @@
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/geometry_manager.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/profiler/profiler.h"
 #include "comet/resource/model_resource.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace entity {
 EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
+  COMET_PROFILE("ModelHandler::GenerateStatic");
   const auto* model{
       resource::ResourceManager::Get().Load<resource::StaticModelResource>(
           model_path)};
@@ -63,6 +65,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
 }
 
 EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
+  COMET_PROFILE("ModelHandler::GenerateSkeletal");
   const auto* model{
       resource::ResourceManager::Get().Load<resource::SkeletalModelResource>(
           model_path)};

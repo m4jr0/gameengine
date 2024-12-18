@@ -7,6 +7,7 @@
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
+#include "comet/profiler/profiler_manager.h"
 
 namespace comet {
 namespace frame {
@@ -75,6 +76,8 @@ void FrameManager::Shutdown() {
 }
 
 void FrameManager::Update() {
+  COMET_PROFILER_END_FRAME();
+
   in_flight_frames_.lead_frame =
       &frame_packets_[frame_count_ % kFramePacketCount_];
   in_flight_frames_.middle_frame =
@@ -87,6 +90,7 @@ void FrameManager::Update() {
   in_flight_frames_.trail_frame->frame_count = frame_count_ - 2;
 
   ++frame_count_;
+  COMET_PROFILER_START_FRAME(frame_count_);
   frame_allocator_cursor_ = frame_count_ % kInFlightFramePacketCount_;
 
   auto& new_fiber_frame_allocator{

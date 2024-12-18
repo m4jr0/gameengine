@@ -5,6 +5,7 @@
 #include "vulkan_material_handler.h"
 
 #include "comet/core/type/array.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
@@ -56,6 +57,7 @@ Material* MaterialHandler::Generate(const MaterialDescr& descr) {
 
 Material* MaterialHandler::Generate(
     const resource::MaterialResource& resource) {
+  COMET_PROFILE("MaterialHandler::Generate");
   MaterialDescr descr{};
   descr.id = resource.id;
   descr.diffuse_map = GenerateTextureMap(resource.descr.diffuse_map);
@@ -236,6 +238,7 @@ TextureMap MaterialHandler::GenerateTextureMap(
 }
 
 void MaterialHandler::Destroy(Material& material, bool is_destroying_handler) {
+  COMET_PROFILE("MaterialHandler::Destroy");
   if (shader_handler_->IsInitialized() &&
       shader_handler_->HasMaterial(material)) {
     shader_handler_->UnbindMaterial(material);

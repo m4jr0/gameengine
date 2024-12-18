@@ -5,10 +5,18 @@
 #ifndef COMET_COMET_PROFILER_PROFILER_MANAGER_H_
 #define COMET_COMET_PROFILER_PROFILER_MANAGER_H_
 
+#include <stack>
+
 #include "comet/core/essentials.h"
 
 #ifdef COMET_PROFILING
+#include "comet/core/concurrency/provider/thread_provider.h"
+#include "comet/core/concurrency/provider/thread_provider_manager.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/profiler/profiler.h"
 #include "comet/profiler/profiler_data.h"
 
 namespace comet {
@@ -24,15 +32,41 @@ class ProfilerManager : public Manager {
   ProfilerManager& operator=(ProfilerManager&&) = delete;
   virtual ~ProfilerManager() = default;
 
+  void Initialize() override;
+  void Shutdown() override;
   void Update();
+
+  void StartFrame(frame::FrameCount frame_count);
+  void EndFrame();
+
+  void StartProfiling(const schar* label);
+  void StopProfiling();
 
   const ProfilerData& GetData() const noexcept;
 
  private:
+  using ThreadProfilerContexts =
+      thread::FiberThreadProvider<ThreadProfilerContext>;
+
+  ThreadProfilerContexts thread_contexts_{
+      thread::ThreadProviderManager::Get()
+          .AllocateFiberProvider<ThreadProfilerContext>()};
+
+  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagDebug};
   ProfilerData data_{};
 };
 }  // namespace profiler
 }  // namespace comet
+#endif  // COMET_PROFILING
+
+#ifdef COMET_PROFILING
+#define COMET_PROFILER_START_FRAME(frame_count) \
+  comet::profiler::ProfilerManager::Get().StartFrame(frame_count)
+#define COMET_PROFILER_END_FRAME() \
+  comet::profiler::ProfilerManager::Get().EndFrame()
+#else
+#define COMET_PROFILER_START_FRAME(frame_count)
+#define COMET_PROFILER_END_FRAME()
 #endif  // COMET_PROFILING
 
 #endif  // COMET_COMET_PROFILER_PROFILER_MANAGER_H_

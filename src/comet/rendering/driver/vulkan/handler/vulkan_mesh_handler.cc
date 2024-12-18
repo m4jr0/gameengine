@@ -7,6 +7,7 @@
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/profiler/profiler.h"
 
 namespace comet {
 namespace rendering {
@@ -29,6 +30,7 @@ void MeshHandler::Shutdown() {
 }
 
 MeshProxy* MeshHandler::Generate(geometry::Mesh* mesh) {
+  COMET_PROFILE("MeshHandler::Generate");
   MeshProxy proxy{};
   proxy.id = mesh->id;
   proxy.mesh = mesh;
@@ -133,6 +135,7 @@ MeshProxy* MeshHandler::Register(MeshProxy& proxy) {
 }
 
 void MeshHandler::Destroy(MeshProxy& proxy, bool is_destroying_handler) {
+  COMET_PROFILE("MeshHandler::Destroy");
   if (proxy.vertex_buffer.allocation_handle != VK_NULL_HANDLE) {
     DestroyBuffer(proxy.vertex_buffer);
   }

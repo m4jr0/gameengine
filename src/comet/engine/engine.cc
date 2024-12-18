@@ -153,9 +153,6 @@ void Engine::Quit() {
 }
 
 void Engine::PreLoad() {
-#ifdef COMET_PROFILING
-  profiler::ProfilerManager::Get().Initialize();
-#endif  // COMET_PROFILING
   conf::ConfigurationManager::Get().Initialize();
   job::Scheduler::Get().Initialize();
 }
@@ -192,10 +189,6 @@ void Engine::PreUnload() {
   rendering::DebuggerDisplayerManager::Get().Shutdown();
 #endif  // COMET_DEBUG
   time::TimeManager::Get().Shutdown();
-
-#ifdef COMET_PROFILING
-  profiler::ProfilerManager::Get().Shutdown();
-#endif  // COMET_PROFILING
 }
 
 void Engine::Unload() {
@@ -204,6 +197,9 @@ void Engine::Unload() {
   DestroyTStrings();
   gid::DestroyGids();
   frame::FrameManager::Get().Shutdown();
+#ifdef COMET_PROFILING
+  profiler::ProfilerManager::Get().Shutdown();
+#endif  // COMET_PROFILING
   thread::ThreadProviderManager::Get().Shutdown();
   memory::TaggedHeap::Get().Destroy();
   job::Scheduler::Get().Shutdown();
@@ -218,6 +214,9 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   auto* engine{reinterpret_cast<Engine*>(handle)};
   memory::TaggedHeap::Get().Initialize();
   thread::ThreadProviderManager::Get().Initialize();
+#ifdef COMET_PROFILING
+  profiler::ProfilerManager::Get().Initialize();
+#endif  // COMET_PROFILING
   frame::FrameManager::Get().Initialize();
   gid::InitializeGids();
   InitializeTStrings();

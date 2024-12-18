@@ -13,9 +13,8 @@
 #include "comet/profiler/profiler_manager.h"
 
 #ifdef COMET_IMGUI
-#include "imgui.h"
-
 #include "comet/rendering/debugger/imgui_utils.h"
+#include "imgui.h"
 #endif  // COMET_IMGUI
 
 namespace comet {
@@ -39,6 +38,9 @@ void DebuggerDisplayerManager::Draw() {
   ImGui::Spacing();
   DrawMemorySection(profiler_data);
 #endif  // COMET_TRACK_ALLOCATIONS
+
+  ImGui::Spacing();
+  DrawProfilingSection(profiler_data);
 
   ImGui::End();
 #endif  // COMET_IMGUI
@@ -140,6 +142,44 @@ void DebuggerDisplayerManager::DrawMemorySection(
   }
 
   ImGui::Unindent();
+}
+
+void DebuggerDisplayerManager::DrawProfilingSection(
+    const profiler::ProfilerData& profiler_data) const {
+  ImGui::Text("PROFILING");
+
+  auto& context{profiler_data.frame_profiler_context};
+
+  ImGui::Text("Frame #%llu", context.frame_count);
+
+  for (auto& pair : context.thread_contexts) {
+    const auto* thread_context{pair.value};
+
+    if (ImGui::TreeNode(reinterpret_cast<void*>(thread_context->thread_id),
+                        "Thread #%zu", thread_context->thread_id)) {
+      for (const auto& node : thread_context->root_nodes) {
+        DrawProfilerNode(node.get());
+      }
+
+      ImGui::TreePop();
+    }
+  }
+}
+
+void DebuggerDisplayerManager::DrawProfilerNode(
+    const profiler::ProfilerNode* node) const {
+  if (node == nullptr) {
+    return;
+  }
+
+  if (ImGui::TreeNode(node, "%s (%.2f ms)", node->label,
+                      (node->end_time - node->start_time) / 1000.0f)) {
+    for (const auto* child : node->children) {
+      DrawProfilerNode(child);
+    }
+
+    ImGui::TreePop();
+  }
 }
 #endif  // COMET_IMGUI
 }  // namespace rendering

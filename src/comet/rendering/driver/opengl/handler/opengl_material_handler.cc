@@ -5,6 +5,7 @@
 #include "opengl_material_handler.h"
 
 #include "comet/core/type/array.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/resource/texture_resource.h"
 
@@ -180,6 +181,7 @@ TextureType MaterialHandler::GetTextureType(
 }
 
 void MaterialHandler::Destroy(Material& material, bool is_destroying_handler) {
+  COMET_PROFILE("MaterialHandler::Destroy");
   if (shader_handler_->IsInitialized() &&
       shader_handler_->HasMaterial(material)) {
     shader_handler_->UnbindMaterial(material);
@@ -203,6 +205,7 @@ void MaterialHandler::Destroy(Material& material, bool is_destroying_handler) {
 }
 
 Material* MaterialHandler::GenerateInternal(const MaterialDescr& descr) {
+  COMET_PROFILE("MaterialHandler::GenerateInternal");
   Material material;
   material.id = descr.id;
   material.shader_id = descr.shader_id;

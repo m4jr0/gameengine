@@ -4,6 +4,7 @@
 
 #include "profiler_manager.h"
 
+#include "comet/core/date.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/rendering_manager.h"
@@ -14,6 +15,25 @@ namespace profiler {
 ProfilerManager& ProfilerManager::Get() {
   static ProfilerManager singleton{};
   return singleton;
+}
+
+void ProfilerManager::Initialize() {
+  Manager::Initialize();
+  thread_contexts_.Initialize();
+  allocator_.Initialize();
+  data_ = ProfilerData{&allocator_};
+  auto thread_context_count{thread_contexts_.GetSize()};
+
+  for (thread::ThreadId i{0}; i < thread_context_count; ++i) {
+    auto& thread_context{thread_contexts_.GetFromIndex(i)};
+    thread_context.thread_id = static_cast<thread::ThreadId>(i);
+  }
+}
+
+void ProfilerManager::Shutdown() {
+  thread_contexts_.Destroy();
+  allocator_.Destroy();
+  Manager::Shutdown();
 }
 
 void ProfilerManager::Update() {
@@ -29,7 +49,62 @@ void ProfilerManager::Update() {
   data_.rendering_draw_count = rendering_manager.GetDrawCount();
   COMET_GET_MEMORY_USE(data_.memory_use);
   COMET_GET_TAG_USE(data_.tag_use);
+
+  // >:3
+  auto thread_context_count{thread_contexts_.GetSize()};
+
+  for (thread::ThreadId i{0}; i < thread_context_count; ++i) {
+    data_.frame_profiler_context.thread_contexts.Set(
+        i, &thread_contexts_.GetFromIndex(i));
+  }
 #endif  // COMET_DEBUG
+}
+
+void ProfilerManager::StartFrame(frame::FrameCount frame_count) {
+  data_.frame_profiler_context.frame_count = frame_count;
+  auto thread_context_count{thread_contexts_.GetSize()};
+
+  for (thread::ThreadId i{0}; i < thread_context_count; ++i) {
+    auto& thread_context{thread_contexts_.GetFromIndex(i)};
+    thread_context.active_nodes = {};
+    thread_context.root_nodes.Clear();
+  }
+}
+
+void ProfilerManager::EndFrame() {
+  auto thread_context_count{thread_contexts_.GetSize()};
+
+  for (usize i{0}; i < thread_context_count; ++i) {
+    auto& thread_context{thread_contexts_.GetFromIndex(i)};
+    thread_context.root_nodes.Clear();
+    thread_context.active_nodes = {};
+  }
+}
+
+void ProfilerManager::StartProfiling(const schar* label) {
+  auto& thread_context{thread_contexts_.Get()};
+  auto now{GetPreciseTimestamp()};
+  auto node = std::make_unique<ProfilerNode>(&allocator_, label, now);
+
+  if (!thread_context.active_nodes.empty()) {
+    thread_context.active_nodes.top()->children.PushBack(node.get());
+  }
+
+  thread_context.active_nodes.push(node.get());
+  thread_context.root_nodes.PushBack(std::move(node));
+}
+
+void ProfilerManager::StopProfiling() {
+  auto& thread_context{thread_contexts_.Get()};
+
+  if (thread_context.active_nodes.empty()) {
+    return;
+  }
+
+  auto now{GetPreciseTimestamp()};
+  auto* node{thread_context.active_nodes.top()};
+  node->end_time = now;
+  thread_context.active_nodes.pop();
 }
 
 const ProfilerData& ProfilerManager::GetData() const noexcept { return data_; }

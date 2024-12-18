@@ -8,8 +8,10 @@
 #include "comet/core/essentials.h"
 
 #ifdef COMET_PROFILING
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/map.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
@@ -23,6 +25,9 @@ struct ProfilerData {
   rendering::DriverType rendering_driver_type{rendering::DriverType::Unknown};
   usize memory_use{0};
   Map<memory::MemoryTag, usize> tag_use{};
+  FrameProfilerContext frame_profiler_context;
+
+  ProfilerData(memory::Allocator* allocator = nullptr);
 };
 }  // namespace profiler
 }  // namespace comet
