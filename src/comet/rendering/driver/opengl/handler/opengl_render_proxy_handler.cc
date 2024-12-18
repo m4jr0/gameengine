@@ -123,9 +123,10 @@ void RenderProxyHandler::Draw(const RenderProxy& proxy) {
     last_drawn_mesh_ = proxy.mesh_proxy;
   }
 
-  glDrawElements(GL_TRIANGLES,
-                 static_cast<GLsizei>(proxy.mesh_proxy->mesh->indices.size()),
-                 GL_UNSIGNED_INT, 0);
+  glDrawElements(
+      GL_TRIANGLES,
+      static_cast<GLsizei>(proxy.mesh_proxy->mesh->indices.GetSize()),
+      GL_UNSIGNED_INT, 0);
 }
 }  // namespace gl
 }  // namespace rendering

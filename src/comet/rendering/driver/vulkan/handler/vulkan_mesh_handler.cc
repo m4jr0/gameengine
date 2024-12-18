@@ -92,7 +92,7 @@ void MeshHandler::Bind(geometry::MeshId proxy_id) { Bind(Get(proxy_id)); }
 void MeshHandler::Bind(const MeshProxy* proxy) {
   auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
   const auto vertex_buffer_size{static_cast<VkDeviceSize>(
-      proxy->mesh->vertices.size() * sizeof(geometry::Vertex))};
+      proxy->mesh->vertices.GetSize() * sizeof(geometry::Vertex))};
   VkDeviceSize offset{0};
   vkCmdBindVertexBuffers(command_buffer_handle, 0, 1,
                          &proxy->vertex_buffer.handle, &offset);
@@ -149,17 +149,17 @@ void MeshHandler::Destroy(MeshProxy& proxy, bool is_destroying_handler) {
 
 void MeshHandler::Upload(MeshProxy& proxy) {
   const auto vertex_buffer_size{static_cast<VkDeviceSize>(
-      proxy.mesh->vertices.size() * sizeof(geometry::Vertex))};
-  const auto index_buffer_size{
-      static_cast<u32>(proxy.mesh->indices.size() * sizeof(geometry::Index))};
+      proxy.mesh->vertices.GetSize() * sizeof(geometry::Vertex))};
+  const auto index_buffer_size{static_cast<u32>(proxy.mesh->indices.GetSize() *
+                                                sizeof(geometry::Index))};
 
   const auto buffer_size{vertex_buffer_size + index_buffer_size};
 
   MapBuffer(staging_buffer_);
-  CopyToBuffer(staging_buffer_, proxy.mesh->vertices.data(),
+  CopyToBuffer(staging_buffer_, proxy.mesh->vertices.GetData(),
                vertex_buffer_size);
-  CopyToBuffer(staging_buffer_, proxy.mesh->indices.data(), index_buffer_size,
-               vertex_buffer_size);
+  CopyToBuffer(staging_buffer_, proxy.mesh->indices.GetData(),
+               index_buffer_size, vertex_buffer_size);
   UnmapBuffer(staging_buffer_);
 
   if (proxy.vertex_buffer.handle == VK_NULL_HANDLE) {

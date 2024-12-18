@@ -21,6 +21,7 @@ ResourceManager& ResourceManager::Get() {
 
 void ResourceManager::Initialize() {
   Manager::Initialize();
+  allocator_.Initialize();
   root_resource_path_.Reserve(conf::kMaxStrValueLength);
   root_resource_path_ = COMET_CONF_TSTR(conf::kResourceRootPath);
   COMET_DISALLOW_STR_ALLOC(root_resource_path_);
@@ -38,6 +39,7 @@ void ResourceManager::Initialize() {
 void ResourceManager::Shutdown() {
   root_resource_path_.Clear();
   handlers_.clear();
+  allocator_.Destroy();
   Manager::Shutdown();
 }
 

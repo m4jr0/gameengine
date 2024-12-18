@@ -46,7 +46,6 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_packet.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/stl/one_frame_allocator.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/stl/two_frame_allocator.h"
   
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/fiber/fiber.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/fiber/fiber_context.cc"

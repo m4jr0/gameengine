@@ -82,7 +82,8 @@ class EntityComponentDestroyer {
   EntityComponentDestroyer& Remove(EntityId component_type_id);
 
   EntityId entity_id_{kInvalidEntityId};
-  Array<EntityId> component_ids_{};
+  Array<EntityId> component_ids_{
+      &EntityMemoryManager::Get().GetEntityIdAllocator()};
 };
 }  // namespace entity
 }  // namespace comet

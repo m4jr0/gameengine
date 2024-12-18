@@ -13,6 +13,7 @@
 #include "comet/core/frame/frame_manager.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
+#include "comet/core/type/gid.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/event/event.h"
@@ -201,6 +202,7 @@ void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
   DestroyTStrings();
+  gid::DestroyGids();
   frame::FrameManager::Get().Shutdown();
   thread::ThreadProviderManager::Get().Shutdown();
   memory::TaggedHeap::Get().Destroy();
@@ -217,6 +219,7 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   memory::TaggedHeap::Get().Initialize();
   thread::ThreadProviderManager::Get().Initialize();
   frame::FrameManager::Get().Initialize();
+  gid::InitializeGids();
   InitializeTStrings();
   event::EventManager::Get().Initialize();
   resource::ResourceManager::Get().Initialize();

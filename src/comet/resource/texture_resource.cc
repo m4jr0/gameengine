@@ -5,6 +5,7 @@
 #include "texture_resource.h"
 
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
 
 namespace comet {
 namespace resource {
@@ -190,21 +191,25 @@ Resource* TextureHandler::GetInternal(ResourceId resource_id) {
   return ResourceHandler::GetInternal(resource_id);
 }
 
-ResourceFile TextureHandler::Pack(const Resource& resource,
+ResourceFile TextureHandler::Pack(memory::Allocator& allocator,
+                                  const Resource& resource,
                                   CompressionMode compression_mode) const {
   const auto& texture{static_cast<const TextureResource&>(resource)};
   ResourceFile file{};
   file.resource_id = texture.id;
   file.resource_type_id = TextureResource::kResourceTypeId;
   file.compression_mode = compression_mode;
+  file.descr = Array<u8>{&allocator};
+  file.data = Array<u8>{&allocator};
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
   const auto data_size{sizeof(u8) * texture.data.size()};
 
-  std::vector<u8> data(kResourceIdSize + kResourceTypeIdSize + data_size);
+  Array<u8> data{&allocator};
+  data.Resize(kResourceIdSize + kResourceTypeIdSize + data_size);
   usize cursor{0};
-  auto* buffer{data.data()};
+  auto* buffer{data.GetData()};
 
   memory::CopyMemory(&buffer[cursor], &texture.id, kResourceIdSize);
   cursor += kResourceIdSize;
@@ -221,16 +226,18 @@ ResourceFile TextureHandler::Pack(const Resource& resource,
 }
 
 std::unique_ptr<Resource> TextureHandler::Unpack(
-    const ResourceFile& file) const {
+    memory::Allocator& allocator, const ResourceFile& file) const {
   TextureResource texture{};
-  texture.descr = UnpackPodResourceDescr<TextureResourceDescr>(file);
-  const auto data{UnpackResourceData(file)};
+  UnpackPodResourceDescr<TextureResourceDescr>(file, texture.descr);
 
-  const auto* buffer{data.data()};
+  Array<u8> data{&allocator};
+  UnpackResourceData(file, data);
+  const auto* buffer{data.GetData()};
   usize cursor{0};
+
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  const auto data_size{sizeof(u8) * data.size() - kResourceIdSize -
+  const auto data_size{sizeof(u8) * data.GetSize() - kResourceIdSize -
                        kResourceTypeIdSize};
 
   memory::CopyMemory(&texture.id, &buffer[cursor], kResourceIdSize);

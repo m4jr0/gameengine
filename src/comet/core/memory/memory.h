@@ -5,6 +5,9 @@
 #ifndef COMET_COMET_CORE_MEMORY_MEMORY_H_
 #define COMET_COMET_CORE_MEMORY_MEMORY_H_
 
+#include <functional>
+#include <memory>
+
 #include "comet/core/essentials.h"
 
 namespace comet {
@@ -31,6 +34,7 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagUntagged = 0,
   kEngineMemoryTagConfig,
   kEngineMemoryTagTaggedHeap,
+  kEngineMemoryTagGid,
   kEngineMemoryTagStringId,
   kEngineMemoryTagFrame0,
   kEngineMemoryTagFrame1,
@@ -38,9 +42,11 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagDoubleFrame0,
   kEngineMemoryTagDoubleFrame1,
   kEngineMemoryTagDoubleFrame2,
+  kEngineMemoryTagGeometry,
   kEngineMemoryTagRendering,
   kEngineMemoryTagRenderingInternal,
   kEngineMemoryTagRenderingDevice,
+  kEngineMemoryTagResource,
   kEngineMemoryTagTString,
   kEngineMemoryTagEntity,
   kEngineMemoryTagFiber,
@@ -50,6 +56,9 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagUserBase = kU32Max,
   kEngineMemoryTagInvalid = kU64Max
 };
+
+template <typename T>
+using CustomUniquePtr = std::unique_ptr<T, std::function<void(T*)>>;
 }  // namespace memory
 }  // namespace comet
 

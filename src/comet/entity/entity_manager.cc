@@ -7,6 +7,7 @@
 #include "comet/core/memory/memory_utils.h"
 #include "comet/entity/entity_memory_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
+#include "comet/geometry/component/mesh_component.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {

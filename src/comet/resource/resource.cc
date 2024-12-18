@@ -45,12 +45,12 @@ ResourceId GenerateResourceIdFromPath(CTStringView resource_path) {
 }
 
 void PackBytes(const u8* bytes, usize bytes_size,
-               CompressionMode compression_mode, std::vector<u8>* packed_bytes,
+               CompressionMode compression_mode, Array<u8>* packed_bytes,
                usize* packed_bytes_size) {
   switch (compression_mode) {
     case CompressionMode::Lz4: {
       CompressLz4(bytes, bytes_size, *packed_bytes);
-      *packed_bytes_size = packed_bytes->size();
+      *packed_bytes_size = packed_bytes->GetSize();
       break;
     }
     case CompressionMode::None: {
@@ -67,30 +67,28 @@ void PackBytes(const u8* bytes, usize bytes_size,
   }
 }
 
-void PackBytes(const std::vector<u8>& bytes, CompressionMode compression_mode,
-               std::vector<u8>* packed_bytes, usize* packed_bytes_size) {
-  PackBytes(bytes.data(), bytes.size(), compression_mode, packed_bytes,
+void PackBytes(const Array<u8>& bytes, CompressionMode compression_mode,
+               Array<u8>* packed_bytes, usize* packed_bytes_size) {
+  PackBytes(bytes.GetData(), bytes.GetSize(), compression_mode, packed_bytes,
             packed_bytes_size);
 }
 
-void PackResourceData(const std::vector<u8>& data, ResourceFile& file) {
-  file.data_size = data.size();
+void PackResourceData(const Array<u8>& data, ResourceFile& file) {
+  file.data_size = data.GetSize();
   PackBytes(data, file.compression_mode, &file.data, &file.packed_data_size);
 }
 
-std::vector<u8> UnpackBytes(CompressionMode compression_mode,
-                            const u8* packed_bytes, usize packed_bytes_size,
-                            usize decompressed_size) {
-  std::vector<u8> data;
-
+void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
+                 usize packed_bytes_size, usize decompressed_size,
+                 Array<u8>& data) {
   switch (compression_mode) {
     case CompressionMode::Lz4: {
       DecompressLz4(packed_bytes, packed_bytes_size, decompressed_size, data);
       break;
     }
     case CompressionMode::None: {
-      data.resize(decompressed_size);
-      memory::CopyMemory(data.data(), packed_bytes, decompressed_size);
+      data.Resize(decompressed_size);
+      memory::CopyMemory(data.GetData(), packed_bytes, decompressed_size);
       break;
     }
     default: {
@@ -100,19 +98,17 @@ std::vector<u8> UnpackBytes(CompressionMode compression_mode,
               compression_mode));
     }
   }
-
-  return data;
 }
 
-std::vector<u8> UnpackBytes(CompressionMode compression_mode,
-                            const std::vector<u8>& packed_bytes,
-                            usize decompressed_size) {
-  return UnpackBytes(compression_mode, packed_bytes.data(), packed_bytes.size(),
-                     decompressed_size);
+void UnpackBytes(CompressionMode compression_mode,
+                 const Array<u8>& packed_bytes, usize decompressed_size,
+                 Array<u8>& data) {
+  UnpackBytes(compression_mode, packed_bytes.GetData(), packed_bytes.GetSize(),
+              decompressed_size, data);
 }
 
-std::vector<u8> UnpackResourceData(const ResourceFile& file) {
-  return UnpackBytes(file.compression_mode, file.data, file.data_size);
+void UnpackResourceData(const ResourceFile& file, Array<u8>& data) {
+  UnpackBytes(file.compression_mode, file.data, file.data_size, data);
 }
 
 bool SaveResourceFile(CTStringView path, const ResourceFile& file) {
@@ -141,10 +137,10 @@ bool SaveResourceFile(CTStringView path, const ResourceFile& file) {
   out_file.write(reinterpret_cast<const schar*>(&file.data_size),
                  static_cast<std::streamsize>(sizeof(file.data_size)));
 
-  out_file.write(reinterpret_cast<const schar*>(file.descr.data()),
+  out_file.write(reinterpret_cast<const schar*>(file.descr.GetData()),
                  file.packed_descr_size);
 
-  out_file.write(reinterpret_cast<const schar*>(file.data.data()),
+  out_file.write(reinterpret_cast<const schar*>(file.data.GetData()),
                  file.packed_data_size);
 
   CloseFile(out_file);
@@ -178,23 +174,26 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
   in_file.read(reinterpret_cast<schar*>(&file.data_size),
                sizeof(file.data_size));
 
-  file.descr.resize(file.packed_descr_size);
-  in_file.read(reinterpret_cast<schar*>(file.descr.data()),
+  file.descr.Resize(file.packed_descr_size);
+  in_file.read(reinterpret_cast<schar*>(file.descr.GetData()),
                file.packed_descr_size);
 
-  file.data.resize(file.packed_data_size);
-  in_file.read(reinterpret_cast<schar*>(file.data.data()),
+  file.data.Resize(file.packed_data_size);
+  in_file.read(reinterpret_cast<schar*>(file.data.GetData()),
                file.packed_data_size);
 
   return true;
 }
 
-const Resource* ResourceHandler::Load(CTStringView root_resource_path,
+const Resource* ResourceHandler::Load(memory::Allocator& allocator,
+                                      CTStringView root_resource_path,
                                       CTStringView resource_path) {
-  return Load(root_resource_path, GenerateResourceIdFromPath(resource_path));
+  return Load(allocator, root_resource_path,
+              GenerateResourceIdFromPath(resource_path));
 }
 
-const Resource* ResourceHandler::Load(CTStringView root_resource_path,
+const Resource* ResourceHandler::Load(memory::Allocator& allocator,
+                                      CTStringView root_resource_path,
                                       ResourceId resource_id) {
   if (resource_id == kDefaultResourceId) {
     return GetDefaultResource();
@@ -219,6 +218,8 @@ const Resource* ResourceHandler::Load(CTStringView root_resource_path,
   resource_abs_path /= resource_id_path;  // No allocation.
 
   ResourceFile file{};
+  file.descr = Array<u8>{&allocator};
+  file.data = Array<u8>{&allocator};
   const auto is_load{LoadResourceFile(resource_abs_path, file)};
 
   if (!is_load) {
@@ -227,7 +228,7 @@ const Resource* ResourceHandler::Load(CTStringView root_resource_path,
     return GetDefaultResource();
   }
 
-  resource = cache_.Set(Unpack(file));
+  resource = cache_.Set(Unpack(allocator, file));
   resource->ref_count = 1;
   return resource;
 }
@@ -264,8 +265,9 @@ void ResourceHandler::Destroy(ResourceId resource_id) {
 const Resource* ResourceHandler::GetDefaultResource() { return nullptr; }
 
 ResourceFile ResourceHandler::GetResourceFile(
-    const Resource& resource, CompressionMode compression_mode) const {
-  return Pack(resource, compression_mode);
+    memory::Allocator& allocator, const Resource& resource,
+    CompressionMode compression_mode) const {
+  return Pack(allocator, resource, compression_mode);
 }
 
 Resource* ResourceHandler::GetInternal(ResourceId resource_id) {

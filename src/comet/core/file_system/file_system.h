@@ -5,9 +5,8 @@
 #ifndef COMET_COMET_CORE_FILE_SYSTEM_FILE_SYSTEM_H_
 #define COMET_COMET_CORE_FILE_SYSTEM_FILE_SYSTEM_H_
 
-#include <vector>
-
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"
@@ -67,7 +66,7 @@ bool WriteBinaryToFile(CTStringView path, const u8* buff, usize buff_len,
                        bool is_append = false);
 bool WriteBinaryToFile(CTStringView path, const u8* buff, usize buff_len,
                        bool is_append);
-bool ReadBinaryFromFile(CTStringView path, std::vector<u8>& buff);
+bool ReadBinaryFromFile(CTStringView path, Array<u8>& buff);
 void CloseFile(std::ifstream& file);
 bool WriteStrToFile(CTStringView path, const schar* buff,
                     bool is_append = false);

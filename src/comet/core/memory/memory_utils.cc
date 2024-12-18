@@ -50,6 +50,8 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "config";
     case kEngineMemoryTagTaggedHeap:
       return "tagged_heap";
+    case kEngineMemoryTagGid:
+      return "gid";
     case kEngineMemoryTagStringId:
       return "string_id";
     case kEngineMemoryTagFrame0:
@@ -64,12 +66,16 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "double_frame_1";
     case kEngineMemoryTagDoubleFrame2:
       return "double_frame_2";
+    case kEngineMemoryTagGeometry:
+      return "geometry";
     case kEngineMemoryTagRendering:
       return "rendering";
     case kEngineMemoryTagRenderingInternal:
       return "rendering_internal";
     case kEngineMemoryTagRenderingDevice:
       return "rendering_device (VRAM)";
+    case kEngineMemoryTagResource:
+      return "resource";
     case kEngineMemoryTagTString:
       return "tstring";
     case kEngineMemoryTagEntity:

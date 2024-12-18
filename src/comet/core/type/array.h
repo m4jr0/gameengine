@@ -13,6 +13,7 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/iterator.h"
+#include "comet/math/math_commons.h"
 
 namespace comet {
 namespace internal {
@@ -231,7 +232,7 @@ class Array : public internal::BaseArray<T> {
   }
 
   void Resize(usize new_size) {
-    if (new_size >= this->capacity_) {
+    if (new_size > this->capacity_) {
       Reserve(new_size);
     }
 
@@ -311,6 +312,38 @@ class Array : public internal::BaseArray<T> {
     COMET_ASSERT(index < this->size_, "Index out of bounds: ", index,
                  " >= ", this->size_, "!");
     return Remove(this->begin() + index);
+  }
+
+  void PushFromRange(const T* src, usize src_size, usize count = kInvalidIndex,
+                     usize dst_offset = kInvalidIndex, usize src_offset = 0) {
+    COMET_ASSERT(src != nullptr, "Source array is null!");
+
+    if (count == 0) {
+      return;
+    }
+
+    if (count == kInvalidIndex) {
+      count = src_size;
+    }
+
+    if (dst_offset == kInvalidIndex) {
+      dst_offset = this->size_;
+    }
+
+    auto new_size{math::Max(this->size_, dst_offset + count)};
+    Reserve(new_size);
+    comet::Copy(this->data_, this->capacity_, src, src_size, count, dst_offset,
+                src_offset);
+    this->size_ = new_size;
+  }
+
+  template <typename TArray>
+  void PushFromRange(const TArray& src, usize count = kInvalidIndex,
+                     usize dst_offset = kInvalidIndex, usize src_offset = 0) {
+    static_assert(std::is_same_v<decltype(src.GetData()), const T*> &&
+                      std::is_same_v<decltype(src.GetSize()), usize>,
+                  "TArray must have GetData() and GetSize() methods!");
+    PushFromRange(src.GetData(), src.GetSize(), count, dst_offset, src_offset);
   }
 
   void Clear() {

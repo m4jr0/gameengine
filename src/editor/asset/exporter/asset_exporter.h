@@ -19,7 +19,7 @@ namespace asset {
 struct AssetExportDescr {
   job::Counter* global_counter{nullptr};
   const tchar* asset_abs_path{nullptr};
-  memory::Allocator* file_allocator_{nullptr};
+  memory::Allocator* allocator{nullptr};
 };
 
 using ResourceFiles = Array<resource::ResourceFile>;
@@ -27,6 +27,7 @@ using ResourceFiles = Array<resource::ResourceFile>;
 struct ResourceFilesContext {
   AssetDescr asset_descr{};
   job::Counter* global_counter{nullptr};
+  memory::Allocator* allocator{nullptr};
   ResourceFiles files{};
 };
 

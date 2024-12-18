@@ -6,6 +6,7 @@
 #define COMET_COMET_ENTITY_ARCHETYPE_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
 #include "comet/core/type/stl_types.h"
@@ -51,7 +52,7 @@ struct RegisteredComponentType {
 
 using RegisteredComponentTypeMap = Map<EntityId, RegisteredComponentType>;
 
-using ArchetypePointer = custom_unique_ptr<Archetype>;
+using ArchetypePointer = memory::CustomUniquePtr<Archetype>;
 
 ArchetypePointer GenerateArchetype();
 }  // namespace entity

@@ -6,6 +6,7 @@
 #define COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
@@ -48,9 +49,10 @@ class TextureHandler : public ResourceHandler {
 
  protected:
   virtual Resource* GetInternal(ResourceId resource_id) override;
-  ResourceFile Pack(const Resource& resource,
+  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
                     CompressionMode compression_mode) const override;
-  std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
+  std::unique_ptr<Resource> Unpack(memory::Allocator& allocator,
+                                   const ResourceFile& file) const override;
 
  private:
   std::unique_ptr<TextureResource> default_texture_{nullptr};

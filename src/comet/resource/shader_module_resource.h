@@ -6,6 +6,7 @@
 #define COMET_COMET_RESOURCE_SHADER_MODULE_RESOURCE_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
@@ -35,9 +36,10 @@ class ShaderModuleHandler : public ResourceHandler {
   virtual ~ShaderModuleHandler() = default;
 
  protected:
-  ResourceFile Pack(const Resource& resource,
+  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
                     CompressionMode compression_mode) const override;
-  std::unique_ptr<Resource> Unpack(const ResourceFile& file) const override;
+  std::unique_ptr<Resource> Unpack(memory::Allocator& allocator,
+                                   const ResourceFile& file) const override;
 };
 }  // namespace resource
 }  // namespace comet

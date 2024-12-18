@@ -7,12 +7,13 @@
 
 #include <memory>
 #include <unordered_map>
-#include <vector>
 
 #include "comet/core/compression.h"
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/file_system.h"
+#include "comet/core/frame/frame_allocator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/string_id.h"
 #include "comet/core/type/tstring.h"
 
@@ -36,8 +37,8 @@ struct ResourceFile {
   usize data_size{0};
   usize packed_descr_size{0};
   usize packed_data_size{0};
-  std::vector<u8> descr{};
-  std::vector<u8> data{};
+  Array<u8> descr{};
+  Array<u8> data{};
 };
 
 using RefCount = u32;
@@ -76,11 +77,11 @@ class ResourceCache {
 
 ResourceId GenerateResourceIdFromPath(CTStringView resource_path);
 void PackBytes(const u8* bytes, usize bytes_size,
-               CompressionMode compression_mode, std::vector<u8>* packed_bytes,
+               CompressionMode compression_mode, Array<u8>* packed_bytes,
                usize* packed_bytes_size);
-void PackBytes(const std::vector<u8>& bytes, CompressionMode compression_mode,
-               std::vector<u8>* packed_bytes, usize* packed_bytes_size);
-void PackResourceData(const std::vector<u8>& data, ResourceFile& file);
+void PackBytes(const Array<u8>& bytes, CompressionMode compression_mode,
+               Array<u8>* packed_bytes, usize* packed_bytes_size);
+void PackResourceData(const Array<u8>& data, ResourceFile& file);
 
 template <typename ResourceDescrType>
 void PackPodResourceDescr(const ResourceDescrType& descr, ResourceFile& file) {
@@ -89,20 +90,44 @@ void PackPodResourceDescr(const ResourceDescrType& descr, ResourceFile& file) {
             file.compression_mode, &file.descr, &file.packed_descr_size);
 }
 
-std::vector<u8> UnpackBytes(CompressionMode compression_mode,
-                            const u8* packed_bytes, usize packed_bytes_size,
-                            usize decompressed_size);
-std::vector<u8> UnpackBytes(CompressionMode compression_mode,
-                            const std::vector<u8>& packed_bytes,
-                            usize decompressed_size);
+template <typename T>
+void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
+                 usize packed_bytes_size, T& data) {
+  auto decompressed_size{sizeof(T)};
 
-std::vector<u8> UnpackResourceData(const ResourceFile& file);
+  switch (compression_mode) {
+    case CompressionMode::Lz4: {
+      DecompressLz4(packed_bytes, packed_bytes_size, decompressed_size,
+                    reinterpret_cast<u8*>(&data));
+      break;
+    }
+    case CompressionMode::None: {
+      memory::CopyMemory(&data, packed_bytes, decompressed_size);
+      break;
+    }
+    default: {
+      throw std::runtime_error(
+          "Unknown compression mode: " +
+          static_cast<std::underlying_type_t<resource::CompressionMode>>(
+              compression_mode));
+    }
+  }
+}
+
+void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
+                 usize packed_bytes_size, usize decompressed_size,
+                 Array<u8>& data);
+void UnpackBytes(CompressionMode compression_mode,
+                 const Array<u8>& packed_bytes, usize decompressed_size,
+                 Array<u8>& data);
+
+void UnpackResourceData(const ResourceFile& file, Array<u8>& data);
 
 template <typename ResourceDescrType>
-ResourceDescrType UnpackPodResourceDescr(const ResourceFile& file) {
-  const auto raw_descr{
-      UnpackBytes(file.compression_mode, file.descr, file.descr_size)};
-  return *reinterpret_cast<const ResourceDescrType*>(raw_descr.data());
+void UnpackPodResourceDescr(const ResourceFile& file,
+                            ResourceDescrType& descr) {
+  UnpackBytes(file.compression_mode, file.descr.GetData(),
+              file.packed_descr_size, descr);
 }
 
 bool SaveResourceFile(CTStringView path, const ResourceFile& file);
@@ -117,22 +142,27 @@ class ResourceHandler {
   ResourceHandler& operator=(ResourceHandler&&) = delete;
   virtual ~ResourceHandler() = default;
 
-  const Resource* Load(CTStringView root_resource_path,
+  const Resource* Load(memory::Allocator& allocator,
+                       CTStringView root_resource_path,
                        CTStringView resource_path);
-  const Resource* Load(CTStringView root_resource_path, ResourceId resource_id);
+  const Resource* Load(memory::Allocator& allocator,
+                       CTStringView root_resource_path, ResourceId resource_id);
   void Unload(CTStringView resource_path);
   void Unload(ResourceId resource_id);
   const Resource* Get(ResourceId resource_id);
   virtual void Destroy(ResourceId resource_id);
   virtual const Resource* GetDefaultResource();
-  ResourceFile GetResourceFile(const Resource& resource,
+  ResourceFile GetResourceFile(memory::Allocator& allocator,
+                               const Resource& resource,
                                CompressionMode compression_mode) const;
 
  protected:
   virtual Resource* GetInternal(ResourceId resource_id);
-  virtual ResourceFile Pack(const Resource& resource,
+  virtual ResourceFile Pack(memory::Allocator& allocator,
+                            const Resource& resource,
                             CompressionMode compression_mode) const = 0;
-  virtual std::unique_ptr<Resource> Unpack(const ResourceFile& file) const = 0;
+  virtual std::unique_ptr<Resource> Unpack(memory::Allocator& allocator,
+                                           const ResourceFile& file) const = 0;
 
   ResourceCache cache_{};
 };

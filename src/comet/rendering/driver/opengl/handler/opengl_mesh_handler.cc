@@ -184,14 +184,14 @@ void MeshHandler::Upload(MeshProxy& proxy) const {
   constexpr auto kVertexSize{sizeof(geometry::Vertex)};
   const auto* mesh{proxy.mesh};
 
-  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.size() * kVertexSize,
-               mesh->vertices.data(), usage);
+  glBufferData(GL_ARRAY_BUFFER, mesh->vertices.GetSize() * kVertexSize,
+               mesh->vertices.GetData(), usage);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, proxy.ebo_handle);
 
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               mesh->indices.size() * sizeof(geometry::Index),
-               mesh->indices.data(), usage);
+               mesh->indices.GetSize() * sizeof(geometry::Index),
+               mesh->indices.GetData(), usage);
 
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kVertexSize,

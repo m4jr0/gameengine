@@ -30,7 +30,7 @@ EntityType GenerateEntityType(Array<EntityId> component_type_ids) {
 
 EntityType AddToEntityType(const EntityType& entity_type,
                            const EntityType& to_add) {
-  EntityType new_type{};
+  EntityType new_type{&EntityMemoryManager::Get().GetEntityTypeAllocator()};
   new_type.Reserve(entity_type.GetSize() + to_add.GetSize());
 
   for (usize i{0}; i < entity_type.GetSize(); ++i) {
@@ -53,7 +53,7 @@ EntityType RemoveFromEntityType(const EntityType& from_entity_type,
   COMET_ASSERT(from_size >= to_remove_size,
                "Tried to remove too many components from entity type!");
 
-  EntityType entity_type{};
+  EntityType entity_type{&EntityMemoryManager::Get().GetEntityTypeAllocator()};
   usize size{from_size - to_remove_size};
   entity_type.Resize(size);
 

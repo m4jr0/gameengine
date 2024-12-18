@@ -120,8 +120,8 @@ void RenderProxyHandler::Draw(const RenderProxy& proxy) {
   }
 
   vkCmdDrawIndexed(context_->GetFrameData().command_buffer_handle,
-                   static_cast<u32>(proxy.mesh_proxy->mesh->indices.size()), 1,
-                   0, 0, 0);
+                   static_cast<u32>(proxy.mesh_proxy->mesh->indices.GetSize()),
+                   1, 0, 0, 0);
 }
 }  // namespace vk
 }  // namespace rendering

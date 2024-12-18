@@ -8,6 +8,8 @@
 #include "comet/core/essentials.h"
 #include "comet/core/logger.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
 
@@ -54,7 +56,7 @@ class ResourceManager : public Manager {
 
 #ifdef COMET_DEBUG
     const auto* resource{static_cast<const ResourceType*>(
-        handler->Load(root_resource_path_, resource_id))};
+        handler->Load(allocator_, root_resource_path_, resource_id))};
 
     if (resource != nullptr) {
       COMET_ASSERT(resource->type_id == ResourceType::kResourceTypeId,
@@ -87,7 +89,7 @@ class ResourceManager : public Manager {
         "Unknown resource type ID: ", ResourceType::kResourceTypeId,
         ". Aborting.");
     auto* handler{handlers_.at(ResourceType::kResourceTypeId).get()};
-    handler->Unload(root_resource_path_, resource_id);
+    handler->Unload(allocator_, root_resource_path_, resource_id);
   }
 
   template <typename ResourceType>
@@ -102,11 +104,13 @@ class ResourceManager : public Manager {
                  "Unknown resource ID: ", resource.kResourceTypeId);
 
     auto* handler{handlers_.at(resource.kResourceTypeId).get()};
-    return handler->GetResourceFile(resource, compression_mode);
+    return handler->GetResourceFile(allocator_, resource, compression_mode);
   }
 
  private:
   TString root_resource_path_{};
+  // TODO(m4jr0): Use specific allocator(s).
+  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagResource};
   std::unordered_map<ResourceId, std::unique_ptr<ResourceHandler>> handlers_{};
 };
 }  // namespace resource

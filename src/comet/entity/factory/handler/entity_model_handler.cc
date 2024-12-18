@@ -4,6 +4,7 @@
 
 #include "entity_model_handler.h"
 
+#include "comet/core/frame/frame_allocator.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_component.h"
 #include "comet/geometry/component/mesh_component.h"
@@ -35,7 +36,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
   root_transform_cmp->parent_entity_id = root_transform_cmp->root_entity_id =
       root_entity_id;
 
-  one_frame_unordered_map<resource::ResourceId, EntityId> entity_ids{};
+  Map<resource::ResourceId, EntityId> entity_ids{&frame::GetFrameAllocator()};
 
   // TODO(m4jr0): Optimize code to do one big submit at once.
   for (const auto& mesh : model->meshes) {
@@ -47,7 +48,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
     transform_cmp.parent_entity_id =
         mesh.parent_id == resource::kInvalidResourceId
             ? transform_cmp.root_entity_id
-            : entity_ids.at(mesh.parent_id);
+            : entity_ids.Get(mesh.parent_id);
     transform_cmp.local = mesh.transform;
 
     entity_ids[mesh.internal_id] =
@@ -82,7 +83,7 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
   root_transform_cmp->parent_entity_id = root_transform_cmp->root_entity_id =
       root_entity_id;
 
-  one_frame_unordered_map<resource::ResourceId, EntityId> entity_ids{};
+  Map<resource::ResourceId, EntityId> entity_ids{&frame::GetFrameAllocator()};
 
   // TODO(m4jr0): Optimize code to do one big submit at once.
   for (const auto& mesh : model->meshes) {
@@ -98,7 +99,7 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
     transform_cmp.parent_entity_id =
         mesh.parent_id == resource::kInvalidResourceId
             ? transform_cmp.root_entity_id
-            : entity_ids.at(mesh.parent_id);
+            : entity_ids.Get(mesh.parent_id);
     transform_cmp.local = mesh.transform;
 
     entity_ids[mesh.internal_id] =

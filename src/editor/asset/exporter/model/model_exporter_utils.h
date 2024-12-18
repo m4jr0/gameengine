@@ -8,6 +8,7 @@
 #include "assimp/scene.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/math/matrix.h"
 #include "comet/resource/model_resource.h"
 #include "comet/resource/resource.h"
@@ -18,33 +19,35 @@ namespace asset {
 math::Mat4 GetTransform(const math::Mat4& current_transform,
                         const aiMatrix4x4& transform_to_combine);
 
-resource::StaticModelResource LoadStaticModel(const aiScene* scene,
+resource::StaticModelResource LoadStaticModel(memory::Allocator* allocator,
+                                              const aiScene* scene,
                                               CTStringView path);
 
 void LoadStaticNode(
-    resource::StaticModelResource& model, const aiNode* current_node,
-    const aiScene* scene,
+    memory::Allocator* allocator, resource::StaticModelResource& model,
+    const aiNode* current_node, const aiScene* scene,
     resource::ResourceId parent_id = resource::kInvalidResourceId,
     const math::Mat4& parent_transform = math::Mat4{1.0f});
 
 resource::ResourceId LoadStaticMesh(
-    resource::StaticModelResource& model, const aiMesh* current_mesh,
-    const aiScene* scene,
+    memory::Allocator* allocator, resource::StaticModelResource& model,
+    const aiMesh* current_mesh, const aiScene* scene,
     resource::ResourceId parent_id = resource::kInvalidResourceId,
     const math::Mat4& transform = math::Mat4{1.0f});
 
-resource::SkeletalModelResource LoadSkeletalModel(const aiScene* scene,
+resource::SkeletalModelResource LoadSkeletalModel(memory::Allocator* allocator,
+                                                  const aiScene* scene,
                                                   CTStringView path);
 
 void LoadSkeletalNode(
-    resource::SkeletalModelResource& model, const aiNode* current_node,
-    const aiScene* scene,
+    memory::Allocator* allocator, resource::SkeletalModelResource& model,
+    const aiNode* current_node, const aiScene* scene,
     resource::ResourceId parent_id = resource::kInvalidResourceId,
     const math::Mat4& parent_transform = math::Mat4{1.0f});
 
 resource::ResourceId LoadSkeletalMesh(
-    resource::SkeletalModelResource& model, const aiMesh* current_mesh,
-    const aiScene* scene,
+    memory::Allocator* allocator, resource::SkeletalModelResource& model,
+    const aiMesh* current_mesh, const aiScene* scene,
     resource::ResourceId parent_id = resource::kInvalidResourceId,
     const math::Mat4& transform = math::Mat4{1.0f});
 }  // namespace asset

@@ -33,7 +33,8 @@ void AssetExporter::Process(const AssetExportDescr& export_descr) {
   auto* asset_export{COMET_FRAME_ALLOC_ONE_AND_POPULATE(AssetExport, )};
   asset_export->exporter = this;
   auto& context{asset_export->context};
-  context.files = ResourceFiles{export_descr.file_allocator_};
+  context.allocator = export_descr.allocator;
+  context.files = ResourceFiles{export_descr.allocator};
   auto& descr{context.asset_descr};
   descr.asset_abs_path = export_descr.asset_abs_path;
 

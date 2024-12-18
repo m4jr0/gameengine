@@ -99,11 +99,14 @@ class Map {
   Map() = default;
 
   Map(memory::Allocator* allocator, usize capacity = kDefaultCapacity_)
-      : pairs_{allocator, capacity} {}
+      : pairs_{allocator, capacity}, allocator_{allocator} {}
 
-  Map(const Map& other) : pairs_{other.pairs_} {}
+  Map(const Map& other) : pairs_{other.pairs_}, allocator_{other.allocator_} {}
 
-  Map(Map&& other) noexcept : pairs_{std::move(other.pairs_)} {}
+  Map(Map&& other) noexcept
+      : pairs_{std::move(other.pairs_)}, allocator_{other.allocator_} {
+    other.allocator_ = nullptr;
+  }
 
   Map& operator=(const Map& other) {
     if (this == &other) {
@@ -112,6 +115,7 @@ class Map {
 
     Clear();
     this->pairs_ = other.pairs_;
+    this->allocator_ = other.allocator_;
     return *this;
   }
 
@@ -122,6 +126,9 @@ class Map {
 
     Clear();
     this->pairs_ = std::move(other.pairs_);
+    this->allocator_ = other.allocator_;
+
+    other.allocator_ = nullptr;
     return *this;
   }
 
@@ -142,8 +149,12 @@ class Map {
       return *value;
     }
 
-    if constexpr (std::is_default_constructible_v<Value>) {
-      auto& new_pair = pairs_.Emplace(KVPair{key, Value{}});
+    if constexpr (std::is_constructible_v<Value, memory::Allocator*>) {
+      auto& new_pair =
+          this->pairs_.Emplace(KVPair{key, Value(this->allocator_)});
+      return new_pair.value;
+    } else if constexpr (std::is_default_constructible_v<Value>) {
+      auto& new_pair = this->pairs_.Emplace(KVPair{key, Value{}});
       return new_pair.value;
     } else {
       COMET_ASSERT(false,
@@ -203,6 +214,7 @@ class Map {
 
  private:
   Pairs pairs_{};
+  memory::Allocator* allocator_{nullptr};
 };
 }  // namespace comet
 
