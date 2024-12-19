@@ -81,7 +81,7 @@ class EntityManager : public Manager {
     (void(all_ids[i++] = ComponentTypeDescrGetter<ComponentTypes>::Get().id),
      ...);
 
-    if (all_ids.GetSize() == 0) {
+    if (all_ids.IsEmpty()) {
       for (const auto& archetype : archetypes_) {
         for (auto entity_id : archetype->entity_ids) {
           func(entity_id);

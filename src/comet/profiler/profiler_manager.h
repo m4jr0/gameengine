@@ -42,18 +42,24 @@ class ProfilerManager : public Manager {
   void StartProfiling(const schar* label);
   void StopProfiling();
 
+  void ToggleRecording();
+
   const ProfilerData& GetData() const noexcept;
 
  private:
   using ThreadProfilerContexts =
       thread::FiberThreadProvider<ThreadProfilerContext>;
 
+  void RecordFrame();
+
   ThreadProfilerContexts thread_contexts_{
       thread::ThreadProviderManager::Get()
           .AllocateFiberProvider<ThreadProfilerContext>()};
 
+  bool is_recording_requested_{false};
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagDebug};
-  ProfilerData data_{};
+  ProfilerData data_{&allocator_};
+  FrameProfilerContext recording_frame_context_{};
 };
 }  // namespace profiler
 }  // namespace comet

@@ -94,9 +94,14 @@ class Map {
   ConstIterator cbegin() const { return pairs_.cbegin(); }
   ConstIterator cend() const { return pairs_.cend(); }
 
+  static inline constexpr usize kDefaultCapacity{16};
+
   Map() = default;
 
-  Map(memory::Allocator* allocator, usize capacity = 0)
+  Map(memory::Allocator* allocator)
+      : Map(allocator, allocator != nullptr ? kDefaultCapacity : 0) {}
+
+  Map(memory::Allocator* allocator, usize capacity)
       : pairs_{allocator, capacity}, allocator_{allocator} {}
 
   Map(const Map& other) : pairs_{other.pairs_}, allocator_{other.allocator_} {}

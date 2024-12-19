@@ -420,7 +420,7 @@ class StaticArray {
 
   constexpr usize GetSize() const noexcept { return size_; }
 
-  constexpr bool IsEmpty() const noexcept { return size_ > 0; }
+  constexpr bool IsEmpty() const noexcept { return size_ == 0; }
 
   T& GetFirst() { return this->data_[0]; }
 
@@ -487,6 +487,8 @@ class StaticArray<T, 0> {
   constexpr usize GetIndex(const T& value) const { return kInvalidIndex; }
 
   constexpr usize GetSize() const noexcept { return 0; }
+
+  constexpr bool IsEmpty() const noexcept { return true; }
 
   constexpr T* GetData() noexcept { return nullptr; }
 

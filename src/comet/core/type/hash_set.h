@@ -13,6 +13,7 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/traits.h"
+#include "comet/math/math_commons.h"
 
 namespace comet {
 template <typename T, typename THashable>
@@ -227,8 +228,9 @@ class HashSet {
 
   bool operator!=(const HashSet& other) const { return !(*this == other); }
 
-  void Add(const T& obj) {
-    Reserve(this->entry_count_ + 1);
+  template <typename V>
+  void Add(V&& obj) {
+    CheckSize();
     auto& hashable{HashLogic::GetHashable(obj)};
     auto index{GetBucketIndex(hashable)};
     COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
@@ -239,13 +241,13 @@ class HashSet {
       }
     }
 
-    this->buckets_[index].PushBack(obj);
+    this->buckets_[index].PushBack(std::forward<V>(obj));
     ++this->entry_count_;
   }
 
   template <typename... Targs>
   T& Emplace(Targs&&... args) {
-    Reserve(this->entry_count_ + 1);
+    CheckSize();
     T obj{std::forward<Targs>(args)...};
     auto& hashable{HashLogic::GetHashable(obj)};
     auto index{GetBucketIndex(hashable)};
@@ -323,13 +325,20 @@ class HashSet {
   }
 
   void Reserve(usize entry_count) {
-    auto bucket_count{static_cast<usize>(entry_count / max_load_factor_)};
+    auto bucket_count{
+        static_cast<usize>(math::Ceil(entry_count / max_load_factor_))};
 
     if (bucket_count <= this->bucket_count_) {
       return;
     }
 
     Rehash(bucket_count);
+  }
+
+  void CheckSize() {
+    if (this->entry_count_ + 1 > this->bucket_count_ * max_load_factor_) {
+      Reserve(this->entry_count_ * 2);
+    }
   }
 
   bool IsContained(const Hashable& hashable) const {

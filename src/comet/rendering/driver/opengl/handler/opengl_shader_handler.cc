@@ -50,7 +50,7 @@ Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
       resource::ResourceManager::Get().Load<resource::ShaderResource>(
           descr.resource_path)};
   COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
-  COMET_ASSERT(shader_resource->descr.vertex_attributes.GetSize() == 0,
+  COMET_ASSERT(shader_resource->descr.vertex_attributes.IsEmpty(),
                "Custom vertex attributes are not supported on OpenGL!");
   Shader shader{};
   shader.id = shader_resource->id;

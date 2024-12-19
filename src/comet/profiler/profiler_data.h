@@ -25,9 +25,9 @@ struct ProfilerData {
   rendering::DriverType rendering_driver_type{rendering::DriverType::Unknown};
   usize memory_use{0};
   Map<memory::MemoryTag, usize> tag_use{};
-  FrameProfilerContext frame_profiler_context;
+  ProfilerRecordContext record_context{};
 
-  ProfilerData(memory::Allocator* allocator = nullptr);
+  ProfilerData(memory::Allocator* allocator);
 };
 }  // namespace profiler
 }  // namespace comet

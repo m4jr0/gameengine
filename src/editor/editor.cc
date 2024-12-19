@@ -12,12 +12,14 @@
 #include <signal.h>
 #endif  // COMET_MSVC
 
+#include "comet/core/concurrency/fiber/fiber_utils.h"  // >:3
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/profiler/profiler.h"
 #include "editor/memory/memory.h"
 
 namespace comet {
@@ -98,6 +100,11 @@ void CometEditor::LoadTmpCode() {
   //               COMET_CTSTRING_VIEW("models/nanosuit/nanosuit.obj.meta"));
   //  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
   //                COMET_CTSTRING_VIEW("models/sponza/sponza.obj.meta"));
+}
+
+void Test() {
+  COMET_PROFILE("Test");
+  fiber::SleepMs(5000);
 }
 
 void CometEditor::PostLoadTmpCode() {

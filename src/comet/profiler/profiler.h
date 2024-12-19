@@ -30,6 +30,7 @@ struct ProfilerNode {
 
   ProfilerNode(memory::Allocator* allocator, const schar* label,
                ProfileTimestamp start_time);
+  ProfilerNode(ProfilerNode&& other) noexcept;
 };
 
 struct ThreadProfilerContext {
@@ -38,6 +39,7 @@ struct ThreadProfilerContext {
   Array<std::unique_ptr<ProfilerNode>> root_nodes{};
 
   ThreadProfilerContext(memory::Allocator* allocator = nullptr);
+  ThreadProfilerContext(ThreadProfilerContext&& other) noexcept;
 };
 
 struct FiberProfilerContext {
@@ -50,9 +52,18 @@ struct FiberProfilerContext {
 struct FrameProfilerContext {
   frame::FrameCount frame_count{0};
   Map<fiber::FiberId, FiberProfilerContext*> fiber_contexts{};
-  Map<thread::ThreadId, ThreadProfilerContext*> thread_contexts{};
+  Map<thread::ThreadId, ThreadProfilerContext> thread_contexts{};
 
   FrameProfilerContext(memory::Allocator* allocator = nullptr);
+};
+
+struct ProfilerRecordContext {
+  bool is_recording{false};
+  frame::FrameCount start_frame_count{0};
+  frame::FrameCount end_frame_count{0};
+  Array<FrameProfilerContext> frame_contexts{};
+
+  ProfilerRecordContext(memory::Allocator* allocator = nullptr);
 };
 
 class ProfiledScope {

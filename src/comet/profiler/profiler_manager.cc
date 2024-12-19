@@ -21,7 +21,6 @@ void ProfilerManager::Initialize() {
   Manager::Initialize();
   thread_contexts_.Initialize();
   allocator_.Initialize();
-  data_ = ProfilerData{&allocator_};
   auto thread_context_count{thread_contexts_.GetSize()};
 
   for (thread::ThreadId i{0}; i < thread_context_count; ++i) {
@@ -49,42 +48,40 @@ void ProfilerManager::Update() {
   data_.rendering_draw_count = rendering_manager.GetDrawCount();
   COMET_GET_MEMORY_USE(data_.memory_use);
   COMET_GET_TAG_USE(data_.tag_use);
-
-  // >:3
-  auto thread_context_count{thread_contexts_.GetSize()};
-
-  for (thread::ThreadId i{0}; i < thread_context_count; ++i) {
-    data_.frame_profiler_context.thread_contexts.Set(
-        i, &thread_contexts_.GetFromIndex(i));
-  }
 #endif  // COMET_DEBUG
 }
 
 void ProfilerManager::StartFrame(frame::FrameCount frame_count) {
-  data_.frame_profiler_context.frame_count = frame_count;
-  auto thread_context_count{thread_contexts_.GetSize()};
+  data_.record_context.is_recording = is_recording_requested_;
 
-  for (thread::ThreadId i{0}; i < thread_context_count; ++i) {
-    auto& thread_context{thread_contexts_.GetFromIndex(i)};
-    thread_context.active_nodes = {};
-    thread_context.root_nodes.Clear();
+  if (!data_.record_context.is_recording) {
+    return;
   }
+
+  recording_frame_context_ = {&allocator_};
+  recording_frame_context_.frame_count = frame_count;
 }
 
 void ProfilerManager::EndFrame() {
+  if (!data_.record_context.is_recording) {
+    return;
+  }
+
+  RecordFrame();
   auto thread_context_count{thread_contexts_.GetSize()};
 
-  for (usize i{0}; i < thread_context_count; ++i) {
+  for (thread::ThreadId i{0}; i < thread_context_count; ++i) {  // >:3
     auto& thread_context{thread_contexts_.GetFromIndex(i)};
-    thread_context.root_nodes.Clear();
     thread_context.active_nodes = {};
+    thread_context.root_nodes =
+        Array<std::unique_ptr<ProfilerNode>>{&allocator_};
   }
 }
 
 void ProfilerManager::StartProfiling(const schar* label) {
   auto& thread_context{thread_contexts_.Get()};
   auto now{GetPreciseTimestamp()};
-  auto node = std::make_unique<ProfilerNode>(&allocator_, label, now);
+  auto node{std::make_unique<ProfilerNode>(&allocator_, label, now)};
 
   if (!thread_context.active_nodes.empty()) {
     thread_context.active_nodes.top()->children.PushBack(node.get());
@@ -107,7 +104,29 @@ void ProfilerManager::StopProfiling() {
   thread_context.active_nodes.pop();
 }
 
+void ProfilerManager::ToggleRecording() {
+  is_recording_requested_ = !is_recording_requested_;
+}
+
 const ProfilerData& ProfilerManager::GetData() const noexcept { return data_; }
+
+void ProfilerManager::RecordFrame() {
+  if (!data_.record_context.is_recording) {
+    COMET_LOG_PROFILER_WARNING(
+        "Tried to record frame, but the profiler is not recording...");
+    return;
+  }
+
+  auto thread_context_count{thread_contexts_.GetSize()};
+
+  for (thread::ThreadId i{0}; i < thread_context_count; ++i) {  // >:3
+    recording_frame_context_.thread_contexts.Set(
+        i, std::move(thread_contexts_.GetFromIndex(i)));
+  }
+
+  auto& frame_contexts{data_.record_context.frame_contexts};
+  frame_contexts.PushBack(std::move(recording_frame_context_));
+}
 }  // namespace profiler
 }  // namespace comet
 #endif  // COMET_PROFILING

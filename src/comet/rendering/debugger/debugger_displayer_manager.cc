@@ -145,19 +145,45 @@ void DebuggerDisplayerManager::DrawMemorySection(
 }
 
 void DebuggerDisplayerManager::DrawProfilingSection(
-    const profiler::ProfilerData& profiler_data) const {
+    const profiler::ProfilerData& profiler_data) {
   ImGui::Text("PROFILING");
+  auto is_recording{profiler_data.record_context.is_recording};
+  auto& profiler_manager{profiler::ProfilerManager::Get()};
 
-  auto& context{profiler_data.frame_profiler_context};
+  if (ImGui::Button(is_recording ? "Stop Recording" : "Record")) {
+    profiler_manager.ToggleRecording();
+  }
+
+  auto& record_context{profiler_data.record_context};
+  auto& frame_contexts{record_context.frame_contexts};
+
+  if (frame_contexts.IsEmpty()) {
+    ImGui::Text("No recorded data to visualize.");
+    return;
+  }
+
+  if (ImGui::Button("<< Previous Frame")) {
+    NavigateFrame(record_context, -1);
+  }
+
+  ImGui::SameLine();
+
+  if (ImGui::Button("Next Frame >>")) {
+    NavigateFrame(record_context, 1);
+  }
+
+  auto& context{is_frame_frozen_
+                    ? record_context.frame_contexts[frozen_frame_index_]
+                    : record_context.frame_contexts.GetLast()};
 
   ImGui::Text("Frame #%llu", context.frame_count);
 
   for (auto& pair : context.thread_contexts) {
-    const auto* thread_context{pair.value};
+    const auto& thread_context{pair.value};
 
-    if (ImGui::TreeNode(reinterpret_cast<void*>(thread_context->thread_id),
-                        "Thread #%zu", thread_context->thread_id)) {
-      for (const auto& node : thread_context->root_nodes) {
+    if (ImGui::TreeNode(reinterpret_cast<void*>(thread_context.thread_id),
+                        "Thread #%zu", thread_context.thread_id)) {
+      for (const auto& node : thread_context.root_nodes) {
         DrawProfilerNode(node.get());
       }
 
@@ -167,19 +193,46 @@ void DebuggerDisplayerManager::DrawProfilingSection(
 }
 
 void DebuggerDisplayerManager::DrawProfilerNode(
-    const profiler::ProfilerNode* node) const {
+    const profiler::ProfilerNode* node) {
   if (node == nullptr) {
     return;
   }
 
-  if (ImGui::TreeNode(node, "%s (%.2f ms)", node->label,
-                      (node->end_time - node->start_time) / 1000.0f)) {
+  if (ImGui::TreeNode(
+          node, "%s (%.2f ms)", node->label,
+          static_cast<f64>(node->end_time - node->start_time) / 1000000.0f)) {
     for (const auto* child : node->children) {
       DrawProfilerNode(child);
     }
 
     ImGui::TreePop();
   }
+}
+
+void DebuggerDisplayerManager::NavigateFrame(
+    const profiler::ProfilerRecordContext& record_context, s8 direction) {
+  auto frame_context_count{record_context.frame_contexts.GetSize()};
+
+  // If there's only one frame, do nothing
+  if (frame_context_count == 1) {
+    return;
+  }
+
+  // If not frozen, initialize frozen state
+  if (!is_frame_frozen_) {
+    frozen_frame_index_ = frame_context_count - 1;
+    is_frame_frozen_ = true;
+  }
+
+  // Navigate frames based on direction
+  frozen_frame_index_ =
+      (frozen_frame_index_ + direction + frame_context_count) %
+      frame_context_count;
+}
+
+void DebuggerDisplayerManager::UnfreezeFrame() {
+  is_frame_frozen_ = false;
+  frozen_frame_index_ = 0;
 }
 #endif  // COMET_IMGUI
 }  // namespace rendering

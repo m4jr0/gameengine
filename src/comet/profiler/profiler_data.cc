@@ -8,7 +8,7 @@
 namespace comet {
 namespace profiler {
 ProfilerData::ProfilerData(memory::Allocator* allocator)
-    : frame_profiler_context{allocator} {}
+    : record_context{allocator} {}
 }  // namespace profiler
 }  // namespace comet
 #endif  // COMET_PROFILING
