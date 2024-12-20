@@ -5,6 +5,7 @@
 #include "profiler.h"
 
 #include "comet/core/c_string.h"
+#include "comet/core/date.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/math/math_commons.h"
 #include "comet/profiler/profiler_manager.h"
@@ -13,7 +14,7 @@
 namespace comet {
 namespace profiler {
 ProfilerNode::ProfilerNode(memory::Allocator* allocator, const schar* label,
-                           ProfileTimestamp start_time)
+                           ProfilerTimestamp start_time)
     : start_time{start_time}, children{allocator} {
   Copy(this->label, label, math::Min(GetLength(label), kMaxProfileLabelLen));
 }

@@ -59,11 +59,13 @@ void ProfilerManager::StartFrame(frame::FrameCount frame_count) {
   }
 
   recording_frame_context_ = {&allocator_};
+  recording_frame_context_.start_time = GetPreciseTimestamp();
   recording_frame_context_.frame_count = frame_count;
 }
 
 void ProfilerManager::EndFrame() {
   if (!data_.record_context.is_recording) {
+    data_.record_context.frame_contexts.PushBack(std::nullopt);
     return;
   }
 
@@ -123,6 +125,12 @@ void ProfilerManager::RecordFrame() {
     recording_frame_context_.thread_contexts.Set(
         i, std::move(thread_contexts_.GetFromIndex(i)));
   }
+
+  recording_frame_context_.end_time = GetPreciseTimestamp();
+  recording_frame_context_.elapsed_time_ms =
+      static_cast<ProfilerElapsedTime>(recording_frame_context_.end_time -
+                                       recording_frame_context_.start_time) /
+      1000000.0f;
 
   auto& frame_contexts{data_.record_context.frame_contexts};
   frame_contexts.PushBack(std::move(recording_frame_context_));

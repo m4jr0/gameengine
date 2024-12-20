@@ -34,10 +34,12 @@ class DebuggerDisplayerManager : public Manager {
   void DrawMemorySection(const profiler::ProfilerData& profiler_data) const;
   void DrawProfilingSection(const profiler::ProfilerData& profiler_data);
   void DrawProfilerNode(const profiler::ProfilerNode* node);
+  void DrawProfilingGraph(const profiler::ProfilerData& profiler_data);
 
   void NavigateFrame(const profiler::ProfilerRecordContext& record_context,
                      s8 direction);
   void UnfreezeFrame();
+  void DrawNoData();
 
   bool is_frame_frozen_{false};
   usize frozen_frame_index_{0};

@@ -10,6 +10,8 @@
 #include "comet/core/frame/frame_manager.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/math/math_commons.h"
+#include "comet/physics/physics_manager.h"
 #include "comet/profiler/profiler_manager.h"
 
 #ifdef COMET_IMGUI
@@ -154,6 +156,7 @@ void DebuggerDisplayerManager::DrawProfilingSection(
     profiler_manager.ToggleRecording();
   }
 
+  DrawProfilingGraph(profiler_data);
   auto& record_context{profiler_data.record_context};
   auto& frame_contexts{record_context.frame_contexts};
 
@@ -172,10 +175,16 @@ void DebuggerDisplayerManager::DrawProfilingSection(
     NavigateFrame(record_context, 1);
   }
 
-  auto& context{is_frame_frozen_
-                    ? record_context.frame_contexts[frozen_frame_index_]
-                    : record_context.frame_contexts.GetLast()};
+  auto& context_box{is_frame_frozen_
+                        ? record_context.frame_contexts[frozen_frame_index_]
+                        : record_context.frame_contexts.GetLast()};
 
+  if (!context_box.has_value()) {
+    DrawNoData();
+    return;
+  }
+
+  auto& context{context_box.value()};
   ImGui::Text("Frame #%llu", context.frame_count);
 
   for (auto& pair : context.thread_contexts) {
@@ -209,6 +218,84 @@ void DebuggerDisplayerManager::DrawProfilerNode(
   }
 }
 
+profiler::ProfilerElapsedTime GetMaxValueInLastFrames(
+    const profiler::FrameContexts& frame_contexts, f32 time_window_seconds) {
+  auto max_frames{static_cast<s32>(
+      physics::PhysicsManager::Get().GetFrameRate() * time_window_seconds)};
+  auto start_index{frame_contexts.GetSize() > max_frames
+                       ? frame_contexts.GetSize() - max_frames
+                       : 0};
+  profiler::ProfilerElapsedTime max_value{0.0f};
+
+  for (const auto& frame_context : frame_contexts) {
+    if (!frame_context.has_value()) {
+      continue;
+    }
+
+    max_value = math::Max(max_value, frame_context.value().elapsed_time_ms);
+  }
+
+  return max_value;
+}
+
+f32 FrameTimeGetter(void* data, s32 index) {
+  auto& frame_contexts{*reinterpret_cast<const profiler::FrameContexts*>(data)};
+  auto& frame_context_box{frame_contexts[index]};
+
+  if (!frame_context_box.has_value()) {
+    return .0f;
+  }
+
+  return frame_context_box.value().elapsed_time_ms;
+}
+
+f32 SmoothScaleMax(f32 current_max, f32 new_max, f32 smoothing_factor = 0.2f) {
+  return current_max * (1.0f - smoothing_factor) + new_max * smoothing_factor;
+}
+
+void DebuggerDisplayerManager::DrawProfilingGraph(
+    const profiler::ProfilerData& profiler_data) {
+  const auto& frame_contexts{profiler_data.record_context.frame_contexts};
+
+  if (frame_contexts.IsEmpty()) {
+    DrawNoData();
+    return;
+  }
+
+  ImGui::Text("Frame Time Graph (ms)");
+  static f32 smoothed_max_value{1.0f};
+  auto max_value{GetMaxValueInLastFrames(frame_contexts, 10.0f)};
+  smoothed_max_value = SmoothScaleMax(smoothed_max_value, max_value);
+
+  if (ImGui::BeginChild("FrameGraph", ImVec2(0, 150), true)) {
+    auto available_size{ImGui::GetContentRegionAvail()};
+
+    ImGui::PlotLines("##Frame Times", FrameTimeGetter,
+                     const_cast<profiler::FrameContexts*>(&frame_contexts),
+                     static_cast<int>(frame_contexts.GetSize()), 0,
+                     "Frame Times", 0.0f, smoothed_max_value,
+                     ImVec2(available_size.x, 150.0f));
+
+    if (ImGui::IsItemClicked()) {
+      auto mouse_pos{ImGui::GetMousePos()};
+      auto widget_pos{ImGui::GetItemRectMin()};
+      auto widget_size{ImGui::GetItemRectSize()};
+
+      auto relative_x{mouse_pos.x - widget_pos.x};
+
+      auto clicked_frame{static_cast<int>(
+          relative_x / (widget_size.x / frame_contexts.GetSize()))};
+
+      if (clicked_frame >= 0 && clicked_frame < frame_contexts.GetSize()) {
+        frozen_frame_index_ = clicked_frame;
+        is_frame_frozen_ = true;
+      }
+    }
+  }
+
+  ImGui::EndChild();
+}
+
 void DebuggerDisplayerManager::NavigateFrame(
     const profiler::ProfilerRecordContext& record_context, s8 direction) {
   auto frame_context_count{record_context.frame_contexts.GetSize()};
@@ -233,6 +320,10 @@ void DebuggerDisplayerManager::NavigateFrame(
 void DebuggerDisplayerManager::UnfreezeFrame() {
   is_frame_frozen_ = false;
   frozen_frame_index_ = 0;
+}
+
+void DebuggerDisplayerManager::DrawNoData() {
+  ImGui::Text("No recorded data to visualize.");
 }
 #endif  // COMET_IMGUI
 }  // namespace rendering

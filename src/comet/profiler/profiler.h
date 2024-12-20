@@ -6,6 +6,7 @@
 #define COMET_COMET_PROFILER_PROFILER_H_
 
 #include <memory>
+#include <optional>
 #include <stack>
 
 #include "comet/core/concurrency/fiber/fiber.h"
@@ -20,16 +21,17 @@
 namespace comet {
 namespace profiler {
 constexpr usize kMaxProfileLabelLen{63};
-using ProfileTimestamp = u64;
+using ProfilerTimestamp = u64;
+using ProfilerElapsedTime = f32;
 
 struct ProfilerNode {
   schar label[kMaxProfileLabelLen + 1]{'\0'};
-  ProfileTimestamp start_time{0};
-  ProfileTimestamp end_time{0};
+  ProfilerTimestamp start_time{0};
+  ProfilerTimestamp end_time{0};
   Array<ProfilerNode*> children{};
 
   ProfilerNode(memory::Allocator* allocator, const schar* label,
-               ProfileTimestamp start_time);
+               ProfilerTimestamp start_time);
   ProfilerNode(ProfilerNode&& other) noexcept;
 };
 
@@ -50,6 +52,10 @@ struct FiberProfilerContext {
 };
 
 struct FrameProfilerContext {
+  ProfilerTimestamp start_time{0};
+  ProfilerTimestamp end_time{0};
+  ProfilerElapsedTime elapsed_time_ms{.0f};
+
   frame::FrameCount frame_count{0};
   Map<fiber::FiberId, FiberProfilerContext*> fiber_contexts{};
   Map<thread::ThreadId, ThreadProfilerContext> thread_contexts{};
@@ -57,11 +63,13 @@ struct FrameProfilerContext {
   FrameProfilerContext(memory::Allocator* allocator = nullptr);
 };
 
+using FrameContexts = Array<std::optional<FrameProfilerContext>>;
+
 struct ProfilerRecordContext {
   bool is_recording{false};
   frame::FrameCount start_frame_count{0};
   frame::FrameCount end_frame_count{0};
-  Array<FrameProfilerContext> frame_contexts{};
+  FrameContexts frame_contexts{};
 
   ProfilerRecordContext(memory::Allocator* allocator = nullptr);
 };
