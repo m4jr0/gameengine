@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "vulkan_descriptor_utils.h"
 
@@ -16,7 +18,7 @@ VkDescriptorPool GenerateDescriptorPool(VkDevice device_handle,
                                         VkDescriptorPoolCreateFlags flags) {
   VkDescriptorPoolCreateInfo pool_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-      nullptr,
+      VK_NULL_HANDLE,
       flags,
       max_descriptor_set_count,
       pool_size_count,
@@ -52,13 +54,13 @@ bool AllocateDescriptor(VkDevice device_handle,
 
 bool AllocateDescriptor(
     VkDevice device_handle,
-    const std::vector<VkDescriptorSetLayout>& descriptor_set_layout_handles,
-    std::vector<VkDescriptorSet>& descriptor_set_handles,
+    const Array<VkDescriptorSetLayout>& descriptor_set_layout_handles,
+    Array<VkDescriptorSet>& descriptor_set_handles,
     VkDescriptorPool& descriptor_pool_handle) {
   return AllocateDescriptor(
-      device_handle, descriptor_set_layout_handles.data(),
-      descriptor_set_handles.data(), descriptor_pool_handle,
-      static_cast<u32>(descriptor_set_layout_handles.size()));
+      device_handle, descriptor_set_layout_handles.GetData(),
+      descriptor_set_handles.GetData(), descriptor_pool_handle,
+      static_cast<u32>(descriptor_set_layout_handles.GetSize()));
 }
 
 bool AllocateDescriptor(
@@ -96,25 +98,6 @@ bool AllocateDescriptor(
   }
 }
 
-bool AllocateShaderUniformData(
-    VkDevice device_handle,
-    const std::vector<VkDescriptorSetLayout>& descriptor_set_layout_handles,
-    ShaderUniformData& shader_uniform_data) {
-  return AllocateShaderUniformData(
-      device_handle, descriptor_set_layout_handles.data(), shader_uniform_data);
-}
-
-bool AllocateShaderUniformData(
-    VkDevice device_handle,
-    const VkDescriptorSetLayout* descriptor_set_layout_handles,
-    ShaderUniformData& shader_uniform_data) {
-  return AllocateDescriptor(
-      device_handle, descriptor_set_layout_handles,
-      shader_uniform_data.descriptor_set_handles.data(),
-      shader_uniform_data.descriptor_pool_handle,
-      static_cast<u32>(shader_uniform_data.descriptor_set_handles.size()));
-}
-
 void FreeDescriptor(VkDevice device_handle,
                     VkDescriptorSet descriptor_set_handle,
                     VkDescriptorPool& descriptor_pool_handle) {
@@ -123,11 +106,11 @@ void FreeDescriptor(VkDevice device_handle,
 }
 
 void FreeDescriptor(VkDevice device_handle,
-                    std::vector<VkDescriptorSet>& descriptor_set_handles,
+                    Array<VkDescriptorSet>& descriptor_set_handles,
                     VkDescriptorPool& descriptor_pool_handle) {
-  return FreeDescriptor(device_handle, descriptor_set_handles.data(),
+  return FreeDescriptor(device_handle, descriptor_set_handles.GetData(),
                         descriptor_pool_handle,
-                        static_cast<u32>(descriptor_set_handles.size()));
+                        static_cast<u32>(descriptor_set_handles.GetSize()));
 }
 
 void FreeDescriptor(VkDevice device_handle,
@@ -142,12 +125,6 @@ void FreeDescriptor(VkDevice device_handle,
   }
 
   descriptor_pool_handle = VK_NULL_HANDLE;
-}
-
-void FreeShaderUniformData(VkDevice device_handle,
-                           ShaderUniformData& shader_uniform_data) {
-  FreeDescriptor(device_handle, shader_uniform_data.descriptor_set_handles,
-                 shader_uniform_data.descriptor_pool_handle);
 }
 }  // namespace vk
 }  // namespace rendering

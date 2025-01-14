@@ -1,11 +1,9 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PASS_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PASS_H_
-
-#include <vector>
 
 #include "vulkan/vulkan.h"
 
@@ -35,7 +33,7 @@ struct Attachment {
 
 struct VulkanRenderTarget {
   VkFramebuffer framebuffer_handle{VK_NULL_HANDLE};
-  std::vector<Attachment> attachments{};
+  Array<Attachment> attachments{};
 };
 
 enum RenderPassClearFlag {
@@ -54,7 +52,7 @@ struct RenderPassDescr {
   VkOffset2D offset{};
   RenderPassId id{kInvalidRenderPassId};
   VkSubpassDependency dependency{};
-  std::vector<AttachmentDescr> attachment_descrs{};
+  Array<AttachmentDescr> attachment_descrs{};
   StaticArray<VkClearValue, 2> clear_values{};
 };
 
@@ -64,7 +62,7 @@ struct RenderPass {
   VkOffset2D offset{};
   RenderPassId id{kInvalidRenderPassId};
   VkRenderPass handle{VK_NULL_HANDLE};
-  std::vector<VulkanRenderTarget> render_targets{};
+  Array<VulkanRenderTarget> render_targets{};
   StaticArray<VkClearValue, 2> clear_values{};
 };
 }  // namespace vk

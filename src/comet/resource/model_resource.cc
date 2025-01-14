@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "model_resource.h"
 
@@ -179,7 +181,7 @@ Resource* StaticModelHandler::Unpack(memory::Allocator& allocator,
   model->meshes = Array<StaticMeshResource>{&allocator};
 
   while (cursor < data_size) {
-    StaticMeshResource mesh{};
+    auto& mesh{model->meshes.EmplaceBack()};
 
     memory::CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
@@ -227,8 +229,6 @@ Resource* StaticModelHandler::Unpack(memory::Allocator& allocator,
     memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
                        index_total_size);
     cursor += index_total_size;
-
-    model->meshes.PushBack(std::move(mesh));
   }
 
   return model;
@@ -400,7 +400,7 @@ Resource* SkeletalModelHandler::Unpack(memory::Allocator& allocator,
   model->meshes = Array<SkinnedMeshResource>{&allocator};
 
   while (cursor < data_size) {
-    SkinnedMeshResource mesh{};
+    auto& mesh{model->meshes.EmplaceBack()};
 
     memory::CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
     cursor += kResourceIdSize;
@@ -448,8 +448,6 @@ Resource* SkeletalModelHandler::Unpack(memory::Allocator& allocator,
     memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
                        index_total_size);
     cursor += index_total_size;
-
-    model->meshes.PushBack(std::move(mesh));
   }
 
   return model;

@@ -1,11 +1,11 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_SHADER_DATA_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_SHADER_DATA_H_
 
-#include <vector>
+#include <string_view>
 
 #include "vulkan/vulkan.h"
 
@@ -19,10 +19,35 @@
 namespace comet {
 namespace rendering {
 namespace vk {
-// One for global descriptor sets, the other for instance ones.
-constexpr auto kDescriptorSetMaxLayoutCount{2};
-// One for non-sampler uniforms, the other for samplers.
-constexpr auto kDescriptorBindingCount{2};
+using ShaderWord = u32;
+
+// One for global descriptor sets, one for instances, and one for buffers
+// (SSBOs).
+constexpr auto kDescriptorSetMaxLayoutCount{3};
+// Two bindings are required for uniforms (samplers and non-samplers), while
+// SSBOs can have more.
+constexpr auto kDescriptorBindingCount{5};
+
+constexpr auto kUniformNameProjection{"projection"sv};
+constexpr auto kUniformNameView{"view"sv};
+constexpr auto kUniformNameAmbientColor{"ambientColor"sv};
+constexpr auto kUniformNameViewPos{"viewPos"sv};
+constexpr auto kUniformNameDiffuseColor{"diffuseColor"sv};
+constexpr auto kUniformNameDiffuseMap{"diffuseMap"sv};
+constexpr auto kUniformNameSpecularMap{"specularMap"sv};
+constexpr auto kUniformNameNormalMap{"normalMap"sv};
+constexpr auto kUniformNameShininess{"shininess"sv};
+
+constexpr auto kConstantNameDrawCount{"drawCount"sv};
+constexpr auto kConstantNameCount{"count"sv};
+
+constexpr auto kStorageNameProxyLocalDatas{"proxyLocalDatas"sv};
+constexpr auto kStorageNameProxyIds{"proxyIds"sv};
+constexpr auto kStorageNameProxyInstances{"proxyInstances"sv};
+constexpr auto kStorageNameIndirectProxies{"indirectProxies"sv};
+constexpr auto kStorageNameWordIndices{"wordIndices"sv};
+constexpr auto kStorageNameSourceWords{"sourceWords"sv};
+constexpr auto kStorageNameDestinationWords{"destinationWords"sv};
 
 using ShaderUniformLocation = u16;
 constexpr auto kInvalidShaderUniformLocation{
@@ -31,15 +56,59 @@ constexpr auto kInvalidShaderUniformLocation{
 using ShaderUniformIndex = u16;
 constexpr auto kInvalidShaderUniformIndex{static_cast<ShaderUniformIndex>(-1)};
 
+using ShaderConstantIndex = u16;
+constexpr auto kInvalidShaderConstantIndex{
+    static_cast<ShaderConstantIndex>(-1)};
+
+using ShaderStorageIndex = u16;
+constexpr auto kInvalidShaderStorageIndex{static_cast<ShaderStorageIndex>(-1)};
+
 using ShaderOffset = s32;
 
 struct ShaderUniform {
   ShaderOffset offset{0};
   ShaderUniformSize size{kInvalidShaderUniformSize};
-  ShaderUniformLocation location{kInvalidShaderUniformLocation};
   ShaderUniformIndex index{kInvalidShaderUniformIndex};
-  ShaderUniformType type{ShaderUniformType::Unknown};
+  ShaderUniformLocation location{kInvalidShaderUniformLocation};
+  ShaderVariableType type{ShaderVariableType::Unknown};
   ShaderUniformScope scope{ShaderUniformScope::Unknown};
+  VkShaderStageFlags stages{0};
+};
+
+struct ShaderConstant {
+  ShaderOffset offset{0};
+  ShaderConstantSize size{kInvalidShaderConstantSize};
+  ShaderConstantIndex index{kInvalidShaderConstantIndex};
+  ShaderVariableType type{ShaderVariableType::Unknown};
+  VkShaderStageFlags stages{0};
+};
+
+using ShaderStoragePropertySize = u32;
+constexpr auto kInvalidShaderStoragePropertySize{
+    static_cast<ShaderStoragePropertySize>(-1)};
+
+struct ShaderStorageProperty {
+  ShaderStoragePropertySize size{kInvalidShaderStoragePropertySize};
+  ShaderVariableType type{ShaderVariableType::Unknown};
+};
+
+constexpr usize kMaxShaderStorageLayoutPropertyCount{5};
+
+struct ShaderStorage {
+  VkShaderStageFlags stages{0};
+  ShaderStorageIndex index{kInvalidShaderStorageIndex};
+  usize property_count{0};
+  ShaderStorageProperty properties[kMaxShaderStorageLayoutPropertyCount]{};
+};
+
+using ShaderDescriptorSetIndex = u8;
+constexpr auto kInvalidShaderDescriptorSetIndex{
+    static_cast<ShaderDescriptorSetIndex>(-1)};
+
+struct ShaderDescriptorSetIndices {
+  ShaderDescriptorSetIndex global{kInvalidShaderDescriptorSetIndex};
+  ShaderDescriptorSetIndex instance{kInvalidShaderDescriptorSetIndex};
+  ShaderDescriptorSetIndex storage{kInvalidShaderDescriptorSetIndex};
 };
 
 struct ShaderUniformIndices {
@@ -52,11 +121,22 @@ struct ShaderUniformIndices {
   ShaderUniformIndex specular_map{kInvalidShaderUniformIndex};
   ShaderUniformIndex normal_map{kInvalidShaderUniformIndex};
   ShaderUniformIndex shininess{kInvalidShaderUniformIndex};
-  ShaderUniformIndex model{kInvalidShaderUniformIndex};
 };
 
-constexpr auto kShaderDescriptorSetGlobalIndex{0};
-constexpr auto kShaderDescriptorSetInstanceIndex{1};
+struct ShaderConstantIndices {
+  ShaderConstantIndex draw_count{kInvalidShaderConstantIndex};
+  ShaderConstantIndex count{kInvalidShaderConstantIndex};
+};
+
+struct ShaderStorageIndices {
+  ShaderStorageIndex proxy_local_datas{kInvalidShaderStorageIndex};
+  ShaderStorageIndex proxy_ids{kInvalidShaderStorageIndex};
+  ShaderStorageIndex proxy_instances{kInvalidShaderStorageIndex};
+  ShaderStorageIndex indirect_proxies{kInvalidShaderStorageIndex};
+  ShaderStorageIndex word_indices{kInvalidShaderStorageIndex};
+  ShaderStorageIndex source_words{kInvalidShaderStorageIndex};
+  ShaderStorageIndex destination_words{kInvalidShaderStorageIndex};
+};
 
 using BindingIndex = u32;
 constexpr auto kInvalidBindingIndex{static_cast<BindingIndex>(-1)};
@@ -80,13 +160,21 @@ struct ShaderDescr {
 constexpr auto kMaxMaterialInstances{1024};
 
 struct ShaderUniformData {
-  std::vector<VkDescriptorSet> descriptor_set_handles{};
-  std::vector<const TextureMap*> texture_maps{};
+  Array<VkDescriptorSet> descriptor_set_handles{};
+  Array<const TextureMap*> texture_maps{};
   FrameIndex update_frame{kInvalidFrameIndex};
   VkDescriptorPool descriptor_pool_handle{VK_NULL_HANDLE};
 };
 
+struct ShaderStorageData {
+  VkShaderStageFlags stages{0};
+  u32 count{0};
+  Array<VkDescriptorSet> descriptor_set_handles{};
+  VkDescriptorPool descriptor_pool_handle{VK_NULL_HANDLE};
+};
+
 struct ShaderUniformBufferObjectData {
+  VkShaderStageFlags stages{0};
   u32 uniform_count{0};
   u32 sampler_count{0};
   usize ubo_size{0};
@@ -104,8 +192,35 @@ struct MaterialInstance {
 };
 
 struct MaterialInstances {
-  std::vector<MaterialInstance> list{};
-  std::vector<MaterialInstanceId> ids{};
+  Array<MaterialInstance> list{};
+  Array<MaterialInstanceId> ids{};
+};
+
+struct ShaderGlobalsUpdate {
+  const math::Mat4* projection_matrix{nullptr};
+  const math::Mat4* view_matrix{nullptr};
+};
+
+struct ShaderConstantsUpdate {
+  const u32* draw_count{nullptr};
+  const u32* count{nullptr};
+};
+
+struct ShaderStoragesUpdate {
+  VkBuffer ssbo_proxy_local_data_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_proxy_local_data_ids_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_proxy_instances_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_indirect_proxies_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_word_indices_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_source_words_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_destination_words_handle{VK_NULL_HANDLE};
+  VkDeviceSize ssbo_proxy_local_data_size{0};
+  VkDeviceSize ssbo_proxy_local_data_ids_size{0};
+  VkDeviceSize ssbo_proxy_instances_size{0};
+  VkDeviceSize ssbo_indirect_proxies_size{0};
+  VkDeviceSize ssbo_word_indices_size{0};
+  VkDeviceSize ssbo_source_words_size{0};
+  VkDeviceSize ssbo_destination_words_size{0};
 };
 }  // namespace vk
 }  // namespace rendering

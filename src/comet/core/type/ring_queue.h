@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <optional>
+#include <utility>
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
@@ -330,8 +331,7 @@ template <class T>
 inline void LockFreeMPSCRingQueue<T>::Clear() {
   T element;
 
-  while (TryPop(element))
-    ;
+  while (TryPop(element));
 }
 
 template <class T>
@@ -509,8 +509,7 @@ inline std::optional<T> LockFreeMPMCRingQueue<T>::TryPop() {
 
 template <class T>
 inline void LockFreeMPMCRingQueue<T>::Clear() {
-  while (TryPop().has_value())
-    ;
+  while (TryPop().has_value());
 }
 template <class T>
 inline usize LockFreeMPMCRingQueue<T>::GetCapacity() const noexcept {

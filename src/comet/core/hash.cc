@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "hash.h"
 
@@ -68,32 +70,40 @@ void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len) {
   picosha2::hash256(stream, buffer, buffer + buffer_len);
 }
 
-u32 GenerateHash(s32 value) { return static_cast<u32>(value) * kFnvPrime32; }
+HashValue GenerateHash(s32 value) {
+  return static_cast<u32>(value) * kFnvPrime32;
+}
 
-u32 GenerateHash(u32 value) { return static_cast<u32>(value) * kFnvPrime32; }
+HashValue GenerateHash(u32 value) {
+  return static_cast<u32>(value) * kFnvPrime32;
+}
 
-u32 GenerateHash(s64 value) {
+HashValue GenerateHash(s64 value) {
   return static_cast<u32>(value) ^ static_cast<u32>(value >> 32);
 }
 
-u32 GenerateHash(u64 value) {
+HashValue GenerateHash(u64 value) {
   return static_cast<u32>(value) ^ static_cast<u32>(value >> 32);
 }
 
-u32 GenerateHash(f32 value) {
+HashValue GenerateHash(f32 value) {
   return *reinterpret_cast<const u32*>(&value) * kFnvPrime32;
 }
 
-u32 GenerateHash(f64 value) {
+HashValue GenerateHash(f64 value) {
   auto cast{*reinterpret_cast<const u64*>(&value)};
   return static_cast<u32>(cast ^ (cast >> 32)) * kFnvPrime32;
 }
 
-u32 GenerateHash(schar value) { return static_cast<u32>(value) * kFnvPrime32; }
+HashValue GenerateHash(schar value) {
+  return static_cast<u32>(value) * kFnvPrime32;
+}
 
-u32 GenerateHash(wchar value) { return static_cast<u32>(value) * kFnvPrime32; }
+HashValue GenerateHash(wchar value) {
+  return static_cast<u32>(value) * kFnvPrime32;
+}
 
-u32 GenerateHash(const schar* value) {
+HashValue GenerateHash(const schar* value) {
   if (value == nullptr) {
     return 0;
   }
@@ -109,7 +119,7 @@ u32 GenerateHash(const schar* value) {
   return hash;
 }
 
-u32 GenerateHash(const wchar* value) {
+HashValue GenerateHash(const wchar* value) {
   if (value == nullptr) {
     return 0;
   }
@@ -125,7 +135,7 @@ u32 GenerateHash(const wchar* value) {
   return hash;
 }
 
-u32 GenerateHash(const void* value) {
+HashValue GenerateHash(const void* value) {
   if (value == nullptr) {
     return 0;
   }

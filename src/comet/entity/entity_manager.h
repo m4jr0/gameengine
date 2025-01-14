@@ -1,9 +1,11 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 #define COMET_COMET_ENTITY_ENTITY_MANAGER_H_
+
+#include <utility>
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
@@ -18,6 +20,7 @@
 #include "comet/entity/component.h"
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_type.h"
+#include "comet/event/event.h"
 
 namespace comet {
 namespace entity {
@@ -30,7 +33,7 @@ struct DeferredEntity {
   job::Counter* global_counter{nullptr};
 };
 
-u32 GenerateHash(const ComponentTypeDescr& descr);
+HashValue GenerateHash(const ComponentTypeDescr& descr);
 
 struct ComponentTypeDescrHashLogic {
   using Value = ComponentTypeDescr;
@@ -38,7 +41,9 @@ struct ComponentTypeDescrHashLogic {
 
   static const Hashable& GetHashable(const Value& value) { return value; }
 
-  static usize Hash(const Hashable& hashable) { return GenerateHash(hashable); }
+  static HashValue Hash(const Hashable& hashable) {
+    return GenerateHash(hashable);
+  }
 
   static bool AreEqual(const Hashable& a, const Hashable& b) {
     return a.id == b.id;
@@ -101,17 +106,24 @@ class EntityManager : public Manager {
 
   bool HasComponent(EntityId entity_id, EntityId component_id) const;
 
+  template <typename ComponentType>
+  bool HasComponent(EntityId entity_id) const {
+    const auto component_type_id{
+        ComponentTypeDescrGetter<ComponentType>::Get().id};
+    return HasComponent(entity_id, component_type_id);
+  }
+
   template <typename... ComponentTypes>
   void AddComponents(EntityId entity_id, const ComponentTypes&... components) {
     COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id,
                  " does not exist!");
     fiber::FiberLockGuard lock{deferred_mutex_};
-    auto* entity{deferred_entities_.TryGet(entity_id)};
+    auto* entity{deferred_entities_->TryGet(entity_id)};
 
     if (entity == nullptr) {
       entity =
           &deferred_entities_
-               .Emplace(entity_id, internal::DeferredEntity{false, entity_id})
+               ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
                .value;
     }
 
@@ -129,12 +141,12 @@ class EntityManager : public Manager {
     COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id,
                  " does not exist!");
     fiber::FiberLockGuard lock{deferred_mutex_};
-    auto* entity{deferred_entities_.TryGet(entity_id)};
+    auto* entity{deferred_entities_->TryGet(entity_id)};
 
     if (entity == nullptr) {
       entity =
           &deferred_entities_
-               .Emplace(entity_id, internal::DeferredEntity{false, entity_id})
+               ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
                .value;
     }
 
@@ -150,12 +162,12 @@ class EntityManager : public Manager {
     COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id,
                  " does not exist!");
     fiber::FiberLockGuard lock{deferred_mutex_};
-    auto* entity{deferred_entities_.TryGet(entity_id)};
+    auto* entity{deferred_entities_->TryGet(entity_id)};
 
     if (entity == nullptr) {
       entity =
           &deferred_entities_
-               .Emplace(entity_id, internal::DeferredEntity{false, entity_id})
+               ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
                .value;
     }
 
@@ -346,6 +358,10 @@ class EntityManager : public Manager {
                         usize new_cmp_offset, usize cmp_size);
   void ResizeDeferredArchetypes(const internal::DeferredChanges& changes,
                                 bool is_growth);
+  void PrepareNewFrame();
+  void OnEvent(const event::Event& event);
+
+  using DeferredEntities = frame::FrameMap<EntityId, internal::DeferredEntity>;
 
   bool is_update_{false};
   fiber::FiberMutex deferred_mutex_{};
@@ -357,7 +373,7 @@ class EntityManager : public Manager {
   gid::BreedHandler component_id_handler_{};
   Records records_{};
   RegisteredComponentTypeMap registered_component_types_{};
-  frame::FrameMap<EntityId, internal::DeferredEntity> deferred_entities_{};
+  DeferredEntities* deferred_entities_{};
 };
 }  // namespace entity
 }  // namespace comet

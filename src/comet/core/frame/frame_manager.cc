@@ -1,13 +1,17 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "frame_manager.h"
 
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
+#include "comet/core/frame/frame_event.h"
 #include "comet/core/game_state_manager.h"
+#include "comet/event/event_manager.h"
 #include "comet/profiler/profiler_manager.h"
 
 namespace comet {
@@ -23,13 +27,16 @@ FrameManager::FrameManager()
       io_frame_allocator_capacity_{
           COMET_CONF_U32(conf::kCoreIOFrameAllocatorBaseCapacity)},
       fiber_frame_allocator_{fiber_frame_allocator_capacity_,
-                             memory::kEngineMemoryTagFrame0},
+                             memory::kEngineMemoryTagFrame,
+                             memory::kEngineMemoryTagFrameExtended},
       io_frame_allocator_{io_frame_allocator_capacity_,
-                          memory::kEngineMemoryTagFrame0},
-      fiber_double_frame_allocator_{fiber_frame_allocator_capacity_,
-                                    memory::kEngineMemoryTagDoubleFrame0},
+                          memory::kEngineMemoryTagFrame},
+      fiber_double_frame_allocator_{
+          fiber_frame_allocator_capacity_, memory::kEngineMemoryTagDoubleFrame,
+          memory::kEngineMemoryTagDoubleFrameExtended1,
+          memory::kEngineMemoryTagDoubleFrameExtended2},
       io_double_frame_allocator_{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame0} {}
+                                 memory::kEngineMemoryTagDoubleFrame} {}
 
 void FrameManager::Initialize() {
   Manager::Initialize();
@@ -39,11 +46,21 @@ void FrameManager::Initialize() {
   io_frame_allocator_.Initialize();
   io_double_frame_allocator_.Initialize();
 
+  frame_packets_ = memory::AllocateMany<FramePacket>(
+      kFramePacketCount_, memory::kEngineMemoryTagGid);
+
+  for (usize i{0}; i < kFramePacketCount_; ++i) {
+    frame_packets_[i].Reset();
+  }
+
   UpdateInFlightFrames();
 }
 
 void FrameManager::Shutdown() {
   Manager::Shutdown();
+
+  memory::Deallocate(frame_packets_);
+  frame_packets_ = nullptr;
 
   fiber_frame_allocator_.Destroy();
   fiber_double_frame_allocator_.Destroy();
@@ -54,20 +71,26 @@ void FrameManager::Shutdown() {
 void FrameManager::Update() {
   if (GameStateManager::Get().IsPaused()) {
     ClearAndSwapAllocators();
+    event::EventManager::Get().FireEvent<NewFrameEvent>();
     return;
   }
 
   COMET_PROFILER_END_FRAME();
-  UpdateInFlightFrames();
 
   {
     fiber::FiberLockGuard lock{frame_mutex_};
     ++frame_count_;
   }
 
-  COMET_PROFILER_START_FRAME(frame_count_);
   ClearAndSwapAllocators();
+  UpdateInFlightFrames();
+  COMET_PROFILER_START_FRAME(frame_count_);
   frame_cv_.NotifyAll();
+
+  // Fire a new frame event now, as many frame-specific systems rely on
+  // temporary allocations that must be reset or reallocated at the start of
+  // each frame.
+  event::EventManager::Get().FireEventNow<NewFrameEvent>();
 }
 
 void FrameManager::WaitForNextFrame() {
@@ -139,6 +162,8 @@ void FrameManager::UpdateInFlightFrames() {
       &frame_packets_[(frame_count_ - 1) % kFramePacketCount_];
   in_flight_frames_.trail_frame =
       &frame_packets_[(frame_count_ - 2) % kFramePacketCount_];
+
+  in_flight_frames_.lead_frame->Reset();
 
   in_flight_frames_.lead_frame->frame_count = frame_count_;
   in_flight_frames_.middle_frame->frame_count = frame_count_ - 1;

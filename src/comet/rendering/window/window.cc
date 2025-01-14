@@ -1,12 +1,14 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "window.h"
 
 #include "comet/core/logger.h"
 #include "comet/event/event_manager.h"
-#include "comet/event/window_event.h"
+#include "comet/rendering/window/window_event.h"
 
 namespace comet {
 namespace rendering {
@@ -28,8 +30,8 @@ Window::Window(const WindowDescr& descr)
     : width_{descr.width}, height_{descr.height} {
   Copy(name_, descr.name, descr.name_len);
   name_len_ = descr.name_len;
-  event::EventManager::Get().FireEvent<event::WindowInitializedEvent>(width_,
-                                                                      height_);
+  event::EventManager::Get().FireEvent<rendering::WindowInitializedEvent>(
+      width_, height_);
 }
 
 Window::Window(Window&& other) noexcept

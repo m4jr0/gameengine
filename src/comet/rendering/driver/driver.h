@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,9 @@
 #define COMET_COMET_RENDERING_DRIVER_DRIVER_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/window.h"
 #include "comet/time/time_manager.h"
@@ -27,7 +30,7 @@ struct DriverDescr {
   f32 clear_color[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
   schar app_name[kMaxAppNameLen]{'\0'};
   usize app_name_len{0};
-  std::vector<RenderingViewDescr> rendering_view_descrs{};
+  Array<RenderingViewDescr> rendering_view_descrs{};
 };
 
 class Driver {
@@ -41,9 +44,8 @@ class Driver {
 
   virtual void Initialize();
   virtual void Shutdown();
-  virtual void Update(time::Interpolation interpolation) = 0;
+  virtual void Update(frame::FramePacket* packet) = 0;
   virtual DriverType GetType() const noexcept = 0;
-  virtual u32 GetDrawCount() const = 0;
 
   bool IsInitialized() const noexcept;
   virtual Window* GetWindow() = 0;
@@ -63,7 +65,9 @@ class Driver {
   f32 clear_color_[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
   schar app_name_[kMaxAppNameLen]{'\0'};
   usize app_name_len_{0};
-  std::vector<RenderingViewDescr> rendering_view_descrs_{};
+  memory::PlatformAllocator rendering_view_descrs_allocator_{
+      memory::kEngineMemoryTagRendering};
+  Array<RenderingViewDescr> rendering_view_descrs_{};
 };
 }  // namespace rendering
 }  // namespace comet

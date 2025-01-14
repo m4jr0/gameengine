@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_VIEW_HANDLER_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
@@ -21,7 +22,7 @@ struct ViewHandlerDescr : HandlerDescr {
   ShaderHandler* shader_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   OpenGlGlfwWindow* window{nullptr};
-  std::vector<RenderingViewDescr>* rendering_view_descrs{nullptr};
+  Array<RenderingViewDescr>* rendering_view_descrs{nullptr};
 };
 
 class ViewHandler : public Handler {
@@ -53,7 +54,7 @@ class ViewHandler : public Handler {
   ShaderHandler* shader_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   OpenGlGlfwWindow* window_{nullptr};
-  std::vector<RenderingViewDescr>* rendering_view_descrs_{nullptr};
+  Array<RenderingViewDescr>* rendering_view_descrs_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

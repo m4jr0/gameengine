@@ -1,8 +1,14 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "opengl_view_handler.h"
+
+#include <utility>
+
+#include "comet/profiler/profiler.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/opengl/view/opengl_imgui_view.h"
@@ -52,6 +58,8 @@ void ViewHandler::Destroy(usize index) { Destroy(*Get(index)); }
 void ViewHandler::Destroy(View& view) { Destroy(view, false); }
 
 void ViewHandler::Update(const ViewPacket& packet) {
+  COMET_PROFILE("ViewHandler::Update");
+
   for (const auto& view : views_) {
     view->Update(packet);
   }

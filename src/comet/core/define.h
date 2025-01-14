@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -57,7 +57,7 @@
 #define COMET_RENDERING_DRIVER_DEBUG_MODE
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
 // Assign a name to driver's objects (when available).
-// #define COMET_RENDERING_USE_DEBUG_LABELS
+#define COMET_RENDERING_USE_DEBUG_LABELS
 
 // View used for debugging the world.
 // #define COMET_DEBUG_VIEW
@@ -65,13 +65,16 @@
 // Print debug messages from VMA.
 // #define COMET_VULKAN_DEBUG_VMA
 
+// Compile shaders with debug info and no optimizations.
+#define COMET_DEBUG_SHADER
+
 // According to the Vulkan spec, it is better to enable the validation layers
 // individually to prevent a significant performance degradation.
 // #define COMET_VALIDATION_GPU_ASSISTED_EXT
 // #define COMET_VALIDATION_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
 // #define COMET_VALIDATION_BEST_PRACTICES_EXT
 // #define COMET_VALIDATION_DEBUG_PRINTF_EXT
-// #define COMET_VALIDATION_SYNCHRONIZATION_VALIDATION_EXT
+#define COMET_VALIDATION_SYNCHRONIZATION_VALIDATION_EXT
 #endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 #endif  // COMET_DEBUG
 

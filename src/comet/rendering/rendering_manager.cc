@@ -1,12 +1,15 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "rendering_manager.h"
 
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/input/input_manager.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/empty/empty_driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
@@ -72,6 +75,7 @@ void RenderingManager::Shutdown() {
 }
 
 void RenderingManager::Update(frame::FramePacket* packet) {
+  COMET_PROFILE("RenderingManager::Update");
   current_time_ += time::TimeManager::Get().GetDeltaTime();
 
   if (current_time_ > 1000) {
@@ -84,7 +88,7 @@ void RenderingManager::Update(frame::FramePacket* packet) {
     return;
   }
 
-  driver_->Update(packet->interpolation);
+  driver_->Update(packet);
   input::InputManager::Get().Update();
   ++counter_;
 }
@@ -106,8 +110,6 @@ u32 RenderingManager::GetFrameRate() const noexcept { return frame_rate_; }
 f32 RenderingManager::GetFrameTime() const noexcept {
   return (1 / static_cast<f32>(frame_rate_)) * 1000;
 }
-
-u32 RenderingManager::GetDrawCount() const { return driver_->GetDrawCount(); }
 
 void RenderingManager::GenerateOpenGlDriver() {
   gl::OpenGlDriverDescr descr{};
@@ -185,9 +187,9 @@ void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
   descr.app_patch_version = COMET_CONF_U8(conf::kRenderingVulkanPatchVersion);
 }
 
-std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
-    const {
-  std::vector<RenderingViewDescr> descrs{};
+frame::FrameArray<RenderingViewDescr>
+RenderingManager::GenerateRenderingViewDescrs() const {
+  frame::FrameArray<RenderingViewDescr> descrs{};
 
   usize size{1};
 
@@ -200,7 +202,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   ++size;
 #endif  // COMET_IMGUI
 
-  descrs.resize(size);
+  descrs.Resize(size);
 
   f32 clear_color[4]{};
   clear_color[0] = COMET_CONF_F32(conf::kRenderingClearColorR);
@@ -223,7 +225,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   world_view_descr.matrix_source = RenderingViewMatrixSource::SceneCamera;
   world_view_descr.type = RenderingViewType::World;
   world_view_descr.is_first = cursor == 0;
-  world_view_descr.is_last = cursor == descrs.size() - 1;
+  world_view_descr.is_last = cursor == descrs.GetSize() - 1;
   world_view_descr.width = window_width;
   world_view_descr.height = window_height;
   memory::CopyMemory(world_view_descr.clear_color, clear_color,
@@ -236,7 +238,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   // skybox_view_descr.matrix_source = RenderingViewMatrixSource::SceneCamera;
   // skybox_view_descr.type = RenderingViewType::Skybox;
   // skybox_view_descr.is_first = cursor == 0;
-  // skybox_view_descr.is_last = cursor == descrs.size() - 1;
+  // skybox_view_descr.is_last = cursor == descrs.GetSize() - 1;
   // skybox_view_descr.width = window_width;
   // skybox_view_descr.height = window_height;
   // memory::CopyMemory(skybox_view_descr.clear_color, clear_color,
@@ -249,7 +251,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   // RenderingViewMatrixSource::SceneCamera; light_world_view_descr.type =
   // RenderingViewType::SimpleWorld;
   // light_world_view_descr.is_first = cursor == 0;
-  // light_world_view_descr.is_last = cursor == descrs.size() - 1;
+  // light_world_view_descr.is_last = cursor == descrs.GetSize() - 1;
   // light_world_view_descr.width = window_width;
   // light_world_view_descr.height = window_height;
   // memory::CopyMemory(light_world_view_descr.clear_color, clear_color,
@@ -262,7 +264,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   debug_view_descr.matrix_source = RenderingViewMatrixSource::SceneCamera;
   debug_view_descr.type = RenderingViewType::Debug;
   debug_view_descr.is_first = cursor == 0;
-  debug_view_descr.is_last = cursor == descrs.size() - 1;
+  debug_view_descr.is_last = cursor == descrs.GetSize() - 1;
   debug_view_descr.width = window_width;
   debug_view_descr.height = window_height;
   memory::CopyMemory(debug_view_descr.clear_color, clear_color,
@@ -276,7 +278,7 @@ std::vector<RenderingViewDescr> RenderingManager::GenerateRenderingViewDescrs()
   imgui_view_descr.matrix_source = RenderingViewMatrixSource::Unknown;
   imgui_view_descr.type = RenderingViewType::ImGui;
   imgui_view_descr.is_first = cursor == 0;
-  imgui_view_descr.is_last = cursor == descrs.size() - 1;
+  imgui_view_descr.is_last = cursor == descrs.GetSize() - 1;
   imgui_view_descr.width = window_width;
   imgui_view_descr.height = window_height;
   memory::CopyMemory(imgui_view_descr.clear_color, clear_color,

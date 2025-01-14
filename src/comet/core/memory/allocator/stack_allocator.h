@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -47,7 +47,8 @@ class StackAllocator : public Allocator {
 class FiberStackAllocator : public Allocator {
  public:
   FiberStackAllocator() = delete;
-  FiberStackAllocator(usize base_capacity, MemoryTag memory_tag);
+  FiberStackAllocator(usize base_capacity, MemoryTag memory_tag,
+                      MemoryTag extended_memory_tag = kEngineMemoryTagInvalid);
   FiberStackAllocator(const FiberStackAllocator&) = delete;
   FiberStackAllocator(FiberStackAllocator&&) = delete;
   FiberStackAllocator& operator=(const FiberStackAllocator&) = delete;
@@ -74,16 +75,20 @@ class FiberStackAllocator : public Allocator {
   using ThreadContexts = thread::FiberThreadProvider<ThreadContext>;
 
   void AllocateCommonMemory();
+  void ExtendCommonMemory(usize capacity);
 
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
+  MemoryTag extended_memory_tag_{kEngineMemoryTagInvalid};
   usize base_capacity_{0};
-  usize current_capacity_{0};
+  usize extended_capacity_{0};
   usize thread_capacity_{0};
   ThreadContexts thread_contexts_{thread::ThreadProviderManager::Get()
                                       .AllocateFiberProvider<ThreadContext>()};
   mutable fiber::FiberMutex mutex_{};
   u8* root_{nullptr};
   FiberStackAllocatorMarker marker_{nullptr};
+  u8* extended_root_{nullptr};
+  FiberStackAllocatorMarker extended_marker_{nullptr};
 };
 
 class IOStackAllocator : public Allocator {
@@ -167,6 +172,52 @@ class DoubleStackAllocator : public memory::Allocator {
   DoubleStackAllocator& operator=(const DoubleStackAllocator&) = delete;
   DoubleStackAllocator& operator=(DoubleStackAllocator&&) = delete;
   ~DoubleStackAllocator() = default;
+
+  void Initialize() override {
+    Allocator::Initialize();
+    stacks_[0].Initialize();
+    stacks_[1].Initialize();
+  }
+
+  void Destroy() override {
+    Allocator::Destroy();
+    stacks_[0].Destroy();
+    stacks_[1].Destroy();
+  }
+
+  void* AllocateAligned(usize size, memory::Alignment align) override {
+    return stacks_[current_stack_].AllocateAligned(size, align);
+  }
+
+  void Deallocate(void* ptr) override {
+    stacks_[current_stack_].Deallocate(ptr);
+  }
+
+  void SwapStacks() { current_stack_ = static_cast<u8>(!current_stack_); }
+
+  void ClearCurrent() { stacks_[current_stack_].Clear(); }
+
+ private:
+  u8 current_stack_{0};
+  Stack stacks_[2];
+};
+
+template <typename Stack>
+class FiberDoubleStackAllocator : public memory::Allocator {
+ public:
+  FiberDoubleStackAllocator(
+      usize stack_capacity, MemoryTag memory_tag,
+      MemoryTag extended_memory_tag_1 = kEngineMemoryTagInvalid,
+      MemoryTag extended_memory_tag_2 = kEngineMemoryTagInvalid)
+      : stacks_{Stack{stack_capacity, memory_tag, extended_memory_tag_1},
+                Stack{stack_capacity, memory_tag, extended_memory_tag_2}} {}
+
+  FiberDoubleStackAllocator(const FiberDoubleStackAllocator&) = delete;
+  FiberDoubleStackAllocator(FiberDoubleStackAllocator&&) = delete;
+  FiberDoubleStackAllocator& operator=(const FiberDoubleStackAllocator&) =
+      delete;
+  FiberDoubleStackAllocator& operator=(FiberDoubleStackAllocator&&) = delete;
+  ~FiberDoubleStackAllocator() = default;
 
   void Initialize() override {
     Allocator::Initialize();

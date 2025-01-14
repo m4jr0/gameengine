@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "opengl_render_proxy_handler.h"
 
@@ -86,7 +88,9 @@ RenderProxy RenderProxyHandler::GenerateInternal(MeshProxy& mesh_proxy,
   return proxy;
 }
 
-void RenderProxyHandler::DrawProxies(FrameIndex frame_count, Shader& shader) {
+void RenderProxyHandler::Draw(FrameIndex frame_count, Shader& shader) {
+  COMET_PROFILE("RenderProxyHandler::Draw");
+
   for (const auto& proxy : proxies_) {
     auto* material{proxy.material};
     COMET_ASSERT(material != nullptr, "Material should never be null!");
@@ -94,7 +98,7 @@ void RenderProxyHandler::DrawProxies(FrameIndex frame_count, Shader& shader) {
 
     ShaderLocalPacket local_packet{};
     local_packet.position = &proxy.transform;
-    shader_handler_->UpdateLocal(shader, local_packet);
+    shader_handler_->UpdateConstants(shader, local_packet);
     mesh_handler_->Update(*proxy.mesh_proxy);
     Draw(proxy);
   }
@@ -107,16 +111,12 @@ void RenderProxyHandler::DrawProxiesForDebugging(Shader& shader) {
   for (const auto& proxy : proxies_) {
     ShaderLocalPacket local_packet{};
     local_packet.position = &proxy.transform;
-    shader_handler_->UpdateLocal(shader, local_packet);
+    shader_handler_->UpdateConstants(shader, local_packet);
     Draw(proxy);
   }
 
   // Reset last drawn proxy to force rebinding meshes next frame.
   last_drawn_mesh_ = nullptr;
-}
-
-u32 RenderProxyHandler::GetDrawCount() const noexcept {
-  return static_cast<u32>(proxies_.size());
 }
 
 void RenderProxyHandler::Draw(const RenderProxy& proxy) {

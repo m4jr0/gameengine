@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "vulkan_imgui_view.h"
 
@@ -10,7 +12,11 @@
 #include "imgui_impl_vulkan.h"
 
 #include "comet/core/c_array.h"
+#include "comet/core/frame/frame_packet.h"
+#include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
@@ -57,9 +63,11 @@ void ImGuiView::Initialize() {
       sizeof(render_pass_descr.clear_values[0].color.float32[0]) * 4);
   render_pass_descr.clear_values[1].depthStencil.depth = 1.0f;
 
-  const auto is_msaa{context_->GetDevice().IsMsaa()};
+  auto& device{context_->GetDevice()};
+  const auto is_msaa{device.IsMsaa()};
   render_pass_descr.clear_flags = RenderPassClearFlag::None;
-  render_pass_descr.attachment_descrs.reserve(is_msaa ? 2 : 1);
+  render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
+  render_pass_descr.attachment_descrs.Reserve(is_msaa ? 2 : 1);
 
   AttachmentDescr color_attachment_descr{};
   color_attachment_descr.type = AttachmentType::Color;
@@ -67,7 +75,7 @@ void ImGuiView::Initialize() {
       is_first_ ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
   color_attachment_descr.store_op = VK_ATTACHMENT_STORE_OP_STORE;
   color_attachment_descr.is_final_layout = !is_msaa && is_last_;
-  render_pass_descr.attachment_descrs.push_back(color_attachment_descr);
+  render_pass_descr.attachment_descrs.PushBack(color_attachment_descr);
 
   if (is_msaa) {
     AttachmentDescr resolve_attachment_descr{};
@@ -75,7 +83,7 @@ void ImGuiView::Initialize() {
     resolve_attachment_descr.load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
     resolve_attachment_descr.store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     resolve_attachment_descr.is_final_layout = is_last_;
-    render_pass_descr.attachment_descrs.push_back(resolve_attachment_descr);
+    render_pass_descr.attachment_descrs.PushBack(resolve_attachment_descr);
   }
 
   render_pass_ = render_pass_handler_->Generate(render_pass_descr);
@@ -100,17 +108,16 @@ void ImGuiView::Initialize() {
   pool_info.poolSizeCount = static_cast<u32>(GetLength(pool_sizes));
   pool_info.pPoolSizes = pool_sizes;
 
-  COMET_CHECK_VK(
-      vkCreateDescriptorPool(context_->GetDevice(), &pool_info, VK_NULL_HANDLE,
-                             &descriptor_pool_handle_),
-      "Failed to create descriptor pool for ImGui!");
+  COMET_CHECK_VK(vkCreateDescriptorPool(device, &pool_info, VK_NULL_HANDLE,
+                                        &descriptor_pool_handle_),
+                 "Failed to create descriptor pool for ImGui!");
 
 #ifdef COMET_DEBUG
   IMGUI_CHECKVERSION();
 #endif  // COMET_DEBUG
   ImGui::CreateContext();
   ImGui_ImplGlfw_InitForVulkan(window_->GetHandle(), false);
-  const auto& device{context_->GetDevice()};
+  auto image_count{context_->GetImageCount()};
 
   ImGui_ImplVulkan_InitInfo imgui_info{};
   imgui_info.Instance = context_->GetInstanceHandle();
@@ -122,8 +129,8 @@ void ImGuiView::Initialize() {
   imgui_info.DescriptorPool = descriptor_pool_handle_;
   imgui_info.RenderPass = render_pass_->handle;
   imgui_info.Subpass = 0;
-  imgui_info.MinImageCount = context_->GetImageCount();
-  imgui_info.ImageCount = context_->GetImageCount();
+  imgui_info.MinImageCount = image_count;
+  imgui_info.ImageCount = image_count;
   imgui_info.MSAASamples = device.GetMsaaSamples();
 
   ImGui_ImplVulkan_Init(&imgui_info);
@@ -146,18 +153,19 @@ void ImGuiView::Destroy() {
   View::Destroy();
 }
 
-void ImGuiView::Update(const ViewPacket& packet) {
+void ImGuiView::Update(frame::FramePacket*) {
+  COMET_PROFILE("ImGuiView::Update");
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
   Draw();
   ImGui::Render();
 
-  render_pass_handler_->BeginPass(*render_pass_, packet.command_buffer_handle,
-                                  packet.image_index);
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(),
-                                  packet.command_buffer_handle);
-  render_pass_handler_->EndPass(packet.command_buffer_handle);
+  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  render_pass_handler_->BeginPass(render_pass_, command_buffer_handle,
+                                  context_->GetImageIndex());
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_handle);
+  render_pass_handler_->EndPass(command_buffer_handle);
 }
 
 void vk::ImGuiView::Draw() const {

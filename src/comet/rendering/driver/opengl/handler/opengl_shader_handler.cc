@@ -1,8 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "opengl_shader_handler.h"
+
+#include <utility>
 
 #include "comet/core/c_string.h"
 #include "comet/core/memory/memory_utils.h"
@@ -173,14 +177,14 @@ void ShaderHandler::UpdateGlobal(Shader& shader,
   shader.global_uniform_data.update_frame = packet.frame_count;
 }
 
-void ShaderHandler::UpdateLocal(Shader& shader,
-                                const ShaderLocalPacket& packet) {
+void ShaderHandler::UpdateConstants(Shader& shader,
+                                    const ShaderLocalPacket& packet) {
   SetUniform(shader, shader.uniform_indices.model, packet.position);
 }
 
 void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
                                const void* value, bool is_update) const {
-  if (uniform.type == ShaderUniformType::Sampler) {
+  if (uniform.type == ShaderVariableType::Sampler) {
     const TextureMap* texture_map;
 
     if (uniform.scope == ShaderUniformScope::Global) {
@@ -203,19 +207,20 @@ void ShaderHandler::SetUniform(Shader& shader, const ShaderUniform& uniform,
     return;
   }
 
-  if (uniform.scope == ShaderUniformScope::Local) {
-    COMET_ASSERT(
-        kUniformCallbacks_.find(uniform.type) != kUniformCallbacks_.end(),
-        "Unknown or unsupported shader uniform type: ",
-        static_cast<std::underlying_type_t<ShaderUniformType>>(uniform.type),
-        "!");
+  // TODO(m4jr0): Backport Vulkan changes to OpenGL.
+  // if (uniform.scope == ShaderUniformScope::Local) {
+  //  COMET_ASSERT(
+  //      kUniformCallbacks_.find(uniform.type) != kUniformCallbacks_.end(),
+  //      "Unknown or unsupported shader uniform type: ",
+  //      static_cast<std::underlying_type_t<ShaderVariableType>>(uniform.type),
+  //      "!");
 
-    if (is_update) {
-      kUniformCallbacks_.at(uniform.type)(uniform.location, value);
-    }
+  //  if (is_update) {
+  //    kUniformCallbacks_.at(uniform.type)(uniform.location, value);
+  //  }
 
-    return;
-  }
+  //  return;
+  //}
 
   if (is_update) {
     glBindBuffer(GL_UNIFORM_BUFFER, shader.ubo_handle);
@@ -231,18 +236,19 @@ void ShaderHandler::SetUniform(ShaderId id, const ShaderUniform& uniform,
   SetUniform(*shader, uniform, value, is_update);
 }
 
-void ShaderHandler::SetUniform(Shader& shader, ShaderUniformLocation index,
+void ShaderHandler::SetUniform(Shader& shader, ShaderUniformLocation location,
                                const void* value, bool is_update) const {
-  COMET_ASSERT(
-      index < shader.uniforms.size(), "Tried to set uniform at index #", index,
-      " for shader pass, but uniform count is ", shader.uniforms.size(), "!");
-  SetUniform(shader, shader.uniforms[index], value, is_update);
+  COMET_ASSERT(location < shader.uniforms.size(),
+               "Tried to set uniform at location #", location,
+               " for shader pass, but uniform count is ",
+               shader.uniforms.size(), "!");
+  SetUniform(shader, shader.uniforms[location], value, is_update);
 }
 
-void ShaderHandler::SetUniform(ShaderId id, ShaderUniformLocation index,
+void ShaderHandler::SetUniform(ShaderId id, ShaderUniformLocation location,
                                const void* value, bool is_update) {
   auto* shader{Get(id)};
-  SetUniform(*shader, index, value, is_update);
+  SetUniform(*shader, location, value, is_update);
 }
 
 void ShaderHandler::BindMaterial(Material& material) {
@@ -337,74 +343,75 @@ GLenum ShaderHandler::GetCullMode(CullMode cull_mode) {
   return gl_cull_mode;
 }
 
-ShaderUniformSize ShaderHandler::GetUniformSize(ShaderUniformType type) {
+ShaderUniformSize ShaderHandler::ShaderVariableTypeSize(
+    ShaderVariableType type) {
   switch (type) {
-    case ShaderUniformType::B32:
-    case ShaderUniformType::S32:
-    case ShaderUniformType::U32:
-    case ShaderUniformType::F32:
+    case ShaderVariableType::B32:
+    case ShaderVariableType::S32:
+    case ShaderVariableType::U32:
+    case ShaderVariableType::F32:
       return 4;
 
-    case ShaderUniformType::F64:
+    case ShaderVariableType::F64:
       return 8;
 
-    case ShaderUniformType::B32Vec2:
-    case ShaderUniformType::S32Vec2:
-    case ShaderUniformType::U32Vec2:
-    case ShaderUniformType::Vec2:
+    case ShaderVariableType::B32Vec2:
+    case ShaderVariableType::S32Vec2:
+    case ShaderVariableType::U32Vec2:
+    case ShaderVariableType::Vec2:
       return 8;
 
-    case ShaderUniformType::B32Vec3:
-    case ShaderUniformType::S32Vec3:
-    case ShaderUniformType::U32Vec3:
-    case ShaderUniformType::Vec3:
+    case ShaderVariableType::B32Vec3:
+    case ShaderVariableType::S32Vec3:
+    case ShaderVariableType::U32Vec3:
+    case ShaderVariableType::Vec3:
       return 12;
 
-    case ShaderUniformType::B32Vec4:
-    case ShaderUniformType::S32Vec4:
-    case ShaderUniformType::U32Vec4:
-    case ShaderUniformType::Vec4:
+    case ShaderVariableType::B32Vec4:
+    case ShaderVariableType::S32Vec4:
+    case ShaderVariableType::U32Vec4:
+    case ShaderVariableType::Vec4:
       return 16;
 
-    case ShaderUniformType::F64Vec2:
+    case ShaderVariableType::F64Vec2:
       return 16;
 
-    case ShaderUniformType::F64Vec3:
+    case ShaderVariableType::F64Vec3:
       return 24;
 
-    case ShaderUniformType::F64Vec4:
+    case ShaderVariableType::F64Vec4:
       return 32;
 
-    case ShaderUniformType::Mat2x2:
+    case ShaderVariableType::Mat2x2:
       return 8;
 
-    case ShaderUniformType::Mat2x3:
-    case ShaderUniformType::Mat3x2:
+    case ShaderVariableType::Mat2x3:
+    case ShaderVariableType::Mat3x2:
       return 24;
 
-    case ShaderUniformType::Mat3x3:
+    case ShaderVariableType::Mat3x3:
       return 36;
 
-    case ShaderUniformType::Mat2x4:
-    case ShaderUniformType::Mat4x2:
+    case ShaderVariableType::Mat2x4:
+    case ShaderVariableType::Mat4x2:
       return 32;
 
-    case ShaderUniformType::Mat3x4:
-    case ShaderUniformType::Mat4x3:
+    case ShaderVariableType::Mat3x4:
+    case ShaderVariableType::Mat4x3:
       return 48;
 
-    case ShaderUniformType::Mat4x4:
+    case ShaderVariableType::Mat4x4:
       return 64;
 
-    case ShaderUniformType::Sampler:
-    case ShaderUniformType::Image:
-    case ShaderUniformType::Atomic:
+    case ShaderVariableType::Sampler:
+    case ShaderVariableType::Image:
+    case ShaderVariableType::Atomic:
       return kInvalidShaderUniformSize;
 
     default:
-      COMET_ASSERT(false, "Unknown or unsupported shader data type: ",
-                   static_cast<std::underlying_type_t<ShaderUniformType>>(type),
-                   "!");
+      COMET_ASSERT(
+          false, "Unknown or unsupported shader data type: ",
+          static_cast<std::underlying_type_t<ShaderVariableType>>(type), "!");
   }
 
   return kInvalidShaderUniformSize;
@@ -571,7 +578,7 @@ void ShaderHandler::HandleUniformsGeneration(
   u32 instance_texture_count{0};
 
   for (const auto& uniform_descr : resource.descr.uniforms) {
-    if (uniform_descr.type == ShaderUniformType::Sampler) {
+    if (uniform_descr.type == ShaderVariableType::Sampler) {
       HandleSamplerGeneration(shader, uniform_descr, instance_texture_count);
       continue;
     }
@@ -588,19 +595,20 @@ void ShaderHandler::HandleUniformCount(Shader& shader) const {
 
   for (const auto& uniform : shader.uniforms) {
     if (uniform.scope == ShaderUniformScope::Global) {
-      if (uniform.type == ShaderUniformType::Sampler) {
+      if (uniform.type == ShaderVariableType::Sampler) {
         ++shader.global_ubo_data.sampler_count;
       } else {
         ++shader.global_ubo_data.uniform_count;
       }
     } else if (uniform.scope == ShaderUniformScope::Instance) {
-      if (uniform.type == ShaderUniformType::Sampler) {
+      if (uniform.type == ShaderVariableType::Sampler) {
         ++shader.instance_ubo_data.sampler_count;
       } else {
         ++shader.instance_ubo_data.uniform_count;
       }
-    } else if (uniform.scope == ShaderUniformScope::Local) {
-      // TODO(m4jr0).
+      // TODO(m4jr0): Backport Vulkan changes to OpenGL.
+      //} else if (uniform.scope == ShaderUniformScope::Local) {
+      //  // TODO(m4jr0).
     } else {
       COMET_ASSERT(false, "Unknown or unsupported uniform scope: ",
                    static_cast<std::underlying_type_t<ShaderUniformScope>>(
@@ -644,8 +652,9 @@ ShaderUniformLocation GetSamplerLocation(
 void ShaderHandler::HandleSamplerGeneration(
     Shader& shader, const ShaderUniformDescr& uniform_descr,
     u32& instance_texture_count) const {
-  COMET_ASSERT(uniform_descr.scope != ShaderUniformScope::Local,
-               "Samplers cannot be at a local scope!");
+  // TODO(m4jr0): Backport Vulkan changes to OpenGL.
+  // COMET_ASSERT(uniform_descr.scope != ShaderUniformScope::Local,
+  //             "Samplers cannot be at a local scope!");
   auto location{kInvalidShaderUniformLocation};
 
   if (uniform_descr.scope == ShaderUniformScope::Global) {
@@ -707,10 +716,10 @@ ShaderUniformIndex ShaderHandler::HandleUniformIndex(
     index = &shader.uniform_indices.model;
   }
 
-  COMET_ASSERT(index != nullptr, "Unable to find uniform location with name \"",
+  COMET_ASSERT(index != nullptr, "Unable to find uniform index with name \"",
                uniform_descr.name, "\"!");
   COMET_ASSERT(*index == kInvalidShaderUniformIndex,
-               "Uniform location with name \"", uniform_descr.name,
+               "Uniform index with name \"", uniform_descr.name,
                "\" was already bound!");
   *index = static_cast<ShaderUniformIndex>(shader.uniforms.size());
   return *index;
@@ -751,29 +760,31 @@ void ShaderHandler::AddUniform(Shader& shader, const ShaderUniformDescr& descr,
   uniform.scope = descr.scope;
   uniform.type = descr.type;
   uniform.index = HandleUniformIndex(shader, descr);
-  auto is_sampler{uniform.type == ShaderUniformType::Sampler};
+  auto is_sampler{uniform.type == ShaderVariableType::Sampler};
 
   if (is_sampler) {
     uniform.data_index = data_index;
     uniform.location = GetSamplerLocation(
         shader, descr, static_cast<TextureType>(uniform.data_index));
-    ;
   } else {
-    if (uniform.scope == ShaderUniformScope::Local) {
-      uniform.location = glGetUniformLocation(shader.handle, descr.name);
-    } else {
-      uniform.location = uniform.scope == ShaderUniformScope::Global
-                             ? shader.global_ubo_data.uniform_block_index
-                             : shader.instance_ubo_data.uniform_block_index;
-    }
+    // TODO(m4jr0): Backport Vulkan changes to OpenGL.
+    // if (uniform.scope == ShaderUniformScope::Local) {
+    //   uniform.location = glGetUniformLocation(shader.handle, descr.name);
+    // } else {
+    //   uniform.location = uniform.scope == ShaderUniformScope::Global
+    //                          ? shader.global_ubo_data.uniform_block_index
+    //                          : shader.instance_ubo_data.uniform_block_index;
+    // }
   }
 
-  auto size{GetUniformSize(uniform.type)};
+  auto size{ShaderVariableTypeSize(uniform.type)};
 
-  if (uniform.scope == ShaderUniformScope::Local) {
+  // TODO(m4jr0): Backport Vulkan changes to OpenGL.
+  /* if (uniform.scope == ShaderUniformScope::Local) {
     uniform.offset = shader.local_uniform_count++;
     uniform.size = size;
-  } else {
+  } else*/
+  {
     uniform.offset = is_sampler ? 0
                      : uniform.scope == ShaderUniformScope::Global
                          ? shader.global_ubo_data.ubo_size

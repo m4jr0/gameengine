@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,10 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/map.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
@@ -28,6 +32,7 @@ class TextureHandler : public Handler {
   TextureHandler& operator=(TextureHandler&&) = delete;
   virtual ~TextureHandler() = default;
 
+  void Initialize() override;
   void Shutdown() override;
 
   const Texture* Generate(const resource::TextureResource* resource);
@@ -35,19 +40,21 @@ class TextureHandler : public Handler {
   const Texture* TryGet(TextureId texture_id) const;
   const Texture* GetOrGenerate(const resource::TextureResource* resource);
   void Destroy(TextureId texture_id);
-  void Destroy(Texture& texture);
+  void Destroy(Texture* texture);
 
  private:
   Texture* Get(TextureId texture_id);
   Texture* TryGet(TextureId texture_id);
-  void Destroy(Texture& texture, bool is_destroying_handler);
+  void Destroy(Texture* texture, bool is_destroying_handler);
   static u32 GetMipLevels(const resource::TextureResource* resource);
   static VkFormat GetVkFormat(const resource::TextureResource* resource);
 
-  void GenerateMipmaps(const Texture& texture) const;
-  Texture GenerateInstance(const resource::TextureResource* resource) const;
+  void GenerateMipmaps(const Texture* texture) const;
+  Texture* GenerateInstance(const resource::TextureResource* resource);
 
-  std::unordered_map<TextureId, Texture> textures_{};
+  memory::FiberFreeListAllocator allocator_{sizeof(Texture), 256,
+                                            memory::kEngineMemoryTagRendering};
+  Map<TextureId, Texture*> textures_{};
 };
 }  // namespace vk
 }  // namespace rendering

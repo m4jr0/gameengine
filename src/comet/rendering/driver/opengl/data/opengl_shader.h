@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -30,10 +30,10 @@ constexpr auto kInvalidShaderUniformIndex{static_cast<ShaderUniformIndex>(-1)};
 struct ShaderUniform {
   sptrdiff offset{0};
   ShaderUniformSize size{kInvalidShaderUniformSize};
+  ShaderUniformIndex index{kInvalidShaderUniformIndex};
   ShaderUniformLocation location{kInvalidShaderUniformLocation};
   usize data_index{kInvalidIndex};
-  ShaderUniformIndex index{kInvalidShaderUniformIndex};
-  ShaderUniformType type{ShaderUniformType::Unknown};
+  ShaderVariableType type{ShaderVariableType::Unknown};
   ShaderUniformScope scope{ShaderUniformScope::Unknown};
 };
 

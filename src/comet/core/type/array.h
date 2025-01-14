@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "comet/core/algorithm/algorithm_common.h"
 #include "comet/core/c_array.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
@@ -28,6 +29,16 @@ class BaseArray {
   }
 
   const T& operator[](usize index) const {
+    COMET_CASSERT(index < this->size_, "Index out of bounds!");
+    return this->data_[index];
+  }
+
+  T& Get(usize index) {
+    COMET_CASSERT(index < this->size_, "Index out of bounds!");
+    return this->data_[index];
+  }
+
+  const T& Get(usize index) const {
     COMET_CASSERT(index < this->size_, "Index out of bounds!");
     return this->data_[index];
   }
@@ -123,12 +134,12 @@ class Array : public internal::BaseArray<T> {
   template <typename InputIterator>
   Array(memory::Allocator* allocator, InputIterator from, InputIterator to)
       : internal::BaseArray<T>(
-            std::distance(to, from),
-            std::distance(to, from) == 0
+            Distance(to, from),
+            Distance(to, from) == 0
                 ? nullptr
                 : static_cast<T*>(allocator->AllocateAligned(
-                      (std::distance(to, from)) * sizeof(T), alignof(T)))),
-        capacity_{std::distance(to, from)},
+                      (Distance(to, from)) * sizeof(T), alignof(T)))),
+        capacity_{Distance(to, from)},
         allocator_{allocator} {
     if (this->data_ == nullptr) {
       return;
@@ -377,9 +388,13 @@ class StaticArray {
   constexpr StaticArray(Targs... args)
       : data_{static_cast<T>(args)...}, size_{N} {}
 
+  constexpr T& operator[](usize index) { return data_[index]; }
+
   constexpr const T& operator[](usize index) const { return data_[index]; }
 
-  constexpr T& operator[](usize index) { return data_[index]; }
+  constexpr T& Get(usize index) { return data_[index]; }
+
+  constexpr const T& Get(usize index) const { return data_[index]; }
 
   constexpr bool operator==(const StaticArray& other) {
     for (usize i{0}; i < N; ++i) {
@@ -524,6 +539,16 @@ class StaticArray<T, 0> {
     COMET_CASSERT(false, "Index out of bounds!");
     throw std::out_of_range{"index"};
   }
+
+  constexpr T& Get(usize index) {
+    COMET_CASSERT(false, "Index out of bounds!");
+    throw std::out_of_range{"index"};
+  }
+
+  constexpr const T& Get(usize index) const {
+    COMET_CASSERT(false, "Index out of bounds!");
+    throw std::out_of_range{"index"};
+  }
 };
 
 template <typename T, typename... Rest>
@@ -534,9 +559,9 @@ struct EnforceSame {
 };
 
 template <typename First, typename... Rest>
-StaticArray(First, Rest...)
-    -> StaticArray<typename EnforceSame<First, Rest...>::type,
-                   1 + sizeof...(Rest)>;
+StaticArray(First,
+            Rest...) -> StaticArray<typename EnforceSame<First, Rest...>::type,
+                                    1 + sizeof...(Rest)>;
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_TYPE_ARRAY_H_

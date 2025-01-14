@@ -1,21 +1,26 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "entity_manager.h"
 
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
+#include "comet/core/frame/frame_allocator.h"
+#include "comet/core/frame/frame_event.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/entity/entity_memory_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
+#include "comet/event/event_manager.h"
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {
 namespace entity {
 namespace internal {
-u32 GenerateHash(const ComponentTypeDescr& descr) {
+HashValue GenerateHash(const ComponentTypeDescr& descr) {
   return comet::GenerateHash(descr.id);
 }
 }  // namespace internal
@@ -41,8 +46,12 @@ void EntityManager::Initialize() {
       Array<ArchetypePtr>{&memory_manager.GetArchetypePointerAllocator()};
 
   root_archetype_ = GetArchetype(EntityType{});
-  deferred_entities_ = {kDeferredEntityInitialCount_};
+  deferred_entities_ = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
+      DeferredEntities, kDeferredEntityInitialCount_);
   EntityFactoryManager::Get().Initialize();
+
+  event::EventManager::Get().Register(COMET_EVENT_BIND_FUNCTION(OnEvent),
+                                      frame::NewFrameEvent::kStaticType_);
 }
 
 void EntityManager::Shutdown() {
@@ -67,14 +76,13 @@ void EntityManager::Shutdown() {
   entity_id_handler_.Shutdown();
   records_.Clear();
   registered_component_types_.Clear();
-  deferred_entities_.Clear();
+  deferred_entities_ = nullptr;
   memory_manager.Shutdown();
   Manager::Shutdown();
 }
 
 void EntityManager::DispatchComponentChanges() {
   ProcessDeferredOperations();
-  deferred_entities_ = {kDeferredEntityInitialCount_};
 
   {
     fiber::FiberUniqueLock lock{update_mutex_};
@@ -97,8 +105,9 @@ void EntityManager::WaitForEntityUpdates() {
 EntityId EntityManager::Generate() {
   auto new_entity_id{entity_id_handler_.Generate()};
   fiber::FiberLockGuard lock{deferred_mutex_};
-  deferred_entities_.Emplace(new_entity_id,
-                             internal::DeferredEntity{false, new_entity_id});
+  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+  deferred_entities_->Emplace(new_entity_id,
+                              internal::DeferredEntity{false, new_entity_id});
   return new_entity_id;
 }
 
@@ -110,15 +119,17 @@ void EntityManager::Destroy(EntityId entity_id) {
   COMET_ASSERT(IsEntity(entity_id),
                "Attempting to destroy a non-existent entity!");
   fiber::FiberLockGuard lock{deferred_mutex_};
-  auto* entity{deferred_entities_.TryGet(entity_id)};
+  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+  auto* entity{deferred_entities_->TryGet(entity_id)};
 
   if (entity != nullptr) {
     entity->is_destroyed = true;
     entity->added_cmps.Clear();
     entity->removed_cmps.Clear();
   } else {
-    deferred_entities_.Emplace(entity_id,
-                               internal::DeferredEntity{true, entity_id});
+    COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+    deferred_entities_->Emplace(entity_id,
+                                internal::DeferredEntity{true, entity_id});
   }
 }
 
@@ -135,12 +146,13 @@ void EntityManager::RemoveComponents(EntityId entity_id,
                                      const Array<EntityId>& component_ids) {
   COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id, " does not exist!");
   fiber::FiberLockGuard lock{deferred_mutex_};
-  auto* entity{deferred_entities_.TryGet(entity_id)};
+  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+  auto* entity{deferred_entities_->TryGet(entity_id)};
 
   if (entity == nullptr) {
     entity =
         &deferred_entities_
-             .Emplace(entity_id, internal::DeferredEntity{false, entity_id})
+             ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
              .value;
   }
 
@@ -159,12 +171,13 @@ void EntityManager::AddParent(EntityId entity_id, EntityId parent_id) {
                " to a dead parent (entity #", parent_id, ")!");
 
   fiber::FiberLockGuard lock{deferred_mutex_};
-  auto* entity{deferred_entities_.TryGet(entity_id)};
+  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+  auto* entity{deferred_entities_->TryGet(entity_id)};
 
   if (entity == nullptr) {
     entity =
         &deferred_entities_
-             .Emplace(entity_id, internal::DeferredEntity{false, entity_id})
+             ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
              .value;
   }
 
@@ -372,14 +385,17 @@ void EntityManager::ProcessDeferredOperations() {
   ProcessDeferredDestructions(changes);
   ResizeDeferredArchetypes(changes, false);
 
-  deferred_entities_.Clear();
+  deferred_entities_ = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
+      DeferredEntities, kDeferredEntityInitialCount_);
 }
 
 void EntityManager::RegisterDeferredComponentTypes() {
   frame::FrameHashSet<ComponentTypeDescr, internal::ComponentTypeDescrHashLogic>
       unique_cmp_type_descrs{};
 
-  for (const auto& pair : deferred_entities_) {
+  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+
+  for (const auto& pair : *deferred_entities_) {
     const auto& entity{pair.value};
 
     for (const auto& cmp : entity.added_cmps) {
@@ -396,8 +412,9 @@ void EntityManager::RegisterDeferredComponentTypes() {
 
 internal::DeferredChanges EntityManager::PopulateChanges() {
   internal::DeferredChanges changes{};
+  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
 
-  for (const auto& pair : deferred_entities_) {
+  for (const auto& pair : *deferred_entities_) {
     auto& entity{pair.value};
 
     if (entity.is_destroyed) {
@@ -593,38 +610,6 @@ void EntityManager::ProcessDeferredDestructions(
   }
 }
 
-void EntityManager::ResizeDeferredArchetypes(
-    const internal::DeferredChanges& changes, bool is_growth) {
-  struct JobParams {
-    s16 delta{0};
-    Archetype* archetype{nullptr};
-  };
-
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
-
-  for (const auto& pair : changes.archetype_size_deltas) {
-    if (pair.value == 0 || (pair.value < 0 && is_growth)) {
-      continue;
-    }
-
-    auto* params{
-        COMET_FRAME_ALLOC_ONE_AND_POPULATE(JobParams, pair.value, pair.key)};
-
-    scheduler.Kick(job::GenerateJobDescr(
-        job::JobPriority::High,
-        [](job::JobParamsHandle params_handle) {
-          auto* params{reinterpret_cast<const JobParams*>(params_handle)};
-          EntityManager::Get().ResizeArchetype(params->archetype,
-                                               params->delta);
-        },
-        params, job::JobStackSize::Normal, counter, "grow_archetype"));
-  }
-
-  scheduler.Wait(counter);
-  scheduler.DestroyCounter(counter);
-}
-
 void EntityManager::TransferComponents(
     Archetype* new_archetype, usize new_entity_index, Archetype* old_archetype,
     usize old_entity_index,
@@ -683,6 +668,54 @@ void EntityManager::CopyNewComponent(
                "Tried adding a non-existing component!");
   memory::CopyMemory(new_cmp_elements + new_cmp_offset, found_added_cmp->data,
                      cmp_size);
+}
+
+void EntityManager::ResizeDeferredArchetypes(
+    const internal::DeferredChanges& changes, bool is_growth) {
+  struct JobParams {
+    s16 delta{0};
+    Archetype* archetype{nullptr};
+  };
+
+  auto& scheduler{job::Scheduler::Get()};
+  auto* counter{scheduler.GenerateCounter()};
+
+  for (const auto& pair : changes.archetype_size_deltas) {
+    if (pair.value == 0 || (pair.value < 0 && is_growth)) {
+      continue;
+    }
+
+    auto* params{
+        COMET_FRAME_ALLOC_ONE_AND_POPULATE(JobParams, pair.value, pair.key)};
+
+    scheduler.Kick(job::GenerateJobDescr(
+        job::JobPriority::High,
+        [](job::JobParamsHandle params_handle) {
+          auto* params{reinterpret_cast<const JobParams*>(params_handle)};
+          EntityManager::Get().ResizeArchetype(params->archetype,
+                                               params->delta);
+        },
+        params, job::JobStackSize::Normal, counter, "grow_archetype"));
+  }
+
+  scheduler.Wait(counter);
+  scheduler.DestroyCounter(counter);
+}
+
+void EntityManager::PrepareNewFrame() {
+  COMET_ASSERT(deferred_entities_ == nullptr || deferred_entities_->IsEmpty(),
+               "No all entity changes have been processed!");
+
+  deferred_entities_ = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
+      DeferredEntities, kDeferredEntityInitialCount_);
+}
+
+void EntityManager::OnEvent(const event::Event& event) {
+  const auto& event_type{event.GetType()};
+
+  if (event_type == frame::NewFrameEvent::kStaticType_) {
+    PrepareNewFrame();
+  }
 }
 }  // namespace entity
 }  // namespace comet

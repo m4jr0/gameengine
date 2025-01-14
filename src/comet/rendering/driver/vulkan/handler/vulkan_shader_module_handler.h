@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,10 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_module.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
@@ -31,6 +35,7 @@ class ShaderModuleHandler : public Handler {
   ShaderModuleHandler& operator=(ShaderModuleHandler&&) = delete;
   virtual ~ShaderModuleHandler() = default;
 
+  void Initialize() override;
   void Shutdown() override;
 
   const ShaderModule* Generate(CTStringView shader_module_path);
@@ -38,16 +43,18 @@ class ShaderModuleHandler : public Handler {
   const ShaderModule* TryGet(ShaderModuleId shader_module_id) const;
   const ShaderModule* GetOrGenerate(CTStringView path);
   void Destroy(ShaderModuleId shader_module_id);
-  void Destroy(ShaderModule& shader_module);
+  void Destroy(ShaderModule* shader_module);
 
  private:
   static VkShaderStageFlagBits GetVulkanType(ShaderModuleType module_type);
 
   ShaderModule* Get(ShaderModuleId shader_module_id);
   ShaderModule* TryGet(ShaderModuleId shader_module_id);
-  void Destroy(ShaderModule& shader_module, bool is_destroying_handler);
+  void Destroy(ShaderModule* shader_module, bool is_destroying_handler);
 
-  std::unordered_map<ShaderModuleId, ShaderModule> shader_modules_{};
+  memory::FiberFreeListAllocator allocator_{sizeof(ShaderModule), 256,
+                                            memory::kEngineMemoryTagRendering};
+  Map<ShaderModuleId, ShaderModule*> shader_modules_{};
 };
 }  // namespace vk
 }  // namespace rendering

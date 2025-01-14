@@ -1,11 +1,13 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "camera_manager.h"
 
 #include "comet/event/event_manager.h"
-#include "comet/event/window_event.h"
+#include "comet/rendering/window/window_event.h"
 
 namespace comet {
 namespace rendering {
@@ -19,9 +21,9 @@ void CameraManager::Initialize() {
   auto& event_manager{event::EventManager::Get()};
 
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraManager::OnEvent),
-                         event::WindowInitializedEvent::kStaticType_);
+                         WindowInitializedEvent::kStaticType_);
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraManager::OnEvent),
-                         event::WindowResizeEvent::kStaticType_);
+                         WindowResizeEvent::kStaticType_);
 
   GenerateMainCamera();
 }
@@ -37,15 +39,15 @@ Camera* CameraManager::GetMainCamera() {
 }
 
 void CameraManager::OnEvent(const event::Event& event) {
-  if (event.GetType() == event::WindowInitializedEvent::kStaticType_) {
+  if (event.GetType() == WindowInitializedEvent::kStaticType_) {
     const auto& window_initialized_event{
-        static_cast<const event::WindowInitializedEvent&>(event)};
+        static_cast<const WindowInitializedEvent&>(event)};
 
     main_camera_->SetSize(window_initialized_event.GetWidth(),
                           window_initialized_event.GetHeight());
-  } else if (event.GetType() == event::WindowResizeEvent::kStaticType_) {
+  } else if (event.GetType() == WindowResizeEvent::kStaticType_) {
     const auto& window_resize_event{
-        static_cast<const event::WindowResizeEvent&>(event)};
+        static_cast<const WindowResizeEvent&>(event)};
 
     main_camera_->SetSize(window_resize_event.GetWidth(),
                           window_resize_event.GetHeight());

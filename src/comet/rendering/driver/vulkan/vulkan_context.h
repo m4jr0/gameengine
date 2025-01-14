@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -9,6 +9,11 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_utils.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 
@@ -40,12 +45,14 @@ class Context {
 
   void Initialize();
   void InitializeAllocator();
+  void InitializeFrameData();
   void InitializeCommands();
   void InitializeSyncStructures();
   void BindImageData(const ImageData* image_data);
   void UnbindImageData();
   void Destroy();
   void DestroyAllocator();
+  void DestroyFrameData();
   void DestroyCommands();
   void DestroySyncStructures();
   void HandlePreSwapchainReload();
@@ -71,11 +78,10 @@ class Context {
   FrameInFlightIndex GetMaxFramesInFlight() const noexcept;
   VkInstance GetInstanceHandle() const noexcept;
   const Device& GetDevice() const noexcept;
-  UploadContext& GetUploadContext() noexcept;
-  const UploadContext& GetUploadContext() const noexcept;
   VkPhysicalDevice GetPhysicalDeviceHandle() const noexcept;
   VmaAllocator GetAllocatorHandle() const noexcept;
   VkCommandPool GetTransferCommandPoolHandle() const;
+  const VkSemaphore* GetTransferSemaphoreHandle() const;
   bool IsInitialized() const noexcept;
 
  private:
@@ -90,11 +96,12 @@ class Context {
   FrameInFlightIndex frame_in_flight_index_{0};
   FrameInFlightIndex max_frames_in_flight_{2};
   usize max_object_count_{0};
-  UploadContext upload_context_{};
-  std::vector<FrameData> frame_data_{};
+  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
+  Array<FrameData> frame_data_{};
   VkInstance instance_handle_{VK_NULL_HANDLE};
   VmaAllocator allocator_handle_{VK_NULL_HANDLE};
   VkCommandPool transfer_command_pool_handle_{VK_NULL_HANDLE};
+  VkSemaphore transfer_semaphore_handle_{VK_NULL_HANDLE};
   const ImageData* image_data_{nullptr};
   const Device* device_{nullptr};
 };

@@ -1,9 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "vulkan_swapchain.h"
 
+#include "comet/core/frame/frame_utils.h"
 #include "comet/math/math_commons.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
@@ -16,10 +19,9 @@
 namespace comet {
 namespace rendering {
 namespace vk {
-SwapchainSupportDetails QuerySwapchainSupportDetails(
-    VkPhysicalDevice physical_device_handle, VkSurfaceKHR surface_handle) {
-  SwapchainSupportDetails details;
-
+void QuerySwapchainSupportDetails(VkPhysicalDevice physical_device_handle,
+                                  VkSurfaceKHR surface_handle,
+                                  SwapchainSupportDetails& details) {
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
       physical_device_handle, surface_handle, &details.capabilities);
 
@@ -28,9 +30,10 @@ SwapchainSupportDetails QuerySwapchainSupportDetails(
                                        &format_count, VK_NULL_HANDLE);
 
   if (format_count != 0) {
-    details.formats.resize(format_count);
+    details.formats.Resize(format_count);
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_handle, surface_handle,
-                                         &format_count, details.formats.data());
+                                         &format_count,
+                                         details.formats.GetData());
   }
 
   u32 present_mode_count;
@@ -40,16 +43,14 @@ SwapchainSupportDetails QuerySwapchainSupportDetails(
 
   COMET_ASSERT(present_mode_count > 0, "No present mode available!!");
 
-  details.present_modes.resize(present_mode_count);
+  details.present_modes.Resize(present_mode_count);
   vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device_handle,
                                             surface_handle, &present_mode_count,
-                                            details.present_modes.data());
-
-  return details;
+                                            details.present_modes.GetData());
 }
 
 VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
-    const std::vector<VkSurfaceFormatKHR>& formats) {
+    const Array<VkSurfaceFormatKHR>& formats) {
   for (const auto& available_format : formats) {
     // TODO(m4jr0): Retrieve the "best" settings from a configuration file.
     if (available_format.format == VK_FORMAT_B8G8R8A8_SRGB &&
@@ -63,7 +64,7 @@ VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
 }
 
 VkPresentModeKHR ChooseSwapPresentMode(
-    const std::vector<VkPresentModeKHR>& present_modes, bool is_vsync,
+    const Array<VkPresentModeKHR>& present_modes, bool is_vsync,
     bool is_triple_buffering) {
   if (is_vsync) {
     if (!is_triple_buffering) {
@@ -123,11 +124,21 @@ Swapchain::~Swapchain() {
 void Swapchain::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize Swapchain, but it is already done!");
+
+  if (!allocator_.IsInitialized()) {
+    allocator_.Initialize();
+  }
+
+  images_ = Array<Image>{&allocator_};
+
   const auto& device{context_->GetDevice()};
   auto physical_device_handle{device.GetPhysicalDeviceHandle()};
 
-  const auto details{
-      QuerySwapchainSupportDetails(physical_device_handle, *window_)};
+  SwapchainSupportDetails details{};
+  details.formats = Array<VkSurfaceFormatKHR>{&allocator_};
+  details.present_modes = Array<VkPresentModeKHR>{&allocator_};
+  QuerySwapchainSupportDetails(physical_device_handle, *window_, details);
+
   extent_ = ChooseSwapExtent(details.capabilities, window_->GetWidth(),
                              window_->GetHeight());
 
@@ -173,17 +184,19 @@ void Swapchain::Initialize() {
   }
 
   vkGetSwapchainImagesKHR(device, handle_, &image_count, VK_NULL_HANDLE);
-  images_.reserve(image_count);
-  std::vector<VkImage> image_handles(image_count);
-  vkGetSwapchainImagesKHR(device, handle_, &image_count, image_handles.data());
+  images_.Reserve(image_count);
+  frame::FrameArray<VkImage> image_handles{};
+  image_handles.Resize(image_count);
+  vkGetSwapchainImagesKHR(device, handle_, &image_count,
+                          image_handles.GetData());
 
   for (auto image_handle : image_handles) {
     Image image{};
     image.handle = image_handle;
-    images_.push_back(image);
+    images_.PushBack(image);
   }
 
-  image_data_ = {0, static_cast<ImageIndex>(image_handles.size())};
+  image_data_ = {0, static_cast<ImageIndex>(image_handles.GetSize())};
   context_->BindImageData(&image_data_);
 
   InitializeImageViews();
@@ -203,19 +216,21 @@ void Swapchain::Destroy() {
   DestroyImageViews();
   DestroyDepthResources();
   DestroyColorResources();
+  auto& device{context_->GetDevice()};
 
   if (old_handle_ != VK_NULL_HANDLE) {
-    vkDestroySwapchainKHR(context_->GetDevice(), old_handle_,
+    vkDestroySwapchainKHR(device, old_handle_,
                           MemoryCallbacks::Get().GetAllocCallbacksHandle());
     old_handle_ = VK_NULL_HANDLE;
   }
 
   if (handle_ != VK_NULL_HANDLE) {
-    vkDestroySwapchainKHR(context_->GetDevice(), handle_,
+    vkDestroySwapchainKHR(device, handle_,
                           MemoryCallbacks::Get().GetAllocCallbacksHandle());
     handle_ = VK_NULL_HANDLE;
   }
 
+  allocator_.Destroy();
   is_reload_needed_ = false;
   is_vsync_ = false;
   image_data_ = {};
@@ -303,12 +318,10 @@ VkFormat Swapchain::GetFormat() const noexcept { return format_; }
 const VkExtent2D& Swapchain::GetExtent() const noexcept { return extent_; }
 
 u32 Swapchain::GetImageCount() const {
-  return static_cast<u32>(images_.size());
+  return static_cast<u32>(images_.GetSize());
 }
 
-const std::vector<Image>& Swapchain::GetImages() const noexcept {
-  return images_;
-}
+const Array<Image>& Swapchain::GetImages() const noexcept { return images_; }
 
 const Image& Swapchain::GetColorImage() const noexcept { return color_image_; }
 
@@ -370,7 +383,7 @@ void Swapchain::DestroyImageViews() {
     image.image_view_handle = VK_NULL_HANDLE;
   }
 
-  images_.clear();
+  images_.Clear();
 }
 
 void Swapchain::DestroyDepthResources() {

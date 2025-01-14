@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_id.h"
@@ -26,8 +27,10 @@ class ModelHandler : public Handler {
   ModelHandler& operator=(ModelHandler&&) = delete;
   virtual ~ModelHandler() = default;
 
-  EntityId GenerateStatic(CTStringView model_path) const;
-  EntityId GenerateSkeletal(CTStringView model_path) const;
+  EntityId GenerateStatic(CTStringView model_path,
+                          frame::FramePacket* packet = nullptr) const;
+  EntityId GenerateSkeletal(CTStringView model_path,
+                            frame::FramePacket* packet = nullptr) const;
 
  private:
   static constexpr inline usize kMaxConcurrentJobs_{10};
@@ -44,6 +47,7 @@ struct StaticGenerationJobParams {
   EntityId root_entity_id{kInvalidEntityId};
   EntityId parent_id{kInvalidEntityId};
   const resource::StaticMeshResource* mesh{nullptr};
+  frame::FramePacket* packet{nullptr};
 };
 
 struct SkeletalGenerationJobParams {
@@ -51,6 +55,7 @@ struct SkeletalGenerationJobParams {
   EntityId root_entity_id{kInvalidEntityId};
   EntityId parent_id{kInvalidEntityId};
   const resource::SkinnedMeshResource* mesh{nullptr};
+  frame::FramePacket* packet{nullptr};
 };
 }  // namespace internal
 }  // namespace entity

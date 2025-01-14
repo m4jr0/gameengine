@@ -1,8 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "profiler_manager.h"
+
+#include <utility>
 
 #include "comet/core/date.h"
 #include "comet/core/game_state_manager.h"
@@ -46,7 +50,6 @@ void ProfilerManager::Update() {
   data_.rendering_driver_type = rendering_manager.GetDriverType();
   data_.rendering_frame_time = rendering_manager.GetFrameTime();
   data_.rendering_frame_rate = rendering_manager.GetFrameRate();
-  data_.rendering_draw_count = rendering_manager.GetDrawCount();
   COMET_GET_MEMORY_USE(data_.memory_use);
   COMET_GET_TAG_USE(data_.tag_use);
 #endif  // COMET_DEBUG

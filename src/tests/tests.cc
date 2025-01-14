@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #define CATCH_CONFIG_MAIN
 
@@ -25,6 +27,7 @@
 #include "comet/core/type/gid.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
+#include "comet/event/event_manager.h"
 
 class TestsEventListener : public Catch::EventListenerBase {
  public:
@@ -42,6 +45,7 @@ class TestsEventListener : public Catch::EventListenerBase {
     comet::job::Scheduler::Get().Run(comet::job::JobDescr{});
     comet::memory::TaggedHeap::Get().Initialize();
     comet::thread::ThreadProviderManager::Get().Initialize();
+    comet::event::EventManager::Get().Initialize();
     comet::frame::FrameManager::Get().Initialize();
     comet::gid::InitializeGids();
     comet::InitializeTStrings();
@@ -56,6 +60,7 @@ class TestsEventListener : public Catch::EventListenerBase {
     comet::DestroyTStrings();
     comet::gid::DestroyGids();
     comet::frame::FrameManager::Get().Shutdown();
+    comet::event::EventManager::Get().Shutdown();
     comet::thread::ThreadProviderManager::Get().Shutdown();
     comet::memory::TaggedHeap::Get().Destroy();
     scheduler.Shutdown();

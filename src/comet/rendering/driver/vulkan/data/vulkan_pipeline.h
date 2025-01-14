@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -17,30 +17,45 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+using PipelineLayoutId = u32;
+constexpr auto kInvalidPipelineLayoutId{static_cast<PipelineLayoutId>(-1)};
+struct PipelineLayout {
+  PipelineLayoutId id{kInvalidPipelineLayoutId};
+  VkPipelineLayout handle{VK_NULL_HANDLE};
+};
+
 enum class PipelineType { Unknown = 0, Graphics, Compute };
-using PipelineId = stringid::StringId;
+using PipelineId = u32;
 constexpr auto kInvalidPipelineId{static_cast<PipelineId>(-1)};
 
-struct PipelineDescr {
+struct PipelineLayoutDescr {
   u8 descriptor_set_layout_count{0};
-  PipelineId id{kInvalidPipelineId};
-  PipelineType type{PipelineType::Unknown};
+  StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>*
+      descriptor_set_layout_handles{nullptr};
+  Array<VkPushConstantRange>* push_constant_ranges{nullptr};
+};
+
+struct ComputePipelineDescr {
+  VkPipelineShaderStageCreateInfo shader_stage{};
+  VkPipelineLayout layout_handle{VK_NULL_HANDLE};
+};
+
+struct GraphicsPipelineDescr {
   const RenderPass* render_pass{nullptr};
 
   VkViewport viewport;
   VkRect2D scissor;
-  std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
+  Array<VkPipelineShaderStageCreateInfo> shader_stages;
   VkVertexInputBindingDescription vertex_input_binding_description;
-  std::vector<VkVertexInputAttributeDescription>* vertex_attributes{nullptr};
-  StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>*
-      descriptor_set_layout_handles{nullptr};
-  std::vector<VkPushConstantRange>* push_constant_ranges{nullptr};
+  Array<VkVertexInputAttributeDescription>* vertex_attributes{nullptr};
 
   VkPipelineInputAssemblyStateCreateInfo input_assembly_state;
   VkPipelineRasterizationStateCreateInfo rasterization_state;
   VkPipelineColorBlendAttachmentState color_blend_attachment_state;
   VkPipelineMultisampleStateCreateInfo multisample_state;
   VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
+
+  VkPipelineLayout layout_handle{VK_NULL_HANDLE};
 };
 
 struct Pipeline {

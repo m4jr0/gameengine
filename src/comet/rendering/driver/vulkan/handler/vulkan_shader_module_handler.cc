@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "vulkan_shader_module_handler.h"
 
@@ -13,12 +15,19 @@ namespace vk {
 ShaderModuleHandler::ShaderModuleHandler(const ShaderModuleHandlerDescr& descr)
     : Handler{descr} {}
 
+void ShaderModuleHandler::Initialize() {
+  Handler::Initialize();
+  allocator_.Initialize();
+  shader_modules_ = Map<ShaderModuleId, ShaderModule*>{&allocator_};
+}
+
 void ShaderModuleHandler::Shutdown() {
   for (auto& it : shader_modules_) {
-    Destroy(it.second, true);
+    Destroy(it.value, true);
   }
 
-  shader_modules_.clear();
+  shader_modules_.Clear();
+  allocator_.Destroy();
   Handler::Shutdown();
 }
 
@@ -31,31 +40,24 @@ const ShaderModule* ShaderModuleHandler::Generate(
   COMET_ASSERT(shader_module_resource != nullptr,
                "Shader module resource is null!");
 
-  ShaderModule shader_module{};
-  shader_module.id = shader_module_resource->id;
-  shader_module.code =
+  auto* shader_module{allocator_.AllocateOneAndPopulate<ShaderModule>()};
+  shader_module->id = shader_module_resource->id;
+  shader_module->code =
       reinterpret_cast<const u32*>(shader_module_resource->data.GetData());
-  shader_module.code_size = shader_module_resource->data.GetSize();
-  shader_module.type = GetVulkanType(shader_module_resource->descr.shader_type);
+  shader_module->code_size = shader_module_resource->data.GetSize();
+  shader_module->type =
+      GetVulkanType(shader_module_resource->descr.shader_type);
 
   VkShaderModuleCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  create_info.codeSize = shader_module.code_size;
-  create_info.pCode = shader_module.code;
+  create_info.codeSize = shader_module->code_size;
+  create_info.pCode = shader_module->code;
 
   COMET_CHECK_VK(vkCreateShaderModule(context_->GetDevice(), &create_info,
-                                      nullptr, &shader_module.handle),
+                                      nullptr, &shader_module->handle),
                  "Failed to create shader module!");
 
-#ifdef COMET_DEBUG
-  const auto shader_module_id{shader_module.id};
-#endif  // COMET_DEBUG
-
-  auto insert_pair{
-      shader_modules_.emplace(shader_module.id, std::move(shader_module))};
-  COMET_ASSERT(insert_pair.second, "Could not insert shader module: ",
-               COMET_STRING_ID_LABEL(shader_module_id), "!");
-  return &insert_pair.first->second;
+  return shader_modules_.Emplace(shader_module->id, shader_module).value;
 }
 
 const ShaderModule* ShaderModuleHandler::Get(
@@ -69,13 +71,13 @@ const ShaderModule* ShaderModuleHandler::Get(
 
 const ShaderModule* ShaderModuleHandler::TryGet(
     ShaderModuleId shader_module_id) const {
-  const auto it{shader_modules_.find(shader_module_id)};
+  auto shader_module{shader_modules_.TryGet(shader_module_id)};
 
-  if (it == shader_modules_.end()) {
+  if (shader_module == nullptr) {
     return nullptr;
   }
 
-  return &it->second;
+  return *shader_module;
 }
 
 const ShaderModule* ShaderModuleHandler::GetOrGenerate(CTStringView path) {
@@ -89,16 +91,18 @@ const ShaderModule* ShaderModuleHandler::GetOrGenerate(CTStringView path) {
 }
 
 void ShaderModuleHandler::Destroy(ShaderModuleId shader_module_id) {
-  Destroy(*Get(shader_module_id), false);
+  Destroy(Get(shader_module_id), false);
 }
 
-void ShaderModuleHandler::Destroy(ShaderModule& shader_module) {
+void ShaderModuleHandler::Destroy(ShaderModule* shader_module) {
   Destroy(shader_module, false);
 }
 
 VkShaderStageFlagBits ShaderModuleHandler::GetVulkanType(
     ShaderModuleType module_type) {
   switch (module_type) {
+    case ShaderModuleType::Compute:
+      return VK_SHADER_STAGE_COMPUTE_BIT;
     case ShaderModuleType::Vertex:
       return VK_SHADER_STAGE_VERTEX_BIT;
     case ShaderModuleType::Fragment:
@@ -122,31 +126,27 @@ ShaderModule* ShaderModuleHandler::Get(ShaderModuleId shader_module_id) {
 }
 
 ShaderModule* ShaderModuleHandler::TryGet(ShaderModuleId shader_module_id) {
-  auto it{shader_modules_.find(shader_module_id)};
+  auto** shader_module{shader_modules_.TryGet(shader_module_id)};
 
-  if (it == shader_modules_.end()) {
+  if (shader_module == nullptr) {
     return nullptr;
   }
 
-  return &it->second;
+  return *shader_module;
 }
 
-void ShaderModuleHandler::Destroy(ShaderModule& shader_module,
+void ShaderModuleHandler::Destroy(ShaderModule* shader_module,
                                   bool is_destroying_handler) {
-  if (shader_module.handle != VK_NULL_HANDLE) {
-    vkDestroyShaderModule(context_->GetDevice(), shader_module.handle,
+  if (shader_module->handle != VK_NULL_HANDLE) {
+    vkDestroyShaderModule(context_->GetDevice(), shader_module->handle,
                           VK_NULL_HANDLE);
-    shader_module.handle = VK_NULL_HANDLE;
   }
 
   if (!is_destroying_handler) {
-    shader_modules_.erase(shader_module.id);
+    shader_modules_.Remove(shader_module->id);
   }
 
-  shader_module.id = kInvalidShaderModuleId;
-  shader_module.code_size = 0;
-  shader_module.code = nullptr;
-  shader_module.type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+  allocator_.Deallocate(shader_module);
 }
 }  // namespace vk
 }  // namespace rendering

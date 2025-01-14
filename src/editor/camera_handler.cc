@@ -1,11 +1,13 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "camera_handler.h"
 
 #include "comet/event/event_manager.h"
-#include "comet/event/input_event.h"
+#include "comet/input/input_event.h"
 #include "comet/input/input_manager.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/camera/camera.h"
@@ -27,19 +29,19 @@ void CameraHandler ::Initialize() {
   auto& event_manager{event::EventManager::Get()};
 
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::KeyboardEvent::kStaticType_);
+                         input::KeyboardEvent::kStaticType_);
 
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseMoveEvent::kStaticType_);
+                         input::MouseMoveEvent::kStaticType_);
 
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseScrollEvent::kStaticType_);
+                         input::MouseScrollEvent::kStaticType_);
 
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseClickEvent::kStaticType_);
+                         input::MouseClickEvent::kStaticType_);
 
   event_manager.Register(COMET_EVENT_BIND_FUNCTION(CameraHandler::OnEvent),
-                         event::MouseReleaseEvent::kStaticType_);
+                         input::MouseReleaseEvent::kStaticType_);
 
   is_initialized_ = true;
 }
@@ -142,8 +144,8 @@ void CameraHandler::OnEvent(const event::Event& event) {
   const auto event_type{event.GetType()};
   auto& camera_manager{rendering::CameraManager::Get()};
 
-  if (event_type == event::KeyboardEvent::kStaticType_) {
-    const auto& keyboard_event{static_cast<const event::KeyboardEvent&>(event)};
+  if (event_type == input::KeyboardEvent::kStaticType_) {
+    const auto& keyboard_event{static_cast<const input::KeyboardEvent&>(event)};
     auto is_press{keyboard_event.GetAction() == input::Action::Press};
 
     switch (keyboard_event.GetKey()) {
@@ -161,15 +163,15 @@ void CameraHandler::OnEvent(const event::Event& event) {
 
     return;
 
-  } else if (event_type == event::MouseMoveEvent::kStaticType_) {
+  } else if (event_type == input::MouseMoveEvent::kStaticType_) {
     const auto& mouse_move_event{
-        static_cast<const event::MouseMoveEvent&>(event)};
+        static_cast<const input::MouseMoveEvent&>(event)};
     current_mouse_pos_ = mouse_move_event.GetPosition();
     return;
 
-  } else if (event_type == event::MouseClickEvent::kStaticType_) {
+  } else if (event_type == input::MouseClickEvent::kStaticType_) {
     const auto& mouse_click_event{
-        static_cast<const event::MouseClickEvent&>(event)};
+        static_cast<const input::MouseClickEvent&>(event)};
     auto button{mouse_click_event.GetButton()};
     auto& input_manager{input::InputManager::Get()};
 
@@ -203,17 +205,17 @@ void CameraHandler::OnEvent(const event::Event& event) {
 
     return;
 
-  } else if (event_type == event::MouseScrollEvent::kStaticType_) {
+  } else if (event_type == input::MouseScrollEvent::kStaticType_) {
     const auto& mouse_scroll_event{
-        static_cast<const event::MouseScrollEvent&>(event)};
+        static_cast<const input::MouseScrollEvent&>(event)};
     auto camera{camera_manager.GetMainCamera()};
     camera->Move(math::Vec3(0.0f, 0.0f,
                             static_cast<f32>(mouse_scroll_event.GetYOffset())));
     return;
 
-  } else if (event_type == event::MouseReleaseEvent::kStaticType_) {
+  } else if (event_type == input::MouseReleaseEvent::kStaticType_) {
     const auto& mouse_release_event{
-        static_cast<const event::MouseReleaseEvent&>(event)};
+        static_cast<const input::MouseReleaseEvent&>(event)};
     auto button{mouse_release_event.GetButton()};
 
     switch (button) {

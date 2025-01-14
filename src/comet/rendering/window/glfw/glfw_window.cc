@@ -1,13 +1,17 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "glfw_window.h"
+
+#include <utility>
 
 #include "comet/core/logger.h"
 #include "comet/event/event_manager.h"
-#include "comet/event/window_event.h"
 #include "comet/input/input_manager.h"
+#include "comet/rendering/window/window_event.h"
 
 namespace comet {
 namespace rendering {
@@ -81,7 +85,7 @@ void GlfwWindow::Initialize() {
   glfwSetWindowAspectRatio(handle_, width_, height_);
 
   glfwSetWindowCloseCallback(handle_, [](GLFWwindow*) {
-    event::EventManager::Get().FireEvent<event::WindowCloseEvent>();
+    event::EventManager::Get().FireEvent<rendering::WindowCloseEvent>();
   });
 
   glfwSetWindowSizeCallback(
@@ -117,8 +121,8 @@ void GlfwWindow::Update() {
   }
 
   if (new_width_ != width_ || new_height_ != height_) {
-    event::EventManager::Get().FireEvent<event::WindowResizeEvent>(new_width_,
-                                                                   new_height_);
+    event::EventManager::Get().FireEvent<rendering::WindowResizeEvent>(
+        new_width_, new_height_);
   }
 
   new_width_ = new_height_ = 0;

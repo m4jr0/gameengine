@@ -23,7 +23,7 @@ khronos_validation.log_filename = stdout
 # <LayerIdentifier>.report_flags
 # Comma-delineated list of options specifying the types of messages to be
 # reported
-khronos_validation.report_flags = error,warn,perf
+khronos_validation.report_flags = error,warn,perf,info,verbose
 
 # Limit Duplicated Messages
 # =====================
@@ -48,61 +48,61 @@ khronos_validation.message_id_filter =
 # =====================
 # <LayerIdentifier>.disables
 # Specify areas of validation to be disabled
-khronos_validation.disables = VK_VALIDATION_FEATURE_DISABLE_THREAD_SAFETY_EXT
+# khronos_validation.disables = VK_VALIDATION_FEATURE_DISABLE_THREAD_SAFETY_EXT
 
 # Enables
 # =====================
 # <LayerIdentifier>.enables
 # Setting an option here will enable specialized areas of validation
-khronos_validation.enables = VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+# khronos_validation.enables = VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
 
 # Redirect Printf messages to stdout
 # =====================
 # <LayerIdentifier>.printf_to_stdout
 # Enable redirection of Debug Printf messages from the debug callback to stdout
-#khronos_validation.printf_to_stdout = true
+khronos_validation.printf_to_stdout = true
 
 # Printf verbose
 # =====================
 # <LayerIdentifier>.printf_verbose
 # Set the verbosity of debug printf messages
-#khronos_validation.printf_verbose = true
+# khronos_validation.printf_verbose = true
 
 # Printf buffer size
 # =====================
 # <LayerIdentifier>.printf_buffer_size
 # Set the size in bytes of the buffer used by debug printf
-#khronos_validation.printf_buffer_size = 1024
+khronos_validation.printf_buffer_size = 65535
 
 # Check descriptor indexing accesses
 # =====================
 # <LayerIdentifier>.gpuav_descriptor_indexing
 # Enable descriptor indexing access checking
-#khronos_validation.gpuav_descriptor_indexing = true
+# khronos_validation.gpuav_descriptor_indexing = true
 
 # Check Out of Bounds
 # =====================
 # <LayerIdentifier>.gpuav_buffer_oob
 # Enable buffer out of bounds checking
-#khronos_validation.gpuav_buffer_oob = true
+# khronos_validation.gpuav_buffer_oob = true
 
 # Check Draw Indirect Count Buffers and firstInstance values
 # =====================
 # <LayerIdentifier>.validate_draw_indirect
 # Enable draw indirect checking
-#khronos_validation.validate_draw_indirect = true
+# khronos_validation.validate_draw_indirect = true
 
 # Check Dispatch Indirect group count values
 # =====================
 # <LayerIdentifier>.validate_dispatch_indirect
 # Enable dispatch indirect checking
-#khronos_validation.validate_dispatch_indirect = true
+# khronos_validation.validate_dispatch_indirect = true
 
 # Use linear vma allocator for GPU-AV output buffers
 # =====================
 # <LayerIdentifier>.gpuav_vma_linear_output
 # Use VMA linear memory allocations for GPU-AV output buffers
-#khronos_validation.vma_linear_output = true
+# khronos_validation.vma_linear_output = true
 
 # Fine Grained Locking
 # =====================

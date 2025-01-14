@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "editor.h"
 
@@ -91,6 +93,15 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 void CometEditor::LoadTmpCode() {
   comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
                 COMET_CTSTRING_VIEW("models/kate/kate.fbx.meta"));
+  comet::Remove(
+      asset::AssetManager::Get().GetAssetsRootPath() /
+      COMET_CTSTRING_VIEW("shaders/vulkan/default_shader.vk.cshader.meta"));
+  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
+                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.vert.meta"));
+  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
+                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.frag.meta"));
+  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
+                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.comp.meta"));
   // comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
   //               COMET_CTSTRING_VIEW("models/nanosuit/nanosuit.obj.meta"));
   //  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /

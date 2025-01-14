@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_DRIVER_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/rendering/driver/driver.h"
@@ -38,9 +39,8 @@ class OpenGlDriver : public Driver {
 
   void Initialize() override;
   void Shutdown() override;
-  void Update(time::Interpolation interpolation) override;
+  void Update(frame::FramePacket* packet) override;
   DriverType GetType() const noexcept override;
-  u32 GetDrawCount() const override;
 
   void InitializeHandlers();
   void DestroyHandlers();

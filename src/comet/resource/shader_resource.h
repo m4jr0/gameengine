@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -22,6 +22,8 @@ struct ShaderResourceDescr {
   Array<TString> shader_module_paths{};
   Array<rendering::ShaderVertexAttributeDescr> vertex_attributes{};
   Array<rendering::ShaderUniformDescr> uniforms{};
+  Array<rendering::ShaderConstantDescr> constants{};
+  Array<rendering::ShaderStorageDescr> storages{};
 };
 
 struct ShaderResource : Resource {
@@ -45,10 +47,34 @@ class ShaderHandler : public ResourceHandler {
                     CompressionMode compression_mode) const override;
   Resource* Unpack(memory::Allocator& allocator,
                    const ResourceFile& file) override;
-  Array<u8> DumpDescr(memory::Allocator& allocator,
-                      const ShaderResourceDescr& descr) const;
-  ShaderResourceDescr ParseDescr(const Array<u8>& dumped_descr,
-                                 ShaderResourceDescr& descr) const;
+
+ private:
+  static Array<u8> DumpDescr(memory::Allocator& allocator,
+                             const ShaderResourceDescr& descr);
+  static usize GetSizeFromDescr(const ShaderResourceDescr& descr);
+  static void DumpShaderModules(const ShaderResourceDescr& descr, u8* buffer,
+                                usize& cursor);
+  static void DumpVertexAttributes(const ShaderResourceDescr& descr, u8* buffer,
+                                   usize& cursor);
+  static void DumpUniforms(const ShaderResourceDescr& descr, u8* buffer,
+                           usize& cursor);
+  static void DumpConstants(const ShaderResourceDescr& descr, u8* buffer,
+                            usize& cursor);
+  static void DumpStorages(const ShaderResourceDescr& descr, u8* buffer,
+                           usize& cursor);
+  static void ParseDescr(const Array<u8>& dumped_descr,
+                         memory::Allocator* allocator,
+                         ShaderResourceDescr& descr);
+  static void ParseShaderModules(const u8* buffer, ShaderResourceDescr& descr,
+                                 usize& cursor);
+  static void ParseVertexAttributes(const u8* buffer,
+                                    ShaderResourceDescr& descr, usize& cursor);
+  static void ParseUniforms(const u8* buffer, ShaderResourceDescr& descr,
+                            usize& cursor);
+  static void ParseConstants(const u8* buffer, ShaderResourceDescr& descr,
+                             usize& cursor);
+  static void ParseStorages(const u8* buffer, memory::Allocator* allocator,
+                            ShaderResourceDescr& descr, usize& cursor);
 };
 }  // namespace resource
 }  // namespace comet

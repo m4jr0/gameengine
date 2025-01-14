@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -13,11 +13,14 @@
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/frame/frame_packet.h"
+#include "comet/core/frame/frame_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
@@ -53,9 +56,8 @@ class VulkanDriver : public Driver {
 
   void Initialize() override;
   void Shutdown() override;
-  void Update(time::Interpolation interpolation) override;
+  void Update(frame::FramePacket* packet) override;
   DriverType GetType() const noexcept override;
-  u32 GetDrawCount() const override;
 
   void SetSize(WindowSize width, WindowSize height);
   Window* GetWindow() override;
@@ -72,12 +74,10 @@ class VulkanDriver : public Driver {
 
   bool PreDraw();
   void PostDraw();
-  void Draw(time::Interpolation interpolation);
-  void DrawViews(time::Interpolation interpolation);
+  void Draw(frame::FramePacket* packet);
 
-  std::vector<const schar*> GetRequiredExtensions();
+  frame::FrameArray<const schar*> GetRequiredExtensions();
 
-  static const std::vector<const schar*> kDeviceExtensions_;
   static constexpr auto kDefaultMaxObjectCount_{10000};
 
   u8 vulkan_major_version_{0};
@@ -92,6 +92,7 @@ class VulkanDriver : public Driver {
 
   VkInstance instance_handle_{VK_NULL_HANDLE};
   std::unique_ptr<Device> device_{nullptr};
+  std::unique_ptr<DescriptorHandler> descriptor_handler_{nullptr};
   std::unique_ptr<MaterialHandler> material_handler_{nullptr};
   std::unique_ptr<MeshHandler> mesh_handler_{nullptr};
   std::unique_ptr<PipelineHandler> pipeline_handler_{nullptr};

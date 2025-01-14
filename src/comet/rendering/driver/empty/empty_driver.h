@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,9 +7,9 @@
 
 #ifdef COMET_DEBUG
 
-#include <memory>
-
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/window/glfw/empty/empty_glfw_window.h"
 
@@ -29,15 +29,14 @@ class EmptyDriver : public Driver {
 
   void Initialize() override;
   void Shutdown() override;
-  void Update(time::Interpolation interpolation) override;
+  void Update(frame::FramePacket*) override;
   DriverType GetType() const noexcept override;
-  u32 GetDrawCount() const override;
 
   void SetSize(WindowSize width, WindowSize height);
   Window* GetWindow() override;
 
  private:
-  std::unique_ptr<EmptyGlfwWindow> window_{nullptr};
+  memory::UniquePtr<EmptyGlfwWindow> window_{nullptr};
 };
 }  // namespace empty
 }  // namespace rendering

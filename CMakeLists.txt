@@ -1,4 +1,4 @@
-# Copyright 2024 m4jr0. All Rights Reserved.
+# Copyright 2025 m4jr0. All Rights Reserved.
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE file.
 
@@ -147,6 +147,7 @@ option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
 option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" OFF)
 option(COMET_IS_ASAN "Enable ASan (AddressSanitizer)" OFF)
 option(COMET_ARE_STACK_OVERFLOW_CHECKS "Enable stack overflow checks" ON)
+option(COMET_IS_BUILD_PERFORMANCE_SUMMARY "Request a build performance summary (MSVC only)" OFF)
 
 if(COMET_ARE_STACK_OVERFLOW_CHECKS)
   add_compile_definitions(COMET_CHECK_STACK_OVERFLOWS)
@@ -157,7 +158,7 @@ if(COMET_IS_ASAN)
 endif()
 
 if(COMET_IS_TSAN)
-  # add_compile_definitions(COMET_IS_TSAN)
+  add_compile_definitions(COMET_IS_TSAN)
 endif()
 
 # Compiler specifics.
@@ -218,6 +219,21 @@ list(GET VERSION_LIST 1 COMET_VERSION_MINOR)
 list(GET VERSION_LIST 2 COMET_VERSION_PATCH)
 
 add_library(${COMET_LIBRARY_NAME})
+
+target_precompile_headers(${COMET_LIBRARY_NAME}
+  PRIVATE 
+    "${PROJECT_SOURCE_DIR}/src/comet_pch.h"
+)
+
+if(MSVC)
+  if(COMET_IS_BUILD_PERFORMANCE_SUMMARY)
+    target_compile_options(${COMET_LIBRARY_NAME} PRIVATE "$<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/Bt+>")
+  endif()
+else()
+  if(COMET_IS_BUILD_PERFORMANCE_SUMMARY)
+    message(ERROR "${MESSAGE_PREFIX}Unsupported option on current compiler: COMET_IS_BUILD_PERFORMANCE_SUMMARY")
+  endif()
+endif()
 
 target_compile_definitions(${COMET_LIBRARY_NAME}
   PUBLIC

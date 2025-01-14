@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -79,8 +79,8 @@ class NullInputManager : public InputManager {
   };
 
   virtual void SetMousePosition(f32, f32) override{};
-  virtual void EnableUnconstrainedMouseCursor() override{};
-  virtual void DisableUnconstrainedMouseCursor() override{};
+  virtual void EnableUnconstrainedMouseCursor() override {};
+  virtual void DisableUnconstrainedMouseCursor() override {};
 };
 }  // namespace input
 }  // namespace comet

@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 
@@ -27,33 +28,23 @@ bool AllocateDescriptor(VkDevice device_handle,
                         VkDescriptorPool& descriptor_pool_handle);
 bool AllocateDescriptor(
     VkDevice device_handle,
-    const std::vector<VkDescriptorSetLayout>& descriptor_set_layout_handles,
-    std::vector<VkDescriptorSet>& descriptor_set_handles,
+    const Array<VkDescriptorSetLayout>& descriptor_set_layout_handles,
+    Array<VkDescriptorSet>& descriptor_set_handles,
     VkDescriptorPool& descriptor_pool_handle);
 bool AllocateDescriptor(
     VkDevice device_handle,
     const VkDescriptorSetLayout* descriptor_set_layout_handles,
     VkDescriptorSet* descriptor_set_handles,
     VkDescriptorPool& descriptor_pool_handle, u32 count);
-bool AllocateShaderUniformData(
-    VkDevice device_handle,
-    const std::vector<VkDescriptorSetLayout>& descriptor_set_layout_handles,
-    ShaderUniformData& shader_uniform_data);
-bool AllocateShaderUniformData(
-    VkDevice device_handle,
-    const VkDescriptorSetLayout* descriptor_set_layout_handles,
-    ShaderUniformData& shader_uniform_data);
 void FreeDescriptor(VkDevice device_handle,
                     VkDescriptorSet descriptor_set_handle,
                     VkDescriptorPool& descriptor_pool_handle);
 void FreeDescriptor(VkDevice device_handle,
-                    std::vector<VkDescriptorSet>& descriptor_set_handles,
+                    Array<VkDescriptorSet>& descriptor_set_handles,
                     VkDescriptorPool& descriptor_pool_handle);
 void FreeDescriptor(VkDevice device_handle,
                     VkDescriptorSet* descriptor_set_handles,
                     VkDescriptorPool& descriptor_pool_handle, u32 count);
-void FreeShaderUniformData(VkDevice device_handle,
-                           ShaderUniformData& shader_uniform_data);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

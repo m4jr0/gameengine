@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "configuration_manager.h"
 
@@ -377,11 +379,12 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
              key == kRenderingVulkanPatchVersion ||
              key == kRenderingVulkanMaxFramesInFlight) {
     SetU16(key, ParseU16(value));
-  } else if (key == kCoreTaggedHeapCapacity ||
-             key == kCoreFiberFrameAllocatorBaseCapacity ||
+  } else if (key == kCoreFiberFrameAllocatorBaseCapacity ||
              key == kCoreIOFrameAllocatorBaseCapacity ||
              key == kCoreTStringAllocatorCapacity) {
     SetU32(key, ParseU32(value));
+  } else if (key == kCoreTaggedHeapCapacity) {
+    SetU64(key, ParseU64(value));
   } else if (key == kRenderingClearColorR || key == kRenderingClearColorG ||
              key == kRenderingClearColorB || key == kRenderingClearColorA) {
     SetF32(key, ParseF32(value));
@@ -401,9 +404,6 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
 #endif  // COMET_WIDE_TCHAR
 
     SetTStr(key, path, value_len);
-  } else {
-    COMET_LOG_CORE_WARNING("Invalid configuration key: \"",
-                           COMET_STRING_ID_LABEL(key), "\". Ignoring.");
   }
 }
 }  // namespace conf

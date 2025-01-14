@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,8 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
@@ -32,21 +34,21 @@ VkFramebufferCreateInfo GenerateFrameBufferCreateInfo(
 VkDeviceQueueCreateInfo GenerateDeviceQueueCreateInfo(
     u32 queue_family_index, const f32& queue_priority);
 VkDeviceCreateInfo GenerateDeviceCreateInfo(
-    const std::vector<VkDeviceQueueCreateInfo>& queue_create_info,
+    const Array<VkDeviceQueueCreateInfo>& queue_create_info,
     const VkPhysicalDeviceFeatures& physical_device_features,
     const schar* const* device_extensions, u32 device_extension_count);
 VkSwapchainCreateInfoKHR GenerateSwapchainCreateInfo(
     VkSurfaceKHR surface_handle, const VkSurfaceFormatKHR& surface_format,
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
     const SwapchainSupportDetails& details,
-    const std::vector<u32>& queue_family_unique_indices, u32 image_count);
+    const Array<u32>& queue_family_unique_indices, u32 image_count);
 VkFenceCreateInfo GenerateFenceCreateInfo(VkFenceCreateFlags flags = 0);
 VkSemaphoreCreateInfo GenerateSemaphoreCreateInfo(
     VkSemaphoreCreateFlags flags = 0);
 VkSubmitInfo GenerateSubmitInfo(
     const VkCommandBuffer* command_buffer_handle,
-    const VkSemaphore* wait_semaphore = VK_NULL_HANDLE,
-    const VkSemaphore* signal_semaphore = VK_NULL_HANDLE,
+    const VkSemaphore* wait_semaphores, u32 wait_semaphore_count,
+    const VkSemaphore* signal_semaphores, u32 signal_semaphore_count,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE);
 VkPresentInfoKHR GeneratePresentInfo();
 VkRenderPassBeginInfo GenerateRenderPassBeginInfo(
@@ -76,7 +78,7 @@ VkPipelineColorBlendStateCreateInfo GeneratePipelineColorBlendStateCreateInfo(
     const VkPipelineColorBlendAttachmentState* color_blend_attachments,
     usize color_blend_attachment_count);
 VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
-    const PipelineDescr& descr);
+    const PipelineLayoutDescr& descr);
 VkPipelineDepthStencilStateCreateInfo
 GeneratePipelineDepthStencilStateCreateInfo(
     bool is_depth_test, bool is_depth_write,
@@ -115,8 +117,20 @@ VkSamplerCreateInfo GenerateSamplerCreateInfo(
     VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_REPEAT);
 VkSamplerCreateInfo GenerateSamplerCreateInfo(
     VkFilter filters, VkSamplerAddressMode address_mode,
-    const resource::TextureMap& texture_map, bool is_sampler_anisotropy,
+    const resource::TextureMap* texture_map, bool is_sampler_anisotropy,
     f32 max_sampler_anisotropy);
+VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
+    const Buffer& buffer, VkAccessFlags src_access_mask,
+    VkAccessFlags dst_access_mask,
+    u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+    u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+    VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
+VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
+    VkBuffer buffer_handle, VkAccessFlags src_access_mask,
+    VkAccessFlags dst_access_mask,
+    u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+    u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+    VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 }  // namespace init
 }  // namespace vk
 }  // namespace rendering

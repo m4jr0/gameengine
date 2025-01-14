@@ -1,15 +1,14 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 
-#include <memory>
-
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
@@ -65,10 +64,10 @@ class TextureHandler : public ResourceHandler {
   // TODO(m4jr0): Use another allocator;
   memory::PlatformAllocator resource_data_allocator_{
       memory::kEngineMemoryTagResource};
-  std::unique_ptr<TextureResource> default_texture_{nullptr};
-  std::unique_ptr<TextureResource> diffuse_texture_{nullptr};
-  std::unique_ptr<TextureResource> normal_texture_{nullptr};
-  std::unique_ptr<TextureResource> specular_texture_{nullptr};
+  memory::UniquePtr<TextureResource> default_texture_{nullptr};
+  memory::UniquePtr<TextureResource> diffuse_texture_{nullptr};
+  memory::UniquePtr<TextureResource> normal_texture_{nullptr};
+  memory::UniquePtr<TextureResource> specular_texture_{nullptr};
 };
 }  // namespace resource
 }  // namespace comet

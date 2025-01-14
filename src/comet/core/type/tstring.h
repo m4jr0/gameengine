@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -9,6 +9,7 @@
 #include "comet/core/c_string.h"
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/slash_helper.h"
+#include "comet/core/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
 
 namespace comet {
@@ -340,8 +341,8 @@ TString& operator/=(TString& str1, const CTStringView& str2);
 TString& operator/=(TString& str1, const tchar* str2);
 TString& operator/=(TString& str, tchar c);
 
-u32 Generatehash(const TString& value);
-u32 Generatehash(const CTStringView& value);
+HashValue GenerateHash(const TString& value);
+HashValue GenerateHash(const CTStringView& value);
 
 #define COMET_CTSTRING_VIEW(str) (CTStringView{COMET_TCHAR(str)})
 }  // namespace comet

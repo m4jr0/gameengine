@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -57,7 +57,7 @@ class FrameManager : public Manager {
   FrameCount frame_count_{0};
   usize frame_allocator_cursor_{0};
   InFlightFrames in_flight_frames_{nullptr, nullptr, nullptr};
-  FramePacket frame_packets_[kFramePacketCount_]{};
+  FramePacket* frame_packets_{nullptr};
 
   // Allocators.
   usize fiber_frame_allocator_capacity_{0};

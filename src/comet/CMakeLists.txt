@@ -1,4 +1,4 @@
-# Copyright 2024 m4jr0. All Rights Reserved.
+# Copyright 2025 m4jr0. All Rights Reserved.
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE file.
 
@@ -21,4 +21,5 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/physics")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/profiler")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/rendering")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/resource")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/scene")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/time")

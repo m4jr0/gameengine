@@ -1,10 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifdef COMET_DEBUG
+#include "comet_pch.h"
 
 #include "empty_driver.h"
+
+#ifdef COMET_DEBUG
 
 #include "comet/core/logger.h"
 #include "comet/rendering/window/window.h"
@@ -35,11 +37,9 @@ void EmptyDriver::Shutdown() {
   Driver::Shutdown();
 }
 
-void EmptyDriver::Update(time::Interpolation) {}
+void EmptyDriver::Update(frame::FramePacket*) {}
 
 DriverType EmptyDriver::GetType() const noexcept { return DriverType::Empty; }
-
-u32 EmptyDriver::GetDrawCount() const { return 0; }
 
 void EmptyDriver::SetSize(WindowSize, WindowSize) {}
 

@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,10 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/map.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 
@@ -26,23 +30,38 @@ class PipelineHandler : public Handler {
   PipelineHandler& operator=(PipelineHandler&&) = delete;
   virtual ~PipelineHandler() = default;
 
+  void Initialize() override;
   void Shutdown() override;
 
-  const Pipeline* Generate(const PipelineDescr& descr);
-  const Pipeline* Get(PipelineId pipeline_id) const;
-  const Pipeline* TryGet(PipelineId pipeline_id) const;
-  const Pipeline* GetOrGenerate(const PipelineDescr& descr);
+  const PipelineLayout* GenerateLayout(const PipelineLayoutDescr& descr);
+  const Pipeline* Generate(const GraphicsPipelineDescr& descr);
+  const Pipeline* Generate(const ComputePipelineDescr& descr);
+  void DestroyLayout(PipelineLayoutId pipeline_layout_id);
+  void DestroyLayout(PipelineLayout* pipeline_layout);
   void Destroy(PipelineId pipeline_id);
-  void Destroy(Pipeline& pipeline);
-  void Bind(const Pipeline& pipeline) const;
+  void Destroy(Pipeline* pipeline);
+  void Bind(const Pipeline* pipeline);
+  void Reset();
 
  private:
-  const Pipeline* GenerateGraphics(const PipelineDescr& descr);
+  static inline PipelineId pipeline_id_counter_{0};
+  static inline PipelineLayoutId pipeline_layout_id_counter_{0};
+
   Pipeline* Get(PipelineId pipeline_id);
   Pipeline* TryGet(PipelineId pipeline_id);
-  void Destroy(Pipeline& pipeline, bool is_destroying_handler);
+  PipelineLayout* GetLayout(PipelineLayoutId pipeline_layout_id);
+  PipelineLayout* TryGetLayout(PipelineLayoutId pipeline_layout_id);
+  void Destroy(Pipeline* pipeline, bool is_destroying_handler);
+  void DestroyLayout(PipelineLayout* pipeline_layout,
+                     bool is_destroying_handler);
 
-  std::unordered_map<PipelineId, Pipeline> pipelines_{};
+  memory::FiberStackAllocator allocator_{
+      math::Max(sizeof(Pair<PipelineId, Pipeline>),
+                sizeof(Pair<PipelineLayoutId, PipelineLayout>)),
+      256, memory::kEngineMemoryTagRendering};
+  Map<PipelineId, Pipeline*> pipelines_{};
+  Map<PipelineLayoutId, PipelineLayout*> pipeline_layouts_{};
+  const Pipeline* bound_pipeline_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

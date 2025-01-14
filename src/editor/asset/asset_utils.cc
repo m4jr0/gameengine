@@ -1,12 +1,13 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "asset_utils.h"
 
 #include "comet/core/date.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/logger.h"
 #include "comet/math/math_commons.h"
 #include "editor/asset/asset.h"
 

@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,9 +6,15 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_VIEW_HANDLER_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
@@ -22,13 +28,14 @@ namespace rendering {
 namespace vk {
 struct ViewHandlerDescr : HandlerDescr {
   ShaderHandler* shader_handler{nullptr};
+  PipelineHandler* pipeline_handler{nullptr};
   RenderPassHandler* render_pass_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
 #ifdef COMET_DEBUG
   DebuggerDisplayerManager* debugger_displayer_manager{nullptr};
 #endif  // COMET_DEBUG
   VulkanGlfwWindow* window{nullptr};
-  std::vector<RenderingViewDescr>* rendering_view_descrs{nullptr};
+  Array<RenderingViewDescr>* rendering_view_descrs{nullptr};
 };
 
 class ViewHandler : public Handler {
@@ -44,8 +51,8 @@ class ViewHandler : public Handler {
   void Initialize() override;
   void Shutdown() override;
   void Destroy(usize view);
-  void Destroy(View& view);
-  void Update(const ViewPacket& packet);
+  void Destroy(View* view);
+  void Update(frame::FramePacket* packet);
   void SetSize(WindowSize width, WindowSize height);
 
   const View* Get(usize index) const;
@@ -55,14 +62,16 @@ class ViewHandler : public Handler {
  private:
   View* Get(usize index);
   View* TryGet(usize index);
-  void Destroy(View& view, bool is_destroying_handler);
+  void Destroy(View* view, bool is_destroying_handler);
 
-  std::vector<std::unique_ptr<View>> views_{};
+  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
+  Array<std::unique_ptr<View>> views_{};
   ShaderHandler* shader_handler_{nullptr};
+  PipelineHandler* pipeline_handler_{nullptr};
   RenderPassHandler* render_pass_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   VulkanGlfwWindow* window_{nullptr};
-  std::vector<RenderingViewDescr>* rendering_view_descrs_{nullptr};
+  Array<RenderingViewDescr>* rendering_view_descrs_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

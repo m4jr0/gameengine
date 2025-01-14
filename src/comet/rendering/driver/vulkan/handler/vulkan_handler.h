@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -12,7 +12,7 @@ namespace comet {
 namespace rendering {
 namespace vk {
 struct HandlerDescr {
-  const Context* context{nullptr};
+  Context* context{nullptr};
 };
 
 class Handler {
@@ -32,7 +32,7 @@ class Handler {
 
  protected:
   bool is_initialized_{false};
-  const Context* context_{nullptr};
+  Context* context_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

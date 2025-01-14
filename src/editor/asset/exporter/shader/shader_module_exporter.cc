@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "shader_module_exporter.h"
 
@@ -19,7 +21,8 @@ namespace comet {
 namespace editor {
 namespace asset {
 bool ShaderModuleExporter::IsCompatible(CTStringView extension) const {
-  return extension == COMET_TCHAR("vert") || extension == COMET_TCHAR("frag");
+  return extension == COMET_TCHAR("comp") || extension == COMET_TCHAR("vert") ||
+         extension == COMET_TCHAR("frag");
 }
 
 void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
@@ -48,7 +51,9 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
     driver_type = rendering::DriverType::Vulkan;
   }
 
-  if (shader_keyword == COMET_TCHAR("vert")) {
+  if (shader_keyword == COMET_TCHAR("comp")) {
+    shader_type = rendering::ShaderModuleType::Compute;
+  } else if (shader_keyword == COMET_TCHAR("vert")) {
     shader_type = rendering::ShaderModuleType::Vertex;
   } else if (shader_keyword == COMET_TCHAR("frag")) {
     shader_type = rendering::ShaderModuleType::Fragment;
@@ -89,21 +94,31 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
       shaderc::Compiler compiler;
 
       shaderc::CompileOptions options;
-#ifdef COMET_DEBUG
+#ifdef COMET_DEBUG_SHADER
+      options.SetOptimizationLevel(shaderc_optimization_level_zero);
       options.SetGenerateDebugInfo();
 #else
       options.SetOptimizationLevel(shaderc_optimization_level_size);
-#endif  // COMET_DEBUG
+#endif  // COMET_DEBUG_SHADER
 
       shaderc_shader_kind shader_kind{};
 
       switch (shader_type) {
+        case rendering::ShaderModuleType::Compute:
+          shader_kind = shaderc_shader_kind::shaderc_glsl_compute_shader;
+          break;
         case rendering::ShaderModuleType::Vertex:
           shader_kind = shaderc_shader_kind::shaderc_glsl_vertex_shader;
           break;
-        default:
         case rendering::ShaderModuleType::Fragment:
           shader_kind = shaderc_shader_kind::shaderc_glsl_fragment_shader;
+          break;
+        default:
+          COMET_LOG_GLOBAL_ERROR(
+              "Unknown or unsupported shader module type provided: ",
+              static_cast<std::underlying_type_t<rendering::ShaderModuleType>>(
+                  shader_type),
+              "!");
           break;
       }
 

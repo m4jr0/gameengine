@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "opengl_imgui_view.h"
 
@@ -8,6 +10,8 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+
+#include "comet/profiler/profiler.h"
 
 #ifdef COMET_DEBUG
 #include "comet/rendering/debugger/debugger_displayer_manager.h"
@@ -41,6 +45,7 @@ void ImGuiView::Destroy() {
 }
 
 void ImGuiView::Update(const ViewPacket&) {
+  COMET_PROFILE("ImGuiView::Update");
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();

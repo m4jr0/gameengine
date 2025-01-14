@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -14,10 +14,17 @@ namespace comet {
 namespace rendering {
 namespace vk {
 struct Buffer {
+  VkDeviceSize size{0};
   VkBuffer handle{VK_NULL_HANDLE};
   VmaAllocation allocation_handle{VK_NULL_HANDLE};
   VmaAllocator allocator_handle{VK_NULL_HANDLE};
   void* mapped_memory{nullptr};
+};
+
+struct BarrierDescr {
+  VkBufferMemoryBarrier barrier{};
+  VkPipelineStageFlagBits src_stage_mask{VK_PIPELINE_STAGE_NONE};
+  VkPipelineStageFlagBits dst_stage_mask{VK_PIPELINE_STAGE_NONE};
 };
 }  // namespace vk
 }  // namespace rendering

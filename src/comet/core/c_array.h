@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define COMET_COMET_CORE_C_ARRAY_H_
 
 #include <type_traits>
+#include <utility>
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
@@ -64,8 +65,10 @@ void Clear(T* data, usize size) {
 
   COMET_ASSERT(data != nullptr, "Data provided is null!");
 
-  for (usize i{0}; i < size; ++i) {
-    data[i].~T();
+  if constexpr (!std::is_trivially_destructible_v<T>) {
+    for (usize i{0}; i < size; ++i) {
+      data[i].~T();
+    }
   }
 }
 

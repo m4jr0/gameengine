@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "allocation_tracking.h"
 
@@ -617,8 +619,9 @@ _VCRT_ALLOCATOR void* __CRTDECL operator new[](std::size_t size,
 }
 
 _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
-    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR void* __CRTDECL
-    operator new(std::size_t size, std::nothrow_t const&) noexcept {
+    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
+    void* __CRTDECL operator new(std::size_t size,
+                                 std::nothrow_t const&) noexcept {
   if (size == 0) {
     size = 1;
   }
@@ -627,8 +630,9 @@ _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
 }
 
 _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
-    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR void* __CRTDECL
-    operator new[](size_t size, ::std::nothrow_t const&) noexcept {
+    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
+    void* __CRTDECL operator new[](size_t size,
+                                   ::std::nothrow_t const&) noexcept {
   if (size == 0) {
     size = 1;
   }
@@ -637,9 +641,9 @@ _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
 }
 
 _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
-    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR void* __CRTDECL
-    operator new(std::size_t size, std::align_val_t align,
-                 const std::nothrow_t&) noexcept {
+    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
+    void* __CRTDECL operator new(std::size_t size, std::align_val_t align,
+                                 const std::nothrow_t&) noexcept {
   if (size == 0) {
     size = 1;
   }
@@ -648,9 +652,9 @@ _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
 }
 
 _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
-    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR void* __CRTDECL
-    operator new[](std::size_t size, std::align_val_t align,
-                   const std::nothrow_t&) noexcept {
+    _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
+    void* __CRTDECL operator new[](std::size_t size, std::align_val_t align,
+                                   const std::nothrow_t&) noexcept {
   if (size == 0) {
     size = 1;
   }

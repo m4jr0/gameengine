@@ -1,4 +1,4 @@
-# Copyright 2024 m4jr0. All Rights Reserved.
+# Copyright 2025 m4jr0. All Rights Reserved.
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE file.
 
@@ -20,6 +20,12 @@ endif()
 
 # Source files #################################################################
 set(COMET_LIBRARY_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/algorithm_common.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/back_insert_iterator.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/inplace_merge.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/set_difference.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/sort.h"
+
   "${PROJECT_SOURCE_DIR}/src/comet/core/compiler.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/compression.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/c_array.h"
@@ -43,11 +49,12 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"
   
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_allocator.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_event.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_packet.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_utils.h"
 
-  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/stl/one_frame_allocator.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/logic/game_logic_manager.cc"
   
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/fiber/fiber.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/fiber/fiber_context.cc"
@@ -85,9 +92,9 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/hash_set.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/iterator.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/map.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/ordered_set.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/primitive.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/ring_queue.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/type/stl_types.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/string_id.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/traits.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/tstring.cc"

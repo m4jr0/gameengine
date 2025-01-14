@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -10,6 +10,7 @@
 #ifdef COMET_IMGUI
 #include "vulkan/vulkan.h"
 
+#include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
@@ -31,7 +32,7 @@ class ImGuiView : public View {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(const ViewPacket& packet) override;
+  void Update(frame::FramePacket*) override;
 
  private:
   void Draw() const;

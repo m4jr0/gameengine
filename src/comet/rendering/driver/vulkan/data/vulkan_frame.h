@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -29,17 +29,12 @@ struct ImageData {
 };
 
 struct FrameData {
+  bool is_transfer{false};
   VkCommandPool command_pool_handle{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
   VkSemaphore present_semaphore_handle{VK_NULL_HANDLE};
   VkSemaphore render_semaphore_handle{VK_NULL_HANDLE};
   VkFence render_fence_handle{VK_NULL_HANDLE};
-};
-
-struct UploadContext {
-  VkFence upload_fence_handle{VK_NULL_HANDLE};
-  VkCommandPool command_pool_handle{VK_NULL_HANDLE};
-  VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
 };
 }  // namespace vk
 }  // namespace rendering

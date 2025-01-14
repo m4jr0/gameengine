@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,10 +7,15 @@
 
 #include <optional>
 
+#include "vulkan/vulkan.h"
+
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_utils.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/rendering_common.h"
-#include "vulkan/vulkan.h"
 
 namespace comet {
 namespace rendering {
@@ -26,7 +31,7 @@ constexpr auto kIsSpecificTransferQueue{true};
 
 bool AreQueueFamilyIndicesComplete(const QueueFamilyIndices& indices);
 bool IsTransferFamilyInQueueFamilyIndices(const QueueFamilyIndices& indices);
-std::vector<u32> GetUniqueIndices(const QueueFamilyIndices& indices);
+frame::FrameArray<u32> GetUniqueIndices(const QueueFamilyIndices& indices);
 
 QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device_handle,
                                      VkSurfaceKHR surface_handle);
@@ -59,7 +64,7 @@ class Device {
 
   void WaitIdle() const;
   VkFormat ChooseFormat(VkImageTiling tiling, VkFormatFeatureFlags features,
-                        const std::vector<VkFormat>& candidates) const;
+                        const Array<VkFormat>& candidates) const;
 
   VkFormat ChooseDepthFormat() const;
 
@@ -73,6 +78,9 @@ class Device {
   VkQueue GetGraphicsQueueHandle() const noexcept;
   VkQueue GetPresentQueueHandle() const noexcept;
   VkQueue GetTransferQueueHandle() const noexcept;
+  u32 GetGraphicsQueueIndex() const noexcept;
+  u32 GetPresentQueueIndex() const noexcept;
+  u32 GetTransferQueueIndex() const noexcept;
   VkSampleCountFlagBits GetMsaaSamples() const noexcept;
   bool IsMsaa() const noexcept;
   bool IsInitialized() const noexcept;
@@ -98,8 +106,10 @@ class Device {
   VkPhysicalDeviceProperties properties_{};
   VkPhysicalDeviceFeatures features_{};
   VkPhysicalDeviceMemoryProperties memory_properties_{};
-  std::vector<VkQueueFamilyProperties> queue_family_properties_{};
   QueueFamilyIndices queue_family_indices_{};
+  mutable memory::PlatformAllocator allocator_{
+      memory::kEngineMemoryTagRendering};
+  Array<VkQueueFamilyProperties> queue_family_properties_{};
   VkInstance instance_handle_{VK_NULL_HANDLE};
   VkPhysicalDevice physical_device_handle_{VK_NULL_HANDLE};
   VkDevice handle_{VK_NULL_HANDLE};
@@ -110,19 +120,15 @@ class Device {
       VK_NULL_HANDLE};  // Will be destroyed automatically.
   VkQueue transfer_queue_handle_{
       VK_NULL_HANDLE};  // Will be destroyed automatically.
-  static constexpr StaticArray<const schar*,
+
+  static constexpr StaticArray kRequiredExtensions_{
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME
+
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
-                               2
-#else
-                               1
+      ,
+      VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
 #endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
-                               >
-      kRequiredExtensions_{VK_KHR_SWAPCHAIN_EXTENSION_NAME
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
-                           ,
-                           VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
-      };
+  };
 
   VkSampleCountFlagBits msaa_samples_{VK_SAMPLE_COUNT_1_BIT};
 };

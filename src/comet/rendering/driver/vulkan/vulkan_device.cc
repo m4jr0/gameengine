@@ -1,13 +1,16 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "vulkan_device.h"
 
-#include <set>
-
 #include "comet/core/c_string.h"
+#include "comet/core/frame/frame_utils.h"
 #include "comet/core/logger.h"
+#include "comet/core/type/array.h"
+#include "comet/core/type/ordered_set.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -31,19 +34,21 @@ bool IsTransferFamilyInQueueFamilyIndices(const QueueFamilyIndices& indices) {
   return indices.graphics_family.value() != indices.transfer_family.value();
 }
 
-std::vector<u32> GetUniqueIndices(const QueueFamilyIndices& indices) {
+frame::FrameArray<u32> GetUniqueIndices(const QueueFamilyIndices& indices) {
   COMET_ASSERT(AreQueueFamilyIndicesComplete(indices),
                "Queue family indices are not complete");
 
-  std::set<u32> set{indices.graphics_family.value(),
-                    indices.present_family.value(),
-                    indices.transfer_family.value()};
+  frame::FrameOrderedSet<u32> set{};
+  set.Reserve(3);
+  set.Add(indices.graphics_family.value());
+  set.Add(indices.present_family.value());
+  set.Add(indices.transfer_family.value());
 
-  std::vector<u32> list{};
-  list.reserve(set.size());
+  frame::FrameArray<u32> list{};
+  list.Reserve(set.GetSize());
 
-  for (auto it{set.begin()}; it != set.end();) {
-    list.push_back(set.extract(it++).value());
+  for (auto& index : set) {
+    list.PushBack(index);
   }
 
   return list;
@@ -61,9 +66,10 @@ QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device_handle,
     return indices;
   }
 
-  std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+  frame::FrameArray<VkQueueFamilyProperties> queue_families{};
+  queue_families.Resize(queue_family_count);
   vkGetPhysicalDeviceQueueFamilyProperties(
-      physical_device_handle, &queue_family_count, queue_families.data());
+      physical_device_handle, &queue_family_count, queue_families.GetData());
 
   u32 queue_index{0};
 
@@ -215,10 +221,12 @@ void Device::Initialize() {
                                            &queue_family_count, VK_NULL_HANDLE);
   COMET_ASSERT(queue_family_count > 0, "No queue family found!");
 
-  queue_family_properties_.resize(queue_family_count);
+  allocator_.Initialize();
+  queue_family_properties_ = Array<VkQueueFamilyProperties>{&allocator_};
+  queue_family_properties_.Resize(queue_family_count);
   vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle_,
                                            &queue_family_count,
-                                           queue_family_properties_.data());
+                                           queue_family_properties_.GetData());
 
 #ifdef COMET_DEBUG
   CheckRequiredExtensions();
@@ -231,11 +239,12 @@ void Device::Initialize() {
       FindQueueFamilies(physical_device_handle_, surface_handle_);
 
   auto unique_queue_family_indices{GetUniqueIndices(queue_family_indices_)};
-  std::vector<VkDeviceQueueCreateInfo> queue_create_info{};
+  frame::FrameArray<VkDeviceQueueCreateInfo> queue_create_info{};
+  queue_create_info.Reserve(unique_queue_family_indices.GetSize());
   auto queue_priority{1.0f};
 
   for (auto queue_family_index : unique_queue_family_indices) {
-    queue_create_info.push_back(init::GenerateDeviceQueueCreateInfo(
+    queue_create_info.PushBack(init::GenerateDeviceQueueCreateInfo(
         queue_family_index, queue_priority));
   }
 
@@ -245,11 +254,12 @@ void Device::Initialize() {
   physical_device_features.sampleRateShading =
       is_sample_rate_shading_ ? VK_TRUE : VK_FALSE;
   physical_device_features.fillModeNonSolid = VK_TRUE;
+  physical_device_features.multiDrawIndirect = VK_TRUE;
 
-  auto create_info = init::GenerateDeviceCreateInfo(
+  auto create_info{init::GenerateDeviceCreateInfo(
       queue_create_info, physical_device_features,
       kRequiredExtensions_.GetData(),
-      static_cast<u32>(kRequiredExtensions_.GetSize()));
+      static_cast<u32>(kRequiredExtensions_.GetSize()))};
 
   COMET_CHECK_VK(
       vkCreateDevice(physical_device_handle_, &create_info,
@@ -289,7 +299,7 @@ void Device::Destroy() {
   properties_ = {};
   features_ = {};
   memory_properties_ = {};
-  queue_family_properties_.clear();
+  queue_family_properties_.Clear();
   queue_family_indices_ = {};
   instance_handle_ = VK_NULL_HANDLE;
   physical_device_handle_ = VK_NULL_HANDLE;
@@ -299,6 +309,7 @@ void Device::Destroy() {
   present_queue_handle_ = VK_NULL_HANDLE;
   transfer_queue_handle_ = VK_NULL_HANDLE;
   msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
+  allocator_.Destroy();
 
   is_initialized_ = false;
 }
@@ -313,7 +324,7 @@ void Device::WaitIdle() const {
 
 VkFormat Device::ChooseFormat(VkImageTiling tiling,
                               VkFormatFeatureFlags features,
-                              const std::vector<VkFormat>& candidates) const {
+                              const Array<VkFormat>& candidates) const {
   for (auto format : candidates) {
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(physical_device_handle_, format,
@@ -333,11 +344,14 @@ VkFormat Device::ChooseFormat(VkImageTiling tiling,
 }
 
 VkFormat Device::ChooseDepthFormat() const {
+  frame::FrameArray<VkFormat> candidates{VK_FORMAT_D32_SFLOAT,
+                                         VK_FORMAT_D32_SFLOAT_S8_UINT,
+                                         VK_FORMAT_D24_UNORM_S8_UINT};
+
   // TODO(m4jr0): Retrieve settings from configuration.
   return ChooseFormat(VK_IMAGE_TILING_OPTIMAL,
                       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
-                       VK_FORMAT_D24_UNORM_S8_UINT});
+                      candidates);
 }
 
 VkDevice Device::GetHandle() const noexcept { return handle_; }
@@ -391,6 +405,24 @@ VkQueue Device::GetTransferQueueHandle() const noexcept {
   return graphics_queue_handle_;
 }
 
+u32 Device::GetGraphicsQueueIndex() const noexcept {
+  COMET_ASSERT(queue_family_indices_.graphics_family.has_value(),
+               "No graphics family available!");
+  return queue_family_indices_.graphics_family.value();
+}
+
+u32 Device::GetPresentQueueIndex() const noexcept {
+  COMET_ASSERT(queue_family_indices_.present_family.has_value(),
+               "No present family available!");
+  return queue_family_indices_.present_family.value();
+}
+
+u32 Device::GetTransferQueueIndex() const noexcept {
+  COMET_ASSERT(queue_family_indices_.transfer_family.has_value(),
+               "No transfer family available!");
+  return queue_family_indices_.transfer_family.value();
+}
+
 PhysicalDeviceScore Device::GetPhysicalDeviceScore(
     VkPhysicalDevice physical_device_handle) const {
   PhysicalDeviceScore score{0};
@@ -410,6 +442,10 @@ PhysicalDeviceScore Device::GetPhysicalDeviceScore(
     return score;
   }
 
+  if (!features.multiDrawIndirect) {
+    return score;
+  }
+
   if (!AreDeviceExtensionsAvailable(physical_device_handle)) {
     return score;
   }
@@ -420,11 +456,15 @@ PhysicalDeviceScore Device::GetPhysicalDeviceScore(
     return score;
   }
 
-  auto swapchain_support_details{
-      QuerySwapchainSupportDetails(physical_device_handle, surface_handle_)};
+  SwapchainSupportDetails swapchain_support_details{};
+  swapchain_support_details.formats = Array<VkSurfaceFormatKHR>{&allocator_};
+  swapchain_support_details.present_modes =
+      Array<VkPresentModeKHR>{&allocator_};
+  QuerySwapchainSupportDetails(physical_device_handle, surface_handle_,
+                               swapchain_support_details);
 
-  if (swapchain_support_details.formats.empty() ||
-      swapchain_support_details.present_modes.empty()) {
+  if (swapchain_support_details.formats.IsEmpty() ||
+      swapchain_support_details.present_modes.IsEmpty()) {
     return score;
   }
 
@@ -457,11 +497,12 @@ bool Device::AreDeviceExtensionsAvailable(
     return false;
   }
 
-  std::vector<VkExtensionProperties> extensions_properties(extension_count);
+  frame::FrameArray<VkExtensionProperties> extensions_properties{};
+  extensions_properties.Resize(extension_count);
 
   COMET_CHECK_VK(vkEnumerateDeviceExtensionProperties(
                      physical_device_handle, VK_NULL_HANDLE, &extension_count,
-                     extensions_properties.data()),
+                     extensions_properties.GetData()),
                  "Failed to enumerate physical device extension properties!");
 
   for (auto& extension_name : kRequiredExtensions_) {
@@ -495,9 +536,11 @@ void Device::ResolvePhysicalDeviceHandle() {
                              VK_NULL_HANDLE);
   COMET_ASSERT(physical_device_count != 0,
                "Failed to find GPUs with Vulkan support!");
-  std::vector<VkPhysicalDevice> physical_device_handles(physical_device_count);
+
+  frame::FrameArray<VkPhysicalDevice> physical_device_handles{};
+  physical_device_handles.Resize(physical_device_count);
   vkEnumeratePhysicalDevices(instance_handle_, &physical_device_count,
-                             physical_device_handles.data());
+                             physical_device_handles.GetData());
 
   PhysicalDeviceScore best_score{0};
 

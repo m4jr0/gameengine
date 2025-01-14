@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "driver.h"
 
@@ -23,8 +25,12 @@ Driver::Driver(const DriverDescr& descr)
       app_patch_version_{descr.app_patch_version},
       window_width_{descr.window_width},
       window_height_{descr.window_height},
-      app_name_len_{descr.app_name_len},
-      rendering_view_descrs_{descr.rendering_view_descrs} {
+      app_name_len_{descr.app_name_len} {
+  rendering_view_descrs_allocator_.Initialize();
+  rendering_view_descrs_ = {&rendering_view_descrs_allocator_,
+                            descr.rendering_view_descrs.GetData(),
+                            descr.rendering_view_descrs.GetSize()};
+
   Copy(app_name_, descr.app_name, app_name_len_);
   memory::CopyMemory(clear_color_, descr.clear_color,
                      sizeof(descr.clear_color));
@@ -33,6 +39,7 @@ Driver::Driver(const DriverDescr& descr)
 Driver ::~Driver() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for driver, but it is still initialized!");
+  rendering_view_descrs_allocator_.Destroy();
 }
 
 void Driver ::Initialize() {

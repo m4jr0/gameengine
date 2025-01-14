@@ -1,11 +1,10 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_PROFILER_PROFILER_H_
 #define COMET_COMET_PROFILER_PROFILER_H_
 
-#include <memory>
 #include <optional>
 #include <stack>
 
@@ -53,7 +52,7 @@ struct ThreadProfilerContext {
   thread::ThreadId thread_id{thread::kInvalidThreadId};
   std::stack<ProfilerNode*> active_nodes{};
   Array<ProfilerNode*> root_nodes{};
-  Array<std::unique_ptr<ProfilerNode>> nodes{};
+  Array<memory::UniquePtr<ProfilerNode>> nodes{};
 
   ThreadProfilerContext(memory::Allocator* allocator = nullptr);
   ThreadProfilerContext(const ThreadProfilerContext&) = delete;
@@ -99,7 +98,6 @@ struct ProfilerData {
   u32 physics_frame_rate{0};
   f32 rendering_frame_time{0};
   u32 rendering_frame_rate{0};
-  u32 rendering_draw_count{0};
   rendering::DriverType rendering_driver_type{rendering::DriverType::Unknown};
   usize memory_use{0};
   Map<memory::MemoryTag, usize> tag_use{};

@@ -1,11 +1,14 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "entity_type.h"
 
-#include <algorithm>
+#include <utility>
 
+#include "comet/core/algorithm/sort.h"
 #include "comet/entity/entity_memory_manager.h"
 
 namespace comet {
@@ -75,7 +78,7 @@ EntityType RemoveFromEntityType(const EntityType& from_entity_type,
 }
 
 EntityType& CleanEntityType(EntityType& entity_type) {
-  std::sort(entity_type.begin(), entity_type.end());
+  Sort(entity_type.begin(), entity_type.end());
   return entity_type;
 }
 }  // namespace entity

@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "tstring.h"
 
@@ -712,11 +714,11 @@ TString& operator/=(TString& str1, const tchar* str2) {
 
 TString& operator/=(TString& str, tchar c) { return operator/=(str, &c); }
 
-u32 Generatehash(const TString& value) {
+HashValue GenerateHash(const TString& value) {
   return GenerateHash(value.GetCTStr());
 }
 
-u32 Generatehash(const CTStringView& value) {
+HashValue GenerateHash(const CTStringView& value) {
   return GenerateHash(value.GetCTStr());
 }
 }  // namespace comet

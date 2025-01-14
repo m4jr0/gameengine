@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -62,15 +62,15 @@ class ShaderHandler : public Handler {
   void BindInstance(Shader& shader, MaterialInstanceId instance_id) const;
   void Reset();
   void UpdateGlobal(Shader& shader, const ShaderPacket& packet) const;
-  void UpdateLocal(Shader& shader, const ShaderLocalPacket& packet);
+  void UpdateConstants(Shader& shader, const ShaderLocalPacket& packet);
   void SetUniform(Shader& shader, const ShaderUniform& uniform,
                   const void* value, bool is_update = true) const;
   void SetUniform(ShaderId id, const ShaderUniform& uniform, const void* value,
                   bool is_update = true);
-  void SetUniform(Shader& shader, ShaderUniformLocation index,
+  void SetUniform(Shader& shader, ShaderUniformLocation location,
                   const void* value, bool is_update = true) const;
-  void SetUniform(ShaderId id, ShaderUniformLocation index, const void* value,
-                  bool is_update = true);
+  void SetUniform(ShaderId id, ShaderUniformLocation location,
+                  const void* value, bool is_update = true);
   void BindMaterial(Material& material);
   void UnbindMaterial(Material& material);
   bool HasMaterial(const Material& material) const;
@@ -78,7 +78,7 @@ class ShaderHandler : public Handler {
 
  private:
   static GLenum GetCullMode(CullMode cull_mode);
-  static ShaderUniformSize GetUniformSize(ShaderUniformType type);
+  static ShaderUniformSize ShaderVariableTypeSize(ShaderVariableType type);
   static void SetF32(s32 location, const void* value);
   static void SetS32(s32 location, const void* value);
   static void SetU32(s32 location, const void* value);
@@ -122,34 +122,34 @@ class ShaderHandler : public Handler {
   gid::BreedHandler instance_id_handler_{};
   ShaderModuleHandler* shader_module_handler_{nullptr};
   TextureHandler* texture_handler_{nullptr};
-  inline static const std::unordered_map<ShaderUniformType,
+  inline static const std::unordered_map<ShaderVariableType,
                                          ShaderUniformCallback>
-      kUniformCallbacks_{{ShaderUniformType::B32, SetS32},
-                         {ShaderUniformType::S32, SetS32},
-                         {ShaderUniformType::U32, SetU32},
-                         {ShaderUniformType::F32, SetF32},
-                         {ShaderUniformType::B32Vec2, SetS32Vec2},
-                         {ShaderUniformType::B32Vec3, SetS32Vec3},
-                         {ShaderUniformType::B32Vec4, SetS32Vec4},
-                         {ShaderUniformType::S32Vec2, SetS32Vec2},
-                         {ShaderUniformType::S32Vec3, SetS32Vec3},
-                         {ShaderUniformType::S32Vec4, SetS32Vec4},
-                         {ShaderUniformType::U32Vec2, SetU32Vec2},
-                         {ShaderUniformType::U32Vec3, SetU32Vec3},
-                         {ShaderUniformType::U32Vec4, SetU32Vec4},
-                         {ShaderUniformType::Vec2, SetF32Vec2},
-                         {ShaderUniformType::Vec3, SetF32Vec3},
-                         {ShaderUniformType::Vec4, SetF32Vec4},
-                         {ShaderUniformType::Mat2x2, SetMat2},
-                         {ShaderUniformType::Mat2x3, SetMat2x3},
-                         {ShaderUniformType::Mat2x4, SetMat2x4},
-                         {ShaderUniformType::Mat3x2, SetMat3x2},
-                         {ShaderUniformType::Mat3x3, SetMat3},
-                         {ShaderUniformType::Mat3x4, SetMat3x4},
-                         {ShaderUniformType::Mat4x2, SetMat4x2},
-                         {ShaderUniformType::Mat4x3, SetMat4x3},
-                         {ShaderUniformType::Mat4x4, SetMat4},
-                         {ShaderUniformType::Sampler, SetS32}};
+      kUniformCallbacks_{{ShaderVariableType::B32, SetS32},
+                         {ShaderVariableType::S32, SetS32},
+                         {ShaderVariableType::U32, SetU32},
+                         {ShaderVariableType::F32, SetF32},
+                         {ShaderVariableType::B32Vec2, SetS32Vec2},
+                         {ShaderVariableType::B32Vec3, SetS32Vec3},
+                         {ShaderVariableType::B32Vec4, SetS32Vec4},
+                         {ShaderVariableType::S32Vec2, SetS32Vec2},
+                         {ShaderVariableType::S32Vec3, SetS32Vec3},
+                         {ShaderVariableType::S32Vec4, SetS32Vec4},
+                         {ShaderVariableType::U32Vec2, SetU32Vec2},
+                         {ShaderVariableType::U32Vec3, SetU32Vec3},
+                         {ShaderVariableType::U32Vec4, SetU32Vec4},
+                         {ShaderVariableType::Vec2, SetF32Vec2},
+                         {ShaderVariableType::Vec3, SetF32Vec3},
+                         {ShaderVariableType::Vec4, SetF32Vec4},
+                         {ShaderVariableType::Mat2x2, SetMat2},
+                         {ShaderVariableType::Mat2x3, SetMat2x3},
+                         {ShaderVariableType::Mat2x4, SetMat2x4},
+                         {ShaderVariableType::Mat3x2, SetMat3x2},
+                         {ShaderVariableType::Mat3x3, SetMat3},
+                         {ShaderVariableType::Mat3x4, SetMat3x4},
+                         {ShaderVariableType::Mat4x2, SetMat4x2},
+                         {ShaderVariableType::Mat4x3, SetMat4x3},
+                         {ShaderVariableType::Mat4x4, SetMat4},
+                         {ShaderVariableType::Sampler, SetS32}};
 };
 }  // namespace gl
 }  // namespace rendering

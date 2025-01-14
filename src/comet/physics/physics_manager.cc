@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "physics_manager.h"
 
@@ -10,7 +12,6 @@
 #include "comet/math/geometry.h"
 #include "comet/math/math_commons.h"
 #include "comet/math/vector.h"
-#include "comet/physics/physics_tmp_code.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -36,6 +37,8 @@ void PhysicsManager::Shutdown() {
 };
 
 void PhysicsManager::Update(frame::FramePacket* packet) {
+  current_frame_packet_ = packet;
+
   if (current_time_ > 1000) {
     frame_rate_ = counter_;
     current_time_ = 0;
@@ -43,7 +46,6 @@ void PhysicsManager::Update(frame::FramePacket* packet) {
   }
 
   current_time_ += time::TimeManager::Get().GetDeltaTime();
-  LoadTmp();
 
   while (packet->lag > fixed_delta_time_) {
     // TODO(m4jr0): Investigate. This seems to prevent round errors.
@@ -53,25 +55,15 @@ void PhysicsManager::Update(frame::FramePacket* packet) {
     }
 
     // TODO(m4jr0): Use a transform system.
-    UpdateEntityTransforms();
+    UpdateEntityTransforms(packet);
 
     ++counter_;
     packet->lag -= fixed_delta_time_;
   }
 }
 
-void PhysicsManager::SetLocal(TransformComponent* cmp,
-                              const math::Mat4& local) const {
-  cmp->local = local;
-  cmp->is_dirty = true;
-
-  entity::EntityManager::Get()
-      .GetComponent<TransformRootComponent>(cmp->root_entity_id)
-      ->is_child_dirty = true;
-};
-
 void PhysicsManager::UpdateTree(
-    entity::EntityId parent_entity_id,
+    frame::FramePacket* packet, entity::EntityId parent_entity_id,
     const TransformComponent* parent_transform_cmp) const {
   auto& entity_manager{entity::EntityManager::Get()};
 
@@ -80,12 +72,10 @@ void PhysicsManager::UpdateTree(
         auto* transform_cmp{
             entity_manager.GetComponent<TransformComponent>(entity_id)};
 
-        if (transform_cmp->is_dirty) {
-          transform_cmp->global =
-              transform_cmp->local * parent_transform_cmp->global;
-        }
-
-        UpdateTree(entity_id, transform_cmp);
+        transform_cmp->global =
+            transform_cmp->local * parent_transform_cmp->global;
+        packet->RegisterDirtyTransform(entity_id, transform_cmp);
+        UpdateTree(packet, entity_id, transform_cmp);
       },
       parent_entity_id);
 }
@@ -96,13 +86,14 @@ f32 PhysicsManager::GetFrameTime() const noexcept {
   return (1 / static_cast<f32>(frame_rate_)) * 1000;
 }
 
-void PhysicsManager::UpdateEntityTransforms() {
+void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {
   auto& entity_manager{entity::EntityManager::Get()};
 
   entity_manager.Each<TransformRootComponent, TransformComponent>(
       [&](auto entity_id) {
         auto* root_cmp{
             entity_manager.GetComponent<TransformRootComponent>(entity_id)};
+        root_cmp->is_child_dirty = true;
 
         if (!root_cmp->is_child_dirty) {
           return;
@@ -115,7 +106,7 @@ void PhysicsManager::UpdateEntityTransforms() {
           transform_cmp->global = transform_cmp->local;
         }
 
-        UpdateTree(entity_id, transform_cmp);
+        UpdateTree(packet, entity_id, transform_cmp);
         root_cmp->is_child_dirty = false;
       });
 }

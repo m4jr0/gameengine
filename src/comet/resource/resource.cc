@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "resource.h"
 
@@ -33,7 +35,8 @@ void PackBytes(const u8* bytes, usize bytes_size,
       break;
     }
     case CompressionMode::None: {
-      memory::CopyMemory(packed_bytes, bytes, bytes_size);
+      packed_bytes->Resize(bytes_size);
+      memory::CopyMemory(packed_bytes->GetData(), bytes, bytes_size);
       *packed_bytes_size = bytes_size;
       break;
     }

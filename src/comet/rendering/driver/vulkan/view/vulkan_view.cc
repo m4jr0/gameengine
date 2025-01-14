@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "vulkan_view.h"
 
@@ -35,7 +37,6 @@ void View::Initialize() {
 void View::Destroy() {
   id_ = kInvalidRenderingViewId;
   context_ = nullptr;
-
   width_ = 0;
   height_ = 0;
   clear_color_[0] = kColorBlack[0];
@@ -44,7 +45,7 @@ void View::Destroy() {
   clear_color_[3] = 1.0f;
 
   if (render_pass_ != nullptr && render_pass_handler_->IsInitialized()) {
-    render_pass_handler_->Destroy(*render_pass_);
+    render_pass_handler_->Destroy(render_pass_);
     render_pass_ = nullptr;
   }
 
@@ -57,7 +58,7 @@ void View::SetSize(WindowSize width, WindowSize height) {
                height, ", but render pass is null!");
   render_pass_->extent.width = static_cast<u32>(width);
   render_pass_->extent.height = static_cast<u32>(height);
-  render_pass_handler_->Refresh(*render_pass_);
+  render_pass_handler_->Refresh(render_pass_);
 }
 
 bool View::IsInitialized() const noexcept { return is_initialized_; }

@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "rendering_common.h"
 
@@ -115,41 +117,41 @@ const schar* GetTextureRepeatModeLabel(TextureRepeatMode repeat_mode) {
   return "???";
 }
 
-Alignment GetScalarAlignment(ShaderUniformType type) {
+Alignment GetScalarAlignment(ShaderVariableType type) {
   switch (type) {
-    case ShaderUniformType::B32:
-    case ShaderUniformType::S32:
-    case ShaderUniformType::U32:
-    case ShaderUniformType::F32:
+    case ShaderVariableType::B32:
+    case ShaderVariableType::S32:
+    case ShaderVariableType::U32:
+    case ShaderVariableType::F32:
       return 4;
-    case ShaderUniformType::F64:
+    case ShaderVariableType::F64:
       return 8;
-    case ShaderUniformType::B32Vec2:
-    case ShaderUniformType::B32Vec3:
-    case ShaderUniformType::B32Vec4:
-    case ShaderUniformType::S32Vec2:
-    case ShaderUniformType::S32Vec3:
-    case ShaderUniformType::S32Vec4:
-    case ShaderUniformType::U32Vec2:
-    case ShaderUniformType::U32Vec3:
-    case ShaderUniformType::U32Vec4:
-    case ShaderUniformType::Vec2:
-    case ShaderUniformType::Vec3:
-    case ShaderUniformType::Vec4:
+    case ShaderVariableType::B32Vec2:
+    case ShaderVariableType::B32Vec3:
+    case ShaderVariableType::B32Vec4:
+    case ShaderVariableType::S32Vec2:
+    case ShaderVariableType::S32Vec3:
+    case ShaderVariableType::S32Vec4:
+    case ShaderVariableType::U32Vec2:
+    case ShaderVariableType::U32Vec3:
+    case ShaderVariableType::U32Vec4:
+    case ShaderVariableType::Vec2:
+    case ShaderVariableType::Vec3:
+    case ShaderVariableType::Vec4:
       return 4;
-    case ShaderUniformType::F64Vec2:
-    case ShaderUniformType::F64Vec3:
-    case ShaderUniformType::F64Vec4:
+    case ShaderVariableType::F64Vec2:
+    case ShaderVariableType::F64Vec3:
+    case ShaderVariableType::F64Vec4:
       return 8;
-    case ShaderUniformType::Mat2x2:
-    case ShaderUniformType::Mat2x3:
-    case ShaderUniformType::Mat2x4:
-    case ShaderUniformType::Mat3x2:
-    case ShaderUniformType::Mat3x3:
-    case ShaderUniformType::Mat3x4:
-    case ShaderUniformType::Mat4x2:
-    case ShaderUniformType::Mat4x3:
-    case ShaderUniformType::Mat4x4:
+    case ShaderVariableType::Mat2x2:
+    case ShaderVariableType::Mat2x3:
+    case ShaderVariableType::Mat2x4:
+    case ShaderVariableType::Mat3x2:
+    case ShaderVariableType::Mat3x3:
+    case ShaderVariableType::Mat3x4:
+    case ShaderVariableType::Mat4x2:
+    case ShaderVariableType::Mat4x3:
+    case ShaderVariableType::Mat4x4:
       return 4;
     default:
       return kInvalidAlignment;
@@ -157,49 +159,49 @@ Alignment GetScalarAlignment(ShaderUniformType type) {
 }
 
 // Extended alignment.
-Alignment GetStd140Alignment(ShaderUniformType type) {
+Alignment GetStd140Alignment(ShaderVariableType type) {
   switch (type) {
-    case ShaderUniformType::B32:
-    case ShaderUniformType::S32:
-    case ShaderUniformType::U32:
-    case ShaderUniformType::F32:
+    case ShaderVariableType::B32:
+    case ShaderVariableType::S32:
+    case ShaderVariableType::U32:
+    case ShaderVariableType::F32:
       return 4;
-    case ShaderUniformType::F64:
+    case ShaderVariableType::F64:
       return 8;
-    case ShaderUniformType::B32Vec2:
+    case ShaderVariableType::B32Vec2:
       return 8;
-    case ShaderUniformType::B32Vec3:
-    case ShaderUniformType::B32Vec4:
+    case ShaderVariableType::B32Vec3:
+    case ShaderVariableType::B32Vec4:
       return 16;
-    case ShaderUniformType::S32Vec2:
+    case ShaderVariableType::S32Vec2:
       return 8;
-    case ShaderUniformType::S32Vec3:
-    case ShaderUniformType::S32Vec4:
+    case ShaderVariableType::S32Vec3:
+    case ShaderVariableType::S32Vec4:
       return 16;
-    case ShaderUniformType::U32Vec2:
+    case ShaderVariableType::U32Vec2:
       return 8;
-    case ShaderUniformType::U32Vec3:
-    case ShaderUniformType::U32Vec4:
+    case ShaderVariableType::U32Vec3:
+    case ShaderVariableType::U32Vec4:
       return 16;
-    case ShaderUniformType::Vec2:
+    case ShaderVariableType::Vec2:
       return 8;
-    case ShaderUniformType::Vec3:
-    case ShaderUniformType::Vec4:
+    case ShaderVariableType::Vec3:
+    case ShaderVariableType::Vec4:
       return 16;
-    case ShaderUniformType::F64Vec2:
+    case ShaderVariableType::F64Vec2:
       return 16;
-    case ShaderUniformType::F64Vec3:
-    case ShaderUniformType::F64Vec4:
+    case ShaderVariableType::F64Vec3:
+    case ShaderVariableType::F64Vec4:
       return 32;
-    case ShaderUniformType::Mat2x2:
-    case ShaderUniformType::Mat2x3:
-    case ShaderUniformType::Mat2x4:
-    case ShaderUniformType::Mat3x2:
-    case ShaderUniformType::Mat3x3:
-    case ShaderUniformType::Mat3x4:
-    case ShaderUniformType::Mat4x2:
-    case ShaderUniformType::Mat4x3:
-    case ShaderUniformType::Mat4x4:
+    case ShaderVariableType::Mat2x2:
+    case ShaderVariableType::Mat2x3:
+    case ShaderVariableType::Mat2x4:
+    case ShaderVariableType::Mat3x2:
+    case ShaderVariableType::Mat3x3:
+    case ShaderVariableType::Mat3x4:
+    case ShaderVariableType::Mat4x2:
+    case ShaderVariableType::Mat4x3:
+    case ShaderVariableType::Mat4x4:
       return 16;
     default:
       return kInvalidAlignment;
@@ -207,50 +209,50 @@ Alignment GetStd140Alignment(ShaderUniformType type) {
 }
 
 // Base alignment.
-Alignment GetStd430Alignment(ShaderUniformType type) {
+Alignment GetStd430Alignment(ShaderVariableType type) {
   switch (type) {
-    case ShaderUniformType::B32:
-    case ShaderUniformType::S32:
-    case ShaderUniformType::U32:
-    case ShaderUniformType::F32:
+    case ShaderVariableType::B32:
+    case ShaderVariableType::S32:
+    case ShaderVariableType::U32:
+    case ShaderVariableType::F32:
       return 4;
-    case ShaderUniformType::F64:
+    case ShaderVariableType::F64:
       return 8;
-    case ShaderUniformType::B32Vec2:
+    case ShaderVariableType::B32Vec2:
       return 8;
-    case ShaderUniformType::B32Vec3:
-    case ShaderUniformType::B32Vec4:
+    case ShaderVariableType::B32Vec3:
+    case ShaderVariableType::B32Vec4:
       return 16;
-    case ShaderUniformType::S32Vec2:
+    case ShaderVariableType::S32Vec2:
       return 8;
-    case ShaderUniformType::S32Vec3:
-    case ShaderUniformType::S32Vec4:
+    case ShaderVariableType::S32Vec3:
+    case ShaderVariableType::S32Vec4:
       return 16;
-    case ShaderUniformType::U32Vec2:
+    case ShaderVariableType::U32Vec2:
       return 8;
-    case ShaderUniformType::U32Vec3:
-    case ShaderUniformType::U32Vec4:
+    case ShaderVariableType::U32Vec3:
+    case ShaderVariableType::U32Vec4:
       return 16;
-    case ShaderUniformType::Vec2:
+    case ShaderVariableType::Vec2:
       return 8;
-    case ShaderUniformType::Vec3:
-    case ShaderUniformType::Vec4:
+    case ShaderVariableType::Vec3:
+    case ShaderVariableType::Vec4:
       return 16;
-    case ShaderUniformType::F64Vec2:
+    case ShaderVariableType::F64Vec2:
       return 16;
-    case ShaderUniformType::F64Vec3:
-    case ShaderUniformType::F64Vec4:
+    case ShaderVariableType::F64Vec3:
+    case ShaderVariableType::F64Vec4:
       return 32;
-    case ShaderUniformType::Mat2x2:
-    case ShaderUniformType::Mat2x3:
-    case ShaderUniformType::Mat2x4:
+    case ShaderVariableType::Mat2x2:
+    case ShaderVariableType::Mat2x3:
+    case ShaderVariableType::Mat2x4:
       return 8;
-    case ShaderUniformType::Mat3x2:
-    case ShaderUniformType::Mat3x3:
-    case ShaderUniformType::Mat3x4:
-    case ShaderUniformType::Mat4x2:
-    case ShaderUniformType::Mat4x3:
-    case ShaderUniformType::Mat4x4:
+    case ShaderVariableType::Mat3x2:
+    case ShaderVariableType::Mat3x3:
+    case ShaderVariableType::Mat3x4:
+    case ShaderVariableType::Mat4x2:
+    case ShaderVariableType::Mat4x3:
+    case ShaderVariableType::Mat4x4:
       return 16;
     default:
       return kInvalidAlignment;
@@ -265,7 +267,7 @@ void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
     COMET_LOG_RENDERING_WARNING(
         "Vertex attribute name provided is too long: ", descr.name_len,
         " >= ", kVertexAttributeDescrMaxNameLen, ". It will be truncated.");
-    descr.name_len = static_cast<usize>(kVertexAttributeDescrMaxNameLen - 1);
+    descr.name_len = static_cast<usize>(kVertexAttributeDescrMaxNameLen);
   }
 
   Copy(descr.name, name, descr.name_len);
@@ -279,25 +281,69 @@ void SetName(ShaderUniformDescr& descr, const schar* name, usize name_len) {
     COMET_LOG_RENDERING_WARNING(
         "Shader uniform name provided is too long: ", descr.name_len,
         " >= ", kShaderUniformDescrMaxNameLen, ". It will be truncated.");
-    descr.name_len = static_cast<usize>(kShaderUniformDescrMaxNameLen - 1);
+    descr.name_len = static_cast<usize>(kShaderUniformDescrMaxNameLen);
   }
 
   Copy(descr.name, name, descr.name_len);
   descr.name[descr.name_len + 1] = '\0';
 }
 
-void GenerateGeometry(const math::Aabb& aabb,
-                      std::vector<geometry::Vertex>& vertices,
-                      std::vector<geometry::Index>& indices, bool is_visible) {
-  COMET_ASSERT(vertices.size() == 0,
+void SetName(ShaderConstantDescr& descr, const schar* name, usize name_len) {
+  descr.name_len = name_len;
+
+  if (descr.name_len >= kShaderUniformDescrMaxNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Shader uniform name provided is too long: ", descr.name_len,
+        " >= ", kShaderUniformDescrMaxNameLen, ". It will be truncated.");
+    descr.name_len = static_cast<usize>(kShaderUniformDescrMaxNameLen);
+  }
+
+  Copy(descr.name, name, descr.name_len);
+  descr.name[descr.name_len + 1] = '\0';
+}
+
+void SetName(ShaderStorageDescr& descr, const schar* name, usize name_len) {
+  descr.name_len = name_len;
+
+  if (descr.name_len >= kShaderStoragePropertyDescrMaxNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Shader uniform name provided is too long: ", descr.name_len,
+        " >= ", kShaderStoragePropertyDescrMaxNameLen,
+        ". It will be truncated.");
+    descr.name_len = static_cast<usize>(kShaderStoragePropertyDescrMaxNameLen);
+  }
+
+  Copy(descr.name, name, descr.name_len);
+  descr.name[descr.name_len + 1] = '\0';
+}
+
+void SetName(ShaderStoragePropertyDescr& descr, const schar* name,
+             usize name_len) {
+  descr.name_len = name_len;
+
+  if (descr.name_len >= kShaderStoragePropertyDescrMaxNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Shader uniform name provided is too long: ", descr.name_len,
+        " >= ", kShaderStoragePropertyDescrMaxNameLen,
+        ". It will be truncated.");
+    descr.name_len = static_cast<usize>(kShaderStoragePropertyDescrMaxNameLen);
+  }
+
+  Copy(descr.name, name, descr.name_len);
+  descr.name[descr.name_len + 1] = '\0';
+}
+
+void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,
+                      Array<geometry::Index>& indices, bool is_visible) {
+  COMET_ASSERT(vertices.GetSize() == 0,
                "Tried to generate geometry for AABB, but vertices provided are "
                "not empty!");
-  COMET_ASSERT(indices.size() == 0,
+  COMET_ASSERT(indices.GetSize() == 0,
                "Tried to generate geometry for AABB, but indices provided are "
                "not empty!");
   const math::Vec3 extents{aabb.extents[0], aabb.extents[1], aabb.extents[2]};
 
-  vertices.reserve(8);
+  vertices.Reserve(8);
 
   geometry::Vertex vertex{};
   vertex.color = math::Vec4{is_visible ? kColorGreen : kColorRed, 1.0f};
@@ -305,103 +351,102 @@ void GenerateGeometry(const math::Aabb& aabb,
   // Top right far.
   constexpr auto kTopRightFarIndex{0};
   vertex.position = aabb.center + math::Vec3(extents.x, extents.y, -extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Top right near.
   constexpr auto kTopRightNearIndex{1};
   vertex.position = aabb.center + math::Vec3(extents.x, extents.y, extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Top left far.
   constexpr auto kTopLeftFarIndex{2};
   vertex.position = aabb.center + math::Vec3(-extents.x, extents.y, -extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Top left near.
   constexpr auto kTopLeftNearIndex{3};
   vertex.position = aabb.center + math::Vec3(-extents.x, extents.y, extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom right far.
   constexpr auto kBottomRightFarIndex{4};
   vertex.position = aabb.center + math::Vec3(extents.x, -extents.y, -extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom right near.
   constexpr auto kBottomRightNearIndex{5};
   vertex.position = aabb.center + math::Vec3(extents.x, -extents.y, extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom left far.
   constexpr auto kBottomLeftFarIndex{6};
   vertex.position =
       aabb.center + math::Vec3(-extents.x, -extents.y, -extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom left near.
   constexpr auto kBottomLeftNearIndex{7};
   vertex.position = aabb.center + math::Vec3(-extents.x, -extents.y, extents.z);
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
-  indices.reserve(36);
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kTopRightNearIndex);
-  indices.push_back(kTopLeftNearIndex);
+  indices.Reserve(36);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kTopRightNearIndex);
+  indices.PushBack(kTopLeftNearIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kTopLeftFarIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kTopLeftFarIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kTopRightNearIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kTopRightNearIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kBottomRightNearIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
 
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kBottomLeftFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
 
-  indices.push_back(kBottomLeftFarIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kBottomLeftNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kBottomLeftNearIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kBottomLeftNearIndex);
-  indices.push_back(kBottomLeftFarIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kBottomLeftNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kBottomLeftFarIndex);
-  indices.push_back(kTopLeftFarIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
+  indices.PushBack(kTopLeftFarIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kTopLeftFarIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kTopLeftFarIndex);
 
-  indices.push_back(kTopLeftFarIndex);
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kBottomLeftFarIndex);
+  indices.PushBack(kTopLeftFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kBottomLeftFarIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kTopRightNearIndex);
-  indices.push_back(kBottomRightNearIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kTopRightNearIndex);
+  indices.PushBack(kBottomRightNearIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kBottomLeftNearIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kBottomLeftNearIndex);
 }
 
-void GenerateGeometry(const Frustum& frustum,
-                      std::vector<geometry::Vertex>& vertices,
-                      std::vector<geometry::Index>& indices) {
+void GenerateGeometry(const Frustum& frustum, Array<geometry::Vertex>& vertices,
+                      Array<geometry::Index>& indices) {
   COMET_ASSERT(
-      vertices.size() == 0,
+      vertices.GetSize() == 0,
       "Tried to generate geometry for frustum, but vertices provided are "
       "not empty!");
   COMET_ASSERT(
-      indices.size() == 0,
+      indices.GetSize() == 0,
       "Tried to generate geometry for frustum, but indices provided are "
       "not empty!");
 
@@ -411,7 +456,7 @@ void GenerateGeometry(const Frustum& frustum,
   const auto& right_face{frustum.GetRight()};
   const auto& near_face{frustum.GetNear()};
   const auto& far_face{frustum.GetFar()};
-  vertices.reserve(8);
+  vertices.Reserve(8);
 
   geometry::Vertex vertex{};
   vertex.color = math::Vec4{kColorBlack, 1.0f};
@@ -424,7 +469,7 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Top, far and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Top right near.
   constexpr auto kTopRightNearIndex{1};
@@ -433,7 +478,7 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Top, near and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Top left far.
   constexpr auto kTopLeftFarIndex{2};
@@ -442,7 +487,7 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Top, far and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Top left near.
   constexpr auto kTopLeftNearIndex{3};
@@ -451,7 +496,7 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Top, near and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom right far.
   constexpr auto kBottomRightFarIndex{4};
@@ -460,7 +505,7 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Bottom, far and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom right near.
   constexpr auto kBottomRightNearIndex{5};
@@ -469,7 +514,7 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Bottom, near and right faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom left far.
   constexpr auto kBottomLeftFarIndex{6};
@@ -478,7 +523,7 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Bottom, far and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
   // Bottom left near.
   constexpr auto kBottomLeftNearIndex{7};
@@ -487,56 +532,56 @@ void GenerateGeometry(const Frustum& frustum,
   COMET_ASSERT(is_intersection,
                "Bottom, near and left faces in the frustum won't intersect! "
                "Frustum seems to be invalid.");
-  vertices.push_back(vertex);
+  vertices.PushBack(vertex);
 
-  indices.reserve(36);
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kTopRightNearIndex);
-  indices.push_back(kTopLeftNearIndex);
+  indices.Reserve(36);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kTopRightNearIndex);
+  indices.PushBack(kTopLeftNearIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kTopLeftFarIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kTopLeftFarIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kTopRightNearIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kTopRightNearIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kBottomRightNearIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
 
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kBottomLeftFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
 
-  indices.push_back(kBottomLeftFarIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kBottomLeftNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kBottomLeftNearIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kBottomLeftNearIndex);
-  indices.push_back(kBottomLeftFarIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kBottomLeftNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kBottomLeftFarIndex);
-  indices.push_back(kTopLeftFarIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kBottomLeftFarIndex);
+  indices.PushBack(kTopLeftFarIndex);
 
-  indices.push_back(kTopRightFarIndex);
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kTopLeftFarIndex);
+  indices.PushBack(kTopRightFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kTopLeftFarIndex);
 
-  indices.push_back(kTopLeftFarIndex);
-  indices.push_back(kBottomRightFarIndex);
-  indices.push_back(kBottomLeftFarIndex);
+  indices.PushBack(kTopLeftFarIndex);
+  indices.PushBack(kBottomRightFarIndex);
+  indices.PushBack(kBottomLeftFarIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kTopRightNearIndex);
-  indices.push_back(kBottomRightNearIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kTopRightNearIndex);
+  indices.PushBack(kBottomRightNearIndex);
 
-  indices.push_back(kTopLeftNearIndex);
-  indices.push_back(kBottomRightNearIndex);
-  indices.push_back(kBottomLeftNearIndex);
+  indices.PushBack(kTopLeftNearIndex);
+  indices.PushBack(kBottomRightNearIndex);
+  indices.PushBack(kBottomLeftNearIndex);
 }
 }  // namespace rendering
 }  // namespace comet

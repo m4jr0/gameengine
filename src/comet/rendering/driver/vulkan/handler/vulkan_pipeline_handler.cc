@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "vulkan_pipeline_handler.h"
 
@@ -15,89 +17,51 @@ namespace vk {
 PipelineHandler::PipelineHandler(const PipelineHandlerDescr& descr)
     : Handler{descr} {}
 
+void PipelineHandler::Initialize() {
+  Handler::Initialize();
+  allocator_.Initialize();
+  pipelines_ = Map<PipelineId, Pipeline*>{&allocator_};
+  pipeline_layouts_ = Map<PipelineLayoutId, PipelineLayout*>{&allocator_};
+}
+
 void PipelineHandler::Shutdown() {
   for (auto& it : pipelines_) {
-    Destroy(it.second, true);
+    Destroy(it.value, true);
   }
 
-  pipelines_.clear();
+  for (auto& it : pipeline_layouts_) {
+    DestroyLayout(it.value, true);
+  }
+
+  pipelines_.Clear();
+  pipeline_layouts_.Clear();
+  allocator_.Destroy();
+  bound_pipeline_ = nullptr;
   Handler::Shutdown();
 }
 
-const Pipeline* PipelineHandler::Generate(const PipelineDescr& descr) {
-  switch (descr.type) {
-    case PipelineType::Graphics:
-      return GenerateGraphics(descr);
-    default:
-      COMET_ASSERT(
-          false, "Invalid  pipeline type provided: ",
-          static_cast<std::underlying_type_t<PipelineType>>(descr.type), "!");
-
-      return nullptr;
-  }
-}
-
-const Pipeline* PipelineHandler::Get(PipelineId pipeline_id) const {
-  const auto* pipeline{TryGet(pipeline_id)};
-  COMET_ASSERT(pipeline != nullptr,
-               "Requested pipeline does not exist: ", pipeline_id, "!");
-  return pipeline;
-}
-
-const Pipeline* PipelineHandler::TryGet(PipelineId pipeline_id) const {
-  auto it{pipelines_.find(pipeline_id)};
-
-  if (it == pipelines_.end()) {
-    return nullptr;
-  }
-
-  return &it->second;
-}
-
-const Pipeline* PipelineHandler::GetOrGenerate(const PipelineDescr& descr) {
-  auto* pipeline{TryGet(descr.id)};
-
-  if (pipeline != nullptr) {
-    return pipeline;
-  }
-
-  return Generate(descr);
-}
-
-void PipelineHandler::Destroy(PipelineId pipeline_id) {
-  Destroy(*Get(pipeline_id));
-}
-
-void PipelineHandler::Destroy(Pipeline& pipeline) {
-  return Destroy(pipeline, false);
-}
-
-void PipelineHandler::Bind(const Pipeline& pipeline) const {
-  COMET_ASSERT(pipeline.handle != VK_NULL_HANDLE,
-               "Pipeline handle is null! Unable to bind!");
-
-  vkCmdBindPipeline(context_->GetFrameData().command_buffer_handle,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle);
-}
-
-const Pipeline* PipelineHandler::GenerateGraphics(const PipelineDescr& descr) {
-  COMET_ASSERT(descr.type == PipelineType::Graphics,
-               "Type provided for graphics pipeline generation is wrong: ",
-               static_cast<std::underlying_type_t<PipelineType>>(descr.type),
-               "!");
-
-  Pipeline pipeline{};
-  pipeline.id = descr.id;
-  pipeline.type = descr.type;
-
-  auto& device{context_->GetDevice()};
+const PipelineLayout* PipelineHandler::GenerateLayout(
+    const PipelineLayoutDescr& descr) {
+  auto* pipeline_layout{allocator_.AllocateOneAndPopulate<PipelineLayout>()};
+  pipeline_layout->id = pipeline_layout_id_counter_++;
 
   auto pipeline_layout_create_info{
       init::GeneratePipelineLayoutCreateInfo(descr)};
-  COMET_CHECK_VK(
-      vkCreatePipelineLayout(device, &pipeline_layout_create_info,
-                             VK_NULL_HANDLE, &pipeline.layout_handle),
-      "Unable to create pipeline layout!");
+
+  COMET_CHECK_VK(vkCreatePipelineLayout(
+                     context_->GetDevice(), &pipeline_layout_create_info,
+                     VK_NULL_HANDLE, &pipeline_layout->handle),
+                 "Unable to create graphics pipeline layout!");
+
+  return pipeline_layouts_.Emplace(pipeline_layout->id, pipeline_layout).value;
+}
+
+const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
+  auto* pipeline{allocator_.AllocateOneAndPopulate<Pipeline>()};
+  pipeline->id = pipeline_id_counter_++;
+  pipeline->type = PipelineType::Graphics;
+  pipeline->layout_handle = descr.layout_handle;
+  auto& device{context_->GetDevice()};
 
   VkPipelineViewportStateCreateInfo viewport_info{};
   viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -122,13 +86,13 @@ const Pipeline* PipelineHandler::GenerateGraphics(const PipelineDescr& descr) {
 
   auto vertex_input_state_info{init::GeneratePipelineVertexInputStateCreateInfo(
       &descr.vertex_input_binding_description, 1,
-      descr.vertex_attributes->data(),
-      static_cast<u32>(descr.vertex_attributes->size()))};
+      descr.vertex_attributes->GetData(),
+      static_cast<u32>(descr.vertex_attributes->GetSize()))};
 
   VkGraphicsPipelineCreateInfo pipeline_info{};
   pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipeline_info.stageCount = static_cast<u32>(descr.shader_stages.size());
-  pipeline_info.pStages = descr.shader_stages.data();
+  pipeline_info.stageCount = static_cast<u32>(descr.shader_stages.GetSize());
+  pipeline_info.pStages = descr.shader_stages.GetData();
   pipeline_info.pNext = VK_NULL_HANDLE;
 
   pipeline_info.pVertexInputState = &vertex_input_state_info;
@@ -140,7 +104,7 @@ const Pipeline* PipelineHandler::GenerateGraphics(const PipelineDescr& descr) {
   pipeline_info.pColorBlendState = &color_blend_info;
   pipeline_info.pDynamicState = &dynamic_state_info;
 
-  pipeline_info.layout = pipeline.layout_handle;
+  pipeline_info.layout = pipeline->layout_handle;
   pipeline_info.renderPass = descr.render_pass->handle;
   pipeline_info.subpass = 0;
 
@@ -149,14 +113,69 @@ const Pipeline* PipelineHandler::GenerateGraphics(const PipelineDescr& descr) {
 
   COMET_CHECK_VK(
       vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info,
-                                VK_NULL_HANDLE, &pipeline.handle),
+                                VK_NULL_HANDLE, &pipeline->handle),
       "Failed to create graphics pipeline!");
 
-  auto insert_pair{pipelines_.emplace(pipeline.id, pipeline)};
-  COMET_ASSERT(insert_pair.second, "Could not insert pipeline: ",
-               COMET_STRING_ID_LABEL(pipeline.id), "!");
-  return &insert_pair.first->second;
+  return pipelines_.Emplace(pipeline->id, pipeline).value;
 }
+
+const Pipeline* PipelineHandler::Generate(const ComputePipelineDescr& descr) {
+  auto* pipeline{allocator_.AllocateOneAndPopulate<Pipeline>()};
+  pipeline->id = pipeline_id_counter_++;
+  pipeline->type = PipelineType::Compute;
+  pipeline->layout_handle = descr.layout_handle;
+  auto& device{context_->GetDevice()};
+
+  VkComputePipelineCreateInfo pipeline_info{};
+  pipeline_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+  pipeline_info.stage = descr.shader_stage;
+  pipeline_info.layout = pipeline->layout_handle;
+  pipeline_info.flags = 0;
+  pipeline_info.pNext = VK_NULL_HANDLE;
+
+  pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+  pipeline_info.basePipelineIndex = -1;
+
+  COMET_CHECK_VK(
+      vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipeline_info,
+                               VK_NULL_HANDLE, &pipeline->handle),
+      "Failed to create graphics pipeline!");
+
+  return pipelines_.Emplace(pipeline->id, pipeline).value;
+}
+
+void PipelineHandler::DestroyLayout(PipelineLayoutId pipeline_layout_id) {
+  DestroyLayout(GetLayout(pipeline_layout_id));
+}
+
+void PipelineHandler::DestroyLayout(PipelineLayout* pipeline_layout) {
+  DestroyLayout(pipeline_layout, false);
+}
+
+void PipelineHandler::Destroy(PipelineId pipeline_id) {
+  Destroy(Get(pipeline_id));
+}
+
+void PipelineHandler::Destroy(Pipeline* pipeline) { Destroy(pipeline, false); }
+
+void PipelineHandler::Bind(const Pipeline* pipeline) {
+  if (pipeline == bound_pipeline_) {
+    return;
+  }
+
+  COMET_ASSERT(pipeline->handle != VK_NULL_HANDLE,
+               "Pipeline handle is null! Unable to bind!");
+
+  vkCmdBindPipeline(context_->GetFrameData().command_buffer_handle,
+                    pipeline->type == PipelineType::Graphics
+                        ? VK_PIPELINE_BIND_POINT_GRAPHICS
+                        : VK_PIPELINE_BIND_POINT_COMPUTE,
+                    pipeline->handle);
+
+  bound_pipeline_ = pipeline;
+}
+
+void PipelineHandler::Reset() { bound_pipeline_ = nullptr; }
 
 Pipeline* PipelineHandler::Get(PipelineId pipeline_id) {
   auto* pipeline{TryGet(pipeline_id)};
@@ -166,33 +185,59 @@ Pipeline* PipelineHandler::Get(PipelineId pipeline_id) {
 }
 
 Pipeline* PipelineHandler::TryGet(PipelineId pipeline_id) {
-  auto it{pipelines_.find(pipeline_id)};
+  auto** pipeline{pipelines_.TryGet(pipeline_id)};
 
-  if (it == pipelines_.end()) {
+  if (pipeline == nullptr) {
     return nullptr;
   }
 
-  return &it->second;
+  return *pipeline;
 }
 
-void PipelineHandler::Destroy(Pipeline& pipeline, bool is_destroying_handler) {
-  if (pipeline.handle != VK_NULL_HANDLE) {
-    vkDestroyPipeline(context_->GetDevice(), pipeline.handle, VK_NULL_HANDLE);
-    pipeline.handle = VK_NULL_HANDLE;
+PipelineLayout* PipelineHandler::GetLayout(
+    PipelineLayoutId pipeline_layout_id) {
+  auto* pipeline_layout{TryGetLayout(pipeline_layout_id)};
+  COMET_ASSERT(pipeline_layout != nullptr,
+               "Requested pipeline layout does not exist: ", pipeline_layout_id,
+               "!");
+  return pipeline_layout;
+}
+
+PipelineLayout* PipelineHandler::TryGetLayout(
+    PipelineLayoutId pipeline_layout_id) {
+  auto** pipeline_layout{pipeline_layouts_.TryGet(pipeline_layout_id)};
+
+  if (pipeline_layout == nullptr) {
+    return nullptr;
   }
 
-  if (pipeline.layout_handle != VK_NULL_HANDLE) {
-    vkDestroyPipelineLayout(context_->GetDevice(), pipeline.layout_handle,
-                            VK_NULL_HANDLE);
-    pipeline.layout_handle = VK_NULL_HANDLE;
+  return *pipeline_layout;
+}
+
+void PipelineHandler::Destroy(Pipeline* pipeline, bool is_destroying_handler) {
+  if (pipeline->handle != VK_NULL_HANDLE) {
+    vkDestroyPipeline(context_->GetDevice(), pipeline->handle, VK_NULL_HANDLE);
   }
 
   if (!is_destroying_handler) {
-    pipelines_.erase(pipeline.id);
+    pipelines_.Remove(pipeline->id);
   }
 
-  pipeline.id = kInvalidPipelineId;
-  pipeline.type = PipelineType::Unknown;
+  allocator_.Deallocate(pipeline);
+}
+
+void PipelineHandler::DestroyLayout(PipelineLayout* pipeline_layout,
+                                    bool is_destroying_handler) {
+  if (pipeline_layout->handle != VK_NULL_HANDLE) {
+    vkDestroyPipelineLayout(context_->GetDevice(), pipeline_layout->handle,
+                            VK_NULL_HANDLE);
+  }
+
+  if (!is_destroying_handler) {
+    pipeline_layouts_.Remove(pipeline_layout->id);
+  }
+
+  allocator_.Deallocate(pipeline_layout);
 }
 }  // namespace vk
 }  // namespace rendering

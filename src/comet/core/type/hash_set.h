@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
@@ -30,7 +31,7 @@ struct DefaultSetHashLogic : public SetHashLogic<T, T> {
 
   static const EntryHashable& GetHashable(const EntryValue& obj) { return obj; }
 
-  static usize Hash(const EntryHashable& hashable) {
+  static HashValue Hash(const EntryHashable& hashable) {
     return GenerateHash(hashable);
   }
 
@@ -360,12 +361,6 @@ class HashSet {
     Rehash(bucket_count);
   }
 
-  void CheckSize() {
-    if (this->entry_count_ + 1 > this->bucket_count_ * max_load_factor_) {
-      Reserve(this->entry_count_ * 2);
-    }
-  }
-
   bool IsContained(const Hashable& hashable) const {
     auto index{GetBucketIndex(hashable)};
 
@@ -390,9 +385,17 @@ class HashSet {
 
   usize GetBucketCount() const noexcept { return this->bucket_count_; }
 
+  bool IsEmpty() const noexcept { return this->entry_count_ == 0; }
+
   f32 GetMaxLoadFactor() const noexcept { return this->max_load_factor_; }
 
  private:
+  void CheckSize() {
+    if (this->entry_count_ + 1 > this->bucket_count_ * max_load_factor_) {
+      Reserve(this->entry_count_ * 2);
+    }
+  }
+
   usize GetBucketIndex(const Hashable& hashable) const {
     if (this->bucket_count_ == 0) {
       return kInvalidIndex;

@@ -1,8 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "opengl_debug_view.h"
+
+#include "comet/profiler/profiler.h"
 
 namespace comet {
 namespace rendering {
@@ -29,6 +33,7 @@ void DebugView::Destroy() {
 }
 
 void DebugView::Update(const ViewPacket& packet) {
+  COMET_PROFILE("DebugView::Update");
   render_proxy_handler_->Update(packet.frame_count);
   shader_handler_->Bind(*shader_);
   ShaderPacket shader_packet{};

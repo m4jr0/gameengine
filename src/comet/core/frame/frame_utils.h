@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -11,6 +11,7 @@
 #include "comet/core/type/bitset.h"
 #include "comet/core/type/hash_set.h"
 #include "comet/core/type/map.h"
+#include "comet/core/type/ordered_set.h"
 
 namespace comet {
 namespace frame {
@@ -53,6 +54,17 @@ class DoubleFrameArray : public Array<T> {
       : Array<T>{&GetDoubleFrameAllocator(), from, to} {}
 };
 
+class FrameBitset : public Bitset {
+ public:
+  FrameBitset(usize bit_count) : Bitset{&GetFrameAllocator(), bit_count} {}
+};
+
+class DoubleFrameBitset : public Bitset {
+ public:
+  DoubleFrameBitset(usize bit_count)
+      : Bitset{&GetDoubleFrameAllocator(), bit_count} {}
+};
+
 template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
 class FrameHashSet : public HashSet<T, HashLogic> {
  public:
@@ -91,17 +103,63 @@ class DoubleFrameMap : public Map<Key, Value, HashLogic> {
       : Map<Key, Value, HashLogic>{&GetDoubleFrameAllocator(), capacity} {}
 };
 
-class FrameBitset : public Bitset {
+template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
+class FrameOrderedSet : public OrderedSet<T, HashLogic> {
  public:
-  FrameBitset(usize bit_count) : Bitset{&GetFrameAllocator(), bit_count} {}
+  FrameOrderedSet() : OrderedSet<T, HashLogic>{&GetFrameAllocator()} {}
+
+  FrameOrderedSet(usize capacity)
+      : OrderedSet<T, HashLogic>{&GetFrameAllocator(), capacity} {}
 };
 
-class DoubleFrameBitset : public Bitset {
+template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
+class DoubleFrameOrderedSet : public OrderedSet<T, HashLogic> {
  public:
-  DoubleFrameBitset(usize bit_count)
-      : Bitset{&GetDoubleFrameAllocator(), bit_count} {}
+  DoubleFrameOrderedSet()
+      : OrderedSet<T, HashLogic>{&GetDoubleFrameAllocator()} {}
+
+  DoubleFrameOrderedSet(usize capacity)
+      : HashSet<T, HashLogic>{&GetDoubleFrameAllocator(), capacity} {}
 };
 }  // namespace frame
 }  // namespace comet
+
+#define COMET_FRAME_ARRAY(T, ...) \
+  COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameArray<T>, ##__VA_ARGS__)
+
+#define COMET_DOUBLE_FRAME_ARRAY(T, ...)                                       \
+  COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::DoubleFrameArray<T>, \
+                                            ##__VA_ARGS__)
+
+#define COMET_FRAME_BITSET(...) \
+  COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameBitset, ##__VA_ARGS__)
+
+#define COMET_DOUBLE_FRAME_BITSET(...)                                       \
+  COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::DoubleFrameBitset, \
+                                            ##__VA_ARGS__)
+
+#define COMET_FRAME_HASH_SET(T, ...)                                \
+  COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameHashSet<T>, \
+                                     ##__VA_ARGS__)
+
+#define COMET_DOUBLE_FRAME_HASH_SET(T, ...)  \
+  COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE( \
+      comet::frame::DoubleFrameHashSet<T>, ##__VA_ARGS__)
+
+#define COMET_FRAME_MAP(K, V, ...)                                 \
+  COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameMap<K, V>, \
+                                     ##__VA_ARGS__)
+
+#define COMET_DOUBLE_FRAME_MAP(K, V, ...)    \
+  COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE( \
+      comet::frame::DoubleFrameMap<K, V>, ##__VA_ARGS__)
+
+#define COMET_FRAME_ORDERED_SET(T, ...)                                \
+  COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameOrderedSet<T>, \
+                                     ##__VA_ARGS__)
+
+#define COMET_DOUBLE_FRAME_ORDERED_SET(T, ...) \
+  COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(   \
+      comet::frame::DoubleFrameOrderedSet<T>, ##__VA_ARGS__)
 
 #endif  // COMET_COMET_CORE_FRAME_UTILS_H_

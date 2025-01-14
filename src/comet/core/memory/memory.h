@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -36,12 +36,11 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagTaggedHeap,
   kEngineMemoryTagGid,
   kEngineMemoryTagStringId,
-  kEngineMemoryTagFrame0,
-  kEngineMemoryTagFrame1,
-  kEngineMemoryTagFrame2,
-  kEngineMemoryTagDoubleFrame0,
-  kEngineMemoryTagDoubleFrame1,
-  kEngineMemoryTagDoubleFrame2,
+  kEngineMemoryTagFrame,
+  kEngineMemoryTagDoubleFrame,
+  kEngineMemoryTagFrameExtended,
+  kEngineMemoryTagDoubleFrameExtended1,
+  kEngineMemoryTagDoubleFrameExtended2,
   kEngineMemoryTagGeometry,
   kEngineMemoryTagRendering,
   kEngineMemoryTagRenderingInternal,
@@ -56,6 +55,9 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagUserBase = kU32Max,
   kEngineMemoryTagInvalid = kU64Max
 };
+
+template <typename T>
+using UniquePtr = std::unique_ptr<T>;
 
 template <typename T>
 using CustomUniquePtr = std::unique_ptr<T, std::function<void(T*)>>;

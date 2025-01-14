@@ -1,14 +1,15 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "string_id.h"
+#include "comet_pch.h"
 
-#include <memory>
+#include "string_id.h"
 
 #include "comet/core/c_string.h"
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_LABELIZE_STRING_IDS
@@ -208,7 +209,8 @@ const schar* StringIdHandler::Labelize(StringId string_id) const {
 }
 
 StringIdHandler* SetHandler(bool is_destroy) {
-  static std::unique_ptr<stringid::StringIdHandler> string_id_handler{nullptr};
+  static memory::UniquePtr<stringid::StringIdHandler> string_id_handler{
+      nullptr};
 
   if (is_destroy) {
     string_id_handler = nullptr;

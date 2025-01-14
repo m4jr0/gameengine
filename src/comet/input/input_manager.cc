@@ -1,12 +1,14 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "input_manager.h"
 
 #include "comet/core/game_state_manager.h"
 #include "comet/event/event_manager.h"
-#include "comet/event/input_event.h"
+#include "comet/input/input_event.h"
 
 #ifdef COMET_IMGUI
 #include "imgui_impl_glfw.h"
@@ -38,8 +40,7 @@ void InputManager::Initialize() {
       return;
     }
 
-    event::EventManager::Get().FireEvent<event::MouseScrollEvent>(x_offset,
-                                                                  y_offset);
+    event::EventManager::Get().FireEvent<MouseScrollEvent>(x_offset, y_offset);
   });
 
   glfwSetCursorPosCallback(
@@ -55,7 +56,7 @@ void InputManager::Initialize() {
           return;
         }
 
-        event::EventManager::Get().FireEvent<event::MouseMoveEvent>(
+        event::EventManager::Get().FireEvent<MouseMoveEvent>(
             math::Vec2{x_pos, y_pos});
       });
 
@@ -76,7 +77,7 @@ void InputManager::Initialize() {
           return;
         }
 
-        event::EventManager::Get().FireEvent<event::KeyboardEvent>(
+        event::EventManager::Get().FireEvent<KeyboardEvent>(
             static_cast<input::KeyCode>(key),
             static_cast<input::ScanCode>(scan_code),
             static_cast<input::Action>(action), static_cast<input::Mods>(mods));
@@ -103,11 +104,11 @@ void InputManager::Initialize() {
         auto action{static_cast<Action>(raw_action)};
 
         if (action == Action::Press) {
-          event::EventManager::Get().FireEvent<event::MouseClickEvent>(
+          event::EventManager::Get().FireEvent<MouseClickEvent>(
               static_cast<MouseButton>(raw_button),
               static_cast<Mods>(raw_mods));
         } else if (action == Action::Release) {
-          event::EventManager::Get().FireEvent<event::MouseReleaseEvent>(
+          event::EventManager::Get().FireEvent<MouseReleaseEvent>(
               static_cast<MouseButton>(raw_button),
               static_cast<Mods>(raw_mods));
         }

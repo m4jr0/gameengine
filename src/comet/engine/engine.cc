@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "engine.h"
 
@@ -12,6 +14,7 @@
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/frame/frame_manager.h"
 #include "comet/core/game_state_manager.h"
+#include "comet/core/logic/game_logic_manager.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
 #include "comet/core/type/gid.h"
@@ -19,13 +22,15 @@
 #include "comet/entity/entity_manager.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
-#include "comet/event/window_event.h"
 #include "comet/geometry/geometry_manager.h"
 #include "comet/input/input_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/rendering_manager.h"
+#include "comet/rendering/window/window_event.h"
 #include "comet/resource/resource_manager.h"
+#include "comet/scene/scene_event.h"
+#include "comet/scene/scene_manager.h"
 #include "comet/time/time_manager.h"
 
 #ifdef COMET_PROFILING
@@ -69,6 +74,16 @@ void Engine::Run() {
   try {
     is_running_ = true;
     time::TimeManager::Get().Initialize();
+
+    auto& scene_manager{scene::SceneManager::Get()};
+    scene_manager.Initialize();
+
+    auto& frame_manager{frame::FrameManager::Get()};
+    auto& active_frames{frame_manager.GetInFlightFrames()};
+
+    event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>(
+        active_frames.lead_frame);
+
     // To catch up time taken to render.
     f64 lag{0.0};
     COMET_LOG_CORE_INFO("Comet started");
@@ -105,26 +120,17 @@ void Engine::Update(f64& lag) {
 
   auto& frame_manager{frame::FrameManager::Get()};
   auto& active_frames{frame_manager.GetInFlightFrames()};
-
   auto& frame_packet{active_frames.lead_frame};
   frame_packet->lag = lag;
 
-  physics::PhysicsManager::Get().Update(frame_packet);
-  entity::EntityManager::Get().DispatchComponentChanges();
-
-  frame_packet->interpolation =
-      lag / time::TimeManager::Get().GetFixedDeltaTime();
-
-  animation::AnimationManager::Get().Update(active_frames.middle_frame);
-  rendering::RenderingManager::Get().Update(active_frames.trail_frame);
-  event::EventManager::Get().FireAllEvents();
+  GameLogicManager::Get().Update(frame_packet);
+  rendering::RenderingManager::Get().Update(active_frames.middle_frame);
+  lag = frame_packet->lag;
   frame_manager.Update();
 
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Update();
 #endif  // COMET_PROFILING
-
-  lag = frame_packet->lag;
 }
 
 void Engine::Stop() {
@@ -171,12 +177,13 @@ void Engine::Load() {
 
   const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
 
-  event::EventManager::Get().Register(event_function,
-                                      event::WindowCloseEvent::kStaticType_);
+  event::EventManager::Get().Register(
+      event_function, rendering::WindowCloseEvent::kStaticType_);
 
   animation::AnimationManager::Get().Initialize();
   entity::EntityManager::Get().Initialize();
   geometry::GeometryManager::Get().Initialize();
+  GameLogicManager::Get().Initialize();
 }
 
 void Engine::PostLoad() {
@@ -186,7 +193,10 @@ void Engine::PostLoad() {
 
 void Engine::PreUnload() {
   GameStateManager::Get().Shutdown();
+  scene::SceneManager::Get().Shutdown();
+  time::TimeManager::Get().Shutdown();
   input::InputManager::Get().Shutdown();
+  GameLogicManager::Get().Shutdown();
   geometry::GeometryManager::Get().Shutdown();
   entity::EntityManager::Get().Shutdown();
   animation::AnimationManager::Get().Shutdown();
@@ -196,7 +206,6 @@ void Engine::PreUnload() {
 #ifdef COMET_DEBUG
   rendering::DebuggerDisplayerManager::Get().Shutdown();
 #endif  // COMET_DEBUG
-  time::TimeManager::Get().Shutdown();
 }
 
 void Engine::Unload() {
@@ -247,7 +256,7 @@ Engine& Engine::Get() { return *Engine::engine_; }
 void Engine::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
-  if (event_type == event::WindowCloseEvent::kStaticType_) {
+  if (event_type == rendering::WindowCloseEvent::kStaticType_) {
     COMET_LOG_CORE_DEBUG("Close event.");
     Quit();
   }

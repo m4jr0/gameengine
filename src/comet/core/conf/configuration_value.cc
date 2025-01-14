@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "configuration_value.h"
 
@@ -42,7 +44,7 @@ ConfValue GetDefaultValue(ConfKey key) {
   } else if (key == kCoreIsMainThreadWorkerDisabled) {
     default_value.bool_value = false;
   } else if (key == kCoreTaggedHeapCapacity) {
-    default_value.u32_value = 2147483648;  // 2 GiB.
+    default_value.u64_value = 4294967296;  // 4 GiB.
   } else if (key == kCoreFiberFrameAllocatorBaseCapacity) {
     default_value.u32_value = 4194304;  // 4 MiB.
   } else if (key == kCoreIOFrameAllocatorBaseCapacity) {

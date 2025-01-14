@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -19,6 +19,9 @@ constexpr T ConvertToRadians(T x) {
 }
 
 Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis);
+Mat4 Translate(const Mat4& model, const Vec3& translation);
+Mat4 Scale(const Mat4& model, f32 scale_factor);
+Mat4 Scale(const Mat4& model, const Vec3& scale_factors);
 
 template <typename T>
 T Cos(T x) {

@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -34,22 +34,29 @@ struct Shader {
   sptrdiff bound_ubo_offset{0};
   MaterialInstanceId bound_instance_index{kInvalidMaterialInstanceId};
   ShaderUniformData global_uniform_data{};
+  ShaderStorageData storage_data{};
   ShaderUniformBufferObjectData global_ubo_data{};
   ShaderUniformBufferObjectData instance_ubo_data{};
   Buffer uniform_buffer{};
   VkDescriptorPool descriptor_pool_handle{VK_NULL_HANDLE};
   const RenderPass* render_pass{nullptr};
-  const Pipeline* pipeline{nullptr};
+  const Pipeline* graphics_pipeline{nullptr};
+  const Pipeline* compute_pipeline{nullptr};
   MaterialInstances instances{};
   DescriptorSetLayoutBindings layout_bindings{};
   // One per frame
-  std::vector<VkVertexInputAttributeDescription> vertex_attributes{};
+  Array<VkVertexInputAttributeDescription> vertex_attributes{};
   StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>
       layout_handles{};
-  std::vector<ShaderUniform> uniforms{};
+  Array<ShaderUniform> uniforms{};
+  Array<ShaderConstant> constants{};
+  Array<ShaderStorage> storages{};
+  ShaderDescriptorSetIndices descriptor_set_indices{};
   ShaderUniformIndices uniform_indices{};
-  std::vector<const ShaderModule*> modules{};
-  std::vector<VkPushConstantRange> push_constant_ranges{};
+  ShaderConstantIndices constant_indices{};
+  ShaderStorageIndices storage_indices{};
+  Array<const ShaderModule*> modules{};
+  Array<VkPushConstantRange> push_constant_ranges{};
 };
 }  // namespace vk
 }  // namespace rendering

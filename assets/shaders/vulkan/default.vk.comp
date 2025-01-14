@@ -1,0 +1,51 @@
+#version 460
+
+struct ProxyInstance {
+    uint proxyId;
+    uint batchId;
+};
+
+struct IndirectProxy {
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint firstInstance;
+    uint proxyId;
+    uint batchId;
+};
+
+layout(local_size_x = 256) in;
+
+layout(push_constant) uniform Constants {
+    uint drawCount;
+} constants;
+
+layout(set = 2, binding = 1) buffer OutProxyIdsSsbo {   
+    uint outProxyIds[];
+};
+
+layout(set = 2, binding = 2) readonly buffer InProxyInstancesSsbo {
+    ProxyInstance inProxyInstances[];
+};
+
+layout(set = 2, binding = 3) buffer InIndirectProxiesSsbo {
+    IndirectProxy inIndirectProxies[];
+};
+
+void main() {
+    uint id = gl_GlobalInvocationID.x;
+
+    if (id >= constants.drawCount) {
+        return;
+    }
+
+    // TODO(m4jr0): Implement culling.
+    uint proxyId = inProxyInstances[id].proxyId;
+    uint batchId = inProxyInstances[id].batchId;
+
+    uint countIndex = atomicAdd(inIndirectProxies[batchId].instanceCount, 1);
+    uint instanceIndex = inIndirectProxies[batchId].firstInstance + countIndex;
+
+    outProxyIds[instanceIndex] = proxyId;
+}

@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
@@ -23,14 +24,6 @@
 namespace comet {
 namespace rendering {
 namespace vk {
-struct ViewPacket {
-  time::Interpolation interpolation{1};
-  ImageIndex image_index{kInvalidImageIndex};
-  VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
-  math::Mat4 projection_matrix{1.0f};
-  const math::Mat4* view_matrix{nullptr};
-};
-
 struct ViewDescr {
   bool is_first{false};
   bool is_last{false};
@@ -53,7 +46,7 @@ class View {
 
   virtual void Initialize();
   virtual void Destroy();
-  virtual void Update(const ViewPacket& packet) = 0;
+  virtual void Update(frame::FramePacket*) = 0;
   virtual void SetSize(WindowSize width, WindowSize height);
 
   bool IsInitialized() const noexcept;

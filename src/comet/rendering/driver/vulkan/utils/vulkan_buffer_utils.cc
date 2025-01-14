@@ -1,12 +1,15 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "vulkan_buffer_utils.h"
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
+#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
@@ -40,6 +43,8 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
       "Failed to create buffer");
   COMET_VK_SET_DEBUG_LABEL(buffer.handle,
                            debug_label != nullptr ? debug_label : "buffer");
+
+  buffer.size = size;
   return buffer;
 }
 
@@ -57,6 +62,7 @@ void DestroyBuffer(Buffer& buffer) {
                    buffer.allocation_handle);
   buffer.handle = VK_NULL_HANDLE;
   buffer.allocation_handle = VK_NULL_HANDLE;
+  buffer.size = 0;
 }
 
 void MapBuffer(Buffer& buffer) {
@@ -99,8 +105,10 @@ bool IsBufferInitialized(Buffer& buffer) noexcept {
          buffer.allocation_handle != VK_NULL_HANDLE;
 }
 
-void CopyBuffer(const Device& device, VkCommandPool command_pool_handle,
-                Buffer src_buffer, Buffer dst_buffer, VkDeviceSize size) {
+void CopyBufferImmediate(const Device& device,
+                         VkCommandPool command_pool_handle, Buffer src_buffer,
+                         Buffer dst_buffer, VkDeviceSize size,
+                         VkQueue queue_handle, BarrierDescr* barrier_descr) {
   auto command_buffer_handle{
       GenerateOneTimeCommand(device, command_pool_handle)};
   VkBufferCopy copy_region{};
@@ -108,25 +116,122 @@ void CopyBuffer(const Device& device, VkCommandPool command_pool_handle,
   copy_region.dstOffset = 0;
   copy_region.size = size;
 
-  VkBufferMemoryBarrier barrier = {};
-  barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-  barrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-  barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.buffer = dst_buffer.handle;
-  barrier.offset = 0;
-  barrier.size = VK_WHOLE_SIZE;
-
-  vkCmdPipelineBarrier(command_buffer_handle,
-                       VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                       VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, VK_NULL_HANDLE, 1,
-                       &barrier, 0, VK_NULL_HANDLE);
+  if (barrier_descr != nullptr) {
+    vkCmdPipelineBarrier(command_buffer_handle, barrier_descr->src_stage_mask,
+                         barrier_descr->dst_stage_mask, 0, 0, VK_NULL_HANDLE, 1,
+                         &barrier_descr->barrier, 0, VK_NULL_HANDLE);
+  }
 
   vkCmdCopyBuffer(command_buffer_handle, src_buffer.handle, dst_buffer.handle,
                   1, &copy_region);
   SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
-                       device.GetGraphicsQueueHandle());
+                       queue_handle);
+}
+
+void ReallocateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
+                      VkDeviceSize new_size, VkBufferUsageFlags usage,
+                      VmaMemoryUsage vma_memory_usage,
+                      VkMemoryPropertyFlags memory_property_flags,
+                      VmaAllocationCreateFlags vma_flags,
+                      VkSharingMode sharing_mode, const schar* debug_label) {
+  if (!IsBufferInitialized(buffer)) {
+    buffer = GenerateBuffer(allocator_handle, new_size, usage, vma_memory_usage,
+                            memory_property_flags, vma_flags, sharing_mode,
+                            debug_label);
+    return;
+  }
+
+  if (buffer.size >= new_size) {
+    return;
+  }
+
+  auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
+                                 vma_memory_usage, memory_property_flags,
+                                 vma_flags, sharing_mode, debug_label)};
+  DestroyBuffer(buffer);
+  buffer = new_buffer;
+}
+
+void ResizeBuffer(Buffer& buffer, const Device& device,
+                  VkCommandPool command_pool_handle,
+                  VmaAllocator allocator_handle, VkDeviceSize new_size,
+                  VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
+                  VkQueue queue_handle,
+                  VkMemoryPropertyFlags memory_property_flags,
+                  VmaAllocationCreateFlags vma_flags,
+                  VkSharingMode sharing_mode, BarrierDescr* barrier_descr,
+                  const schar* debug_label) {
+  if (!IsBufferInitialized(buffer)) {
+    buffer = GenerateBuffer(allocator_handle, new_size, usage, vma_memory_usage,
+                            memory_property_flags, vma_flags, sharing_mode,
+                            debug_label);
+    return;
+  }
+
+  if (buffer.size >= new_size) {
+    return;
+  }
+
+  auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
+                                 vma_memory_usage, memory_property_flags,
+                                 vma_flags, sharing_mode, debug_label)};
+
+  COMET_ASSERT(
+      command_pool_handle != VK_NULL_HANDLE,
+      "Cannot copy current buffer's content, as no command pool was provided!");
+
+  CopyBufferImmediate(device, command_pool_handle, buffer, new_buffer,
+                      buffer.size, queue_handle, barrier_descr);
+
+  DestroyBuffer(buffer);
+  buffer = new_buffer;
+}
+
+void AddBufferMemoryBarrier(const Buffer& buffer,
+                            frame::FrameArray<VkBufferMemoryBarrier>* barriers,
+                            VkAccessFlags src_access_mask,
+                            VkAccessFlags dst_access_mask,
+                            u32 src_queue_family_index,
+                            u32 dst_queue_family_index, VkDeviceSize offset,
+                            VkDeviceSize size) {
+  AddBufferMemoryBarrier(buffer.handle, barriers, src_access_mask,
+                         dst_access_mask, src_queue_family_index,
+                         dst_queue_family_index, offset, size);
+}
+
+void AddBufferMemoryBarrier(VkBuffer buffer_handle,
+                            frame::FrameArray<VkBufferMemoryBarrier>* barriers,
+                            VkAccessFlags src_access_mask,
+                            VkAccessFlags dst_access_mask,
+                            u32 src_queue_family_index,
+                            u32 dst_queue_family_index, VkDeviceSize offset,
+                            VkDeviceSize size) {
+  COMET_ASSERT(barriers != nullptr, "Barriers is null!");
+
+  if (buffer_handle == VK_NULL_HANDLE) {
+    return;
+  }
+
+  barriers->EmplaceBack(init::GenerateBufferMemoryBarrier(
+      buffer_handle, src_access_mask, dst_access_mask, src_queue_family_index,
+      dst_queue_family_index, offset, size));
+}
+
+void ApplyBufferMemoryBarriers(
+    frame::FrameArray<VkBufferMemoryBarrier>** barriers_ptr,
+    VkCommandBuffer command_buffer_handle, VkPipelineStageFlags src_stage_mask,
+    VkPipelineStageFlags dst_stage_mask) {
+  auto* barriers{*barriers_ptr};
+
+  if (barriers == nullptr) {
+    return;
+  }
+
+  vkCmdPipelineBarrier(command_buffer_handle, src_stage_mask, dst_stage_mask, 0,
+                       0, VK_NULL_HANDLE, static_cast<u32>(barriers->GetSize()),
+                       barriers->GetData(), 0, VK_NULL_HANDLE);
+
+  barriers = nullptr;
 }
 }  // namespace vk
 }  // namespace rendering

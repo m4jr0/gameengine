@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -38,10 +38,9 @@ class RenderProxyHandler : public Handler {
   void Shutdown() override;
 
   void Update(FrameIndex frame_count);
-  void DrawProxies(FrameIndex frame_count, Shader& shader);
+  void Draw(FrameIndex frame_count, Shader& shader);
   // TODO(m4jr0): Remove temporary code.
   void DrawProxiesForDebugging(Shader& shader);
-  u32 GetDrawCount() const noexcept;
 
  private:
   RenderProxy GenerateInternal(MeshProxy& mesh, Material& material,

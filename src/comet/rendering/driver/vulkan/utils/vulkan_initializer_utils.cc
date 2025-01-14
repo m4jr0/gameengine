@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "vulkan_initializer_utils.h"
 
@@ -68,13 +70,13 @@ VkDeviceQueueCreateInfo GenerateDeviceQueueCreateInfo(
 }
 
 VkDeviceCreateInfo GenerateDeviceCreateInfo(
-    const std::vector<VkDeviceQueueCreateInfo>& queue_create_info,
+    const Array<VkDeviceQueueCreateInfo>& queue_create_info,
     const VkPhysicalDeviceFeatures& physical_device_features,
     const schar* const* device_extensions, u32 device_extension_count) {
   VkDeviceCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  info.queueCreateInfoCount = static_cast<u32>(queue_create_info.size());
-  info.pQueueCreateInfos = queue_create_info.data();
+  info.queueCreateInfoCount = static_cast<u32>(queue_create_info.GetSize());
+  info.pQueueCreateInfos = queue_create_info.GetData();
   info.pEnabledFeatures = &physical_device_features;
   info.enabledExtensionCount = device_extension_count;
   info.ppEnabledExtensionNames = device_extensions;
@@ -98,7 +100,7 @@ VkSwapchainCreateInfoKHR GenerateSwapchainCreateInfo(
     VkSurfaceKHR surface_handle, const VkSurfaceFormatKHR& surface_format,
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
     const SwapchainSupportDetails& details,
-    const std::vector<u32>& queue_family_unique_indices, u32 image_count) {
+    const Array<u32>& queue_family_unique_indices, u32 image_count) {
   VkSwapchainCreateInfoKHR info{};
   info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   info.surface = surface_handle;
@@ -109,15 +111,15 @@ VkSwapchainCreateInfoKHR GenerateSwapchainCreateInfo(
   info.imageArrayLayers = 1;  // For 2D purposes.
   info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  if (queue_family_unique_indices.size() == 1) {
+  if (queue_family_unique_indices.GetSize() == 1) {
     info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     info.queueFamilyIndexCount = 0;             // Optional.
     info.pQueueFamilyIndices = VK_NULL_HANDLE;  // Optional.
   } else {
     info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     info.queueFamilyIndexCount =
-        static_cast<u32>(queue_family_unique_indices.size());
-    info.pQueueFamilyIndices = queue_family_unique_indices.data();
+        static_cast<u32>(queue_family_unique_indices.GetSize());
+    info.pQueueFamilyIndices = queue_family_unique_indices.GetData();
   }
 
   info.preTransform = details.capabilities.currentTransform;
@@ -149,18 +151,19 @@ VkSemaphoreCreateInfo GenerateSemaphoreCreateInfo(
 
 VkSubmitInfo GenerateSubmitInfo(
     const VkCommandBuffer* command_buffer_handle,
-    const VkSemaphore* wait_semaphore, const VkSemaphore* signal_semaphore,
+    const VkSemaphore* wait_semaphores, u32 wait_semaphore_count,
+    const VkSemaphore* signal_semaphores, u32 signal_semaphore_count,
     const VkPipelineStageFlags* wait_dst_stage_mask) {
   VkSubmitInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   info.pNext = VK_NULL_HANDLE;
-  info.waitSemaphoreCount = wait_semaphore != VK_NULL_HANDLE ? 1 : 0;
-  info.pWaitSemaphores = wait_semaphore;
+  info.waitSemaphoreCount = wait_semaphore_count;
+  info.pWaitSemaphores = wait_semaphores;
   info.pWaitDstStageMask = wait_dst_stage_mask;
   info.commandBufferCount = 1;
   info.pCommandBuffers = command_buffer_handle;
-  info.signalSemaphoreCount = signal_semaphore != VK_NULL_HANDLE ? 1 : 0;
-  info.pSignalSemaphores = signal_semaphore;
+  info.signalSemaphoreCount = signal_semaphore_count;
+  info.pSignalSemaphores = signal_semaphores;
   return info;
 }
 
@@ -324,7 +327,7 @@ VkPipelineColorBlendStateCreateInfo GeneratePipelineColorBlendStateCreateInfo(
 }
 
 VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
-    const PipelineDescr& descr) {
+    const PipelineLayoutDescr& descr) {
   VkPipelineLayoutCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   info.pNext = VK_NULL_HANDLE;
@@ -339,13 +342,14 @@ VkPipelineLayoutCreateInfo GeneratePipelineLayoutCreateInfo(
     info.setLayoutCount = static_cast<u32>(descr.descriptor_set_layout_count);
   }
 
-  if (descr.push_constant_ranges == nullptr) {
+  if (descr.push_constant_ranges == nullptr ||
+      descr.push_constant_ranges->IsEmpty()) {
     info.pPushConstantRanges = VK_NULL_HANDLE;
     info.pushConstantRangeCount = 0;
   } else {
-    info.pPushConstantRanges = descr.push_constant_ranges->data();
+    info.pPushConstantRanges = descr.push_constant_ranges->GetData();
     info.pushConstantRangeCount =
-        static_cast<u32>(descr.push_constant_ranges->size());
+        static_cast<u32>(descr.push_constant_ranges->GetSize());
   }
 
   return info;
@@ -518,17 +522,17 @@ VkSamplerCreateInfo GenerateSamplerCreateInfo(
 
 VkSamplerCreateInfo GenerateSamplerCreateInfo(
     VkFilter filters, VkSamplerAddressMode address_mode,
-    const resource::TextureMap& texture_map, bool is_sampler_anisotropy,
+    const resource::TextureMap* texture_map, bool is_sampler_anisotropy,
     f32 max_sampler_anisotropy) {
   auto info{GenerateSamplerCreateInfo(filters, address_mode)};
 
   info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
   info.pNext = VK_NULL_HANDLE;
-  info.minFilter = GetFilter(texture_map.min_filter_mode);
-  info.magFilter = GetFilter(texture_map.mag_filter_mode);
-  info.addressModeU = GetSamplerAddressMode(texture_map.u_repeat_mode);
-  info.addressModeV = GetSamplerAddressMode(texture_map.v_repeat_mode);
-  info.addressModeW = GetSamplerAddressMode(texture_map.w_repeat_mode);
+  info.minFilter = GetFilter(texture_map->min_filter_mode);
+  info.magFilter = GetFilter(texture_map->mag_filter_mode);
+  info.addressModeU = GetSamplerAddressMode(texture_map->u_repeat_mode);
+  info.addressModeV = GetSamplerAddressMode(texture_map->v_repeat_mode);
+  info.addressModeW = GetSamplerAddressMode(texture_map->w_repeat_mode);
 
   info.anisotropyEnable = is_sampler_anisotropy ? VK_TRUE : VK_FALSE;
   info.maxAnisotropy = max_sampler_anisotropy;
@@ -542,6 +546,32 @@ VkSamplerCreateInfo GenerateSamplerCreateInfo(
   info.maxLod = VK_LOD_CLAMP_NONE;
 
   return info;
+}
+
+VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
+    const Buffer& buffer, VkAccessFlags src_access_mask,
+    VkAccessFlags dst_access_mask, u32 src_queue_family_index,
+    u32 dst_queue_family_index, VkDeviceSize offset, VkDeviceSize size) {
+  return GenerateBufferMemoryBarrier(buffer.handle, src_access_mask,
+                                     dst_access_mask, src_queue_family_index,
+                                     dst_queue_family_index, offset, size);
+}
+
+VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
+    VkBuffer buffer_handle, VkAccessFlags src_access_mask,
+    VkAccessFlags dst_access_mask, u32 src_queue_family_index,
+    u32 dst_queue_family_index, VkDeviceSize offset, VkDeviceSize size) {
+  VkBufferMemoryBarrier barrier = {};
+  barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+  barrier.pNext = VK_NULL_HANDLE;
+  barrier.srcAccessMask = src_access_mask;
+  barrier.dstAccessMask = dst_access_mask;
+  barrier.srcQueueFamilyIndex = src_queue_family_index;
+  barrier.dstQueueFamilyIndex = dst_queue_family_index;
+  barrier.buffer = buffer_handle;
+  barrier.offset = offset;
+  barrier.size = size;
+  return barrier;
 }
 }  // namespace init
 }  // namespace vk

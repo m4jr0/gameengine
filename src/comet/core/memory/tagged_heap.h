@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -67,7 +67,7 @@ class TaggedHeap {
   bool is_initialized_{false};
   usize total_block_count_{0};
   usize block_size_{0};
-  usize capacity_{COMET_CONF_U32(conf::kCoreTaggedHeapCapacity)};
+  usize capacity_{COMET_CONF_U64(conf::kCoreTaggedHeapCapacity)};
   MemoryDescr memory_descr_{GetMemoryDescr()};
   Bitset global_block_map_{};
   TagBlockMap tag_block_maps_[kBucketCount_][kTagsPerBucketCount_]{};

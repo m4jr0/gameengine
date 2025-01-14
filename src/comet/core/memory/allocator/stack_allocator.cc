@@ -1,8 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "stack_allocator.h"
+
+#include <utility>
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/tagged_heap.h"
@@ -84,10 +88,12 @@ void StackAllocator::Deallocate(void*) {
 void StackAllocator::Clear() { marker_ = root_; }
 
 FiberStackAllocator::FiberStackAllocator(usize base_capacity,
-                                         MemoryTag memory_tag)
+                                         MemoryTag memory_tag,
+                                         MemoryTag extended_memory_tag)
     : memory_tag_{memory_tag},
+      extended_memory_tag_{extended_memory_tag},
       base_capacity_{base_capacity},
-      current_capacity_{base_capacity_},
+      extended_capacity_{0},
       root_{nullptr},
       marker_{root_} {}
 
@@ -111,7 +117,9 @@ void FiberStackAllocator::Initialize() {
 void FiberStackAllocator::Destroy() {
   Allocator::Destroy();
   thread_contexts_.Destroy();
-  TaggedHeap::Get().DeallocateAll(memory_tag_);
+  auto& tagged_heap{TaggedHeap::Get()};
+  tagged_heap.DeallocateAll(memory_tag_);
+  tagged_heap.DeallocateAll(extended_memory_tag_);
   root_ = nullptr;
   base_capacity_ = 0;
   marker_ = nullptr;
@@ -133,10 +141,27 @@ void* FiberStackAllocator::AllocateAligned(usize size, Alignment align) {
     AllocateCommonMemory();
   }
 
-  p = AlignPointer(marker_, align);
-  COMET_ASSERT(p + size <= root_ + current_capacity_,
-               "Could not allocate enough memory (", size, ")!");
-  marker_ = p + size;
+  if (extended_marker_ == nullptr) {
+    p = AlignPointer(marker_, align);
+
+    if (p + size <= root_ + base_capacity_) {
+      marker_ = p + size;
+      return p;
+    }
+
+    COMET_ASSERT(extended_memory_tag_ != kEngineMemoryTagInvalid,
+                 "Could not allocate enough memory (", size, ")!");
+    ExtendCommonMemory(size * 2);
+  }
+
+  p = AlignPointer(extended_marker_, align);
+
+  if (p + size > extended_root_ + extended_capacity_) {
+    ExtendCommonMemory(size * 2);
+    p = AlignPointer(extended_marker_, align);
+  }
+
+  extended_marker_ = p + size;
   return p;
 }
 
@@ -151,13 +176,26 @@ void FiberStackAllocator::Clear() {
     context.marker = context.root;
   }
 
+  if (extended_root_ != nullptr) {
+    TaggedHeap::Get().DeallocateAll(extended_memory_tag_);
+    extended_root_ = extended_marker_ = nullptr;
+  }
+
   marker_ = root_;
 }
 
 void FiberStackAllocator::AllocateCommonMemory() {
-  root_ = static_cast<u8*>(TaggedHeap::Get().Allocate(
-      base_capacity_, memory_tag_, &current_capacity_));
+  root_ = static_cast<u8*>(
+      TaggedHeap::Get().Allocate(base_capacity_, memory_tag_, &base_capacity_));
   marker_ = root_;
+}
+
+void FiberStackAllocator::ExtendCommonMemory(usize capacity) {
+  COMET_ASSERT(extended_memory_tag_ != kEngineMemoryTagInvalid,
+               "Extended memory is not enabled on this stack allocator!");
+  extended_root_ = static_cast<u8*>(TaggedHeap::Get().Allocate(
+      capacity, extended_memory_tag_, &extended_capacity_));
+  extended_marker_ = extended_root_;
 }
 
 IOStackAllocator::IOStackAllocator(usize thread_capacity, MemoryTag memory_tag)

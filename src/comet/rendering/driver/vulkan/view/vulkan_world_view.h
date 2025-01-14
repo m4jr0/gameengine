@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -28,7 +28,7 @@ class WorldView : public ShaderView {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(const ViewPacket& packet) override;
+  void Update(frame::FramePacket* packet) override;
 
  private:
   RenderProxyHandler* render_proxy_handler_{nullptr};

@@ -1,15 +1,16 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 #define COMET_COMET_RENDERING_RENDERING_MANAGER_H_
 
-#include <memory>
-
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
+#include "comet/core/frame/frame_utils.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/time/time_manager.h"
@@ -35,7 +36,6 @@ class RenderingManager : public Manager {
   rendering::DriverType GetDriverType() const noexcept;
   FrameCount GetFrameRate() const noexcept;
   f32 GetFrameTime() const noexcept;
-  u32 GetDrawCount() const;
 
  private:
   void GenerateOpenGlDriver();
@@ -45,14 +45,14 @@ class RenderingManager : public Manager {
   void GenerateEmptyDriver();
 #endif  // COMET_DEBUG
   void FillDriverDescr(DriverDescr& descr) const;
-  std::vector<RenderingViewDescr> GenerateRenderingViewDescrs() const;
+  frame::FrameArray<RenderingViewDescr> GenerateRenderingViewDescrs() const;
   bool IsFpsCapReached() const;
 
   FrameCount frame_rate_{0};
   FrameCount counter_{0};
   f64 frame_time_threshold_{0};
   f64 current_time_{0};
-  std::unique_ptr<Driver> driver_{nullptr};
+  memory::UniquePtr<Driver> driver_{nullptr};
 };
 }  // namespace rendering
 }  // namespace comet

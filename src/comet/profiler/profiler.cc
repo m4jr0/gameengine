@@ -1,8 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "profiler.h"
+
+#include <utility>
 
 #include "comet/core/c_string.h"
 #include "comet/core/date.h"
@@ -183,7 +187,6 @@ ProfilerData::ProfilerData(ProfilerData&& other) noexcept
       physics_frame_rate{other.physics_frame_rate},
       rendering_frame_time{other.rendering_frame_time},
       rendering_frame_rate{other.rendering_frame_rate},
-      rendering_draw_count{other.rendering_draw_count},
       rendering_driver_type{other.rendering_driver_type},
       memory_use{other.memory_use},
       tag_use{std::move(other.tag_use)},
@@ -191,7 +194,6 @@ ProfilerData::ProfilerData(ProfilerData&& other) noexcept
   other.physics_frame_rate = 0;
   other.rendering_frame_time = 0;
   other.rendering_frame_rate = 0;
-  other.rendering_draw_count = 0;
   other.rendering_driver_type = rendering::DriverType::Unknown;
   other.memory_use = 0;
 }
@@ -204,7 +206,6 @@ ProfilerData& ProfilerData::operator=(ProfilerData&& other) noexcept {
   physics_frame_rate = other.physics_frame_rate;
   rendering_frame_time = other.rendering_frame_time;
   rendering_frame_rate = other.rendering_frame_rate;
-  rendering_draw_count = other.rendering_draw_count;
   rendering_driver_type = other.rendering_driver_type;
   memory_use = other.memory_use;
   tag_use = std::move(other.tag_use);
@@ -213,7 +214,6 @@ ProfilerData& ProfilerData::operator=(ProfilerData&& other) noexcept {
   other.physics_frame_rate = 0;
   other.rendering_frame_time = 0;
   other.rendering_frame_rate = 0;
-  other.rendering_draw_count = 0;
   other.rendering_driver_type = rendering::DriverType::Unknown;
   other.memory_use = 0;
   return *this;

@@ -1,9 +1,13 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "vulkan_image_utils.h"
 
+#include "comet/core/frame/frame_utils.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
@@ -19,20 +23,21 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
                    VkImageUsageFlags usage_flags,
                    VkMemoryPropertyFlags properties,
                    [[maybe_unused]] const schar* debug_label) {
-  const auto& queue_family_indices{device.GetQueueFamilyIndices()};
+  auto& queue_family_indices{device.GetQueueFamilyIndices()};
 
-  const std::vector<u32> family_indices{
-      queue_family_indices.transfer_family.value(),
-      queue_family_indices.graphics_family.value()};
+  frame::FrameArray<u32> family_indices{};
+  family_indices.Reserve(2);
+  family_indices.PushBack(queue_family_indices.transfer_family.value());
+  family_indices.PushBack(queue_family_indices.graphics_family.value());
 
   auto sharing_mode{VK_SHARING_MODE_EXCLUSIVE};
   u32 queue_family_index_count{0};
-  const u32* queue_family_indices_pointer{nullptr};
+  u32* queue_family_indices_pointer{nullptr};
 
   if (IsTransferFamilyInQueueFamilyIndices(queue_family_indices)) {
     sharing_mode = VK_SHARING_MODE_CONCURRENT;
     queue_family_index_count = 2;
-    queue_family_indices_pointer = family_indices.data();
+    queue_family_indices_pointer = family_indices.GetData();
   }
 
   auto create_info{init::GenerateImageCreateInfo(

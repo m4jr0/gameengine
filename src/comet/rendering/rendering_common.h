@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_RENDERING_COMMON_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/math/bounding_volume.h"
 #include "comet/math/vector.h"
@@ -103,7 +104,7 @@ struct RenderingViewDescr {
   RenderingViewId id{kInvalidRenderingViewId};
 };
 
-enum class ShaderModuleType : u8 { Unknown = 0, Vertex, Fragment };
+enum class ShaderModuleType : u8 { Unknown = 0, Compute, Vertex, Fragment };
 
 using ShaderVertexAttributeSize = u32;
 constexpr auto kInvalidShaderVertexAttributeSize{
@@ -125,7 +126,7 @@ enum class ShaderVertexAttributeType : u8 {
   U32
 };
 
-enum class ShaderUniformType : u8 {
+enum class ShaderVariableType : u8 {
   Unknown = 0,
   B32,
   S32,
@@ -164,49 +165,91 @@ enum class ShaderUniformType : u8 {
 using Alignment = usize;
 constexpr auto kInvalidAlignment{static_cast<Alignment>(-1)};
 
-Alignment GetScalarAlignment(ShaderUniformType type);
-Alignment GetStd140Alignment(ShaderUniformType type);
-Alignment GetStd430Alignment(ShaderUniformType type);
+Alignment GetScalarAlignment(ShaderVariableType type);
+Alignment GetStd140Alignment(ShaderVariableType type);
+Alignment GetStd430Alignment(ShaderVariableType type);
 
-constexpr auto kVertexAttributeDescrMaxNameLen{64};
+constexpr auto kVertexAttributeDescrMaxNameLen{63};
 
 struct ShaderVertexAttributeDescr {
   ShaderVertexAttributeType type{ShaderVertexAttributeType::Unknown};
-  schar name[kVertexAttributeDescrMaxNameLen]{'\0'};
+  schar name[kVertexAttributeDescrMaxNameLen + 1]{'\0'};
   usize name_len{0};
 };
 
 void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
              usize name_len);
 
+enum ShaderStageFlagBits {
+  kShaderStageFlagBitsNone = 0x0,
+  kShaderStageFlagBitsCompute = 0x1,
+  kShaderStageFlagBitsVertex = 0x2,
+  kShaderStageFlagBitsFragment = 0x4
+};
+
+using ShaderStageFlags = u8;
+
 using ShaderUniformSize = u32;
 constexpr auto kInvalidShaderUniformSize{static_cast<ShaderUniformSize>(-1)};
 
-enum class ShaderUniformScope : u8 { Unknown = 0, Global, Instance, Local };
-constexpr auto kShaderUniformDescrMaxNameLen{64};
+enum class ShaderUniformScope : u8 { Unknown = 0, Global, Instance };
+constexpr auto kShaderUniformDescrMaxNameLen{63};
 
 struct ShaderUniformDescr {
-  ShaderUniformType type{ShaderUniformType::Unknown};
+  ShaderVariableType type{ShaderVariableType::Unknown};
   ShaderUniformScope scope{ShaderUniformScope::Unknown};
-  schar name[kShaderUniformDescrMaxNameLen]{'\0'};
+  ShaderStageFlags stages{kShaderStageFlagBitsNone};
+  schar name[kShaderUniformDescrMaxNameLen + 1]{'\0'};
   usize name_len{0};
 };
 
+using ShaderConstantSize = u32;
+constexpr auto kInvalidShaderConstantSize{static_cast<ShaderConstantSize>(-1)};
+
+constexpr auto kShaderConstantDescrMaxNameLen{63};
+
+struct ShaderConstantDescr {
+  ShaderVariableType type{ShaderVariableType::Unknown};
+  ShaderStageFlags stages{kShaderStageFlagBitsNone};
+  schar name[kShaderConstantDescrMaxNameLen + 1]{'\0'};
+  usize name_len{0};
+};
+
+constexpr auto kShaderStoragePropertyDescrMaxNameLen{63};
+
+struct ShaderStoragePropertyDescr {
+  ShaderVariableType type{ShaderVariableType::Unknown};
+  schar name[kShaderStoragePropertyDescrMaxNameLen + 1]{'\0'};
+  usize name_len{0};
+};
+
+constexpr auto kShaderStorageDescrMaxNameLen{63};
+
+struct ShaderStorageDescr {
+  schar name[kShaderStorageDescrMaxNameLen + 1]{'\0'};
+  ShaderStageFlags stages{kShaderStageFlagBitsNone};
+  usize name_len{0};
+  Array<ShaderStoragePropertyDescr> properties{};
+};
+
 void SetName(ShaderUniformDescr& descr, const schar* name, usize name_len);
+void SetName(ShaderConstantDescr& descr, const schar* name, usize name_len);
+void SetName(ShaderStorageDescr& descr, const schar* name, usize name_len);
+void SetName(ShaderStoragePropertyDescr& descr, const schar* name,
+             usize name_len);
 
 constexpr auto kMaxShaderCount{256};
 constexpr auto kMaxShaderUniformCount{128};
+constexpr auto kMaxShaderConstantCount{32};
 constexpr auto kMaxShaderTextureMapCount{32};
 
 enum class CullMode { Unknown = 0, None, Front, Back, FrontAndBack };
 
-void GenerateGeometry(const math::Aabb& aabb,
-                      std::vector<geometry::Vertex>& vertices,
-                      std::vector<geometry::Index>& indices, bool is_visible);
+void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,
+                      Array<geometry::Index>& indices, bool is_visible);
 
-void GenerateGeometry(const Frustum& frustum,
-                      std::vector<geometry::Vertex>& vertices,
-                      std::vector<geometry::Index>& indices);
+void GenerateGeometry(const Frustum& frustum, Array<geometry::Vertex>& vertices,
+                      Array<geometry::Index>& indices);
 }  // namespace rendering
 }  // namespace comet
 

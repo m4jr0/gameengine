@@ -2,6 +2,7 @@
   "is_wireframe": false,
   "cull_mode": "front",
   "shader_module_paths": [
+    "shaders/vulkan/default.vk.comp",
     "shaders/vulkan/default.vk.vert",
     "shaders/vulkan/default.vk.frag"
   ],
@@ -35,52 +36,133 @@
     {
       "name": "projection",
       "type": "mat4",
-      "scope": "global"
+      "scope": "global",
+      "stages": ["vertex"]
     },
     {
       "name": "view",
       "type": "mat4",
-      "scope": "global"
+      "scope": "global",
+      "stages": ["vertex"]
     },
     {
       "name": "ambientColor",
       "type": "vec4",
-      "scope": "global"
+      "scope": "global",
+      "stages": ["vertex"]
     },
     {
       "name": "viewPos",
       "type": "vec3",
-      "scope": "global"
-    },
-    {
-      "name": "diffuseColor",
-      "type": "vec4",
-      "scope": "instance"
+      "scope": "global",
+      "stages": ["vertex"]
     },
     {
       "name": "diffuseMap",
       "type": "sampler",
-      "scope": "instance"
+      "scope": "instance",
+      "stages": ["fragment"]
     },
     {
       "name": "specularMap",
       "type": "sampler",
-      "scope": "instance"
+      "scope": "instance",
+      "stages": ["fragment"]
     },
     {
       "name": "normalMap",
       "type": "sampler",
-      "scope": "instance"
+      "scope": "instance",
+      "stages": ["fragment"]
+    },
+    {
+      "name": "diffuseColor",
+      "type": "vec4",
+      "scope": "instance",
+      "stages": ["fragment"]
     },
     {
       "name": "shininess",
       "type": "f32",
-      "scope": "instance"
+      "scope": "instance",
+      "stages": ["fragment"]
+    }
+  ],
+  "constants": [
+    {
+      "name": "drawCount",
+      "type": "u32",
+      "stages": ["compute"]
+    }
+  ],
+  "storages": [
+    {
+      "name": "proxyLocalDatas",
+      "stages": ["vertex"],
+      "layout": [
+        {
+          "name": "localCenter",
+          "type": "vec3"
+        },
+        {
+          "name": "localMaxExtents",
+          "type": "vec3"
+        },
+        {
+          "name": "transform",
+          "type": "mat4"
+        }
+      ]
     },
     {
-      "name": "model",
-      "type": "mat4",
-      "scope": "local"
+      "name": "proxyIds",
+      "stages": ["compute", "vertex"],
+      "layout": [
+        {
+          "name": "proxyId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "proxyInstances",
+      "stages": ["compute"],
+      "layout": [
+        {
+          "name": "proxyIndex",
+          "type": "u32"
+        },
+        {
+          "name": "batchId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "indirectProxies",
+      "stages": ["compute"],
+      "layout": [
+        {
+          "name": "indexCount",
+          "type": "u32"
+        },
+        {
+          "name": "instanceCount",
+          "type": "u32"
+        },
+        {
+          "name": "firstIndex",
+          "type": "u32"
+        },
+        {
+          "name": "vertexOffset",
+          "type": "s32"
+        },
+        {
+          "name": "firstInstance",
+          "type": "u32"
+        }
+      ]
     }
   ]
 }

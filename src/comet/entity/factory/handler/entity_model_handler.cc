@@ -1,8 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "entity_model_handler.h"
+
+#include <utility>
 
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
@@ -19,7 +23,8 @@
 
 namespace comet {
 namespace entity {
-EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
+EntityId ModelHandler::GenerateStatic(CTStringView model_path,
+                                      frame::FramePacket* packet) const {
   COMET_PROFILE("ModelHandler::GenerateStatic");
   const auto* model{
       resource::ResourceManager::Get().Load<resource::StaticModelResource>(
@@ -32,7 +37,10 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
   auto& entity_manager{EntityManager::Get()};
   auto root_entity_id{entity_manager.Generate()};
 
-  entity_manager.AddComponents(root_entity_id, physics::TransformComponent{},
+  physics::TransformComponent transform_cmp{};
+  transform_cmp.root_entity_id = root_entity_id;
+
+  entity_manager.AddComponents(root_entity_id, transform_cmp,
                                physics::TransformRootComponent{});
 
   auto& scheduler{job::Scheduler::Get()};
@@ -45,9 +53,6 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
 
   auto entity_ids{internal::ParentEntityIds{&frame::GetFrameAllocator(),
                                             model->meshes.GetSize()}};
-
-  auto test{HashSet<resource::ResourceId>{&frame::GetFrameAllocator(),
-                                          model->meshes.GetSize()}};
 
   for (const auto& mesh : model->meshes) {
     entity_ids[mesh.internal_id] = entity_manager.Generate();
@@ -66,6 +71,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
                                 : entity_ids[mesh.parent_id];
 
     job_params->mesh = &mesh;
+    job_params->packet = packet;
 
 #ifdef COMET_FIBER_DEBUG_LABEL
     schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1]{'\0'};
@@ -90,7 +96,8 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path) const {
   return root_entity_id;
 }
 
-EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
+EntityId ModelHandler::GenerateSkeletal(CTStringView model_path,
+                                        frame::FramePacket* packet) const {
   COMET_PROFILE("ModelHandler::GenerateSkeletal");
   const auto* model{
       resource::ResourceManager::Get().Load<resource::SkeletalModelResource>(
@@ -103,7 +110,10 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
   auto& entity_manager{EntityManager::Get()};
   auto root_entity_id{entity_manager.Generate()};
 
-  entity_manager.AddComponents(root_entity_id, physics::TransformComponent{},
+  physics::TransformComponent transform_cmp{};
+  transform_cmp.root_entity_id = root_entity_id;
+
+  entity_manager.AddComponents(root_entity_id, transform_cmp,
                                physics::TransformRootComponent{});
 
   auto& scheduler{job::Scheduler::Get()};
@@ -134,6 +144,7 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path) const {
                                 : entity_ids[mesh.parent_id];
 
     job_params->mesh = &mesh;
+    job_params->packet = packet;
 
 #ifdef COMET_FIBER_DEBUG_LABEL
     schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1]{'\0'};
@@ -177,6 +188,13 @@ void ModelHandler::OnStaticGeneration(job::JobParamsHandle params_handle) {
 
   EntityManager::Get().AddComponents(params->id, mesh_cmp, transform_cmp);
   EntityManager::Get().AddParent(params->id, transform_cmp.parent_entity_id);
+  auto* packet{params->packet};
+
+  if (packet == nullptr) {
+    return;
+  }
+
+  packet->RegisterNewGeometry(params->id, &mesh_cmp, &transform_cmp);
 }
 
 void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
@@ -202,6 +220,13 @@ void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
   EntityManager::Get().AddComponents(params->id, mesh_cmp, skeleton_cmp,
                                      transform_cmp);
   EntityManager::Get().AddParent(params->id, transform_cmp.parent_entity_id);
+  auto* packet{params->packet};
+
+  if (packet == nullptr) {
+    return;
+  }
+
+  packet->RegisterNewGeometry(params->id, &mesh_cmp, &transform_cmp);
 }
 }  // namespace entity
 }  // namespace comet

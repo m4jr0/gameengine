@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,10 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
@@ -19,16 +23,17 @@ namespace rendering {
 namespace vk {
 struct SwapchainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities{};
-  std::vector<VkSurfaceFormatKHR> formats{};
-  std::vector<VkPresentModeKHR> present_modes{};
+  Array<VkSurfaceFormatKHR> formats{};
+  Array<VkPresentModeKHR> present_modes{};
 };
 
-SwapchainSupportDetails QuerySwapchainSupportDetails(
-    VkPhysicalDevice physical_device_handle, VkSurfaceKHR surface_handle);
+void QuerySwapchainSupportDetails(VkPhysicalDevice physical_device_handle,
+                                  VkSurfaceKHR surface_handle,
+                                  SwapchainSupportDetails& details);
 VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
-    const std::vector<VkSurfaceFormatKHR>& formats);
+    const Array<VkSurfaceFormatKHR>& formats);
 VkPresentModeKHR ChooseSwapPresentMode(
-    const std::vector<VkPresentModeKHR>& present_modes, bool is_vsync = true,
+    const Array<VkPresentModeKHR>& present_modes, bool is_vsync = true,
     bool is_triple_buffering = true);
 VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
                             WindowSize current_width,
@@ -68,7 +73,7 @@ class Swapchain {
   VkFormat GetFormat() const noexcept;
   const VkExtent2D& GetExtent() const noexcept;
   u32 GetImageCount() const;
-  const std::vector<Image>& GetImages() const noexcept;
+  const Array<Image>& GetImages() const noexcept;
   const Image& GetColorImage() const noexcept;
   const Image& GetDepthImage() const noexcept;
 
@@ -85,9 +90,10 @@ class Swapchain {
   bool is_vsync_{false};
   bool is_triple_buffering_{false};
   ImageData image_data_{};
+  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
   VkFormat format_{VK_FORMAT_UNDEFINED};
   VkExtent2D extent_{0, 0};
-  std::vector<Image> images_{};
+  Array<Image> images_{};
   Image color_image_{};
   Image depth_image_{};
   VkSwapchainKHR handle_{VK_NULL_HANDLE};

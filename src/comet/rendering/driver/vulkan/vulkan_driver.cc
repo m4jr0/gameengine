@@ -1,16 +1,18 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#define VMA_IMPLEMENTATION
+#include "comet_pch.h"
 
+#define VMA_IMPLEMENTATION
 #include "vulkan_driver.h"
 
 #include "comet/core/c_string.h"
+#include "comet/core/frame/frame_utils.h"
 #include "comet/core/logger.h"
 #include "comet/core/type/array.h"
 #include "comet/event/event_manager.h"
-#include "comet/event/window_event.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/camera/camera.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
@@ -20,6 +22,7 @@
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/rendering/window/window_event.h"
 
 namespace comet {
 namespace rendering {
@@ -47,7 +50,7 @@ void VulkanDriver::Initialize() {
 
   event::EventManager::Get().Register(
       COMET_EVENT_BIND_FUNCTION(VulkanDriver::OnEvent),
-      event::WindowResizeEvent::kStaticType_);
+      rendering::WindowResizeEvent::kStaticType_);
 
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   InitializeDebugMessenger();
@@ -125,7 +128,8 @@ void VulkanDriver::Shutdown() {
   Driver::Shutdown();
 }
 
-void VulkanDriver::Update(time::Interpolation interpolation) {
+void VulkanDriver::Update(frame::FramePacket* packet) {
+  packet->projection_matrix[1][1] *= -1;  // Axis is inverted in Vulkan.
   window_->Update();
 
   if (swapchain_->IsReloadNeeded()) {
@@ -136,7 +140,7 @@ void VulkanDriver::Update(time::Interpolation interpolation) {
   }
 
   if (PreDraw()) {
-    Draw(interpolation);
+    Draw(packet);
     PostDraw();
   }
 
@@ -144,10 +148,6 @@ void VulkanDriver::Update(time::Interpolation interpolation) {
 }
 
 DriverType VulkanDriver::GetType() const noexcept { return DriverType::Vulkan; }
-
-u32 VulkanDriver::GetDrawCount() const {
-  return render_proxy_handler_->GetDrawCount();
-}
 
 void VulkanDriver::SetSize(WindowSize width, WindowSize height) {
   window_->SetSize(width, height);
@@ -160,9 +160,10 @@ void VulkanDriver::InitializeVulkanInstance() {
   u32 extension_count{0};
   vkEnumerateInstanceExtensionProperties(VK_NULL_HANDLE, &extension_count,
                                          VK_NULL_HANDLE);
-  std::vector<VkExtensionProperties> extensions(extension_count);
+  frame::FrameArray<VkExtensionProperties> extensions{};
+  extensions.Resize(extension_count);
   vkEnumerateInstanceExtensionProperties(VK_NULL_HANDLE, &extension_count,
-                                         extensions.data());
+                                         extensions.GetData());
 
   COMET_LOG_RENDERING_DEBUG("Available  extensions:");
 
@@ -191,7 +192,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.pApplicationInfo = &app_info;
 
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
-  std::vector<VkValidationFeatureEnableEXT> enabled_validation_features{
+  frame::FrameArray<VkValidationFeatureEnableEXT> enabled_validation_features{
 #ifdef COMET_VALIDATION_GPU_ASSISTED_EXT
       VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
 #endif  // COMET_VALIDATION_GPU_ASSISTED_EXT
@@ -216,23 +217,22 @@ void VulkanDriver::InitializeVulkanInstance() {
   VkValidationFeaturesEXT validation_features{};
   validation_features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
   validation_features.enabledValidationFeatureCount =
-      static_cast<u32>(enabled_validation_features.size());
+      static_cast<u32>(enabled_validation_features.GetSize());
   validation_features.pEnabledValidationFeatures =
-      enabled_validation_features.data();
+      enabled_validation_features.GetData();
   validation_features.disabledValidationFeatureCount = 0;
   validation_features.pDisabledValidationFeatures = VK_NULL_HANDLE;
-  validation_features.pNext = &create_info.pNext;
-  create_info.pNext = &validation_features;
+  validation_features.pNext = VK_NULL_HANDLE;
 #endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
   const auto required_extensions{GetRequiredExtensions()};
   const u32 required_extension_count{
-      static_cast<u32>(required_extensions.size())};
+      static_cast<u32>(required_extensions.GetSize())};
 
   COMET_LOG_RENDERING_DEBUG("Required extensions:");
 
   for (usize i{0}; i < required_extension_count; ++i) {
-    const schar* required_extension{required_extensions[i]};
+    const auto* required_extension{required_extensions[i]};
     COMET_LOG_RENDERING_DEBUG("\t", required_extension);
     auto is_found{false};
 
@@ -250,7 +250,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   }
 
   create_info.enabledExtensionCount = required_extension_count;
-  create_info.ppEnabledExtensionNames = required_extensions.data();
+  create_info.ppEnabledExtensionNames = required_extensions.GetData();
 
 #ifndef COMET_RENDERING_DRIVER_DEBUG_MODE
   create_info.enabledLayerCount = 0;
@@ -264,6 +264,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.ppEnabledLayerNames = kValidationLayers_.GetData();
   auto debug_create_info{init::GenerateDebugUtilsMessengerCreateInfo(
       VulkanDriver::LogVulkanValidationMessage)};
+  debug_create_info.pNext = &validation_features;
   create_info.pNext =
       static_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debug_create_info);
 #endif  // !COMET_RENDERING_DRIVER_DEBUG_MODE
@@ -276,6 +277,11 @@ void VulkanDriver::InitializeVulkanInstance() {
 }
 
 void VulkanDriver::InitializeHandlers() {
+  DescriptorHandlerDescr descriptor_handler_descr{};
+  descriptor_handler_descr.context = context_.get();
+  descriptor_handler_ =
+      std::make_unique<DescriptorHandler>(descriptor_handler_descr);
+
   TextureHandlerDescr texture_handler_descr{};
   texture_handler_descr.context = context_.get();
   texture_handler_ = std::make_unique<TextureHandler>(texture_handler_descr);
@@ -289,18 +295,19 @@ void VulkanDriver::InitializeHandlers() {
   shader_module_handler_ =
       std::make_unique<ShaderModuleHandler>(shader_module_handler_descr);
 
+  MaterialHandlerDescr material_handler_descr{};
+  material_handler_descr.context = context_.get();
+  material_handler_descr.texture_handler = texture_handler_.get();
+  material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
+
   ShaderHandlerDescr shader_handler_descr{};
   shader_handler_descr.context = context_.get();
   shader_handler_descr.shader_module_handler = shader_module_handler_.get();
   shader_handler_descr.pipeline_handler = pipeline_handler_.get();
+  shader_handler_descr.material_handler = material_handler_.get();
   shader_handler_descr.texture_handler = texture_handler_.get();
+  shader_handler_descr.descriptor_handler = descriptor_handler_.get();
   shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
-
-  MaterialHandlerDescr material_handler_descr{};
-  material_handler_descr.context = context_.get();
-  material_handler_descr.texture_handler = texture_handler_.get();
-  material_handler_descr.shader_handler = shader_handler_.get();
-  material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
 
   MeshHandlerDescr mesh_handler_descr{};
   mesh_handler_descr.context = context_.get();
@@ -323,12 +330,14 @@ void VulkanDriver::InitializeHandlers() {
   ViewHandlerDescr view_handler_descr{};
   view_handler_descr.context = context_.get();
   view_handler_descr.shader_handler = shader_handler_.get();
+  view_handler_descr.pipeline_handler = pipeline_handler_.get();
   view_handler_descr.render_pass_handler = render_pass_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
   view_handler_descr.rendering_view_descrs = &rendering_view_descrs_;
   view_handler_descr.window = window_.get();
   view_handler_ = std::make_unique<ViewHandler>(view_handler_descr);
 
+  descriptor_handler_->Initialize();
   texture_handler_->Initialize();
   pipeline_handler_->Initialize();
   shader_module_handler_->Initialize();
@@ -343,14 +352,15 @@ void VulkanDriver::InitializeHandlers() {
 void VulkanDriver::DestroyHandlers() {
   // Order is important to improve performance.
   shader_module_handler_->Shutdown();
+  render_proxy_handler_->Shutdown();
   shader_handler_->Shutdown();
   texture_handler_->Shutdown();
   material_handler_->Shutdown();
   mesh_handler_->Shutdown();
   pipeline_handler_->Shutdown();
   render_pass_handler_->Shutdown();
-  render_proxy_handler_->Shutdown();
   view_handler_->Shutdown();
+  descriptor_handler_->Shutdown();
 
   shader_module_handler_ = nullptr;
   shader_handler_ = nullptr;
@@ -376,9 +386,9 @@ void VulkanDriver::DestroyInstance() {
 void VulkanDriver::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
-  if (event_type == event::WindowResizeEvent::kStaticType_) {
+  if (event_type == rendering::WindowResizeEvent::kStaticType_) {
     const auto& window_event{
-        static_cast<const event::WindowResizeEvent&>(event)};
+        static_cast<const rendering::WindowResizeEvent&>(event)};
     SetSize(window_event.GetWidth(), window_event.GetHeight());
   }
 }
@@ -400,12 +410,16 @@ void VulkanDriver::ApplyWindowResize() {
 }
 
 bool VulkanDriver::PreDraw() {
+  COMET_PROFILE("VulkanDriver::PreDraw");
   auto& frame_data{context_->GetFrameData()};
 
   COMET_CHECK_VK(
       vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
                       VK_TRUE, static_cast<u64>(-1)),
       "Something wrong happened while waiting for render fence!");
+
+  descriptor_handler_->ResetDynamic();
+
   auto result{
       swapchain_->AcquireNextImage(frame_data.present_semaphore_handle)};
 
@@ -421,6 +435,7 @@ bool VulkanDriver::PreDraw() {
 }
 
 void VulkanDriver::PostDraw() {
+  COMET_PROFILE("VulkanDriver::PostDraw");
   const auto result{swapchain_->QueuePresent()};
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
@@ -431,13 +446,12 @@ void VulkanDriver::PostDraw() {
   COMET_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
 }
 
-void VulkanDriver::Draw(time::Interpolation interpolation) {
+void VulkanDriver::Draw(frame::FramePacket* packet) {
+  COMET_PROFILE("VulkanDriver::Draw");
   auto& frame_data{context_->GetFrameData()};
 
-  if (context_->GetImageIndex() == context_->GetFrameCount()) {
-    vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
-                    VK_TRUE, static_cast<u64>(-1));
-  }
+  vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
+                  VK_TRUE, static_cast<u64>(-1));
 
   // Reset fence if work is submitted.
   COMET_CHECK_VK(
@@ -448,7 +462,9 @@ void VulkanDriver::Draw(time::Interpolation interpolation) {
       GenerateCommandData(*device_, frame_data.command_buffer_handle)};
   RecordCommand(command_data);
 
-  VkImageMemoryBarrier barrier = {};
+  mesh_handler_->Wait();
+
+  VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -488,41 +504,49 @@ void VulkanDriver::Draw(time::Interpolation interpolation) {
   vkCmdSetViewport(command_data.command_buffer_handle, 0, 1, &viewport);
   vkCmdSetScissor(command_data.command_buffer_handle, 0, 1, &scissor);
 
-  DrawViews(interpolation);
-
-  StaticArray<VkPipelineStageFlags, 1> wait_stages{
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-  SubmitCommand(command_data, device_->GetGraphicsQueueHandle(),
-                frame_data.render_fence_handle,
-                &frame_data.present_semaphore_handle,
-                &frame_data.render_semaphore_handle, wait_stages.GetData());
-}
-
-void VulkanDriver::DrawViews(time::Interpolation interpolation) {
-  ViewPacket packet{};
-  packet.interpolation = interpolation;
-
-  auto* camera{CameraManager::Get().GetMainCamera()};
-  packet.projection_matrix = camera->GetProjectionMatrix();
-  packet.projection_matrix[1][1] *= -1;  // Axis is inverted in Vulkan.
-  packet.view_matrix = &camera->GetViewMatrix();
-  packet.command_buffer_handle = context_->GetFrameData().command_buffer_handle;
-  packet.image_index = context_->GetImageIndex();
+  mesh_handler_->Update(packet);
+  render_proxy_handler_->Update(packet);
   view_handler_->Update(packet);
+
+  frame::FrameArray<VkPipelineStageFlags> wait_stages{};
+  frame::FrameArray<VkSemaphore> wait_semaphores{};
+
+  wait_stages.Reserve(2);
+  wait_semaphores.Reserve(2);
+
+  wait_stages.PushBack(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+  wait_semaphores.PushBack(frame_data.present_semaphore_handle);
+
+  if (frame_data.is_transfer) {
+    wait_stages.PushBack(VK_PIPELINE_STAGE_VERTEX_INPUT_BIT |
+                         VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT);
+    wait_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
+  }
+
+  SubmitCommand(command_data, device_->GetGraphicsQueueHandle(),
+                frame_data.render_fence_handle, wait_semaphores.GetData(),
+                static_cast<u32>(wait_semaphores.GetSize()),
+                &frame_data.render_semaphore_handle, 1, wait_stages.GetData());
+
+  frame_data.is_transfer = false;
 }
 
-std::vector<const schar*> VulkanDriver::GetRequiredExtensions() {
+frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
   u32 glfw_extension_count{0};
-  const schar** glfw_extensions{
+  const auto** glfw_extensions{
       glfwGetRequiredInstanceExtensions(&glfw_extension_count)};
 
-  std::vector<const schar*> extensions{glfw_extensions,
-                                       glfw_extensions + glfw_extension_count};
+  frame::FrameArray<const schar*> extensions{};
+  extensions.Reserve(glfw_extension_count);
+
+  for (usize i{0}; i < glfw_extension_count; ++i) {
+    extensions.PushBack(glfw_extensions[i]);
+  }
 
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
-  extensions.reserve(extensions.size() + 2);
-  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+  extensions.Reserve(extensions.GetSize() + 2);
+  extensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  extensions.PushBack(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 #endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
   return extensions;
@@ -575,8 +599,9 @@ void VulkanDriver::DestroyDebugReportCallback() {
 bool VulkanDriver::AreValidationLayersSupported() {
   u32 layer_count;
   vkEnumerateInstanceLayerProperties(&layer_count, VK_NULL_HANDLE);
-  std::vector<VkLayerProperties> available_layers(layer_count);
-  vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+  frame::FrameArray<VkLayerProperties> available_layers{};
+  available_layers.Resize(layer_count);
+  vkEnumerateInstanceLayerProperties(&layer_count, available_layers.GetData());
 
   for (const schar* layer_name : kValidationLayers_) {
     auto is_layer_found{false};

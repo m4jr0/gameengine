@@ -1,16 +1,18 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "opengl_driver.h"
 
 #include "comet/event/event_manager.h"
-#include "comet/event/input_event.h"
-#include "comet/event/runtime_event.h"
-#include "comet/event/window_event.h"
+#include "comet/input/input_event.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/camera/camera_manager.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
+#include "comet/rendering/window/window_event.h"
 
 namespace comet {
 namespace rendering {
@@ -42,7 +44,7 @@ void OpenGlDriver::Initialize() {
 
   event::EventManager::Get().Register(
       COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
-      event::WindowResizeEvent::kStaticType_);
+      WindowResizeEvent::kStaticType_);
 
   [[maybe_unused]] const auto result{
       gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
@@ -88,21 +90,17 @@ void OpenGlDriver::Shutdown() {
   Driver::Shutdown();
 }
 
-void OpenGlDriver::Update(time::Interpolation interpolation) {
+void OpenGlDriver::Update(frame::FramePacket* packet) {
   glClearColor(clear_color_[0], clear_color_[1], clear_color_[2],
                clear_color_[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  Draw(interpolation);
+  Draw(packet->interpolation);
   window_->SwapBuffers();
   ++frame_count_;
 }
 
 DriverType OpenGlDriver::GetType() const noexcept { return DriverType::OpenGl; }
-
-u32 OpenGlDriver::GetDrawCount() const {
-  return render_proxy_handler_->GetDrawCount();
-}
 
 void OpenGlDriver::InitializeHandlers() {
   MeshHandlerDescr mesh_handler_descr{};
@@ -174,9 +172,9 @@ void OpenGlDriver::SetSize(WindowSize, WindowSize) {
 void OpenGlDriver::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
-  if (event_type == event::WindowResizeEvent::kStaticType_) {
+  if (event_type == WindowResizeEvent::kStaticType_) {
     const auto& window_resize_event{
-        static_cast<const event::WindowResizeEvent&>(event)};
+        static_cast<const WindowResizeEvent&>(event)};
     SetSize(window_resize_event.GetWidth(), window_resize_event.GetHeight());
   }
 }
@@ -184,6 +182,7 @@ void OpenGlDriver::OnEvent(const event::Event& event) {
 Window* OpenGlDriver::GetWindow() { return window_.get(); }
 
 void OpenGlDriver::Draw(time::Interpolation interpolation) {
+  COMET_PROFILE("OpenGlDriver::Draw");
   ViewPacket packet{};
   packet.frame_count = frame_count_;
   packet.interpolation = interpolation;

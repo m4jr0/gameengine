@@ -1,10 +1,15 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "vulkan_world_view.h"
 
+#include "comet/core/frame/frame_packet.h"
+#include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/profiler/profiler.h"
 
 namespace comet {
 namespace rendering {
@@ -53,7 +58,8 @@ void WorldView::Initialize() {
   const auto is_msaa{context_->GetDevice().IsMsaa()};
   render_pass_descr.clear_flags =
       RenderPassClearFlag::ColorBuffer | RenderPassClearFlag::DepthBuffer;
-  render_pass_descr.attachment_descrs.reserve(3);
+  render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
+  render_pass_descr.attachment_descrs.Reserve(3);
 
   AttachmentDescr color_attachment_descr{};
   color_attachment_descr.type = AttachmentType::Color;
@@ -61,14 +67,14 @@ void WorldView::Initialize() {
       is_first_ ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
   color_attachment_descr.store_op = VK_ATTACHMENT_STORE_OP_STORE;
   color_attachment_descr.is_final_layout = !is_msaa && is_last_;
-  render_pass_descr.attachment_descrs.push_back(color_attachment_descr);
+  render_pass_descr.attachment_descrs.PushBack(color_attachment_descr);
 
   AttachmentDescr depth_attachment_descr{};
   depth_attachment_descr.type = AttachmentType::Depth;
   depth_attachment_descr.load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
   depth_attachment_descr.store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   depth_attachment_descr.is_final_layout = false;
-  render_pass_descr.attachment_descrs.push_back(depth_attachment_descr);
+  render_pass_descr.attachment_descrs.PushBack(depth_attachment_descr);
 
   if (is_msaa) {
     AttachmentDescr resolve_attachment_descr{};
@@ -76,7 +82,7 @@ void WorldView::Initialize() {
     resolve_attachment_descr.load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
     resolve_attachment_descr.store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     resolve_attachment_descr.is_final_layout = is_first_;
-    render_pass_descr.attachment_descrs.push_back(resolve_attachment_descr);
+    render_pass_descr.attachment_descrs.PushBack(resolve_attachment_descr);
   }
 
   render_pass_ = render_pass_handler_->Generate(render_pass_descr);
@@ -94,18 +100,25 @@ void WorldView::Destroy() {
   View::Destroy();
 }
 
-void WorldView::Update(const ViewPacket& packet) {
-  render_proxy_handler_->Update();
-  render_pass_handler_->BeginPass(*render_pass_, packet.command_buffer_handle,
-                                  packet.image_index);
-  shader_handler_->Bind(*shader_);
-  ShaderPacket shader_packet{};
-  shader_packet.projection_matrix = &packet.projection_matrix;
-  shader_packet.view_matrix = packet.view_matrix;
-  shader_handler_->UpdateGlobal(*shader_, shader_packet);
-  render_proxy_handler_->DrawProxies(*shader_);
-  render_pass_handler_->EndPass(packet.command_buffer_handle);
+void WorldView::Update(frame::FramePacket* packet) {
+  COMET_PROFILE("WorldView::Update");
+  packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
+
+  shader_handler_->UpdateGlobals(shader_, packet);
+  shader_handler_->UpdateStorages(shader_, packet);
+  shader_handler_->UpdateConstants(shader_, packet);
+
+  render_proxy_handler_->Cull(shader_);
+
+  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  render_pass_handler_->BeginPass(render_pass_, command_buffer_handle,
+                                  context_->GetImageIndex());
+  render_proxy_handler_->Draw(shader_);
+  render_pass_handler_->EndPass(command_buffer_handle);
+
+  render_proxy_handler_->Reset();
   shader_handler_->Reset();
+  pipeline_handler_->Reset();
 }
 }  // namespace vk
 }  // namespace rendering

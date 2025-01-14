@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,8 @@
 #include "nlohmann/json.hpp"
 
 #include "comet/core/essentials.h"
+#include "comet/core/logger.h"
+#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
 
@@ -30,6 +32,21 @@ schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,
 }  // namespace asset
 }  // namespace editor
 }  // namespace comet
+
+namespace nlohmann {
+template <typename T>
+void from_json(const json& json_array, comet::Array<T>& array) {
+  if (!json_array.is_array()) {
+    COMET_LOG_GLOBAL_ERROR("Wrong type found for JSON array: ",
+                           json_array.type_name(), "! Ignoring.");
+    return;
+  }
+
+  for (const auto& entry : json_array) {
+    array.PushBack(entry.get<T>());
+  }
+}
+}  // namespace nlohmann
 
 #ifdef COMET_FIBER_DEBUG_LABEL
 #define COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(path, buffer, buffer_len) \

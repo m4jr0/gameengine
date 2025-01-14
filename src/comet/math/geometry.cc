@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "geometry.h"
 
@@ -58,6 +60,30 @@ Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis) {
   result[3][3] = model[3][3];
 
   return result;
+}
+
+Mat4 Translate(const Mat4& model, const Vec3& translation) {
+  auto translation_mat{Mat4(1.0f)};
+  translation_mat[3][0] = translation.x;
+  translation_mat[3][1] = translation.y;
+  translation_mat[3][2] = translation.z;
+  return model * translation_mat;
+}
+
+Mat4 Scale(const Mat4& model, f32 scale_factor) {
+  auto scale_mat{Mat4(1.0f)};
+  scale_mat[0][0] = scale_factor;
+  scale_mat[1][1] = scale_factor;
+  scale_mat[2][2] = scale_factor;
+  return model * scale_mat;
+}
+
+Mat4 Scale(const Mat4& model, const Vec3& scale_factors) {
+  auto scale_mat{Mat4(1.0f)};
+  scale_mat[0][0] = scale_factors.x;
+  scale_mat[1][1] = scale_factors.y;
+  scale_mat[2][2] = scale_factors.z;
+  return model * scale_mat;
 }
 }  // namespace math
 }  // namespace comet

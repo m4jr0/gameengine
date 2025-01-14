@@ -1,4 +1,4 @@
-# Copyright 2024 m4jr0. All Rights Reserved.
+# Copyright 2025 m4jr0. All Rights Reserved.
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE file.
 
@@ -98,6 +98,7 @@ target_sources(${COMET_LIBRARY_NAME}
     # Vulkan.
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_buffer.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_descriptor.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_frame.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_image.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_material.h"
@@ -111,6 +112,7 @@ target_sources(${COMET_LIBRARY_NAME}
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_texture.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
     
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_handler.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_material_handler.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.cc"
@@ -124,6 +126,7 @@ target_sources(${COMET_LIBRARY_NAME}
 
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_common_utils.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_image_utils.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.cc"
@@ -151,6 +154,7 @@ target_sources(${COMET_LIBRARY_NAME}
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/opengl/opengl_glfw_window.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/vulkan/vulkan_glfw_window.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/window_event.cc"
 )
 
 # Compiling ####################################################################

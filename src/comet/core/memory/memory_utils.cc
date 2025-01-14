@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "memory_utils.h"
 
@@ -57,18 +59,16 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "gid";
     case kEngineMemoryTagStringId:
       return "string_id";
-    case kEngineMemoryTagFrame0:
-      return "frame_0";
-    case kEngineMemoryTagFrame1:
-      return "frame_1";
-    case kEngineMemoryTagFrame2:
-      return "frame_2";
-    case kEngineMemoryTagDoubleFrame0:
-      return "double_frame_0";
-    case kEngineMemoryTagDoubleFrame1:
-      return "double_frame_1";
-    case kEngineMemoryTagDoubleFrame2:
-      return "double_frame_2";
+    case kEngineMemoryTagFrame:
+      return "frame";
+    case kEngineMemoryTagFrameExtended:
+      return "frame_extended";
+    case kEngineMemoryTagDoubleFrame:
+      return "double_frame";
+    case kEngineMemoryTagDoubleFrameExtended1:
+      return "double_frame_extended_1";
+    case kEngineMemoryTagDoubleFrameExtended2:
+      return "double_frame_extended_2";
     case kEngineMemoryTagGeometry:
       return "geometry";
     case kEngineMemoryTagRendering:

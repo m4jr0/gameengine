@@ -1,12 +1,17 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "vulkan_view_handler.h"
+
+#include <utility>
 
 #include "vulkan/vulkan.h"
 
 #include "comet/core/memory/memory_utils.h"
+#include "comet/profiler/profiler.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"
@@ -22,6 +27,7 @@ namespace vk {
 ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
     : Handler{descr},
       shader_handler_{descr.shader_handler},
+      pipeline_handler_{descr.pipeline_handler},
       render_pass_handler_{descr.render_pass_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       window_{descr.window},
@@ -39,6 +45,8 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
 
 void ViewHandler::Initialize() {
   Handler::Initialize();
+  allocator_.Initialize();
+  views_ = Array<std::unique_ptr<View>>{&allocator_};
 
   for (const auto& view_descr : *rendering_view_descrs_) {
     Generate(view_descr);
@@ -47,18 +55,21 @@ void ViewHandler::Initialize() {
 
 void ViewHandler::Shutdown() {
   for (auto& view : views_) {
-    Destroy(*view, true);
+    Destroy(view.get(), true);
   }
 
-  views_.clear();
+  views_.Clear();
+  allocator_.Destroy();
   Handler::Shutdown();
 }
 
-void ViewHandler::Destroy(usize index) { Destroy(*Get(index)); }
+void ViewHandler::Destroy(usize index) { Destroy(Get(index)); }
 
-void ViewHandler::Destroy(View& view) { Destroy(view, false); }
+void ViewHandler::Destroy(View* view) { Destroy(view, false); }
 
-void ViewHandler::Update(const ViewPacket& packet) {
+void ViewHandler::Update(frame::FramePacket* packet) {
+  COMET_PROFILE("ViewHandler::Update");
+
   for (const auto& view : views_) {
     view->Update(packet);
   }
@@ -78,8 +89,8 @@ const View* ViewHandler::Get(usize index) const {
 }
 
 const View* ViewHandler::TryGet(usize index) const {
-  COMET_ASSERT(index < views_.size(), "Requested view at index #", index,
-               ", but view count is ", views_.size(), "!");
+  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
+               ", but view count is ", views_.GetSize(), "!");
   return views_[index].get();
 }
 
@@ -98,6 +109,7 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
+      view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
       view = std::make_unique<WorldView>(view_descr);
@@ -116,6 +128,7 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
+      view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
       view = std::make_unique<DebugView>(view_descr);
@@ -162,8 +175,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
   COMET_ASSERT(view != nullptr, "Generated view is null! What happened?");
 
   view->Initialize();
-  views_.push_back(std::move(view));
-  return views_.back().get();
+  views_.PushBack(std::move(view));
+  return views_.GetLast().get();
 }
 
 View* ViewHandler::Get(usize index) {
@@ -174,21 +187,21 @@ View* ViewHandler::Get(usize index) {
 }
 
 View* ViewHandler::TryGet(usize index) {
-  COMET_ASSERT(index < views_.size(), "Requested view at index #", index,
-               ", but view count is ", views_.size(), "!");
+  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
+               ", but view count is ", views_.GetSize(), "!");
   return views_[index].get();
 }
 
-void ViewHandler::Destroy(View& view, bool is_destroying_handler) {
+void ViewHandler::Destroy(View* view, bool is_destroying_handler) {
   if (is_destroying_handler) {
-    view.Destroy();
+    view->Destroy();
     return;
   }
 
-  const auto view_id{view.GetId()};
+  const auto view_id{view->GetId()};
   auto view_index{kInvalidIndex};
 
-  for (u32 i{0}; i < views_.size(); ++i) {
+  for (u32 i{0}; i < views_.GetSize(); ++i) {
     auto* other_view{views_[i].get()};
 
     if (other_view->GetId() == view_id) {
@@ -200,8 +213,8 @@ void ViewHandler::Destroy(View& view, bool is_destroying_handler) {
   COMET_ASSERT(view_index != kInvalidIndex,
                "Tried to destroy view, but it was not found in the list!");
 
-  view.Destroy();
-  views_.erase(views_.begin() + view_index);
+  view->Destroy();
+  views_.RemoveFromPos(views_.begin() + view_index);
 }
 }  // namespace vk
 }  // namespace rendering

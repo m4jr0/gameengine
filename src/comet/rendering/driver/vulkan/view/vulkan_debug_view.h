@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_DEBUG_VIEW_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_shader_view.h"
@@ -28,7 +29,7 @@ class DebugView : public ShaderView {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(const ViewPacket& packet) override;
+  void Update(frame::FramePacket*) override;
 
  private:
   RenderProxyHandler* render_proxy_handler_{nullptr};

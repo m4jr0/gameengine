@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -52,7 +52,7 @@ std::size_t HashCombine(T1 lhs, T2 rhs) {
   return HashCombine(internal::Convert(lhs), internal::Convert(rhs));
 }
 
-using HashValue = usize;
+using HashValue = u32;
 constexpr HashValue kInvalidHashValue{0};
 
 template <typename Key>
@@ -82,17 +82,17 @@ constexpr u32 kFnvOffsetBasis32{2166136261};
 constexpr u64 kFnvPrime64{1099511628211ULL};
 constexpr u64 kFnvOffsetBasis64{14695981039346656037ULL};
 
-u32 GenerateHash(s32 value);
-u32 GenerateHash(u32 value);
-u32 GenerateHash(s64 value);
-u32 GenerateHash(u64 value);
-u32 GenerateHash(f32 value);
-u32 GenerateHash(f64 value);
-u32 GenerateHash(schar value);
-u32 GenerateHash(wchar value);
-u32 GenerateHash(const schar* value);
-u32 GenerateHash(const wchar* value);
-u32 GenerateHash(const void* value);
+HashValue GenerateHash(s32 value);
+HashValue GenerateHash(u32 value);
+HashValue GenerateHash(s64 value);
+HashValue GenerateHash(u64 value);
+HashValue GenerateHash(f32 value);
+HashValue GenerateHash(f64 value);
+HashValue GenerateHash(schar value);
+HashValue GenerateHash(wchar value);
+HashValue GenerateHash(const schar* value);
+HashValue GenerateHash(const wchar* value);
+HashValue GenerateHash(const void* value);
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_HASH_H_

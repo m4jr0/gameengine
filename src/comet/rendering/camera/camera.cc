@@ -1,13 +1,15 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "camera.h"
 
-#include "comet/event/window_event.h"
 #include "comet/math/geometry.h"
 #include "comet/math/quaternion.h"
 #include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/window/window_event.h"
 
 namespace comet {
 namespace rendering {

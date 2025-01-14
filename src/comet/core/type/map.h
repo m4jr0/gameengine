@@ -1,4 +1,4 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@
 #define COMET_COMET_CORE_TYPE_MAP_H_
 
 #include <functional>
+#include <utility>
 
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
@@ -69,7 +70,7 @@ struct DefaultMapHashLogic : public MapHashLogic<TKey, TValue> {
 
   static const EntryKey& GetHashable(const EntryPair& pair) { return pair.key; }
 
-  static usize Hash(const EntryKey& key) { return GenerateHash(key); }
+  static HashValue Hash(const EntryKey& key) { return GenerateHash(key); }
 
   static bool AreEqual(const EntryKey& a, const EntryKey& b) { return a == b; }
 };
@@ -217,6 +218,8 @@ class Map {
   usize GetBucketCount() const noexcept {
     return this->pairs_.GetBucketCount();
   }
+
+  bool IsEmpty() const noexcept { return this->pairs_.IsEmpty(); }
 
  private:
   Pairs pairs_{};

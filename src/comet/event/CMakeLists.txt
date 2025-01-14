@@ -1,4 +1,4 @@
-# Copyright 2024 m4jr0. All Rights Reserved.
+# Copyright 2025 m4jr0. All Rights Reserved.
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE file.
 
@@ -13,9 +13,6 @@ target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/event/event.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/event/event_manager.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/event/input_event.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/event/runtime_event.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/event/window_event.cc"
 )
 
 # Compiling ####################################################################

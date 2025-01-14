@@ -1,0 +1,30 @@
+#version 460
+
+layout(local_size_x = 256) in;
+
+layout(push_constant) uniform Constants {
+    uint count;
+} constants;
+
+layout(set = 0, binding = 0) readonly buffer InWordIndicesSsbo {   
+    uint inWordIndices[];
+};
+
+layout(set = 0, binding = 1) readonly buffer InWordsSsbo {
+    uint inWords[];
+};
+
+layout(set = 0, binding = 2) buffer OutWordsSsbo {
+    uint outWords[];
+};
+
+void main() {
+    uint id = gl_GlobalInvocationID.x;
+
+    if (id >= constants.count) {
+        return;
+    }
+
+    uint wordIndex = inWordIndices[id];
+    outWords[wordIndex] = inWords[id];
+}

@@ -1,8 +1,12 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet_pch.h"
+
 #include "geometry_manager.h"
+
+#include <utility>
 
 #include "comet/resource/material_resource.h"
 #include "comet/resource/resource_manager.h"
@@ -58,14 +62,13 @@ Mesh* GeometryManager::Generate(const resource::SkinnedMeshResource* resource) {
   mesh->vertices.Reserve(resource->vertices.GetSize());
 
   for (const auto& skinned_vertex : resource->vertices) {
-    Vertex vertex{};
+    auto& vertex{mesh->vertices.EmplaceBack()};
     vertex.position = skinned_vertex.position;
     vertex.normal = skinned_vertex.normal;
     vertex.tangent = skinned_vertex.tangent;
     vertex.bitangent = skinned_vertex.bitangent;
     vertex.uv = skinned_vertex.uv;
     vertex.color = skinned_vertex.color;
-    mesh->vertices.PushBack(std::move(vertex));
   }
 
   return mesh;

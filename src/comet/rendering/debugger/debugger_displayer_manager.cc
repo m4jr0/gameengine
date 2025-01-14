@@ -1,6 +1,8 @@
-// Copyright 2024 m4jr0. All Rights Reserved.
+// Copyright 2025 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
+
+#include "comet_pch.h"
 
 #include "debugger_displayer_manager.h"
 
@@ -71,7 +73,6 @@ void DebuggerDisplayerManager::DrawRenderingSection(
               GetDriverTypeLabel(profiler_data.rendering_driver_type));
   ImGui::Text("Frame Time: %f ms", profiler_data.rendering_frame_time);
   ImGui::Text("Framerate: %u FPS", profiler_data.rendering_frame_rate);
-  ImGui::Text("Draw count: %u", profiler_data.rendering_draw_count);
   ImGui::Unindent();
 }
 

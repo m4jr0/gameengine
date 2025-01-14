@@ -1,4 +1,4 @@
-# Copyright 2024 m4jr0. All Rights Reserved.
+# Copyright 2025 m4jr0. All Rights Reserved.
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE file.
 
@@ -11,6 +11,7 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/input/input_event.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/input/input_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/input/input.h"
 )
