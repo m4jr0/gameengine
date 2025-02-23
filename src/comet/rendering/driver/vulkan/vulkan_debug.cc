@@ -2,6 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet/rendering/comet_rendering_pch.h"
 #include "comet_pch.h"
 
 #include "vulkan_debug.h"
@@ -77,6 +78,11 @@ void DestroyDebugReportCallback(
 }
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
+namespace internal {
+static PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT{nullptr};
+static VkDevice device_handle{VK_NULL_HANDLE};
+}  // namespace internal
+
 void InitializeDebugLabels(VkInstance instance_handle, VkDevice device_handle) {
   if (internal::vkSetDebugUtilsObjectNameEXT != nullptr) {
     return;

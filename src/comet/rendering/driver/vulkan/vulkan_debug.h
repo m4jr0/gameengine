@@ -58,11 +58,6 @@ void DestroyDebugReportCallback(const VkInstance instance_handle,
                                 const VkDebugReportCallbackEXT report_callback);
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
-namespace internal {
-static PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT{nullptr};
-static VkDevice device_handle{VK_NULL_HANDLE};
-}  // namespace internal
-
 void InitializeDebugLabels(VkInstance instance_handle, VkDevice device_handle);
 void SetDebugLabel(VkObjectType object_type, u64 object_handle,
                    const schar* label);

@@ -158,6 +158,11 @@ target_sources(${COMET_LIBRARY_NAME}
 )
 
 # Compiling ####################################################################
+target_precompile_headers(${COMET_LIBRARY_NAME}
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/comet_rendering_pch.h"
+)
+
 target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE SYSTEM
     ${VCPKG_INCLUDE_DIR}

@@ -38,10 +38,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "glad/glad.h"
-#include "vma/vk_mem_alloc.h"
-#include "vulkan/vulkan.h"
-
 #ifdef COMET_ARCH_X86
 #include <emmintrin.h>
 #include <xmmintrin.h>

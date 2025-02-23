@@ -2,6 +2,7 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet/rendering/comet_rendering_pch.h"
 #include "comet_pch.h"
 
 #include "vulkan_common_utils.h"
@@ -38,10 +39,10 @@ bool IsComputeStage(VkShaderStageFlags stage_flags) {
 
 bool IsBindPoint(VkPipelineBindPoint bind_point,
                  VkShaderStageFlags stage_flags) {
-  return bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS &&
-             IsGraphicsStage(stage_flags) ||
-         bind_point == VK_PIPELINE_BIND_POINT_COMPUTE &&
-             IsComputeStage(stage_flags);
+  return (bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS &&
+          IsGraphicsStage(stage_flags)) ||
+         (bind_point == VK_PIPELINE_BIND_POINT_COMPUTE &&
+          IsComputeStage(stage_flags));
 }
 }  // namespace vk
 }  // namespace rendering

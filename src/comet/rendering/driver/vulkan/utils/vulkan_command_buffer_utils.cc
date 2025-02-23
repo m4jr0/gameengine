@@ -2,6 +2,9 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include "comet/rendering/comet_rendering_pch.h"
+#include "comet_pch.h"
+
 #include "vulkan_command_buffer_utils.h"
 
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
