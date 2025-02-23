@@ -508,27 +508,31 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
   render_proxy_handler_->Update(packet);
   view_handler_->Update(packet);
 
-  frame::FrameArray<VkPipelineStageFlags> wait_stages{};
-  frame::FrameArray<VkSemaphore> wait_semaphores{};
+  VkPipelineStageFlags wait_stage{
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
-  wait_stages.Reserve(2);
-  wait_semaphores.Reserve(2);
+  frame::FrameArray<VkSemaphore> signal_semaphores{};
+  signal_semaphores.Reserve(2);
 
-  wait_stages.PushBack(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-  wait_semaphores.PushBack(frame_data.present_semaphore_handle);
+  signal_semaphores.PushBack(frame_data.render_semaphore_handle);
+  signal_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
+  context_->UpdateTransferTimelineValue();
 
-  if (frame_data.is_transfer) {
-    wait_stages.PushBack(VK_PIPELINE_STAGE_VERTEX_INPUT_BIT |
-                         VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT);
-    wait_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
-  }
+  frame::FrameArray<u64> semaphore_values{};
+  semaphore_values.Reserve(2);
+
+  semaphore_values.PushBack(0);
+  semaphore_values.PushBack(context_->GetTransferTimelineValue());
+
+  auto timeline_semaphore_info{init::GenerateTimelineSemaphoreSubmitInfo(
+      0, VK_NULL_HANDLE, static_cast<u32>(semaphore_values.GetSize()),
+      semaphore_values.GetData())};
 
   SubmitCommand(command_data, device_->GetGraphicsQueueHandle(),
-                frame_data.render_fence_handle, wait_semaphores.GetData(),
-                static_cast<u32>(wait_semaphores.GetSize()),
-                &frame_data.render_semaphore_handle, 1, wait_stages.GetData());
-
-  frame_data.is_transfer = false;
+                frame_data.render_fence_handle,
+                &frame_data.present_semaphore_handle, 1,
+                signal_semaphores.GetData(), signal_semaphores.GetSize(),
+                &wait_stage, &timeline_semaphore_info);
 }
 
 frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {

@@ -36,7 +36,8 @@ VkDeviceQueueCreateInfo GenerateDeviceQueueCreateInfo(
 VkDeviceCreateInfo GenerateDeviceCreateInfo(
     const Array<VkDeviceQueueCreateInfo>& queue_create_info,
     const VkPhysicalDeviceFeatures& physical_device_features,
-    const schar* const* device_extensions, u32 device_extension_count);
+    const schar* const* device_extensions, u32 device_extension_count,
+    const void* next = VK_NULL_HANDLE);
 VkSwapchainCreateInfoKHR GenerateSwapchainCreateInfo(
     VkSurfaceKHR surface_handle, const VkSurfaceFormatKHR& surface_format,
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
@@ -49,7 +50,8 @@ VkSubmitInfo GenerateSubmitInfo(
     const VkCommandBuffer* command_buffer_handle,
     const VkSemaphore* wait_semaphores, u32 wait_semaphore_count,
     const VkSemaphore* signal_semaphores, u32 signal_semaphore_count,
-    const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE);
+    const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
+    const void* next = VK_NULL_HANDLE);
 VkPresentInfoKHR GeneratePresentInfo();
 VkRenderPassBeginInfo GenerateRenderPassBeginInfo(
     VkRenderPass render_pass_handle, VkExtent2D extent,
@@ -131,6 +133,9 @@ VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
     u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
+VkTimelineSemaphoreSubmitInfo GenerateTimelineSemaphoreSubmitInfo(
+    u32 wait_semaphore_value_count, const u64* wait_semaphore_values,
+    u32 signal_semaphore_value_count, const u64* signal_semaphore_values);
 }  // namespace init
 }  // namespace vk
 }  // namespace rendering

@@ -114,9 +114,6 @@ void RenderProxyHandler::Update(frame::FramePacket* packet) {
     return;
   }
 
-  // TODO(m4jr0): Fix synchronization issues.
-  context_->GetDevice().WaitIdle();
-
   GenerateUpdateTemporaryStructures(packet);
   ApplyRenderProxyChanges(packet);
   ProcessBatches();
@@ -208,6 +205,9 @@ void RenderProxyHandler::GenerateUpdateTemporaryStructures(
   cull_barriers_ =
       COMET_FRAME_ARRAY(VkBufferMemoryBarrier, kDefaultCullBarrierCapacity_);
 
+  shader_to_transfer_barriers_ = COMET_FRAME_ARRAY(
+      VkBufferMemoryBarrier, kDefaultShaderToTransferBarrierCapacity_);
+
   pending_proxy_ids_ = COMET_FRAME_ORDERED_SET(
       RenderProxyId, packet->added_geometries->GetSize() +
                          packet->dirty_transforms->GetSize() +
@@ -236,6 +236,7 @@ void RenderProxyHandler::GenerateUpdateTemporaryStructures(
 void RenderProxyHandler::DestroyUpdateTemporaryStructures() {
   post_update_barriers_ = nullptr;
   cull_barriers_ = nullptr;
+  shader_to_transfer_barriers_ = nullptr;
   pending_proxy_ids_ = nullptr;
   pending_proxy_local_data_ = nullptr;
   pending_proxy_indices_ = nullptr;
@@ -823,6 +824,14 @@ void RenderProxyHandler::UploadRenderDrawData() {
   indirect_proxies_copy.dstOffset = 0;
   indirect_proxies_copy.size = staging_ssbo_indirect_proxies_.size;
   indirect_proxies_copy.srcOffset = 0;
+
+  AddBufferMemoryBarrier(ssbo_indirect_proxies_, shader_to_transfer_barriers_,
+                         VK_ACCESS_SHADER_READ_BIT,
+                         VK_ACCESS_TRANSFER_WRITE_BIT);
+
+  ApplyBufferMemoryBarriers(
+      &shader_to_transfer_barriers_, command_buffer_handle,
+      VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
   vkCmdCopyBuffer(command_buffer_handle, staging_ssbo_indirect_proxies_.handle,
                   ssbo_indirect_proxies_.handle, 1, &indirect_proxies_copy);

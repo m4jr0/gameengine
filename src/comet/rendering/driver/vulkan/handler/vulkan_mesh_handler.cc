@@ -116,9 +116,6 @@ void MeshHandler::Wait() {
     auto transfer_queue_index{device.GetTransferQueueIndex()};
     auto graphics_queue_index{device.GetGraphicsQueueIndex()};
 
-    // TODO(m4jr0): Fix synchronization issues.
-    device.WaitIdle();
-
     AddBufferMemoryBarrier(uploaded_vertex_buffer_, acquire_barriers,
                            VK_ACCESS_NONE,
                            VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT |
@@ -290,13 +287,17 @@ void MeshHandler::FinishUpdate(internal::UpdateContext& update_context) {
     }
   }
 
-  context_->GetFrameData().is_transfer = true;
+  VkPipelineStageFlags wait_stage{VK_PIPELINE_STAGE_TRANSFER_BIT};
+  auto transfer_value{context_->GetTransferTimelineValue()};
+
+  auto timeline_semaphore_info{init::GenerateTimelineSemaphoreSubmitInfo(
+      1, &transfer_value, 0, VK_NULL_HANDLE)};
 
   SubmitOneTimeCommand(
       update_context.command_buffer_handle, update_context.command_pool_handle,
       *update_context.device, update_context.device->GetTransferQueueHandle(),
-      upload_fence_handle_, VK_NULL_HANDLE,
-      context_->GetTransferSemaphoreHandle());
+      upload_fence_handle_, context_->GetTransferSemaphoreHandle(),
+      VK_NULL_HANDLE, &wait_stage, &timeline_semaphore_info);
 }
 
 void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,

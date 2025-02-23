@@ -72,9 +72,11 @@ VkDeviceQueueCreateInfo GenerateDeviceQueueCreateInfo(
 VkDeviceCreateInfo GenerateDeviceCreateInfo(
     const Array<VkDeviceQueueCreateInfo>& queue_create_info,
     const VkPhysicalDeviceFeatures& physical_device_features,
-    const schar* const* device_extensions, u32 device_extension_count) {
+    const schar* const* device_extensions, u32 device_extension_count,
+    const void* next) {
   VkDeviceCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  info.pNext = next;
   info.queueCreateInfoCount = static_cast<u32>(queue_create_info.GetSize());
   info.pQueueCreateInfos = queue_create_info.GetData();
   info.pEnabledFeatures = &physical_device_features;
@@ -149,14 +151,16 @@ VkSemaphoreCreateInfo GenerateSemaphoreCreateInfo(
   return info;
 }
 
-VkSubmitInfo GenerateSubmitInfo(
-    const VkCommandBuffer* command_buffer_handle,
-    const VkSemaphore* wait_semaphores, u32 wait_semaphore_count,
-    const VkSemaphore* signal_semaphores, u32 signal_semaphore_count,
-    const VkPipelineStageFlags* wait_dst_stage_mask) {
+VkSubmitInfo GenerateSubmitInfo(const VkCommandBuffer* command_buffer_handle,
+                                const VkSemaphore* wait_semaphores,
+                                u32 wait_semaphore_count,
+                                const VkSemaphore* signal_semaphores,
+                                u32 signal_semaphore_count,
+                                const VkPipelineStageFlags* wait_dst_stage_mask,
+                                const void* next) {
   VkSubmitInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  info.pNext = VK_NULL_HANDLE;
+  info.pNext = next;
   info.waitSemaphoreCount = wait_semaphore_count;
   info.pWaitSemaphores = wait_semaphores;
   info.pWaitDstStageMask = wait_dst_stage_mask;
@@ -572,6 +576,18 @@ VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
   barrier.offset = offset;
   barrier.size = size;
   return barrier;
+}
+
+VkTimelineSemaphoreSubmitInfo GenerateTimelineSemaphoreSubmitInfo(
+    u32 wait_semaphore_value_count, const u64* wait_semaphore_values,
+    u32 signal_semaphore_value_count, const u64* signal_semaphore_values) {
+  VkTimelineSemaphoreSubmitInfo info{};
+  info.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+  info.waitSemaphoreValueCount = wait_semaphore_value_count;
+  info.pWaitSemaphoreValues = wait_semaphore_values;
+  info.signalSemaphoreValueCount = signal_semaphore_value_count;
+  info.pSignalSemaphoreValues = signal_semaphore_values;
+  return info;
 }
 }  // namespace init
 }  // namespace vk

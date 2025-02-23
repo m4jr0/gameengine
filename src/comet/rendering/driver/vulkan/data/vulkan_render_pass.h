@@ -51,7 +51,7 @@ struct RenderPassDescr {
   VkExtent2D extent{};
   VkOffset2D offset{};
   RenderPassId id{kInvalidRenderPassId};
-  VkSubpassDependency dependency{};
+  Array<VkSubpassDependency> dependencies{};
   Array<AttachmentDescr> attachment_descrs{};
   StaticArray<VkClearValue, 2> clear_values{};
 };

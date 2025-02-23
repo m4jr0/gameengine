@@ -33,21 +33,31 @@ void WorldView::Initialize() {
   render_pass_descr.offset.x = 0;
   render_pass_descr.offset.y = 0;
 
-  render_pass_descr.dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  render_pass_descr.dependency.dstSubpass = 0;
-  render_pass_descr.dependency.srcStageMask =
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-      VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-  render_pass_descr.dependency.srcAccessMask =
-      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-  render_pass_descr.dependency.dstStageMask =
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-  render_pass_descr.dependency.dstAccessMask =
-      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-  render_pass_descr.dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+  render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
+  render_pass_descr.dependencies.Reserve(2);
+  auto& dependency_1{render_pass_descr.dependencies.EmplaceBack()};
+
+  dependency_1.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency_1.dstSubpass = 0;
+  dependency_1.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                              VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+  dependency_1.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  dependency_1.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                              VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  dependency_1.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  dependency_1.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+  VkSubpassDependency& dependency_2{
+      render_pass_descr.dependencies.EmplaceBack()};
+  dependency_2.srcSubpass = 0;
+  dependency_2.dstSubpass = VK_SUBPASS_EXTERNAL;
+  dependency_2.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency_2.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+  dependency_2.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  dependency_2.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  dependency_2.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
   // TODO(m4jr0): Make clear values more configurable.
   memory::CopyMemory(

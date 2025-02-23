@@ -29,7 +29,6 @@ struct ImageData {
 };
 
 struct FrameData {
-  bool is_transfer{false};
   VkCommandPool command_pool_handle{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
   VkSemaphore present_semaphore_handle{VK_NULL_HANDLE};

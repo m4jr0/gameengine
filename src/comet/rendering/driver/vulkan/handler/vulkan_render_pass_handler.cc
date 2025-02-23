@@ -281,8 +281,9 @@ RenderPass* RenderPassHandler::Generate(const RenderPassDescr& descr) {
   render_pass_info.pAttachments = attachment_descrs.GetData();
   render_pass_info.subpassCount = 1;
   render_pass_info.pSubpasses = &subpass;
-  render_pass_info.dependencyCount = 1;
-  render_pass_info.pDependencies = &descr.dependency;
+  render_pass_info.dependencyCount =
+      static_cast<u32>(descr.dependencies.GetSize());
+  render_pass_info.pDependencies = descr.dependencies.GetData();
   render_pass_info.pNext = VK_NULL_HANDLE;
   render_pass_info.flags = 0;
 

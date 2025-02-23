@@ -72,12 +72,13 @@ void SubmitCommand(VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
                    u32 wait_semaphore_count,
                    const VkSemaphore* signal_semaphores,
                    u32 signal_semaphore_count,
-                   const VkPipelineStageFlags* wait_dst_stage_mask) {
+                   const VkPipelineStageFlags* wait_dst_stage_mask,
+                   const void* next) {
   COMET_CHECK_VK(vkEndCommandBuffer(command_buffer_handle),
                  "Could not end command buffer!");
   VkSubmitInfo submit_info{init::GenerateSubmitInfo(
       &command_buffer_handle, wait_semaphores, wait_semaphore_count,
-      signal_semaphores, signal_semaphore_count, wait_dst_stage_mask)};
+      signal_semaphores, signal_semaphore_count, wait_dst_stage_mask, next)};
   COMET_CHECK_VK(vkQueueSubmit(queue_handle, 1, &submit_info, fence_handle),
                  "Could not submit command to queue!");
 }
@@ -87,10 +88,11 @@ void SubmitCommand(const CommandData& command_data, VkQueue queue_handle,
                    u32 wait_semaphore_count,
                    const VkSemaphore* signal_semaphores,
                    u32 signal_semaphore_count,
-                   const VkPipelineStageFlags* wait_dst_stage_mask) {
+                   const VkPipelineStageFlags* wait_dst_stage_mask,
+                   const void* next) {
   SubmitCommand(command_data.command_buffer_handle, queue_handle, fence_handle,
                 wait_semaphores, wait_semaphore_count, signal_semaphores,
-                signal_semaphore_count, wait_dst_stage_mask);
+                signal_semaphore_count, wait_dst_stage_mask, next);
 }
 
 VkCommandBuffer GenerateOneTimeCommand(VkDevice device_handle,
@@ -108,13 +110,11 @@ VkCommandBuffer GenerateOneTimeCommand(VkDevice device_handle,
   return command_buffer_handle;
 }
 
-void SubmitOneTimeCommand(VkCommandBuffer& command_buffer_handle,
-                          VkCommandPool command_pool_handle,
-                          VkDevice device_handle, VkQueue queue_handle,
-                          VkFence fence_handle,
-                          const VkSemaphore* wait_semaphore,
-                          const VkSemaphore* signal_semaphore,
-                          const VkPipelineStageFlags* wait_dst_stage_mask) {
+void SubmitOneTimeCommand(
+    VkCommandBuffer& command_buffer_handle, VkCommandPool command_pool_handle,
+    VkDevice device_handle, VkQueue queue_handle, VkFence fence_handle,
+    const VkSemaphore* wait_semaphore, const VkSemaphore* signal_semaphore,
+    const VkPipelineStageFlags* wait_dst_stage_mask, const void* next) {
   auto used_fence_handle{fence_handle};
 
   if (used_fence_handle == VK_NULL_HANDLE) {
@@ -126,7 +126,7 @@ void SubmitOneTimeCommand(VkCommandBuffer& command_buffer_handle,
   SubmitCommand(command_buffer_handle, queue_handle, used_fence_handle,
                 wait_semaphore, wait_semaphore != VK_NULL_HANDLE ? 1 : 0,
                 signal_semaphore, signal_semaphore != VK_NULL_HANDLE ? 1 : 0,
-                wait_dst_stage_mask);
+                wait_dst_stage_mask, next);
 
   vkWaitForFences(device_handle, 1, &used_fence_handle, VK_TRUE, UINT64_MAX);
 

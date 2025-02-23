@@ -132,6 +132,13 @@ void Context::InitializeSyncStructures() {
         "Unable to create frame render semaphore!");
   }
 
+  VkSemaphoreTypeCreateInfo transfer_semaphore_info{};
+  transfer_semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+  transfer_semaphore_info.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+  transfer_semaphore_info.initialValue = 0;
+
+  semaphore_create_info.pNext = &transfer_semaphore_info;
+
   COMET_CHECK_VK(vkCreateSemaphore(*device_, &semaphore_create_info,
                                    VK_NULL_HANDLE, &transfer_semaphore_handle_),
                  "Unable to create frame transfer semaphore!");
@@ -238,6 +245,8 @@ void Context::GoToNextFrame() noexcept {
   ++frame_count_;
 }
 
+void Context::UpdateTransferTimelineValue() { ++transfer_timeline_value_; }
+
 FrameData& Context::GetFrameData(FrameInFlightIndex frame) {
   if (frame == kInvalidFrameInFlightIndex) {
     frame = frame_in_flight_index_;
@@ -334,6 +343,10 @@ VkCommandPool Context::GetTransferCommandPoolHandle() const {
 
 const VkSemaphore* Context::GetTransferSemaphoreHandle() const {
   return &transfer_semaphore_handle_;
+}
+
+u64 Context::GetTransferTimelineValue() const {
+  return transfer_timeline_value_;
 }
 
 bool Context::IsInitialized() const noexcept { return is_initialized_; }

@@ -59,6 +59,8 @@ class Context {
   void HandlePostSwapchainReload();
 
   void GoToNextFrame() noexcept;
+  void UpdateTransferTimelineValue();
+
   FrameData& GetFrameData(
       FrameInFlightIndex frame = kInvalidFrameInFlightIndex);
   const FrameData& GetFrameData(
@@ -82,6 +84,7 @@ class Context {
   VmaAllocator GetAllocatorHandle() const noexcept;
   VkCommandPool GetTransferCommandPoolHandle() const;
   const VkSemaphore* GetTransferSemaphoreHandle() const;
+  u64 GetTransferTimelineValue() const;
   bool IsInitialized() const noexcept;
 
  private:
@@ -95,6 +98,7 @@ class Context {
   FrameIndex frame_count_{0};
   FrameInFlightIndex frame_in_flight_index_{0};
   FrameInFlightIndex max_frames_in_flight_{2};
+  u64 transfer_timeline_value_{0};
   usize max_object_count_{0};
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
   Array<FrameData> frame_data_{};

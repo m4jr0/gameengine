@@ -96,8 +96,9 @@ class Device {
   void CheckRequiredExtensions() const;
 #endif  // COMET_DEBUG
 
-  static constexpr StaticArray<const schar*, 1> kExtensionsToCheck_{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  static constexpr StaticArray kExtensionsToCheck_{
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+      VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME};
 
   bool is_initialized_{false};
   bool is_sampler_anisotropy_{false};
@@ -122,7 +123,7 @@ class Device {
       VK_NULL_HANDLE};  // Will be destroyed automatically.
 
   static constexpr StaticArray kRequiredExtensions_{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME
 
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
       ,

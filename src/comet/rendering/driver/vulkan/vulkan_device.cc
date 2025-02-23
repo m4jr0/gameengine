@@ -256,10 +256,16 @@ void Device::Initialize() {
   physical_device_features.fillModeNonSolid = VK_TRUE;
   physical_device_features.multiDrawIndirect = VK_TRUE;
 
+  VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore_features{};
+  timeline_semaphore_features.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
+  timeline_semaphore_features.timelineSemaphore = VK_TRUE;
+
   auto create_info{init::GenerateDeviceCreateInfo(
       queue_create_info, physical_device_features,
       kRequiredExtensions_.GetData(),
-      static_cast<u32>(kRequiredExtensions_.GetSize()))};
+      static_cast<u32>(kRequiredExtensions_.GetSize()),
+      &timeline_semaphore_features)};
 
   COMET_CHECK_VK(
       vkCreateDevice(physical_device_handle_, &create_info,

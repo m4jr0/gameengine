@@ -5,6 +5,8 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_PROXY_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_PROXY_HANDLER_H_
 
+#include "vulkan/vulkan.h"
+
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
@@ -91,6 +93,7 @@ class RenderProxyHandler : public Handler {
   constexpr static f32 kReuploadAllLocalDataThreshold_{.8f};
   constexpr static usize kDefaultUpdateBarrierCapacity_{4};
   constexpr static usize kDefaultCullBarrierCapacity_{2};
+  constexpr static usize kDefaultShaderToTransferBarrierCapacity_{1};
   FrameIndex update_frame_{kInvalidFrameIndex};
   usize render_proxy_count_{0};
 
@@ -136,6 +139,8 @@ class RenderProxyHandler : public Handler {
       nullptr};
   frame::FrameArray<VkBufferMemoryBarrier>* post_update_barriers_{nullptr};
   frame::FrameArray<VkBufferMemoryBarrier>* cull_barriers_{nullptr};
+  frame::FrameArray<VkBufferMemoryBarrier>* shader_to_transfer_barriers_{
+      nullptr};
 };
 }  // namespace vk
 }  // namespace rendering
