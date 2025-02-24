@@ -49,7 +49,6 @@ class MaterialHandler : public Handler {
   void Destroy(Material* material);
 
  private:
-  Material* GenerateInternal(const MaterialDescr& descr);
   TextureMap GenerateTextureMap(const resource::TextureMap* map);
   void Destroy(Material* material, bool is_destroying_handler);
   Sampler* GenerateSampler(SamplerId sampler_id,

@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_PROXY_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_PROXY_HANDLER_H_
 
-#include "vulkan/vulkan.h"
-
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
@@ -25,6 +23,7 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/resource/model_resource.h"
+#include "vulkan/vulkan.h"
 
 namespace comet {
 namespace rendering {
@@ -56,10 +55,13 @@ class RenderProxyHandler : public Handler {
 
  private:
   static inline constexpr usize kMaxRenderProxyCount_{100000};
-  static inline constexpr usize kMaxRenderBatchCount_{kMaxRenderProxyCount_ /
-                                                      2};
   static inline constexpr usize kDefaultRenderIndirectBatchCount_{128};
   static inline constexpr usize kDefaultRenderBatchGroupCount_{128};
+  static inline constexpr usize kDefaultProxyCount_{512};
+  static inline constexpr f32 kReuploadAllLocalDataThreshold_{.8f};
+  static inline constexpr usize kDefaultUpdateBarrierCapacity_{4};
+  static inline constexpr usize kDefaultCullBarrierCapacity_{2};
+  static inline constexpr usize kDefaultShaderToTransferBarrierCapacity_{1};
 
   static bool OnRenderBatchSort(const RenderBatchEntry& a,
                                 const RenderBatchEntry& b);
@@ -89,11 +91,6 @@ class RenderProxyHandler : public Handler {
                               usize& proxy_instance_index);
   u64 GenerateRenderProxySortKey(const RenderProxy& proxy);
 
-  constexpr static usize kDefaultProxyCount_{512};
-  constexpr static f32 kReuploadAllLocalDataThreshold_{.8f};
-  constexpr static usize kDefaultUpdateBarrierCapacity_{4};
-  constexpr static usize kDefaultCullBarrierCapacity_{2};
-  constexpr static usize kDefaultShaderToTransferBarrierCapacity_{1};
   FrameIndex update_frame_{kInvalidFrameIndex};
   usize render_proxy_count_{0};
 

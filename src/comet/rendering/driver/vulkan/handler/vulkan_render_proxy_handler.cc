@@ -157,12 +157,12 @@ void RenderProxyHandler::Cull(Shader* shader) {
 
 void RenderProxyHandler::Draw(Shader* shader) {
   COMET_PROFILE("RenderProxyHandler::Draw");
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
 
   if (batch_groups_->IsEmpty()) {
     return;
   }
 
+  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
   mesh_handler_->Bind();
   auto last_mat_id{kInvalidMaterialId};
   shader_handler_->Bind(shader, PipelineType::Graphics);

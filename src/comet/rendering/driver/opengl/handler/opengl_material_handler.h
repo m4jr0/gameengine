@@ -18,7 +18,6 @@ namespace rendering {
 namespace gl {
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
-  ShaderHandler* shader_handler{nullptr};
 };
 
 class MaterialHandler : public Handler {
@@ -31,30 +30,30 @@ class MaterialHandler : public Handler {
   MaterialHandler& operator=(MaterialHandler&&) = delete;
   virtual ~MaterialHandler() = default;
 
+  void Initialize() override;
   void Shutdown() override;
 
   Material* Generate(const MaterialDescr& descr);
-  Material* Generate(const resource::MaterialResource& resource);
+  Material* Generate(const resource::MaterialResource* resource);
   Material* Get(MaterialId material_id);
   Material* TryGet(MaterialId material_id);
   Material* GetOrGenerate(const MaterialDescr& descr);
-  Material* GetOrGenerate(const resource::MaterialResource& resource);
+  Material* GetOrGenerate(const resource::MaterialResource* resource);
   void Destroy(MaterialId material_id);
-  void Destroy(Material& material);
-  void UpdateInstance(Material& material, ShaderId shader_id,
-                      FrameIndex frame_count);
+  void Destroy(Material* material);
 
  private:
-  static FilterMode GetFilterMode(rendering::TextureFilterMode filter_mode);
-  static RepeatMode GetRepeatMode(rendering::TextureRepeatMode repeat_mode);
-  static TextureType GetTextureType(rendering::TextureType texture_type);
-  void Destroy(Material& material, bool is_destroying_handler);
-  Material* GenerateInternal(const MaterialDescr& descr);
-  TextureMap GenerateTextureMap(const resource::TextureMap& map);
+  TextureMap GenerateTextureMap(const resource::TextureMap* map);
+  void Destroy(Material* material, bool is_destroying_handler);
+  TextureType GetTextureType(rendering::TextureType texture_type);
+  RepeatMode GetRepeatMode(TextureRepeatMode repeat_mode);
+  FilterMode GetFilterMode(TextureFilterMode filter_mode);
 
-  std::unordered_map<MaterialId, Material> materials_{};
+  memory::FiberStackAllocator allocator_{sizeof(Pair<MaterialId, Material>),
+                                         256,
+                                         memory::kEngineMemoryTagRendering};
+  Map<MaterialId, Material*> materials_{};
   TextureHandler* texture_handler_{nullptr};
-  ShaderHandler* shader_handler_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering
