@@ -7,10 +7,10 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/rendering/driver/driver.h"
-#include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
@@ -48,7 +48,7 @@ class OpenGlDriver : public Driver {
   void SetSize(WindowSize width, WindowSize height);
   void OnEvent(const event::Event&);
 
-  void Draw(time::Interpolation interpolation);
+  void Draw(frame::FramePacket* packet);
 
   Window* GetWindow() override;
 
@@ -60,16 +60,16 @@ class OpenGlDriver : public Driver {
                                           const void* user_param);
 #endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
-  FrameIndex frame_count_{0};
+  FrameCount frame_count_{0};
 
-  std::unique_ptr<OpenGlGlfwWindow> window_{nullptr};
-  std::unique_ptr<MaterialHandler> material_handler_{nullptr};
-  std::unique_ptr<MeshHandler> mesh_handler_{nullptr};
-  std::unique_ptr<RenderProxyHandler> render_proxy_handler_{nullptr};
-  std::unique_ptr<ShaderHandler> shader_handler_{nullptr};
-  std::unique_ptr<ShaderModuleHandler> shader_module_handler_{nullptr};
-  std::unique_ptr<TextureHandler> texture_handler_{nullptr};
-  std::unique_ptr<ViewHandler> view_handler_{nullptr};
+  memory::UniquePtr<OpenGlGlfwWindow> window_{nullptr};
+  memory::UniquePtr<MaterialHandler> material_handler_{nullptr};
+  memory::UniquePtr<MeshHandler> mesh_handler_{nullptr};
+  memory::UniquePtr<RenderProxyHandler> render_proxy_handler_{nullptr};
+  memory::UniquePtr<ShaderHandler> shader_handler_{nullptr};
+  memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
+  memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
+  memory::UniquePtr<ViewHandler> view_handler_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

@@ -2,7 +2,7 @@
 
 layout(location = 0) out vec4 outColor;
 
-layout (std140, binding = 1) uniform local_uniform_object {
+layout (std140, binding = 1) uniform LocalUbo {
     vec4 diffuseColor;
     float shininess;
 } local_ubo;
@@ -10,15 +10,15 @@ layout (std140, binding = 1) uniform local_uniform_object {
 // diffuseMap, specularMap, normalMap.
 uniform sampler2D texSamplers[3];
 
-in struct data_object {
+layout(location = 1) in FragmentData {
     vec4 ambientColor;
     vec2 texCoord;
     vec3 normals;
     vec3 viewPos;
     vec3 fragPos;
     vec4 color;
-} data;
+} inData;
 
 void main() {
-    outColor = texture(texSamplers[0], data.texCoord) * data.color;
+    outColor = texture(texSamplers[0], inData.texCoord) * inData.color;
 }

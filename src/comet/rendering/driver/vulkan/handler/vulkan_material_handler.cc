@@ -58,7 +58,14 @@ void MaterialHandler::Shutdown() {
 }
 
 Material* MaterialHandler::Generate(const MaterialDescr& descr) {
-  return GenerateInternal(descr);
+  COMET_PROFILE("MaterialHandler::Generate");
+  auto* material{allocator_.AllocateOneAndPopulate<Material>()};
+  material->id = descr.id;
+  material->shader_id = descr.shader_id;
+  material->diffuse_map = descr.diffuse_map;
+  material->specular_map = descr.specular_map;
+  material->normal_map = descr.normal_map;
+  return materials_.Emplace(material->id, material).value;
 }
 
 Material* MaterialHandler::Generate(
@@ -123,17 +130,6 @@ void MaterialHandler::Destroy(MaterialId material_id) {
 
 void MaterialHandler::Destroy(Material* material) {
   return Destroy(material, false);
-}
-
-Material* MaterialHandler::GenerateInternal(const MaterialDescr& descr) {
-  COMET_PROFILE("MaterialHandler::Generate");
-  auto* material{allocator_.AllocateOneAndPopulate<Material>()};
-  material->id = descr.id;
-  material->shader_id = descr.shader_id;
-  material->diffuse_map = descr.diffuse_map;
-  material->specular_map = descr.specular_map;
-  material->normal_map = descr.normal_map;
-  return materials_.Emplace(material->id, material).value;
 }
 
 TextureMap MaterialHandler::GenerateTextureMap(

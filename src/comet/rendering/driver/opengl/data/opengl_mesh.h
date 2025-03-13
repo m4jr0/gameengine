@@ -5,28 +5,21 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_MESH_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_MESH_H_
 
+#include "glad/glad.h"
+
 #include "comet/core/essentials.h"
-#include "comet/geometry/geometry_common.h"
-#include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using VertexArrayObjectHandle = u32;
-constexpr auto kInvalidVertexArrayObjectHandle{0};
-
-using VertexBufferObjectHandle = u32;
-constexpr auto kInvalidVertexBufferObjectHandle{0};
-
-using ElementBufferObjectHandle = u32;
-constexpr auto kInvalidElementBufferObjectHandle{0};
+using MeshProxyHandle = usize;
+constexpr auto kInvalidMeshProxyHandle{static_cast<MeshProxyHandle>(-1)};
 
 struct MeshProxy {
-  geometry::MeshId id{geometry::kInvalidMeshId};
-  const geometry::Mesh* mesh{nullptr};
-  VertexArrayObjectHandle vao_handle{kInvalidVertexArrayObjectHandle};
-  VertexBufferObjectHandle vbo_handle{kInvalidVertexBufferObjectHandle};
-  ElementBufferObjectHandle ebo_handle{kInvalidElementBufferObjectHandle};
+  GLsizei vertex_count{0};
+  GLsizei index_count{0};
+  GLint vertex_offset{0};
+  GLint index_offset{0};
 };
 }  // namespace gl
 }  // namespace rendering

@@ -109,7 +109,7 @@ void CometEditor::LoadTmpCode() {
 }
 }  // namespace editor
 
-std::unique_ptr<Engine> GenerateEngine() {
+memory::UniquePtr<Engine> GenerateEngine() {
   return std::make_unique<editor::CometEditor>();
 }
 }  // namespace comet

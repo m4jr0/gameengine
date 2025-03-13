@@ -65,7 +65,7 @@ class ViewHandler : public Handler {
   void Destroy(View* view, bool is_destroying_handler);
 
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
-  Array<std::unique_ptr<View>> views_{};
+  Array<memory::UniquePtr<View>> views_{};
   ShaderHandler* shader_handler_{nullptr};
   PipelineHandler* pipeline_handler_{nullptr};
   RenderPassHandler* render_pass_handler_{nullptr};

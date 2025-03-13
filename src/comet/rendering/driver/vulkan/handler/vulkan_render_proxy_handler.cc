@@ -39,7 +39,7 @@ void RenderProxyHandler::Initialize() {
   Handler::Initialize();
   proxy_local_data_allocator_.Initialize();
   general_allocator_.Initialize();
-  proxy_local_data_ = Array<GpuRenderProxyLocalData>{
+  proxy_local_datas_ = Array<GpuRenderProxyLocalData>{
       &proxy_local_data_allocator_, kDefaultProxyCount_};
   batch_entries_ =
       Array<RenderBatchEntry>{&general_allocator_, kDefaultProxyCount_};
@@ -57,7 +57,7 @@ void RenderProxyHandler::Initialize() {
 void RenderProxyHandler::Shutdown() {
   DestroyUpdateTemporaryStructures();
 
-  proxy_local_data_.Clear();
+  proxy_local_datas_.Clear();
   batch_entries_.Clear();
   proxy_id_to_entity_id_map_ = {};
   entity_id_to_proxy_id_map_ = {};
@@ -88,16 +88,16 @@ void RenderProxyHandler::Shutdown() {
     DestroyBuffer(staging_ssbo_proxy_local_data_);
   }
 
-  if (IsBufferInitialized(ssbo_proxy_local_data_)) {
-    DestroyBuffer(ssbo_proxy_local_data_);
+  if (IsBufferInitialized(ssbo_proxy_local_datas_)) {
+    DestroyBuffer(ssbo_proxy_local_datas_);
   }
 
   if (IsBufferInitialized(ssbo_word_indices_)) {
     DestroyBuffer(ssbo_word_indices_);
   }
 
-  if (IsBufferInitialized(ssbo_proxy_local_data_ids_)) {
-    DestroyBuffer(ssbo_proxy_local_data_ids_);
+  if (IsBufferInitialized(ssbo_proxy_ids_)) {
+    DestroyBuffer(ssbo_proxy_ids_);
   }
 
   if (sparse_upload_shader_ != nullptr) {
@@ -137,12 +137,12 @@ void RenderProxyHandler::Reset() { DestroyUpdateTemporaryStructures(); }
 void RenderProxyHandler::Cull(Shader* shader) {
   COMET_PROFILE("RenderProxyHandler::Cull");
   auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  shader_handler_->Bind(shader, PipelineType::Compute);
+  shader_handler_->Bind(shader, PipelineBindType::Compute);
 
   vkCmdDispatch(command_buffer_handle,
                 static_cast<u32>((batch_entries_.GetSize() / 256) + 1), 1, 1);
 
-  AddBufferMemoryBarrier(ssbo_proxy_local_data_ids_, cull_barriers_,
+  AddBufferMemoryBarrier(ssbo_proxy_ids_, cull_barriers_,
                          VK_ACCESS_SHADER_WRITE_BIT,
                          VK_ACCESS_INDIRECT_COMMAND_READ_BIT);
 
@@ -157,15 +157,15 @@ void RenderProxyHandler::Cull(Shader* shader) {
 
 void RenderProxyHandler::Draw(Shader* shader) {
   COMET_PROFILE("RenderProxyHandler::Draw");
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
 
   if (batch_groups_->IsEmpty()) {
     return;
   }
 
+  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
   mesh_handler_->Bind();
   auto last_mat_id{kInvalidMaterialId};
-  shader_handler_->Bind(shader, PipelineType::Graphics);
+  shader_handler_->Bind(shader, PipelineBindType::Graphics);
 
   for (const auto& group : *batch_groups_) {
     auto& instance{indirect_batches_->Get(group.offset)};
@@ -174,7 +174,7 @@ void RenderProxyHandler::Draw(Shader* shader) {
     if (proxy->mat_id != last_mat_id) {
       shader_handler_->UpdateInstance(shader, proxy->mat_id);
       shader_handler_->BindInstance(shader, proxy->mat_id,
-                                    PipelineType::Graphics);
+                                    PipelineBindType::Graphics);
       last_mat_id = proxy->mat_id;
     }
 
@@ -289,7 +289,7 @@ void RenderProxyHandler::GenerateRenderProxies(
                  "Max count of render proxies reached!");
     const auto& geometry{geometries->Get(i)};
 
-    auto& local_data{proxy_local_data_.EmplaceBack()};
+    auto& local_data{proxy_local_datas_.EmplaceBack()};
     local_data.local_center = math::Vec4{geometry.local_center, .0f};
     local_data.local_max_extents = math::Vec4{geometry.local_max_extents, .0f};
     local_data.transform = geometry.transform;
@@ -341,7 +341,7 @@ void RenderProxyHandler::UpdateRenderProxies(
     auto& updated_proxy{proxies_[proxy_id]};
     pending_proxy_ids_->Add(updated_proxy.id);
 
-    auto& local_data{proxy_local_data_[proxy_id]};
+    auto& local_data{proxy_local_datas_[proxy_id]};
     local_data.local_center = math::Vec4{updated_mesh.local_center, .0f};
     local_data.local_max_extents =
         math::Vec4{updated_mesh.local_max_extents, .0f};
@@ -362,7 +362,7 @@ void RenderProxyHandler::UpdateRenderProxies(
     auto& updated_proxy{proxies_[proxy_id]};
     pending_proxy_ids_->Add(updated_proxy.id);
 
-    auto& local_data{proxy_local_data_[proxy_id]};
+    auto& local_data{proxy_local_datas_[proxy_id]};
     local_data.transform = updated_transform.transform;
 
     pending_proxy_local_data_->PushBack(local_data);
@@ -407,12 +407,12 @@ void RenderProxyHandler::DestroyRenderProxies(
     // Swap destroyed proxy with last active proxy for contiguous storage.
     if (proxy_id != old_proxy_id) {
       proxies_[proxy_id] = proxies_[old_proxy_id];
-      proxy_local_data_[proxy_id] = proxy_local_data_[old_proxy_id];
+      proxy_local_datas_[proxy_id] = proxy_local_datas_[old_proxy_id];
       entity_id_to_proxy_id_map_[proxy_id_to_entity_id_map_[old_proxy_id]] =
           proxy_id;
 
       pending_proxy_ids_->Add(proxy_id);
-      pending_proxy_local_data_->PushBack(proxy_local_data_[proxy_id]);
+      pending_proxy_local_data_->PushBack(proxy_local_datas_[proxy_id]);
     }
 
     entity_id_to_proxy_id_map_.Remove(geometry.entity_id);
@@ -549,18 +549,18 @@ void RenderProxyHandler::UploadRenderProxyLocalData() {
     return;
   }
 
-  auto ssbo_proxy_local_data_id_buffer_size{proxy_local_data_.GetSize() *
-                                            sizeof(RenderProxyId)};
+  auto ssbo_proxy_ids_buffer_size{proxy_local_datas_.GetSize() *
+                                  sizeof(RenderProxyId)};
 
   ReallocateBuffer(
-      ssbo_proxy_local_data_ids_, context_->GetAllocatorHandle(),
-      ssbo_proxy_local_data_id_buffer_size,
+      ssbo_proxy_ids_, context_->GetAllocatorHandle(),
+      ssbo_proxy_ids_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
-      "ssbo_proxy_local_data_");
+      "ssbo_proxy_ids_");
 
   if (pending_proxy_local_data_->GetSize() >
-      proxy_local_data_.GetSize() * kReuploadAllLocalDataThreshold_) {
+      proxy_local_datas_.GetSize() * kReuploadAllLocalDataThreshold_) {
     UploadAllRenderProxyLocalData();
   } else {
     UploadPendingRenderProxyLocalData();
@@ -570,40 +570,40 @@ void RenderProxyHandler::UploadRenderProxyLocalData() {
 void RenderProxyHandler::UploadAllRenderProxyLocalData() {
   COMET_PROFILE("RenderProxyHandler::UploadAllRenderProxyLocalData");
   auto* allocator_handle{context_->GetAllocatorHandle()};
-  auto ssbo_proxy_local_data_buffer_size{proxy_local_data_.GetSize() *
-                                         sizeof(GpuRenderProxyLocalData)};
+  auto ssbo_proxy_local_datas_buffer_size{proxy_local_datas_.GetSize() *
+                                          sizeof(GpuRenderProxyLocalData)};
 
   ReallocateBuffer(
       staging_ssbo_proxy_local_data_, allocator_handle,
-      ssbo_proxy_local_data_buffer_size,
+      ssbo_proxy_local_datas_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "staging_ssbo_proxy_local_data_");
 
   MapBuffer(staging_ssbo_proxy_local_data_);
   auto* memory{staging_ssbo_proxy_local_data_.mapped_memory};
-  memory::CopyMemory(memory, proxy_local_data_.GetData(),
-                     ssbo_proxy_local_data_buffer_size);
+  memory::CopyMemory(memory, proxy_local_datas_.GetData(),
+                     ssbo_proxy_local_datas_buffer_size);
   UnmapBuffer(staging_ssbo_proxy_local_data_);
 
   ReallocateBuffer(
-      ssbo_proxy_local_data_, allocator_handle,
-      ssbo_proxy_local_data_buffer_size,
+      ssbo_proxy_local_datas_, allocator_handle,
+      ssbo_proxy_local_datas_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
-      "ssbo_proxy_local_data_");
+      "ssbo_proxy_local_datas_");
 
   VkBufferCopy full_copy{};
   full_copy.dstOffset = 0;
-  full_copy.size = ssbo_proxy_local_data_buffer_size;
+  full_copy.size = ssbo_proxy_local_datas_buffer_size;
   full_copy.srcOffset = 0;
 
   vkCmdCopyBuffer(context_->GetFrameData().command_buffer_handle,
                   staging_ssbo_proxy_local_data_.handle,
-                  ssbo_proxy_local_data_.handle, 1, &full_copy);
+                  ssbo_proxy_local_datas_.handle, 1, &full_copy);
 
   AddBufferMemoryBarrier(
-      ssbo_proxy_local_data_, post_update_barriers_,
+      ssbo_proxy_local_datas_, post_update_barriers_,
       VK_ACCESS_TRANSFER_WRITE_BIT,
       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT);
 }
@@ -612,36 +612,36 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   COMET_PROFILE("RenderProxyHandler::UploadPendingRenderProxyLocalData");
   auto pending_count{pending_proxy_ids_->GetSize()};
   auto* allocator_handle{context_->GetAllocatorHandle()};
-  auto ssbo_proxy_local_data_buffer_size{proxy_local_data_.GetSize() *
-                                         sizeof(GpuRenderProxyLocalData)};
+  auto ssbo_proxy_local_datas_buffer_size{proxy_local_datas_.GetSize() *
+                                          sizeof(GpuRenderProxyLocalData)};
 
   auto& device{context_->GetDevice()};
 
   // Resize the buffer if necessary to preserve existing data, instead of
   // reallocating it.
   ResizeBuffer(
-      ssbo_proxy_local_data_, device,
+      ssbo_proxy_local_datas_, device,
       context_->GetFrameData().command_pool_handle, allocator_handle,
-      ssbo_proxy_local_data_buffer_size,
+      ssbo_proxy_local_datas_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, device.GetGraphicsQueueHandle(), 0, 0,
-      VK_SHARING_MODE_EXCLUSIVE, VK_NULL_HANDLE, "ssbo_proxy_local_data_");
+      VK_SHARING_MODE_EXCLUSIVE, VK_NULL_HANDLE, "ssbo_proxy_local_datas_");
 
   // The staging buffer is smaller than or equal to the full buffer size (only
   // pending data is uploaded).
-  auto staging_ssbo_proxy_local_data_buffer_size{
+  auto staging_ssbo_proxy_local_datas_buffer_size{
       pending_count * sizeof(GpuRenderProxyLocalData)};
 
   // From this point, we perform a sparse update on the data at the granularity
   // of shader words. This generic approach lets us update only the modified
   // parts without requiring knowledge of the full structure.
   COMET_ASSERT(
-      staging_ssbo_proxy_local_data_buffer_size % sizeof(ShaderWord) == 0,
+      staging_ssbo_proxy_local_datas_buffer_size % sizeof(ShaderWord) == 0,
       "Data should be a multiple of ShaderWord!");
 
   ReallocateBuffer(
       staging_ssbo_proxy_local_data_, allocator_handle,
-      staging_ssbo_proxy_local_data_buffer_size,
+      staging_ssbo_proxy_local_datas_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "staging_ssbo_proxy_local_data_");
@@ -649,12 +649,11 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   auto word_count_per_data{static_cast<VkDeviceSize>(
       sizeof(GpuRenderProxyLocalData) / sizeof(ShaderWord))};
 
-  auto ssbo_proxy_local_data_id_buffer_size{pending_count * sizeof(ShaderWord) *
-                                            word_count_per_data};
+  auto ssbo_proxy_ids_buffer_size{pending_count * sizeof(ShaderWord) *
+                                  word_count_per_data};
 
   ReallocateBuffer(
-      ssbo_word_indices_, allocator_handle,
-      ssbo_proxy_local_data_id_buffer_size,
+      ssbo_word_indices_, allocator_handle, ssbo_proxy_ids_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "ssbo_word_indices_");
@@ -664,7 +663,7 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   auto* data_memory{
       static_cast<ShaderWord*>(staging_ssbo_proxy_local_data_.mapped_memory)};
   memory::CopyMemory(data_memory, pending_proxy_local_data_->GetData(),
-                     staging_ssbo_proxy_local_data_buffer_size);
+                     staging_ssbo_proxy_local_datas_buffer_size);
 
   UnmapBuffer(staging_ssbo_proxy_local_data_);
 
@@ -694,13 +693,13 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   update.ssbo_source_words_handle = staging_ssbo_proxy_local_data_.handle;
   update.ssbo_source_words_size = staging_ssbo_proxy_local_data_.size;
 
-  update.ssbo_destination_words_handle = ssbo_proxy_local_data_.handle;
-  update.ssbo_destination_words_size = ssbo_proxy_local_data_.size;
+  update.ssbo_destination_words_handle = ssbo_proxy_local_datas_.handle;
+  update.ssbo_destination_words_size = ssbo_proxy_local_datas_.size;
 
   shader_handler_->UpdateConstants(sparse_upload_shader_,
                                    {nullptr, &total_word_count});
   shader_handler_->UpdateStorages(sparse_upload_shader_, update);
-  shader_handler_->Bind(sparse_upload_shader_, PipelineType::Compute);
+  shader_handler_->Bind(sparse_upload_shader_, PipelineBindType::Compute);
 
   vkCmdDispatch(context_->GetFrameData().command_buffer_handle,
                 static_cast<u32>((total_word_count / 256) + 1), 1, 1);
@@ -710,13 +709,12 @@ void RenderProxyHandler::CommitUpdate(frame::FramePacket* packet) {
   COMET_PROFILE("RenderProxyHandler::CommitUpdate");
   packet->rendering_data = &storages_update_;
 
-  storages_update_.ssbo_proxy_local_data_handle = ssbo_proxy_local_data_.handle;
-  storages_update_.ssbo_proxy_local_data_size = ssbo_proxy_local_data_.size;
+  storages_update_.ssbo_proxy_local_datas_handle =
+      ssbo_proxy_local_datas_.handle;
+  storages_update_.ssbo_proxy_local_datas_size = ssbo_proxy_local_datas_.size;
 
-  storages_update_.ssbo_proxy_local_data_ids_handle =
-      ssbo_proxy_local_data_ids_.handle;
-  storages_update_.ssbo_proxy_local_data_ids_size =
-      ssbo_proxy_local_data_ids_.size;
+  storages_update_.ssbo_proxy_ids_handle = ssbo_proxy_ids_.handle;
+  storages_update_.ssbo_proxy_ids_size = ssbo_proxy_ids_.size;
 
   storages_update_.ssbo_proxy_instances_handle = ssbo_proxy_instances_.handle;
   storages_update_.ssbo_proxy_instances_size = ssbo_proxy_instances_.size;
@@ -747,36 +745,37 @@ void RenderProxyHandler::ReallocateRenderProxyDrawBuffers() {
 
   auto* allocator_handle{context_->GetAllocatorHandle()};
 
-  auto ssbo_indirect_proxy_buffer_size{indirect_batches_->GetSize() *
-                                       sizeof(GpuIndirectRenderProxy)};
+  auto ssbo_indirect_proxies_buffer_size{indirect_batches_->GetSize() *
+                                         sizeof(GpuIndirectRenderProxy)};
 
   ReallocateBuffer(staging_ssbo_indirect_proxies_, allocator_handle,
-                   ssbo_indirect_proxy_buffer_size,
+                   ssbo_indirect_proxies_buffer_size,
                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
                    VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
                    "staging_ssbo_indirect_proxies_");
 
-  ReallocateBuffer(
-      ssbo_indirect_proxies_, allocator_handle, ssbo_indirect_proxy_buffer_size,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-          VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
-      "ssbo_indirect_proxies_");
+  ReallocateBuffer(ssbo_indirect_proxies_, allocator_handle,
+                   ssbo_indirect_proxies_buffer_size,
+                   VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                       VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+                   VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
+                   "ssbo_indirect_proxies_");
 
-  auto ssbo_proxy_instance_buffer_size{sizeof(GpuRenderProxyInstance) *
-                                       batch_entries_.GetSize()};
+  auto ssbo_proxy_instances_buffer_size{sizeof(GpuRenderProxyInstance) *
+                                        batch_entries_.GetSize()};
 
   ReallocateBuffer(
       staging_ssbo_proxy_instances_, allocator_handle,
-      ssbo_proxy_instance_buffer_size,
+      ssbo_proxy_instances_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "staging_ssbo_proxy_instances_");
 
   ReallocateBuffer(
-      ssbo_proxy_instances_, allocator_handle, ssbo_proxy_instance_buffer_size,
+      ssbo_proxy_instances_, allocator_handle, ssbo_proxy_instances_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,

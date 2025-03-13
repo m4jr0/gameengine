@@ -34,16 +34,23 @@ void WorldView::Destroy() {
   View::Destroy();
 }
 
-void WorldView::Update(const ViewPacket& packet) {
+void WorldView::Update(frame::FramePacket* packet) {
   COMET_PROFILE("WorldView::Update");
-  render_proxy_handler_->Update(packet.frame_count);
-  shader_handler_->Bind(*shader_);
-  ShaderPacket shader_packet{};
-  shader_packet.frame_count = packet.frame_count;
-  shader_packet.projection_matrix = &packet.projection_matrix;
-  shader_packet.view_matrix = packet.view_matrix;
-  shader_handler_->UpdateGlobal(*shader_, shader_packet);
-  render_proxy_handler_->Draw(packet.frame_count, *shader_);
+  packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
+
+  // Need to bind shader here for the constants.
+  shader_handler_->Bind(shader_, ShaderBindType::Compute);
+  shader_handler_->UpdateGlobals(shader_, packet);
+  shader_handler_->UpdateStorages(shader_, packet);
+  shader_handler_->UpdateConstants(shader_, packet);
+
+  render_proxy_handler_->Cull(shader_);
+
+  shader_handler_->Bind(shader_, ShaderBindType::Graphics);
+  shader_handler_->UpdateGlobals(shader_, packet);
+  shader_handler_->UpdateStorages(shader_, packet);
+  render_proxy_handler_->Draw(shader_,
+                              static_cast<FrameCount>(packet->frame_count));
   shader_handler_->Reset();
 }
 }  // namespace gl

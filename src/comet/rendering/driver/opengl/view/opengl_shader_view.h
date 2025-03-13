@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_VIEW_OPENGL_SHADER_VIEW_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
@@ -28,7 +29,7 @@ class ShaderView : public View {
   virtual ~ShaderView() = default;
 
   virtual void Destroy() override;
-  virtual void Update(const ViewPacket& packet) = 0;
+  virtual void Update(frame::FramePacket*) = 0;
 
  protected:
   Shader* shader_{nullptr};

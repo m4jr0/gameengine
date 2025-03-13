@@ -93,7 +93,6 @@ void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {
       [&](auto entity_id) {
         auto* root_cmp{
             entity_manager.GetComponent<TransformRootComponent>(entity_id)};
-        root_cmp->is_child_dirty = true;
 
         if (!root_cmp->is_child_dirty) {
           return;

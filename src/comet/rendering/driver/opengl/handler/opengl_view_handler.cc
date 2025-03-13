@@ -39,6 +39,8 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
 
 void ViewHandler::Initialize() {
   Handler::Initialize();
+  view_allocator_.Initialize();
+  views_ = Array<memory::CustomUniquePtr<View>>{&view_allocator_};
 
   for (const auto& view_descr : *rendering_view_descrs_) {
     Generate(view_descr);
@@ -47,18 +49,19 @@ void ViewHandler::Initialize() {
 
 void ViewHandler::Shutdown() {
   for (auto& view : views_) {
-    Destroy(*view, true);
+    Destroy(view.get(), true);
   }
 
-  views_.clear();
+  views_.Clear();
+  view_allocator_.Destroy();
   Handler::Shutdown();
 }
 
-void ViewHandler::Destroy(usize index) { Destroy(*Get(index)); }
+void ViewHandler::Destroy(usize index) { Destroy(Get(index)); }
 
-void ViewHandler::Destroy(View& view) { Destroy(view, false); }
+void ViewHandler::Destroy(View* view) { Destroy(view, false); }
 
-void ViewHandler::Update(const ViewPacket& packet) {
+void ViewHandler::Update(frame::FramePacket* packet) {
   COMET_PROFILE("ViewHandler::Update");
 
   for (const auto& view : views_) {
@@ -74,13 +77,13 @@ const View* ViewHandler::Get(usize index) const {
 }
 
 const View* ViewHandler::TryGet(usize index) const {
-  COMET_ASSERT(index < views_.size(), "Requested view at index #", index,
-               ", but view count is ", views_.size(), "!");
+  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
+               ", but view count is ", views_.GetSize(), "!");
   return views_[index].get();
 }
 
 const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
-  std::unique_ptr<View> view{nullptr};
+  memory::UniquePtr<View> view{nullptr};
 
   switch (descr.type) {
     case RenderingViewType::World: {
@@ -102,15 +105,6 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       break;
     }
 #endif  // COMET_DEBUG
-
-    // TODO(m4jr0).
-    // case RenderingViewType::SimpleWorld: {
-    //   break;
-    // }
-
-    // case RenderingViewType::Skybox: {
-    //   break;
-    // }
 
 #ifdef COMET_IMGUI
     case RenderingViewType::ImGui: {
@@ -134,8 +128,8 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
   COMET_ASSERT(view != nullptr, "Generated view is null! What happened?");
 
   view->Initialize();
-  views_.push_back(std::move(view));
-  return views_.back().get();
+  views_.PushBack(std::move(view));
+  return views_.GetLast().get();
 }
 
 View* ViewHandler::Get(usize index) {
@@ -146,21 +140,21 @@ View* ViewHandler::Get(usize index) {
 }
 
 View* ViewHandler::TryGet(usize index) {
-  COMET_ASSERT(index < views_.size(), "Requested view at index #", index,
-               ", but view count is ", views_.size(), "!");
+  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
+               ", but view count is ", views_.GetSize(), "!");
   return views_[index].get();
 }
 
-void ViewHandler::Destroy(View& view, bool is_destroying_handler) {
+void ViewHandler::Destroy(View* view, bool is_destroying_handler) {
   if (is_destroying_handler) {
-    view.Destroy();
+    view->Destroy();
     return;
   }
 
-  const auto view_id{view.GetId()};
+  const auto view_id{view->GetId()};
   auto view_index{kInvalidIndex};
 
-  for (u32 i{0}; i < views_.size(); ++i) {
+  for (u32 i{0}; i < views_.GetSize(); ++i) {
     auto* other_view{views_[i].get()};
 
     if (other_view->GetId() == view_id) {
@@ -172,8 +166,8 @@ void ViewHandler::Destroy(View& view, bool is_destroying_handler) {
   COMET_ASSERT(view_index != kInvalidIndex,
                "Tried to destroy view, but it was not found in the list!");
 
-  view.Destroy();
-  views_.erase(views_.begin() + view_index);
+  view->Destroy();
+  views_.RemoveFromPos(views_.begin() + view_index);
 }
 }  // namespace gl
 }  // namespace rendering

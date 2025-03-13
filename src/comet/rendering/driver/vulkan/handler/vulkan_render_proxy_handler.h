@@ -56,10 +56,13 @@ class RenderProxyHandler : public Handler {
 
  private:
   static inline constexpr usize kMaxRenderProxyCount_{100000};
-  static inline constexpr usize kMaxRenderBatchCount_{kMaxRenderProxyCount_ /
-                                                      2};
   static inline constexpr usize kDefaultRenderIndirectBatchCount_{128};
   static inline constexpr usize kDefaultRenderBatchGroupCount_{128};
+  static inline constexpr usize kDefaultProxyCount_{512};
+  static inline constexpr f32 kReuploadAllLocalDataThreshold_{.8f};
+  static inline constexpr usize kDefaultUpdateBarrierCapacity_{4};
+  static inline constexpr usize kDefaultCullBarrierCapacity_{2};
+  static inline constexpr usize kDefaultShaderToTransferBarrierCapacity_{1};
 
   static bool OnRenderBatchSort(const RenderBatchEntry& a,
                                 const RenderBatchEntry& b);
@@ -89,11 +92,6 @@ class RenderProxyHandler : public Handler {
                               usize& proxy_instance_index);
   u64 GenerateRenderProxySortKey(const RenderProxy& proxy);
 
-  constexpr static usize kDefaultProxyCount_{512};
-  constexpr static f32 kReuploadAllLocalDataThreshold_{.8f};
-  constexpr static usize kDefaultUpdateBarrierCapacity_{4};
-  constexpr static usize kDefaultCullBarrierCapacity_{2};
-  constexpr static usize kDefaultShaderToTransferBarrierCapacity_{1};
   FrameIndex update_frame_{kInvalidFrameIndex};
   usize render_proxy_count_{0};
 
@@ -109,7 +107,7 @@ class RenderProxyHandler : public Handler {
 
   Map<entity::EntityId, RenderProxyId> entity_id_to_proxy_id_map_{};
   Array<entity::EntityId> proxy_id_to_entity_id_map_{};
-  Array<GpuRenderProxyLocalData> proxy_local_data_{};
+  Array<GpuRenderProxyLocalData> proxy_local_datas_{};
   Array<RenderBatchEntry> new_batch_entries_{};
   Array<RenderBatchEntry> batch_entries_{};
 
@@ -118,9 +116,9 @@ class RenderProxyHandler : public Handler {
   Buffer staging_ssbo_proxy_instances_{};
   Buffer ssbo_proxy_instances_{};
   Buffer staging_ssbo_proxy_local_data_{};
-  Buffer ssbo_proxy_local_data_{};
+  Buffer ssbo_proxy_local_datas_{};
+  Buffer ssbo_proxy_ids_{};
   Buffer ssbo_word_indices_{};
-  Buffer ssbo_proxy_local_data_ids_{};
 
   ShaderStoragesUpdate storages_update_{};
 

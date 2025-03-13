@@ -9,6 +9,7 @@
 
 #include <utility>
 
+#include "comet/core/frame/frame_utils.h"
 #include "comet/math/math_commons.h"
 
 namespace comet {
@@ -17,55 +18,55 @@ namespace gl {
 TextureHandler::TextureHandler(const TextureHandlerDescr& descr)
     : Handler{descr} {}
 
+void TextureHandler::Initialize() {
+  Handler::Initialize();
+  allocator_.Initialize();
+  textures_ = Map<TextureHandle, Texture*>{&allocator_};
+}
+
 void TextureHandler::Shutdown() {
-  std::vector<TextureHandle> handles{};
-  handles.reserve(textures_.size());
+  frame::FrameArray<TextureHandle> handles{};
+  handles.Reserve(textures_.GetEntryCount());
 
   for (auto& it : textures_) {
-    auto& texture{it.second};
+    auto& texture{it.value};
 
-    if (texture.handle != kInvalidTextureHandle) {
-      handles.push_back(texture.handle);
+    if (texture->handle != kInvalidTextureHandle) {
+      handles.PushBack(texture->handle);
     }
 
-    Destroy(it.second, true);
+    Destroy(it.value, true);
   }
 
-  if (textures_.size() > 0) {
-    glDeleteTextures(static_cast<s32>(handles.size()), handles.data());
+  if (!handles.IsEmpty()) {
+    glDeleteTextures(static_cast<s32>(handles.GetSize()), handles.GetData());
   }
 
-  textures_.clear();
+  textures_.Clear();
+  allocator_.Destroy();
   Handler::Shutdown();
 }
 
 const Texture* TextureHandler::Generate(
     const resource::TextureResource* resource) {
-  Texture texture{};
+  auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
 
-  glGenTextures(1, &texture.handle);
-  texture.width = resource->descr.resolution[0];
-  texture.height = resource->descr.resolution[1];
-  texture.depth = resource->descr.resolution[2];
-  texture.mip_levels = GetMipLevels(resource);
-  texture.format = GetGlFormat(resource);
-  texture.internal_format = GetGlInternalFormat(resource);
-  texture.channel_count = resource->descr.channel_count;
+  glGenTextures(1, &texture->handle);
+  texture->width = resource->descr.resolution[0];
+  texture->height = resource->descr.resolution[1];
+  texture->depth = resource->descr.resolution[2];
+  texture->mip_levels = GetMipLevels(resource);
+  texture->format = GetGlFormat(resource);
+  texture->internal_format = GetGlInternalFormat(resource);
+  texture->channel_count = resource->descr.channel_count;
 
-  glBindTexture(GL_TEXTURE_2D, texture.handle);
-  glTexImage2D(GL_TEXTURE_2D, 0, texture.internal_format,
+  glBindTexture(GL_TEXTURE_2D, texture->handle);
+  glTexImage2D(GL_TEXTURE_2D, 0, texture->internal_format,
                resource->descr.resolution[0], resource->descr.resolution[1], 0,
-               texture.format, GL_UNSIGNED_BYTE, resource->data.GetData());
+               texture->format, GL_UNSIGNED_BYTE, resource->data.GetData());
 
   glGenerateMipmap(GL_TEXTURE_2D);
-
-#ifdef COMET_DEBUG
-  const auto texture_handle{texture.handle};
-#endif  // COMET_DEBUG
-  auto insert_pair{textures_.emplace(texture.handle, std::move(texture))};
-  COMET_ASSERT(insert_pair.second, "Could not insert texture: ",
-               COMET_STRING_ID_LABEL(texture_handle), "!");
-  return &insert_pair.first->second;
+  return textures_.Emplace(texture->handle, texture).value;
 }
 
 const Texture* TextureHandler::Get(TextureHandle texture_handle) const {
@@ -76,13 +77,13 @@ const Texture* TextureHandler::Get(TextureHandle texture_handle) const {
 }
 
 const Texture* TextureHandler::TryGet(TextureHandle texture_handle) const {
-  auto it{textures_.find(texture_handle)};
+  auto texture{textures_.TryGet(texture_handle)};
 
-  if (it == textures_.end()) {
+  if (texture == nullptr) {
     return nullptr;
   }
 
-  return &it->second;
+  return *texture;
 }
 
 const Texture* TextureHandler::GetOrGenerate(
@@ -97,10 +98,10 @@ const Texture* TextureHandler::GetOrGenerate(
 }
 
 void TextureHandler::Destroy(TextureHandle texture_handle) {
-  return Destroy(*Get(texture_handle));
+  return Destroy(Get(texture_handle));
 }
 
-void TextureHandler::Destroy(Texture& texture) {
+void TextureHandler::Destroy(Texture* texture) {
   return Destroy(texture, false);
 }
 
@@ -112,32 +113,25 @@ Texture* TextureHandler::Get(TextureHandle texture_handle) {
 }
 
 Texture* TextureHandler::TryGet(TextureHandle texture_handle) {
-  auto it{textures_.find(texture_handle)};
+  auto texture{textures_.TryGet(texture_handle)};
 
-  if (it == textures_.end()) {
+  if (texture == nullptr) {
     return nullptr;
   }
 
-  return &it->second;
+  return *texture;
 }
 
-void TextureHandler::Destroy(Texture& texture, bool is_destroying_handler) {
+void TextureHandler::Destroy(Texture* texture, bool is_destroying_handler) {
   if (!is_destroying_handler) {
-    if (texture.handle != kInvalidTextureHandle) {
-      glDeleteTextures(1, &texture.handle);
+    if (texture->handle != kInvalidTextureHandle) {
+      glDeleteTextures(1, &texture->handle);
     }
 
-    textures_.erase(texture.handle);
+    textures_.Remove(texture->handle);
   }
 
-  texture.handle = kInvalidTextureHandle;
-  texture.format = GL_INVALID_VALUE;
-  texture.internal_format = GL_INVALID_VALUE;
-  texture.width = 0;
-  texture.height = 0;
-  texture.depth = 0;
-  texture.mip_levels = 0;
-  texture.channel_count = 0;
+  allocator_.Deallocate(texture);
 }
 
 u32 TextureHandler::GetMipLevels(const resource::TextureResource* resource) {

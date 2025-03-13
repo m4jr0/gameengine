@@ -17,6 +17,7 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/event/event.h"
+#include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
@@ -86,22 +87,22 @@ class VulkanDriver : public Driver {
   u8 vulkan_variant_version_{0};
   u8 max_frames_in_flight_{2};
 
-  std::unique_ptr<VulkanGlfwWindow> window_{nullptr};
-  std::unique_ptr<Swapchain> swapchain_{nullptr};
-  std::unique_ptr<Context> context_{nullptr};
+  memory::UniquePtr<VulkanGlfwWindow> window_{nullptr};
+  memory::UniquePtr<Swapchain> swapchain_{nullptr};
+  memory::UniquePtr<Context> context_{nullptr};
 
   VkInstance instance_handle_{VK_NULL_HANDLE};
-  std::unique_ptr<Device> device_{nullptr};
-  std::unique_ptr<DescriptorHandler> descriptor_handler_{nullptr};
-  std::unique_ptr<MaterialHandler> material_handler_{nullptr};
-  std::unique_ptr<MeshHandler> mesh_handler_{nullptr};
-  std::unique_ptr<PipelineHandler> pipeline_handler_{nullptr};
-  std::unique_ptr<RenderPassHandler> render_pass_handler_{nullptr};
-  std::unique_ptr<RenderProxyHandler> render_proxy_handler_{nullptr};
-  std::unique_ptr<ShaderHandler> shader_handler_{nullptr};
-  std::unique_ptr<ShaderModuleHandler> shader_module_handler_{nullptr};
-  std::unique_ptr<TextureHandler> texture_handler_{nullptr};
-  std::unique_ptr<ViewHandler> view_handler_{nullptr};
+  memory::UniquePtr<Device> device_{nullptr};
+  memory::UniquePtr<DescriptorHandler> descriptor_handler_{nullptr};
+  memory::UniquePtr<MaterialHandler> material_handler_{nullptr};
+  memory::UniquePtr<MeshHandler> mesh_handler_{nullptr};
+  memory::UniquePtr<PipelineHandler> pipeline_handler_{nullptr};
+  memory::UniquePtr<RenderPassHandler> render_pass_handler_{nullptr};
+  memory::UniquePtr<RenderProxyHandler> render_proxy_handler_{nullptr};
+  memory::UniquePtr<ShaderHandler> shader_handler_{nullptr};
+  memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
+  memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
+  memory::UniquePtr<ViewHandler> view_handler_{nullptr};
 
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   void InitializeDebugMessenger();

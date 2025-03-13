@@ -17,7 +17,7 @@ ShaderView::ShaderView(const ShaderViewDescr& descr)
 
 void ShaderView::Destroy() {
   if (shader_ != nullptr && shader_handler_->IsInitialized()) {
-    shader_handler_->Destroy(*shader_);
+    shader_handler_->Destroy(shader_);
     shader_ = nullptr;
   }
 

@@ -207,15 +207,15 @@ struct ShaderConstantsUpdate {
 };
 
 struct ShaderStoragesUpdate {
-  VkBuffer ssbo_proxy_local_data_handle{VK_NULL_HANDLE};
-  VkBuffer ssbo_proxy_local_data_ids_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_proxy_local_datas_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_proxy_ids_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_proxy_instances_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_indirect_proxies_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_word_indices_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_source_words_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_destination_words_handle{VK_NULL_HANDLE};
-  VkDeviceSize ssbo_proxy_local_data_size{0};
-  VkDeviceSize ssbo_proxy_local_data_ids_size{0};
+  VkDeviceSize ssbo_proxy_local_datas_size{0};
+  VkDeviceSize ssbo_proxy_ids_size{0};
   VkDeviceSize ssbo_proxy_instances_size{0};
   VkDeviceSize ssbo_indirect_proxies_size{0};
   VkDeviceSize ssbo_word_indices_size{0};

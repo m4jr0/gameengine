@@ -44,7 +44,8 @@ CATCH_REGISTER_LISTENER(TestsFileSystemEventListener)
 TEST_CASE("Ring queue creation with specific capacity", "[comet]") {
   const comet::usize capacity{15};
 
-  auto queue{comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
+  auto queue{comet::RingQueue<
+      comet::memory::UniquePtr<comet::comettests::DummyObject>>(
       &comet::comettests::allocator, capacity)};
 
   SECTION("Properties after creation with specific capacity.") {
@@ -57,10 +58,10 @@ TEST_CASE("Ring queue push operations in single thread", "[comet]") {
   const comet::usize capacity{15};
 
   SECTION("Properties after pushing one element.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
 
-            &comet::comettests::allocator, capacity)};
+        &comet::comettests::allocator, capacity)};
 
     const auto dummy1{comet::comettests::DummyObject(0)};
     queue.Push(std::make_unique<comet::comettests::DummyObject>(0));
@@ -69,10 +70,10 @@ TEST_CASE("Ring queue push operations in single thread", "[comet]") {
   }
 
   SECTION("Properties after pushing two elements.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
 
-            &comet::comettests::allocator, capacity)};
+        &comet::comettests::allocator, capacity)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(0));
     queue.Push(std::make_unique<comet::comettests::DummyObject>(0));
@@ -80,18 +81,18 @@ TEST_CASE("Ring queue push operations in single thread", "[comet]") {
   }
 
   SECTION("Properties after pushing the maximum amount of elements.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
-            &comet::comettests::allocator, 1)};
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
+        &comet::comettests::allocator, 1)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(0));
     REQUIRE(queue.GetSize() == 1);
   }
 
   SECTION("Properties after pushing too many elements.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
-            &comet::comettests::allocator, 1)};
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
+        &comet::comettests::allocator, 1)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(0));
 
@@ -108,9 +109,9 @@ TEST_CASE("Ring queue push operations in single thread", "[comet]") {
   }
 
   SECTION("Specific error case: pushing one element in a 0-capacity queue.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
-            &comet::comettests::allocator, 0)};
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
+        &comet::comettests::allocator, 0)};
 
     auto is_exception{false};
 
@@ -128,10 +129,10 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
   const comet::usize capacity{15};
 
   SECTION("Properties after get/pop operations on one element.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
 
-            &comet::comettests::allocator, capacity)};
+        &comet::comettests::allocator, capacity)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(42));
     REQUIRE(queue.Get()->GetValue() == 42);
@@ -140,10 +141,10 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
   }
 
   SECTION("Properties after get/pop operations on two elements.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
 
-            &comet::comettests::allocator, capacity)};
+        &comet::comettests::allocator, capacity)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(42));
     REQUIRE(queue.Get()->GetValue() == 42);
@@ -154,10 +155,10 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
   SECTION(
       "Properties after get/pop operations on one element in a two-element "
       "queue.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
 
-            &comet::comettests::allocator, capacity)};
+        &comet::comettests::allocator, capacity)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(0));
     queue.Push(std::make_unique<comet::comettests::DummyObject>(0));
@@ -167,9 +168,9 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
   }
 
   SECTION("Properties after get/pop operations on too many elements.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
-            &comet::comettests::allocator, 1)};
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
+        &comet::comettests::allocator, 1)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(42));
     queue.Get();
@@ -188,9 +189,9 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
   }
 
   SECTION("Order is respected.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
-            &comet::comettests::allocator, 3)};
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
+        &comet::comettests::allocator, 3)};
 
     queue.Push(std::make_unique<comet::comettests::DummyObject>(1));
     queue.Push(std::make_unique<comet::comettests::DummyObject>(2));
@@ -207,9 +208,9 @@ TEST_CASE("Ring queue front & pop operations in single thread", "[comet]") {
   SECTION(
       "Specific error case: get/pop operation on one element in a 0-capacity "
       "queue.") {
-    auto queue{
-        comet::RingQueue<std::unique_ptr<comet::comettests::DummyObject>>(
-            &comet::comettests::allocator, 0)};
+    auto queue{comet::RingQueue<
+        comet::memory::UniquePtr<comet::comettests::DummyObject>>(
+        &comet::comettests::allocator, 0)};
 
     auto is_exception{false};
 

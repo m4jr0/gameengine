@@ -6,6 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_VIEW_OPENGL_WORLD_VIEW_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_shader_view.h"
@@ -28,7 +29,7 @@ class WorldView : public ShaderView {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(const ViewPacket& packet) override;
+  void Update(frame::FramePacket* packet) override;
 
  private:
   RenderProxyHandler* render_proxy_handler_{nullptr};

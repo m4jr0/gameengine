@@ -8,108 +8,52 @@
 #include "glad/glad.h"
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/gid.h"
-#include "comet/rendering/driver/opengl/data/opengl_frame.h"
+#include "comet/core/type/array.h"
+#include "comet/core/type/string_id.h"
+#include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
-#include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/driver/opengl/data/opengl_storage.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using UniformBufferHandle = GLuint;
-constexpr auto kInvalidUniformBufferHandle{0};
-
-using ShaderUniformLocation = u32;
-constexpr auto kInvalidShaderUniformLocation{
-    static_cast<ShaderUniformLocation>(-1)};
-
-using ShaderUniformIndex = u16;
-constexpr auto kInvalidShaderUniformIndex{static_cast<ShaderUniformIndex>(-1)};
-
-struct ShaderUniform {
-  sptrdiff offset{0};
-  ShaderUniformSize size{kInvalidShaderUniformSize};
-  ShaderUniformIndex index{kInvalidShaderUniformIndex};
-  ShaderUniformLocation location{kInvalidShaderUniformLocation};
-  usize data_index{kInvalidIndex};
-  ShaderVariableType type{ShaderVariableType::Unknown};
-  ShaderUniformScope scope{ShaderUniformScope::Unknown};
-};
-
-struct ShaderUniformIndices {
-  ShaderUniformIndex projection{kInvalidShaderUniformIndex};
-  ShaderUniformIndex view{kInvalidShaderUniformIndex};
-  ShaderUniformIndex ambient_color{kInvalidShaderUniformIndex};
-  ShaderUniformIndex view_pos{kInvalidShaderUniformIndex};
-  ShaderUniformIndex diffuse_color{kInvalidShaderUniformIndex};
-  ShaderUniformIndex diffuse_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex specular_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex normal_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex shininess{kInvalidShaderUniformIndex};
-  ShaderUniformIndex model{kInvalidShaderUniformIndex};
-};
-
-constexpr auto kShaderDescriptorSetGlobalIndex{0};
-constexpr auto kShaderDescriptorSetInstanceIndex{1};
-
-struct ShaderUniformData {
-  std::vector<const TextureMap*> texture_maps{};
-  FrameIndex update_frame{kInvalidFrameIndex};
-};
-
-constexpr auto kMaxMaterialInstances{1024};
-
-struct ShaderUniformBufferObjectData {
-  u32 uniform_count{0};
-  u32 sampler_count{0};
-  u32 uniform_block_index{GL_INVALID_VALUE};
-  usize ubo_size{0};
-  sptrdiff ubo_stride{0};
-  sptrdiff ubo_offset{0};
-};
-
-using MaterialInstanceId = gid::Gid;
-constexpr auto kInvalidMaterialInstanceId{gid::kInvalidId};
-
-struct MaterialInstance {
-  MaterialInstanceId id{kInvalidMaterialInstanceId};
-  sptrdiff offset{0};
-  ShaderUniformData uniform_data{};
-};
-
-struct MaterialInstances {
-  std::vector<MaterialInstance> list{};
-  std::vector<MaterialInstanceId> ids{};
-};
-
 using ShaderId = stringid::StringId;
 constexpr auto kInvalidShaderId{static_cast<ShaderId>(-1)};
+
+using VertexAttributeHandle = u32;
+constexpr auto kInvalidVertexAttributeHandle{0};
 
 using ShaderHandle = u32;
 constexpr auto kInvalidShaderHandle{0};
 
-struct ShaderDescr {
-  TString resource_path{};
-};
-
 struct Shader {
   bool is_wireframe{false};
-  u8 local_uniform_count{0};
-  GLenum cull_mode{GL_INVALID_VALUE};
-  UniformBufferHandle ubo_handle{kInvalidUniformBufferHandle};
+  GLenum cull_mode{GL_NONE};
   ShaderId id{kInvalidShaderId};
+  ShaderHandle compute_handle{kInvalidShaderHandle};
+  ShaderHandle graphics_handle{kInvalidShaderHandle};
+  VertexAttributeHandle vertex_attribute_handle{kInvalidVertexAttributeHandle};
+  StorageHandle vertex_buffer_handle{kInvalidStorageHandle};
+  StorageHandle index_buffer_handle{kInvalidStorageHandle};
   sptrdiff bound_ubo_offset{0};
   MaterialInstanceId bound_instance_index{kInvalidMaterialInstanceId};
   ShaderUniformData global_uniform_data{};
+  ShaderStorageData storage_data{};
   ShaderUniformBufferObjectData global_ubo_data{};
   ShaderUniformBufferObjectData instance_ubo_data{};
+  UniformBufferHandle uniform_buffer_handle{kInvalidUniformBufferHandle};
   MaterialInstances instances{};
-  ShaderHandle handle{kInvalidShaderHandle};
-  std::vector<ShaderUniform> uniforms{};
+  Array<ShaderUniform> uniforms{};
+  Array<ShaderConstant> constants{};
+  Array<ShaderStorage> storages{};
+  ShaderUniformBufferIndices uniform_buffer_indices{};
   ShaderUniformIndices uniform_indices{};
-  std::vector<const ShaderModule*> modules{};
+  ShaderConstantIndices constant_indices{};
+  ShaderStorageIndices storage_indices{};
+  Array<const ShaderModule*> modules{};
 };
+
+ShaderHandle ResolveHandle(const Shader* shader, ShaderBindType bind_type);
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

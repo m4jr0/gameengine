@@ -6,12 +6,12 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_MATERIAL_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
+#include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
-#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {
@@ -31,7 +31,7 @@ struct MaterialDescr {
 
 struct Material {
   f32 shininess{.0f};
-  FrameIndex instance_update_frame{kInvalidFrameIndex};
+  FrameCount instance_update_frame{kInvalidFrameCount};
   MaterialId id{kInvalidMaterialId};
   MaterialInstanceId instance_id{kInvalidMaterialInstanceId};
   ShaderId shader_id{kInvalidShaderId};

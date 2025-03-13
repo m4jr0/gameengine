@@ -8,6 +8,7 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "editor/asset/exporter/asset_exporter.h"
 #include "editor/memory/memory.h"
@@ -51,7 +52,7 @@ class AssetManager : public Manager {
   memory::PlatformAllocator exporters_allocator_{memory::kEditorMemoryTagAsset};
   memory::PlatformAllocator resource_file_allocator_{
       memory::kEditorMemoryTagAsset};
-  Array<std::unique_ptr<AssetExporter>> exporters_{};
+  Array<memory::UniquePtr<AssetExporter>> exporters_{};
 };
 }  // namespace asset
 }  // namespace editor

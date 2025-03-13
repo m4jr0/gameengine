@@ -311,17 +311,15 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
   auto* memory{static_cast<u8*>(staging_buffer_.mapped_memory)};
 
   for (const auto& geometry : *geometries) {
-    memory::CopyMemory(memory + update_context.current_staging_vertex_offset,
-                       geometry.vertices->GetData(),
-                       geometry.vertices->GetSize() * sizeof(geometry::Vertex));
-    memory::CopyMemory(memory + update_context.current_staging_index_offset,
-                       geometry.indices->GetData(),
-                       geometry.indices->GetSize() * sizeof(geometry::Index));
-
     auto vertex_size{static_cast<VkDeviceSize>(geometry.vertices->GetSize() *
                                                sizeof(geometry::Vertex))};
     auto index_size{static_cast<VkDeviceSize>(geometry.indices->GetSize() *
                                               sizeof(geometry::Index))};
+
+    memory::CopyMemory(memory + update_context.current_staging_vertex_offset,
+                       geometry.vertices->GetData(), vertex_size);
+    memory::CopyMemory(memory + update_context.current_staging_index_offset,
+                       geometry.indices->GetData(), index_size);
 
     auto vertex_byte_offset{
         AllocateFromFreeList(free_vertex_regions_, vertex_size)};

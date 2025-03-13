@@ -131,19 +131,19 @@ Shader* ShaderHandler::TryGet(ShaderId shader_id) {
 }
 
 void ShaderHandler::Bind(const Shader* shader,
-                         PipelineType pipeline_type) const {
+                         PipelineBindType pipeline_type) const {
   const Pipeline* pipeline{nullptr};
 
-  if (pipeline_type == PipelineType::Graphics) {
+  if (pipeline_type == PipelineBindType::Graphics) {
     pipeline = shader->graphics_pipeline;
-  } else if (pipeline_type == PipelineType::Compute) {
+  } else if (pipeline_type == PipelineBindType::Compute) {
     pipeline = shader->compute_pipeline;
   }
 
   COMET_ASSERT(pipeline != nullptr, "Tried to bind an invalid pipeline!");
   pipeline_handler_->Bind(pipeline);
 
-  auto bind_point{pipeline->type == PipelineType::Graphics
+  auto bind_point{pipeline->type == PipelineBindType::Graphics
                       ? VK_PIPELINE_BIND_POINT_GRAPHICS
                       : VK_PIPELINE_BIND_POINT_COMPUTE};
 
@@ -174,12 +174,12 @@ void ShaderHandler::Bind(const Shader* shader,
 }
 
 void ShaderHandler::BindInstance(Shader* shader, MaterialId material_id,
-                                 PipelineType pipeline_type) {
+                                 PipelineBindType pipeline_type) {
   BindInstance(shader, material_handler_->Get(material_id), pipeline_type);
 }
 
 void ShaderHandler::BindInstance(Shader* shader, const Material* material,
-                                 PipelineType pipeline_type) {
+                                 PipelineBindType pipeline_type) {
   auto instance_set_index{shader->descriptor_set_indices.instance};
 
   if (instance_set_index == kInvalidShaderDescriptorSetIndex) {
@@ -188,16 +188,16 @@ void ShaderHandler::BindInstance(Shader* shader, const Material* material,
 
   const Pipeline* pipeline{nullptr};
 
-  if (pipeline_type == PipelineType::Graphics) {
+  if (pipeline_type == PipelineBindType::Graphics) {
     pipeline = shader->graphics_pipeline;
-  } else if (pipeline_type == PipelineType::Compute) {
+  } else if (pipeline_type == PipelineBindType::Compute) {
     pipeline = shader->compute_pipeline;
   }
 
   COMET_ASSERT(pipeline != nullptr, "Tried to bind an invalid pipeline!");
   pipeline_handler_->Bind(pipeline);
 
-  auto bind_point{pipeline->type == PipelineType::Graphics
+  auto bind_point{pipeline->type == PipelineBindType::Graphics
                       ? VK_PIPELINE_BIND_POINT_GRAPHICS
                       : VK_PIPELINE_BIND_POINT_COMPUTE};
 
@@ -249,8 +249,8 @@ void ShaderHandler::UpdateGlobals(Shader* shader,
           .descriptor_set_handles[context_->GetImageIndex()]};
 
   auto buffer_info{init::GenerateDescriptorBufferInfo(
-      shader->uniform_buffer.handle, shader->global_ubo_data.ubo_offset,
-      shader->global_ubo_data.ubo_stride)};
+      shader->uniform_buffers[context_->GetImageIndex()].handle,
+      shader->global_ubo_data.ubo_offset, shader->global_ubo_data.ubo_stride)};
 
   auto ubo_write_descriptor_set{init::GenerateBufferWriteDescriptorSet(
       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, global_descriptor_set_handle,
@@ -337,13 +337,12 @@ void ShaderHandler::UpdateStorages(Shader* shader,
 
   BindStorageBuffer(
       shader, set_handle, shader->storage_indices.proxy_local_datas,
-      update.ssbo_proxy_local_data_handle, update.ssbo_proxy_local_data_size,
+      update.ssbo_proxy_local_datas_handle, update.ssbo_proxy_local_datas_size,
       buffer_info, bindings, write_descriptor_sets);
 
   BindStorageBuffer(shader, set_handle, shader->storage_indices.proxy_ids,
-                    update.ssbo_proxy_local_data_ids_handle,
-                    update.ssbo_proxy_local_data_ids_size, buffer_info,
-                    bindings, write_descriptor_sets);
+                    update.ssbo_proxy_ids_handle, update.ssbo_proxy_ids_size,
+                    buffer_info, bindings, write_descriptor_sets);
 
   BindStorageBuffer(shader, set_handle, shader->storage_indices.proxy_instances,
                     update.ssbo_proxy_instances_handle,
@@ -416,8 +415,8 @@ void ShaderHandler::UpdateInstance(Shader* shader, Material* material) {
 
     if (shader->instance_ubo_data.uniform_count > 0) {
       buffer_info = init::GenerateDescriptorBufferInfo(
-          shader->uniform_buffer.handle, shader->bound_ubo_offset,
-          shader->instance_ubo_data.ubo_stride);
+          shader->uniform_buffers[context_->GetImageIndex()].handle,
+          shader->bound_ubo_offset, shader->instance_ubo_data.ubo_stride);
       write_descriptor_sets[descriptor_count] =
           init::GenerateBufferWriteDescriptorSet(
               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, instance_descriptor_set_handle,
@@ -477,7 +476,7 @@ void ShaderHandler::SetUniform(Shader* shader, const ShaderUniform& uniform,
     return;
   }
 
-  auto& buffer{shader->uniform_buffer};
+  auto& buffer{shader->uniform_buffers[context_->GetImageIndex()]};
   MapBuffer(buffer);
   CopyToBuffer(buffer, value, uniform.size,
                shader->bound_ubo_offset + uniform.offset);
@@ -703,7 +702,7 @@ ShaderVertexAttributeSize ShaderHandler::GetVertexAttributeSize(
   return kInvalidShaderVertexAttributeSize;
 }
 
-ShaderUniformSize ShaderHandler::ShaderVariableTypeSize(
+ShaderUniformSize ShaderHandler::GetShaderVariableTypeSize(
     ShaderVariableType type) {
   switch (type) {
     case ShaderVariableType::B32:
@@ -844,8 +843,12 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
   shader->global_ubo_data = {};
   shader->instance_ubo_data = {};
 
-  if (IsBufferInitialized(shader->uniform_buffer)) {
-    DestroyBuffer(shader->uniform_buffer);
+  if (!shader->uniform_buffers.IsEmpty()) {
+    for (auto& buffer : shader->uniform_buffers) {
+      if (IsBufferInitialized(buffer)) {
+        DestroyBuffer(buffer);
+      }
+    }
   }
 
   if (shader->descriptor_pool_handle != VK_NULL_HANDLE) {
@@ -1373,7 +1376,7 @@ void ShaderHandler::HandleDescriptorPoolGeneration(Shader* shader) const {
               VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 }
 
-void ShaderHandler::HandleUboBufferGeneration(Shader* shader) const {
+void ShaderHandler::HandleUboBufferGeneration(Shader* shader) {
   const auto align{context_->GetDevice()
                        .GetProperties()
                        .limits.minUniformBufferOffsetAlignment};
@@ -1398,10 +1401,15 @@ void ShaderHandler::HandleUboBufferGeneration(Shader* shader) const {
       shader->instance_ubo_data.ubo_stride * kMaxMaterialInstances)};
 
   if (buffer_size > 0) {
-    shader->uniform_buffer = GenerateBuffer(
-        context_->GetAllocatorHandle(), buffer_size,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0,
-        VK_SHARING_MODE_EXCLUSIVE, "shader->uniform_buffer");
+    shader->uniform_buffers = Array<Buffer>{&general_allocator_};
+    shader->uniform_buffers.Resize(context_->GetImageCount());
+
+    for (usize i{0}; i < shader->uniform_buffers.GetSize(); ++i) {
+      shader->uniform_buffers[i] = GenerateBuffer(
+          context_->GetAllocatorHandle(), buffer_size,
+          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0,
+          VK_SHARING_MODE_EXCLUSIVE, "shader->uniform_buffers");
+    }
   }
 
   auto global_set_index{shader->descriptor_set_indices.global};
@@ -1446,7 +1454,7 @@ void ShaderHandler::AddUniform(Shader* shader, const ShaderUniformDescr& descr,
     uniform.location = uniform.index;
   }
 
-  auto size{ShaderVariableTypeSize(uniform.type)};
+  auto size{GetShaderVariableTypeSize(uniform.type)};
 
   uniform.offset =
       is_sampler ? 0
@@ -1485,7 +1493,7 @@ void ShaderHandler::AddConstant(Shader* shader,
   constant.offset =
       static_cast<ShaderOffset>(shader->push_constant_ranges.GetSize());
 
-  auto size{ShaderVariableTypeSize(constant.type)};
+  auto size{GetShaderVariableTypeSize(constant.type)};
 
   if (shader->constants.IsEmpty()) {
     constant.offset = 0;
@@ -1529,7 +1537,7 @@ void ShaderHandler::AddStorage(Shader* shader,
     const auto& property_descr{descr.properties[i]};
     auto& property{storage.properties[i]};
     property.type = property_descr.type;
-    property.size = ShaderVariableTypeSize(property.type);
+    property.size = GetShaderVariableTypeSize(property.type);
   }
 }
 }  // namespace vk

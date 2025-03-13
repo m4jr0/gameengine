@@ -8,6 +8,9 @@
 #include "glad/glad.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/type/map.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/resource/texture_resource.h"
@@ -27,6 +30,7 @@ class TextureHandler : public Handler {
   TextureHandler& operator=(TextureHandler&&) = delete;
   virtual ~TextureHandler() = default;
 
+  void Initialize() override;
   void Shutdown() override;
 
   const Texture* Generate(const resource::TextureResource* resource);
@@ -34,20 +38,22 @@ class TextureHandler : public Handler {
   const Texture* TryGet(TextureHandle texture_handle) const;
   const Texture* GetOrGenerate(const resource::TextureResource* resource);
   void Destroy(TextureHandle texture_handle);
-  void Destroy(Texture& texture);
+  void Destroy(Texture* texture);
 
  private:
   Texture* Get(TextureHandle texture_handle);
   Texture* TryGet(TextureHandle texture_handle);
-  void Destroy(Texture& texture, bool is_destroying_handler);
+  void Destroy(Texture* texture, bool is_destroying_handler);
   static u32 GetMipLevels(const resource::TextureResource* resource);
   static GLenum GetGlFormat(const resource::TextureResource* resource);
   static GLenum GetGlInternalFormat(const resource::TextureResource* resource);
 
-  void GenerateMipmaps(const Texture& texture) const;
-  Texture GenerateInstance(const resource::TextureResource* resource) const;
+  void GenerateMipmaps(const Texture* texture) const;
+  Texture* GenerateInstance(const resource::TextureResource* resource) const;
 
-  std::unordered_map<TextureHandle, Texture> textures_{};
+  memory::FiberFreeListAllocator allocator_{sizeof(Texture), 256,
+                                            memory::kEngineMemoryTagRendering};
+  Map<TextureHandle, Texture*> textures_{};
 };
 }  // namespace gl
 }  // namespace rendering

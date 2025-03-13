@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/memory.h"
 #include "comet/engine/engine.h"
 #include "comet/entry_point.h"
 #include "comet/event/event.h"
@@ -39,7 +40,7 @@ class CometEditor : public Engine {
   // TODO(m4jr0): Remove temporary code.
   void LoadTmpCode();
 
-  std::unique_ptr<CameraHandler> camera_handler_{nullptr};
+  memory::UniquePtr<CameraHandler> camera_handler_{nullptr};
 };
 }  // namespace editor
 }  // namespace comet

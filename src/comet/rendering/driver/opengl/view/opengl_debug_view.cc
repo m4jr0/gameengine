@@ -33,17 +33,9 @@ void DebugView::Destroy() {
   View::Destroy();
 }
 
-void DebugView::Update(const ViewPacket& packet) {
+void DebugView::Update(frame::FramePacket*) {
   COMET_PROFILE("DebugView::Update");
-  render_proxy_handler_->Update(packet.frame_count);
-  shader_handler_->Bind(*shader_);
-  ShaderPacket shader_packet{};
-  shader_packet.projection_matrix = &packet.projection_matrix;
-  shader_packet.view_matrix = packet.view_matrix;
-  shader_handler_->UpdateGlobal(*shader_, shader_packet);
-  // TODO(m4jr0): Remove temporary code.
-  render_proxy_handler_->DrawProxiesForDebugging(*shader_);
-  shader_handler_->Reset();
+  // TODO(m4jr0): Display 3D debug information.
 }
 }  // namespace gl
 }  // namespace rendering

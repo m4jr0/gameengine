@@ -1,36 +1,54 @@
-#version 460 core
+#version 460
+
+struct ProxyLocalData {
+    vec3 localCenter;
+    vec3 localMaxExtents;
+    mat4 transform;
+};
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormals;
-layout(location = 2) in vec4 inColor;
-layout(location = 3) in vec2 inTexCoord;
+layout(location = 2) in vec3 inTangents;
+layout(location = 3) in vec3 inBitangents;
+layout(location = 4) in vec2 inTexCoord;
+layout(location = 5) in vec4 inColor;
 
-layout (std140, binding = 0) uniform global_uniform_object {
+layout(std140, binding = 0) uniform GlobalUbo {
     mat4 projection;
     mat4 view;
     vec4 ambientColor;
     vec3 viewPos;
-} global_ubo;
+} globalUbo;
 
-uniform mat4 model;
-
-out struct data_object {
+layout(location = 1) out FragmentData {
     vec4 ambientColor;
     vec2 texCoord;
     vec3 normals;
     vec3 viewPos;
     vec3 fragPos;
     vec4 color;
-} data;
+} outData;
+
+layout(std430, binding = 0) readonly buffer InProxyLocalDatasSsbo {
+    ProxyLocalData inProxyLocalDatas[];
+};
+
+layout(binding = 1) readonly buffer InProxyIdsSsbo {
+    uint inProxyIds[];
+};
 
 void main() {
-    data.texCoord = inTexCoord;
-    data.color = inColor;
-    data.fragPos = vec3(model * vec4(inPosition, 1.0));
-    mat3 modelMat3 = mat3(model);
-    data.normals = normalize(modelMat3 * inNormals);
-    data.ambientColor = global_ubo.ambientColor;
-    data.viewPos = global_ubo.viewPos;
+    uint proxyId = inProxyIds[gl_InstanceID];
+    mat4 model = inProxyLocalDatas[proxyId].transform;
 
-    gl_Position = global_ubo.projection * global_ubo.view * model * vec4(inPosition, 1.0);
+    outData.texCoord = inTexCoord;
+    outData.color = inColor;
+    outData.fragPos = vec3(model * vec4(inPosition, 1.0));
+
+    mat3 modelMat3 = mat3(model);
+    outData.normals = normalize(modelMat3 * inNormals);
+    outData.ambientColor = globalUbo.ambientColor;
+    outData.viewPos = globalUbo.viewPos;
+
+    gl_Position = globalUbo.projection * globalUbo.view * model * vec4(inPosition, 1.0);
 }

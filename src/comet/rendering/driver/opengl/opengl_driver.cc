@@ -54,6 +54,7 @@ void OpenGlDriver::Initialize() {
 
 #ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
   glEnable(GL_DEBUG_OUTPUT);
+  glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   glDebugMessageCallback(LogOpenGlMessage, nullptr);
 #endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
 
@@ -96,7 +97,7 @@ void OpenGlDriver::Update(frame::FramePacket* packet) {
                clear_color_[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  Draw(packet->interpolation);
+  Draw(packet);
   window_->SwapBuffers();
   ++frame_count_;
 }
@@ -114,15 +115,16 @@ void OpenGlDriver::InitializeHandlers() {
   TextureHandlerDescr texture_handler_descr{};
   texture_handler_ = std::make_unique<TextureHandler>(texture_handler_descr);
 
-  ShaderHandlerDescr shader_handler_descr{};
-  shader_handler_descr.shader_module_handler = shader_module_handler_.get();
-  shader_handler_descr.texture_handler = texture_handler_.get();
-  shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
-
   MaterialHandlerDescr material_handler_descr{};
-  material_handler_descr.shader_handler = shader_handler_.get();
   material_handler_descr.texture_handler = texture_handler_.get();
   material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
+
+  ShaderHandlerDescr shader_handler_descr{};
+  shader_handler_descr.shader_module_handler = shader_module_handler_.get();
+  shader_handler_descr.material_handler = material_handler_.get();
+  shader_handler_descr.mesh_handler = mesh_handler_.get();
+  shader_handler_descr.texture_handler = texture_handler_.get();
+  shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
 
   RenderProxyHandlerDescr render_proxy_handler_descr{};
   render_proxy_handler_descr.material_handler = material_handler_.get();
@@ -150,11 +152,11 @@ void OpenGlDriver::InitializeHandlers() {
 void OpenGlDriver::DestroyHandlers() {
   // Order is important to improve performance.
   shader_module_handler_->Shutdown();
-  shader_handler_->Shutdown();
   texture_handler_->Shutdown();
   material_handler_->Shutdown();
   mesh_handler_->Shutdown();
   render_proxy_handler_->Shutdown();
+  shader_handler_->Shutdown();
   view_handler_->Shutdown();
 
   shader_module_handler_ = nullptr;
@@ -182,15 +184,10 @@ void OpenGlDriver::OnEvent(const event::Event& event) {
 
 Window* OpenGlDriver::GetWindow() { return window_.get(); }
 
-void OpenGlDriver::Draw(time::Interpolation interpolation) {
+void OpenGlDriver::Draw(frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::Draw");
-  ViewPacket packet{};
-  packet.frame_count = frame_count_;
-  packet.interpolation = interpolation;
-
-  auto* camera{CameraManager::Get().GetMainCamera()};
-  packet.projection_matrix = camera->GetProjectionMatrix();
-  packet.view_matrix = &camera->GetViewMatrix();
+  mesh_handler_->Update(packet);
+  render_proxy_handler_->Update(packet);
   view_handler_->Update(packet);
 }
 

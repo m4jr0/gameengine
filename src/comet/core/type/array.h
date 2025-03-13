@@ -131,27 +131,6 @@ class Array : public internal::BaseArray<T> {
     }
   }
 
-  template <typename InputIterator>
-  Array(memory::Allocator* allocator, InputIterator from, InputIterator to)
-      : internal::BaseArray<T>(
-            Distance(to, from),
-            Distance(to, from) == 0
-                ? nullptr
-                : static_cast<T*>(allocator->AllocateAligned(
-                      (Distance(to, from)) * sizeof(T), alignof(T)))),
-        capacity_{Distance(to, from)},
-        allocator_{allocator} {
-    if (this->data_ == nullptr) {
-      return;
-    }
-
-    usize index{0};
-
-    for (auto it{from}; it != to; ++it) {
-      memory::Populate<T>(&this->data_[index++], allocator_, *it);
-    }
-  }
-
   Array(const Array& other)
       : internal::BaseArray<T>{other.size_,
                                other.size_ == 0

@@ -17,7 +17,6 @@
 #include "comet/core/frame/frame_manager.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/stack_allocator.h"
 #include "comet/core/memory/tagged_heap.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
@@ -62,7 +61,7 @@ void AssetManager::Initialize() {
 
   exporters_allocator_.Initialize();
   resource_file_allocator_.Initialize();
-  exporters_ = Array<std::unique_ptr<AssetExporter>>{&exporters_allocator_};
+  exporters_ = Array<memory::UniquePtr<AssetExporter>>{&exporters_allocator_};
   exporters_.Reserve(4);
   exporters_.PushBack(std::make_unique<ModelExporter>());
   exporters_.PushBack(std::make_unique<ShaderExporter>());

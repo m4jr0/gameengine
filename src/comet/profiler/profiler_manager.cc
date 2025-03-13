@@ -75,7 +75,7 @@ void ProfilerManager::EndFrame() {
     thread_context.thread_id = thread_contexts_.GetThreadIdFromIndex(i);
     thread_context.active_nodes = {};
     thread_context.root_nodes = Array<ProfilerNode*>{&allocator_};
-    thread_context.nodes = Array<std::unique_ptr<ProfilerNode>>{&allocator_};
+    thread_context.nodes = Array<memory::UniquePtr<ProfilerNode>>{&allocator_};
   }
 }
 

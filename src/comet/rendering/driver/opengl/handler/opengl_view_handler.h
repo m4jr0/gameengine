@@ -6,6 +6,10 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_VIEW_HANDLER_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
@@ -38,8 +42,8 @@ class ViewHandler : public Handler {
   void Initialize() override;
   void Shutdown() override;
   void Destroy(usize view);
-  void Destroy(View& view);
-  void Update(const ViewPacket& packet);
+  void Destroy(View* view);
+  void Update(frame::FramePacket* packet);
 
   const View* Get(usize index) const;
   const View* TryGet(usize index) const;
@@ -48,9 +52,10 @@ class ViewHandler : public Handler {
  private:
   View* Get(usize index);
   View* TryGet(usize index);
-  void Destroy(View& view, bool is_destroying_handler);
+  void Destroy(View* view, bool is_destroying_handler);
 
-  std::vector<std::unique_ptr<View>> views_{};
+  Array<memory::CustomUniquePtr<View>> views_{};
+  memory::PlatformAllocator view_allocator_{memory::kEngineMemoryTagRendering};
   ShaderHandler* shader_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   OpenGlGlfwWindow* window_{nullptr};

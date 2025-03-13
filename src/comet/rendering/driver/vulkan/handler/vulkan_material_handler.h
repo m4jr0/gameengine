@@ -49,7 +49,6 @@ class MaterialHandler : public Handler {
   void Destroy(Material* material);
 
  private:
-  Material* GenerateInternal(const MaterialDescr& descr);
   TextureMap GenerateTextureMap(const resource::TextureMap* map);
   void Destroy(Material* material, bool is_destroying_handler);
   Sampler* GenerateSampler(SamplerId sampler_id,
@@ -59,7 +58,7 @@ class MaterialHandler : public Handler {
   Sampler* GetOrGenerateSampler(const resource::TextureMap* texture_map);
   void Destroy(Sampler* sampler);
 
-  memory::FiberStackAllocator allocator_{
+  memory::FiberFreeListAllocator allocator_{
       math::Max(sizeof(Pair<MaterialId, Material>),
                 sizeof(Pair<SamplerId, Sampler>)),
       256, memory::kEngineMemoryTagRendering};

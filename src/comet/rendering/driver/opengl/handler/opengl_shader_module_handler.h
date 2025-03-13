@@ -8,6 +8,9 @@
 #include "glad/glad.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/type/map.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
@@ -28,6 +31,7 @@ class ShaderModuleHandler : public Handler {
   ShaderModuleHandler& operator=(ShaderModuleHandler&&) = delete;
   virtual ~ShaderModuleHandler() = default;
 
+  void Initialize() override;
   void Shutdown() override;
 
   const ShaderModule* Generate(CTStringView shader_module_path);
@@ -35,22 +39,23 @@ class ShaderModuleHandler : public Handler {
   const ShaderModule* TryGet(ShaderModuleHandle shader_module_handle) const;
   const ShaderModule* GetOrGenerate(CTStringView path);
   void Destroy(ShaderModuleHandle shader_module_handle);
-  void Destroy(ShaderModule& shader_module);
-  void Attach(const Shader& shader, ShaderModuleHandle shader_module_handle);
-  void Attach(const Shader& shader, ShaderModule& shader_module);
-  void Detach(const Shader& shader, ShaderModuleHandle shader_module_handle);
-  void Detach(const Shader& shader, ShaderModule& shader_module);
+  void Destroy(ShaderModule* shader_module);
+  void Attach(const Shader* shader, ShaderModuleHandle shader_module_handle);
+  void Attach(const Shader* shader, ShaderModule* shader_module);
+  void Detach(const Shader* shader, ShaderModuleHandle shader_module_handle);
+  void Detach(const Shader* shader, ShaderModule* shader_module);
 
  private:
   static GLenum GetOpenGlType(ShaderModuleType module_type);
 
   ShaderModule* Get(ShaderModuleHandle shader_module_handle);
   ShaderModule* TryGet(ShaderModuleHandle shader_module_handle);
-  void Destroy(ShaderModule& shader_module, bool is_destroying_handler);
-  ShaderModule CompileShader(
-      const resource::ShaderModuleResource* resource) const;
+  void Destroy(ShaderModule* shader_module, bool is_destroying_handler);
+  ShaderModule* CompileShader(const resource::ShaderModuleResource* resource);
 
-  std::unordered_map<ShaderModuleHandle, ShaderModule> shader_modules_{};
+  memory::FiberFreeListAllocator allocator_{sizeof(ShaderModule), 256,
+                                            memory::kEngineMemoryTagRendering};
+  Map<ShaderModuleHandle, ShaderModule*> shader_modules_{};
 };
 }  // namespace gl
 }  // namespace rendering

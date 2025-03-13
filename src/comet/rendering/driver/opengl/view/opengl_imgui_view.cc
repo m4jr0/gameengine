@@ -45,7 +45,7 @@ void ImGuiView::Destroy() {
   View::Destroy();
 }
 
-void ImGuiView::Update(const ViewPacket&) {
+void ImGuiView::Update(frame::FramePacket*) {
   COMET_PROFILE("ImGuiView::Update");
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();

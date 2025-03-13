@@ -8,6 +8,7 @@
 #include "comet/core/essentials.h"
 
 #ifdef COMET_IMGUI
+#include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
@@ -29,7 +30,7 @@ class ImGuiView : public View {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(const ViewPacket& packet) override;
+  void Update(frame::FramePacket*) override;
 
  private:
   void Draw() const;

@@ -47,7 +47,7 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
 void ViewHandler::Initialize() {
   Handler::Initialize();
   allocator_.Initialize();
-  views_ = Array<std::unique_ptr<View>>{&allocator_};
+  views_ = Array<memory::UniquePtr<View>>{&allocator_};
 
   for (const auto& view_descr : *rendering_view_descrs_) {
     Generate(view_descr);
@@ -96,7 +96,7 @@ const View* ViewHandler::TryGet(usize index) const {
 }
 
 const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
-  std::unique_ptr<View> view{nullptr};
+  memory::UniquePtr<View> view{nullptr};
 
   switch (descr.type) {
     case RenderingViewType::World: {

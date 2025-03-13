@@ -55,7 +55,7 @@ class PipelineHandler : public Handler {
   void DestroyLayout(PipelineLayout* pipeline_layout,
                      bool is_destroying_handler);
 
-  memory::FiberStackAllocator allocator_{
+  memory::FiberFreeListAllocator allocator_{
       math::Max(sizeof(Pair<PipelineId, Pipeline>),
                 sizeof(Pair<PipelineLayoutId, PipelineLayout>)),
       256, memory::kEngineMemoryTagRendering};

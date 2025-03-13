@@ -60,7 +60,7 @@ const PipelineLayout* PipelineHandler::GenerateLayout(
 const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
   auto* pipeline{allocator_.AllocateOneAndPopulate<Pipeline>()};
   pipeline->id = pipeline_id_counter_++;
-  pipeline->type = PipelineType::Graphics;
+  pipeline->type = PipelineBindType::Graphics;
   pipeline->layout_handle = descr.layout_handle;
   auto& device{context_->GetDevice()};
 
@@ -123,7 +123,7 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
 const Pipeline* PipelineHandler::Generate(const ComputePipelineDescr& descr) {
   auto* pipeline{allocator_.AllocateOneAndPopulate<Pipeline>()};
   pipeline->id = pipeline_id_counter_++;
-  pipeline->type = PipelineType::Compute;
+  pipeline->type = PipelineBindType::Compute;
   pipeline->layout_handle = descr.layout_handle;
   auto& device{context_->GetDevice()};
 
@@ -168,7 +168,7 @@ void PipelineHandler::Bind(const Pipeline* pipeline) {
                "Pipeline handle is null! Unable to bind!");
 
   vkCmdBindPipeline(context_->GetFrameData().command_buffer_handle,
-                    pipeline->type == PipelineType::Graphics
+                    pipeline->type == PipelineBindType::Graphics
                         ? VK_PIPELINE_BIND_POINT_GRAPHICS
                         : VK_PIPELINE_BIND_POINT_COMPUTE,
                     pipeline->handle);

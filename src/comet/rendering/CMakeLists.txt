@@ -69,14 +69,16 @@ target_sources(${COMET_LIBRARY_NAME}
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"
 
       # OpenGL.
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_debug.cc"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_driver.cc"
     
-      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_frame.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_material.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_mesh.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_render_proxy.h"
-      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader.h"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader.cc"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader_data.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader_module.h"
+      "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_storage.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_texture.h"
       "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_texture_map.h"
 

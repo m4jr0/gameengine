@@ -37,17 +37,16 @@ struct Shader {
   ShaderStorageData storage_data{};
   ShaderUniformBufferObjectData global_ubo_data{};
   ShaderUniformBufferObjectData instance_ubo_data{};
-  Buffer uniform_buffer{};
   VkDescriptorPool descriptor_pool_handle{VK_NULL_HANDLE};
   const RenderPass* render_pass{nullptr};
   const Pipeline* graphics_pipeline{nullptr};
   const Pipeline* compute_pipeline{nullptr};
   MaterialInstances instances{};
   DescriptorSetLayoutBindings layout_bindings{};
-  // One per frame
-  Array<VkVertexInputAttributeDescription> vertex_attributes{};
   StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>
       layout_handles{};
+  Array<Buffer> uniform_buffers{};
+  Array<VkVertexInputAttributeDescription> vertex_attributes{};
   Array<ShaderUniform> uniforms{};
   Array<ShaderConstant> constants{};
   Array<ShaderStorage> storages{};

@@ -177,6 +177,22 @@ bool AreStringsEqualInsensitive(const wchar* str1, usize str1_len,
   return CompareInsensitive(str1, str2, str1_len) == 0;
 }
 
+bool IsContained(const schar* str, const schar* to_find) {
+  if (str == nullptr || to_find == nullptr) {
+    return false;
+  }
+
+  return std::strstr(str, to_find) != nullptr;
+}
+
+bool IsContained(const wchar* str, const wchar* to_find) {
+  if (str == nullptr || to_find == nullptr) {
+    return false;
+  }
+
+  return std::wcsstr(str, to_find) != nullptr;
+}
+
 bool IsSpace(schar c) { return std::isspace(c); }
 
 bool IsSpace(wchar c) { return std::iswspace(c); }

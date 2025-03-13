@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
 #include "comet/rendering/camera/camera.h"
 
@@ -31,7 +32,7 @@ class CameraManager : public Manager {
   void OnEvent(const event::Event& event);
   void GenerateMainCamera();
 
-  std::unique_ptr<Camera> main_camera_{nullptr};
+  memory::UniquePtr<Camera> main_camera_{nullptr};
 };
 }  // namespace rendering
 }  // namespace comet

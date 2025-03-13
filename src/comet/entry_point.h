@@ -6,9 +6,10 @@
 #define COMET_COMET_ENTRY_POINT_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/memory/memory.h"
 #include "comet/engine/engine.h"
 
-extern std::unique_ptr<comet::Engine> comet::GenerateEngine();
+extern comet::memory::UniquePtr<comet::Engine> comet::GenerateEngine();
 
 namespace comet {}  // namespace comet
 

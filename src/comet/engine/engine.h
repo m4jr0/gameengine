@@ -8,6 +8,7 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
 
 namespace comet {
@@ -54,7 +55,7 @@ class Engine {
   bool is_exit_requested_{false};
 };
 
-std::unique_ptr<Engine> GenerateEngine();
+memory::UniquePtr<Engine> GenerateEngine();
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_ENGINE_H_

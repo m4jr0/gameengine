@@ -67,6 +67,8 @@ bool AreStringsEqualInsensitive(const schar* str1, usize str1_len,
                                 const schar* str2, usize str2_len);
 bool AreStringsEqualInsensitive(const wchar* str1, usize str1_len,
                                 const wchar* str2, usize str2_len);
+bool IsContained(const schar* str, const schar* to_find);
+bool IsContained(const wchar* str, const wchar* to_find);
 bool IsSpace(schar c);
 bool IsSpace(wchar c);
 bool IsAlpha(schar c);

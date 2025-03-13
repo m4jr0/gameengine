@@ -6,8 +6,8 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_VIEW_OPENGL_VIEW_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/math/matrix.h"
-#include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/time/time_manager.h"
 
@@ -18,13 +18,6 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-struct ViewPacket {
-  FrameIndex frame_count{kInvalidFrameIndex};
-  time::Interpolation interpolation{1};
-  math::Mat4 projection_matrix{1.0f};
-  const math::Mat4* view_matrix{nullptr};
-};
-
 struct ViewDescr {
   RenderingViewId id{kInvalidRenderingViewId};
 };
@@ -40,7 +33,7 @@ class View {
 
   virtual void Initialize();
   virtual void Destroy();
-  virtual void Update(const ViewPacket& packet) = 0;
+  virtual void Update(frame::FramePacket*) = 0;
 
   bool IsInitialized() const noexcept;
   RenderingViewId GetId() const noexcept;

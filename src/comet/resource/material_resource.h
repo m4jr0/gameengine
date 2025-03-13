@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/memory.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
@@ -66,7 +67,7 @@ class MaterialHandler : public ResourceHandler {
                    const ResourceFile& file) override;
 
  private:
-  std::unique_ptr<MaterialResource> default_material_{nullptr};
+  memory::UniquePtr<MaterialResource> default_material_{nullptr};
 };
 }  // namespace resource
 }  // namespace comet

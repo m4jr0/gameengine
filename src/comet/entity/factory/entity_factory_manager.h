@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
+#include "comet/core/memory/memory.h"
 #include "comet/entity/factory/handler/entity_model_handler.h"
 #include "comet/resource/resource_manager.h"
 
@@ -29,7 +30,7 @@ class EntityFactoryManager : public Manager {
   const ModelHandler* GetModel() const;
 
  private:
-  std::unique_ptr<ModelHandler> model_handler_{nullptr};
+  memory::UniquePtr<ModelHandler> model_handler_{nullptr};
 };
 }  // namespace entity
 }  // namespace comet

@@ -54,11 +54,11 @@ class ShaderHandler : public Handler {
   Shader* Generate(const ShaderDescr& descr);
   Shader* Get(ShaderId shader_id);
   Shader* TryGet(ShaderId shader_id);
-  void Bind(const Shader* shader, PipelineType pipeline_type) const;
+  void Bind(const Shader* shader, PipelineBindType pipeline_type) const;
   void BindInstance(Shader* shader, MaterialId material_id,
-                    PipelineType pipeline_type);
+                    PipelineBindType pipeline_type);
   void BindInstance(Shader* shader, const Material* material,
-                    PipelineType pipeline_type);
+                    PipelineBindType pipeline_type);
   void Destroy(ShaderId shader_id);
   void Destroy(Shader* shader);
   void Reset();
@@ -92,7 +92,7 @@ class ShaderHandler : public Handler {
  private:
   static ShaderVertexAttributeSize GetVertexAttributeSize(
       ShaderVertexAttributeType type);
-  static ShaderUniformSize ShaderVariableTypeSize(ShaderVariableType type);
+  static ShaderUniformSize GetShaderVariableTypeSize(ShaderVariableType type);
   static VkFormat GetVkFormat(ShaderVertexAttributeType type);
 
   static void BindStorageBuffer(
@@ -111,13 +111,13 @@ class ShaderHandler : public Handler {
       Shader* shader, const resource::ShaderResource* resource) const;
   void HandleAttributesGeneration(
       Shader* shader, const resource::ShaderResource* resource) const;
-  void HandleBindingsGeneration(Shader* shader) const;
   void HandleUniformsGeneration(Shader* shader,
                                 const resource::ShaderResource* resource) const;
   void HandleConstantsGeneration(
       Shader* shader, const resource::ShaderResource* resource) const;
   void HandleStorageGeneration(Shader* shader,
                                const resource::ShaderResource* resource) const;
+  void HandleBindingsGeneration(Shader* shader) const;
   void HandleSamplerGeneration(Shader* shader,
                                const ShaderUniformDescr& uniform_descr,
                                u32& instance_texture_count) const;
@@ -134,7 +134,7 @@ class ShaderHandler : public Handler {
   void HandleComputePipelineGeneration(
       Shader* shader, const PipelineLayout* pipeline_layout) const;
   void HandleDescriptorPoolGeneration(Shader* shader) const;
-  void HandleUboBufferGeneration(Shader* shader) const;
+  void HandleUboBufferGeneration(Shader* shader);
   void AddUniform(Shader* shader, const ShaderUniformDescr& descr,
                   ShaderUniformLocation location) const;
   void AddConstant(Shader* shader, const ShaderConstantDescr& descr) const;

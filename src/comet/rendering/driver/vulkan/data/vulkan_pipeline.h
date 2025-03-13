@@ -24,7 +24,7 @@ struct PipelineLayout {
   VkPipelineLayout handle{VK_NULL_HANDLE};
 };
 
-enum class PipelineType { Unknown = 0, Graphics, Compute };
+enum class PipelineBindType { Unknown = 0, Graphics, Compute };
 using PipelineId = u32;
 constexpr auto kInvalidPipelineId{static_cast<PipelineId>(-1)};
 
@@ -60,7 +60,7 @@ struct GraphicsPipelineDescr {
 
 struct Pipeline {
   PipelineId id{kInvalidPipelineId};
-  PipelineType type{PipelineType::Unknown};
+  PipelineBindType type{PipelineBindType::Unknown};
   VkPipelineLayout layout_handle{VK_NULL_HANDLE};
   VkPipeline handle{VK_NULL_HANDLE};
 };
