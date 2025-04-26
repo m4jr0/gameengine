@@ -6,6 +6,7 @@
 
 #include "input_manager.h"
 
+#include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/game_state_manager.h"
 #include "comet/event/event_manager.h"
 #include "comet/input/input_event.h"
@@ -23,6 +24,23 @@ InputManager& InputManager::Get() {
 
 void InputManager::Initialize() {
   Manager::Initialize();
+  thread_id_ = thread::GetThreadId();
+
+  cached_input_state_allocator_.Initialize();
+
+  cached_input_state_.keys_pressed =
+      Bitset(&cached_input_state_allocator_, internal::kKeyCount);
+  cached_input_state_.keys_down =
+      Bitset(&cached_input_state_allocator_, internal::kKeyCount);
+  cached_input_state_.keys_up =
+      Bitset(&cached_input_state_allocator_, internal::kKeyCount);
+
+  cached_input_state_.mouse_buttons_pressed =
+      Bitset(&cached_input_state_allocator_, internal::kMouseButtonCount);
+  cached_input_state_.mouse_buttons_down =
+      Bitset(&cached_input_state_allocator_, internal::kMouseButtonCount);
+  cached_input_state_.mouse_buttons_up =
+      Bitset(&cached_input_state_allocator_, internal::kMouseButtonCount);
 
   glfwSetScrollCallback(window_handle_, []([[maybe_unused]] GLFWwindow* handle,
                                            f64 x_offset, f64 y_offset) {
@@ -163,19 +181,39 @@ void InputManager::Shutdown() {
   glfwSetCharCallback(window_handle_, nullptr);
   glfwSetMonitorCallback(nullptr);
   window_handle_ = nullptr;
+
+  cached_input_state_.keys_pressed.Clear();
+  cached_input_state_.keys_down.Clear();
+  cached_input_state_.keys_up.Clear();
+
+  cached_input_state_.mouse_buttons_pressed.Clear();
+  cached_input_state_.mouse_buttons_down.Clear();
+  cached_input_state_.mouse_buttons_up.Clear();
+
+  cached_input_state_allocator_.Destroy();
+
+  thread_id_ = thread::kInvalidThreadId;
   Manager::Shutdown();
 }
 
-void InputManager::Update() { glfwPollEvents(); }
+void InputManager::Update() {
+  COMET_ASSERT(thread_id_ == thread::GetThreadId(),
+               "Input Manager was initialized on thread #", thread_id_,
+               ", but GLFW is not thread-safe. The Update method MUST be "
+               "called from the "
+               "same thread.");
+
+  ReadInputs();
+  ApplyUserUpdates();
+}
 
 bool InputManager::IsKeyPressed(KeyCode key_code) const {
   if (GameStateManager::Get().IsPaused()) {
     return false;
   }
 
-  return glfwGetKey(window_handle_,
-                    static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
-         GLFW_PRESS;
+  return cached_input_state_.keys_pressed.Test(static_cast<usize>(key_code) -
+                                               internal::kKeyBaseOffset);
 }
 
 bool InputManager::IsKeyUp(KeyCode key_code) const {
@@ -183,9 +221,8 @@ bool InputManager::IsKeyUp(KeyCode key_code) const {
     return false;
   }
 
-  return glfwGetKey(window_handle_,
-                    static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
-         GLFW_RELEASE;
+  return cached_input_state_.keys_up.Test(static_cast<usize>(key_code) -
+                                          internal::kKeyBaseOffset);
 }
 
 bool InputManager::IsKeyDown(KeyCode key_code) const {
@@ -193,9 +230,8 @@ bool InputManager::IsKeyDown(KeyCode key_code) const {
     return false;
   }
 
-  return glfwGetKey(window_handle_,
-                    static_cast<std::underlying_type_t<KeyCode>>(key_code)) ==
-         GLFW_PRESS;
+  return cached_input_state_.keys_down.Test(static_cast<usize>(key_code) -
+                                            internal::kKeyBaseOffset);
 }
 
 bool InputManager::IsMousePressed(MouseButton key_code) const {
@@ -203,9 +239,8 @@ bool InputManager::IsMousePressed(MouseButton key_code) const {
     return false;
   }
 
-  return glfwGetMouseButton(window_handle_,
-                            static_cast<std::underlying_type_t<MouseButton>>(
-                                key_code)) == GLFW_REPEAT;
+  return cached_input_state_.mouse_buttons_pressed.Test(
+      static_cast<usize>(key_code));
 }
 
 bool InputManager::IsMouseDown(MouseButton key_code) const {
@@ -213,9 +248,8 @@ bool InputManager::IsMouseDown(MouseButton key_code) const {
     return false;
   }
 
-  return glfwGetMouseButton(window_handle_,
-                            static_cast<std::underlying_type_t<MouseButton>>(
-                                key_code)) == GLFW_PRESS;
+  return cached_input_state_.mouse_buttons_down.Test(
+      static_cast<usize>(key_code));
 }
 
 bool InputManager::IsMouseUp(MouseButton key_code) const {
@@ -223,32 +257,27 @@ bool InputManager::IsMouseUp(MouseButton key_code) const {
     return false;
   }
 
-  return glfwGetMouseButton(window_handle_,
-                            static_cast<std::underlying_type_t<MouseButton>>(
-                                key_code)) == GLFW_RELEASE;
+  return cached_input_state_.mouse_buttons_up.Test(
+      static_cast<usize>(key_code));
 }
 
 math::Vec2 InputManager::GetMousePosition() const {
-  if (GameStateManager::Get().IsPaused()) {
-    return math::Vec2{};
-  }
-
-  f64 current_mouse_y_pos;
-  f64 current_mouse_x_pos;
-  glfwGetCursorPos(window_handle_, &current_mouse_x_pos, &current_mouse_y_pos);
-  return math::Vec2{current_mouse_x_pos, current_mouse_y_pos};
+  return cached_input_state_.mouse_position;
 }
 
 void InputManager::SetMousePosition(f32 x, f32 y) {
-  glfwSetCursorPos(window_handle_, x, y);
+  fiber::FiberLockGuard lock{updated_input_state_.mtx};
+  updated_input_state_.new_position = math::Vec2{x, y};
 }
 
 void InputManager::EnableUnconstrainedMouseCursor() {
-  glfwSetInputMode(window_handle_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  fiber::FiberLockGuard lock{updated_input_state_.mtx};
+  updated_input_state_.cursor_mode = MouseCursorMode::Disabled;
 }
 
 void InputManager::DisableUnconstrainedMouseCursor() {
-  glfwSetInputMode(window_handle_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  fiber::FiberLockGuard lock{updated_input_state_.mtx};
+  updated_input_state_.cursor_mode = MouseCursorMode::Normal;
 }
 
 void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
@@ -273,6 +302,76 @@ bool InputManager::IsShiftPressed() const {
   }
 
   return IsKeyPressed(KeyCode::LeftShift) || IsKeyPressed(KeyCode::RightShift);
+}
+
+void InputManager::ReadInputs() {
+  glfwPollEvents();
+
+  for (usize i{0}; i < internal::kKeyCount; ++i) {
+    auto glfw_key{glfwGetKey(window_handle_,
+                             static_cast<s32>(i) + internal::kKeyBaseOffset)};
+
+    if (glfw_key == GLFW_PRESS) {
+      cached_input_state_.keys_pressed.Set(i);
+      cached_input_state_.keys_down.Set(i);
+    } else {
+      cached_input_state_.keys_pressed.Reset(i);
+      cached_input_state_.keys_down.Reset(i);
+    }
+
+    if (glfw_key == GLFW_RELEASE) {
+      cached_input_state_.keys_up.Set(i);
+    } else {
+      cached_input_state_.keys_up.Reset(i);
+    }
+  }
+
+  for (usize i{0}; i < internal::kMouseButtonCount; ++i) {
+    auto glfw_mouse_button{
+        glfwGetMouseButton(window_handle_, static_cast<s32>(i))};
+
+    if (glfw_mouse_button == GLFW_PRESS) {
+      cached_input_state_.mouse_buttons_pressed.Set(i);
+      cached_input_state_.mouse_buttons_down.Set(i);
+    } else {
+      cached_input_state_.mouse_buttons_pressed.Reset(i);
+      cached_input_state_.mouse_buttons_down.Reset(i);
+    }
+
+    if (glfw_mouse_button == GLFW_RELEASE) {
+      cached_input_state_.mouse_buttons_up.Set(i);
+    } else {
+      cached_input_state_.mouse_buttons_up.Reset(i);
+    }
+  }
+
+  f64 x;
+  f64 y;
+  glfwGetCursorPos(window_handle_, &x, &y);
+  cached_input_state_.mouse_position.x = static_cast<f32>(x);
+  cached_input_state_.mouse_position.y = static_cast<f32>(y);
+}
+
+void InputManager::ApplyUserUpdates() {
+  if (updated_input_state_.new_position.has_value()) {
+    const auto& new_position{updated_input_state_.new_position.value()};
+    glfwSetCursorPos(window_handle_, new_position.x, new_position.y);
+    updated_input_state_.new_position.reset();
+  }
+
+  switch (updated_input_state_.cursor_mode) {
+    case MouseCursorMode::Normal:
+      glfwSetInputMode(window_handle_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      break;
+    case MouseCursorMode::Disabled:
+      glfwSetInputMode(window_handle_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      break;
+    case MouseCursorMode::Unknown:
+    default:
+      break;
+  }
+
+  updated_input_state_.cursor_mode = MouseCursorMode::Unknown;
 }
 }  // namespace input
 }  // namespace comet

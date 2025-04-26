@@ -105,7 +105,8 @@ template <typename T,
               !std::is_same_v<T, schar> && !std::is_same_v<T, wchar> &&
               !std::is_same_v<std::remove_cv_t<T>, schar> &&
               !std::is_same_v<std::remove_cv_t<T>, wchar>>>
-T* Copy(T* dst, usize dst_size, const T* src, usize src_size, usize count,
+T* Copy(T* dst, [[maybe_unused]] usize dst_size, const T* src,
+        [[maybe_unused]] usize src_size, usize count,
         std::size_t dst_offset = 0, std::size_t src_offset = 0) {
   COMET_ASSERT(src != nullptr, "Source array provided is null!");
   COMET_ASSERT(dst != nullptr, "Destination array provided is null!");

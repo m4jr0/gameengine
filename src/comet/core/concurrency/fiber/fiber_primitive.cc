@@ -114,7 +114,7 @@ void FiberCV::Wait(FiberUniqueLock& lock) {
   }
 
   lock.Unlock();
-  Yield();
+  internal::ResumeWorker();
   lock.Lock();
 }
 
@@ -144,7 +144,7 @@ void FiberCV::NotifyAll() {
   }
 
   for (auto* fiber : to_resume) {
-    internal::Sleep(fiber);
+    internal::SleepTo(fiber);
   }
 }
 

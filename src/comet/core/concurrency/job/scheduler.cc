@@ -244,12 +244,13 @@ void Scheduler::Run(const JobDescr& callback_descr) {
 #endif  // COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
   };
 
-  if (AreStringsEqual(COMET_CONF_STR(conf::kRenderingDriver),
-                      conf::kRenderingDriverOpengl.data()) &&
-      !is_main_thread_worker_disabled) {
+  auto driver_type{
+      rendering::GetDriverTypeFromStr(COMET_CONF_STR(conf::kRenderingDriver))};
+  auto is_multithreaded_rendering{rendering::IsMultithreading(driver_type)};
+
+  if (!is_multithreaded_rendering && !is_main_thread_worker_disabled) {
     COMET_LOG_CORE_WARNING(
-        rendering::GetDriverTypeLabel(rendering::GetDriverTypeFromStr(
-            conf::kRenderingDriverOpengl.data())),
+        rendering::GetDriverTypeLabel(driver_type),
         " has been picked. Worker will be disabled for main thread.");
     is_main_thread_worker_disabled = true;
   }

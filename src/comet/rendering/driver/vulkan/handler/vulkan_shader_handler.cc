@@ -317,7 +317,7 @@ void ShaderHandler::UpdateStorages(Shader* shader,
   shader->storage_data.descriptor_set_handles.Resize(
       descriptor_set_layout_count_);
 
-  auto is_allocated{descriptor_handler_->Generate(
+  [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
       layout_buffer.GetData(),
       shader->storage_data.descriptor_set_handles.GetData(),
       descriptor_set_layout_count_, DescriptorType::Dynamic)};
@@ -620,7 +620,7 @@ void ShaderHandler::BindMaterial(Material* material) {
     layout_buffer.PushBack(shader->layout_handles[instance_set_index]);
   }
 
-  auto is_allocated{descriptor_handler_->Generate(
+  [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
       layout_buffer.GetData(),
       instance.uniform_data.descriptor_set_handles.GetData(),
       descriptor_set_layout_count_, DescriptorType::Static)};
@@ -1487,7 +1487,7 @@ void ShaderHandler::HandleUboBufferGeneration(Shader* shader) {
     layout_buffer.PushBack(shader->layout_handles[global_set_index]);
   }
 
-  auto is_allocated{descriptor_handler_->Generate(
+  [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
       layout_buffer.GetData(),
       shader->global_uniform_data.descriptor_set_handles.GetData(),
       descriptor_set_layout_count_, DescriptorType::Static)};

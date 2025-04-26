@@ -42,9 +42,9 @@ void Fiber::Initialize() {
   stack_ = internal::FiberInternalAllocator::Get().Allocate(
       GetAllocatedStackSize(stack_capacity_));
 
-#ifdef COMET_POISON_ALLOCATIONS
+#ifdef COMET_POISON_FIBER_STACKS
   PoisonStack();
-#endif  // COMET_POISON_ALLOCATIONS
+#endif  // COMET_POISON_FIBER_STACKS
 
   // On supported architectures, stack grows downwards.
   stack_top_ = reinterpret_cast<uptr*>(stack_ + stack_capacity_);
@@ -159,26 +159,47 @@ bool Fiber::IsStackOverflow() const {
 const schar* Fiber::GetDebugLabel() const noexcept { return debug_label_; }
 #endif  // COMET_FIBER_DEBUG_LABEL
 
-#ifdef COMET_POISON_ALLOCATIONS
+#ifdef COMET_POISON_FIBER_STACKS
 void Fiber::PoisonStack() {
   COMET_ASSERT(stack_ != nullptr, "Stack is null!");
   COMET_ASSERT(stack_capacity_ != 0, "Stack capacity is 0!");
-  constexpr StaticArray<u8, 4> kPoison{0xde, 0xad, 0xbe, 0xef};
+  constexpr StaticArray<u8, 8> kPoison{0xde, 0xad, 0xbe, 0xef,
+                                       0xde, 0xad, 0xbe, 0xef};
   constexpr auto kPoisonLen{kPoison.GetSize()};
   constexpr auto kAllocationIdSize{sizeof(id_)};
+  COMET_ASSERT(kPoisonLen == kAllocationIdSize,
+               "Poison and allocation ID size misalign. This would cause "
+               "poison drifting when investigating.");
 
   usize i{0};
   auto* cur{stack_};
   auto* top{cur + stack_capacity_};
 
-  while (cur + kAllocationIdSize <= top) {
-    memory::CopyMemory(cur, &id_, kAllocationIdSize);
-    cur += kAllocationIdSize;
+  // Fill misaligned bytes with poison first.
+  auto* aligned_cur{reinterpret_cast<u8*>(
+      memory::AlignAddress(reinterpret_cast<uptr>(cur), kAllocationIdSize))};
 
-    for (i = 0; i < kPoisonLen && cur < top; ++i) {
-      *cur = kPoison[i];
-      ++cur;
+  if (aligned_cur > top) {
+    aligned_cur = top;
+  }
+
+  while (cur < aligned_cur) {
+    *cur = kPoison[i % kPoisonLen];
+    ++cur;
+    ++i;
+  }
+
+  auto is_id{false};
+
+  while (cur + kAllocationIdSize <= top) {
+    if (is_id) {
+      memory::CopyMemory(cur, &id_, kAllocationIdSize);
+    } else {
+      memory::CopyMemory(cur, kPoison.GetData(), kPoisonLen);
     }
+
+    is_id = !is_id;
+    cur += kAllocationIdSize;
   }
 
   while (cur < top) {
@@ -187,7 +208,7 @@ void Fiber::PoisonStack() {
     ++cur;
   }
 }
-#endif  // COMET_POISON_ALLOCATIONS
+#endif  // COMET_POISON_FIBER_STACKS
 
 Fiber::Fiber() : stack_capacity_{kThreadStacktraceSize_} {
 #ifdef COMET_FIBER_DEBUG_LABEL

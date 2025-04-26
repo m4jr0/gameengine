@@ -57,7 +57,7 @@ void Engine::Populate() {
 
   auto run_callback_descr{job::GenerateJobDescr(
       job::JobPriority::High, OnSchedulerStarted, this,
-      job::JobStackSize::Normal, nullptr, "scheduler_start")};
+      job::JobStackSize::Large, nullptr, "scheduler_start")};
 
   auto& scheduler{job::Scheduler::Get()};
   scheduler.Run(run_callback_descr);
@@ -118,14 +118,27 @@ void Engine::Update(f64& lag) {
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
 
+  auto& scheduler{job::Scheduler::Get()};
+  auto* counter{scheduler.GenerateCounter()};
+
   auto& frame_manager{frame::FrameManager::Get()};
   auto& active_frames{frame_manager.GetInFlightFrames()};
-  auto& frame_packet{active_frames.lead_frame};
-  frame_packet->lag = lag;
+  auto& lead_packet{active_frames.lead_frame};
+  lead_packet->lag = lag;
+  lead_packet->counter = counter;
 
-  GameLogicManager::Get().Update(frame_packet);
+  auto& middle_packet{active_frames.middle_frame};
+  middle_packet->counter = counter;
+
+  GameLogicManager::Get().Update(lead_packet);
   rendering::RenderingManager::Get().Update(active_frames.middle_frame);
-  lag = frame_packet->lag;
+
+  scheduler.Wait(counter);
+  scheduler.DestroyCounter(counter);
+  lead_packet->counter = nullptr;
+  middle_packet->counter = nullptr;
+
+  lag = lead_packet->lag;
   frame_manager.Update();
 
 #ifdef COMET_PROFILING

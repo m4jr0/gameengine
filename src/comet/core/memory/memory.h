@@ -36,6 +36,7 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagTaggedHeap,
   kEngineMemoryTagGid,
   kEngineMemoryTagStringId,
+  kEngineMemoryTagInput,
   kEngineMemoryTagFrame,
   kEngineMemoryTagDoubleFrame,
   kEngineMemoryTagFrameExtended,

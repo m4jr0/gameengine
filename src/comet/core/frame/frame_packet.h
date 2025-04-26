@@ -6,6 +6,7 @@
 #define COMET_COMET_CORE_FRAME_PACKET_H_
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/hash.h"
@@ -122,6 +123,7 @@ struct FramePacket {
   DirtyTransforms* dirty_transforms{nullptr};
   RemovedGeometries* removed_geometries{nullptr};
 
+  job::Counter* counter{nullptr};
   void* rendering_data{nullptr};
 
  private:

@@ -7,6 +7,8 @@
 
 #include "rendering_manager.h"
 
+#include "comet/core/concurrency/job/job.h"
+#include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/input/input_manager.h"
@@ -54,6 +56,10 @@ void RenderingManager::Initialize() {
 #endif  // COMET_DEBUG
 
   COMET_ASSERT(driver_ != nullptr, "Rendering driver is null!");
+  is_multithreading_ = IsMultithreading(driver_type);
+
+  // Driver can't be initialized in another thread, as it would not be
+  // thread-safe with GLFW.
   driver_->Initialize();
   input::InputManager::Get().AttachGlfwWindow(
       static_cast<GlfwWindow*>(driver_->GetWindow())->GetHandle());
@@ -89,7 +95,30 @@ void RenderingManager::Update(frame::FramePacket* packet) {
     return;
   }
 
-  driver_->Update(packet);
+  if (is_multithreading_) {
+    auto& scheduler{job::Scheduler::Get()};
+
+    struct Job {
+      frame::FramePacket* packet{nullptr};
+      Driver* driver{nullptr};
+    };
+
+    auto* job{COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(Job)};
+    job->packet = packet;
+    job->driver = driver_.get();
+
+    scheduler.Kick(job::GenerateJobDescr(
+        job::JobPriority::High,
+        [](job::JobParamsHandle params_handle) {
+          auto* job{reinterpret_cast<Job*>(params_handle)};
+          job->driver->Update(job->packet);
+        },
+        job, job::JobStackSize::Large, packet->counter,
+        "rendering_driver_update"));
+  } else {
+    driver_->Update(packet);
+  }
+
   input::InputManager::Get().Update();
   ++counter_;
 }

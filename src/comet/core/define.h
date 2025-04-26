@@ -17,6 +17,7 @@
 // TODO(m4jr0): Find lock-free solution.
 // #define COMET_TRACK_ALLOCATIONS
 // #define COMET_POISON_ALLOCATIONS
+// #define COMET_POISON_FIBER_STACKS
 
 #define COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
 #endif  // COMET_DEBUG
@@ -31,9 +32,7 @@
 
 // Jobs.
 #ifdef COMET_DEBUG
-// TODO(m4jr0): Remove the define once the engine's jobification is
-// complete.
-#define COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
+// #define COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
 #endif  // COMET_DEBUG
 
 // Logging.

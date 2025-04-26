@@ -9,6 +9,7 @@
 
 #include <utility>
 
+#include "comet/core/logger.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
 

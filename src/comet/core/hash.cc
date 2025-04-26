@@ -87,12 +87,23 @@ HashValue GenerateHash(u64 value) {
 }
 
 HashValue GenerateHash(f32 value) {
-  return *reinterpret_cast<const u32*>(&value) * kFnvPrime32;
+  union Tmp {
+    f32 f;
+    u32 u;
+  };
+
+  Tmp bits{value};
+  return bits.u * kFnvPrime32;
 }
 
 HashValue GenerateHash(f64 value) {
-  auto cast{*reinterpret_cast<const u64*>(&value)};
-  return static_cast<u32>(cast ^ (cast >> 32)) * kFnvPrime32;
+  union Tmp {
+    f64 f;
+    u64 u;
+  };
+
+  Tmp bits{value};
+  return static_cast<u32>(bits.u * kFnvPrime64);
 }
 
 HashValue GenerateHash(schar value) {

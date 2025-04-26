@@ -61,6 +61,8 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "string_id";
     case kEngineMemoryTagFrame:
       return "frame";
+    case kEngineMemoryTagInput:
+      return "input";
     case kEngineMemoryTagFrameExtended:
       return "frame_extended";
     case kEngineMemoryTagDoubleFrame:

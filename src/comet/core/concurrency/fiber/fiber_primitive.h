@@ -211,7 +211,7 @@ class FiberCV {
 
     while (!pred()) {
       lock.Unlock();
-      Yield();
+      internal::ResumeWorker();
       lock.Lock();
     }
   }

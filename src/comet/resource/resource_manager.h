@@ -77,8 +77,8 @@ class ResourceManager : public Manager {
 
     return resource;
 #else
-    return static_cast<const ResourceType*>(
-        handler->Load(root_resource_path_, resource_id));
+    return static_cast<const ResourceType*>(handler->Load(
+        resource_file_allocator_, root_resource_path_, resource_id));
 #endif  // COMET_DEBUG
   }
 

@@ -6,6 +6,9 @@
 
 #include "game_logic_manager.h"
 
+#include "comet/core/concurrency/job/job.h"
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/entity/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
@@ -42,13 +45,35 @@ void GameLogicManager::Shutdown() {
 void GameLogicManager::Update(frame::FramePacket* packet) {
   PopulatePacket(packet);
   event_manager_->FireAllEvents();
-  physics_manager_->Update(packet);
-  entity_manager_->DispatchComponentChanges();
 
-  packet->interpolation =
-      packet->lag / time::TimeManager::Get().GetFixedDeltaTime();
+  struct Job {
+    frame::FramePacket* packet{nullptr};
+    physics::PhysicsManager* physics_manager{nullptr};
+    entity::EntityManager* entity_manager{nullptr};
+    animation::AnimationManager* animation_manager{nullptr};
+  };
 
-  animation_manager_->Update(packet);
+  auto* job{COMET_FRAME_ALLOC_ONE_AND_POPULATE(Job)};
+  job->packet = packet;
+  job->physics_manager = physics_manager_;
+  job->entity_manager = entity_manager_;
+  job->animation_manager = animation_manager_;
+
+  job::Scheduler::Get().Kick(job::GenerateJobDescr(
+      job::JobPriority::High,
+      [](job::JobParamsHandle params_handle) {
+        auto* job{reinterpret_cast<Job*>(params_handle)};
+        auto* packet{job->packet};
+
+        job->physics_manager->Update(packet);
+        job->entity_manager->DispatchComponentChanges();
+
+        packet->interpolation =
+            packet->lag / time::TimeManager::Get().GetFixedDeltaTime();
+
+        job->animation_manager->Update(packet);
+      },
+      job, job::JobStackSize::Large, packet->counter, "game_logic_update"));
 }
 
 void GameLogicManager::PopulatePacket(frame::FramePacket* packet) {

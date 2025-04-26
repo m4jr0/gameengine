@@ -47,6 +47,23 @@ const schar* GetDriverTypeLabel(DriverType type) {
   }
 }
 
+bool IsMultithreading(DriverType type) {
+  switch (type) {
+    case DriverType::OpenGl:
+      return false;
+    case DriverType::Vulkan:
+      return true;
+    case DriverType::Direct3d12:
+      return true;
+#ifdef COMET_DEBUG
+    case DriverType::Empty:
+      return true;
+#endif  // COMET_DEBUG
+    default:
+      return false;
+  }
+}
+
 AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
   if (str == conf::kRenderingAntiAliasingTypeNone) {
     return AntiAliasingType::None;

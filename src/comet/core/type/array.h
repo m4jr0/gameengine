@@ -358,14 +358,13 @@ class Array : public internal::BaseArray<T> {
 template <typename T, usize N>
 class StaticArray {
  public:
-  COMET_POPULATE_ITERATOR(T, this->data_, this->size_)
+  COMET_POPULATE_ITERATOR(T, this->data_, N)
 
   constexpr StaticArray() = default;
 
   template <typename... Targs,
             typename = std::enable_if_t<(sizeof...(Targs) == N)>>
-  constexpr StaticArray(Targs... args)
-      : data_{static_cast<T>(args)...}, size_{N} {}
+  constexpr StaticArray(Targs... args) : data_{static_cast<T>(args)...} {}
 
   constexpr T& operator[](usize index) { return data_[index]; }
 
@@ -390,7 +389,7 @@ class StaticArray {
   }
 
   constexpr bool IsContained(const T& value) const {
-    for (usize i{0}; i < size_; ++i) {
+    for (usize i{0}; i < N; ++i) {
       if (data_[i] == value) {
         return true;
       }
@@ -400,34 +399,33 @@ class StaticArray {
   }
 
   constexpr usize GetIndex(const T& value) const {
-    for (usize i{0}; i < size_; ++i) {
+    for (usize i{0}; i < N; ++i) {
       if (data_[i] == value) {
         return i;
       }
     }
 
-    return size_;
+    return kInvalidIndex;
   }
 
   constexpr T* GetData() noexcept { return data_; }
 
   constexpr const T* GetData() const noexcept { return data_; }
 
-  constexpr usize GetSize() const noexcept { return size_; }
+  constexpr usize GetSize() const noexcept { return N; }
 
-  constexpr bool IsEmpty() const noexcept { return size_ == 0; }
+  constexpr bool IsEmpty() const noexcept { return N == 0; }
 
   T& GetFirst() { return this->data_[0]; }
 
   const T& GetFirst() const { return this->data_[0]; }
 
-  T& GetLast() { return this->data_[size_ - 1]; }
+  T& GetLast() { return this->data_[N - 1]; }
 
-  const T& GetLast() const { return this->data_[size_ - 1]; }
+  const T& GetLast() const { return this->data_[N - 1]; }
 
  private:
   T data_[N]{};
-  usize size_{N};
 };
 
 template <typename T>

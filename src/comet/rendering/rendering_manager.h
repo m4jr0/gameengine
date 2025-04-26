@@ -49,6 +49,7 @@ class RenderingManager : public Manager {
   frame::FrameArray<RenderingViewDescr> GenerateRenderingViewDescrs() const;
   bool IsFpsCapReached() const;
 
+  bool is_multithreading_{false};
   FrameCount frame_rate_{0};
   FrameCount counter_{0};
   f64 frame_time_threshold_{0};

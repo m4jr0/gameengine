@@ -13,6 +13,8 @@
 
 namespace comet {
 namespace input {
+enum class MouseCursorMode { Unknown = 0, Normal, Disabled };
+
 // Here, we wrap the GLFW "input manager" to make it easier if we want to
 // change it, some day.
 enum class KeyCode {

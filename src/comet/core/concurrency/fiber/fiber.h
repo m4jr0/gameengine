@@ -122,9 +122,9 @@ class Fiber {
       "architecture");
   static inline std::atomic<FiberId> id_counter_{0};
 
-#ifdef COMET_POISON_ALLOCATIONS
+#ifdef COMET_POISON_FIBER_STACKS
   void PoisonStack();
-#endif  // COMET_POISON_ALLOCATIONS
+#endif  // COMET_POISON_FIBER_STACKS
 
   FiberId id_{id_counter_.fetch_add(1)};
 
