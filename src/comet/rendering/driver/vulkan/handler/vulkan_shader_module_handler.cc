@@ -46,6 +46,10 @@ const ShaderModule* ShaderModuleHandler::Generate(
   shader_module->code =
       reinterpret_cast<const u32*>(shader_module_resource->data.GetData());
   shader_module->code_size = shader_module_resource->data.GetSize();
+
+  COMET_ASSERT(shader_module->code_size > 0, "Shader module resource #",
+               shader_module_resource->id, " is empty!");
+
   shader_module->type =
       GetVulkanType(shader_module_resource->descr.shader_type);
 

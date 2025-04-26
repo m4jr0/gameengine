@@ -104,7 +104,19 @@ struct RenderingViewDescr {
   RenderingViewId id{kInvalidRenderingViewId};
 };
 
+static constexpr auto kShaderLocalSize{256};
+
 enum class ShaderModuleType : u8 { Unknown = 0, Compute, Vertex, Fragment };
+
+constexpr auto kMaxShaderDefineNameLen{31};
+constexpr auto kMaxShaderDefineValueLen{31};
+
+struct ShaderDefineDescr {
+  schar name[kMaxShaderDefineNameLen + 1]{'\0'};
+  schar value[kMaxShaderDefineValueLen + 1]{'\0'};
+  usize name_len{0};
+  usize value_len{0};
+};
 
 using ShaderVertexAttributeSize = u32;
 constexpr auto kInvalidShaderVertexAttributeSize{
@@ -227,16 +239,22 @@ constexpr auto kShaderStorageDescrMaxNameLen{63};
 
 struct ShaderStorageDescr {
   schar name[kShaderStorageDescrMaxNameLen + 1]{'\0'};
+  schar engine_define[kMaxShaderDefineNameLen + 1]{'\0'};
   ShaderStageFlags stages{kShaderStageFlagBitsNone};
   usize name_len{0};
+  usize engine_define_len{0};
   Array<ShaderStoragePropertyDescr> properties{};
 };
 
 void SetName(ShaderUniformDescr& descr, const schar* name, usize name_len);
 void SetName(ShaderConstantDescr& descr, const schar* name, usize name_len);
 void SetName(ShaderStorageDescr& descr, const schar* name, usize name_len);
+void SetEngineDefine(ShaderStorageDescr& descr, const schar* engine_define,
+                     usize engine_define_len);
 void SetName(ShaderStoragePropertyDescr& descr, const schar* name,
              usize name_len);
+void SetName(ShaderDefineDescr& descr, const schar* name, usize name_len);
+void SetValue(ShaderDefineDescr& descr, const schar* value, usize value_len);
 
 constexpr auto kMaxShaderCount{256};
 constexpr auto kMaxShaderUniformCount{128};
@@ -244,6 +262,15 @@ constexpr auto kMaxShaderConstantCount{32};
 constexpr auto kMaxShaderTextureMapCount{32};
 
 enum class CullMode { Unknown = 0, None, Front, Back, FrontAndBack };
+
+enum class PrimitiveTopology {
+  Unknown = 0,
+  Points,
+  Lines,
+  LineStrip,
+  Triangles,
+  TriangleStrip
+};
 
 void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,
                       Array<geometry::Index>& indices, bool is_visible);

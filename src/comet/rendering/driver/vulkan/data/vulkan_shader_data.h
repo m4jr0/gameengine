@@ -26,7 +26,7 @@ using ShaderWord = u32;
 constexpr auto kDescriptorSetMaxLayoutCount{3};
 // Two bindings are required for uniforms (samplers and non-samplers), while
 // SSBOs can have more.
-constexpr auto kDescriptorBindingCount{5};
+constexpr auto kDescriptorBindingCount{8};
 
 constexpr auto kUniformNameProjection{"projection"sv};
 constexpr auto kUniformNameView{"view"sv};
@@ -48,6 +48,38 @@ constexpr auto kStorageNameIndirectProxies{"indirectProxies"sv};
 constexpr auto kStorageNameWordIndices{"wordIndices"sv};
 constexpr auto kStorageNameSourceWords{"sourceWords"sv};
 constexpr auto kStorageNameDestinationWords{"destinationWords"sv};
+
+#ifdef COMET_DEBUG_RENDERING
+constexpr auto kStorageNameDebugData{"debugData"sv};
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+constexpr auto kStorageNameDebugAabbs{"debugAabbs"sv};
+constexpr auto kStorageNameLineVertices{"lineVertices"sv};
+#endif  // COMET_DEBUG_CULLING
+
+using ShaderBindingIndex = u32;
+constexpr auto kInvalidShaderBindingIndex{static_cast<ShaderBindingIndex>(-1)};
+
+constexpr ShaderBindingIndex kStorageBindingProxyLocalDatas{0};
+constexpr ShaderBindingIndex kStorageBindingProxyIds{1};
+constexpr ShaderBindingIndex kStorageBindingProxyInstances{2};
+constexpr ShaderBindingIndex kStorageBindingIndirectProxies{3};
+constexpr ShaderBindingIndex kStorageBindingWordIndices{4};
+constexpr ShaderBindingIndex kStorageBindingSourceWords{5};
+constexpr ShaderBindingIndex kStorageBindingDestinationWords{6};
+
+constexpr ShaderBindingIndex kStorageBindingDebugOffset{64};
+#ifdef COMET_DEBUG_RENDERING
+constexpr ShaderBindingIndex kStorageBindingDebugData{
+    kStorageBindingDebugOffset};
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+constexpr ShaderBindingIndex kStorageBindingDebugAabbs{
+    kStorageBindingDebugOffset + 1};
+constexpr ShaderBindingIndex kStorageBindingLineVertices{
+    kStorageBindingDebugOffset + 2};
+#endif  // COMET_DEBUG_CULLING
 
 using ShaderUniformLocation = u16;
 constexpr auto kInvalidShaderUniformLocation{
@@ -97,6 +129,7 @@ constexpr usize kMaxShaderStorageLayoutPropertyCount{5};
 struct ShaderStorage {
   VkShaderStageFlags stages{0};
   ShaderStorageIndex index{kInvalidShaderStorageIndex};
+  ShaderBindingIndex binding{kInvalidShaderBindingIndex};
   usize property_count{0};
   ShaderStorageProperty properties[kMaxShaderStorageLayoutPropertyCount]{};
 };
@@ -136,14 +169,18 @@ struct ShaderStorageIndices {
   ShaderStorageIndex word_indices{kInvalidShaderStorageIndex};
   ShaderStorageIndex source_words{kInvalidShaderStorageIndex};
   ShaderStorageIndex destination_words{kInvalidShaderStorageIndex};
+#ifdef COMET_DEBUG_RENDERING
+  ShaderStorageIndex debug_data{kInvalidShaderStorageIndex};
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  ShaderStorageIndex debug_aabbs{kInvalidShaderStorageIndex};
+  ShaderStorageIndex line_vertices{kInvalidShaderStorageIndex};
+#endif  // COMET_DEBUG_CULLING
 };
-
-using BindingIndex = u32;
-constexpr auto kInvalidBindingIndex{static_cast<BindingIndex>(-1)};
 
 struct DescriptorSetLayoutBinding {
   StaticArray<VkDescriptorSetLayoutBinding, kDescriptorBindingCount> bindings{};
-  BindingIndex sampler_binding_index{kInvalidBindingIndex};
+  ShaderBindingIndex sampler_binding_index{kInvalidShaderBindingIndex};
   u32 binding_count{0};
 };
 
@@ -214,6 +251,13 @@ struct ShaderStoragesUpdate {
   VkBuffer ssbo_word_indices_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_source_words_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_destination_words_handle{VK_NULL_HANDLE};
+#ifdef COMET_DEBUG_RENDERING
+  VkBuffer ssbo_debug_data_handle{VK_NULL_HANDLE};
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  VkBuffer ssbo_debug_aabbs_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_debug_lines_handle{VK_NULL_HANDLE};
+#endif  // COMET_DEBUG_CULLING
   VkDeviceSize ssbo_proxy_local_datas_size{0};
   VkDeviceSize ssbo_proxy_ids_size{0};
   VkDeviceSize ssbo_proxy_instances_size{0};
@@ -221,6 +265,13 @@ struct ShaderStoragesUpdate {
   VkDeviceSize ssbo_word_indices_size{0};
   VkDeviceSize ssbo_source_words_size{0};
   VkDeviceSize ssbo_destination_words_size{0};
+#ifdef COMET_DEBUG_RENDERING
+  VkDeviceSize ssbo_debug_data_size{0};
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  VkDeviceSize ssbo_debug_aabbs_size{0};
+  VkDeviceSize ssbo_debug_lines_size{0};
+#endif  // COMET_DEBUG_CULLING
 };
 }  // namespace vk
 }  // namespace rendering

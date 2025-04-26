@@ -36,6 +36,7 @@ class RenderingManager : public Manager {
   rendering::DriverType GetDriverType() const noexcept;
   FrameCount GetFrameRate() const noexcept;
   f32 GetFrameTime() const noexcept;
+  u32 GetDrawCount() const noexcept;
 
  private:
   void GenerateOpenGlDriver();

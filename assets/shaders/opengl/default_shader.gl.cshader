@@ -37,68 +37,94 @@
       "name": "projection",
       "type": "mat4",
       "scope": "global",
-      "stages": ["vertex"]
+      "stages": [
+        "compute",
+        "vertex"
+      ]
     },
     {
       "name": "view",
       "type": "mat4",
       "scope": "global",
-      "stages": ["vertex"]
+      "stages": [
+        "compute",
+        "vertex"
+      ]
     },
     {
       "name": "ambientColor",
       "type": "vec4",
       "scope": "global",
-      "stages": ["vertex"]
+      "stages": [
+        "compute",
+        "vertex"
+      ]
     },
     {
       "name": "viewPos",
       "type": "vec3",
       "scope": "global",
-      "stages": ["vertex"]
+      "stages": [
+        "compute",
+        "vertex"
+      ]
     },
     {
       "name": "diffuseMap",
       "type": "sampler",
       "scope": "instance",
-      "stages": ["fragment"]
+      "stages": [
+        "fragment"
+      ]
     },
     {
       "name": "specularMap",
       "type": "sampler",
       "scope": "instance",
-      "stages": ["fragment"]
+      "stages": [
+        "fragment"
+      ]
     },
     {
       "name": "normalMap",
       "type": "sampler",
       "scope": "instance",
-      "stages": ["fragment"]
+      "stages": [
+        "fragment"
+      ]
     },
     {
       "name": "diffuseColor",
       "type": "vec4",
       "scope": "instance",
-      "stages": ["fragment"]
+      "stages": [
+        "fragment"
+      ]
     },
     {
       "name": "shininess",
       "type": "f32",
       "scope": "instance",
-      "stages": ["fragment"]
+      "stages": [
+        "fragment"
+      ]
     }
   ],
   "constants": [
     {
       "name": "drawCount",
       "type": "u32",
-      "stages": ["compute"]
+      "stages": [
+        "compute"
+      ]
     }
   ],
   "storages": [
     {
       "name": "proxyLocalDatas",
-      "stages": ["vertex"],
+      "stages": [
+        "vertex"
+      ],
       "layout": [
         {
           "name": "localCenter",
@@ -116,7 +142,10 @@
     },
     {
       "name": "proxyIds",
-      "stages": ["compute", "vertex"],
+      "stages": [
+        "compute",
+        "vertex"
+      ],
       "layout": [
         {
           "name": "proxyId",
@@ -126,7 +155,9 @@
     },
     {
       "name": "proxyInstances",
-      "stages": ["compute"],
+      "stages": [
+        "compute"
+      ],
       "layout": [
         {
           "name": "proxyIndex",
@@ -140,7 +171,9 @@
     },
     {
       "name": "indirectProxies",
-      "stages": ["compute"],
+      "stages": [
+        "compute"
+      ],
       "layout": [
         {
           "name": "indexCount",
@@ -163,6 +196,36 @@
           "type": "u32"
         }
       ]
+    },
+    {
+      "name": "debugData",
+      "stages": [
+        "compute"
+      ],
+      "layout": [
+        {
+          "name": "visibleCount",
+          "type": "u32"
+        }
+      ],
+      "engine_define": "COMET_DEBUG_RENDERING"
+    },
+    {
+      "name": "debugAabbs",
+      "stages": [
+        "compute"
+      ],
+      "layout": [
+        {
+          "name": "minExtents",
+          "type": "vec3"
+        },
+        {
+          "name": "maxExtents",
+          "type": "vec3"
+        }
+      ],
+      "engine_define": "COMET_DEBUG_CULLING"
     }
   ]
 }

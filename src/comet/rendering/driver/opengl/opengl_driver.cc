@@ -52,11 +52,11 @@ void OpenGlDriver::Initialize() {
 
   COMET_ASSERT(result, "Could not load GL Loader!");
 
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
   glEnable(GL_DEBUG_OUTPUT);
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   glDebugMessageCallback(LogOpenGlMessage, nullptr);
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 
   glEnable(GL_DEPTH_TEST);
 
@@ -68,6 +68,8 @@ void OpenGlDriver::Initialize() {
       glMinSampleShading(.2f);
     }
   }
+
+  glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
   if (is_sampler_anisotropy_) {
 #ifdef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
@@ -184,6 +186,10 @@ void OpenGlDriver::OnEvent(const event::Event& event) {
 
 Window* OpenGlDriver::GetWindow() { return window_.get(); }
 
+u32 OpenGlDriver::GetDrawCount() const {
+  return render_proxy_handler_->GetVisibleCount();
+}
+
 void OpenGlDriver::Draw(frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::Draw");
   mesh_handler_->Update(packet);
@@ -191,7 +197,7 @@ void OpenGlDriver::Draw(frame::FramePacket* packet) {
   view_handler_->Update(packet);
 }
 
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
 void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum, GLenum type, GLuint,
                                                GLenum severity, GLsizei,
                                                const GLchar* message,
@@ -271,7 +277,7 @@ void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum, GLenum type, GLuint,
       break;
   }
 }
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

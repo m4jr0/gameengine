@@ -49,6 +49,7 @@ class Driver {
 
   bool IsInitialized() const noexcept;
   virtual Window* GetWindow() = 0;
+  virtual u32 GetDrawCount() const = 0;
 
  protected:
   bool is_initialized_{false};

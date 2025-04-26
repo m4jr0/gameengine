@@ -15,9 +15,9 @@
 
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/event/event.h"
-#include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
@@ -62,6 +62,7 @@ class VulkanDriver : public Driver {
 
   void SetSize(WindowSize width, WindowSize height);
   Window* GetWindow() override;
+  u32 GetDrawCount() const override;
 
  private:
   void InitializeVulkanInstance();
@@ -104,7 +105,7 @@ class VulkanDriver : public Driver {
   memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
   memory::UniquePtr<ViewHandler> view_handler_{nullptr};
 
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
   void InitializeDebugMessenger();
   void DestroyDebugMessenger();
   void InitializeDebugReportCallback();
@@ -124,7 +125,7 @@ class VulkanDriver : public Driver {
       "VK_LAYER_KHRONOS_validation"};
   VkDebugUtilsMessengerEXT debug_messenger_handle_{VK_NULL_HANDLE};
   VkDebugReportCallbackEXT debug_report_callback_handle_{VK_NULL_HANDLE};
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 };
 }  // namespace vk
 }  // namespace rendering

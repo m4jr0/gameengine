@@ -22,8 +22,10 @@ namespace editor {
 namespace asset {
 static constexpr auto kCometEditorShaderKeyIsWireframe{"is_wireframe"sv};
 static constexpr auto kCometEditorShaderKeyCullMode{"cull_mode"sv};
+static constexpr auto kCometEditorShaderKeyTopology{"topology"sv};
 static constexpr auto kCometEditorShaderKeyShaderModulePaths{
     "shader_module_paths"sv};
+static constexpr auto kCometEditorShaderKeyDefines{"defines"sv};
 static constexpr auto kCometEditorShaderKeyVertexAttributes{
     "vertex_attributes"sv};
 static constexpr auto kCometEditorShaderKeyVertexAttributeName{"name"sv};
@@ -47,6 +49,8 @@ static constexpr auto kCometEditorShaderKeyStorages{"storages"sv};
 static constexpr auto kCometEditorShaderKeyStorageName{"name"sv};
 static constexpr auto kCometEditorShaderKeyStorageStages{"stages"sv};
 static constexpr auto kCometEditorShaderKeyStorageLayout{"layout"sv};
+static constexpr auto kCometEditorShaderKeyStorageEngineDefine{
+    "engine_define"sv};
 static constexpr auto kCometEditorShaderKeyStoragePropertyName{"name"sv};
 static constexpr auto kCometEditorShaderKeyStoragePropertyType{"type"sv};
 
@@ -55,6 +59,13 @@ static constexpr auto kCometEditorShaderKeyCullModeFront{"front"sv};
 static constexpr auto kCometEditorShaderKeyCullModeBack{"back"sv};
 static constexpr auto kCometEditorShaderKeyCullModeFrontAndBack{
     "front_and_back"sv};
+
+static constexpr auto kCometEditorShaderKeyTopologyPoints{"points"sv};
+static constexpr auto kCometEditorShaderKeyTopologyLines{"lines"sv};
+static constexpr auto kCometEditorShaderKeyTopologyLineStrip{"line_strip"sv};
+static constexpr auto kCometEditorShaderKeyTopologyTriangles{"triangles"sv};
+static constexpr auto kCometEditorShaderKeyTopologyTriangleStrip{
+    "triangle_strip"sv};
 
 static constexpr auto kCometEditorShaderKeyAttributeTypeF16{"f16"sv};
 static constexpr auto kCometEditorShaderKeyAttributeTypeF32{"f32"sv};
@@ -109,6 +120,9 @@ static constexpr auto kCometEditorShaderKeyStageCompute{"compute"sv};
 static constexpr auto kCometEditorShaderKeyStageVertex{"vertex"sv};
 static constexpr auto kCometEditorShaderKeyStageFragment{"fragment"sv};
 
+static constexpr auto kCometEditorShaderKeyDefineName{"name"sv};
+static constexpr auto kCometEditorShaderKeyDefineValue{"value"sv};
+
 class ShaderExporter : public AssetExporter {
  public:
   ShaderExporter() = default;
@@ -125,15 +139,17 @@ class ShaderExporter : public AssetExporter {
 
  private:
   struct ShaderContext {
-    static inline constexpr usize kMaxShaderFileLen_{4095};
-
-    schar file[kMaxShaderFileLen_ + 1];
-    usize file_len;
+    schar* file{nullptr};
+    usize file_len{0};
+    usize file_buffer_len{0};
     const tchar* asset_abs_path{nullptr};
   };
 
   static void DumpShaderModules(const nlohmann::json& shader_file,
                                 resource::ShaderResource& shader);
+  static void DumpDefines(const nlohmann::json& shader_file,
+                          memory::Allocator* allocator,
+                          resource::ShaderResource& shader);
   static void DumpVertexAttributes(const nlohmann::json& shader_file,
                                    resource::ShaderResource& shader);
   static void DumpUniforms(const nlohmann::json& shader_file,
@@ -145,6 +161,8 @@ class ShaderExporter : public AssetExporter {
                            resource::ShaderResource& shader);
 
   static rendering::CullMode GetCullMode(std::string_view raw_cull_mode);
+  static rendering::PrimitiveTopology GetPrimitiveTopology(
+      std::string_view raw_topology);
   static rendering::ShaderVertexAttributeType GetShaderVertexAttributeType(
       std::string_view raw_vertex_attribute_type);
   static rendering::ShaderVariableType GetShaderVariableType(
@@ -153,6 +171,7 @@ class ShaderExporter : public AssetExporter {
       std::string_view raw_uniform_scope);
   static rendering::ShaderStageFlags GetShaderStageFlags(
       const nlohmann::json& raw_stages);
+  static void OnShaderSizeRequest(job::IOJobParamsHandle params_handle);
   static void OnShaderLoading(job::IOJobParamsHandle params_handle);
 };
 }  // namespace asset

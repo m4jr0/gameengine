@@ -50,6 +50,9 @@ void ProfilerManager::Update() {
   data_.rendering_driver_type = rendering_manager.GetDriverType();
   data_.rendering_frame_time = rendering_manager.GetFrameTime();
   data_.rendering_frame_rate = rendering_manager.GetFrameRate();
+#ifdef COMET_DEBUG_RENDERING
+  data_.rendering_draw_count = rendering_manager.GetDrawCount();
+#endif  // COMET_DEBUG_RENDERING
   COMET_GET_MEMORY_USE(data_.memory_use);
   COMET_GET_TAG_USE(data_.tag_use);
 #endif  // COMET_DEBUG

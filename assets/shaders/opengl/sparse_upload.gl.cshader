@@ -1,16 +1,22 @@
 {
-  "shader_module_paths": ["shaders/opengl/sparse_upload.gl.comp"],
+  "shader_module_paths": [
+    "shaders/opengl/sparse_upload.gl.comp"
+  ],
   "constants": [
     {
       "name": "count",
       "type": "u32",
-      "stages": ["compute"]
+      "stages": [
+        "compute"
+      ]
     }
   ],
   "storages": [
     {
       "name": "wordIndices",
-      "stages": ["compute"],
+      "stages": [
+        "compute"
+      ],
       "layout": [
         {
           "name": "wordIndex",
@@ -20,7 +26,9 @@
     },
     {
       "name": "sourceWords",
-      "stages": ["compute"],
+      "stages": [
+        "compute"
+      ],
       "layout": [
         {
           "name": "word",
@@ -30,7 +38,9 @@
     },
     {
       "name": "destinationWords",
-      "stages": ["compute"],
+      "stages": [
+        "compute"
+      ],
       "layout": [
         {
           "name": "word",

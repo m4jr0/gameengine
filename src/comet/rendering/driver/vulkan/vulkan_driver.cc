@@ -5,9 +5,9 @@
 #include "comet/rendering/comet_rendering_pch.h"
 #include "comet_pch.h"
 
-#define VMA_IMPLEMENTATION
 #include "vulkan_driver.h"
 
+#define VMA_IMPLEMENTATION
 #include "comet/core/c_string.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/logger.h"
@@ -53,10 +53,10 @@ void VulkanDriver::Initialize() {
       COMET_EVENT_BIND_FUNCTION(VulkanDriver::OnEvent),
       rendering::WindowResizeEvent::kStaticType_);
 
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
   InitializeDebugMessenger();
   InitializeDebugReportCallback();
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 
   window_->AttachSurface(instance_handle_);
 
@@ -105,10 +105,10 @@ void VulkanDriver::Shutdown() {
   swapchain_->Destroy();
   context_->Destroy();
   device_->Destroy();
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
   DestroyDebugReportCallback();
   DestroyDebugMessenger();
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 
   if (window_->IsInitialized()) {
     window_->DetachSurface(instance_handle_);
@@ -156,6 +156,10 @@ void VulkanDriver::SetSize(WindowSize width, WindowSize height) {
 
 Window* VulkanDriver::GetWindow() { return window_.get(); }
 
+u32 VulkanDriver::GetDrawCount() const {
+  return render_proxy_handler_->GetVisibleCount();
+}
+
 void VulkanDriver::InitializeVulkanInstance() {
   COMET_LOG_RENDERING_DEBUG("Initializing  instance.");
   u32 extension_count{0};
@@ -192,7 +196,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   create_info.pApplicationInfo = &app_info;
 
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
   frame::FrameArray<VkValidationFeatureEnableEXT> enabled_validation_features{
 #ifdef COMET_VALIDATION_GPU_ASSISTED_EXT
       VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
@@ -224,7 +228,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   validation_features.disabledValidationFeatureCount = 0;
   validation_features.pDisabledValidationFeatures = VK_NULL_HANDLE;
   validation_features.pNext = VK_NULL_HANDLE;
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 
   const auto required_extensions{GetRequiredExtensions()};
   const u32 required_extension_count{
@@ -253,7 +257,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.enabledExtensionCount = required_extension_count;
   create_info.ppEnabledExtensionNames = required_extensions.GetData();
 
-#ifndef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifndef COMET_DEBUG_RENDERING
   create_info.enabledLayerCount = 0;
   create_info.pNext = VK_NULL_HANDLE;
 #else
@@ -268,7 +272,7 @@ void VulkanDriver::InitializeVulkanInstance() {
   debug_create_info.pNext = &validation_features;
   create_info.pNext =
       static_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debug_create_info);
-#endif  // !COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // !COMET_DEBUG_RENDERING
 
   COMET_CHECK_VK(
       vkCreateInstance(&create_info,
@@ -548,16 +552,16 @@ frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
     extensions.PushBack(glfw_extensions[i]);
   }
 
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
   extensions.Reserve(extensions.GetSize() + 2);
   extensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   extensions.PushBack(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 
   return extensions;
 }
 
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
 void VulkanDriver::InitializeDebugMessenger() {
   auto create_info{init::GenerateDebugUtilsMessengerCreateInfo(
       VulkanDriver::LogVulkanValidationMessage)};
@@ -702,7 +706,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanDebugReportMessage(
 
   return VK_FALSE;
 }
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

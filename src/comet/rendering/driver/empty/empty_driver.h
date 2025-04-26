@@ -34,6 +34,7 @@ class EmptyDriver : public Driver {
 
   void SetSize(WindowSize width, WindowSize height);
   Window* GetWindow() override;
+  u32 GetDrawCount() const override;
 
  private:
   memory::UniquePtr<EmptyGlfwWindow> window_{nullptr};

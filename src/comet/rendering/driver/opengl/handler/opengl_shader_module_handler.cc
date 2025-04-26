@@ -166,6 +166,9 @@ ShaderModule* ShaderModuleHandler::CompileShader(
   const auto* code{reinterpret_cast<const schar*>(resource->data.GetData())};
   const auto code_size{static_cast<s32>(resource->data.GetSize())};
 
+  COMET_ASSERT(code_size > 0, "Shader module resource #", resource->id,
+               " is empty!");
+
   auto* shader_module{allocator_.AllocateOneAndPopulate<ShaderModule>()};
   shader_module->type = GetOpenGlType(resource->descr.shader_type);
 
@@ -177,7 +180,6 @@ ShaderModule* ShaderModuleHandler::CompileShader(
 
   shader_module->ref_count = 0;
 
-  // Compile shader->
   shader_module->handle = glCreateShader(shader_module->type);
   glShaderSource(shader_module->handle, 1, &code, &code_size);
   glCompileShader(shader_module->handle);
@@ -185,7 +187,6 @@ ShaderModule* ShaderModuleHandler::CompileShader(
   auto result{GL_FALSE};
   GLsizei msg_len{0};
 
-  // Check shader->
   glGetShaderiv(shader_module->handle, GL_COMPILE_STATUS, &result);
   glGetShaderiv(shader_module->handle, GL_INFO_LOG_LENGTH, &msg_len);
 

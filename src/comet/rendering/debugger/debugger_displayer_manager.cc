@@ -15,9 +15,8 @@
 #endif  // COMET_PROFILING
 
 #ifdef COMET_IMGUI
-#include "imgui.h"
-
 #include "comet/rendering/debugger/imgui_utils.h"
+#include "imgui.h"
 #endif  // COMET_IMGUI
 
 namespace comet {
@@ -74,6 +73,9 @@ void DebuggerDisplayerManager::DrawRenderingSection(
               GetDriverTypeLabel(profiler_data.rendering_driver_type));
   ImGui::Text("Frame Time: %f ms", profiler_data.rendering_frame_time);
   ImGui::Text("Framerate: %u FPS", profiler_data.rendering_frame_rate);
+#ifdef COMET_DEBUG_RENDERING
+  ImGui::Text("Draw count: %u", profiler_data.rendering_draw_count);
+#endif  // COMET_DEBUG_RENDERING
   ImGui::Unindent();
 }
 

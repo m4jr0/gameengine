@@ -85,11 +85,13 @@ class ShaderHandler : public Handler {
  private:
   static ShaderUniformSize GetShaderVariableTypeSize(ShaderVariableType type);
   static GLenum GetGlCullMode(CullMode cull_mode);
+  static GLenum GetGlPrimitiveTopology(PrimitiveTopology topology);
   static GLsizei GetGlAttributeSize(ShaderVertexAttributeType type);
   static GLint GetGlComponentCount(ShaderVertexAttributeType type);
   static GLenum GetGlVertexAttributeType(ShaderVertexAttributeType type);
 
-  static void BindStorageBuffer(ShaderStorageIndex storage_index,
+  static void BindStorageBuffer(const Shader* shader,
+                                ShaderStorageIndex storage_index,
                                 GLuint buffer_handle);
   static void SetF32(s32 location, const void* value);
   static void SetS32(s32 location, const void* value);
@@ -140,8 +142,9 @@ class ShaderHandler : public Handler {
       Shader* shader, const ShaderUniformDescr& uniform_descr) const;
   ShaderConstantIndex HandleConstantIndex(
       Shader* shader, const ShaderConstantDescr& constant_descr) const;
-  ShaderStorageIndex HandleStorageIndex(
-      Shader* shader, const ShaderStorageDescr& storage_descr) const;
+  void HandleStorageIndexAndBinding(Shader* shader,
+                                    const ShaderStorageDescr& storage_descr,
+                                    ShaderStorage& storage) const;
   void HandleUboBufferGeneration(Shader* shader) const;
   void AddUniform(Shader* shader, const ShaderUniformDescr& descr,
                   ShaderUniformLocation location) const;

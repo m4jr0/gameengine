@@ -54,10 +54,10 @@
 #define COMET_PROFILING
 #define COMET_IMGUI
 
-#define COMET_RENDERING_DRIVER_DEBUG_MODE
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+// #define COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_RENDERING
 // Assign a name to driver's objects (when available).
-#define COMET_RENDERING_USE_DEBUG_LABELS
+// #define COMET_RENDERING_USE_DEBUG_LABELS
 
 // View used for debugging the world.
 // #define COMET_DEBUG_VIEW
@@ -66,7 +66,10 @@
 // #define COMET_VULKAN_DEBUG_VMA
 
 // Compile shaders with debug info and no optimizations.
-#define COMET_DEBUG_SHADER
+// #define COMET_DEBUG_SHADER
+
+// Display some debug data about culling.
+// #define COMET_DEBUG_CULLING
 
 // According to the Vulkan spec, it is better to enable the validation layers
 // individually to prevent a significant performance degradation.
@@ -75,7 +78,7 @@
 // #define COMET_VALIDATION_BEST_PRACTICES_EXT
 // #define COMET_VALIDATION_DEBUG_PRINTF_EXT
 // #define COMET_VALIDATION_SYNCHRONIZATION_VALIDATION_EXT
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 #endif  // COMET_DEBUG
 
 #endif  // COMET_COMET_CORE_DEFINE_H_

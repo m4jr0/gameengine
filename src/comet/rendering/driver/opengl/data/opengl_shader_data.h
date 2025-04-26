@@ -47,6 +47,46 @@ constexpr auto kStorageNameWordIndices{"wordIndices"sv};
 constexpr auto kStorageNameSourceWords{"sourceWords"sv};
 constexpr auto kStorageNameDestinationWords{"destinationWords"sv};
 
+#ifdef COMET_DEBUG_RENDERING
+constexpr auto kStorageNameDebugData{"debugData"sv};
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+constexpr auto kStorageNameDebugAabbs{"debugAabbs"sv};
+constexpr auto kStorageNameLineVertices{"lineVertices"sv};
+#endif  // COMET_DEBUG_CULLING
+
+using ShaderBindingIndex = u32;
+constexpr auto kInvalidShaderBindingIndex{static_cast<ShaderBindingIndex>(-1)};
+
+constexpr ShaderBindingIndex kStorageBindingOffset{10};
+constexpr ShaderBindingIndex kStorageBindingProxyLocalDatas{
+    kStorageBindingOffset + 0};
+constexpr ShaderBindingIndex kStorageBindingProxyIds{kStorageBindingOffset + 1};
+constexpr ShaderBindingIndex kStorageBindingProxyInstances{
+    kStorageBindingOffset + 2};
+constexpr ShaderBindingIndex kStorageBindingIndirectProxies{
+    kStorageBindingOffset + 3};
+constexpr ShaderBindingIndex kStorageBindingWordIndices{kStorageBindingOffset +
+                                                        4};
+constexpr ShaderBindingIndex kStorageBindingSourceWords{kStorageBindingOffset +
+                                                        5};
+constexpr ShaderBindingIndex kStorageBindingDestinationWords{
+    kStorageBindingOffset + 6};
+
+constexpr ShaderBindingIndex kStorageBindingDebugOffset{kStorageBindingOffset +
+                                                        64};
+#ifdef COMET_DEBUG_RENDERING
+constexpr ShaderBindingIndex kStorageBindingDebugData{
+    kStorageBindingDebugOffset};
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+constexpr ShaderBindingIndex kStorageBindingDebugAabbs{
+    kStorageBindingDebugOffset + 1};
+constexpr ShaderBindingIndex kStorageBindingLineVertices{
+    kStorageBindingDebugOffset + 2};
+#endif  // COMET_DEBUG_CULLING
+
 using ShaderUniformLocation = u16;
 constexpr auto kInvalidShaderUniformLocation{
     static_cast<ShaderUniformLocation>(-1)};
@@ -95,6 +135,7 @@ constexpr usize kMaxShaderStorageLayoutPropertyCount{5};
 
 struct ShaderStorage {
   ShaderStorageIndex index{kInvalidShaderStorageIndex};
+  ShaderBindingIndex binding{kInvalidShaderBindingIndex};
   usize property_count{0};
   ShaderStorageProperty properties[kMaxShaderStorageLayoutPropertyCount]{};
 };
@@ -133,10 +174,14 @@ struct ShaderStorageIndices {
   ShaderStorageIndex word_indices{kInvalidShaderStorageIndex};
   ShaderStorageIndex source_words{kInvalidShaderStorageIndex};
   ShaderStorageIndex destination_words{kInvalidShaderStorageIndex};
+#ifdef COMET_DEBUG_RENDERING
+  ShaderStorageIndex debug_data{kInvalidShaderStorageIndex};
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  ShaderStorageIndex debug_aabbs{kInvalidShaderStorageIndex};
+  ShaderStorageIndex line_vertices{kInvalidShaderStorageIndex};
+#endif  // COMET_DEBUG_CULLING
 };
-
-using BindingIndex = u32;
-constexpr auto kInvalidBindingIndex{static_cast<BindingIndex>(-1)};
 
 struct ShaderDescr {
   TString resource_path{};
@@ -194,6 +239,13 @@ struct ShaderStoragesUpdate {
   StorageBufferHandle ssbo_indirect_proxies_handle{kInvalidStorageBufferHandle};
   StorageBufferHandle ssbo_word_indices_handle{kInvalidStorageBufferHandle};
   StorageBufferHandle ssbo_source_words_handle{kInvalidStorageBufferHandle};
+#ifdef COMET_DEBUG_RENDERING
+  StorageBufferHandle ssbo_debug_data_handle{kInvalidStorageBufferHandle};
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  StorageBufferHandle ssbo_debug_aabbs_handle{kInvalidStorageBufferHandle};
+  StorageBufferHandle ssbo_debug_lines_handle{kInvalidStorageBufferHandle};
+#endif  // COMET_DEBUG_CULLING
 };
 }  // namespace gl
 }  // namespace rendering

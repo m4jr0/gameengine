@@ -292,11 +292,11 @@ void SetName(ShaderUniformDescr& descr, const schar* name, usize name_len) {
 void SetName(ShaderConstantDescr& descr, const schar* name, usize name_len) {
   descr.name_len = name_len;
 
-  if (descr.name_len >= kShaderUniformDescrMaxNameLen) {
+  if (descr.name_len >= kShaderConstantDescrMaxNameLen) {
     COMET_LOG_RENDERING_WARNING(
-        "Shader uniform name provided is too long: ", descr.name_len,
-        " >= ", kShaderUniformDescrMaxNameLen, ". It will be truncated.");
-    descr.name_len = static_cast<usize>(kShaderUniformDescrMaxNameLen);
+        "Shader constant name provided is too long: ", descr.name_len,
+        " >= ", kShaderConstantDescrMaxNameLen, ". It will be truncated.");
+    descr.name_len = static_cast<usize>(kShaderConstantDescrMaxNameLen);
   }
 
   Copy(descr.name, name, descr.name_len);
@@ -306,9 +306,40 @@ void SetName(ShaderConstantDescr& descr, const schar* name, usize name_len) {
 void SetName(ShaderStorageDescr& descr, const schar* name, usize name_len) {
   descr.name_len = name_len;
 
+  if (descr.name_len >= kShaderStorageDescrMaxNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Shader storage name provided is too long: ", descr.name_len,
+        " >= ", kShaderStorageDescrMaxNameLen, ". It will be truncated.");
+    descr.name_len = static_cast<usize>(kShaderStorageDescrMaxNameLen);
+  }
+
+  Copy(descr.name, name, descr.name_len);
+  descr.name[descr.name_len + 1] = '\0';
+}
+
+void SetEngineDefine(ShaderStorageDescr& descr, const schar* engine_define,
+                     usize engine_define_len) {
+  descr.engine_define_len = engine_define_len;
+
+  if (descr.engine_define_len >= kMaxShaderDefineNameLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Shader storage engine define provided is too long: ",
+        descr.engine_define_len, " >= ", kMaxShaderDefineNameLen,
+        ". It will be truncated.");
+    descr.engine_define_len = static_cast<usize>(kMaxShaderDefineNameLen);
+  }
+
+  Copy(descr.engine_define, engine_define, descr.engine_define_len);
+  descr.engine_define[descr.engine_define_len + 1] = '\0';
+}
+
+void SetName(ShaderStoragePropertyDescr& descr, const schar* name,
+             usize name_len) {
+  descr.name_len = name_len;
+
   if (descr.name_len >= kShaderStoragePropertyDescrMaxNameLen) {
     COMET_LOG_RENDERING_WARNING(
-        "Shader uniform name provided is too long: ", descr.name_len,
+        "Shader storage property name provided is too long: ", descr.name_len,
         " >= ", kShaderStoragePropertyDescrMaxNameLen,
         ". It will be truncated.");
     descr.name_len = static_cast<usize>(kShaderStoragePropertyDescrMaxNameLen);
@@ -318,20 +349,32 @@ void SetName(ShaderStorageDescr& descr, const schar* name, usize name_len) {
   descr.name[descr.name_len + 1] = '\0';
 }
 
-void SetName(ShaderStoragePropertyDescr& descr, const schar* name,
-             usize name_len) {
+void SetName(ShaderDefineDescr& descr, const schar* name, usize name_len) {
   descr.name_len = name_len;
 
-  if (descr.name_len >= kShaderStoragePropertyDescrMaxNameLen) {
+  if (descr.name_len >= kMaxShaderDefineNameLen) {
     COMET_LOG_RENDERING_WARNING(
-        "Shader uniform name provided is too long: ", descr.name_len,
-        " >= ", kShaderStoragePropertyDescrMaxNameLen,
-        ". It will be truncated.");
-    descr.name_len = static_cast<usize>(kShaderStoragePropertyDescrMaxNameLen);
+        "Shader define name provided is too long: ", descr.name_len,
+        " >= ", kMaxShaderDefineNameLen, ". It will be truncated.");
+    descr.name_len = static_cast<usize>(kMaxShaderDefineNameLen);
   }
 
   Copy(descr.name, name, descr.name_len);
   descr.name[descr.name_len + 1] = '\0';
+}
+
+void SetValue(ShaderDefineDescr& descr, const schar* value, usize value_len) {
+  descr.value_len = value_len;
+
+  if (descr.value_len >= kMaxShaderDefineValueLen) {
+    COMET_LOG_RENDERING_WARNING(
+        "Shader define value provided is too long: ", descr.value_len,
+        " >= ", kMaxShaderDefineValueLen, ". It will be truncated.");
+    descr.value_len = static_cast<usize>(kMaxShaderDefineValueLen);
+  }
+
+  Copy(descr.value, value, descr.value_len);
+  descr.value[descr.value_len + 1] = '\0';
 }
 
 void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,

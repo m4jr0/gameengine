@@ -1,30 +1,29 @@
 #version 460
 
+#ifdef COMET_VALIDATION_DEBUG_PRINTF_EXT
+#extension GL_EXT_debug_printf : enable
+#endif // COMET_VALIDATION_DEBUG_PRINTF_EXT
+
 layout(local_size_x = 256) in;
 
-layout(push_constant) uniform Constants {
-    uint count;
-} constants;
+layout(push_constant) uniform Constants { uint count; }
+constants;
 
-layout(set = 0, binding = 0) readonly buffer InWordIndicesSsbo {   
-    uint inWordIndices[];
+layout(set = 0, binding = 4) readonly buffer InWordIndicesSsbo {
+  uint inWordIndices[];
 };
 
-layout(set = 0, binding = 1) readonly buffer InWordsSsbo {
-    uint inWords[];
-};
+layout(set = 0, binding = 5) readonly buffer InWordsSsbo { uint inWords[]; };
 
-layout(set = 0, binding = 2) buffer OutWordsSsbo {
-    uint outWords[];
-};
+layout(set = 0, binding = 6) buffer OutWordsSsbo { uint outWords[]; };
 
 void main() {
-    uint id = gl_GlobalInvocationID.x;
+  uint id = gl_GlobalInvocationID.x;
 
-    if (id >= constants.count) {
-        return;
-    }
+  if (id >= constants.count) {
+    return;
+  }
 
-    uint wordIndex = inWordIndices[id];
-    outWords[wordIndex] = inWords[id];
+  uint wordIndex = inWordIndices[id];
+  outWords[wordIndex] = inWords[id];
 }

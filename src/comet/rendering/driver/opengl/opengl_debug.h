@@ -36,9 +36,8 @@ void SetShaderDebugLabel(ShaderHandle handle, const schar* label);
 }  // namespace comet
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
-#define COMET_GL_SET_STORAGE_DEBUG_LABEL(handle, label)              \
-  comet::rendering::gl::debug::SetStorageDebugLabel(instance_handle, \
-                                                    device_handle)
+#define COMET_GL_SET_STORAGE_DEBUG_LABEL(handle, label) \
+  comet::rendering::gl::debug::SetStorageDebugLabel(handle, label)
 #define COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(handle, label) \
   comet::rendering::gl::debug::SetUniformBufferDebugLabel(handle, label);
 #define COMET_GL_SET_TEXTURE_DEBUG_LABEL(handle, label) \

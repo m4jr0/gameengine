@@ -33,9 +33,20 @@ void DebugView::Destroy() {
   View::Destroy();
 }
 
-void DebugView::Update(frame::FramePacket*) {
+void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   COMET_PROFILE("DebugView::Update");
-  // TODO(m4jr0): Display 3D debug information.
+#ifdef COMET_DEBUG_CULLING
+  shader_handler_->UpdateGlobals(shader_, packet);
+  shader_handler_->UpdateStorages(shader_, packet);
+
+  shader_handler_->Bind(shader_, ShaderBindType::Compute);
+  auto draw_count{render_proxy_handler_->GetRenderProxyCount()};
+  shader_handler_->UpdateConstants(shader_, {nullptr, &draw_count});
+  render_proxy_handler_->DebugCull(shader_);
+
+  shader_handler_->Bind(shader_, ShaderBindType::Graphics);
+  render_proxy_handler_->DrawDebugCull(shader_);
+#endif  // COMET_DEBUG_CULLING
 }
 }  // namespace gl
 }  // namespace rendering

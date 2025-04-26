@@ -39,14 +39,26 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   ShaderContext shader_context{};
   shader_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
-
   auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
+  auto* size_counter{scheduler.GenerateCounter()};
+
+  scheduler.KickAndWait(job::GenerateIOJobDescr(OnShaderSizeRequest,
+                                                &shader_context, size_counter));
+
+  scheduler.DestroyCounter(size_counter);
+
+  // Add 1 extra character for the null terminator.
+  shader_context.file_buffer_len = shader_context.file_len + 1;
+
+  shader_context.file = static_cast<schar*>(COMET_FRAME_ALLOC_ALIGNED(
+      shader_context.file_buffer_len, alignof(schar)));
+
+  auto* load_counter{scheduler.GenerateCounter()};
 
   scheduler.KickAndWait(
-      job::GenerateIOJobDescr(OnShaderLoading, &shader_context, counter));
+      job::GenerateIOJobDescr(OnShaderLoading, &shader_context, load_counter));
 
-  scheduler.DestroyCounter(counter);
+  scheduler.DestroyCounter(load_counter);
 
   if (shader_context.file_len == 0) {
     return;
@@ -64,8 +76,11 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
         shader_file.value(kCometEditorShaderKeyIsWireframe, false);
     shader.descr.cull_mode = GetCullMode(shader_file.value(
         kCometEditorShaderKeyCullMode, kCometEditorShaderKeyCullModeNone));
+    shader.descr.topology = GetPrimitiveTopology(shader_file.value(
+        kCometEditorShaderKeyTopology, kCometEditorShaderKeyTopologyTriangles));
 
     DumpShaderModules(shader_file, shader);
+    DumpDefines(shader_file, context.allocator, shader);
     DumpVertexAttributes(shader_file, shader);
     DumpUniforms(shader_file, shader);
     DumpConstants(shader_file, shader);
@@ -95,6 +110,40 @@ void ShaderExporter::DumpShaderModules(const nlohmann::json& shader_file,
         raw_module_path.get_ref<const nlohmann::json::string_t&>()};
     shader.descr.shader_module_paths.PushBack(
         TString{GetTmpTChar(raw_module_path_str.c_str())});
+  }
+}
+
+void ShaderExporter::DumpDefines(const nlohmann::json& shader_file,
+                                 memory::Allocator* allocator,
+                                 resource::ShaderResource& shader) {
+  shader.descr.defines = Array<rendering::ShaderDefineDescr>{allocator};
+
+  if (shader_file.contains(kCometEditorShaderKeyDefines)) {
+    const auto& raw_defines = shader_file[kCometEditorShaderKeyDefines];
+    shader.descr.defines.Reserve(raw_defines.size());
+
+    for (usize j{0}; j < raw_defines.size(); ++j) {
+      const auto& raw_define = raw_defines[j];
+      auto& define{shader.descr.defines.EmplaceBack()};
+
+      const auto& raw_define_name_json{
+          raw_define[kCometEditorShaderKeyDefineName]};
+      const auto& raw_define_name{
+          raw_define_name_json.get_ref<const nlohmann::json::string_t&>()};
+      auto raw_define_name_len{raw_define_name.size()};
+      SetName(define, raw_define_name.c_str(), raw_define_name_len);
+
+      if (!raw_define.contains(kCometEditorShaderKeyDefineValue)) {
+        continue;
+      }
+
+      const auto& raw_define_value_json{
+          raw_define[kCometEditorShaderKeyDefineValue]};
+      const auto& raw_define_value{
+          raw_define_value_json.get_ref<const nlohmann::json::string_t&>()};
+      auto raw_define_value_len{raw_define_value.size()};
+      SetValue(define, raw_define_value.c_str(), raw_define_value_len);
+    }
   }
 }
 
@@ -284,6 +333,17 @@ void ShaderExporter::DumpStorages(const nlohmann::json& shader_file,
 #endif  // COMET_GCC
       }
     }
+
+    if (raw_storage.contains(kCometEditorShaderKeyStorageEngineDefine)) {
+      const auto& raw_engine_define_name_json{
+          raw_storage[kCometEditorShaderKeyStorageEngineDefine]};
+      const auto& raw_engine_define_name{
+          raw_engine_define_name_json
+              .get_ref<const nlohmann::json::string_t&>()};
+      auto raw_engine_define_name_len{raw_engine_define_name.size()};
+      SetEngineDefine(storage, raw_engine_define_name.c_str(),
+                      raw_engine_define_name_len);
+    }
   }
 }
 
@@ -309,6 +369,34 @@ rendering::CullMode ShaderExporter::GetCullMode(
                          "! Setting \"unknown\" mode instead.");
 
   return rendering::CullMode::Unknown;
+}
+
+rendering::PrimitiveTopology ShaderExporter::GetPrimitiveTopology(
+    std::string_view raw_topology) {
+  if (raw_topology == kCometEditorShaderKeyTopologyPoints) {
+    return rendering::PrimitiveTopology::Points;
+  }
+
+  if (raw_topology == kCometEditorShaderKeyTopologyLines) {
+    return rendering::PrimitiveTopology::Lines;
+  }
+
+  if (raw_topology == kCometEditorShaderKeyTopologyLineStrip) {
+    return rendering::PrimitiveTopology::LineStrip;
+  }
+
+  if (raw_topology == kCometEditorShaderKeyTopologyTriangles) {
+    return rendering::PrimitiveTopology::Triangles;
+  }
+
+  if (raw_topology == kCometEditorShaderKeyTopologyTriangleStrip) {
+    return rendering::PrimitiveTopology::TriangleStrip;
+  }
+
+  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported topology: ", raw_topology,
+                         "! Setting \"unknown\" mode instead.");
+
+  return rendering::PrimitiveTopology::Unknown;
 }
 
 rendering::ShaderVertexAttributeType
@@ -553,10 +641,15 @@ rendering::ShaderStageFlags ShaderExporter::GetShaderStageFlags(
   return stages;
 }
 
+void ShaderExporter::OnShaderSizeRequest(job::IOJobParamsHandle params_handle) {
+  auto* shader_context{static_cast<ShaderContext*>(params_handle)};
+  shader_context->file_len = GetSize(shader_context->asset_abs_path);
+}
+
 void ShaderExporter::OnShaderLoading(job::IOJobParamsHandle params_handle) {
   auto* shader_context{static_cast<ShaderContext*>(params_handle)};
   ReadStrFromFile(shader_context->asset_abs_path, shader_context->file,
-                  ShaderContext::kMaxShaderFileLen_, &shader_context->file_len);
+                  shader_context->file_buffer_len, &shader_context->file_len);
 }
 }  // namespace asset
 }  // namespace editor

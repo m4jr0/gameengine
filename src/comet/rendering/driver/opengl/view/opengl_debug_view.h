@@ -29,7 +29,7 @@ class DebugView : public ShaderView {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(frame::FramePacket*) override;
+  void Update(frame::FramePacket* packet) override;
 
  private:
   RenderProxyHandler* render_proxy_handler_{nullptr};

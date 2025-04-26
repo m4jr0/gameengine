@@ -17,7 +17,6 @@ void SetDebugLabel(GLenum identifier, GLuint name, const schar* label) {
   glObjectLabel(identifier, name, -1, label);
 }
 }  // namespace internal
-#endif
 
 void SetStorageDebugLabel(StorageHandle handle, const schar* label) {
   internal::SetDebugLabel(GL_BUFFER, handle, label);
@@ -44,7 +43,8 @@ void SetShaderModuleDebugLabel(ShaderModuleHandle handle, const schar* label) {
 void SetShaderDebugLabel(ShaderHandle handle, const schar* label) {
   internal::SetDebugLabel(GL_PROGRAM, handle, label);
 }
-// COMET_RENDERING_USE_DEBUG_LABELS
+
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace gl
 }  // namespace rendering

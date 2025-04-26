@@ -47,8 +47,8 @@ struct RenderBatchGroup {
 
 // Use Vec4 instances instead of Vec3 to ensure proper alignment in the shader.
 struct GpuRenderProxyLocalData {
-  math::Vec4 local_center{0.0f};
-  math::Vec4 local_max_extents{0.0f};
+  math::Vec4 local_center{.0f};
+  math::Vec4 local_max_extents{.0f};
   math::Mat4 transform{1.0f};
 };
 
@@ -62,6 +62,20 @@ struct GpuIndirectRenderProxy {
   RenderProxyId proxy_id{kInvalidRenderProxyId};
   BatchId batch_id{kInvalidBatchId};
 };
+
+#ifdef COMET_DEBUG_RENDERING
+struct GpuDebugData {
+  u32 visible_count{0};
+};
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+// Use Vec4 instances instead of Vec3 to ensure proper alignment in the shader.
+struct GpuDebugAabb {
+  math::Vec4 min_extents{.0f};
+  math::Vec4 max_extents{.0f};
+};
+#endif  // COMET_DEBUG_CULLING
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

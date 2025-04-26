@@ -89,6 +89,7 @@ Array<u8> ShaderHandler::DumpDescr(memory::Allocator& allocator,
                                    const ShaderResourceDescr& descr) {
   constexpr auto kBoolSize{sizeof(bool)};
   constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
+  constexpr auto kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
 
   const auto data_size{GetSizeFromDescr(descr)};
   Array<u8> dumped_descr{&allocator};
@@ -102,7 +103,11 @@ Array<u8> ShaderHandler::DumpDescr(memory::Allocator& allocator,
   memory::CopyMemory(&buffer[cursor], &descr.cull_mode, kCullModeSize);
   cursor += kCullModeSize;
 
+  memory::CopyMemory(&buffer[cursor], &descr.topology, kPrimitiveTopologySize);
+  cursor += kPrimitiveTopologySize;
+
   DumpShaderModules(descr, buffer, cursor);
+  DumpShaderDefines(descr, buffer, cursor);
   DumpVertexAttributes(descr, buffer, cursor);
   DumpUniforms(descr, buffer, cursor);
   DumpConstants(descr, buffer, cursor);
@@ -114,6 +119,7 @@ Array<u8> ShaderHandler::DumpDescr(memory::Allocator& allocator,
 usize ShaderHandler::GetSizeFromDescr(const ShaderResourceDescr& descr) {
   constexpr auto kBoolSize{sizeof(bool)};
   constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
+  constexpr auto kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
   constexpr auto kUsizeSize(sizeof(usize));
   constexpr auto kShaderVertexAttributeTypeSize(
       sizeof(rendering::ShaderVertexAttributeType));
@@ -124,12 +130,21 @@ usize ShaderHandler::GetSizeFromDescr(const ShaderResourceDescr& descr) {
       sizeof(rendering::ShaderVariableType));
   constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
 
-  // is_wireframe size, cull_mode size, and shader_module_paths size.
-  auto total_size{kBoolSize + kCullModeSize + kUsizeSize};
+  // is_wireframe size, cull_mode size, topology size, and shader_module_paths
+  // size.
+  auto total_size{kBoolSize + kCullModeSize + kPrimitiveTopologySize +
+                  kUsizeSize};
 
   for (const auto& module_path : descr.shader_module_paths) {
     total_size += kUsizeSize +
                   (module_path.GetLengthWithNullTerminator()) * sizeof(tchar);
+  }
+
+  total_size += kUsizeSize;
+
+  for (const auto& define : descr.defines) {
+    total_size += kUsizeSize + define.name_len;
+    total_size += kUsizeSize + define.value_len;
   }
 
   total_size += kUsizeSize;
@@ -164,6 +179,8 @@ usize ShaderHandler::GetSizeFromDescr(const ShaderResourceDescr& descr) {
       total_size +=
           kShaderStoragePropertyTypeSize + kUsizeSize + property.name_len;
     }
+
+    total_size += kUsizeSize + buffer.engine_define_len;
   }
 
   return total_size;
@@ -186,6 +203,31 @@ void ShaderHandler::DumpShaderModules(const ShaderResourceDescr& descr,
     memory::CopyMemory(&buffer[cursor], module_path.GetCTStr(),
                        module_path_size);
     cursor += module_path_size;
+  }
+}
+
+void ShaderHandler::DumpShaderDefines(const ShaderResourceDescr& descr,
+                                      u8* buffer, usize& cursor) {
+  constexpr auto kUsizeSize(sizeof(usize));
+
+  const auto define_count{descr.defines.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &define_count, kUsizeSize);
+  cursor += kUsizeSize;
+
+  for (const auto& define : descr.defines) {
+    const auto define_name_len{define.name_len};
+    memory::CopyMemory(&buffer[cursor], &define_name_len, kUsizeSize);
+    cursor += kUsizeSize;
+
+    memory::CopyMemory(&buffer[cursor], define.name, define_name_len);
+    cursor += define_name_len;
+
+    const auto define_value_len{define.value_len};
+    memory::CopyMemory(&buffer[cursor], &define_value_len, kUsizeSize);
+    cursor += kUsizeSize;
+
+    memory::CopyMemory(&buffer[cursor], define.value, define_value_len);
+    cursor += define_value_len;
   }
 }
 
@@ -312,6 +354,14 @@ void ShaderHandler::DumpStorages(const ShaderResourceDescr& descr, u8* buffer,
       memory::CopyMemory(&buffer[cursor], property.name, property_name_len);
       cursor += property_name_len;
     }
+
+    const auto storage_engine_define_len{storage.engine_define_len};
+    memory::CopyMemory(&buffer[cursor], &storage_engine_define_len, kUsizeSize);
+    cursor += kUsizeSize;
+
+    memory::CopyMemory(&buffer[cursor], storage.engine_define,
+                       storage_engine_define_len);
+    cursor += storage_engine_define_len;
   }
 }
 
@@ -320,6 +370,7 @@ void ShaderHandler::ParseDescr(const Array<u8>& dumped_descr,
                                ShaderResourceDescr& descr) {
   constexpr auto kBoolSize{sizeof(bool)};
   constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
+  constexpr auto kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
 
   const auto* buffer{dumped_descr.GetData()};
   usize cursor{0};
@@ -330,7 +381,11 @@ void ShaderHandler::ParseDescr(const Array<u8>& dumped_descr,
   memory::CopyMemory(&descr.cull_mode, &buffer[cursor], kCullModeSize);
   cursor += kCullModeSize;
 
+  memory::CopyMemory(&descr.topology, &buffer[cursor], kPrimitiveTopologySize);
+  cursor += kPrimitiveTopologySize;
+
   ParseShaderModules(buffer, descr, cursor);
+  ParseShaderDefines(buffer, allocator, descr, cursor);
   ParseVertexAttributes(buffer, descr, cursor);
   ParseUniforms(buffer, descr, cursor);
   ParseConstants(buffer, descr, cursor);
@@ -359,6 +414,42 @@ void ShaderHandler::ParseShaderModules(const u8* buffer,
     cursor += module_path_size;
 
     descr.shader_module_paths.PushBack(std::move(module_path));
+  }
+}
+
+void ShaderHandler::ParseShaderDefines(const u8* buffer,
+                                       memory::Allocator* allocator,
+                                       ShaderResourceDescr& descr,
+                                       usize& cursor) {
+  constexpr auto kUsizeSize(sizeof(usize));
+
+  usize define_count;
+  memory::CopyMemory(&define_count, &buffer[cursor], kUsizeSize);
+  cursor += kUsizeSize;
+
+  descr.defines = Array<rendering::ShaderDefineDescr>{allocator};
+  descr.defines.Reserve(define_count);
+
+  for (usize j{0}; j < define_count; ++j) {
+    auto& define_descr{descr.defines.EmplaceBack()};
+
+    usize define_name_len;
+    memory::CopyMemory(&define_name_len, &buffer[cursor], kUsizeSize);
+    cursor += kUsizeSize;
+
+    SetName(define_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+            define_name_len);
+    cursor += define_name_len;
+
+    usize define_value_len;
+    memory::CopyMemory(&define_value_len, &buffer[cursor], kUsizeSize);
+    cursor += kUsizeSize;
+
+    if (define_value_len > 0) {
+      SetValue(define_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+               define_value_len);
+      cursor += define_value_len;
+    }
   }
 }
 
@@ -513,7 +604,56 @@ void ShaderHandler::ParseStorages(const u8* buffer,
               property_name_len);
       cursor += property_name_len;
     }
+
+    usize engine_define_len;
+    memory::CopyMemory(&engine_define_len, &buffer[cursor], kUsizeSize);
+    cursor += kUsizeSize;
+
+    SetEngineDefine(storage_descr,
+                    reinterpret_cast<const schar*>(&buffer[cursor]),
+                    engine_define_len);
+    cursor += engine_define_len;
   }
+}
+
+const schar** GetActiveShaderEngineDefines(usize& count) {
+  static const schar* kActiveDefines[]{
+#if defined(COMET_VALIDATION_DEBUG_PRINTF_EXT)
+      "COMET_VALIDATION_DEBUG_PRINTF_EXT",
+#endif
+#if defined(COMET_DEBUG_RENDERING)
+      "COMET_DEBUG_RENDERING",
+#endif
+#if defined(COMET_DEBUG_CULLING)
+      "COMET_DEBUG_CULLING",
+#endif
+      nullptr};
+
+  usize actual_count{0};
+
+  while (kActiveDefines[actual_count] != nullptr) {
+    ++actual_count;
+  }
+
+  count = actual_count;
+  return kActiveDefines;
+}
+
+bool IsShaderEngineDefineSet(const schar* engine_define,
+                             usize engine_define_len) {
+  usize count;
+  const auto** active_defines{GetActiveShaderEngineDefines(count)};
+
+  for (usize i{0}; i < count; ++i) {
+    const auto* define{active_defines[i]};
+
+    if (AreStringsEqual(define, GetLength(define), engine_define,
+                        engine_define_len)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 }  // namespace resource
 }  // namespace comet

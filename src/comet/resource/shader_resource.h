@@ -19,7 +19,9 @@ namespace resource {
 struct ShaderResourceDescr {
   bool is_wireframe{false};
   rendering::CullMode cull_mode{rendering::CullMode::Unknown};
+  rendering::PrimitiveTopology topology{rendering::PrimitiveTopology::Unknown};
   Array<TString> shader_module_paths{};
+  Array<rendering::ShaderDefineDescr> defines{};
   Array<rendering::ShaderVertexAttributeDescr> vertex_attributes{};
   Array<rendering::ShaderUniformDescr> uniforms{};
   Array<rendering::ShaderConstantDescr> constants{};
@@ -31,6 +33,10 @@ struct ShaderResource : Resource {
 
   ShaderResourceDescr descr{};
 };
+
+const schar** GetActiveShaderEngineDefines(usize& count);
+bool IsShaderEngineDefineSet(const schar* engine_define,
+                             usize engine_define_len);
 
 class ShaderHandler : public ResourceHandler {
  public:
@@ -54,6 +60,8 @@ class ShaderHandler : public ResourceHandler {
   static usize GetSizeFromDescr(const ShaderResourceDescr& descr);
   static void DumpShaderModules(const ShaderResourceDescr& descr, u8* buffer,
                                 usize& cursor);
+  static void DumpShaderDefines(const ShaderResourceDescr& descr, u8* buffer,
+                                usize& cursor);
   static void DumpVertexAttributes(const ShaderResourceDescr& descr, u8* buffer,
                                    usize& cursor);
   static void DumpUniforms(const ShaderResourceDescr& descr, u8* buffer,
@@ -67,6 +75,8 @@ class ShaderHandler : public ResourceHandler {
                          ShaderResourceDescr& descr);
   static void ParseShaderModules(const u8* buffer, ShaderResourceDescr& descr,
                                  usize& cursor);
+  static void ParseShaderDefines(const u8* buffer, memory::Allocator* allocator,
+                                 ShaderResourceDescr& descr, usize& cursor);
   static void ParseVertexAttributes(const u8* buffer,
                                     ShaderResourceDescr& descr, usize& cursor);
   static void ParseUniforms(const u8* buffer, ShaderResourceDescr& descr,

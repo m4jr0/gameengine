@@ -98,6 +98,9 @@ struct ProfilerData {
   u32 physics_frame_rate{0};
   f32 rendering_frame_time{0};
   u32 rendering_frame_rate{0};
+#ifdef COMET_DEBUG_RENDERING
+  u32 rendering_draw_count{0};
+#endif  // COMET_DEBUG_RENDERING
   rendering::DriverType rendering_driver_type{rendering::DriverType::Unknown};
   usize memory_use{0};
   Map<memory::MemoryTag, usize> tag_use{};

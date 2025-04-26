@@ -187,6 +187,9 @@ ProfilerData::ProfilerData(ProfilerData&& other) noexcept
       physics_frame_rate{other.physics_frame_rate},
       rendering_frame_time{other.rendering_frame_time},
       rendering_frame_rate{other.rendering_frame_rate},
+#ifdef COMET_DEBUG_RENDERING
+      rendering_draw_count{other.rendering_draw_count},
+#endif  // COMET_DEBUG_RENDERING
       rendering_driver_type{other.rendering_driver_type},
       memory_use{other.memory_use},
       tag_use{std::move(other.tag_use)},
@@ -194,6 +197,9 @@ ProfilerData::ProfilerData(ProfilerData&& other) noexcept
   other.physics_frame_rate = 0;
   other.rendering_frame_time = 0;
   other.rendering_frame_rate = 0;
+#ifdef COMET_DEBUG_RENDERING
+  other.rendering_draw_count = 0;
+#endif  // COMET_DEBUG_RENDERING
   other.rendering_driver_type = rendering::DriverType::Unknown;
   other.memory_use = 0;
 }
@@ -206,6 +212,9 @@ ProfilerData& ProfilerData::operator=(ProfilerData&& other) noexcept {
   physics_frame_rate = other.physics_frame_rate;
   rendering_frame_time = other.rendering_frame_time;
   rendering_frame_rate = other.rendering_frame_rate;
+#ifdef COMET_DEBUG_RENDERING
+  rendering_draw_count = other.rendering_draw_count;
+#endif  // COMET_DEBUG_RENDERING
   rendering_driver_type = other.rendering_driver_type;
   memory_use = other.memory_use;
   tag_use = std::move(other.tag_use);
@@ -214,6 +223,9 @@ ProfilerData& ProfilerData::operator=(ProfilerData&& other) noexcept {
   other.physics_frame_rate = 0;
   other.rendering_frame_time = 0;
   other.rendering_frame_rate = 0;
+#ifdef COMET_DEBUG_RENDERING
+  other.rendering_draw_count = 0;
+#endif  // COMET_DEBUG_RENDERING
   other.rendering_driver_type = rendering::DriverType::Unknown;
   other.memory_use = 0;
   return *this;

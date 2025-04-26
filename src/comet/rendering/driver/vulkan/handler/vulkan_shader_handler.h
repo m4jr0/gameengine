@@ -97,9 +97,8 @@ class ShaderHandler : public Handler {
 
   static void BindStorageBuffer(
       const Shader* shader, VkDescriptorSet set_handle,
-      ShaderStorageIndex storage_index,  // Index from shader.storage_indices.*
-      VkBuffer buffer_handle, VkDeviceSize buffer_size,
-      Array<VkDescriptorBufferInfo>& buffer_info,
+      ShaderStorageIndex storage_index, VkBuffer buffer_handle,
+      VkDeviceSize buffer_size, Array<VkDescriptorBufferInfo>& buffer_info,
       Array<VkDescriptorSetLayoutBinding>& bindings,
       Array<VkWriteDescriptorSet>& write_descriptor_sets);
 
@@ -125,8 +124,9 @@ class ShaderHandler : public Handler {
       Shader* shader, const ShaderUniformDescr& uniform_descr) const;
   ShaderConstantIndex HandleConstantIndex(
       Shader* shader, const ShaderConstantDescr& constant_descr) const;
-  ShaderStorageIndex HandleStorageIndex(
-      Shader* shader, const ShaderStorageDescr& storage_descr) const;
+  void HandleStorageIndexAndBinding(Shader* shader,
+                                    const ShaderStorageDescr& storage_descr,
+                                    ShaderStorage& storage) const;
   void HandleDescriptorSetLayoutsGeneration(Shader* shader) const;
   void HandlePipelineGeneration(Shader* shader) const;
   void HandleGraphicsPipelineGeneration(

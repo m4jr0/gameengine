@@ -1,0 +1,76 @@
+{
+  "is_wireframe": true,
+  "topology": "lines",
+  "shader_module_paths": [
+    "shaders/vulkan/debug.vk.comp",
+    "shaders/vulkan/debug.vk.vert",
+    "shaders/vulkan/debug.vk.frag"
+  ],
+  "vertex_attributes": [
+    {
+      "name": "inPosition",
+      "type": "vec4"
+    }
+  ],
+  "uniforms": [
+    {
+      "name": "projection",
+      "type": "mat4",
+      "scope": "global",
+      "stages": [
+        "compute",
+        "vertex"
+      ]
+    },
+    {
+      "name": "view",
+      "type": "mat4",
+      "scope": "global",
+      "stages": [
+        "compute",
+        "vertex"
+      ]
+    }
+  ],
+  "constants": [
+    {
+      "name": "count",
+      "type": "u32",
+      "stages": [
+        "compute"
+      ]
+    }
+  ],
+  "storages": [
+    {
+      "name": "debugAabbs",
+      "stages": [
+        "compute"
+      ],
+      "layout": [
+        {
+          "name": "minExtents",
+          "type": "vec3"
+        },
+        {
+          "name": "maxExtents",
+          "type": "vec3"
+        }
+      ],
+      "engine_define": "COMET_DEBUG_CULLING"
+    },
+    {
+      "name": "lineVertices",
+      "stages": [
+        "compute"
+      ],
+      "layout": [
+        {
+          "name": "lineVertex",
+          "type": "vec3"
+        }
+      ],
+      "engine_define": "COMET_DEBUG_CULLING"
+    }
+  ]
+}

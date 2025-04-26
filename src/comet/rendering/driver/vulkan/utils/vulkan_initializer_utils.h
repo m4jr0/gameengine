@@ -66,7 +66,7 @@ VkPipelineVertexInputStateCreateInfo GeneratePipelineVertexInputStateCreateInfo(
     u32 vertex_attribute_description_count = 0);
 VkPipelineInputAssemblyStateCreateInfo
 GeneratePipelineInputAssemblyStateCreateInfo(
-    VkPrimitiveTopology topology, bool is_primitive_restart_enabled = VK_FALSE);
+    PrimitiveTopology topology, bool is_primitive_restart_enabled = VK_FALSE);
 VkPipelineRasterizationStateCreateInfo
 GeneratePipelineRasterizationStateCreateInfo(
     bool is_wireframe, VkCullModeFlags cull_mode = VK_CULL_MODE_NONE);

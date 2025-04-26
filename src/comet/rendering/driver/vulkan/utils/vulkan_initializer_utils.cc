@@ -228,12 +228,38 @@ VkPipelineVertexInputStateCreateInfo GeneratePipelineVertexInputStateCreateInfo(
 
 VkPipelineInputAssemblyStateCreateInfo
 GeneratePipelineInputAssemblyStateCreateInfo(
-    VkPrimitiveTopology topology, bool is_primitive_restart_enabled) {
+    PrimitiveTopology topology, bool is_primitive_restart_enabled) {
   VkPipelineInputAssemblyStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   info.pNext = VK_NULL_HANDLE;
-  info.topology = topology;
   info.primitiveRestartEnable = is_primitive_restart_enabled;
+
+  auto vk_topology{VK_PRIMITIVE_TOPOLOGY_MAX_ENUM};
+
+  switch (topology) {
+    case PrimitiveTopology::Points:
+      vk_topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+      break;
+    case PrimitiveTopology::Lines:
+      vk_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+      break;
+    case PrimitiveTopology::LineStrip:
+      vk_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+      break;
+    case PrimitiveTopology::Triangles:
+      vk_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+      break;
+    case PrimitiveTopology::TriangleStrip:
+      vk_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+      break;
+    default:
+      COMET_ASSERT(
+          false, "Unknown or unsupported primitive topology provided: ",
+          static_cast<std::underlying_type_t<PrimitiveTopology>>(topology),
+          "!");
+  }
+
+  info.topology = vk_topology;
   return info;
 }
 

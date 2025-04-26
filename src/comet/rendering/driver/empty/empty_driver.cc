@@ -45,6 +45,8 @@ DriverType EmptyDriver::GetType() const noexcept { return DriverType::Empty; }
 void EmptyDriver::SetSize(WindowSize, WindowSize) {}
 
 Window* EmptyDriver::GetWindow() { return window_.get(); }
+
+u32 EmptyDriver::GetDrawCount() const { return 0; }
 }  // namespace empty
 }  // namespace rendering
 }  // namespace comet

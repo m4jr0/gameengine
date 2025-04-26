@@ -46,7 +46,13 @@ class RenderProxyHandler : public Handler {
   void Update(frame::FramePacket* packet);
   void Cull(Shader* shader);
   void Draw(Shader* shader, FrameCount frame_count);
+#ifdef COMET_DEBUG_CULLING
+  void DebugCull(Shader* shader);
+  void DrawDebugCull(Shader* shader);
+#endif  // COMET_DEBUG_CULLING
+
   u32 GetRenderProxyCount() const noexcept;
+  u32 GetVisibleCount() const noexcept;
 
  private:
   static inline constexpr usize kMaxRenderProxyCount_{100000};
@@ -54,9 +60,6 @@ class RenderProxyHandler : public Handler {
   static inline constexpr usize kDefaultRenderBatchGroupCount_{128};
   static inline constexpr usize kDefaultProxyCount_{512};
   static inline constexpr f32 kReuploadAllLocalDataThreshold_{.8f};
-  static inline constexpr usize kDefaultUpdateBarrierCapacity_{4};
-  static inline constexpr usize kDefaultCullBarrierCapacity_{2};
-  static inline constexpr usize kDefaultShaderToTransferBarrierCapacity_{1};
 
   static bool OnRenderBatchSort(const RenderBatchEntry& a,
                                 const RenderBatchEntry& b);
@@ -85,9 +88,18 @@ class RenderProxyHandler : public Handler {
   void PopulateProxyInstances(BatchId batch_id, GpuRenderProxyInstance* memory,
                               usize& proxy_instance_index);
   u64 GenerateRenderProxySortKey(const RenderProxy& proxy);
+#ifdef COMET_DEBUG_RENDERING
+  void InitializeDebugData();
+  void DestroyDebugData();
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  void InitializeCullingDebug();
+  void DestroyCullingDebug();
+#endif  // COMET_DEBUG_CULLING
 
   FrameCount update_frame_{kInvalidFrameCount};
   usize render_proxy_count_{0};
+  usize render_proxy_visible_count_{0};
 
   RenderProxy proxies_[kMaxRenderProxyCount_]{};
 
@@ -111,14 +123,35 @@ class RenderProxyHandler : public Handler {
   StorageHandle ssbo_proxy_ids_handle_{kInvalidStorageHandle};
   StorageHandle ssbo_word_indices_handle_{kInvalidStorageHandle};
 
+#ifdef COMET_DEBUG_RENDERING
+  StorageHandle ssbo_debug_data_handle_{kInvalidStorageHandle};
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  StorageHandle ssbo_debug_aabbs_handle_{kInvalidStorageHandle};
+  StorageHandle ssbo_debug_lines_handle_{kInvalidStorageHandle};
+#endif  // COMET_DEBUG_CULLING
+
   GLsizei ssbo_indirect_proxies_buffer_size_{0};
   GLsizei ssbo_proxy_instances_buffer_size_{0};
   GLsizei ssbo_proxy_local_datas_buffer_size_{0};
   GLsizei ssbo_proxy_ids_buffer_size_{0};
   GLsizei ssbo_word_indices_buffer_size_{0};
 
+#ifdef COMET_DEBUG_RENDERING
+  GLsizei ssbo_debug_data_buffer_size_{0};
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  GLsizei ssbo_debug_aabbs_buffer_size_{0};
+  GLsizei ssbo_debug_lines_buffer_size_{0};
+#endif  // COMET_DEBUG_CULLING
+
   ShaderStoragesUpdate storages_update_{};
 
+#ifdef COMET_DEBUG_RENDERING
+  GpuDebugData* debug_data_{nullptr};
+#endif  // COMET_DEBUG_RENDERING
   Shader* sparse_upload_shader_{nullptr};
   MaterialHandler* material_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};

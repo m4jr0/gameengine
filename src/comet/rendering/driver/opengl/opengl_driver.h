@@ -51,14 +51,15 @@ class OpenGlDriver : public Driver {
   void Draw(frame::FramePacket* packet);
 
   Window* GetWindow() override;
+  u32 GetDrawCount() const override;
 
  private:
-#ifdef COMET_RENDERING_DRIVER_DEBUG_MODE
+#ifdef COMET_DEBUG_RENDERING
   static void GLAPIENTRY LogOpenGlMessage(GLenum source, GLenum type, GLuint id,
                                           GLenum severity, GLsizei length,
                                           const GLchar* message,
                                           const void* user_param);
-#endif  // COMET_RENDERING_DRIVER_DEBUG_MODE
+#endif  // COMET_DEBUG_RENDERING
 
   FrameCount frame_count_{0};
 

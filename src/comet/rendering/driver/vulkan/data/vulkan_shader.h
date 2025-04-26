@@ -29,6 +29,7 @@ using VertexAttributeStride = s32;
 struct Shader {
   bool is_wireframe{false};
   CullMode cull_mode{CullMode::Unknown};
+  PrimitiveTopology topology{PrimitiveTopology::Unknown};
   ShaderId id{kInvalidShaderId};
   VertexAttributeStride vertex_attribute_stride{0};
   sptrdiff bound_ubo_offset{0};

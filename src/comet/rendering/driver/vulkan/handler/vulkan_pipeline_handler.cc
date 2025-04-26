@@ -85,10 +85,17 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
       static_cast<u32>(dynamic_states.GetSize());
   dynamic_state_info.pDynamicStates = dynamic_states.GetData();
 
-  auto vertex_input_state_info{init::GeneratePipelineVertexInputStateCreateInfo(
-      &descr.vertex_input_binding_description, 1,
-      descr.vertex_attributes->GetData(),
-      static_cast<u32>(descr.vertex_attributes->GetSize()))};
+  VkPipelineVertexInputStateCreateInfo vertex_input_state_info{};
+
+  if (!descr.vertex_attributes->IsEmpty()) {
+    vertex_input_state_info = init::GeneratePipelineVertexInputStateCreateInfo(
+        &descr.vertex_input_binding_description, 1,
+        descr.vertex_attributes->GetData(),
+        static_cast<u32>(descr.vertex_attributes->GetSize()));
+  } else {
+    vertex_input_state_info = init::GeneratePipelineVertexInputStateCreateInfo(
+        VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 0);
+  }
 
   VkGraphicsPipelineCreateInfo pipeline_info{};
   pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

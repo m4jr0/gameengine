@@ -4,25 +4,21 @@ layout(local_size_x = 256) in;
 
 uniform uint count;
 
-layout(std430, binding = 0) readonly buffer InWordIndicesSsbo {   
-    uint inWordIndices[];
+layout(std430, binding = 14) readonly buffer InWordIndicesSsbo {
+  uint inWordIndices[];
 };
 
-layout(std430, binding = 1) readonly buffer InWordsSsbo {
-    uint inWords[];
-};
+layout(std430, binding = 15) readonly buffer InWordsSsbo { uint inWords[]; };
 
-layout(std430, binding = 2) buffer OutWordsSsbo {
-    uint outWords[];
-};
+layout(std430, binding = 16) buffer OutWordsSsbo { uint outWords[]; };
 
 void main() {
-    uint id = gl_GlobalInvocationID.x;
+  uint id = gl_GlobalInvocationID.x;
 
-    if (id >= count) {
-        return;
-    }
+  if (id >= count) {
+    return;
+  }
 
-    uint wordIndex = inWordIndices[id];
-    outWords[wordIndex] = inWords[id];
+  uint wordIndex = inWordIndices[id];
+  outWords[wordIndex] = inWords[id];
 }

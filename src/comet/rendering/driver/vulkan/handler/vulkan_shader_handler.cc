@@ -77,6 +77,7 @@ Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   shader->render_pass = descr.render_pass;
   shader->is_wireframe = shader_resource->descr.is_wireframe;
   shader->cull_mode = shader_resource->descr.cull_mode;
+  shader->topology = shader_resource->descr.topology;
 
   shader->vertex_attributes =
       Array<VkVertexInputAttributeDescription>{&general_allocator_};
@@ -368,6 +369,24 @@ void ShaderHandler::UpdateStorages(Shader* shader,
       shader, set_handle, shader->storage_indices.destination_words,
       update.ssbo_destination_words_handle, update.ssbo_destination_words_size,
       buffer_info, bindings, write_descriptor_sets);
+
+#ifdef COMET_DEBUG_RENDERING
+  BindStorageBuffer(shader, set_handle, shader->storage_indices.debug_data,
+                    update.ssbo_debug_data_handle, update.ssbo_debug_data_size,
+                    buffer_info, bindings, write_descriptor_sets);
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  BindStorageBuffer(shader, set_handle, shader->storage_indices.debug_aabbs,
+                    update.ssbo_debug_aabbs_handle,
+                    update.ssbo_debug_aabbs_size, buffer_info, bindings,
+                    write_descriptor_sets);
+
+  BindStorageBuffer(shader, set_handle, shader->storage_indices.line_vertices,
+                    update.ssbo_debug_lines_handle,
+                    update.ssbo_debug_lines_size, buffer_info, bindings,
+                    write_descriptor_sets);
+#endif  // COMET_DEBUG_CULLING
 
   vkUpdateDescriptorSets(context_->GetDevice(),
                          static_cast<u32>(write_descriptor_sets.GetSize()),
@@ -826,13 +845,15 @@ void ShaderHandler::BindStorageBuffer(
   buffer_info.EmplaceBack(
       init::GenerateDescriptorBufferInfo(buffer_handle, 0, buffer_size));
 
+  auto binding{shader->storages[storage_index].binding};
+
   bindings.EmplaceBack(init::GenerateDescriptorSetLayoutBinding(
       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, shader->storages[storage_index].stages,
-      storage_index));
+      binding));
 
   write_descriptor_sets.EmplaceBack(init::GenerateBufferWriteDescriptorSet(
       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, set_handle, &buffer_info.GetLast(),
-      storage_index));
+      binding));
 }
 
 void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
@@ -961,6 +982,13 @@ void ShaderHandler::HandleConstantsGeneration(
 void ShaderHandler::HandleStorageGeneration(
     Shader* shader, const resource::ShaderResource* resource) const {
   for (const auto& storage_descr : resource->descr.storages) {
+    if (!IsEmpty(storage_descr.engine_define,
+                 storage_descr.engine_define_len) &&
+        !resource::IsShaderEngineDefineSet(storage_descr.engine_define,
+                                           storage_descr.engine_define_len)) {
+      continue;
+    }
+
     AddStorage(shader, storage_descr);
   }
 }
@@ -1068,12 +1096,15 @@ void ShaderHandler::HandleBindingsGeneration(Shader* shader) const {
 
     auto& descriptor_set_data{
         shader->layout_bindings.list[shader->descriptor_set_indices.storage]};
+    COMET_ASSERT(shader->storages.GetSize() <= kDescriptorBindingCount,
+                 "Too many bindings (", shader->storages.GetSize(), " > ",
+                 kDescriptorBindingCount, ")!");
 
-    for (usize binding{0}; binding < shader->storage_data.count; ++binding) {
+    for (const auto& storage : shader->storages) {
       auto& descriptor_set{
           descriptor_set_data.bindings[descriptor_set_data.binding_count]};
 
-      descriptor_set.binding = static_cast<u32>(binding);
+      descriptor_set.binding = static_cast<u32>(storage.binding);
       descriptor_set.descriptorCount = 1;
       descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       descriptor_set.stageFlags = shader->storage_data.stages;
@@ -1186,39 +1217,68 @@ ShaderConstantIndex ShaderHandler::HandleConstantIndex(
   return *index;
 }
 
-ShaderStorageIndex ShaderHandler::HandleStorageIndex(
-    Shader* shader, const ShaderStorageDescr& storage_descr) const {
+void ShaderHandler::HandleStorageIndexAndBinding(
+    Shader* shader, const ShaderStorageDescr& storage_descr,
+    ShaderStorage& storage) const {
   ShaderStorageIndex* index{nullptr};
 
   if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                       kStorageNameProxyLocalDatas.data(),
                       kStorageNameProxyLocalDatas.size())) {
     index = &shader->storage_indices.proxy_local_datas;
+    storage.binding = kStorageBindingProxyLocalDatas;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameProxyIds.data(),
                              kStorageNameProxyIds.size())) {
     index = &shader->storage_indices.proxy_ids;
+    storage.binding = kStorageBindingProxyIds;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameProxyInstances.data(),
                              kStorageNameProxyInstances.size())) {
     index = &shader->storage_indices.proxy_instances;
+    storage.binding = kStorageBindingProxyInstances;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameIndirectProxies.data(),
                              kStorageNameIndirectProxies.size())) {
     index = &shader->storage_indices.indirect_proxies;
+    storage.binding = kStorageBindingIndirectProxies;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameWordIndices.data(),
                              kStorageNameWordIndices.size())) {
     index = &shader->storage_indices.word_indices;
+    storage.binding = kStorageBindingWordIndices;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameSourceWords.data(),
                              kStorageNameSourceWords.size())) {
     index = &shader->storage_indices.source_words;
+    storage.binding = kStorageBindingSourceWords;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameDestinationWords.data(),
                              kStorageNameDestinationWords.size())) {
     index = &shader->storage_indices.destination_words;
+    storage.binding = kStorageBindingDestinationWords;
   }
+#ifdef COMET_DEBUG_RENDERING
+  else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                           kStorageNameDebugData.data(),
+                           kStorageNameDebugData.size())) {
+    index = &shader->storage_indices.debug_data;
+    storage.binding = kStorageBindingDebugData;
+  }
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                           kStorageNameDebugAabbs.data(),
+                           kStorageNameDebugAabbs.size())) {
+    index = &shader->storage_indices.debug_aabbs;
+    storage.binding = kStorageBindingDebugAabbs;
+  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                             kStorageNameLineVertices.data(),
+                             kStorageNameLineVertices.size())) {
+    index = &shader->storage_indices.line_vertices;
+    storage.binding = kStorageBindingLineVertices;
+  }
+#endif  // COMET_DEBUG_CULLING
 
   COMET_ASSERT(index != nullptr, "Unable to find storage index with name \"",
                storage_descr.name, "\"!");
@@ -1226,7 +1286,7 @@ ShaderStorageIndex ShaderHandler::HandleStorageIndex(
                "Storage index with name \"", storage_descr.name,
                "\" was already bound!");
   *index = static_cast<ShaderStorageIndex>(shader->storages.GetSize() - 1);
-  return *index;
+  storage.index = *index;
 }
 
 void ShaderHandler::HandleDescriptorSetLayoutsGeneration(Shader* shader) const {
@@ -1303,13 +1363,14 @@ void ShaderHandler::HandleGraphicsPipelineGeneration(
   }
 
   pipeline_descr.input_assembly_state =
-      init::GeneratePipelineInputAssemblyStateCreateInfo(
-          VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+      init::GeneratePipelineInputAssemblyStateCreateInfo(shader->topology);
+
   pipeline_descr.rasterization_state =
       init::GeneratePipelineRasterizationStateCreateInfo(shader->is_wireframe,
                                                          shader->cull_mode);
   pipeline_descr.color_blend_attachment_state =
       init::GeneratePipelineColorBlendAttachmentState();
+
   pipeline_descr.multisample_state =
       init::GeneratePipelineMultisampleStateCreateInfo();
 
@@ -1517,7 +1578,7 @@ void ShaderHandler::AddConstant(Shader* shader,
 void ShaderHandler::AddStorage(Shader* shader,
                                const ShaderStorageDescr& descr) const {
   auto& storage{shader->storages.EmplaceBack()};
-  storage.index = HandleStorageIndex(shader, descr);
+  HandleStorageIndexAndBinding(shader, descr, storage);
   storage.stages = ResolveStageFlags(descr.stages);
   shader->storage_data.stages |= storage.stages;
 

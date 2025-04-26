@@ -61,6 +61,7 @@ Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   shader->id = shader_resource->id;
   shader->is_wireframe = shader_resource->descr.is_wireframe;
   shader->cull_mode = GetGlCullMode(shader_resource->descr.cull_mode);
+  shader->topology = GetGlPrimitiveTopology(shader_resource->descr.topology);
 
   shader->uniforms = Array<ShaderUniform>{&general_allocator_};
   shader->constants = Array<ShaderConstant>{&general_allocator_};
@@ -232,23 +233,36 @@ void ShaderHandler::UpdateStorages(Shader* shader,
 
 void ShaderHandler::UpdateStorages(Shader* shader,
                                    const ShaderStoragesUpdate& update) const {
-  BindStorageBuffer(shader->storage_indices.proxy_local_datas,
+  BindStorageBuffer(shader, shader->storage_indices.proxy_local_datas,
                     update.ssbo_proxy_local_datas_handle);
 
-  BindStorageBuffer(shader->storage_indices.proxy_ids,
+  BindStorageBuffer(shader, shader->storage_indices.proxy_ids,
                     update.ssbo_proxy_ids_handle);
 
-  BindStorageBuffer(shader->storage_indices.proxy_instances,
+  BindStorageBuffer(shader, shader->storage_indices.proxy_instances,
                     update.ssbo_proxy_instances_handle);
 
-  BindStorageBuffer(shader->storage_indices.indirect_proxies,
+  BindStorageBuffer(shader, shader->storage_indices.indirect_proxies,
                     update.ssbo_indirect_proxies_handle);
 
-  BindStorageBuffer(shader->storage_indices.word_indices,
+  BindStorageBuffer(shader, shader->storage_indices.word_indices,
                     update.ssbo_word_indices_handle);
 
-  BindStorageBuffer(shader->storage_indices.source_words,
+  BindStorageBuffer(shader, shader->storage_indices.source_words,
                     update.ssbo_source_words_handle);
+
+#ifdef COMET_DEBUG_RENDERING
+  BindStorageBuffer(shader, shader->storage_indices.debug_data,
+                    update.ssbo_debug_data_handle);
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  BindStorageBuffer(shader, shader->storage_indices.debug_aabbs,
+                    update.ssbo_debug_aabbs_handle);
+
+  BindStorageBuffer(shader, shader->storage_indices.line_vertices,
+                    update.ssbo_debug_lines_handle);
+#endif  // COMET_DEBUG_CULLING
 }
 
 void ShaderHandler::UpdateInstance(Shader* shader, FrameCount frame_count,
@@ -582,7 +596,7 @@ ShaderUniformSize ShaderHandler::GetShaderVariableTypeSize(
 void ShaderHandler::AddStorage(Shader* shader,
                                const ShaderStorageDescr& descr) const {
   auto& storage{shader->storages.EmplaceBack()};
-  storage.index = HandleStorageIndex(shader, descr);
+  HandleStorageIndexAndBinding(shader, descr, storage);
 
   auto property_count{
       static_cast<ShaderStoragePropertySize>(descr.properties.GetSize())};
@@ -627,6 +641,35 @@ GLenum ShaderHandler::GetGlCullMode(CullMode cull_mode) {
   }
 
   return gl_cull_mode;
+}
+
+GLenum ShaderHandler::GetGlPrimitiveTopology(PrimitiveTopology topology) {
+  auto gl_topology{GL_INVALID_VALUE};
+
+  switch (topology) {
+    case PrimitiveTopology::Points:
+      gl_topology = GL_POINTS;
+      break;
+    case PrimitiveTopology::Lines:
+      gl_topology = GL_LINES;
+      break;
+    case PrimitiveTopology::LineStrip:
+      gl_topology = GL_LINE_STRIP;
+      break;
+    case PrimitiveTopology::Triangles:
+      gl_topology = GL_TRIANGLES;
+      break;
+    case PrimitiveTopology::TriangleStrip:
+      gl_topology = GL_TRIANGLE_STRIP;
+      break;
+    default:
+      COMET_ASSERT(
+          false, "Unknown or unsupported primitive topology provided: ",
+          static_cast<std::underlying_type_t<PrimitiveTopology>>(topology),
+          "!");
+  }
+
+  return gl_topology;
 }
 
 GLsizei ShaderHandler::GetGlAttributeSize(ShaderVertexAttributeType type) {
@@ -711,14 +754,16 @@ GLenum ShaderHandler::GetGlVertexAttributeType(ShaderVertexAttributeType type) {
   }
 }
 
-void ShaderHandler::BindStorageBuffer(ShaderStorageIndex storage_index,
+void ShaderHandler::BindStorageBuffer(const Shader* shader,
+                                      ShaderStorageIndex storage_index,
                                       GLuint buffer_handle) {
   if (storage_index == kInvalidShaderStorageIndex ||
       buffer_handle == kInvalidStorageBufferHandle) {
     return;
   }
 
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, storage_index, buffer_handle);
+  auto binding{shader->storages[storage_index].binding};
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buffer_handle);
 }
 
 void ShaderHandler::SetF32(s32 location, const void* value) {
@@ -1035,6 +1080,13 @@ void ShaderHandler::HandleConstantsGeneration(
 void ShaderHandler::HandleStorageGeneration(
     Shader* shader, const resource::ShaderResource* resource) const {
   for (const auto& storage_descr : resource->descr.storages) {
+    if (!IsEmpty(storage_descr.engine_define,
+                 storage_descr.engine_define_len) &&
+        !resource::IsShaderEngineDefineSet(storage_descr.engine_define,
+                                           storage_descr.engine_define_len)) {
+      continue;
+    }
+
     AddStorage(shader, storage_descr);
   }
 }
@@ -1182,39 +1234,68 @@ ShaderConstantIndex ShaderHandler::HandleConstantIndex(
   return *index;
 }
 
-ShaderStorageIndex ShaderHandler::HandleStorageIndex(
-    Shader* shader, const ShaderStorageDescr& storage_descr) const {
+void ShaderHandler::HandleStorageIndexAndBinding(
+    Shader* shader, const ShaderStorageDescr& storage_descr,
+    ShaderStorage& storage) const {
   ShaderStorageIndex* index{nullptr};
 
   if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                       kStorageNameProxyLocalDatas.data(),
                       kStorageNameProxyLocalDatas.size())) {
     index = &shader->storage_indices.proxy_local_datas;
+    storage.binding = kStorageBindingProxyLocalDatas;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameProxyIds.data(),
                              kStorageNameProxyIds.size())) {
     index = &shader->storage_indices.proxy_ids;
+    storage.binding = kStorageBindingProxyIds;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameProxyInstances.data(),
                              kStorageNameProxyInstances.size())) {
     index = &shader->storage_indices.proxy_instances;
+    storage.binding = kStorageBindingProxyInstances;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameIndirectProxies.data(),
                              kStorageNameIndirectProxies.size())) {
     index = &shader->storage_indices.indirect_proxies;
+    storage.binding = kStorageBindingIndirectProxies;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameWordIndices.data(),
                              kStorageNameWordIndices.size())) {
     index = &shader->storage_indices.word_indices;
+    storage.binding = kStorageBindingWordIndices;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameSourceWords.data(),
                              kStorageNameSourceWords.size())) {
     index = &shader->storage_indices.source_words;
+    storage.binding = kStorageBindingSourceWords;
   } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
                              kStorageNameDestinationWords.data(),
                              kStorageNameDestinationWords.size())) {
     index = &shader->storage_indices.destination_words;
+    storage.binding = kStorageBindingDestinationWords;
   }
+#ifdef COMET_DEBUG_RENDERING
+  else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                           kStorageNameDebugData.data(),
+                           kStorageNameDebugData.size())) {
+    index = &shader->storage_indices.debug_data;
+    storage.binding = kStorageBindingDebugData;
+  }
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                           kStorageNameDebugAabbs.data(),
+                           kStorageNameDebugAabbs.size())) {
+    index = &shader->storage_indices.debug_aabbs;
+    storage.binding = kStorageBindingDebugAabbs;
+  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                             kStorageNameLineVertices.data(),
+                             kStorageNameLineVertices.size())) {
+    index = &shader->storage_indices.line_vertices;
+    storage.binding = kStorageBindingLineVertices;
+  }
+#endif  // COMET_DEBUG_CULLING
 
   COMET_ASSERT(index != nullptr, "Unable to find storage index with name \"",
                storage_descr.name, "\"!");
@@ -1222,7 +1303,7 @@ ShaderStorageIndex ShaderHandler::HandleStorageIndex(
                "Storage index with name \"", storage_descr.name,
                "\" was already bound!");
   *index = static_cast<ShaderStorageIndex>(shader->storages.GetSize() - 1);
-  return *index;
+  storage.index = *index;
 }
 
 void ShaderHandler::HandleUboBufferGeneration(Shader* shader) const {

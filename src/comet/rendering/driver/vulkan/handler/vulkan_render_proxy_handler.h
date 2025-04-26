@@ -52,7 +52,13 @@ class RenderProxyHandler : public Handler {
   void Reset();
   void Cull(Shader* shader);
   void Draw(Shader* shader);
+#ifdef COMET_DEBUG_CULLING
+  void DebugCull(Shader* shader);
+  void DrawDebugCull(Shader* shader);
+#endif  // COMET_DEBUG_CULLING
+
   u32 GetRenderProxyCount() const noexcept;
+  u32 GetVisibleCount() const noexcept;
 
  private:
   static inline constexpr usize kMaxRenderProxyCount_{100000};
@@ -62,6 +68,10 @@ class RenderProxyHandler : public Handler {
   static inline constexpr f32 kReuploadAllLocalDataThreshold_{.8f};
   static inline constexpr usize kDefaultUpdateBarrierCapacity_{4};
   static inline constexpr usize kDefaultCullBarrierCapacity_{2};
+#ifdef COMET_DEBUG_RENDERING
+  static inline constexpr usize kDebugDataBufferCount_{2};
+  static inline constexpr usize kDefaultDebugDataBarrierCapacity_{1};
+#endif  // COMET_DEBUG_RENDERING
   static inline constexpr usize kDefaultShaderToTransferBarrierCapacity_{1};
 
   static bool OnRenderBatchSort(const RenderBatchEntry& a,
@@ -91,9 +101,20 @@ class RenderProxyHandler : public Handler {
   void PopulateProxyInstances(BatchId batch_id, GpuRenderProxyInstance* memory,
                               usize& proxy_instance_index);
   u64 GenerateRenderProxySortKey(const RenderProxy& proxy);
+#ifdef COMET_DEBUG_RENDERING
+  void InitializeDebugData();
+  void DestroyDebugData();
+  usize GetDebugDataReadIndex() const;
+  usize GetDebugDataWriteIndex() const;
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
+  void InitializeCullingDebug();
+  void DestroyCullingDebug();
+#endif  // COMET_DEBUG_CULLING
 
   FrameIndex update_frame_{kInvalidFrameIndex};
   usize render_proxy_count_{0};
+  usize render_proxy_visible_count_{0};
 
   RenderProxy proxies_[kMaxRenderProxyCount_]{};
 
@@ -120,8 +141,20 @@ class RenderProxyHandler : public Handler {
   Buffer ssbo_proxy_ids_{};
   Buffer ssbo_word_indices_{};
 
+#ifdef COMET_DEBUG_RENDERING
+  Buffer ssbo_debug_data_[kDebugDataBufferCount_]{};
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  Buffer ssbo_debug_aabbs_{};
+  Buffer ssbo_debug_lines_{};
+#endif  // COMET_DEBUG_CULLING
+
   ShaderStoragesUpdate storages_update_{};
 
+#ifdef COMET_DEBUG_RENDERING
+  GpuDebugData* debug_data_[kDebugDataBufferCount_]{nullptr, nullptr};
+#endif  // COMET_DEBUG_RENDERING
   Shader* sparse_upload_shader_{nullptr};
   MaterialHandler* material_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
@@ -139,6 +172,9 @@ class RenderProxyHandler : public Handler {
   frame::FrameArray<VkBufferMemoryBarrier>* cull_barriers_{nullptr};
   frame::FrameArray<VkBufferMemoryBarrier>* shader_to_transfer_barriers_{
       nullptr};
+#ifdef COMET_DEBUG_RENDERING
+  frame::FrameArray<VkBufferMemoryBarrier>* debug_data_barriers_{nullptr};
+#endif  // COMET_DEBUG_RENDERING
 };
 }  // namespace vk
 }  // namespace rendering

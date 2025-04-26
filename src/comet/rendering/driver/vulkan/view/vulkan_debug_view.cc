@@ -33,7 +33,7 @@ void DebugView::Initialize() {
   render_pass_descr.offset.y = 0;
 
   render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
-  render_pass_descr.dependencies.Reserve(2);  // ABC
+  render_pass_descr.dependencies.Reserve(1);
 
   auto& dependency{render_pass_descr.dependencies.EmplaceBack()};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -57,6 +57,7 @@ void DebugView::Initialize() {
   is_msaa = false;
   render_pass_descr.clear_flags =
       RenderPassClearFlag::ColorBuffer | RenderPassClearFlag::DepthBuffer;
+  render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
   render_pass_descr.attachment_descrs.Reserve(3);
 
   AttachmentDescr color_attachment_descr{};
@@ -98,9 +99,22 @@ void DebugView::Destroy() {
   View::Destroy();
 }
 
-void DebugView::Update(frame::FramePacket*) {
+void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   COMET_PROFILE("DebugView::Update");
-  // TODO(m4jr0): Display 3D debug information.
+#ifdef COMET_DEBUG_CULLING
+  shader_handler_->UpdateGlobals(shader_, packet);
+  shader_handler_->UpdateStorages(shader_, packet);
+
+  auto draw_count{render_proxy_handler_->GetRenderProxyCount()};
+  shader_handler_->UpdateConstants(shader_, {nullptr, &draw_count});
+  render_proxy_handler_->DebugCull(shader_);
+
+  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  render_pass_handler_->BeginPass(render_pass_, command_buffer_handle,
+                                  context_->GetImageIndex());
+  render_proxy_handler_->DrawDebugCull(shader_);
+  render_pass_handler_->EndPass(command_buffer_handle);
+#endif  // COMET_DEBUG_CULLING
 }
 }  // namespace vk
 }  // namespace rendering
