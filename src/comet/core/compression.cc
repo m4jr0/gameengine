@@ -2,9 +2,9 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_pch.h"
-
 #include "compression.h"
+
+#include "comet_pch.h"
 
 namespace comet {
 void CompressLz4(const Array<u8>& src, Array<u8>& dst) {
@@ -71,5 +71,34 @@ void DecompressLz4(const u8* src, usize src_size, usize size, Array<u8>& dst) {
   LZ4_decompress_safe(reinterpret_cast<const schar*>(src),
                       reinterpret_cast<schar*>(dst.GetData()),
                       static_cast<s32>(src_size), static_cast<s32>(size));
+}
+
+u32 CompressF32Rl(f32 f, u32 bit_count) {
+  auto interval_count{1 << bit_count};
+  auto scaled{f * static_cast<f32>(interval_count - 1)};
+  auto rounded{static_cast<u32>(scaled + .5f)};
+
+  if (rounded > interval_count - 1) {
+    rounded = interval_count - 1;
+  }
+
+  return rounded;
+}
+
+f32 DecompressF32Rl(u32 quantized, u32 bit_count) {
+  auto interval_count{1 << bit_count};
+  auto interval_size{1.0f / static_cast<f32>(interval_count - 1)};
+  return static_cast<f32>(quantized) * interval_size;
+}
+
+u32 CompressF32Rl(f32 f, f32 min, f32 max, u32 bit_count) {
+  f = (f - min) / (max - min);
+  auto quantized{CompressF32Rl(f, bit_count)};
+  return quantized;
+}
+
+f32 DecompressF32Rl(u32 quantized, f32 min, f32 max, u32 bit_count) {
+  auto f{DecompressF32Rl(quantized, bit_count)};
+  return min + (f * (max - min));
 }
 }  // namespace comet

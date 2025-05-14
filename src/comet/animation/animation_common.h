@@ -17,6 +17,7 @@ struct AnimationSample {
 
 using FrameIndex = u32;
 
+// >:3 Support compressed animation clips.
 struct AnimationClip {
   geometry::Skeleton* skeleton{nullptr};
   FrameIndex frames_per_second{0};
@@ -24,6 +25,30 @@ struct AnimationClip {
   Array<AnimationSample> resource_samples{};
   bool is_loop{false};
 };
+
+struct CompressedJointTrack {
+  u16* rotation_keys{nullptr};
+  u16* translation_keys{nullptr};
+  u16* scale_keys{nullptr};
+  FrameIndex* frame_indices{nullptr};
+  u16 key_count{0};
+};
+
+struct CompressedAnimationClip {
+  geometry::Skeleton* skeleton{nullptr};
+  CompressedJointTrack* joint_tracks{nullptr};
+  FrameIndex frames_per_second{0};
+  FrameIndex frame_count{0};
+  u16 joint_count{0};
+  bool is_loop{false};
+};
+
+// Should it be in the settings?
+constexpr auto kMaxTranslation{2.0f};
+constexpr auto kCompressionBitCount{16};
+
+void ExtractPose(const CompressedAnimationClip& clip, f32 time,
+                 Array<geometry::JointPose> pose);
 }  // namespace animation
 }  // namespace comet
 

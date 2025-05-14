@@ -43,6 +43,16 @@ struct JointPose {
   f32 scale{1.0f};
 };
 
+struct CompressedJointPose {
+  u16 rotation_x{0};
+  u16 rotation_y{0};
+  u16 rotation_z{0};
+  u16 translation_x{0};
+  u16 translation_y{0};
+  u16 translation_z{0};
+  u16 scale{0};
+};
+
 struct SkeletonPose {
   Skeleton* skeleton{nullptr};
   JointPose* local_pose{nullptr};
