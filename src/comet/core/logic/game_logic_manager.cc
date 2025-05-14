@@ -9,11 +9,6 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/frame/frame_utils.h"
-#include "comet/entity/entity_id.h"
-#include "comet/geometry/component/mesh_component.h"
-#include "comet/math/bounding_volume.h"
-#include "comet/physics/component/transform_component.h"
 #include "comet/rendering/camera/camera.h"
 
 namespace comet {

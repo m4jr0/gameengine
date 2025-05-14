@@ -19,8 +19,6 @@
 #include "comet/core/type/array.h"
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
@@ -33,7 +31,6 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_view_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
-#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {

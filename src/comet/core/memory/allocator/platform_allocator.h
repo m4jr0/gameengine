@@ -5,9 +5,6 @@
 #ifndef COMET_COMET_CORE_MEMORY_ALLOCATOR_PLATFORM_ALLOCATOR_H_
 #define COMET_COMET_CORE_MEMORY_ALLOCATOR_PLATFORM_ALLOCATOR_H_
 
-#include <functional>
-#include <utility>
-
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"

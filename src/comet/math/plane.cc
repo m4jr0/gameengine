@@ -6,7 +6,7 @@
 
 #include "plane.h"
 
-#include "math_commons.h"
+#include "math_common.h"
 
 namespace comet {
 namespace math {

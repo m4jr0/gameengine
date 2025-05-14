@@ -9,10 +9,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_allocator.h"
-#include "comet/core/frame/frame_manager.h"
-#include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/string_id.h"
 
 #define COMET_EVENT_BIND_FUNCTION(function) \

@@ -8,11 +8,7 @@
 #include "opengl_driver.h"
 
 #include "comet/event/event_manager.h"
-#include "comet/input/input_event.h"
-#include "comet/physics/component/transform_component.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/camera/camera_manager.h"
-#include "comet/rendering/driver/opengl/view/opengl_view.h"
 #include "comet/rendering/window/window_event.h"
 
 namespace comet {

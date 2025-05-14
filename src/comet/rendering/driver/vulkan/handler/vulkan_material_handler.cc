@@ -7,16 +7,19 @@
 
 #include "vulkan_material_handler.h"
 
+#include "comet/core/file_system/file_system.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
+#include "comet/resource/shader_resource.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
@@ -35,7 +38,6 @@ void MaterialHandler::Initialize() {
 }
 
 void MaterialHandler::Shutdown() {
-  materials_.Clear();
   auto& device{context_->GetDevice()};
 
   for (auto& it : samplers_) {
@@ -46,13 +48,13 @@ void MaterialHandler::Shutdown() {
     }
   }
 
-  samplers_.Clear();
+  samplers_.Destroy();
 
   for (auto& it : materials_) {
     Destroy(it.value, true);
   }
 
-  materials_.Clear();
+  materials_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }
@@ -82,7 +84,9 @@ Material* MaterialHandler::Generate(
   shader_path += COMET_TCHAR("shaders/vulkan/");
   shader_path += GetTmpTChar(resource->descr.shader_name);
   shader_path += COMET_TCHAR(".vk.cshader");
-  descr.shader_id = resource::GenerateResourceIdFromPath(shader_path);
+  descr.shader_id =
+      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+          shader_path);
   return Generate(descr);
 }
 

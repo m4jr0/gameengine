@@ -13,18 +13,12 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/ordered_set.h"
 #include "comet/entity/entity_id.h"
-#include "comet/math/bounding_volume.h"
-#include "comet/math/matrix.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_proxy.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -85,6 +79,8 @@ class RenderProxyHandler : public Handler {
   void UpdateRenderProxies(const frame::DirtyMeshes* meshes,
                            const frame::DirtyTransforms* transforms);
   void DestroyRenderProxies(const frame::RemovedGeometries* geometries);
+  void UpdateSkinningMatrices(const frame::SkinningBindings* bindings,
+                              const frame::MatrixPalettes* palettes);
   void GenerateBatchEntries();
   void GenerateIndirectBatches();
   void GenerateBatchGroups();
@@ -100,7 +96,14 @@ class RenderProxyHandler : public Handler {
                                    GpuIndirectRenderProxy* memory);
   void PopulateProxyInstances(BatchId batch_id, GpuRenderProxyInstance* memory,
                               usize& proxy_instance_index);
+
+  void RegisterModelProxy(entity::EntityId model_entity_id,
+                          RenderProxyId proxy_id);
+  void UnregisterModelProxy(entity::EntityId model_entity_id,
+                            RenderProxyId proxy_id);
   u64 GenerateRenderProxySortKey(const RenderProxy& proxy);
+  void InitializeBuffers();
+  void DestroyBuffers();
 #ifdef COMET_DEBUG_RENDERING
   void InitializeDebugData();
   void DestroyDebugData();
@@ -127,18 +130,20 @@ class RenderProxyHandler : public Handler {
       memory::kEngineMemoryTagRendering};
 
   Map<entity::EntityId, RenderProxyId> entity_id_to_proxy_id_map_{};
+  Map<entity::EntityId, RenderProxyModelBindings> model_to_proxies_map_{};
   Array<entity::EntityId> proxy_id_to_entity_id_map_{};
   Array<GpuRenderProxyLocalData> proxy_local_datas_{};
   Array<RenderBatchEntry> new_batch_entries_{};
   Array<RenderBatchEntry> batch_entries_{};
 
+  Buffer staging_ssbo_proxy_local_datas_{};
+  Buffer ssbo_proxy_local_datas_{};
   Buffer staging_ssbo_indirect_proxies_{};
   Buffer ssbo_indirect_proxies_{};
+  Buffer ssbo_proxy_ids_{};
   Buffer staging_ssbo_proxy_instances_{};
   Buffer ssbo_proxy_instances_{};
-  Buffer staging_ssbo_proxy_local_data_{};
-  Buffer ssbo_proxy_local_datas_{};
-  Buffer ssbo_proxy_ids_{};
+  Buffer ssbo_matrix_palettes_{};
   Buffer ssbo_word_indices_{};
 
 #ifdef COMET_DEBUG_RENDERING

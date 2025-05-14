@@ -2,30 +2,25 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_pch.h"
-
 #include "asset_manager.h"
 
 #include "nlohmann/json.hpp"
 
-#include "comet/core/concurrency/fiber/fiber.h"
+#include <string>
+
+#include "comet/core/c_string.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/frame/frame_manager.h"
-#include "comet/core/generator.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/tagged_heap.h"
-#include "comet/resource/resource.h"
+#include "comet/core/type/tstring.h"
 #include "comet/resource/resource_manager.h"
+#include "comet_pch.h"
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model/model_exporter.h"
 #include "editor/asset/exporter/shader/shader_exporter.h"
 #include "editor/asset/exporter/shader/shader_module_exporter.h"
 #include "editor/asset/exporter/texture/texture_exporter.h"
-#include "editor/memory/memory.h"
 
 namespace comet {
 namespace editor {
@@ -81,24 +76,23 @@ void AssetManager::RefreshLibraryMetadataFile() {
 void AssetManager::Shutdown() {
   is_force_refresh_ = false;
   last_update_time_ = 0;
-  root_asset_path_.Clear();
-  root_resource_path_.Clear();
-  library_meta_path_.Clear();
-  exporters_.Clear();
+  root_asset_path_.Destroy();
+  root_resource_path_.Destroy();
+  library_meta_path_.Destroy();
+  exporters_.Destroy();
   exporters_allocator_.Destroy();
   resource_file_allocator_.Destroy();
   Manager::Shutdown();
 }
 
 void AssetManager::Refresh() {
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{job::Scheduler::Get().GenerateCounter()};
+  job::CounterGuard guard{};
+  auto* counter{guard.GetCounter()};
+
   auto job{job::GenerateIOJobDescr(OnRefresh, counter, counter)};
 
-  scheduler.Kick(job);
-  scheduler.Wait(job.counter);
-
-  scheduler.DestroyCounter(counter);
+  job::Scheduler::Get().Kick(job);
+  guard.Wait();
 }
 
 const TString& AssetManager::GetAssetsRootPath() const noexcept {
@@ -158,11 +152,8 @@ void AssetManager::RefreshAsset(job::Counter* global_counter,
                                 CTStringView asset_abs_path) {
   auto asset_metadata_file_path{GenerateAssetMetadataFilePath(asset_abs_path)};
 
-  if (!IsRefreshNeeded(asset_abs_path, asset_metadata_file_path)) {
-    return;
-  }
-
-  if (IsMetadataFile(asset_abs_path)) {
+  if (!IsRefreshNeeded(asset_abs_path, asset_metadata_file_path) ||
+      IsMetadataFile(asset_abs_path)) {
     return;
   }
 
@@ -185,13 +176,6 @@ bool AssetManager::IsRefreshNeeded(CTStringView asset_abs_path,
     return true;
   }
 
-  const auto resource_id{resource::GenerateResourceIdFromPath(
-      GetRelativePath(asset_abs_path, root_asset_path_))};
-
-  if (!Exists(GenerateResourcePath(root_resource_path_, resource_id))) {
-    return true;
-  }
-
   // We must use assignment here to prevent a bug with GCC where the generated
   // type is an array (which is wrong).
   const auto existing_metadata = GetMetadata(metadata_file_path);
@@ -201,7 +185,48 @@ bool AssetManager::IsRefreshNeeded(CTStringView asset_abs_path,
 
   const auto modification_time{GetLastModificationTime(asset_abs_path)};
 
-  return update_time <= modification_time;
+  if (update_time <= modification_time) {
+    return true;
+  }
+
+  if (!existing_metadata.contains(kCometEditorAssetMetadataKeyResourceFiles)) {
+    return true;
+  }
+
+  const auto& resource_files{
+      existing_metadata[kCometEditorAssetMetadataKeyResourceFiles]};
+
+  if (!resource_files.is_array()) {
+    return true;
+  }
+
+  TString item_abs_path{};
+  item_abs_path.Reserve(kMaxPathLength);
+  tchar item_path[kMaxPathLength + 1]{};
+
+  for (const auto& item : resource_files) {
+    if (!item.is_string()) {
+      return true;
+    }
+
+    const auto& path_str{item.get_ref<const std::string&>()};
+
+    if (path_str.size() > kMaxPathLength) {
+      return true;
+    }
+
+    Copy(item_path, path_str.c_str(), path_str.size());
+    item_path[path_str.size()] = COMET_TCHAR('\0');
+    item_abs_path.Clear();
+    item_abs_path /= root_resource_path_;
+    item_abs_path /= item_path;
+
+    if (!Exists(item_abs_path)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 }  // namespace asset
 }  // namespace editor

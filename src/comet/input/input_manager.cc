@@ -8,6 +8,7 @@
 
 #include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/game_state_manager.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/event/event_manager.h"
 #include "comet/input/input_event.h"
 
@@ -182,13 +183,13 @@ void InputManager::Shutdown() {
   glfwSetMonitorCallback(nullptr);
   window_handle_ = nullptr;
 
-  cached_input_state_.keys_pressed.Clear();
-  cached_input_state_.keys_down.Clear();
-  cached_input_state_.keys_up.Clear();
+  cached_input_state_.keys_pressed.Destroy();
+  cached_input_state_.keys_down.Destroy();
+  cached_input_state_.keys_up.Destroy();
 
-  cached_input_state_.mouse_buttons_pressed.Clear();
-  cached_input_state_.mouse_buttons_down.Clear();
-  cached_input_state_.mouse_buttons_up.Clear();
+  cached_input_state_.mouse_buttons_pressed.Destroy();
+  cached_input_state_.mouse_buttons_down.Destroy();
+  cached_input_state_.mouse_buttons_up.Destroy();
 
   cached_input_state_allocator_.Destroy();
 

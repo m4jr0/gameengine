@@ -6,17 +6,17 @@
 #define COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_H_
 
 #include "assimp/Importer.hpp"
+#include "assimp/material.h"
 #include "assimp/scene.h"
+#include "assimp/types.h"
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/model_resource.h"
 #include "comet/resource/resource.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
@@ -70,9 +70,9 @@ class ModelExporter : public AssetExporter {
       aiTextureMapMode raw_texture_repeat_mode);
 
   const f32 kDefaultMaterialShininess_{8.0f};
-  const aiColor3D kDefaultColor_{rendering::kColorBlack[0],
-                                 rendering::kColorBlack[1],
-                                 rendering::kColorBlack[2]};
+  const aiColor3D kDefaultColor_{rendering::kColorBlackRgb[0],
+                                 rendering::kColorBlackRgb[1],
+                                 rendering::kColorBlackRgb[2]};
 };
 }  // namespace asset
 }  // namespace editor

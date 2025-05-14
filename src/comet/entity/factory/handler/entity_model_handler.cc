@@ -6,10 +6,8 @@
 
 #include "entity_model_handler.h"
 
-#include <utility>
-
+#include "comet/animation/component/animation_component.h"
 #include "comet/core/c_string.h"
-#include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/frame/frame_allocator.h"
@@ -43,8 +41,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path,
   entity_manager.AddComponents(root_entity_id, transform_cmp,
                                physics::TransformRootComponent{});
 
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
+  job::CounterGuard guard{};
 
 #ifdef COMET_FIBER_DEBUG_LABEL
   constexpr auto* kDebugLabelPrefix{"mesh_sta_"};
@@ -59,6 +56,7 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path,
   }
 
   usize job_count{0};
+  auto& scheduler{job::Scheduler::Get()};
 
   for (const auto& mesh : model->meshes) {
     auto* job_params{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
@@ -84,15 +82,14 @@ EntityId ModelHandler::GenerateStatic(CTStringView model_path,
 
     scheduler.Kick(job::GenerateJobDescr(
         job::JobPriority::Normal, OnStaticGeneration, job_params,
-        job::JobStackSize::Normal, counter, debug_label));
+        job::JobStackSize::Normal, guard.GetCounter(), debug_label));
 
     if (++job_count % kMaxConcurrentJobs_ == 0) {
-      scheduler.Wait(counter);
+      guard.Wait();
     }
   }
 
-  scheduler.Wait(counter);
-  scheduler.DestroyCounter(counter);
+  guard.Wait();
   return root_entity_id;
 }
 
@@ -101,6 +98,10 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path,
   COMET_PROFILE("ModelHandler::GenerateSkeletal");
   const auto* model{
       resource::ResourceManager::Get().Load<resource::SkeletalModelResource>(
+          model_path)};
+
+  const auto* skeleton{
+      resource::ResourceManager::Get().Load<resource::SkeletonResource>(
           model_path)};
 
   if (model == nullptr) {
@@ -113,11 +114,14 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path,
   physics::TransformComponent transform_cmp{};
   transform_cmp.root_entity_id = root_entity_id;
 
-  entity_manager.AddComponents(root_entity_id, transform_cmp,
-                               physics::TransformRootComponent{});
+  geometry::SkeletonComponent skeleton_cmp{};
+  skeleton_cmp.resource = skeleton;
 
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
+  entity_manager.AddComponents(root_entity_id, transform_cmp, skeleton_cmp,
+                               physics::TransformRootComponent{},
+                               animation::AnimationComponent{});
+
+  job::CounterGuard guard{};
 
 #ifdef COMET_FIBER_DEBUG_LABEL
   constexpr auto* kDebugLabelPrefix{"mesh_ske_"};
@@ -132,6 +136,7 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path,
   }
 
   usize job_count{0};
+  auto& scheduler{job::Scheduler::Get()};
 
   for (const auto& mesh : model->meshes) {
     auto* job_params{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
@@ -157,15 +162,14 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path,
 
     scheduler.Kick(job::GenerateJobDescr(
         job::JobPriority::Normal, OnSkeletalGeneration, job_params,
-        job::JobStackSize::Normal, counter, debug_label));
+        job::JobStackSize::Normal, guard.GetCounter(), debug_label));
 
     if (++job_count % kMaxConcurrentJobs_ == 0) {
-      scheduler.Wait(counter);
+      guard.Wait();
     }
   }
 
-  scheduler.Wait(counter);
-  scheduler.DestroyCounter(counter);
+  guard.Wait();
   return root_entity_id;
 }
 
@@ -179,7 +183,8 @@ void ModelHandler::OnStaticGeneration(job::JobParamsHandle params_handle) {
 
   auto* mesh{params->mesh};
   geometry::MeshComponent mesh_cmp{
-      geometry::GeometryManager::Get().GenerateComponent(mesh)};
+      geometry::GeometryManager::Get().GenerateComponent(
+          mesh, params->id, params->root_entity_id)};
 
   physics::TransformComponent transform_cmp{};
   transform_cmp.root_entity_id = params->root_entity_id;
@@ -206,19 +211,16 @@ void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
                "Invalid parent entity ID provided!");
 
   auto* mesh{params->mesh};
-  auto geometry_cmps{geometry::GeometryManager::Get().GenerateComponents(mesh)};
-
-  geometry::MeshComponent mesh_cmp{std::move(geometry_cmps.mesh_cmp)};
-  geometry::SkeletonComponent skeleton_cmp{
-      std::move(geometry_cmps.skeleton_cmp)};
+  geometry::MeshComponent mesh_cmp{
+      geometry::GeometryManager::Get().GenerateComponent(
+          mesh, params->id, params->root_entity_id)};
 
   physics::TransformComponent transform_cmp{};
   transform_cmp.root_entity_id = params->root_entity_id;
   transform_cmp.parent_entity_id = params->parent_id;
   transform_cmp.local = mesh->transform;
 
-  EntityManager::Get().AddComponents(params->id, mesh_cmp, skeleton_cmp,
-                                     transform_cmp);
+  EntityManager::Get().AddComponents(params->id, mesh_cmp, transform_cmp);
   EntityManager::Get().AddParent(params->id, transform_cmp.parent_entity_id);
   auto* packet{params->packet};
 

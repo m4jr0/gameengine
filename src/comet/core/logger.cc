@@ -8,7 +8,6 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
-#include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/memory/memory_utils.h"
 

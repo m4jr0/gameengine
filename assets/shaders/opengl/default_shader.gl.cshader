@@ -30,6 +30,14 @@
     {
       "name": "inColor",
       "type": "vec4"
+    },
+    {
+      "name": "inJointIndices",
+      "type": "u16vec4"
+    },
+    {
+      "name": "inJointWeights",
+      "type": "vec4"
     }
   ],
   "uniforms": [
@@ -194,6 +202,18 @@
         {
           "name": "firstInstance",
           "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "matrixPalettes",
+      "stages": [
+        "vertex"
+      ],
+      "layout": [
+        {
+          "name": "skinningMatrix",
+          "type": "mat4"
         }
       ]
     },

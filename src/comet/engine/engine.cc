@@ -13,6 +13,7 @@
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/frame/frame_manager.h"
+#include "comet/core/frame/frame_packet.h"
 #include "comet/core/game_state_manager.h"
 #include "comet/core/logic/game_logic_manager.h"
 #include "comet/core/memory/allocation_tracking.h"
@@ -118,23 +119,20 @@ void Engine::Update(f64& lag) {
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
 
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
-
+  job::CounterGuard guard{};
   auto& frame_manager{frame::FrameManager::Get()};
   auto& active_frames{frame_manager.GetInFlightFrames()};
   auto& lead_packet{active_frames.lead_frame};
   lead_packet->lag = lag;
-  lead_packet->counter = counter;
+  lead_packet->counter = guard.GetCounter();
 
   auto& middle_packet{active_frames.middle_frame};
-  middle_packet->counter = counter;
+  middle_packet->counter = guard.GetCounter();
 
   GameLogicManager::Get().Update(lead_packet);
   rendering::RenderingManager::Get().Update(active_frames.middle_frame);
 
-  scheduler.Wait(counter);
-  scheduler.DestroyCounter(counter);
+  guard.Wait();
   lead_packet->counter = nullptr;
   middle_packet->counter = nullptr;
 

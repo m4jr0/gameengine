@@ -22,7 +22,7 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/map.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"

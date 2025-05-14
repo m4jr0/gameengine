@@ -47,6 +47,11 @@ inline usize AlignSize(usize size, Alignment align) {
   return (size + mask) & ~mask;
 }
 
+constexpr usize RoundUpToMultiple(usize value, usize multiple) {
+  COMET_ASSERT(multiple > 0, "Multiple must be greater than 0!");
+  return ((value + multiple - 1) / multiple) * multiple;
+}
+
 template <typename T>
 inline T* AlignPointer(T* ptr, Alignment align) {
   return reinterpret_cast<T*>(AlignAddress(reinterpret_cast<uptr>(ptr), align));

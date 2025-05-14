@@ -8,13 +8,11 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/map.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {

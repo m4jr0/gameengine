@@ -6,10 +6,11 @@
 
 #include "asset_exporter.h"
 
+#include <type_traits>
+
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/frame/frame_allocator.h"
 #include "comet/core/logger.h"
 #include "editor/asset/asset_utils.h"
 
@@ -28,15 +29,20 @@ const TString& AssetExporter::GetRootAssetPath() const {
   return root_asset_path_;
 }
 
+void AssetExporter::Initialize() { asset_export_allocator_.Initialize(); }
+
+void AssetExporter::Destroy() { asset_export_allocator_.Destroy(); }
+
 void AssetExporter::Process(const AssetExportDescr& export_descr) {
   COMET_LOG_GLOBAL_INFO(
       "Processing asset at path: ", export_descr.asset_abs_path, ".");
 
-  auto* asset_export{COMET_FRAME_ALLOC_ONE_AND_POPULATE(AssetExport, )};
+  auto* allocator{export_descr.allocator};
+  auto* asset_export{GenerateAssetExport()};
   asset_export->exporter = this;
   auto& context{asset_export->context};
-  context.allocator = export_descr.allocator;
-  context.files = ResourceFiles{export_descr.allocator};
+  context.allocator = allocator;
+  context.files = ResourceFiles{allocator};
   auto& descr{context.asset_descr};
   descr.asset_abs_path = export_descr.asset_abs_path;
 
@@ -96,8 +102,26 @@ void AssetExporter::OnResourceFilesProcess(job::JobParamsHandle params_handle) {
 
   if (context.files.IsEmpty()) {
     COMET_LOG_GLOBAL_ERROR("Could not process asset at ", descr.asset_abs_path);
+    asset_export->exporter->OnAssetProcessed(asset_export);
     return;
   }
+
+  // Every time we get an object, we must use assignment to prevent a bug with
+  // GCC where the generated type is an array which... contains an array (which
+  // is wrong).
+  auto resource_files = nlohmann::json::array();
+  constexpr auto kBufferSize{GetCharCount<resource::ResourceId>() + 1};
+  schar buffer[kBufferSize]{'\0'};
+  usize out_len{0};
+
+  for (const auto& resource_file : context.files) {
+    comet::ConvertToStr(resource_file.resource_id, buffer, kBufferSize,
+                        &out_len);
+    resource_files.push_back(std::string{buffer, out_len});
+  }
+
+  context.asset_descr.metadata[kCometEditorAssetMetadataKeyResourceFiles] =
+      resource_files;
 
   job::Scheduler::Get().Kick(job::GenerateIOJobDescr(
       OnResourceFilesWrite, asset_export, context.global_counter));
@@ -124,6 +148,26 @@ void AssetExporter::OnResourceFilesWrite(job::IOJobParamsHandle params_handle) {
   }
 
   SaveMetadata(descr.metadata_path, descr.metadata);
+  asset_export->exporter->OnAssetProcessed(asset_export);
+}
+
+void AssetExporter::OnAssetProcessed(AssetExport* asset_export) {
+  if (asset_export == nullptr) {
+    COMET_LOG_GLOBAL_ERROR("Asset export is null! What happened?");
+    return;
+  }
+
+  COMET_LOG_GLOBAL_INFO("Processed asset at path: ",
+                        asset_export->context.asset_descr.asset_abs_path, ".");
+  DestroyAssetExport(asset_export);
+}
+
+AssetExport* AssetExporter::GenerateAssetExport() {
+  return asset_export_allocator_.AllocateOneAndPopulate<AssetExport>();
+}
+
+void AssetExporter::DestroyAssetExport(AssetExport* asset_export) {
+  return asset_export_allocator_.Deallocate(asset_export);
 }
 }  // namespace asset
 }  // namespace editor

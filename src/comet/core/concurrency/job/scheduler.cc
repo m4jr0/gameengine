@@ -7,6 +7,7 @@
 #include "scheduler.h"
 
 #include <optional>
+#include <type_traits>
 
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber.h"
@@ -19,7 +20,6 @@
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_utils.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/time/chrono.h"
 
@@ -59,7 +59,7 @@ void FiberPool::Destroy() {
     fiber_box.value()->Destroy();
   }
 
-  fibers_.Clear();
+  fibers_.Destroy();
   fiber_allocator_.Destroy();
   queue_allocator_.Destroy();
 }
@@ -108,7 +108,7 @@ void CounterPool::Initialize() {
 }
 
 void CounterPool::Destroy() {
-  counters_.Clear();
+  counters_.Destroy();
   counter_allocator_.Destroy();
   queue_allocator_.Destroy();
 }
@@ -191,10 +191,10 @@ void Scheduler::Initialize() {
 }
 
 void Scheduler::Shutdown() {
-  low_priority_queue_.Clear();
-  normal_priority_queue_.Clear();
-  high_priority_queue_.Clear();
-  io_queue_.Clear();
+  low_priority_queue_.Destroy();
+  normal_priority_queue_.Destroy();
+  high_priority_queue_.Destroy();
+  io_queue_.Destroy();
   job_queue_allocator_.Destroy();
 
   for (auto& fiber_worker : fiber_workers_) {
@@ -313,7 +313,7 @@ void Scheduler::Wait(Counter* counter) {
     return;
   }
 
-  CounterGuard guard{*counter};
+  CounterWaiter waiter{*counter};
 }
 
 void Scheduler::KickAndWait(const JobDescr& job_descr) {
@@ -544,5 +544,13 @@ void Scheduler::PromoteJobs() {
     job_box = low_priority_queue_.TryPop();
   }
 }
+
+CounterGuard::CounterGuard() : counter_(Scheduler::Get().GenerateCounter()) {}
+
+CounterGuard::~CounterGuard() { Scheduler::Get().DestroyCounter(counter_); }
+
+void CounterGuard::Wait() { Scheduler::Get().Wait(counter_); }
+
+Counter* job::CounterGuard::GetCounter() { return counter_; }
 }  // namespace job
 }  // namespace comet

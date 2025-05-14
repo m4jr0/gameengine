@@ -9,10 +9,8 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/geometry/geometry_common.h"
-#include "comet/math/bounding_volume.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
-#include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
 
 namespace comet {
@@ -28,7 +26,7 @@ struct MeshResource : InternalResource {
 };
 
 struct StaticMeshResource : MeshResource {
-  Array<geometry::Vertex> vertices{};
+  Array<geometry::SkinnedVertex> vertices{};
 };
 
 struct SkinnedMeshResource : MeshResource {
@@ -56,7 +54,20 @@ struct SkeletalModelResource : Resource {
   static const ResourceTypeId kResourceTypeId;
 
   SkeletalModelResourceDescr descr{};
+  geometry::SkeletonId skeleton_id{geometry::kInvalidSkeletonId};
   Array<SkinnedMeshResource> meshes{};
+};
+
+struct SkeletonResourceDescr {
+  // TODO(m4jr0): Add description.
+  u8 empty{0};
+};
+
+struct SkeletonResource : Resource {
+  static const ResourceTypeId kResourceTypeId;
+
+  SkeletonResourceDescr descr{};
+  geometry::Skeleton skeleton{};
 };
 
 class StaticModelHandler : public ResourceHandler {
@@ -92,6 +103,26 @@ class SkeletalModelHandler : public ResourceHandler {
  protected:
   usize GetMeshSize(const SkinnedMeshResource& mesh) const;
   usize GetModelSize(const SkeletalModelResource& model) const;
+
+  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
+                    CompressionMode compression_mode) const override;
+  Resource* Unpack(memory::Allocator& allocator,
+                   const ResourceFile& file) override;
+};
+
+class SkeletonHandler : public ResourceHandler {
+ public:
+  SkeletonHandler(memory::Allocator* loading_resources_allocator,
+                  memory::Allocator* loading_resource_allocator);
+  SkeletonHandler(const SkeletonHandler&) = delete;
+  SkeletonHandler(SkeletonHandler&&) = delete;
+  SkeletonHandler& operator=(const SkeletonHandler&) = delete;
+  SkeletonHandler& operator=(SkeletonHandler&&) = delete;
+  virtual ~SkeletonHandler() = default;
+
+ protected:
+  usize GetSkeletonJointSize() const;
+  usize GetSkeletonSize(const SkeletonResource& skeleton) const;
 
   ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
                     CompressionMode compression_mode) const override;

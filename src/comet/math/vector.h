@@ -38,6 +38,7 @@ f32 Dot(const Vec2& a, const Vec2& b);
 f32 Dot(const Vec3& a, const Vec3& b);
 f32 Dot(const Vec4& a, const Vec4& b);
 Vec3 Cross(const Vec3& a, const Vec3& b);
+f32 AverageComponents(const Vec3& vec);
 }  // namespace math
 }  // namespace comet
 

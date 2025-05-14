@@ -10,7 +10,7 @@
 
 namespace comet {
 namespace job {
-CounterGuard::CounterGuard(Counter& counter) : counter_{counter} {
+CounterWaiter::CounterWaiter(Counter& counter) : counter_{counter} {
   // Case: blockable thread (no fiber is being executed).
   if (!fiber::IsFiber()) {
     while (!counter.IsZero());

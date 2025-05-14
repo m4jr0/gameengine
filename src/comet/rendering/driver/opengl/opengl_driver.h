@@ -9,7 +9,6 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
-#include "comet/event/event_manager.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"

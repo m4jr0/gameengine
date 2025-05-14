@@ -9,14 +9,17 @@
 
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
 #include "comet/input/input_manager.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/empty/empty_driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
+#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -31,7 +34,7 @@ void RenderingManager::Initialize() {
 
   if (fps_cap > 0) {
     frame_time_threshold_ =
-        1000 / static_cast<f64>(COMET_CONF_U16(conf::kRenderingFpsCap));
+        1.0f / static_cast<f64>(COMET_CONF_U16(conf::kRenderingFpsCap));
   } else {
     frame_time_threshold_ = 0;
   }
@@ -85,7 +88,7 @@ void RenderingManager::Update(frame::FramePacket* packet) {
   COMET_PROFILE("RenderingManager::Update");
   current_time_ += time::TimeManager::Get().GetDeltaTime();
 
-  if (current_time_ > 1000) {
+  if (current_time_ > 1.0f) {
     frame_rate_ = counter_;
     current_time_ = 0;
     counter_ = 0;
@@ -137,8 +140,8 @@ rendering::DriverType RenderingManager::GetDriverType() const noexcept {
 
 u32 RenderingManager::GetFrameRate() const noexcept { return frame_rate_; }
 
-f32 RenderingManager::GetFrameTime() const noexcept {
-  return (1 / static_cast<f32>(frame_rate_)) * 1000;
+f64 RenderingManager::GetFrameTime() const noexcept {
+  return frame_rate_ == 0 ? 0.0 : (1.0 / static_cast<f64>(frame_rate_));
 }
 
 u32 RenderingManager::GetDrawCount() const noexcept {

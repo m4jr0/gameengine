@@ -14,14 +14,48 @@
 #include "comet/entity/entity_memory_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event_manager.h"
-#include "comet/geometry/component/mesh_component.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 namespace entity {
 namespace internal {
 HashValue GenerateHash(const ComponentTypeDescr& descr) {
   return comet::GenerateHash(descr.id);
+}
+
+const ComponentTypeDescrHashLogic::Hashable&
+ComponentTypeDescrHashLogic::GetHashable(const Value& value) {
+  return value;
+}
+
+HashValue ComponentTypeDescrHashLogic::Hash(const Hashable& hashable) {
+  return GenerateHash(hashable);
+}
+
+bool ComponentTypeDescrHashLogic::AreEqual(const Hashable& a,
+                                           const Hashable& b) {
+  return a.id == b.id;
+}
+
+void MovedEntities::Add(Archetype* archetype,
+                        const internal::DeferredEntity& entity) {
+  auto* entities{map.TryGet(archetype)};
+
+  if (entities == nullptr) {
+    entities =
+        &map.Emplace(archetype,
+                     frame::FrameArray<const internal::DeferredEntity*>{})
+             .value;
+  }
+
+  entities->PushBack(&entity);
+}
+
+bool MovedEntities::IsEmpty() const { return map.IsEmpty(); }
+
+bool DeferredChanges::IsEmpty() const {
+  return archetype_size_deltas.IsEmpty() && added_to.IsEmpty() &&
+         removed_from.IsEmpty() && destroyed_ids.IsEmpty();
 }
 }  // namespace internal
 
@@ -70,12 +104,12 @@ void EntityManager::Shutdown() {
     }
   }
 
-  archetypes_.Clear();
+  archetypes_.Destroy();
   component_id_handler_.Shutdown();
   root_archetype_ = nullptr;
   entity_id_handler_.Shutdown();
-  records_.Clear();
-  registered_component_types_.Clear();
+  records_.Destroy();
+  registered_component_types_.Destroy();
   deferred_entities_ = nullptr;
   memory_manager.Shutdown();
   Manager::Shutdown();
@@ -112,7 +146,8 @@ EntityId EntityManager::Generate() {
 }
 
 bool EntityManager::IsEntity(const EntityId& entity_id) const {
-  return entity_id_handler_.IsAlive(GetGid(entity_id));
+  return entity_id != kInvalidEntityId &&
+         entity_id_handler_.IsAlive(GetGid(entity_id));
 }
 
 void EntityManager::Destroy(EntityId entity_id) {
@@ -124,8 +159,8 @@ void EntityManager::Destroy(EntityId entity_id) {
 
   if (entity != nullptr) {
     entity->is_destroyed = true;
-    entity->added_cmps.Clear();
-    entity->removed_cmps.Clear();
+    entity->added_cmps.Destroy();
+    entity->removed_cmps.Destroy();
   } else {
     COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
     deferred_entities_->Emplace(entity_id,
@@ -379,11 +414,14 @@ void EntityManager::ProcessDeferredOperations() {
   RegisterDeferredComponentTypes();
 
   internal::DeferredChanges changes{PopulateChanges()};
-  ResizeDeferredArchetypes(changes, true);
-  AddDeferredEntitiesToNewArchetypes(changes);
-  RemoveDeferredEntitiesFromOldArchetypes(changes);
-  ProcessDeferredDestructions(changes);
-  ResizeDeferredArchetypes(changes, false);
+
+  if (!changes.IsEmpty()) {
+    ResizeDeferredArchetypes(changes, true);
+    AddDeferredEntitiesToNewArchetypes(changes);
+    RemoveDeferredEntitiesFromOldArchetypes(changes);
+    ProcessDeferredDestructions(changes);
+    ResizeDeferredArchetypes(changes, false);
+  }
 
   deferred_entities_ = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
       DeferredEntities, kDeferredEntityInitialCount_);
@@ -482,8 +520,8 @@ void EntityManager::AddDeferredEntitiesToNewArchetypes(
     Archetype* new_archetype{nullptr};
   };
 
+  job::CounterGuard guard{};
   auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
 
   for (auto& pair : changes.added_to.map) {
     auto* new_archetype{pair.key};
@@ -517,12 +555,12 @@ void EntityManager::AddDeferredEntitiesToNewArchetypes(
                                               old_archetype, old_entity_index,
                                               entity->added_cmps);
           },
-          params, job::JobStackSize::Normal, counter, "add_deferred_entity"));
+          params, job::JobStackSize::Normal, guard.GetCounter(),
+          "add_deferred_entity"));
     }
   }
 
-  scheduler.Wait(counter);
-  scheduler.DestroyCounter(counter);
+  guard.Wait();
 }
 
 void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
@@ -533,8 +571,8 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
     Archetype* old_archetype{nullptr};
   };
 
+  job::CounterGuard guard{};
   auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
 
   for (auto& pair : changes.removed_from.map) {
     auto* old_archetype{pair.key};
@@ -590,7 +628,7 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
             old_archetype->entity_ids[old_entity_index] =
                 old_archetype->entity_ids[swap_index];
           },
-          params, job::JobStackSize::Normal, counter,
+          params, job::JobStackSize::Normal, guard.GetCounter(),
           "remove_deferred_entity"));
     }
 
@@ -598,8 +636,7 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
                                      entities.GetSize());
   }
 
-  scheduler.Wait(counter);
-  scheduler.DestroyCounter(counter);
+  guard.Wait();
 }
 
 void EntityManager::ProcessDeferredDestructions(
@@ -677,8 +714,8 @@ void EntityManager::ResizeDeferredArchetypes(
     Archetype* archetype{nullptr};
   };
 
+  job::CounterGuard guard{};
   auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
 
   for (const auto& pair : changes.archetype_size_deltas) {
     if (pair.value == 0 || (pair.value < 0 && is_growth)) {
@@ -695,11 +732,11 @@ void EntityManager::ResizeDeferredArchetypes(
           EntityManager::Get().ResizeArchetype(params->archetype,
                                                params->delta);
         },
-        params, job::JobStackSize::Normal, counter, "grow_archetype"));
+        params, job::JobStackSize::Normal, guard.GetCounter(),
+        "grow_archetype"));
   }
 
-  scheduler.Wait(counter);
-  scheduler.DestroyCounter(counter);
+  guard.Wait();
 }
 
 void EntityManager::PrepareNewFrame() {

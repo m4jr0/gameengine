@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+#include "comet/core/c_string.h"
 #include "comet/core/compiler.h"
 
 #ifdef COMET_MSVC
@@ -23,7 +24,6 @@
 #include <cstdlib>
 #endif  // COMET_MSVC
 
-#include "comet/core/logger.h"
 #include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_CHECK_STACK_OVERFLOWS

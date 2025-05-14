@@ -8,6 +8,7 @@
 #include <iterator>
 #include <utility>
 
+#include "comet/core/algorithm/algorithm_common.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/type/array.h"

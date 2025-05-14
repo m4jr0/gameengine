@@ -7,6 +7,11 @@
 
 #include "vulkan_shader_module_handler.h"
 
+#include <type_traits>
+
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/rendering/driver/vulkan/vulkan_context.h"
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_module_resource.h"
 
@@ -27,7 +32,7 @@ void ShaderModuleHandler::Shutdown() {
     Destroy(it.value, true);
   }
 
-  shader_modules_.Clear();
+  shader_modules_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }

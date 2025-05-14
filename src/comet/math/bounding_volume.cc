@@ -6,7 +6,7 @@
 
 #include "bounding_volume.h"
 
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 namespace math {

@@ -6,9 +6,6 @@
 
 #include "entity_memory_manager.h"
 
-#include "comet/core/logger.h"
-#include "comet/entity/archetype.h"
-
 namespace comet {
 namespace entity {
 EntityMemoryManager& EntityMemoryManager::Get() {

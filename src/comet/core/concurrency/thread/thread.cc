@@ -6,7 +6,6 @@
 
 #include "thread.h"
 
-#include <cassert>
 #include <thread>
 
 #include "comet/core/concurrency/thread/thread_context.h"

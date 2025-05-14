@@ -4,10 +4,6 @@
 #define LOCAL_SIZE 256
 #endif // LOCAL_SIZE
 
-#ifdef COMET_VALIDATION_DEBUG_PRINTF_EXT
-#extension GL_EXT_debug_printf : enable
-#endif // COMET_VALIDATION_DEBUG_PRINTF_EXT
-
 #ifdef COMET_DEBUG_CULLING
 struct DebugAabb {
   vec3 minExtents;

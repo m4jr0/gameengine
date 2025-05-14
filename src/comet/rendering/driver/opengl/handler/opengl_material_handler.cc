@@ -7,8 +7,14 @@
 
 #include "opengl_material_handler.h"
 
+#include <type_traits>
+
+#include "comet/core/file_system/file_system.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
+#include "comet/resource/resource_manager.h"
+#include "comet/resource/shader_resource.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
@@ -26,13 +32,11 @@ void MaterialHandler::Initialize() {
 }
 
 void MaterialHandler::Shutdown() {
-  materials_.Clear();
-
   for (auto& it : materials_) {
     Destroy(it.value, true);
   }
 
-  materials_.Clear();
+  materials_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }
@@ -62,7 +66,9 @@ Material* MaterialHandler::Generate(
   shader_path += COMET_TCHAR("shaders/opengl/");
   shader_path += GetTmpTChar(resource->descr.shader_name);
   shader_path += COMET_TCHAR(".gl.cshader");
-  descr.shader_id = resource::GenerateResourceIdFromPath(shader_path);
+  descr.shader_id =
+      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+          shader_path);
   return Generate(descr);
 }
 

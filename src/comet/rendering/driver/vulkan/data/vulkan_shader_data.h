@@ -48,6 +48,7 @@ constexpr auto kStorageNameIndirectProxies{"indirectProxies"sv};
 constexpr auto kStorageNameWordIndices{"wordIndices"sv};
 constexpr auto kStorageNameSourceWords{"sourceWords"sv};
 constexpr auto kStorageNameDestinationWords{"destinationWords"sv};
+constexpr auto kStorageNameMatrixPalettes{"matrixPalettes"sv};
 
 #ifdef COMET_DEBUG_RENDERING
 constexpr auto kStorageNameDebugData{"debugData"sv};
@@ -68,6 +69,7 @@ constexpr ShaderBindingIndex kStorageBindingIndirectProxies{3};
 constexpr ShaderBindingIndex kStorageBindingWordIndices{4};
 constexpr ShaderBindingIndex kStorageBindingSourceWords{5};
 constexpr ShaderBindingIndex kStorageBindingDestinationWords{6};
+constexpr ShaderBindingIndex kStorageBindingMatrixPalettes{7};
 
 constexpr ShaderBindingIndex kStorageBindingDebugOffset{64};
 #ifdef COMET_DEBUG_RENDERING
@@ -169,6 +171,7 @@ struct ShaderStorageIndices {
   ShaderStorageIndex word_indices{kInvalidShaderStorageIndex};
   ShaderStorageIndex source_words{kInvalidShaderStorageIndex};
   ShaderStorageIndex destination_words{kInvalidShaderStorageIndex};
+  ShaderStorageIndex matrix_palettes{kInvalidShaderStorageIndex};
 #ifdef COMET_DEBUG_RENDERING
   ShaderStorageIndex debug_data{kInvalidShaderStorageIndex};
 #endif  // COMET_DEBUG_RENDERING
@@ -251,6 +254,7 @@ struct ShaderStoragesUpdate {
   VkBuffer ssbo_word_indices_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_source_words_handle{VK_NULL_HANDLE};
   VkBuffer ssbo_destination_words_handle{VK_NULL_HANDLE};
+  VkBuffer ssbo_matrix_palettes_handle{VK_NULL_HANDLE};
 #ifdef COMET_DEBUG_RENDERING
   VkBuffer ssbo_debug_data_handle{VK_NULL_HANDLE};
 #endif  // COMET_DEBUG_RENDERING
@@ -265,6 +269,7 @@ struct ShaderStoragesUpdate {
   VkDeviceSize ssbo_word_indices_size{0};
   VkDeviceSize ssbo_source_words_size{0};
   VkDeviceSize ssbo_destination_words_size{0};
+  VkDeviceSize ssbo_matrix_palettes_size{0};
 #ifdef COMET_DEBUG_RENDERING
   VkDeviceSize ssbo_debug_data_size{0};
 #endif  // COMET_DEBUG_RENDERING

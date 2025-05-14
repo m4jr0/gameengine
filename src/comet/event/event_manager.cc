@@ -9,7 +9,7 @@
 #include <utility>
 
 #include "comet/core/memory/memory.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 namespace event {

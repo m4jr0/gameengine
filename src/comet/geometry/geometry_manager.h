@@ -10,17 +10,13 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/map.h"
+#include "comet/entity/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace geometry {
-struct SkeletalComponents {
-  MeshComponent mesh_cmp{};
-  SkeletonComponent skeleton_cmp{};
-};
-
 class GeometryManager : public Manager {
  public:
   static GeometryManager& Get();
@@ -45,9 +41,12 @@ class GeometryManager : public Manager {
   void Destroy(MeshId mesh_id);
   void Destroy(Mesh* mesh);
   MeshId GenerateMeshId(const resource::MeshResource* resource) const;
-  MeshComponent GenerateComponent(const resource::StaticMeshResource* resource);
-  SkeletalComponents GenerateComponents(
-      const resource::SkinnedMeshResource* resource);
+  MeshComponent GenerateComponent(const resource::StaticMeshResource* resource,
+                                  entity::EntityId entity_id,
+                                  entity::EntityId model_entity_id);
+  MeshComponent GenerateComponent(const resource::SkinnedMeshResource* resource,
+                                  entity::EntityId entity_id,
+                                  entity::EntityId model_entity_id);
 
  private:
   Mesh* GenerateInternal(const resource::MeshResource* resource);

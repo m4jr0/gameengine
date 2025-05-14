@@ -40,7 +40,7 @@ void GeometryManager::Shutdown() {
     Destroy(it.value, true);
   }
 
-  meshes_.Clear();
+  meshes_.Destroy();
 
   index_allocator_.Destroy();
   vertex_allocator_.Destroy();
@@ -51,14 +51,14 @@ void GeometryManager::Shutdown() {
 
 Mesh* GeometryManager::Generate(const resource::StaticMeshResource* resource) {
   auto* mesh{GenerateInternal(resource)};
-  mesh->vertices = Array<geometry::Vertex>{&vertex_allocator_};
+  mesh->vertices = Array<geometry::SkinnedVertex>{&vertex_allocator_};
   mesh->vertices.PushFromRange(resource->vertices);
   return mesh;
 }
 
 Mesh* GeometryManager::Generate(const resource::SkinnedMeshResource* resource) {
   auto* mesh{GenerateInternal(resource)};
-  mesh->vertices = Array<geometry::Vertex>{&vertex_allocator_};
+  mesh->vertices = Array<geometry::SkinnedVertex>{&vertex_allocator_};
   mesh->vertices.Reserve(resource->vertices.GetSize());
 
   for (const auto& skinned_vertex : resource->vertices) {
@@ -69,6 +69,10 @@ Mesh* GeometryManager::Generate(const resource::SkinnedMeshResource* resource) {
     vertex.bitangent = skinned_vertex.bitangent;
     vertex.uv = skinned_vertex.uv;
     vertex.color = skinned_vertex.color;
+    memory::CopyMemory(vertex.joint_indices, skinned_vertex.joint_indices,
+                       sizeof(SkeletonJointIndex) * kMaxSkeletonJointCount);
+    memory::CopyMemory(vertex.joint_weights, skinned_vertex.joint_weights,
+                       sizeof(JointWeight) * kMaxSkeletonJointCount);
   }
 
   return mesh;
@@ -132,9 +136,11 @@ MeshId GeometryManager::GenerateMeshId(
 }
 
 MeshComponent GeometryManager::GenerateComponent(
-    const resource::StaticMeshResource* resource) {
+    const resource::StaticMeshResource* resource, entity::EntityId entity_id,
+    entity::EntityId model_entity_id) {
   MeshComponent mesh_cmp{};
-
+  mesh_cmp.entity_id = entity_id;
+  mesh_cmp.model_entity_id = model_entity_id;
   mesh_cmp.mesh = GetOrGenerate(resource);
   mesh_cmp.material =
       resource::ResourceManager::Get().Load<resource::MaterialResource>(
@@ -142,17 +148,17 @@ MeshComponent GeometryManager::GenerateComponent(
   return mesh_cmp;
 }
 
-SkeletalComponents GeometryManager::GenerateComponents(
-    const resource::SkinnedMeshResource* resource) {
-  SkeletalComponents skeletal_cmps{};
-
-  skeletal_cmps.mesh_cmp.mesh = GetOrGenerate(resource);
-  skeletal_cmps.mesh_cmp.material =
+MeshComponent GeometryManager::GenerateComponent(
+    const resource::SkinnedMeshResource* resource, entity::EntityId entity_id,
+    entity::EntityId model_entity_id) {
+  MeshComponent mesh_cmp{};
+  mesh_cmp.entity_id = entity_id;
+  mesh_cmp.model_entity_id = model_entity_id;
+  mesh_cmp.mesh = GetOrGenerate(resource);
+  mesh_cmp.material =
       resource::ResourceManager::Get().Load<resource::MaterialResource>(
           resource->material_id);
-
-  skeletal_cmps.skeleton_cmp.resource = resource;
-  return skeletal_cmps;
+  return mesh_cmp;
 }
 
 Mesh* GeometryManager::GenerateInternal(

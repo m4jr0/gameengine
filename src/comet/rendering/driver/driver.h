@@ -7,11 +7,9 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/window.h"
-#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -27,7 +25,8 @@ struct DriverDescr {
   AntiAliasingType anti_aliasing_type{AntiAliasingType::None};
   WindowSize window_width{0};
   WindowSize window_height{0};
-  f32 clear_color[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
+  f32 clear_color[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
+                     1.0f};
   schar app_name[kMaxAppNameLen]{'\0'};
   usize app_name_len{0};
   Array<RenderingViewDescr> rendering_view_descrs{};
@@ -63,7 +62,8 @@ class Driver {
   u8 app_patch_version_{0};
   WindowSize window_width_{0};
   WindowSize window_height_{0};
-  f32 clear_color_[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
+  f32 clear_color_[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
+                      1.0f};
   schar app_name_[kMaxAppNameLen]{'\0'};
   usize app_name_len_{0};
   memory::PlatformAllocator rendering_view_descrs_allocator_{

@@ -8,7 +8,6 @@
 #include "glad/glad.h"
 
 #include "comet/core/essentials.h"
-#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {

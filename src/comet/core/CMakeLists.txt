@@ -81,8 +81,8 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/virtual_memory.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/allocator.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/platform_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/free_list_allocator.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/platform_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/stack_allocator.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/array.h"
@@ -94,6 +94,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/map.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/ordered_set.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/primitive.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/region_map.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/ring_queue.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/string_id.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/traits.h"

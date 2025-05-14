@@ -8,10 +8,6 @@
 
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_manager.h"
-#include "comet/event/event_manager.h"
-#include "comet/math/geometry.h"
-#include "comet/math/math_commons.h"
-#include "comet/math/vector.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -24,41 +20,45 @@ PhysicsManager& PhysicsManager::Get() {
 void PhysicsManager::Initialize() {
   Manager::Initialize();
   fixed_delta_time_ = time::TimeManager::Get().GetFixedDeltaTime();
-  max_frame_rate_ = static_cast<u32>((1 / fixed_delta_time_) * 1000);
+  max_frame_rate_ = static_cast<u32>((1.0 / fixed_delta_time_));
 };
 
 void PhysicsManager::Shutdown() {
   frame_rate_ = 0;
-  counter_ = 0;
   max_frame_rate_ = 60;
   current_time_ = 0;
-  fixed_delta_time_ = 16.66;
+  fixed_delta_time_ = .01666f;
+  lag_ = 0;
+  current_frame_packet_ = nullptr;
   Manager::Shutdown();
 };
 
 void PhysicsManager::Update(frame::FramePacket* packet) {
   current_frame_packet_ = packet;
 
-  if (current_time_ > 1000) {
-    frame_rate_ = counter_;
-    current_time_ = 0;
-    counter_ = 0;
+  const auto delta_time{time::TimeManager::Get().GetDeltaTime()};
+  lag_ += delta_time;
+
+  const int max_steps = 5;
+  int step_count = 0;
+
+  while (lag_ >= fixed_delta_time_ && step_count < max_steps) {
+    UpdateEntityTransforms(packet);
+    lag_ -= fixed_delta_time_;
+    current_time_ += fixed_delta_time_;
+    ++step_count;
   }
 
-  current_time_ += time::TimeManager::Get().GetDeltaTime();
+  counter_ += step_count;
+  packet->time = current_time_;
+  packet->lag = lag_;
 
-  while (packet->lag > fixed_delta_time_) {
-    // TODO(m4jr0): Investigate. This seems to prevent round errors.
-    if (counter_ == max_frame_rate_) {
-      packet->lag = 0;
-      return;
-    }
+  auto now{time::TimeManager::Get().GetCurrentTime()};
 
-    // TODO(m4jr0): Use a transform system.
-    UpdateEntityTransforms(packet);
-
-    ++counter_;
-    packet->lag -= fixed_delta_time_;
+  if (now - last_current_time_ >= 1.0f) {
+    frame_rate_ = counter_;
+    counter_ = 0;
+    last_current_time_ = now;
   }
 }
 
@@ -82,8 +82,8 @@ void PhysicsManager::UpdateTree(
 
 u32 PhysicsManager::GetFrameRate() const noexcept { return frame_rate_; }
 
-f32 PhysicsManager::GetFrameTime() const noexcept {
-  return (1 / static_cast<f32>(frame_rate_)) * 1000;
+f64 PhysicsManager::GetFrameTime() const noexcept {
+  return frame_rate_ == 0 ? 0.0 : (1.0 / static_cast<f64>(frame_rate_));
 }
 
 void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {

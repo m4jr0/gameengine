@@ -8,12 +8,18 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
+#include "comet/core/logger.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
 namespace debug {
 #define COMET_VULKAN_ABORT_ON_ERROR
+
+#define VMA_LEAK_LOG_FORMAT(...) \
+  COMET_LOG_RENDERING_DEBUG(comet::GenerateTmpFromFormat(1024, __VA_ARGS__))
+
+#define VMA_ASSERT(cond) COMET_ASSERT((cond), "VMA assert error!")
 
 #ifndef COMET_DEBUG
 #define COMET_CHECK_VK(vk_expression, ...) vk_expression
@@ -66,6 +72,7 @@ void SetDebugLabel(VkQueue queue_handle, const schar* label);
 void SetDebugLabel(VkRenderPass render_pass_handle, const schar* label);
 void SetDebugLabel(VkImage image_handle, const schar* label);
 void SetDebugLabel(VkBuffer buffer_handle, const schar* label);
+void SetDebugLabel(VkDescriptorSet descriptor_set_handle, const schar* label);
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace vk

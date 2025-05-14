@@ -8,7 +8,6 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
-#include "comet/math/matrix.h"
 #include "comet/physics/component/transform_component.h"
 
 namespace comet {
@@ -31,16 +30,18 @@ class PhysicsManager : public Manager {
                   const TransformComponent* parent_transform_cmp) const;
 
   u32 GetFrameRate() const noexcept;
-  f32 GetFrameTime() const noexcept;
+  f64 GetFrameTime() const noexcept;
 
  private:
   void UpdateEntityTransforms(frame::FramePacket* packet);
 
-  u32 frame_rate_{0};
   u32 counter_{0};
+  u32 frame_rate_{0};
   u32 max_frame_rate_{60};  // 60 Hz refresh by default.
   f64 current_time_{0};
-  f64 fixed_delta_time_{16.66};  // 60 Hz refresh by default.
+  f64 last_current_time_{0};
+  f64 fixed_delta_time_{.01666f};  // 60 Hz refresh by default.
+  f64 lag_{.0};
   frame::FramePacket* current_frame_packet_{nullptr};
 };
 }  // namespace physics

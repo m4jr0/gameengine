@@ -7,11 +7,8 @@
 
 #include "opengl_mesh_handler.h"
 
-#include <utility>
-
 #include "comet/core/logger.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/opengl_debug.h"
 
 namespace comet {
 namespace rendering {
@@ -23,14 +20,21 @@ void MeshHandler::Initialize() {
   allocator_.Initialize();
   mesh_to_proxy_map_ = {&allocator_, kDefaultProxyCount_};
   proxies_ = {&allocator_, kDefaultProxyCount_};
-  free_vertex_regions_ = {&allocator_, kDefaultProxyCount_};
-  free_index_regions_ = {&allocator_, kDefaultProxyCount_};
-  ResizeVertexBuffer(kDefaultStagingBufferSize_);
-  ResizeIndexBuffer(kDefaultStagingBufferSize_);
+
+  vertex_buffer_ = VertexGpuBuffer{&allocator_, kVertexCountPerBlock_,
+                                   kDefaultVertexCount_, 0, "vertex_buffer_"};
+  index_buffer_ = IndexGpuBuffer{&allocator_, kIndexCountPerBlock_,
+                                 kDefaultIndexCount_, 0, "index_buffer_"};
+
+  vertex_buffer_.Initialize();
+  index_buffer_.Initialize();
 }
 
 void MeshHandler::Shutdown() {
-  ClearAllMeshProxies();
+  proxies_.Destroy();
+  mesh_to_proxy_map_.Destroy();
+  vertex_buffer_.Destroy();
+  index_buffer_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }
@@ -52,8 +56,8 @@ void MeshHandler::Update(const frame::FramePacket* packet) {
 }
 
 void MeshHandler::Bind() {
-  glBindBuffer(GL_ARRAY_BUFFER, uploaded_vertex_buffer_handle_);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, uploaded_index_buffer_handle_);
+  vertex_buffer_.Bind();
+  index_buffer_.Bind();
 }
 
 MeshProxyHandle MeshHandler::GetHandle(geometry::MeshId mesh_id) const {
@@ -67,56 +71,11 @@ const MeshProxy* MeshHandler::Get(MeshProxyHandle handle) const {
 }
 
 StorageHandle MeshHandler::GetVertexBufferHandle() const {
-  return uploaded_vertex_buffer_handle_;
+  return vertex_buffer_.GetHandle();
 }
 
 StorageHandle MeshHandler::GetIndexBufferHandle() const {
-  return uploaded_index_buffer_handle_;
-}
-
-GLint MeshHandler::AllocateFromFreeList(Array<internal::FreeRegion>& free_list,
-                                        GLsizei size) {
-  COMET_PROFILE("MeshHandler::AllocateFromFreeList");
-
-  for (auto it{free_list.begin()}; it != free_list.end(); ++it) {
-    if (it->size < size) {
-      continue;
-    }
-
-    auto offset{it->offset};
-
-    if (it->size > size) {
-      it->offset += static_cast<GLint>(size);
-      it->size -= size;
-    } else {
-      free_list.RemoveFromPos(it);
-    }
-
-    return offset;
-  }
-
-  return internal::FreeRegion::kInvalidOffset;
-}
-
-void MeshHandler::FreeToFreeList(Array<internal::FreeRegion>& free_list,
-                                 GLint offset, GLsizei size) {
-  COMET_PROFILE("MeshHandler::FreeToFreeList");
-  free_list.EmplaceBack(offset, size);
-
-  std::sort(free_list.begin(), free_list.end(),
-            [](const internal::FreeRegion& a, const internal::FreeRegion& b) {
-              return a.offset < b.offset;
-            });
-
-  for (usize i{0}; i < free_list.GetSize() - 1; ++i) {
-    if (free_list[i].offset + free_list[i].size != free_list[i + 1].offset) {
-      continue;
-    }
-
-    free_list[i].size += free_list[i + 1].size;
-    free_list.RemoveFromIndex(i + 1);
-    --i;
-  }
+  return index_buffer_.GetHandle();
 }
 
 internal::UpdateContext MeshHandler::PrepareUpdate(
@@ -126,14 +85,14 @@ internal::UpdateContext MeshHandler::PrepareUpdate(
 
   for (const auto& geometry : *packet->added_geometries) {
     update_context.new_vertex_size += static_cast<GLsizei>(
-        geometry.vertices->GetSize() * sizeof(geometry::Vertex));
+        geometry.vertices->GetSize() * sizeof(geometry::SkinnedVertex));
     update_context.new_index_size += static_cast<GLsizei>(
         geometry.indices->GetSize() * sizeof(geometry::Index));
   }
 
   for (const auto& mesh : *packet->dirty_meshes) {
     update_context.dirty_vertex_size += static_cast<GLsizei>(
-        mesh.vertices->GetSize() * sizeof(geometry::Vertex));
+        mesh.vertices->GetSize() * sizeof(geometry::SkinnedVertex));
     update_context.dirty_index_size +=
         static_cast<GLsizei>(mesh.indices->GetSize() * sizeof(geometry::Index));
   }
@@ -142,6 +101,11 @@ internal::UpdateContext MeshHandler::PrepareUpdate(
       update_context.new_vertex_size + update_context.dirty_vertex_size;
   update_context.total_index_size =
       update_context.new_index_size + update_context.dirty_index_size;
+
+  vertex_buffer_.Resize(update_context.total_vertex_size /
+                        sizeof(geometry::SkinnedVertex));
+  index_buffer_.Resize(update_context.total_index_size /
+                       sizeof(geometry::Index));
 
   auto total_size{update_context.total_vertex_size +
                   update_context.total_index_size};
@@ -178,7 +142,7 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
 
   for (const auto& geometry : *geometries) {
     auto vertex_size{static_cast<GLsizei>(geometry.vertices->GetSize() *
-                                          sizeof(geometry::Vertex))};
+                                          sizeof(geometry::SkinnedVertex))};
     auto index_size{static_cast<GLsizei>(geometry.indices->GetSize() *
                                          sizeof(geometry::Index))};
 
@@ -187,34 +151,17 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
     memory::CopyMemory(memory + update_context.current_staging_index_offset,
                        geometry.indices->GetData(), index_size);
 
-    auto vertex_byte_offset{
-        AllocateFromFreeList(free_vertex_regions_, vertex_size)};
-    auto index_byte_offset{
-        AllocateFromFreeList(free_index_regions_, index_size)};
-
-    if (vertex_byte_offset == internal::FreeRegion::kInvalidOffset) {
-      ResizeVertexBuffer(math::Max(uploaded_vertex_buffer_size_ + vertex_size,
-                                   uploaded_vertex_buffer_size_ * 2));
-      vertex_byte_offset =
-          AllocateFromFreeList(free_vertex_regions_, vertex_size);
-    }
-
-    if (index_byte_offset == internal::FreeRegion::kInvalidOffset) {
-      ResizeIndexBuffer(math::Max(uploaded_index_buffer_size_ + index_size,
-                                  uploaded_index_buffer_size_ * 2));
-      index_byte_offset = AllocateFromFreeList(free_index_regions_, index_size);
-    }
-
-    COMET_ASSERT(vertex_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload vertices!");
-    COMET_ASSERT(index_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload indices!");
+    auto vertex_offset{vertex_buffer_.Claim(geometry.vertices->GetSize())};
+    auto index_offset{index_buffer_.Claim(geometry.indices->GetSize())};
 
     update_context.vertex_copy_regions.EmplaceBack(
-        update_context.current_staging_vertex_offset, vertex_byte_offset,
+        update_context.current_staging_vertex_offset,
+        static_cast<GLsizeiptr>(vertex_offset *
+                                sizeof(geometry::SkinnedVertex)),
         vertex_size);
     update_context.index_copy_regions.EmplaceBack(
-        update_context.current_staging_index_offset, index_byte_offset,
+        update_context.current_staging_index_offset,
+        static_cast<GLsizeiptr>(index_offset * sizeof(geometry::Index)),
         index_size);
 
     update_context.current_staging_vertex_offset += vertex_size;
@@ -224,8 +171,8 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
     auto& proxy{proxies_.EmplaceBack()};
     proxy.vertex_count = static_cast<u32>(geometry.vertices->GetSize());
     proxy.index_count = static_cast<u32>(geometry.indices->GetSize());
-    proxy.vertex_offset = vertex_byte_offset / sizeof(geometry::Vertex);
-    proxy.index_offset = index_byte_offset / sizeof(geometry::Index);
+    proxy.vertex_offset = static_cast<GLint>(vertex_offset);
+    proxy.index_offset = static_cast<GLint>(index_offset);
   }
 }
 
@@ -251,59 +198,20 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
     auto& proxy{proxies_[*proxy_id]};
 
     auto new_vertex_size{static_cast<GLsizei>(mesh.vertices->GetSize() *
-                                              sizeof(geometry::Vertex))};
+                                              sizeof(geometry::SkinnedVertex))};
     auto new_index_size{static_cast<GLsizei>(mesh.indices->GetSize() *
                                              sizeof(geometry::Index))};
-    auto vertex_byte_offset{
-        static_cast<GLint>(proxy.vertex_offset * sizeof(geometry::Vertex))};
-    auto index_byte_offset{
-        static_cast<GLint>(proxy.index_offset * sizeof(geometry::Index))};
 
-    if (new_vertex_size >
-        static_cast<GLsizei>(proxy.vertex_count * sizeof(geometry::Vertex))) {
-      FreeToFreeList(free_vertex_regions_, proxy.vertex_offset,
-                     proxy.vertex_count * sizeof(geometry::Vertex));
+    auto vertex_offset{vertex_buffer_.CheckOrMove(
+        proxy.vertex_offset, proxy.vertex_count, new_vertex_size)};
 
-      vertex_byte_offset =
-          AllocateFromFreeList(free_vertex_regions_, new_vertex_size);
-
-      if (vertex_byte_offset == internal::FreeRegion::kInvalidOffset) {
-        ResizeVertexBuffer(
-            math::Max(uploaded_vertex_buffer_size_ + new_vertex_size,
-                      uploaded_vertex_buffer_size_ * 2));
-        vertex_byte_offset =
-            AllocateFromFreeList(free_vertex_regions_, new_vertex_size);
-      }
-    }
-
-    if (new_index_size >
-        static_cast<GLsizei>(proxy.index_count * sizeof(geometry::Index))) {
-      FreeToFreeList(free_index_regions_, proxy.index_offset,
-                     proxy.index_count * sizeof(geometry::Index));
-
-      index_byte_offset =
-          AllocateFromFreeList(free_index_regions_, new_index_size);
-
-      if (index_byte_offset == internal::FreeRegion::kInvalidOffset) {
-        ResizeIndexBuffer(
-            math::Max(uploaded_index_buffer_size_ + new_index_size,
-                      uploaded_index_buffer_size_ * 2));
-        index_byte_offset =
-            AllocateFromFreeList(free_index_regions_, new_index_size);
-      }
-    }
-
-    COMET_ASSERT(vertex_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload vertices!");
-    COMET_ASSERT(index_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload indices!");
+    auto index_offset{index_buffer_.CheckOrMove(
+        proxy.index_offset, proxy.index_count, new_index_size)};
 
     proxy.vertex_count = static_cast<u32>(mesh.vertices->GetSize());
     proxy.index_count = static_cast<u32>(mesh.indices->GetSize());
-    proxy.vertex_offset =
-        static_cast<u32>(vertex_byte_offset / sizeof(geometry::Vertex));
-    proxy.index_offset =
-        static_cast<u32>(index_byte_offset / sizeof(geometry::Index));
+    proxy.vertex_offset = static_cast<GLint>(vertex_offset);
+    proxy.index_offset = static_cast<GLint>(index_offset);
 
     memory::CopyMemory(memory + update_context.current_staging_vertex_offset,
                        mesh.vertices->GetData(), new_vertex_size);
@@ -311,10 +219,13 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
                        mesh.indices->GetData(), new_index_size);
 
     update_context.vertex_copy_regions.EmplaceBack(
-        update_context.current_staging_vertex_offset, vertex_byte_offset,
+        update_context.current_staging_vertex_offset,
+        static_cast<GLsizeiptr>(vertex_offset *
+                                sizeof(geometry::SkinnedVertex)),
         new_vertex_size);
     update_context.index_copy_regions.EmplaceBack(
-        update_context.current_staging_index_offset, index_byte_offset,
+        update_context.current_staging_index_offset,
+        static_cast<GLsizeiptr>(index_offset * sizeof(geometry::Index)),
         new_index_size);
 
     update_context.current_staging_vertex_offset += new_vertex_size;
@@ -335,12 +246,9 @@ void MeshHandler::DestroyMeshProxies(
       continue;
     }
 
-    auto& proxy = proxies_[*proxy_id];
-
-    FreeToFreeList(free_vertex_regions_, proxy.vertex_offset,
-                   proxy.vertex_count * sizeof(geometry::Vertex));
-    FreeToFreeList(free_index_regions_, proxy.index_offset,
-                   proxy.index_count * sizeof(geometry::Index));
+    auto& proxy{proxies_[*proxy_id]};
+    vertex_buffer_.Release(proxy.vertex_offset, proxy.vertex_count);
+    index_buffer_.Release(proxy.index_offset, proxy.index_count);
     mesh_to_proxy_map_.Remove(geometry.mesh_id);
   }
 }
@@ -348,113 +256,10 @@ void MeshHandler::DestroyMeshProxies(
 void MeshHandler::UploadMeshProxies(
     const internal::UpdateContext& update_context) {
   COMET_PROFILE("MeshHandler::UploadMeshProxies");
-  const auto* memory{static_cast<const u8*>(update_context.staging_buffer)};
-
-  if (!update_context.vertex_copy_regions.IsEmpty()) {
-    glBindBuffer(GL_ARRAY_BUFFER, uploaded_vertex_buffer_handle_);
-    for (const auto& region : update_context.vertex_copy_regions) {
-      memory::CopyMemory(
-          static_cast<u8*>(uploaded_vertex_buffer_memory_) + region.dst_offset,
-          memory + region.src_offset, region.size);
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, kInvalidStorageHandle);
-  }
-
-  if (!update_context.index_copy_regions.IsEmpty()) {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, uploaded_index_buffer_handle_);
-    for (const auto& region : update_context.index_copy_regions) {
-      memory::CopyMemory(
-          static_cast<u8*>(uploaded_index_buffer_memory_) + region.dst_offset,
-          memory + region.src_offset, region.size);
-    }
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, kInvalidStorageHandle);
-  }
-}
-
-void MeshHandler::ClearAllMeshProxies() {
-  COMET_PROFILE("MeshHandler::ClearAllMeshProxies");
-  proxies_ = {};
-  mesh_to_proxy_map_ = {};
-  free_vertex_regions_ = {};
-  free_index_regions_ = {};
-
-  if (uploaded_vertex_buffer_handle_ != kInvalidStorageHandle) {
-    glDeleteBuffers(1, &uploaded_vertex_buffer_handle_);
-    uploaded_vertex_buffer_handle_ = kInvalidStorageHandle;
-    uploaded_vertex_buffer_memory_ = nullptr;
-  }
-
-  if (uploaded_index_buffer_handle_ != kInvalidStorageHandle) {
-    glDeleteBuffers(1, &uploaded_index_buffer_handle_);
-    uploaded_index_buffer_handle_ = kInvalidStorageHandle;
-    uploaded_index_buffer_memory_ = nullptr;
-  }
-}
-
-void MeshHandler::ResizeVertexBuffer(GLsizei new_size) {
-  COMET_PROFILE("MeshHandler::ResizeVertexBuffer");
-
-  if (new_size <= uploaded_vertex_buffer_size_) {
-    return;
-  }
-
-  auto old_capacity{uploaded_vertex_buffer_size_};
-
-  if (uploaded_vertex_buffer_handle_ != kInvalidStorageHandle) {
-    glBindBuffer(GL_ARRAY_BUFFER, uploaded_vertex_buffer_handle_);
-    glUnmapBuffer(GL_ARRAY_BUFFER);
-    glBindBuffer(GL_ARRAY_BUFFER, kInvalidStorageHandle);
-    glDeleteBuffers(1, &uploaded_vertex_buffer_handle_);
-  }
-
-  glGenBuffers(1, &uploaded_vertex_buffer_handle_);
-  glBindBuffer(GL_ARRAY_BUFFER, uploaded_vertex_buffer_handle_);
-  COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(uploaded_vertex_buffer_handle_,
-                                          "uploaded_vertex_buffer_handle_");
-  glBufferStorage(
-      GL_ARRAY_BUFFER, new_size, nullptr,
-      GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-  uploaded_vertex_buffer_memory_ = glMapBufferRange(
-      GL_ARRAY_BUFFER, 0, new_size,
-      GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-  glBindBuffer(GL_ARRAY_BUFFER, kInvalidStorageHandle);
-
-  uploaded_vertex_buffer_size_ = new_size;
-  free_vertex_regions_.EmplaceBack(static_cast<GLint>(old_capacity),
-                                   new_size - old_capacity);
-}
-
-void MeshHandler::ResizeIndexBuffer(GLsizei new_size) {
-  COMET_PROFILE("MeshHandler::ResizeIndexBuffer");
-
-  if (new_size <= uploaded_index_buffer_size_) {
-    return;
-  }
-
-  auto old_capacity{uploaded_index_buffer_size_};
-
-  if (uploaded_index_buffer_handle_ != kInvalidStorageHandle) {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, uploaded_index_buffer_handle_);
-    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, kInvalidStorageHandle);
-    glDeleteBuffers(1, &uploaded_index_buffer_handle_);
-  }
-
-  glGenBuffers(1, &uploaded_index_buffer_handle_);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, uploaded_index_buffer_handle_);
-  COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(uploaded_index_buffer_handle_,
-                                          "uploaded_index_buffer_handle_");
-  glBufferStorage(
-      GL_ELEMENT_ARRAY_BUFFER, new_size, nullptr,
-      GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-  uploaded_index_buffer_memory_ = glMapBufferRange(
-      GL_ELEMENT_ARRAY_BUFFER, 0, new_size,
-      GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, kInvalidStorageHandle);
-
-  uploaded_index_buffer_size_ = new_size;
-  free_index_regions_.EmplaceBack(static_cast<GLint>(old_capacity),
-                                  new_size - old_capacity);
+  vertex_buffer_.Upload(update_context.staging_buffer,
+                        update_context.vertex_copy_regions);
+  index_buffer_.Upload(update_context.staging_buffer,
+                       update_context.index_copy_regions);
 }
 }  // namespace gl
 }  // namespace rendering

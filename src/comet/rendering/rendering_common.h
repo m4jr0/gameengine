@@ -5,6 +5,8 @@
 #ifndef COMET_COMET_RENDERING_RENDERING_COMMON_H_
 #define COMET_COMET_RENDERING_RENDERING_COMMON_H_
 
+#include <string_view>
+
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/geometry/geometry_common.h"
@@ -17,20 +19,29 @@ namespace rendering {
 constexpr auto kMaxAppNameLen{256};
 constexpr auto kMaxWindowNameLen{256};
 
-constexpr math::Vec3 kColorBlack{0.0f, 0.0f, 0.0f};
-constexpr math::Vec3 kColorWhite{1.0f, 1.0f, 1.0f};
-constexpr math::Vec3 kColorRed{1.0f, 0.0f, 0.0f};
-constexpr math::Vec3 kColorGreen{0.0f, 1.0f, 0.0f};
-constexpr math::Vec3 kColorBlue{0.0f, 0.0f, 1.0f};
-constexpr math::Vec3 kColorYellow{1.0f, 1.0f, 0.0f};
-constexpr math::Vec3 kColorCyan{0.0f, 1.0f, 1.0f};
-constexpr math::Vec3 kColorMagenta{1.0f, 0.0f, 1.0f};
+constexpr math::Vec3 kColorBlackRgb{0.0f, 0.0f, 0.0f};
+constexpr math::Vec3 kColorWhiteRgb{1.0f, 1.0f, 1.0f};
+constexpr math::Vec3 kColorRedRgb{1.0f, 0.0f, 0.0f};
+constexpr math::Vec3 kColorGreenRgb{0.0f, 1.0f, 0.0f};
+constexpr math::Vec3 kColorBlueRgb{0.0f, 0.0f, 1.0f};
+constexpr math::Vec3 kColorYellowRgb{1.0f, 1.0f, 0.0f};
+constexpr math::Vec3 kColorCyanRgb{0.0f, 1.0f, 1.0f};
+constexpr math::Vec3 kColorMagentaRgb{1.0f, 0.0f, 1.0f};
+
+constexpr math::Vec4 kColorBlackRgba{kColorBlackRgb, 1.0f};
+constexpr math::Vec4 kColorWhiteRgba{kColorWhiteRgb, 1.0f};
+constexpr math::Vec4 kColorRedRgba{kColorRedRgb, 1.0f};
+constexpr math::Vec4 kColorGreenRgba{kColorGreenRgb, 1.0f};
+constexpr math::Vec4 kColorBlueRgba{kColorBlueRgb, 1.0f};
+constexpr math::Vec4 kColorYellowRgba{kColorYellowRgb, 1.0f};
+constexpr math::Vec4 kColorCyanRgba{kColorCyanRgb, 1.0f};
+constexpr math::Vec4 kColorMagentaRgba{kColorMagentaRgb, 1.0f};
 
 enum class DriverType : u8 { Unknown = 0, Empty, OpenGl, Vulkan, Direct3d12 };
 
 DriverType GetDriverTypeFromStr(std::string_view str);
 const schar* GetDriverTypeLabel(DriverType type);
-bool IsMultithreading(DriverType type);
+bool IsMultithreading([[maybe_unused]] DriverType type);
 
 using FrameCount = u32;
 constexpr auto kInvalidFrameCount{static_cast<FrameCount>(-1)};
@@ -101,7 +112,8 @@ struct RenderingViewDescr {
   RenderingViewType type{RenderingViewType::Unknown};
   WindowSize width{0};
   WindowSize height{0};
-  f32 clear_color[4]{kColorBlack[0], kColorBlack[1], kColorBlack[2], 1.0f};
+  f32 clear_color[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
+                     1.0f};
   RenderingViewId id{kInvalidRenderingViewId};
 };
 
@@ -125,18 +137,42 @@ constexpr auto kInvalidShaderVertexAttributeSize{
 
 enum class ShaderVertexAttributeType : u8 {
   Unknown = 0,
-  F16,
-  F32,
-  F64,
-  Vec2,
-  Vec3,
-  Vec4,
   S8,
   S16,
   S32,
   U8,
   U16,
-  U32
+  U32,
+  F16,
+  F32,
+  F64,
+  U8Vec2,
+  U8Vec3,
+  U8Vec4,
+  U16Vec2,
+  U16Vec3,
+  U16Vec4,
+  U32Vec2,
+  U32Vec3,
+  U32Vec4,
+  S8Vec2,
+  S8Vec3,
+  S8Vec4,
+  S16Vec2,
+  S16Vec3,
+  S16Vec4,
+  S32Vec2,
+  S32Vec3,
+  S32Vec4,
+  F16Vec2,
+  F16Vec3,
+  F16Vec4,
+  F32Vec2,
+  F32Vec3,
+  F32Vec4,
+  F64Vec2,
+  F64Vec3,
+  F64Vec4
 };
 
 enum class ShaderVariableType : u8 {
@@ -273,10 +309,12 @@ enum class PrimitiveTopology {
   TriangleStrip
 };
 
-void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,
+void GenerateGeometry(const math::Aabb& aabb,
+                      Array<geometry::SkinnedVertex>& vertices,
                       Array<geometry::Index>& indices, bool is_visible);
 
-void GenerateGeometry(const Frustum& frustum, Array<geometry::Vertex>& vertices,
+void GenerateGeometry(const Frustum& frustum,
+                      Array<geometry::SkinnedVertex>& vertices,
                       Array<geometry::Index>& indices);
 }  // namespace rendering
 }  // namespace comet

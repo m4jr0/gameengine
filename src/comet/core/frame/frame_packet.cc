@@ -9,6 +9,8 @@
 #include <utility>
 
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
+#include "comet/core/type/ordered_set.h"
 
 namespace comet {
 namespace frame {
@@ -20,10 +22,11 @@ void FramePacket::RegisterNewGeometry(
 
   AddedGeometry geometry{};
   geometry.entity_id = entity_id;
+  geometry.model_entity_id = mesh_cmp->model_entity_id;
   geometry.mesh_id = from_mesh->id;
   geometry.material = mesh_cmp->material;
 
-  geometry.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::Vertex);
+  geometry.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex);
   geometry.indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index);
   geometry.vertices->PushFromRange(from_mesh->vertices);
   geometry.indices->PushFromRange(from_mesh->indices);
@@ -44,10 +47,11 @@ void FramePacket::RegisterDirtyMesh(entity::EntityId entity_id,
 
   DirtyMesh mesh{};
   mesh.entity_id = entity_id;
+  mesh.model_entity_id = mesh_cmp->model_entity_id;
   mesh.mesh_id = from_mesh->id;
   mesh.material = mesh_cmp->material;
 
-  mesh.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::Vertex);
+  mesh.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex);
   mesh.indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index);
 
   mesh.vertices->PushFromRange(from_mesh->vertices);
@@ -79,6 +83,7 @@ void FramePacket::RegisterRemovedGeometry(
 
   RemovedGeometry geometry{};
   geometry.entity_id = entity_id;
+  geometry.model_entity_id = mesh_cmp->model_entity_id;
   geometry.mesh_id = mesh_cmp->mesh->id;
 
   fiber::FiberLockGuard lock{dirty_meshes_mtx};
@@ -105,6 +110,8 @@ void FramePacket::FramePacket::Reset() {
   dirty_meshes = COMET_DOUBLE_FRAME_ORDERED_SET(frame::DirtyMesh);
   dirty_transforms = COMET_DOUBLE_FRAME_ORDERED_SET(frame::DirtyTransform);
   removed_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(frame::RemovedGeometry);
+  skinning_bindings = COMET_DOUBLE_FRAME_ARRAY(animation::SkinningBinding);
+  matrix_palettes = COMET_DOUBLE_FRAME_ARRAY(animation::MatrixPalette);
 }
 
 HashValue GenerateHash(const AddedGeometry& value) {

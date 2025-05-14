@@ -12,6 +12,7 @@ struct ProxyLocalData {
   vec3 localCenter;
   vec3 localMaxExtents;
   mat4 transform;
+  uint skinningOffset;
 };
 
 struct ProxyInstance {

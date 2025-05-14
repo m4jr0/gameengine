@@ -16,7 +16,7 @@
 
 #ifdef COMET_FIBER_DEBUG_LABEL
 #include "comet/core/c_string.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 // TODO(m4jr0): Support other architectures.

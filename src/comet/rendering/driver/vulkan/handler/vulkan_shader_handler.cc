@@ -7,11 +7,13 @@
 
 #include "vulkan_shader_handler.h"
 
-#include <functional>
+#include <algorithm>
+#include <type_traits>
 #include <utility>
 
 #include "comet/core/c_string.h"
 #include "comet/core/frame/frame_utils.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
@@ -23,6 +25,8 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_common_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/rendering/driver/vulkan/vulkan_context.h"
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource_manager.h"
 
@@ -59,7 +63,7 @@ void ShaderHandler::Shutdown() {
     Destroy(it.value, true);
   }
 
-  shaders_.Clear();
+  shaders_.Destroy();
   bound_shader_ = nullptr;
   instance_id_handler_.Shutdown();
   shader_instance_allocator_.Destroy();
@@ -324,6 +328,10 @@ void ShaderHandler::UpdateStorages(Shader* shader,
 
   COMET_ASSERT(is_allocated,
                "Failed to allocate spatial uniform descriptor sets!");
+  COMET_VK_SET_DESCRIPTOR_SET_LABELS(
+      shader->storage_data.descriptor_set_handles.GetData(),
+      static_cast<u32>(shader->storage_data.descriptor_set_handles.GetSize()),
+      "spatial_uniform_set_");
 
   VkDescriptorSet set_handle{
       shader->storage_data.descriptor_set_handles[context_->GetImageIndex()]};
@@ -369,6 +377,11 @@ void ShaderHandler::UpdateStorages(Shader* shader,
       shader, set_handle, shader->storage_indices.destination_words,
       update.ssbo_destination_words_handle, update.ssbo_destination_words_size,
       buffer_info, bindings, write_descriptor_sets);
+
+  BindStorageBuffer(shader, set_handle, shader->storage_indices.matrix_palettes,
+                    update.ssbo_matrix_palettes_handle,
+                    update.ssbo_matrix_palettes_size, buffer_info, bindings,
+                    write_descriptor_sets);
 
 #ifdef COMET_DEBUG_RENDERING
   BindStorageBuffer(shader, set_handle, shader->storage_indices.debug_data,
@@ -627,6 +640,10 @@ void ShaderHandler::BindMaterial(Material* material) {
 
   COMET_ASSERT(is_allocated,
                "Failed to allocate instance uniform descriptor sets!");
+  COMET_VK_SET_DESCRIPTOR_SET_LABELS(
+      instance.uniform_data.descriptor_set_handles.GetData(),
+      static_cast<u32>(instance.uniform_data.descriptor_set_handles.GetSize()),
+      "instance_uniform_set_");
 
   instance.offset =
       shader->instance_ubo_data.ubo_stride * shader->instances.list.GetSize();
@@ -687,30 +704,73 @@ MaterialInstance& ShaderHandler::GetInstance(Shader* shader,
 ShaderVertexAttributeSize ShaderHandler::GetVertexAttributeSize(
     ShaderVertexAttributeType type) {
   switch (type) {
-    case ShaderVertexAttributeType::F16:
-      return 2;
-    case ShaderVertexAttributeType::F32:
-      return 4;
-    case ShaderVertexAttributeType::F64:
-      return 8;
-    case ShaderVertexAttributeType::Vec2:
-      return 8;
-    case ShaderVertexAttributeType::Vec3:
-      return 12;
-    case ShaderVertexAttributeType::Vec4:
-      return 16;
     case ShaderVertexAttributeType::S8:
-      return 1;
-    case ShaderVertexAttributeType::S16:
-      return 2;
-    case ShaderVertexAttributeType::S32:
-      return 4;
     case ShaderVertexAttributeType::U8:
       return 1;
+
+    case ShaderVertexAttributeType::S16:
     case ShaderVertexAttributeType::U16:
+    case ShaderVertexAttributeType::F16:
       return 2;
+
+    case ShaderVertexAttributeType::S32:
     case ShaderVertexAttributeType::U32:
+    case ShaderVertexAttributeType::F32:
       return 4;
+
+    case ShaderVertexAttributeType::F64:
+      return 8;
+
+    case ShaderVertexAttributeType::U8Vec2:
+    case ShaderVertexAttributeType::S8Vec2:
+      return 2 * 1;
+
+    case ShaderVertexAttributeType::U8Vec3:
+    case ShaderVertexAttributeType::S8Vec3:
+      return 3 * 1;
+
+    case ShaderVertexAttributeType::U8Vec4:
+    case ShaderVertexAttributeType::S8Vec4:
+      return 4 * 1;
+
+    case ShaderVertexAttributeType::U16Vec2:
+    case ShaderVertexAttributeType::S16Vec2:
+    case ShaderVertexAttributeType::F16Vec2:
+      return 2 * 2;
+
+    case ShaderVertexAttributeType::U16Vec3:
+    case ShaderVertexAttributeType::S16Vec3:
+    case ShaderVertexAttributeType::F16Vec3:
+      return 3 * 2;
+
+    case ShaderVertexAttributeType::U16Vec4:
+    case ShaderVertexAttributeType::S16Vec4:
+    case ShaderVertexAttributeType::F16Vec4:
+      return 4 * 2;
+
+    case ShaderVertexAttributeType::U32Vec2:
+    case ShaderVertexAttributeType::S32Vec2:
+    case ShaderVertexAttributeType::F32Vec2:
+      return 2 * 4;
+
+    case ShaderVertexAttributeType::U32Vec3:
+    case ShaderVertexAttributeType::S32Vec3:
+    case ShaderVertexAttributeType::F32Vec3:
+      return 3 * 4;
+
+    case ShaderVertexAttributeType::U32Vec4:
+    case ShaderVertexAttributeType::S32Vec4:
+    case ShaderVertexAttributeType::F32Vec4:
+      return 4 * 4;
+
+    case ShaderVertexAttributeType::F64Vec2:
+      return 2 * 8;
+
+    case ShaderVertexAttributeType::F64Vec3:
+      return 3 * 8;
+
+    case ShaderVertexAttributeType::F64Vec4:
+      return 4 * 8;
 
     default:
       COMET_ASSERT(
@@ -730,56 +790,56 @@ ShaderUniformSize ShaderHandler::GetShaderVariableTypeSize(
     case ShaderVariableType::F32:
       return 4;
 
-    case ShaderVariableType::F64:
-      return 8;
-
     case ShaderVariableType::B32Vec2:
     case ShaderVariableType::S32Vec2:
     case ShaderVariableType::U32Vec2:
     case ShaderVariableType::Vec2:
-      return 8;
+      return 2 * 4;
 
     case ShaderVariableType::B32Vec3:
     case ShaderVariableType::S32Vec3:
     case ShaderVariableType::U32Vec3:
     case ShaderVariableType::Vec3:
-      return 12;
+      return 3 * 4;
 
     case ShaderVariableType::B32Vec4:
     case ShaderVariableType::S32Vec4:
     case ShaderVariableType::U32Vec4:
     case ShaderVariableType::Vec4:
-      return 16;
+      return 4 * 4;
+
+    case ShaderVariableType::F64:
+      return 8;
 
     case ShaderVariableType::F64Vec2:
-      return 16;
+      return 2 * 8;
 
     case ShaderVariableType::F64Vec3:
-      return 24;
+      return 3 * 8;
 
     case ShaderVariableType::F64Vec4:
-      return 32;
+      return 4 * 8;
 
     case ShaderVariableType::Mat2x2:
-      return 8;
+      return 2 * 2 * 4;
 
     case ShaderVariableType::Mat2x3:
     case ShaderVariableType::Mat3x2:
-      return 24;
+      return 2 * 3 * 4;
 
     case ShaderVariableType::Mat3x3:
-      return 36;
+      return 3 * 3 * 4;
 
     case ShaderVariableType::Mat2x4:
     case ShaderVariableType::Mat4x2:
-      return 32;
+      return 2 * 4 * 4;
 
     case ShaderVariableType::Mat3x4:
     case ShaderVariableType::Mat4x3:
-      return 48;
+      return 3 * 4 * 4;
 
     case ShaderVariableType::Mat4x4:
-      return 64;
+      return 4 * 4 * 4;
 
     case ShaderVariableType::Sampler:
     case ShaderVariableType::Image:
@@ -797,30 +857,113 @@ ShaderUniformSize ShaderHandler::GetShaderVariableTypeSize(
 
 VkFormat ShaderHandler::GetVkFormat(ShaderVertexAttributeType type) {
   switch (type) {
-    case ShaderVertexAttributeType::F16:
-      return VK_FORMAT_R16_SFLOAT;
-    case ShaderVertexAttributeType::F32:
-      return VK_FORMAT_R32_SFLOAT;
-    case ShaderVertexAttributeType::F64:
-      return VK_FORMAT_R64_SFLOAT;
-    case ShaderVertexAttributeType::Vec2:
-      return VK_FORMAT_R32G32_SFLOAT;
-    case ShaderVertexAttributeType::Vec3:
-      return VK_FORMAT_R32G32B32_SFLOAT;
-    case ShaderVertexAttributeType::Vec4:
-      return VK_FORMAT_R32G32B32A32_SFLOAT;
     case ShaderVertexAttributeType::S8:
       return VK_FORMAT_R8_SINT;
+
     case ShaderVertexAttributeType::S16:
       return VK_FORMAT_R16_SINT;
+
     case ShaderVertexAttributeType::S32:
       return VK_FORMAT_R32_SINT;
+
     case ShaderVertexAttributeType::U8:
       return VK_FORMAT_R8_UINT;
+
     case ShaderVertexAttributeType::U16:
       return VK_FORMAT_R16_UINT;
+
     case ShaderVertexAttributeType::U32:
       return VK_FORMAT_R32_UINT;
+
+    case ShaderVertexAttributeType::F16:
+      return VK_FORMAT_R16_SFLOAT;
+
+    case ShaderVertexAttributeType::F32:
+      return VK_FORMAT_R32_SFLOAT;
+
+    case ShaderVertexAttributeType::F64:
+      return VK_FORMAT_R64_SFLOAT;
+
+    case ShaderVertexAttributeType::U8Vec2:
+      return VK_FORMAT_R8G8_UINT;
+
+    case ShaderVertexAttributeType::U8Vec3:
+      return VK_FORMAT_R8G8B8_UINT;
+
+    case ShaderVertexAttributeType::U8Vec4:
+      return VK_FORMAT_R8G8B8A8_UINT;
+
+    case ShaderVertexAttributeType::S8Vec2:
+      return VK_FORMAT_R8G8_SINT;
+
+    case ShaderVertexAttributeType::S8Vec3:
+      return VK_FORMAT_R8G8B8_SINT;
+
+    case ShaderVertexAttributeType::S8Vec4:
+      return VK_FORMAT_R8G8B8A8_SINT;
+
+    case ShaderVertexAttributeType::U16Vec2:
+      return VK_FORMAT_R16G16_UINT;
+
+    case ShaderVertexAttributeType::U16Vec3:
+      return VK_FORMAT_R16G16B16_UINT;
+
+    case ShaderVertexAttributeType::U16Vec4:
+      return VK_FORMAT_R16G16B16A16_UINT;
+
+    case ShaderVertexAttributeType::S16Vec2:
+      return VK_FORMAT_R16G16_SINT;
+
+    case ShaderVertexAttributeType::S16Vec3:
+      return VK_FORMAT_R16G16B16_SINT;
+
+    case ShaderVertexAttributeType::S16Vec4:
+      return VK_FORMAT_R16G16B16A16_SINT;
+
+    case ShaderVertexAttributeType::U32Vec2:
+      return VK_FORMAT_R32G32_UINT;
+
+    case ShaderVertexAttributeType::U32Vec3:
+      return VK_FORMAT_R32G32B32_UINT;
+
+    case ShaderVertexAttributeType::U32Vec4:
+      return VK_FORMAT_R32G32B32A32_UINT;
+
+    case ShaderVertexAttributeType::S32Vec2:
+      return VK_FORMAT_R32G32_SINT;
+
+    case ShaderVertexAttributeType::S32Vec3:
+      return VK_FORMAT_R32G32B32_SINT;
+
+    case ShaderVertexAttributeType::S32Vec4:
+      return VK_FORMAT_R32G32B32A32_SINT;
+
+    case ShaderVertexAttributeType::F16Vec2:
+      return VK_FORMAT_R16G16_SFLOAT;
+
+    case ShaderVertexAttributeType::F16Vec3:
+      return VK_FORMAT_R16G16B16_SFLOAT;
+
+    case ShaderVertexAttributeType::F16Vec4:
+      return VK_FORMAT_R16G16B16A16_SFLOAT;
+
+    case ShaderVertexAttributeType::F32Vec2:
+      return VK_FORMAT_R32G32_SFLOAT;
+
+    case ShaderVertexAttributeType::F32Vec3:
+      return VK_FORMAT_R32G32B32_SFLOAT;
+
+    case ShaderVertexAttributeType::F32Vec4:
+      return VK_FORMAT_R32G32B32A32_SFLOAT;
+
+    case ShaderVertexAttributeType::F64Vec2:
+      return VK_FORMAT_R64G64_SFLOAT;
+
+    case ShaderVertexAttributeType::F64Vec3:
+      return VK_FORMAT_R64G64B64_SFLOAT;
+
+    case ShaderVertexAttributeType::F64Vec4:
+      return VK_FORMAT_R64G64B64A64_SFLOAT;
 
     default:
       COMET_ASSERT(
@@ -876,8 +1019,8 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
     DestroyDescriptorPool(device, shader->descriptor_pool_handle);
   }
 
-  shader->instances.ids.Clear();
-  shader->instances.list.Clear();
+  shader->instances.ids.Destroy();
+  shader->instances.list.Destroy();
 
   for (u32 i{0}; i < shader->layout_bindings.count; ++i) {
     auto layout_handle{shader->layout_handles[i]};
@@ -891,10 +1034,10 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
   }
 
   shader->layout_bindings = {};
-  shader->vertex_attributes.Clear();
-  shader->uniforms.Clear();
-  shader->constants.Clear();
-  shader->storages.Clear();
+  shader->vertex_attributes.Destroy();
+  shader->uniforms.Destroy();
+  shader->constants.Destroy();
+  shader->storages.Destroy();
 
   if (shader_module_handler_->IsInitialized()) {
     for (auto& module : shader->modules) {
@@ -902,8 +1045,8 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
     }
   }
 
-  shader->modules.Clear();
-  shader->push_constant_ranges.Clear();
+  shader->modules.Destroy();
+  shader->push_constant_ranges.Destroy();
 
   if (!is_destroying_handler) {
     shaders_.Remove(shader->id);
@@ -1257,6 +1400,11 @@ void ShaderHandler::HandleStorageIndexAndBinding(
                              kStorageNameDestinationWords.size())) {
     index = &shader->storage_indices.destination_words;
     storage.binding = kStorageBindingDestinationWords;
+  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                             kStorageNameMatrixPalettes.data(),
+                             kStorageNameMatrixPalettes.size())) {
+    index = &shader->storage_indices.matrix_palettes;
+    storage.binding = kStorageBindingMatrixPalettes;
   }
 #ifdef COMET_DEBUG_RENDERING
   else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
@@ -1494,6 +1642,11 @@ void ShaderHandler::HandleUboBufferGeneration(Shader* shader) {
 
   COMET_ASSERT(is_allocated,
                "Failed to allocate global uniform descriptor sets!");
+  COMET_VK_SET_DESCRIPTOR_SET_LABELS(
+      shader->global_uniform_data.descriptor_set_handles.GetData(),
+      static_cast<u32>(
+          shader->global_uniform_data.descriptor_set_handles.GetSize()),
+      "global_set_");
 }
 
 void ShaderHandler::AddUniform(Shader* shader, const ShaderUniformDescr& descr,

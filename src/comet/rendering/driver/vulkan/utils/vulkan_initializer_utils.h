@@ -11,7 +11,6 @@
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
@@ -52,6 +51,12 @@ VkSubmitInfo GenerateSubmitInfo(
     const VkSemaphore* signal_semaphores, u32 signal_semaphore_count,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
     const void* next = VK_NULL_HANDLE);
+VkSubmitInfo2 GenerateSubmitInfo2(
+    u32 command_buffer_info_count,
+    const VkCommandBufferSubmitInfo* command_buffer_infos,
+    const VkSemaphoreSubmitInfo* wait_semaphore_infos, u32 wait_semaphore_count,
+    const VkSemaphoreSubmitInfo* signal_semaphore_infos,
+    u32 signal_semaphore_info_count, const void* next = VK_NULL_HANDLE);
 VkPresentInfoKHR GeneratePresentInfo();
 VkRenderPassBeginInfo GenerateRenderPassBeginInfo(
     VkRenderPass render_pass_handle, VkExtent2D extent,

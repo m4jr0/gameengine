@@ -8,7 +8,6 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/map.h"

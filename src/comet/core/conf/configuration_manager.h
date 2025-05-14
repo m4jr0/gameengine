@@ -5,7 +5,6 @@
 #ifndef COMET_COMET_CORE_CONF_CONFIGURATION_MANAGER_H_
 #define COMET_COMET_CORE_CONF_CONFIGURATION_MANAGER_H_
 
-#include "comet/core/c_string.h"
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"

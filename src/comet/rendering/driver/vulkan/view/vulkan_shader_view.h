@@ -11,7 +11,6 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {

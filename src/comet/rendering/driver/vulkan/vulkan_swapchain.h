@@ -8,7 +8,6 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
@@ -79,8 +78,10 @@ class Swapchain {
 
  private:
   void InitializeImageViews();
+  void InitializeRenderSemaphores();
   void InitializeColorResources();
   void InitializeDepthResources();
+  void DestroyRenderSemaphores();
   void DestroyImageViews();
   void DestroyDepthResources();
   void DestroyColorResources();
@@ -94,6 +95,7 @@ class Swapchain {
   VkFormat format_{VK_FORMAT_UNDEFINED};
   VkExtent2D extent_{0, 0};
   Array<Image> images_{};
+  Array<VkSemaphore> render_semaphore_handles_{};
   Image color_image_{};
   Image depth_image_{};
   VkSwapchainKHR handle_{VK_NULL_HANDLE};

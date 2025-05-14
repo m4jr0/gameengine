@@ -8,10 +8,13 @@
 
 #include <inttypes.h>
 
+#include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <cwctype>
 #include <string>
 
+#include "comet/core/generator.h"
 namespace comet {
 s32 Compare(const schar* str1, const schar* str2) {
   return std::strcmp(str1, str2);
@@ -191,6 +194,46 @@ bool IsContained(const wchar* str, const wchar* to_find) {
   }
 
   return std::wcsstr(str, to_find) != nullptr;
+}
+
+bool IsContainedInsensitive(const schar* str, const schar* to_find) {
+  if (str == nullptr || to_find == nullptr) {
+    return false;
+  }
+
+  auto to_find_len{GetLength(to_find)};
+
+  if (to_find_len == 0) {
+    return true;
+  }
+
+  for (const auto* p{str}; *p != '\0'; ++p) {
+    if (CompareInsensitive(p, to_find, to_find_len) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool IsContainedInsensitive(const wchar* str, const wchar* to_find) {
+  if (str == nullptr || to_find == nullptr) {
+    return false;
+  }
+
+  auto to_find_len{GetLength(to_find)};
+
+  if (to_find_len == 0) {
+    return true;
+  }
+
+  for (const auto* p{str}; *p != '\0'; ++p) {
+    if (CompareInsensitive(p, to_find, to_find_len) == 0) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool IsSpace(schar c) { return std::isspace(c); }
@@ -540,7 +583,7 @@ bool ParseBool(const wchar* str) { return internal::ParseBool(str); }
 
 void ConvertToStr(u8 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRIu8, number);
+  std::snprintf(buffer, buffer_len, "%" PRIu8, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -549,7 +592,7 @@ void ConvertToStr(u8 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(u8 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRIu8, number);
+  std::swprintf(buffer, buffer_len, L"%" PRIu8, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -558,7 +601,7 @@ void ConvertToStr(u8 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(u16 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRIu16, number);
+  std::snprintf(buffer, buffer_len, "%" PRIu16, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -567,7 +610,7 @@ void ConvertToStr(u16 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(u16 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRIu16, number);
+  std::swprintf(buffer, buffer_len, L"%" PRIu16, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -576,7 +619,7 @@ void ConvertToStr(u16 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(u32 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRIu32, number);
+  std::snprintf(buffer, buffer_len, "%" PRIu32, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -585,7 +628,7 @@ void ConvertToStr(u32 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(u32 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRIu32, number);
+  std::swprintf(buffer, buffer_len, L"%" PRIu32, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -594,7 +637,7 @@ void ConvertToStr(u32 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(u64 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRIu64, number);
+  std::snprintf(buffer, buffer_len, "%" PRIu64, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -603,7 +646,7 @@ void ConvertToStr(u64 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(u64 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRIu64, number);
+  std::swprintf(buffer, buffer_len, L"%" PRIu64, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -612,7 +655,7 @@ void ConvertToStr(u64 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s8 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRId8, number);
+  std::snprintf(buffer, buffer_len, "%" PRId8, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -621,7 +664,7 @@ void ConvertToStr(s8 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s8 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRId8, number);
+  std::swprintf(buffer, buffer_len, L"%" PRId8, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -630,7 +673,7 @@ void ConvertToStr(s8 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s16 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRId16, number);
+  std::snprintf(buffer, buffer_len, "%" PRId16, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -639,7 +682,7 @@ void ConvertToStr(s16 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s16 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRId16, number);
+  std::swprintf(buffer, buffer_len, L"%" PRId16, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -648,7 +691,7 @@ void ConvertToStr(s16 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s32 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRId32, number);
+  std::snprintf(buffer, buffer_len, "%" PRId32, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -657,7 +700,7 @@ void ConvertToStr(s32 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s32 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRId32, number);
+  std::swprintf(buffer, buffer_len, L"%" PRId32, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -666,7 +709,7 @@ void ConvertToStr(s32 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s64 number, schar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::snprintf(buffer, buffer_len - 1, "%" PRId64, number);
+  std::snprintf(buffer, buffer_len, "%" PRId64, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -675,7 +718,7 @@ void ConvertToStr(s64 number, schar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(s64 number, wchar* buffer, usize buffer_len, usize* out_len) {
   // TODO(m4jr0): Optimize function.
-  std::swprintf(buffer, buffer_len - 1, L"%" PRId64, number);
+  std::swprintf(buffer, buffer_len, L"%" PRId64, number);
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -684,7 +727,7 @@ void ConvertToStr(s64 number, wchar* buffer, usize buffer_len, usize* out_len) {
 
 void ConvertToStr(bool boolean, schar* buffer, usize buffer_len,
                   usize* out_len) {
-  snprintf(buffer, buffer_len, "%s", boolean ? "true" : "false");
+  std::snprintf(buffer, buffer_len, "%s", boolean ? "true" : "false");
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
@@ -693,38 +736,21 @@ void ConvertToStr(bool boolean, schar* buffer, usize buffer_len,
 
 void ConvertToStr(bool boolean, wchar* buffer, usize buffer_len,
                   usize* out_len) {
-#ifdef SID_MSVC
-  _snwprintf_s(buffer, buffer_len, buffer_len - 1, L"%ls",
-               boolean == true ? L"true" : L"false");
-#else
-  swprintf(buffer, buffer_len - 1, L"%ls",
-           boolean == true ? L"true" : L"false");
-#endif  // SID_MSVC
+  std::swprintf(buffer, buffer_len, L"%ls",
+                boolean == true ? L"true" : L"false");
 
   if (out_len != nullptr) {
     *out_len = GetLength(buffer);
   }
 }
 
-usize GetCharCount(u8) { return kU8MaxCharCountDigits10; }
-
-usize GetCharCount(u16) { return kU16MaxCharCountDigits10; }
-
-usize GetCharCount(u32) { return kU32MaxCharCountDigits10; }
-
-usize GetCharCount(u64) { return kU64MaxCharCountDigits10; }
-
-usize GetCharCount(s8) { return kS8MaxCharCountDigits10; }
-
-usize GetCharCount(s16) { return kS16MaxCharCountDigits10; }
-
-usize GetCharCount(s32) { return kS32MaxCharCountDigits10; }
-
-usize GetCharCount(s64) { return kS64MaxCharCountDigits10; }
-
-usize GetCharCount(f32) { return kF32MaxCharCountDigits10; }
-
-usize GetCharCount(f64) { return kF64MaxCharCountDigits10; }
-
-usize GetCharCount(bool) { return kBoolMaxCharCountDigits10; }
+const schar* GenerateTmpFromFormat(usize buffer_size, const schar* format,
+                                   ...) {
+  auto* buffer{GenerateForOneFrame<schar>(buffer_size)};
+  va_list args;
+  va_start(args, format);
+  std::vsnprintf(buffer, buffer_size, format, args);
+  va_end(args);
+  return buffer;
+}
 }  // namespace comet

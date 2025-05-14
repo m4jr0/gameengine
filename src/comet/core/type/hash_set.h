@@ -5,16 +5,17 @@
 #ifndef COMET_COMET_CORE_TYPE_HASH_SET_H_
 #define COMET_COMET_CORE_TYPE_HASH_SET_H_
 
-#include <functional>
+#include <iterator>
 #include <type_traits>
 #include <utility>
 
+#include "comet/core/c_string.h"
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/traits.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 template <typename T, typename THashable>
@@ -39,6 +40,40 @@ struct DefaultSetHashLogic : public SetHashLogic<T, T> {
     return a == b;
   }
 };
+
+template <>
+struct DefaultSetHashLogic<const schar*> {
+  using Value = const schar*;
+  using Hashable = const schar*;
+
+  static const Hashable& GetHashable(const Value& obj) { return obj; }
+
+  static HashValue Hash(const Hashable& str) { return GenerateHash(str); }
+
+  static bool AreEqual(const Hashable& a, const Hashable& b) {
+    return AreStringsEqual(a, b);
+  }
+};
+
+template <>
+struct DefaultSetHashLogic<schar*> : DefaultSetHashLogic<const schar*> {};
+
+template <>
+struct DefaultSetHashLogic<const wchar*> {
+  using Value = const wchar*;
+  using Hashable = const wchar*;
+
+  static const Hashable& GetHashable(const Value& obj) { return obj; }
+
+  static HashValue Hash(const Hashable& str) { return GenerateHash(str); }
+
+  static bool AreEqual(const Hashable& a, const Hashable& b) {
+    return AreStringsEqual(a, b);
+  }
+};
+
+template <>
+struct DefaultSetHashLogic<wchar*> : DefaultSetHashLogic<const wchar*> {};
 }  // namespace internal
 
 template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
@@ -185,6 +220,8 @@ class HashSet {
     other.allocator_ = nullptr;
   }
 
+  ~HashSet() { Destroy(); }
+
   HashSet& operator=(const HashSet& other) {
     if (this == &other) {
       return *this;
@@ -234,6 +271,12 @@ class HashSet {
   }
 
   bool operator!=(const HashSet& other) const { return !(*this == other); }
+
+  void Destroy() {
+    this->buckets_.Destroy();
+    this->entry_count_ = 0;
+    this->bucket_count_ = 0;
+  }
 
   template <typename V>
   void Add(V&& obj) {
@@ -391,6 +434,11 @@ class HashSet {
 
  private:
   void CheckSize() {
+    if (this->bucket_count_ == 0) {
+      Reserve(kDefaultObjCount);
+      return;
+    }
+
     if (this->entry_count_ + 1 > this->bucket_count_ * max_load_factor_) {
       Reserve(this->entry_count_ * 2);
     }

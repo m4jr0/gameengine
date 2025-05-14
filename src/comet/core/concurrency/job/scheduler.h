@@ -150,6 +150,20 @@ class Scheduler {
   void SubmitJob(const IOJobDescr& job_descr);
   void PromoteJobs();
 };
+
+class CounterGuard {
+ public:
+  CounterGuard();
+  ~CounterGuard();
+  CounterGuard(const CounterGuard&) = delete;
+  CounterGuard& operator=(const CounterGuard&) = delete;
+
+  void Wait();
+  Counter* GetCounter();
+
+ private:
+  Counter* counter_{nullptr};
+};
 }  // namespace job
 }  // namespace comet
 

@@ -9,16 +9,15 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/math/math_commons.h"
 
 namespace comet {
 namespace internal {
-constexpr ux kPhi{(1 + math::CtSqrt(ux{5})) / 2};
-constexpr ux kMagicNumber{2 ^ kCharBit / kPhi};
+constexpr u32 kU32MagicNumber{0x9e3779b9};
+constexpr u64 kU64MagicNumber{0x9e3779b97f4a7c15};
 
 template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-std::size_t Convert(T value) {
-  std::size_t to_return;
+u64 Convert(T value) {
+  u64 to_return;
   memory::CopyMemory(&to_return, &value, sizeof(T));
   return to_return;
 }
@@ -30,26 +29,41 @@ constexpr auto kSha256DigestSize{picosha2::k_digest_size};
 
 void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len);
 
-constexpr std::size_t HashCombine(std::size_t lhs, std::size_t rhs) {
-  lhs ^= rhs + internal::kMagicNumber + (lhs << 6) + (lhs >> 2);
+constexpr u64 HashCombine(u64 lhs, u64 rhs) {
+  lhs ^= rhs + internal::kU64MagicNumber + (lhs << 6) + (lhs >> 2);
+  return lhs;
+}
+
+constexpr u32 HashCombine(u32 lhs, u32 rhs) {
+  lhs ^= rhs + internal::kU32MagicNumber + (lhs << 6) + (lhs >> 2);
   return lhs;
 }
 
 template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-std::size_t HashCombine(T lhs, std::size_t rhs) {
+u64 HashCombine(T lhs, u64 rhs) {
   return HashCombine(internal::Convert(lhs), rhs);
 }
 
 template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
-std::size_t HashCombine(std::size_t lhs, T rhs) {
+u64 HashCombine(u64 lhs, T rhs) {
   return HashCombine(lhs, internal::Convert(rhs));
 }
 
 template <typename T1, typename T2,
           typename = std::enable_if_t<std::is_floating_point_v<T1> &&
                                       std::is_floating_point_v<T2>>>
-std::size_t HashCombine(T1 lhs, T2 rhs) {
+u64 HashCombine(T1 lhs, T2 rhs) {
   return HashCombine(internal::Convert(lhs), internal::Convert(rhs));
+}
+
+template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+u32 HashCombine(T lhs, u32 rhs) {
+  return HashCombine(static_cast<u32>(internal::Convert(lhs)), rhs);
+}
+
+template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+u32 HashCombine(u32 lhs, T rhs) {
+  return HashCombine(lhs, static_cast<u32>(internal::Convert(rhs)));
 }
 
 using HashValue = u32;

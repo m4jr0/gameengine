@@ -6,7 +6,7 @@
 
 #include "vector.h"
 
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 namespace math {
@@ -100,6 +100,10 @@ f32 Dot(const Vec4& a, const Vec4& b) {
 
 Vec3 Cross(const Vec3& a, const Vec3& b) {
   return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+}
+
+f32 AverageComponents(const Vec3& vec) {
+  return (vec.x + vec.y + vec.z) / 3.0f;
 }
 }  // namespace math
 }  // namespace comet

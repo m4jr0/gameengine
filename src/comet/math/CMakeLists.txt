@@ -17,7 +17,9 @@ target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/math/bounding_volume.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/math/geometry.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/math/math_commons.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/math/math_common.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/math/math_compression.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/math/math_interpolation.h"
     "${PROJECT_SOURCE_DIR}/src/comet/math/matrix.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/math/plane.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/math/quaternion.cc"

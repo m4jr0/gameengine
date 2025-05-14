@@ -5,7 +5,6 @@
 #ifndef COMET_COMET_CORE_ALGORITHM_BACK_INSERT_ITERATOR_H_
 #define COMET_COMET_CORE_ALGORITHM_BACK_INSERT_ITERATOR_H_
 
-#include <iterator>
 #include <utility>
 
 #include "comet/core/essentials.h"

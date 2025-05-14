@@ -9,10 +9,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
-#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {

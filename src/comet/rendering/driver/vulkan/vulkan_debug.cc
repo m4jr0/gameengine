@@ -135,6 +135,11 @@ void SetDebugLabel(VkBuffer buffer_handle, const schar* label) {
   SetDebugLabel(VK_OBJECT_TYPE_BUFFER,
                 reinterpret_cast<uint64_t>(buffer_handle), label);
 }
+
+void SetDebugLabel(VkDescriptorSet descriptor_set_handle, const schar* label) {
+  SetDebugLabel(VK_OBJECT_TYPE_DESCRIPTOR_SET,
+                reinterpret_cast<uint64_t>(descriptor_set_handle), label);
+}
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace vk

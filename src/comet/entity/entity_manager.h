@@ -9,12 +9,11 @@
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
-#include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/hash.h"
 #include "comet/core/manager.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/entity/archetype.h"
 #include "comet/entity/component.h"
@@ -39,15 +38,9 @@ struct ComponentTypeDescrHashLogic {
   using Value = ComponentTypeDescr;
   using Hashable = ComponentTypeDescr;
 
-  static const Hashable& GetHashable(const Value& value) { return value; }
-
-  static HashValue Hash(const Hashable& hashable) {
-    return GenerateHash(hashable);
-  }
-
-  static bool AreEqual(const Hashable& a, const Hashable& b) {
-    return a.id == b.id;
-  }
+  static const Hashable& GetHashable(const Value& value);
+  static HashValue Hash(const Hashable& hashable);
+  static bool AreEqual(const Hashable& a, const Hashable& b);
 };
 
 struct MovedEntities {
@@ -56,18 +49,8 @@ struct MovedEntities {
                       frame::FrameArray<const internal::DeferredEntity*>>;
   MoveMap map{};
 
-  void Add(Archetype* archetype, const internal::DeferredEntity& entity) {
-    auto* entities{map.TryGet(archetype)};
-
-    if (entities == nullptr) {
-      entities =
-          &map.Emplace(archetype,
-                       frame::FrameArray<const internal::DeferredEntity*>{})
-               .value;
-    }
-
-    entities->PushBack(&entity);
-  }
+  void Add(Archetype* archetype, const internal::DeferredEntity& entity);
+  bool IsEmpty() const;
 };
 
 struct DeferredChanges {
@@ -78,6 +61,8 @@ struct DeferredChanges {
   MovedEntities added_to{};
   MovedEntities removed_from{};
   DestroyedEntityIds destroyed_ids{static_cast<usize>(16)};
+
+  bool IsEmpty() const;
 };
 }  // namespace internal
 

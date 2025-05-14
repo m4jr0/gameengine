@@ -5,14 +5,11 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_SHADER_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_SHADER_HANDLER_H_
 
-#include <functional>
-
 #include "glad/glad.h"
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/type/gid.h"
-#include "comet/math/matrix.h"
 #include "comet/rendering/driver//opengl/data/opengl_material.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
@@ -86,9 +83,10 @@ class ShaderHandler : public Handler {
   static ShaderUniformSize GetShaderVariableTypeSize(ShaderVariableType type);
   static GLenum GetGlCullMode(CullMode cull_mode);
   static GLenum GetGlPrimitiveTopology(PrimitiveTopology topology);
-  static GLsizei GetGlAttributeSize(ShaderVertexAttributeType type);
+  static GLsizei GetGlVertexAttributeSize(ShaderVertexAttributeType type);
   static GLint GetGlComponentCount(ShaderVertexAttributeType type);
   static GLenum GetGlVertexAttributeType(ShaderVertexAttributeType type);
+  static bool IsIntegerVertexAttributeType(GLenum gl_type);
 
   static void BindStorageBuffer(const Shader* shader,
                                 ShaderStorageIndex storage_index,
@@ -117,6 +115,7 @@ class ShaderHandler : public Handler {
   const Shader* Get(ShaderId shader_id) const;
   const Shader* TryGet(ShaderId shader_id) const;
   void Destroy(Shader* shader, bool is_destroying_handler);
+  void RebindVertexAttributes(Shader* shader) const;
   u32 GetInstanceIndex(const Shader* shader, const Material* material) const;
   u32 GetInstanceIndex(const Shader* shader,
                        const MaterialInstanceId instance_id) const;

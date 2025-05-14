@@ -38,7 +38,7 @@ class TimeManager : public Manager {
   void SetTimeScale(f32 time_scale) noexcept;
 
  private:
-  f64 fixed_delta_time_{16.66};  // 60 Hz refresh by default.
+  f64 fixed_delta_time_{.01666f};  // 60 Hz refresh by default.
   f64 current_time_{0.0};
   f64 previous_time_{0.0};
   f64 delta_time_{0.0};

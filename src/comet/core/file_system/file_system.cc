@@ -6,6 +6,7 @@
 
 #include "file_system.h"
 
+#include "comet/core/file_system/slash_helper.h"
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
 #include "comet/core/logger.h"
@@ -1121,7 +1122,7 @@ bool Exists(CTStringView path) {
 #endif  // COMET_MSVC
 }
 
-bool IsEmpty(CTStringView path) {
+bool IsPathEmpty(CTStringView path) {
   COMET_ASSERT(Exists(path), path, " does not exist!");
 
   if (IsFile(path)) {
@@ -1209,10 +1210,12 @@ void AppendTo(CTStringView to_append, tchar* buff, usize buff_len,
 
   auto buff_offset{GetLength(buff)};
 
-  if (!IsSlash(buff[buff_offset - 1]) && !IsSlash(to_append[0])) {
-    buff[buff_offset++] = kNativeSlash;
-  } else if (IsSlash(buff[buff_offset]) && IsSlash(to_append[0])) {
-    --buff_offset;
+  if (buff_offset > 0) {
+    if (!IsSlash(buff[buff_offset - 1]) && !IsSlash(to_append[0])) {
+      buff[buff_offset++] = kNativeSlash;
+    } else if (IsSlash(buff[buff_offset]) && IsSlash(to_append[0])) {
+      --buff_offset;
+    }
   }
 
   const auto new_len{buff_offset + to_append.GetLength()};
@@ -1279,13 +1282,13 @@ f64 GetLastModificationTime(CTStringView path) {
   struct _stat64i32 status;
 
   if (_wstat(path.GetCTStr(), &status) == 0) {
-    return static_cast<f64>(status.st_mtime * 1000);
+    return static_cast<f64>(status.st_mtime);
   }
 #else
   struct stat status;
 
   if (stat(path.GetCTStr(), &status) == 0) {
-    return static_cast<f64>(status.st_mtime * 1000);
+    return static_cast<f64>(status.st_mtime);
   }
 #endif  // COMET_MSVC
 

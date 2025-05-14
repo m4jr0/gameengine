@@ -8,10 +8,8 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/rendering/driver/driver.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/shader_module_resource.h"
 
 namespace comet {
 namespace resource {

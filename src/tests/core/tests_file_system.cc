@@ -38,8 +38,8 @@ class TestsFileSystemEventListener : public Catch::EventListenerBase {
   }
 
   void testRunEnded(Catch::TestRunStats const&) override {
-    current_dir.Clear();
-    tmp_dir.Clear();
+    current_dir.Destroy();
+    tmp_dir.Destroy();
   }
 };
 
@@ -339,12 +339,14 @@ TEST_CASE("File system management", "[comet::filesystem]") {
     auto tmp_file_path{comet::GetAbsolutePath(file_path)};
     comet::TString buffer{};
     buffer.Reserve(512);
+    buffer += '/';
     buffer /= comet::comettests::test_dir;
     buffer /= COMET_TCHAR("/test8");
 
     REQUIRE(comet::comettests::FormatAbsolutePath(
                 tmp_file_path, COMET_TCHAR('/'), 2) == buffer);
     buffer.Clear();
+    buffer += '/';
     buffer /= comet::comettests::test_dir;
     buffer /= COMET_TCHAR("/test3");
 
@@ -355,6 +357,7 @@ TEST_CASE("File system management", "[comet::filesystem]") {
 
     auto tmp_does_not_exist_path{comet::GetAbsolutePath(does_not_exist_path)};
     buffer.Clear();
+    buffer += '/';
     buffer /= comet::comettests::test_dir;
     buffer /= COMET_TCHAR("/DOESNOTEXIST");
 
@@ -482,10 +485,10 @@ TEST_CASE("File system management", "[comet::filesystem]") {
 
     WriteStrToFile(non_empty_file_path, "Hello World");
 
-    REQUIRE(comet::IsEmpty(empty_directory_path));
-    REQUIRE(!comet::IsEmpty(non_empty_directory_path));
-    REQUIRE(comet::IsEmpty(empty_file_path));
-    REQUIRE(!comet::IsEmpty(non_empty_file_path));
+    REQUIRE(comet::IsPathEmpty(empty_directory_path));
+    REQUIRE(!comet::IsPathEmpty(non_empty_directory_path));
+    REQUIRE(comet::IsPathEmpty(empty_file_path));
+    REQUIRE(!comet::IsPathEmpty(non_empty_file_path));
   }
 
   SECTION("Delete operations.") {

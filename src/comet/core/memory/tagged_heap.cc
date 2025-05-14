@@ -68,11 +68,11 @@ void TaggedHeap::Destroy() {
   COMET_ASSERT(is_initialized_,
                "Tried to destroy tagged heap, but it is not initialized!");
 
-  global_block_map_.Clear();
+  global_block_map_.Destroy();
 
   for (auto& bucket : tag_block_maps_) {
     for (auto& entry : bucket) {
-      entry.block_map.Clear();
+      entry.block_map.Destroy();
       entry.tag = kEngineMemoryTagInvalid;
     }
   }

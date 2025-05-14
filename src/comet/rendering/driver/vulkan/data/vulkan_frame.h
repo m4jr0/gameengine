@@ -5,11 +5,9 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_FRAME_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_FRAME_H_
 
-#include "vma/vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 
 namespace comet {
 namespace rendering {
@@ -26,13 +24,13 @@ constexpr auto kInvalidImageIndex{static_cast<ImageIndex>(-1)};
 struct ImageData {
   ImageIndex image_index{kInvalidImageIndex};
   ImageIndex image_count{0};
+  VkSemaphore render_semaphore_handle{VK_NULL_HANDLE};
 };
 
 struct FrameData {
   VkCommandPool command_pool_handle{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
   VkSemaphore present_semaphore_handle{VK_NULL_HANDLE};
-  VkSemaphore render_semaphore_handle{VK_NULL_HANDLE};
   VkFence render_fence_handle{VK_NULL_HANDLE};
 };
 }  // namespace vk

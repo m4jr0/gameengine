@@ -7,6 +7,8 @@
 
 #include "opengl_shader_handler.h"
 
+#include <algorithm>
+#include <type_traits>
 #include <utility>
 
 #include "comet/core/c_string.h"
@@ -44,7 +46,7 @@ void ShaderHandler::Shutdown() {
     Destroy(it.value, true);
   }
 
-  shaders_.Clear();
+  shaders_.Destroy();
   bound_shader_handle_ = kInvalidShaderHandle;
   instance_id_handler_.Shutdown();
   shader_instance_allocator_.Destroy();
@@ -63,6 +65,7 @@ Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   shader->cull_mode = GetGlCullMode(shader_resource->descr.cull_mode);
   shader->topology = GetGlPrimitiveTopology(shader_resource->descr.topology);
 
+  shader->vertex_attributes = Array<VertexAttribute>{&general_allocator_};
   shader->uniforms = Array<ShaderUniform>{&general_allocator_};
   shader->constants = Array<ShaderConstant>{&general_allocator_};
   shader->storages = Array<ShaderStorage>{&general_allocator_};
@@ -115,26 +118,8 @@ void ShaderHandler::Bind(Shader* shader, ShaderBindType bind_type) {
     glBindVertexArray(shader->vertex_attribute_handle);
   }
 
-  auto vertex_buffer_handle{mesh_handler_->GetVertexBufferHandle()};
-  auto index_buffer_handle{mesh_handler_->GetIndexBufferHandle()};
-
-  if (vertex_buffer_handle != shader->vertex_buffer_handle ||
-      index_buffer_handle != shader->index_buffer_handle) {
-    if (vertex_buffer_handle != shader->vertex_buffer_handle) {
-      shader->vertex_buffer_handle = vertex_buffer_handle;
-      COMET_ASSERT(shader->vertex_buffer_handle != kInvalidStorageHandle,
-                   "Invalid vertex buffer handle!");
-      glBindBuffer(GL_ARRAY_BUFFER, shader->vertex_buffer_handle);
-    }
-
-    if (index_buffer_handle != shader->index_buffer_handle) {
-      shader->index_buffer_handle = vertex_buffer_handle;
-      COMET_ASSERT(shader->index_buffer_handle != kInvalidStorageHandle,
-                   "Invalid index buffer handle!");
-
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, shader->index_buffer_handle);
-    }
-  }
+  mesh_handler_->Bind();
+  RebindVertexAttributes(shader);
 
   glUseProgram(handle);
   bound_shader_handle_ = handle;
@@ -250,6 +235,12 @@ void ShaderHandler::UpdateStorages(Shader* shader,
 
   BindStorageBuffer(shader, shader->storage_indices.source_words,
                     update.ssbo_source_words_handle);
+
+  BindStorageBuffer(shader, shader->storage_indices.destination_words,
+                    update.ssbo_destination_words_handle);
+
+  BindStorageBuffer(shader, shader->storage_indices.matrix_palettes,
+                    update.ssbo_matrix_palettes_handle);
 
 #ifdef COMET_DEBUG_RENDERING
   BindStorageBuffer(shader, shader->storage_indices.debug_data,
@@ -672,32 +663,58 @@ GLenum ShaderHandler::GetGlPrimitiveTopology(PrimitiveTopology topology) {
   return gl_topology;
 }
 
-GLsizei ShaderHandler::GetGlAttributeSize(ShaderVertexAttributeType type) {
+// https://www.khronos.org/opengl/wiki/Vertex_Specification_Best_Practices
+GLsizei ShaderHandler::GetGlVertexAttributeSize(
+    ShaderVertexAttributeType type) {
   switch (type) {
-    case ShaderVertexAttributeType::F16:
-      return 2;
+    case ShaderVertexAttributeType::S8:
+    case ShaderVertexAttributeType::U8:
+    case ShaderVertexAttributeType::S32:
+    case ShaderVertexAttributeType::U32:
     case ShaderVertexAttributeType::F32:
       return 4;
+
     case ShaderVertexAttributeType::F64:
       return 8;
-    case ShaderVertexAttributeType::Vec2:
-      return 2 * 4;
-    case ShaderVertexAttributeType::Vec3:
-      return 3 * 4;
-    case ShaderVertexAttributeType::Vec4:
-      return 4 * 4;
-    case ShaderVertexAttributeType::S8:
-      return 1;
-    case ShaderVertexAttributeType::S16:
-      return 2;
-    case ShaderVertexAttributeType::S32:
+
+    case ShaderVertexAttributeType::U8Vec2:
+    case ShaderVertexAttributeType::S8Vec2:
+    case ShaderVertexAttributeType::U8Vec4:
+    case ShaderVertexAttributeType::S8Vec4:
+    case ShaderVertexAttributeType::U16Vec2:
+    case ShaderVertexAttributeType::S16Vec2:
+    case ShaderVertexAttributeType::F16Vec2:
       return 4;
-    case ShaderVertexAttributeType::U8:
-      return 1;
-    case ShaderVertexAttributeType::U16:
-      return 2;
-    case ShaderVertexAttributeType::U32:
-      return 4;
+
+    case ShaderVertexAttributeType::U16Vec3:
+    case ShaderVertexAttributeType::S16Vec3:
+    case ShaderVertexAttributeType::F16Vec3:
+    case ShaderVertexAttributeType::U16Vec4:
+    case ShaderVertexAttributeType::S16Vec4:
+    case ShaderVertexAttributeType::F16Vec4:
+    case ShaderVertexAttributeType::U32Vec2:
+    case ShaderVertexAttributeType::S32Vec2:
+    case ShaderVertexAttributeType::F32Vec2:
+      return 8;
+
+    case ShaderVertexAttributeType::U32Vec3:
+    case ShaderVertexAttributeType::S32Vec3:
+    case ShaderVertexAttributeType::F32Vec3:
+      return 12;
+
+    case ShaderVertexAttributeType::U32Vec4:
+    case ShaderVertexAttributeType::S32Vec4:
+    case ShaderVertexAttributeType::F32Vec4:
+    case ShaderVertexAttributeType::F64Vec2:
+      return 16;
+
+    case ShaderVertexAttributeType::F64Vec3:
+      return 24;
+
+    case ShaderVertexAttributeType::F64Vec4:
+      return 32;
+
+    case ShaderVertexAttributeType::Unknown:
     default:
       return 0;
   }
@@ -705,22 +722,50 @@ GLsizei ShaderHandler::GetGlAttributeSize(ShaderVertexAttributeType type) {
 
 GLint ShaderHandler::GetGlComponentCount(ShaderVertexAttributeType type) {
   switch (type) {
-    case ShaderVertexAttributeType::F16:
-    case ShaderVertexAttributeType::F32:
-    case ShaderVertexAttributeType::F64:
     case ShaderVertexAttributeType::S8:
     case ShaderVertexAttributeType::S16:
     case ShaderVertexAttributeType::S32:
     case ShaderVertexAttributeType::U8:
     case ShaderVertexAttributeType::U16:
     case ShaderVertexAttributeType::U32:
+    case ShaderVertexAttributeType::F16:
+    case ShaderVertexAttributeType::F32:
+    case ShaderVertexAttributeType::F64:
       return 1;
-    case ShaderVertexAttributeType::Vec2:
+
+    case ShaderVertexAttributeType::U8Vec2:
+    case ShaderVertexAttributeType::U16Vec2:
+    case ShaderVertexAttributeType::U32Vec2:
+    case ShaderVertexAttributeType::S8Vec2:
+    case ShaderVertexAttributeType::S16Vec2:
+    case ShaderVertexAttributeType::S32Vec2:
+    case ShaderVertexAttributeType::F16Vec2:
+    case ShaderVertexAttributeType::F32Vec2:
+    case ShaderVertexAttributeType::F64Vec2:
       return 2;
-    case ShaderVertexAttributeType::Vec3:
+
+    case ShaderVertexAttributeType::U8Vec3:
+    case ShaderVertexAttributeType::U16Vec3:
+    case ShaderVertexAttributeType::U32Vec3:
+    case ShaderVertexAttributeType::S8Vec3:
+    case ShaderVertexAttributeType::S16Vec3:
+    case ShaderVertexAttributeType::S32Vec3:
+    case ShaderVertexAttributeType::F16Vec3:
+    case ShaderVertexAttributeType::F32Vec3:
+    case ShaderVertexAttributeType::F64Vec3:
       return 3;
-    case ShaderVertexAttributeType::Vec4:
+
+    case ShaderVertexAttributeType::U8Vec4:
+    case ShaderVertexAttributeType::U16Vec4:
+    case ShaderVertexAttributeType::U32Vec4:
+    case ShaderVertexAttributeType::S8Vec4:
+    case ShaderVertexAttributeType::S16Vec4:
+    case ShaderVertexAttributeType::S32Vec4:
+    case ShaderVertexAttributeType::F16Vec4:
+    case ShaderVertexAttributeType::F32Vec4:
+    case ShaderVertexAttributeType::F64Vec4:
       return 4;
+
     default:
       return 0;
   }
@@ -728,29 +773,77 @@ GLint ShaderHandler::GetGlComponentCount(ShaderVertexAttributeType type) {
 
 GLenum ShaderHandler::GetGlVertexAttributeType(ShaderVertexAttributeType type) {
   switch (type) {
-    case ShaderVertexAttributeType::F16:
-      return GL_HALF_FLOAT;
-    case ShaderVertexAttributeType::F32:
-    case ShaderVertexAttributeType::Vec2:
-    case ShaderVertexAttributeType::Vec3:
-    case ShaderVertexAttributeType::Vec4:
-      return GL_FLOAT;
-    case ShaderVertexAttributeType::F64:
-      return GL_DOUBLE;
     case ShaderVertexAttributeType::S8:
+    case ShaderVertexAttributeType::S8Vec2:
+    case ShaderVertexAttributeType::S8Vec3:
+    case ShaderVertexAttributeType::S8Vec4:
       return GL_BYTE;
+
     case ShaderVertexAttributeType::S16:
+    case ShaderVertexAttributeType::S16Vec2:
+    case ShaderVertexAttributeType::S16Vec3:
+    case ShaderVertexAttributeType::S16Vec4:
       return GL_SHORT;
+
     case ShaderVertexAttributeType::S32:
+    case ShaderVertexAttributeType::S32Vec2:
+    case ShaderVertexAttributeType::S32Vec3:
+    case ShaderVertexAttributeType::S32Vec4:
       return GL_INT;
+
     case ShaderVertexAttributeType::U8:
+    case ShaderVertexAttributeType::U8Vec2:
+    case ShaderVertexAttributeType::U8Vec3:
+    case ShaderVertexAttributeType::U8Vec4:
       return GL_UNSIGNED_BYTE;
+
     case ShaderVertexAttributeType::U16:
+    case ShaderVertexAttributeType::U16Vec2:
+    case ShaderVertexAttributeType::U16Vec3:
+    case ShaderVertexAttributeType::U16Vec4:
       return GL_UNSIGNED_SHORT;
+
     case ShaderVertexAttributeType::U32:
+    case ShaderVertexAttributeType::U32Vec2:
+    case ShaderVertexAttributeType::U32Vec3:
+    case ShaderVertexAttributeType::U32Vec4:
       return GL_UNSIGNED_INT;
+
+    case ShaderVertexAttributeType::F16:
+    case ShaderVertexAttributeType::F16Vec2:
+    case ShaderVertexAttributeType::F16Vec3:
+    case ShaderVertexAttributeType::F16Vec4:
+      return GL_HALF_FLOAT;
+
+    case ShaderVertexAttributeType::F32:
+    case ShaderVertexAttributeType::F32Vec2:
+    case ShaderVertexAttributeType::F32Vec3:
+    case ShaderVertexAttributeType::F32Vec4:
+      return GL_FLOAT;
+
+    case ShaderVertexAttributeType::F64:
+    case ShaderVertexAttributeType::F64Vec2:
+    case ShaderVertexAttributeType::F64Vec3:
+    case ShaderVertexAttributeType::F64Vec4:
+      return GL_DOUBLE;
+
     default:
       return 0;
+  }
+}
+
+bool ShaderHandler::IsIntegerVertexAttributeType(GLenum gl_type) {
+  switch (gl_type) {
+    case GL_BYTE:
+    case GL_UNSIGNED_BYTE:
+    case GL_SHORT:
+    case GL_UNSIGNED_SHORT:
+    case GL_INT:
+    case GL_UNSIGNED_INT:
+      return true;
+
+    default:
+      return false;
   }
 }
 
@@ -883,11 +976,11 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
     glDeleteBuffers(1, &shader->uniform_buffer_handle);
   }
 
-  shader->instances.ids.Clear();
-  shader->instances.list.Clear();
-  shader->uniforms.Clear();
-  shader->constants.Clear();
-  shader->storages.Clear();
+  shader->instances.ids.Destroy();
+  shader->instances.list.Destroy();
+  shader->uniforms.Destroy();
+  shader->constants.Destroy();
+  shader->storages.Destroy();
 
   if (shader_module_handler_->IsInitialized()) {
     for (auto& module : shader->modules) {
@@ -895,14 +988,43 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
     }
   }
 
-  shader->modules.Clear();
-  shader->constants.Clear();
+  shader->modules.Destroy();
+  shader->constants.Destroy();
 
   if (!is_destroying_handler) {
     shaders_.Remove(shader->id);
   }
 
   shader_instance_allocator_.Deallocate(shader);
+}
+
+void ShaderHandler::RebindVertexAttributes(Shader* shader) const {
+  auto vertex_buffer_handle{mesh_handler_->GetVertexBufferHandle()};
+  auto index_buffer_handle{mesh_handler_->GetIndexBufferHandle()};
+
+  if (shader->vertex_buffer_handle == vertex_buffer_handle &&
+      shader->index_buffer_handle == index_buffer_handle) {
+    return;
+  }
+
+  mesh_handler_->Bind();
+  shader->vertex_buffer_handle = vertex_buffer_handle;
+  shader->index_buffer_handle = index_buffer_handle;
+  glBindVertexArray(shader->vertex_attribute_handle);
+
+  for (const auto& attr : shader->vertex_attributes) {
+    glEnableVertexAttribArray(attr.index);
+
+    if (IsIntegerVertexAttributeType(attr.component_type)) {
+      glVertexAttribIPointer(attr.index, attr.component_count,
+                             attr.component_type, attr.stride, attr.offset);
+    } else {
+      glVertexAttribPointer(attr.index, attr.component_count,
+                            attr.component_type, attr.is_normalized,
+                            attr.stride, attr.offset);
+    }
+  }
+  glBindVertexArray(kInvalidVertexAttributeHandle);
 }
 
 u32 ShaderHandler::GetInstanceIndex(const Shader* shader,
@@ -1009,40 +1131,39 @@ void ShaderHandler::HandleAttributesGeneration(
   glGenVertexArrays(1, &shader->vertex_attribute_handle);
   glBindVertexArray(shader->vertex_attribute_handle);
 
-  shader->vertex_buffer_handle = mesh_handler_->GetVertexBufferHandle();
-  shader->index_buffer_handle = mesh_handler_->GetIndexBufferHandle();
-
-  COMET_ASSERT(shader->vertex_buffer_handle != kInvalidStorageHandle,
-               "Invalid vertex buffer handle!");
-  COMET_ASSERT(shader->index_buffer_handle != kInvalidStorageHandle,
-               "Invalid index buffer handle!");
-
-  glBindBuffer(GL_ARRAY_BUFFER, shader->vertex_buffer_handle);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, shader->index_buffer_handle);
-
+  mesh_handler_->Bind();
   GLsizei stride{0};
 
   for (auto& descr : resource->descr.vertex_attributes) {
-    stride += GetGlAttributeSize(descr.type);
+    stride += GetGlVertexAttributeSize(descr.type);
   }
 
   GLsizeiptr offset{0};
   auto vertex_attribute_count{
       static_cast<GLuint>(resource->descr.vertex_attributes.GetSize())};
+  shader->vertex_attributes.Reserve(vertex_attribute_count);
 
   for (GLuint i{0}; i < vertex_attribute_count; ++i) {
-    const auto& descr = resource->descr.vertex_attributes[i];
+    const auto& descr{resource->descr.vertex_attributes[i]};
 
     auto component_count{GetGlComponentCount(descr.type)};
     auto type{GetGlVertexAttributeType(descr.type)};
-    auto normalized{static_cast<GLboolean>(GL_FALSE)};
 
     glEnableVertexAttribArray(i);
-    glVertexAttribPointer(i, component_count, type, normalized, stride,
-                          reinterpret_cast<const void*>(offset));
 
-    offset += GetGlAttributeSize(descr.type);
+    if (IsIntegerVertexAttributeType(type)) {
+      glVertexAttribIPointer(i, component_count, type, stride,
+                             reinterpret_cast<const void*>(offset));
+    } else {
+      auto is_normalized{static_cast<GLboolean>(GL_FALSE)};
+      glVertexAttribPointer(i, component_count, type, is_normalized, stride,
+                            reinterpret_cast<const void*>(offset));
+    }
+
+    offset += GetGlVertexAttributeSize(descr.type);
   }
+
+  RebindVertexAttributes(shader);
 
   glBindVertexArray(kInvalidVertexAttributeHandle);
   glBindBuffer(GL_ARRAY_BUFFER, kInvalidStorageHandle);
@@ -1274,6 +1395,11 @@ void ShaderHandler::HandleStorageIndexAndBinding(
                              kStorageNameDestinationWords.size())) {
     index = &shader->storage_indices.destination_words;
     storage.binding = kStorageBindingDestinationWords;
+  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
+                             kStorageNameMatrixPalettes.data(),
+                             kStorageNameMatrixPalettes.size())) {
+    index = &shader->storage_indices.matrix_palettes;
+    storage.binding = kStorageBindingMatrixPalettes;
   }
 #ifdef COMET_DEBUG_RENDERING
   else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,

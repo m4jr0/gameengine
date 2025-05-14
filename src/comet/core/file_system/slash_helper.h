@@ -5,7 +5,6 @@
 #ifndef COMET_COMET_CORE_FILE_SYSTEM_H_
 #define COMET_COMET_CORE_FILE_SYSTEM_H_
 
-#include "comet/core/c_string.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

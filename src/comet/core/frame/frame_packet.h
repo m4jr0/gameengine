@@ -5,13 +5,12 @@
 #ifndef COMET_COMET_CORE_FRAME_PACKET_H_
 #define COMET_COMET_CORE_FRAME_PACKET_H_
 
+#include "comet/animation/animation_common.h"
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/hash.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/ordered_set.h"
 #include "comet/entity/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/geometry_common.h"
@@ -44,10 +43,11 @@ constexpr auto kInvalidFramePacketDebugId{static_cast<FramePacketDebugId>(-1)};
 
 struct AddedGeometry {
   entity::EntityId entity_id{entity::kInvalidEntityId};
+  entity::EntityId model_entity_id{entity::kInvalidEntityId};
   geometry::MeshId mesh_id{geometry::kInvalidMeshId};
   const resource::MaterialResource* material{nullptr};
   DoubleFrameArray<geometry::Index>* indices{};
-  DoubleFrameArray<geometry::Vertex>* vertices{};
+  DoubleFrameArray<geometry::SkinnedVertex>* vertices{};
   math::Mat4 transform{1.0f};
   math::Vec3 local_center{0.0f};
   math::Vec3 local_max_extents{0.0f};
@@ -55,12 +55,13 @@ struct AddedGeometry {
 
 struct DirtyMesh {
   entity::EntityId entity_id{entity::kInvalidEntityId};
+  entity::EntityId model_entity_id{entity::kInvalidEntityId};
   geometry::MeshId mesh_id{geometry::kInvalidMeshId};
   const resource::MaterialResource* material{nullptr};
   math::Vec3 local_center{0.0f};
   math::Vec3 local_max_extents{0.0f};
   DoubleFrameArray<geometry::Index>* indices{nullptr};
-  DoubleFrameArray<geometry::Vertex>* vertices{nullptr};
+  DoubleFrameArray<geometry::SkinnedVertex>* vertices{nullptr};
 };
 
 struct DirtyTransform {
@@ -70,6 +71,7 @@ struct DirtyTransform {
 
 struct RemovedGeometry {
   entity::EntityId entity_id{entity::kInvalidEntityId};
+  entity::EntityId model_entity_id{entity::kInvalidEntityId};
   geometry::MeshId mesh_id{geometry::kInvalidMeshId};
 };
 
@@ -82,6 +84,8 @@ using AddedGeometries = frame::DoubleFrameOrderedSet<AddedGeometry>;
 using DirtyMeshes = frame::DoubleFrameOrderedSet<DirtyMesh>;
 using DirtyTransforms = frame::DoubleFrameOrderedSet<DirtyTransform>;
 using RemovedGeometries = frame::DoubleFrameOrderedSet<RemovedGeometry>;
+using SkinningBindings = frame::DoubleFrameArray<animation::SkinningBinding>;
+using MatrixPalettes = frame::DoubleFrameArray<animation::MatrixPalette>;
 
 struct FramePacket {
 #ifdef COMET_DEBUG
@@ -110,6 +114,7 @@ struct FramePacket {
 
   FrameCount frame_count{0};
   f64 lag{.0f};
+  f64 time{.0f};
   time::Interpolation interpolation{.0f};
   // TODO(m4jr0): Add skinning matrices.
   // TODO(m4jr0): Add list of meshes to render.
@@ -122,6 +127,8 @@ struct FramePacket {
   DirtyMeshes* dirty_meshes{nullptr};
   DirtyTransforms* dirty_transforms{nullptr};
   RemovedGeometries* removed_geometries{nullptr};
+  SkinningBindings* skinning_bindings{nullptr};
+  MatrixPalettes* matrix_palettes{nullptr};
 
   job::Counter* counter{nullptr};
   void* rendering_data{nullptr};

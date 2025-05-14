@@ -5,18 +5,15 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_MATERIAL_HANDLER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_HANDLER_VULKAN_MATERIAL_HANDLER_H_
 
+#include "vulkan/vulkan.h"
+
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/map.h"
-#include "comet/math/math_commons.h"
-#include "comet/math/matrix.h"
+#include "comet/math/math_common.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/resource/material_resource.h"
 
 namespace comet {

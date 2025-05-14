@@ -9,9 +9,12 @@
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
+#include "comet/resource/resource.h"
 #include "editor/asset/asset.h"
+#include "editor/memory/memory.h"
 
 namespace comet {
 namespace editor {
@@ -31,6 +34,13 @@ struct ResourceFilesContext {
   ResourceFiles files{};
 };
 
+class AssetExporter;
+
+struct AssetExport {
+  AssetExporter* exporter{nullptr};
+  ResourceFilesContext context{};
+};
+
 class AssetExporter {
  public:
   AssetExporter() = default;
@@ -39,6 +49,9 @@ class AssetExporter {
   AssetExporter& operator=(const AssetExporter&) = delete;
   AssetExporter& operator=(AssetExporter&&) = delete;
   virtual ~AssetExporter() = default;
+
+  void Initialize();
+  void Destroy();
 
   virtual bool IsCompatible(CTStringView extension) const = 0;
   void Process(const AssetExportDescr& descr);
@@ -67,11 +80,14 @@ class AssetExporter {
   resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
   TString root_asset_path_{};
   TString root_resource_path_{};
-};
 
-struct AssetExport {
-  AssetExporter* exporter{nullptr};
-  ResourceFilesContext context{};
+ private:
+  void OnAssetProcessed(AssetExport* asset_export);
+  AssetExport* GenerateAssetExport();
+  void DestroyAssetExport(AssetExport* asset_export);
+
+  memory::PlatformAllocator asset_export_allocator_{
+      memory::kEditorMemoryTagAsset};
 };
 }  // namespace asset
 }  // namespace editor

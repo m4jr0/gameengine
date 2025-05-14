@@ -73,10 +73,7 @@ BreedHandler::BreedHandler()
 
 BreedHandler::BreedHandler(BreedHandler&& other) noexcept
     : generations_{std::move(other.generations_)},
-      free_ids_{std::move(other.free_ids_)} {
-  other.generations_.Clear();
-  other.free_ids_.clear();
-}
+      free_ids_{std::move(other.free_ids_)} {}
 
 BreedHandler& BreedHandler::operator=(BreedHandler&& other) noexcept {
   if (this == &other) {
@@ -85,13 +82,11 @@ BreedHandler& BreedHandler::operator=(BreedHandler&& other) noexcept {
 
   generations_ = std::move(other.generations_);
   free_ids_ = std::move(other.free_ids_);
-  other.generations_.Clear();
-  other.free_ids_.clear();
   return *this;
 }
 
 void BreedHandler::Shutdown() {
-  generations_.Clear();
+  generations_.Destroy();
   free_ids_.clear();
 }
 

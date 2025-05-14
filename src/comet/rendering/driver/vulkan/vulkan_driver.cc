@@ -14,11 +14,9 @@
 #include "comet/core/type/array.h"
 #include "comet/event/event_manager.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/camera/camera.h"
-#include "comet/rendering/camera/camera_manager.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -492,7 +490,7 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0,
                        VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
 
-  const auto extent{swapchain_->GetExtent()};
+  const auto& extent{swapchain_->GetExtent()};
 
   VkViewport viewport{};
   viewport.x = 0.0f;
@@ -513,31 +511,56 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
   render_proxy_handler_->Update(packet);
   view_handler_->Update(packet);
 
-  VkPipelineStageFlags wait_stage{
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  VkPipelineStageFlags2 wait_stage{
+      VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT};
 
   frame::FrameArray<VkSemaphore> signal_semaphores{};
   signal_semaphores.Reserve(2);
-
-  signal_semaphores.PushBack(frame_data.render_semaphore_handle);
+  signal_semaphores.PushBack(context_->GetRenderSemaphoreHandle());
   signal_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
+
+  const auto wait_value{context_->GetTransferTimelineValue()};
   context_->UpdateTransferTimelineValue();
+  const auto signal_value{context_->GetTransferTimelineValue()};
 
-  frame::FrameArray<u64> semaphore_values{};
-  semaphore_values.Reserve(2);
+  frame::FrameArray<VkSemaphoreSubmitInfo> wait_infos{};
+  wait_infos.Reserve(2);
 
-  semaphore_values.PushBack(0);
-  semaphore_values.PushBack(context_->GetTransferTimelineValue());
+  auto& wait_present{wait_infos.EmplaceBack()};
+  wait_present.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+  wait_present.semaphore = frame_data.present_semaphore_handle;
+  wait_present.value = 0;
+  wait_present.stageMask = wait_stage;
+  wait_present.deviceIndex = 0;
 
-  auto timeline_semaphore_info{init::GenerateTimelineSemaphoreSubmitInfo(
-      0, VK_NULL_HANDLE, static_cast<u32>(semaphore_values.GetSize()),
-      semaphore_values.GetData())};
+  auto& wait_transfer{wait_infos.EmplaceBack()};
+  wait_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+  wait_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
+  wait_transfer.value = wait_value;
+  wait_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+  wait_transfer.deviceIndex = 0;
 
-  SubmitCommand(command_data, device_->GetGraphicsQueueHandle(),
-                frame_data.render_fence_handle,
-                &frame_data.present_semaphore_handle, 1,
-                signal_semaphores.GetData(), signal_semaphores.GetSize(),
-                &wait_stage, &timeline_semaphore_info);
+  frame::FrameArray<VkSemaphoreSubmitInfo> signal_infos{};
+  signal_infos.Reserve(2);
+
+  auto& signal_render{signal_infos.EmplaceBack()};
+  signal_render.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+  signal_render.semaphore = context_->GetRenderSemaphoreHandle();
+  signal_render.value = 0;
+  signal_render.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+  signal_render.deviceIndex = 0;
+
+  auto& signal_transfer{signal_infos.EmplaceBack()};
+  signal_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+  signal_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
+  signal_transfer.value = signal_value;
+  signal_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+  signal_transfer.deviceIndex = 0;
+
+  SubmitCommand2(command_data, device_->GetGraphicsQueueHandle(),
+                 frame_data.render_fence_handle, wait_infos.GetData(),
+                 static_cast<u32>(wait_infos.GetSize()), signal_infos.GetData(),
+                 static_cast<u32>(signal_infos.GetSize()), VK_NULL_HANDLE);
 }
 
 frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {

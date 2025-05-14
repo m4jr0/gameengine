@@ -7,7 +7,6 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_shader_view.h"
 

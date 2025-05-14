@@ -6,6 +6,8 @@
 
 #include "profiler_manager.h"
 
+#include <memory>
+#include <optional>
 #include <utility>
 
 #include "comet/core/date.h"

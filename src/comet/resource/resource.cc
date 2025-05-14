@@ -8,23 +8,19 @@
 
 #include <fstream>
 
+#include "comet/core/c_string.h"
 #include "comet/core/compression.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/generator.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 #include "comet/profiler/profiler.h"
 
 namespace comet {
 namespace resource {
-ResourceId GenerateResourceIdFromPath(CTStringView resource_path) {
-  return COMET_STRING_ID(resource_path);
-}
-
 void PackBytes(const u8* bytes, usize bytes_size,
                CompressionMode compression_mode, Array<u8>* packed_bytes,
                usize* packed_bytes_size) {
@@ -140,10 +136,9 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
   params.path = path.GetCTStr();
   params.file = &file;
 
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
+  job::CounterGuard guard{};
 
-  scheduler.KickAndWait(job::GenerateIOJobDescr(
+  job::Scheduler::Get().KickAndWait(job::GenerateIOJobDescr(
       [](job::IOJobParamsHandle params_handle) {
         auto* params{reinterpret_cast<JobParams*>(params_handle)};
         auto* path{params->path};
@@ -176,9 +171,6 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
         in_file.read(reinterpret_cast<schar*>(&file->data_size),
                      sizeof(file->data_size));
 
-        auto& scheduler{job::Scheduler::Get()};
-        auto* alloc_counter{scheduler.GenerateCounter()};
-
         struct AllocJobParams {
           ResourceFile* file{nullptr};
         };
@@ -199,19 +191,21 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
         const schar* debug_label{nullptr};
 #endif  // COMET_FIBER_DEBUG_LABEL
 
-        scheduler.KickAndWait(job::GenerateJobDescr(
-            job::JobPriority::High,
-            [](job::JobParamsHandle params_handle) {
-              auto* alloc_params{
-                  reinterpret_cast<AllocJobParams*>(params_handle)};
-              auto* file{alloc_params->file};
-              file->descr.Resize(file->packed_descr_size);
-              file->data.Resize(file->packed_data_size);
-            },
-            &alloc_params, job::JobStackSize::Normal, alloc_counter,
-            debug_label));
+        {
+          job::CounterGuard alloc_guard{};
 
-        scheduler.DestroyCounter(alloc_counter);
+          job::Scheduler::Get().KickAndWait(job::GenerateJobDescr(
+              job::JobPriority::High,
+              [](job::JobParamsHandle params_handle) {
+                auto* alloc_params{
+                    reinterpret_cast<AllocJobParams*>(params_handle)};
+                auto* file{alloc_params->file};
+                file->descr.Resize(file->packed_descr_size);
+                file->data.Resize(file->packed_data_size);
+              },
+              &alloc_params, job::JobStackSize::Normal,
+              alloc_guard.GetCounter(), debug_label));
+        }
 
         in_file.read(reinterpret_cast<schar*>(file->descr.GetData()),
                      file->packed_descr_size);
@@ -221,9 +215,8 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
 
         params->is_loaded = true;
       },
-      &params, counter));
+      &params, guard.GetCounter()));
 
-  scheduler.DestroyCounter(counter);
   return params.is_loaded;
 }
 
@@ -248,13 +241,6 @@ void ResourceHandler::Shutdown() {
   cache_ = {};
   cache_allocator_.Destroy();
   resource_allocator_.Destroy();
-}
-
-const Resource* ResourceHandler::Load(memory::Allocator& allocator,
-                                      CTStringView root_resource_path,
-                                      CTStringView resource_path) {
-  return Load(allocator, root_resource_path,
-              GenerateResourceIdFromPath(resource_path));
 }
 
 const Resource* ResourceHandler::Load(memory::Allocator& allocator,
@@ -335,9 +321,11 @@ const Resource* ResourceHandler::Load(memory::Allocator& allocator,
     }
   }
 
-  tchar resource_id_path[10];
+  constexpr auto kResourceIdPathBufferLen{GetCharCount<ResourceId>() + 1};
+  tchar resource_id_path[kResourceIdPathBufferLen];
   usize resource_id_path_len;
-  ConvertToStr(resource_id, resource_id_path, 10, &resource_id_path_len);
+  ConvertToStr(resource_id, resource_id_path, kResourceIdPathBufferLen,
+               &resource_id_path_len);
 
   TString resource_abs_path{};
   // Adding 1 for the hypothetical "/" between those two (if needed).
@@ -380,10 +368,6 @@ const Resource* ResourceHandler::Load(memory::Allocator& allocator,
   }
 
   return resource;
-}
-
-void ResourceHandler::Unload(CTStringView resource_path) {
-  Unload(GenerateResourceIdFromPath(resource_path));
 }
 
 void ResourceHandler::Unload(ResourceId resource_id) {

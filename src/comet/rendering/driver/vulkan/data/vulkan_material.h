@@ -5,15 +5,11 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_MATERIAL_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_MATERIAL_H_
 
-#include "vma/vk_mem_alloc.h"
-#include "vulkan/vulkan.h"
-
 #include "comet/core/essentials.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_texture.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
@@ -25,7 +21,7 @@ constexpr auto kInvalidMaterialId{static_cast<MaterialId>(-1)};
 struct MaterialDescr {
   MaterialId id{kInvalidMaterialId};
   ShaderId shader_id{kInvalidShaderId};
-  math::Vec4 diffuse_color{kColorWhite, 1.0f};
+  math::Vec4 diffuse_color{kColorWhiteRgba};
   TextureMap diffuse_map{};
   TextureMap specular_map{};
   TextureMap normal_map{};
@@ -38,7 +34,7 @@ struct Material {
   MaterialId id{kInvalidMaterialId};
   MaterialInstanceId instance_id{kInvalidMaterialInstanceId};
   ShaderId shader_id{kInvalidShaderId};
-  math::Vec4 diffuse_color{kColorWhite, 1.0f};
+  math::Vec4 diffuse_color{kColorWhiteRgba};
   TextureMap diffuse_map{};
   TextureMap specular_map{};
   TextureMap normal_map{};

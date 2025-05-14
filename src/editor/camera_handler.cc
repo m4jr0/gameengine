@@ -12,7 +12,6 @@
 #include "comet/math/vector.h"
 #include "comet/rendering/camera/camera.h"
 #include "comet/rendering/camera/camera_manager.h"
-#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace editor {

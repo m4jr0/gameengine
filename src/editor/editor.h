@@ -6,12 +6,8 @@
 #define COMET_EDITOR_EDITOR_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/memory.h"
 #include "comet/engine/engine.h"
-#include "comet/entry_point.h"
-#include "comet/event/event.h"
-#include "editor/asset/asset_manager.h"
 #include "editor/camera_handler.h"
 
 namespace comet {

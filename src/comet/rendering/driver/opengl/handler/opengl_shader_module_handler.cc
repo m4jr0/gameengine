@@ -7,7 +7,10 @@
 
 #include "opengl_shader_module_handler.h"
 
+#include <type_traits>
+
 #include "comet/core/generator.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -27,7 +30,7 @@ void ShaderModuleHandler::Shutdown() {
     Destroy(it.value, true);
   }
 
-  shader_modules_.Clear();
+  shader_modules_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }

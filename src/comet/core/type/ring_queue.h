@@ -26,6 +26,8 @@ class RingQueue {
   RingQueue& operator=(RingQueue&& other) noexcept;
   ~RingQueue() = default;
 
+  void Destroy();
+
   void Push(T&& element);
   void Push(const T& element);
   T& Get();
@@ -71,7 +73,6 @@ inline RingQueue<T>::RingQueue(RingQueue<T>&& other) noexcept
   other.head_ = 0;
   other.size_ = 0;
   other.allocator_ = nullptr;
-  other.elements_.Clear();
 }
 
 template <class T>
@@ -104,9 +105,13 @@ inline RingQueue<T>& RingQueue<T>::operator=(RingQueue<T>&& other) noexcept {
   other.head_ = 0;
   other.size_ = 0;
   other.allocator_ = nullptr;
-  other.elements_.Clear();
 
   return *this;
+}
+
+template <class T>
+inline void RingQueue<T>::Destroy() {
+  this->elements_.Destroy();
 }
 
 template <class T>
@@ -183,6 +188,8 @@ class LockFreeMPSCRingQueue {
   LockFreeMPSCRingQueue& operator=(LockFreeMPSCRingQueue&& other) noexcept;
   ~LockFreeMPSCRingQueue();
 
+  void Destroy();
+
   void Push(T&& element);
   void Push(const T& element);
   bool TryPop(T& element);
@@ -228,7 +235,6 @@ inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
   other.head_.store(0, std::memory_order_relaxed);
   other.tail_.store(0, std::memory_order_relaxed);
   other.allocator_ = nullptr;
-  other.elements_.Clear();
 }
 
 template <class T>
@@ -267,7 +273,6 @@ inline LockFreeMPSCRingQueue<T>& LockFreeMPSCRingQueue<T>::operator=(
   other.head_.store(0, std::memory_order_relaxed);
   other.tail_.store(0, std::memory_order_relaxed);
   other.allocator_ = nullptr;
-  other.elements_.Clear();
 
   return *this;
 }
@@ -275,6 +280,11 @@ inline LockFreeMPSCRingQueue<T>& LockFreeMPSCRingQueue<T>::operator=(
 template <class T>
 inline LockFreeMPSCRingQueue<T>::~LockFreeMPSCRingQueue() {
   Clear();
+}
+
+template <class T>
+inline void LockFreeMPSCRingQueue<T>::Destroy() {
+  this->elements_.Destroy();
 }
 
 template <class T>
@@ -354,6 +364,8 @@ class LockFreeMPMCRingQueue {
   LockFreeMPMCRingQueue& operator=(const LockFreeMPMCRingQueue&) = delete;
   LockFreeMPMCRingQueue& operator=(LockFreeMPMCRingQueue&& other) noexcept;
   ~LockFreeMPMCRingQueue();
+
+  void Destroy();
 
   void Push(const T& element);
   std::optional<T> TryPop();
@@ -449,8 +461,14 @@ inline LockFreeMPMCRingQueue<T>& LockFreeMPMCRingQueue<T>::operator=(
 
 template <class T>
 inline LockFreeMPMCRingQueue<T>::~LockFreeMPMCRingQueue() {
+  Destroy();
+}
+
+template <class T>
+inline void LockFreeMPMCRingQueue<T>::Destroy() {
   if (this->elements_ != nullptr) {
     allocator_->Deallocate(this->elements_);
+    this->elements_ = nullptr;
   }
 }
 
@@ -511,6 +529,7 @@ template <class T>
 inline void LockFreeMPMCRingQueue<T>::Clear() {
   while (TryPop().has_value());
 }
+
 template <class T>
 inline usize LockFreeMPMCRingQueue<T>::GetCapacity() const noexcept {
   return capacity_;

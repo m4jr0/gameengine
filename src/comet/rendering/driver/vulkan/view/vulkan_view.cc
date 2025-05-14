@@ -40,9 +40,9 @@ void View::Destroy() {
   context_ = nullptr;
   width_ = 0;
   height_ = 0;
-  clear_color_[0] = kColorBlack[0];
-  clear_color_[1] = kColorBlack[1];
-  clear_color_[2] = kColorBlack[2];
+  clear_color_[0] = kColorBlackRgb[0];
+  clear_color_[1] = kColorBlackRgb[1];
+  clear_color_[2] = kColorBlackRgb[2];
   clear_color_[3] = 1.0f;
 
   if (render_pass_ != nullptr && render_pass_handler_->IsInitialized()) {

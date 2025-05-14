@@ -5,7 +5,8 @@
 #ifndef COMET_COMET_CORE_TYPE_MAP_H_
 #define COMET_COMET_CORE_TYPE_MAP_H_
 
-#include <functional>
+#include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 #include "comet/core/essentials.h"
@@ -74,6 +75,44 @@ struct DefaultMapHashLogic : public MapHashLogic<TKey, TValue> {
 
   static bool AreEqual(const EntryKey& a, const EntryKey& b) { return a == b; }
 };
+
+template <typename TValue>
+struct DefaultMapHashLogic<const schar*, TValue>
+    : public MapHashLogic<const schar*, TValue> {
+  using EntryPair = typename MapHashLogic<const schar*, TValue>::Value;
+  using EntryKey = typename MapHashLogic<const schar*, TValue>::Hashable;
+
+  static const EntryKey& GetHashable(const EntryPair& pair) { return pair.key; }
+
+  static HashValue Hash(const EntryKey& key) { return GenerateHash(key); }
+
+  static bool AreEqual(const EntryKey& a, const EntryKey& b) {
+    return AreStringsEqual(a, b);
+  }
+};
+
+template <typename TValue>
+struct DefaultMapHashLogic<schar*, TValue>
+    : DefaultMapHashLogic<const schar*, TValue> {};
+
+template <typename TValue>
+struct DefaultMapHashLogic<const wchar*, TValue>
+    : public MapHashLogic<const wchar*, TValue> {
+  using EntryPair = typename MapHashLogic<const wchar*, TValue>::Value;
+  using EntryKey = typename MapHashLogic<const wchar*, TValue>::Hashable;
+
+  static const EntryKey& GetHashable(const EntryPair& pair) { return pair.key; }
+
+  static HashValue Hash(const EntryKey& key) { return GenerateHash(key); }
+
+  static bool AreEqual(const EntryKey& a, const EntryKey& b) {
+    return AreStringsEqual(a, b);
+  }
+};
+
+template <typename TValue>
+struct DefaultMapHashLogic<wchar*, TValue>
+    : DefaultMapHashLogic<const wchar*, TValue> {};
 }  // namespace internal
 
 template <typename Key, typename Value,
@@ -134,7 +173,9 @@ class Map {
     return *this;
   }
 
-  ~Map() { Clear(); }
+  ~Map() { Destroy(); }
+
+  void Destroy() { this->pairs_.Destroy(); }
 
   Value& operator[](const Key& key) { return Get(key); }
 

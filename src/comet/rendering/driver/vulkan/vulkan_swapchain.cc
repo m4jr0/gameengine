@@ -8,9 +8,8 @@
 #include "vulkan_swapchain.h"
 
 #include "comet/core/frame/frame_utils.h"
-#include "comet/math/math_commons.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/math/math_common.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
@@ -201,6 +200,7 @@ void Swapchain::Initialize() {
   context_->BindImageData(&image_data_);
 
   InitializeImageViews();
+  InitializeRenderSemaphores();
 
   if (!is_reload_needed_) {
     InitializeColorResources();
@@ -214,6 +214,7 @@ void Swapchain::Destroy() {
   COMET_ASSERT(is_initialized_,
                "Tried to destroy Swapchain, but it is not initialized!");
   context_->UnbindImageData();
+  DestroyRenderSemaphores();
   DestroyImageViews();
   DestroyDepthResources();
   DestroyColorResources();
@@ -268,14 +269,24 @@ bool Swapchain::Reload() {
 }
 
 VkResult Swapchain::AcquireNextImage(VkSemaphore semaphore_handle) {
-  return vkAcquireNextImageKHR(context_->GetDevice(), handle_,
-                               static_cast<u64>(-1), semaphore_handle,
-                               VK_NULL_HANDLE, &image_data_.image_index);
+  auto result{vkAcquireNextImageKHR(context_->GetDevice(), handle_,
+                                    static_cast<u64>(-1), semaphore_handle,
+                                    VK_NULL_HANDLE, &image_data_.image_index)};
+
+  if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
+    image_data_.render_semaphore_handle =
+        render_semaphore_handles_[image_data_.image_index %
+                                  render_semaphore_handles_.GetSize()];
+  } else {
+    image_data_.render_semaphore_handle = VK_NULL_HANDLE;
+  }
+
+  return result;
 }
 
 VkResult Swapchain::QueuePresent() {
   auto present_queue_handle{context_->GetDevice().GetPresentQueueHandle()};
-  auto semaphore_handle{context_->GetFrameData().render_semaphore_handle};
+  auto semaphore_handle{image_data_.render_semaphore_handle};
   auto present_info{init::GeneratePresentInfo()};
 
   if (semaphore_handle != VK_NULL_HANDLE) {
@@ -337,6 +348,21 @@ void Swapchain::InitializeImageViews() {
   }
 }
 
+void Swapchain::InitializeRenderSemaphores() {
+  render_semaphore_handles_ = Array<VkSemaphore>{&allocator_};
+  auto render_semaphore_count{images_.GetSize()};
+  render_semaphore_handles_.Resize(render_semaphore_count);
+  auto device_handle{static_cast<VkDevice>(context_->GetDevice())};
+  auto semaphore_create_info{init::GenerateSemaphoreCreateInfo()};
+
+  for (usize i{0}; i < render_semaphore_count; ++i) {
+    COMET_CHECK_VK(
+        vkCreateSemaphore(device_handle, &semaphore_create_info, VK_NULL_HANDLE,
+                          &render_semaphore_handles_[i]),
+        "Unable to create frame render semaphore!");
+  }
+}
+
 void Swapchain::InitializeColorResources() {
   auto& device{context_->GetDevice()};
 
@@ -373,6 +399,18 @@ void Swapchain::InitializeDepthResources() {
       device, depth_image_.handle, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
 
+void Swapchain::DestroyRenderSemaphores() {
+  auto device_handle{static_cast<VkDevice>(context_->GetDevice())};
+
+  for (auto handle : render_semaphore_handles_) {
+    if (handle != VK_NULL_HANDLE) {
+      vkDestroySemaphore(device_handle, handle, VK_NULL_HANDLE);
+    }
+  }
+
+  render_semaphore_handles_.Destroy();
+}
+
 void Swapchain::DestroyImageViews() {
   for (auto& image : images_) {
     if (image.image_view_handle == VK_NULL_HANDLE) {
@@ -384,7 +422,7 @@ void Swapchain::DestroyImageViews() {
     image.image_view_handle = VK_NULL_HANDLE;
   }
 
-  images_.Clear();
+  images_.Destroy();
 }
 
 void Swapchain::DestroyDepthResources() {

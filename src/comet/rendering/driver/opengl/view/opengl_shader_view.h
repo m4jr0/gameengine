@@ -10,7 +10,6 @@
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {

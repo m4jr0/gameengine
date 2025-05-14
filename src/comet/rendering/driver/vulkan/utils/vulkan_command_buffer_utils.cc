@@ -79,7 +79,7 @@ void SubmitCommand(VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
                    const void* next) {
   COMET_CHECK_VK(vkEndCommandBuffer(command_buffer_handle),
                  "Could not end command buffer!");
-  VkSubmitInfo submit_info{init::GenerateSubmitInfo(
+  auto submit_info{init::GenerateSubmitInfo(
       &command_buffer_handle, wait_semaphores, wait_semaphore_count,
       signal_semaphores, signal_semaphore_count, wait_dst_stage_mask, next)};
   COMET_CHECK_VK(vkQueueSubmit(queue_handle, 1, &submit_info, fence_handle),
@@ -96,6 +96,45 @@ void SubmitCommand(const CommandData& command_data, VkQueue queue_handle,
   SubmitCommand(command_data.command_buffer_handle, queue_handle, fence_handle,
                 wait_semaphores, wait_semaphore_count, signal_semaphores,
                 signal_semaphore_count, wait_dst_stage_mask, next);
+}
+
+void SubmitCommand2(u32 command_buffer_info_count,
+                    const VkCommandBufferSubmitInfo* command_buffer_infos,
+                    VkQueue queue_handle, VkFence fence_handle,
+                    const VkSemaphoreSubmitInfo* wait_semaphore_infos,
+                    u32 wait_semaphore_info_count,
+                    const VkSemaphoreSubmitInfo* signal_semaphore_infos,
+                    u32 signal_semaphore_info_count, const void* next) {
+  for (u32 i{0}; i < command_buffer_info_count; ++i) {
+    const auto& info{command_buffer_infos[i]};
+
+    COMET_CHECK_VK(vkEndCommandBuffer(info.commandBuffer),
+                   "Could not end command buffer!");
+  }
+
+  auto submit_info{init::GenerateSubmitInfo2(
+      command_buffer_info_count, command_buffer_infos, wait_semaphore_infos,
+      wait_semaphore_info_count, signal_semaphore_infos,
+      signal_semaphore_info_count, next)};
+  COMET_CHECK_VK(vkQueueSubmit2(queue_handle, 1, &submit_info, fence_handle),
+                 "Could not submit command to queue!");
+}
+
+void SubmitCommand2(const CommandData& command_data, VkQueue queue_handle,
+                    VkFence fence_handle,
+                    const VkSemaphoreSubmitInfo* wait_semaphore_infos,
+                    u32 wait_semaphore_info_count,
+                    const VkSemaphoreSubmitInfo* signal_semaphore_infos,
+                    u32 signal_semaphore_info_count, const void* next) {
+  VkCommandBufferSubmitInfo command_buffer_info{};
+
+  command_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+  command_buffer_info.commandBuffer = command_data.command_buffer_handle;
+  command_buffer_info.deviceMask = 0;
+
+  SubmitCommand2(1, &command_buffer_info, queue_handle, fence_handle,
+                 wait_semaphore_infos, wait_semaphore_info_count,
+                 signal_semaphore_infos, signal_semaphore_info_count, next);
 }
 
 VkCommandBuffer GenerateOneTimeCommand(VkDevice device_handle,

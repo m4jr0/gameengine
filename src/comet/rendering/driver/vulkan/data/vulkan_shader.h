@@ -5,13 +5,11 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_SHADER_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_SHADER_H_
 
-#include "vma/vk_mem_alloc.h"
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"

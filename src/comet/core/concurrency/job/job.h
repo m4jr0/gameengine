@@ -79,15 +79,15 @@ constexpr auto kInvalidJobPrimitiveDebugId{
     static_cast<JobPrimitiveDebugId>(-1)};
 #endif  // COMET_DEBUG
 
-class CounterGuard {
+class CounterWaiter {
  public:
-  CounterGuard() = delete;
-  explicit CounterGuard(Counter& counter);
-  CounterGuard(const CounterGuard&) = delete;
-  CounterGuard(CounterGuard&&) = delete;
-  CounterGuard& operator=(const CounterGuard&) = delete;
-  CounterGuard& operator=(CounterGuard&&) = delete;
-  ~CounterGuard() = default;
+  CounterWaiter() = delete;
+  explicit CounterWaiter(Counter& counter);
+  CounterWaiter(const CounterWaiter&) = delete;
+  CounterWaiter(CounterWaiter&&) = delete;
+  CounterWaiter& operator=(const CounterWaiter&) = delete;
+  CounterWaiter& operator=(CounterWaiter&&) = delete;
+  ~CounterWaiter() = default;
 
  private:
 #ifdef COMET_DEBUG

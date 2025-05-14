@@ -6,13 +6,10 @@
 #define COMET_COMET_CORE_CONCURRENCY_PROVIDER_THREAD_PROVIDER_MANAGER_H_
 
 #include "comet/core/concurrency/provider/thread_provider.h"
-#include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
 
 namespace comet {
 namespace thread {

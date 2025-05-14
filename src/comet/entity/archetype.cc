@@ -6,8 +6,6 @@
 
 #include "archetype.h"
 
-#include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_utils.h"
 #include "comet/entity/entity_memory_manager.h"
 
 namespace comet {

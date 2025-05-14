@@ -16,6 +16,7 @@ class Bitset {
   static usize GetWordCountFromBitCount(usize bit_count);
 
   Bitset() = default;
+  Bitset(memory::Allocator* allocator);
   Bitset(memory::Allocator* allocator, usize bit_count);
   Bitset(const Bitset& other);
   Bitset(Bitset&& other) noexcept;
@@ -23,10 +24,13 @@ class Bitset {
   Bitset& operator=(Bitset&& other) noexcept;
   ~Bitset();
 
+  void Destroy();
+
   void Set(usize index);
   void Reset(usize index);
   bool Test(usize index) const;
   void ResetAll();
+  void Resize(usize new_bit_count);
   void Clear();
 
   bool operator[](usize index) const;

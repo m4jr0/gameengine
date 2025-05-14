@@ -6,9 +6,10 @@
 
 #include "asset_utils.h"
 
+#include "comet/core/c_string.h"
 #include "comet/core/date.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
@@ -109,11 +110,12 @@ bool IsMetadataFile(CTStringView file_path) {
 
 TString GenerateResourcePath(CTStringView folder_path,
                              resource::ResourceId resource_id) {
-  // The ID will be 10 characters max.
-  tchar resource_id_path[11];
+  constexpr auto kResourceIdPathBufferSize{
+      GetCharCount<resource::ResourceId>() + 1};
+  tchar resource_id_path[kResourceIdPathBufferSize];
   usize resource_id_path_len;
-  ConvertToStr(resource_id, resource_id_path, 10, &resource_id_path_len);
-  resource_id_path[10] = COMET_TCHAR('\0');
+  ConvertToStr(resource_id, resource_id_path, kResourceIdPathBufferSize,
+               &resource_id_path_len);
   return folder_path / resource_id_path;
 }
 

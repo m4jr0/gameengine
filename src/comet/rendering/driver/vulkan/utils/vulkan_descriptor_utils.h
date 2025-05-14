@@ -9,8 +9,6 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 
 namespace comet {
 namespace rendering {
@@ -45,6 +43,15 @@ void FreeDescriptor(VkDevice device_handle,
 void FreeDescriptor(VkDevice device_handle,
                     VkDescriptorSet* descriptor_set_handles,
                     VkDescriptorPool& descriptor_pool_handle, u32 count);
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+void SetDescriptorSetLabels(const VkDescriptorSet* set_handles, u32 count,
+                            const schar* prefix);
+#define COMET_VK_SET_DESCRIPTOR_SET_LABELS(set_handles, count, prefix) \
+  SetDescriptorSetLabels(set_handles, count, prefix);
+#else
+#define COMET_VK_SET_DESCRIPTOR_SET_LABELS(set_handles, count, prefix)
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

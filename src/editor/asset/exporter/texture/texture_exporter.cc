@@ -11,9 +11,10 @@
 
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
@@ -40,13 +41,12 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
   texture_context.path = asset_descr.asset_abs_path.GetCTStr();
 #endif  // COMET_WIDE_TCHAR
 
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
+  {
+    job::CounterGuard guard{};
 
-  scheduler.KickAndWait(
-      job::GenerateIOJobDescr(OnTextureLoading, &texture_context, counter));
-
-  scheduler.DestroyCounter(counter);
+    job::Scheduler::Get().KickAndWait(job::GenerateIOJobDescr(
+        OnTextureLoading, &texture_context, guard.GetCounter()));
+  }
 
   if (texture_context.pixel_data == nullptr) {
     COMET_LOG_GLOBAL_ERROR("Failed to load texture image");
@@ -55,7 +55,8 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   COMET_LOG_GLOBAL_DEBUG("Processing texture at ", texture_context.path, "...");
   resource::TextureResource texture{};
-  texture.id = resource::GenerateResourceIdFromPath(asset_descr.asset_path);
+  texture.id = resource::GenerateResourceIdFromPath<resource::TextureResource>(
+      asset_descr.asset_path);
   texture.type_id = resource::TextureResource::kResourceTypeId;
   texture.descr.size = static_cast<comet::u64>(texture_context.tex_width) *
                        texture_context.tex_height * 4;

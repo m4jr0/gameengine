@@ -40,6 +40,21 @@ void SubmitCommand(
     u32 signal_semaphore_count = 0,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
     const void* next = VK_NULL_HANDLE);
+void SubmitCommand2(
+    u32 command_buffer_info_count,
+    const VkCommandBufferSubmitInfo* command_buffer_infos, VkQueue queue_handle,
+    VkFence fence_handle = VK_NULL_HANDLE,
+    const VkSemaphoreSubmitInfo* wait_semaphore_infos = VK_NULL_HANDLE,
+    u32 wait_semaphore_info_count = 0,
+    const VkSemaphoreSubmitInfo* signal_semaphore_infos = VK_NULL_HANDLE,
+    u32 signal_semaphore_info_count = 0, const void* next = VK_NULL_HANDLE);
+void SubmitCommand2(
+    const CommandData& command_data, VkQueue queue_handle,
+    VkFence fence_handle = VK_NULL_HANDLE,
+    const VkSemaphoreSubmitInfo* wait_semaphore_infos = VK_NULL_HANDLE,
+    u32 wait_semaphore_info_count = 0,
+    const VkSemaphoreSubmitInfo* signal_semaphore_infos = VK_NULL_HANDLE,
+    u32 signal_semaphore_info_count = 0, const void* next = VK_NULL_HANDLE);
 VkCommandBuffer GenerateOneTimeCommand(VkDevice device_handle,
                                        VkCommandPool command_pool_handle);
 void SubmitOneTimeCommand(

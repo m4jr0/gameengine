@@ -26,7 +26,7 @@ void TrackedAllocations::Initialize() {
 }
 
 void TrackedAllocations::Destroy() {
-  allocations.Clear();
+  allocations.Destroy();
   allocator = nullptr;
 }
 
@@ -57,9 +57,9 @@ void TrackedTags::Initialize() {
 }
 
 void TrackedTags::Destroy() {
-  platform_allocations.Clear();
-  platform_tags.Clear();
-  tagged_heap_tags.Clear();
+  platform_allocations.Destroy();
+  platform_tags.Destroy();
+  tagged_heap_tags.Destroy();
   allocator = nullptr;
 }
 

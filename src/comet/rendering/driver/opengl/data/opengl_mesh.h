@@ -21,6 +21,15 @@ struct MeshProxy {
   GLint vertex_offset{0};
   GLint index_offset{0};
 };
+
+struct VertexAttribute {
+  GLuint index{0};
+  GLint component_count{0};
+  GLenum component_type{0};
+  GLboolean is_normalized{GL_FALSE};
+  GLsizei stride{0};
+  const void* offset{nullptr};
+};
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

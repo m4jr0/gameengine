@@ -22,7 +22,7 @@ class FiberLifeCycleQueue {
   FiberLifeCycleQueue(FiberLifeCycleQueue&& other) noexcept;
   FiberLifeCycleQueue& operator=(const FiberLifeCycleQueue&) = delete;
   FiberLifeCycleQueue& operator=(FiberLifeCycleQueue&& other) noexcept;
-  ~FiberLifeCycleQueue();
+  ~FiberLifeCycleQueue() = default;
 
   void Push(Fiber* fiber);
   Fiber* TryPop();

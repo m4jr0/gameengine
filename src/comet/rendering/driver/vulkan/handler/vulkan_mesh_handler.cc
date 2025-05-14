@@ -8,14 +8,12 @@
 #include "vulkan_mesh_handler.h"
 
 #include "comet/core/logger.h"
-#include "comet/math/math_commons.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/driver/vulkan/vulkan_context.h"
 
 namespace comet {
 namespace rendering {
@@ -27,8 +25,6 @@ void MeshHandler::Initialize() {
   allocator_.Initialize();
   mesh_to_proxy_map_ = {&allocator_, kDefaultProxyCount_};
   proxies_ = {&allocator_, kDefaultProxyCount_};
-  free_vertex_regions_ = {&allocator_, kDefaultProxyCount_};
-  free_index_regions_ = {&allocator_, kDefaultProxyCount_};
 
   auto fence_info{init::GenerateFenceCreateInfo()};
   auto& device{context_->GetDevice()};
@@ -39,34 +35,47 @@ void MeshHandler::Initialize() {
 
   is_transfer_queue_ =
       IsTransferFamilyInQueueFamilyIndices(device.GetQueueFamilyIndices());
+
   staging_buffer_ = GenerateBuffer(
       allocator_handle, kDefaultStagingBufferSize_,
       VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       VMA_MEMORY_USAGE_CPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "staging_buffer_");
 
-  uploaded_vertex_buffer_ = GenerateBuffer(
-      allocator_handle, kDefaultStagingBufferSize_,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0,
-      VK_SHARING_MODE_EXCLUSIVE, "uploaded_vertex_buffer_");
+  vertex_buffer_ = VertexGpuBuffer{&allocator_,
+                                   context_,
+                                   kVertexCountPerBlock_,
+                                   kDefaultVertexCount_,
+                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                   VMA_MEMORY_USAGE_GPU_ONLY,
+                                   0,
+                                   VK_SHARING_MODE_EXCLUSIVE,
+                                   "vertex_buffer_"};
 
-  uploaded_index_buffer_ = GenerateBuffer(
-      allocator_handle, kDefaultStagingBufferSize_,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-          VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0,
-      VK_SHARING_MODE_EXCLUSIVE, "uploaded_index_buffer_");
+  index_buffer_ = IndexGpuBuffer{&allocator_,
+                                 context_,
+                                 kIndexCountPerBlock_,
+                                 kDefaultIndexCount_,
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                 VMA_MEMORY_USAGE_GPU_ONLY,
+                                 0,
+                                 VK_SHARING_MODE_EXCLUSIVE,
+                                 "index_buffer_"};
 
-  free_vertex_regions_.EmplaceBack(static_cast<u32>(0),
-                                   kDefaultStagingBufferSize_);
-  free_index_regions_.EmplaceBack(static_cast<u32>(0),
-                                  kDefaultStagingBufferSize_);
+  vertex_buffer_.Initialize();
+  index_buffer_.Initialize();
 }
 
 void MeshHandler::Shutdown() {
-  ClearAllMeshProxies();
+  proxies_ = {};
+  mesh_to_proxy_map_ = {};
+
+  vertex_buffer_.Destroy();
+  index_buffer_.Destroy();
+
+  if (IsBufferInitialized(staging_buffer_)) {
+    DestroyBuffer(staging_buffer_);
+  }
 
   if (upload_fence_handle_ != VK_NULL_HANDLE) {
     vkDestroyFence(context_->GetDevice(), upload_fence_handle_, VK_NULL_HANDLE);
@@ -96,13 +105,8 @@ void MeshHandler::Update(const frame::FramePacket* packet) {
 
 void MeshHandler::Bind() {
   auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  VkDeviceSize offset{0};
-
-  vkCmdBindVertexBuffers(command_buffer_handle, 0, 1,
-                         &uploaded_vertex_buffer_.handle, &offset);
-
-  vkCmdBindIndexBuffer(command_buffer_handle, uploaded_index_buffer_.handle, 0,
-                       VK_INDEX_TYPE_UINT32);
+  vertex_buffer_.Bind(command_buffer_handle);
+  index_buffer_.Bind(command_buffer_handle);
 }
 
 void MeshHandler::Wait() {
@@ -117,14 +121,14 @@ void MeshHandler::Wait() {
     auto transfer_queue_index{device.GetTransferQueueIndex()};
     auto graphics_queue_index{device.GetGraphicsQueueIndex()};
 
-    AddBufferMemoryBarrier(uploaded_vertex_buffer_, acquire_barriers,
+    AddBufferMemoryBarrier(vertex_buffer_.GetBuffer(), acquire_barriers,
                            VK_ACCESS_NONE,
                            VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT |
                                VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
                            transfer_queue_index, graphics_queue_index);
 
     AddBufferMemoryBarrier(
-        uploaded_index_buffer_, acquire_barriers, VK_ACCESS_NONE,
+        index_buffer_.GetBuffer(), acquire_barriers, VK_ACCESS_NONE,
         VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
         transfer_queue_index, graphics_queue_index);
 
@@ -148,51 +152,6 @@ const MeshProxy* MeshHandler::Get(MeshProxyHandle handle) const {
   return &proxies_[static_cast<usize>(handle)];
 }
 
-u32 MeshHandler::AllocateFromFreeList(Array<internal::FreeRegion>& free_list,
-                                      VkDeviceSize size) {
-  COMET_PROFILE("MeshHandler::AllocateFromFreeList");
-
-  for (auto it{free_list.begin()}; it != free_list.end(); ++it) {
-    if (it->size < size) {
-      continue;
-    }
-
-    auto offset{it->offset};
-
-    if (it->size > size) {
-      it->offset += static_cast<u32>(size);
-      it->size -= size;
-    } else {
-      free_list.RemoveFromPos(it);
-    }
-
-    return offset;
-  }
-
-  return internal::FreeRegion::kInvalidOffset;
-}
-
-void MeshHandler::FreeToFreeList(Array<internal::FreeRegion>& free_list,
-                                 u32 offset, VkDeviceSize size) {
-  COMET_PROFILE("MeshHandler::FreeToFreeList");
-  free_list.EmplaceBack(offset, size);
-
-  std::sort(free_list.begin(), free_list.end(),
-            [](const internal::FreeRegion& a, const internal::FreeRegion& b) {
-              return a.offset < b.offset;
-            });
-
-  for (usize i{0}; i < free_list.GetSize() - 1; ++i) {
-    if (free_list[i].offset + free_list[i].size != free_list[i + 1].offset) {
-      continue;
-    }
-
-    free_list[i].size += free_list[i + 1].size;
-    free_list.RemoveFromIndex(i + 1);
-    --i;
-  }
-}
-
 internal::UpdateContext MeshHandler::PrepareUpdate(
     const frame::FramePacket* packet) {
   COMET_PROFILE("MeshHandler::PrepareUpdate");
@@ -200,14 +159,14 @@ internal::UpdateContext MeshHandler::PrepareUpdate(
 
   for (const auto& geometry : *packet->added_geometries) {
     update_context.new_vertex_size +=
-        geometry.vertices->GetSize() * sizeof(geometry::Vertex);
+        geometry.vertices->GetSize() * sizeof(geometry::SkinnedVertex);
     update_context.new_index_size +=
         geometry.indices->GetSize() * sizeof(geometry::Index);
   }
 
   for (const auto& mesh : *packet->dirty_meshes) {
     update_context.dirty_vertex_size +=
-        mesh.vertices->GetSize() * sizeof(geometry::Vertex);
+        mesh.vertices->GetSize() * sizeof(geometry::SkinnedVertex);
     update_context.dirty_index_size +=
         mesh.indices->GetSize() * sizeof(geometry::Index);
   }
@@ -238,13 +197,10 @@ internal::UpdateContext MeshHandler::PrepareUpdate(
         VK_SHARING_MODE_EXCLUSIVE, VK_NULL_HANDLE, "staging_buffer_");
   }
 
-  if (uploaded_vertex_buffer_.size < update_context.total_vertex_size) {
-    ResizeVertexBuffer(update_context.total_vertex_size);
-  }
-
-  if (uploaded_index_buffer_.size < update_context.total_index_size) {
-    ResizeIndexBuffer(update_context.total_index_size);
-  }
+  vertex_buffer_.Resize(update_context.total_vertex_size /
+                        sizeof(geometry::SkinnedVertex));
+  index_buffer_.Resize(update_context.total_index_size /
+                       sizeof(geometry::Index));
 
   auto upload_count{packet->added_geometries->GetSize() +
                     packet->dirty_meshes->GetSize()};
@@ -274,11 +230,11 @@ void MeshHandler::FinishUpdate(internal::UpdateContext& update_context) {
       auto transfer_queue_index{update_context.device->GetTransferQueueIndex()};
       auto graphics_queue_index{update_context.device->GetGraphicsQueueIndex()};
 
-      AddBufferMemoryBarrier(uploaded_vertex_buffer_, release_barriers,
+      AddBufferMemoryBarrier(vertex_buffer_.GetBuffer(), release_barriers,
                              VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
                              transfer_queue_index, graphics_queue_index);
 
-      AddBufferMemoryBarrier(uploaded_index_buffer_, release_barriers,
+      AddBufferMemoryBarrier(index_buffer_.GetBuffer(), release_barriers,
                              VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
                              transfer_queue_index, graphics_queue_index);
 
@@ -311,8 +267,8 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
   auto* memory{static_cast<u8*>(staging_buffer_.mapped_memory)};
 
   for (const auto& geometry : *geometries) {
-    auto vertex_size{static_cast<VkDeviceSize>(geometry.vertices->GetSize() *
-                                               sizeof(geometry::Vertex))};
+    auto vertex_size{static_cast<VkDeviceSize>(
+        geometry.vertices->GetSize() * sizeof(geometry::SkinnedVertex))};
     auto index_size{static_cast<VkDeviceSize>(geometry.indices->GetSize() *
                                               sizeof(geometry::Index))};
 
@@ -321,35 +277,15 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
     memory::CopyMemory(memory + update_context.current_staging_index_offset,
                        geometry.indices->GetData(), index_size);
 
-    auto vertex_byte_offset{
-        AllocateFromFreeList(free_vertex_regions_, vertex_size)};
-    auto index_byte_offset{
-        AllocateFromFreeList(free_index_regions_, index_size)};
-
-    if (vertex_byte_offset == internal::FreeRegion::kInvalidOffset) {
-      ResizeVertexBuffer(math::Max(uploaded_vertex_buffer_.size + vertex_size,
-                                   uploaded_vertex_buffer_.size * 2));
-      vertex_byte_offset =
-          AllocateFromFreeList(free_vertex_regions_, vertex_size);
-    }
-
-    if (index_byte_offset == internal::FreeRegion::kInvalidOffset) {
-      ResizeIndexBuffer(math::Max(uploaded_index_buffer_.size + index_size,
-                                  uploaded_index_buffer_.size * 2));
-      index_byte_offset = AllocateFromFreeList(free_index_regions_, index_size);
-    }
-
-    COMET_ASSERT(vertex_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload vertices!");
-    COMET_ASSERT(index_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload indices!");
+    auto vertex_offset{vertex_buffer_.Claim(geometry.vertices->GetSize())};
+    auto index_offset{index_buffer_.Claim(geometry.indices->GetSize())};
 
     update_context.vertex_copy_regions.EmplaceBack(
-        update_context.current_staging_vertex_offset, vertex_byte_offset,
-        vertex_size);
+        update_context.current_staging_vertex_offset,
+        vertex_offset * sizeof(geometry::SkinnedVertex), vertex_size);
     update_context.index_copy_regions.EmplaceBack(
-        update_context.current_staging_index_offset, index_byte_offset,
-        index_size);
+        update_context.current_staging_index_offset,
+        index_offset * sizeof(geometry::Index), index_size);
 
     update_context.current_staging_vertex_offset += vertex_size;
     update_context.current_staging_index_offset += index_size;
@@ -358,8 +294,8 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
     auto& proxy{proxies_.EmplaceBack()};
     proxy.vertex_count = static_cast<u32>(geometry.vertices->GetSize());
     proxy.index_count = static_cast<u32>(geometry.indices->GetSize());
-    proxy.vertex_offset = vertex_byte_offset / sizeof(geometry::Vertex);
-    proxy.index_offset = index_byte_offset / sizeof(geometry::Index);
+    proxy.vertex_offset = static_cast<u32>(vertex_offset);
+    proxy.index_offset = static_cast<u32>(index_offset);
   }
 }
 
@@ -384,56 +320,21 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
     COMET_ASSERT(*proxy_id < proxies_.GetSize(), "Proxy index out of bounds!");
     auto& proxy{proxies_[*proxy_id]};
 
-    auto new_vertex_size{static_cast<VkDeviceSize>(mesh.vertices->GetSize() *
-                                                   sizeof(geometry::Vertex))};
+    auto new_vertex_size{static_cast<VkDeviceSize>(
+        mesh.vertices->GetSize() * sizeof(geometry::SkinnedVertex))};
     auto new_index_size{static_cast<VkDeviceSize>(mesh.indices->GetSize() *
                                                   sizeof(geometry::Index))};
-    auto vertex_byte_offset{proxy.vertex_offset * sizeof(geometry::Vertex)};
-    auto index_byte_offset{proxy.index_offset * sizeof(geometry::Index)};
 
-    if (new_vertex_size > proxy.vertex_count * sizeof(geometry::Vertex)) {
-      FreeToFreeList(free_vertex_regions_, proxy.vertex_offset,
-                     proxy.vertex_count * sizeof(geometry::Vertex));
+    auto vertex_offset{vertex_buffer_.CheckOrMove(
+        proxy.vertex_offset, proxy.vertex_count, new_vertex_size)};
 
-      vertex_byte_offset =
-          AllocateFromFreeList(free_vertex_regions_, new_vertex_size);
-
-      if (vertex_byte_offset == internal::FreeRegion::kInvalidOffset) {
-        ResizeVertexBuffer(
-            math::Max(uploaded_vertex_buffer_.size + new_vertex_size,
-                      uploaded_vertex_buffer_.size * 2));
-        vertex_byte_offset =
-            AllocateFromFreeList(free_vertex_regions_, new_vertex_size);
-      }
-    }
-
-    if (new_index_size > proxy.index_count * sizeof(geometry::Index)) {
-      FreeToFreeList(free_index_regions_, proxy.index_offset,
-                     proxy.index_count * sizeof(geometry::Index));
-
-      index_byte_offset =
-          AllocateFromFreeList(free_index_regions_, new_index_size);
-
-      if (index_byte_offset == internal::FreeRegion::kInvalidOffset) {
-        ResizeIndexBuffer(
-            math::Max(uploaded_index_buffer_.size + new_index_size,
-                      uploaded_index_buffer_.size * 2));
-        index_byte_offset =
-            AllocateFromFreeList(free_index_regions_, new_index_size);
-      }
-    }
-
-    COMET_ASSERT(vertex_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload vertices!");
-    COMET_ASSERT(index_byte_offset != internal::FreeRegion::kInvalidOffset,
-                 "Not enough memory to upload indices!");
+    auto index_offset{index_buffer_.CheckOrMove(
+        proxy.index_offset, proxy.index_count, new_index_size)};
 
     proxy.vertex_count = static_cast<u32>(mesh.vertices->GetSize());
     proxy.index_count = static_cast<u32>(mesh.indices->GetSize());
-    proxy.vertex_offset =
-        static_cast<u32>(vertex_byte_offset / sizeof(geometry::Vertex));
-    proxy.index_offset =
-        static_cast<u32>(index_byte_offset / sizeof(geometry::Index));
+    proxy.vertex_offset = static_cast<u32>(vertex_offset);
+    proxy.index_offset = static_cast<u32>(index_offset);
 
     memory::CopyMemory(memory + update_context.current_staging_vertex_offset,
                        mesh.vertices->GetData(), new_vertex_size);
@@ -441,11 +342,11 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
                        mesh.indices->GetData(), new_index_size);
 
     update_context.vertex_copy_regions.EmplaceBack(
-        update_context.current_staging_vertex_offset, vertex_byte_offset,
-        new_vertex_size);
+        update_context.current_staging_vertex_offset,
+        vertex_offset * sizeof(geometry::SkinnedVertex), new_vertex_size);
     update_context.index_copy_regions.EmplaceBack(
-        update_context.current_staging_index_offset, index_byte_offset,
-        new_index_size);
+        update_context.current_staging_index_offset,
+        index_offset * sizeof(geometry::Index), new_index_size);
 
     update_context.current_staging_vertex_offset += new_vertex_size;
     update_context.current_staging_index_offset += new_index_size;
@@ -466,12 +367,8 @@ void MeshHandler::DestroyMeshProxies(
     }
 
     auto& proxy{proxies_[*proxy_id]};
-
-    FreeToFreeList(free_vertex_regions_, proxy.vertex_offset,
-                   proxy.vertex_count * sizeof(geometry::Vertex));
-    FreeToFreeList(free_index_regions_, proxy.index_offset,
-                   proxy.index_count * sizeof(geometry::Index));
-
+    vertex_buffer_.Release(proxy.vertex_offset, proxy.vertex_count);
+    index_buffer_.Release(proxy.index_offset, proxy.index_count);
     mesh_to_proxy_map_.Remove(geometry.mesh_id);
   }
 }
@@ -480,91 +377,12 @@ void MeshHandler::UploadMeshProxies(
     const internal::UpdateContext& update_context) {
   COMET_PROFILE("MeshHandler::UploadMeshProxies");
 
-  is_transfer_ = !update_context.vertex_copy_regions.IsEmpty() ||
-                 !update_context.index_copy_regions.IsEmpty();
-
-  if (!update_context.vertex_copy_regions.IsEmpty()) {
-    vkCmdCopyBuffer(
-        update_context.command_buffer_handle, staging_buffer_.handle,
-        uploaded_vertex_buffer_.handle,
-        static_cast<u32>(update_context.vertex_copy_regions.GetSize()),
-        update_context.vertex_copy_regions.GetData());
-  }
-
-  if (!update_context.index_copy_regions.IsEmpty()) {
-    vkCmdCopyBuffer(
-        update_context.command_buffer_handle, staging_buffer_.handle,
-        uploaded_index_buffer_.handle,
-        static_cast<u32>(update_context.index_copy_regions.GetSize()),
-        update_context.index_copy_regions.GetData());
-  }
-}
-
-void MeshHandler::ClearAllMeshProxies() {
-  COMET_PROFILE("MeshHandler::ClearAllMeshProxies");
-  proxies_ = {};
-  mesh_to_proxy_map_ = {};
-
-  free_vertex_regions_ = {};
-  free_index_regions_ = {};
-
-  if (IsBufferInitialized(uploaded_vertex_buffer_)) {
-    DestroyBuffer(uploaded_vertex_buffer_);
-  }
-
-  if (IsBufferInitialized(uploaded_index_buffer_)) {
-    DestroyBuffer(uploaded_index_buffer_);
-  }
-
-  if (IsBufferInitialized(staging_buffer_)) {
-    DestroyBuffer(staging_buffer_);
-  }
-}
-
-void MeshHandler::ResizeVertexBuffer(VkDeviceSize new_size) {
-  COMET_PROFILE("MeshHandler::ResizeVertexBuffer");
-
-  if (new_size <= uploaded_vertex_buffer_.size) {
-    return;
-  }
-
-  auto old_capacity{uploaded_vertex_buffer_.size};
-  auto& device{context_->GetDevice()};
-
-  ResizeBuffer(
-      uploaded_vertex_buffer_, device, context_->GetTransferCommandPoolHandle(),
-      context_->GetAllocatorHandle(), new_size,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VMA_MEMORY_USAGE_AUTO, device.GetGraphicsQueueHandle(),
-      VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 0, VK_SHARING_MODE_EXCLUSIVE,
-      VK_NULL_HANDLE, "uploaded_vertex_buffer_");
-
-  free_vertex_regions_.EmplaceBack(static_cast<u32>(old_capacity),
-                                   new_size - old_capacity);
-}
-
-void MeshHandler::ResizeIndexBuffer(VkDeviceSize new_size) {
-  COMET_PROFILE("MeshHandler::ResizeIndexBuffer");
-
-  if (new_size <= uploaded_index_buffer_.size) {
-    return;
-  }
-
-  auto old_capacity{uploaded_index_buffer_.size};
-  auto& device{context_->GetDevice()};
-
-  ResizeBuffer(
-      uploaded_index_buffer_, device, context_->GetTransferCommandPoolHandle(),
-      context_->GetAllocatorHandle(), new_size,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-          VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VMA_MEMORY_USAGE_AUTO, device.GetGraphicsQueueHandle(),
-      VK_ACCESS_INDEX_READ_BIT, 0, VK_SHARING_MODE_EXCLUSIVE, VK_NULL_HANDLE,
-      "uploaded_index_buffer_");
-
-  free_index_regions_.EmplaceBack(static_cast<u32>(old_capacity),
-                                  new_size - old_capacity);
+  is_transfer_ =
+      !vertex_buffer_.Upload(update_context.command_buffer_handle,
+                             staging_buffer_,
+                             update_context.vertex_copy_regions) ||
+      !index_buffer_.Upload(update_context.command_buffer_handle,
+                            staging_buffer_, update_context.index_copy_regions);
 }
 }  // namespace vk
 }  // namespace rendering

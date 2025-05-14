@@ -13,39 +13,17 @@ std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
   return std::chrono::system_clock::from_time_t(time);
 }
 
-f64 GetMilliseconds(
-    const std::chrono::time_point<std::chrono::system_clock>& time) {
+f64 GetSeconds(const std::chrono::time_point<std::chrono::system_clock>& time) {
   const auto duration_in_seconds{
       std::chrono::duration<f64>(time.time_since_epoch())};
 
-  return duration_in_seconds.count() * 1000;
-}
-
-f64 GetMilliseconds(const std::time_t& time) {
-  return GetMilliseconds(GetChronoTimePoint(time));
-}
-
-f64 GetMicroseconds(
-    const std::chrono::time_point<std::chrono::system_clock>& time) {
-  const auto duration_in_microseconds{
-      std::chrono::duration<f64, std::micro>(time.time_since_epoch())};
-
-  return duration_in_microseconds.count();
-}
-
-f64 GetMicroseconds(const std::time_t& time) {
-  return GetMicroseconds(GetChronoTimePoint(time));
+  return duration_in_seconds.count();
 }
 }  // namespace internal
 
 f64 GetNow() {
   const auto current_time{std::chrono::system_clock::now()};
-  return internal::GetMilliseconds(current_time);
-}
-
-f64 GetPreciseNow() {
-  const auto current_time{std::chrono::system_clock::now()};
-  return internal::GetMicroseconds(current_time);
+  return internal::GetSeconds(current_time);
 }
 
 u64 GetTimestampSeconds() {

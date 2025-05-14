@@ -34,9 +34,13 @@ target_sources(${EXECUTABLE_NAME}
     
     # Exporters.
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
-
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/assimp_utils.cc"
+    
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_export.h"
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_exporter.cc"
-    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_exporter_utils.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/utils/animation_export_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/utils/model_exporter_utils.cc"
 
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/shader_exporter.cc"
 

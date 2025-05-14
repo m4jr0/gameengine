@@ -8,12 +8,11 @@
 #include "glad/glad.h"
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type/gid.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
@@ -46,6 +45,7 @@ constexpr auto kStorageNameIndirectProxies{"indirectProxies"sv};
 constexpr auto kStorageNameWordIndices{"wordIndices"sv};
 constexpr auto kStorageNameSourceWords{"sourceWords"sv};
 constexpr auto kStorageNameDestinationWords{"destinationWords"sv};
+constexpr auto kStorageNameMatrixPalettes{"matrixPalettes"sv};
 
 #ifdef COMET_DEBUG_RENDERING
 constexpr auto kStorageNameDebugData{"debugData"sv};
@@ -73,6 +73,8 @@ constexpr ShaderBindingIndex kStorageBindingSourceWords{kStorageBindingOffset +
                                                         5};
 constexpr ShaderBindingIndex kStorageBindingDestinationWords{
     kStorageBindingOffset + 6};
+constexpr ShaderBindingIndex kStorageBindingMatrixPalettes{
+    kStorageBindingOffset + 7};
 
 constexpr ShaderBindingIndex kStorageBindingDebugOffset{kStorageBindingOffset +
                                                         64};
@@ -174,6 +176,7 @@ struct ShaderStorageIndices {
   ShaderStorageIndex word_indices{kInvalidShaderStorageIndex};
   ShaderStorageIndex source_words{kInvalidShaderStorageIndex};
   ShaderStorageIndex destination_words{kInvalidShaderStorageIndex};
+  ShaderStorageIndex matrix_palettes{kInvalidShaderStorageIndex};
 #ifdef COMET_DEBUG_RENDERING
   ShaderStorageIndex debug_data{kInvalidShaderStorageIndex};
 #endif  // COMET_DEBUG_RENDERING
@@ -239,6 +242,9 @@ struct ShaderStoragesUpdate {
   StorageBufferHandle ssbo_indirect_proxies_handle{kInvalidStorageBufferHandle};
   StorageBufferHandle ssbo_word_indices_handle{kInvalidStorageBufferHandle};
   StorageBufferHandle ssbo_source_words_handle{kInvalidStorageBufferHandle};
+  StorageBufferHandle ssbo_destination_words_handle{
+      kInvalidStorageBufferHandle};
+  StorageBufferHandle ssbo_matrix_palettes_handle{kInvalidStorageBufferHandle};
 #ifdef COMET_DEBUG_RENDERING
   StorageBufferHandle ssbo_debug_data_handle{kInvalidStorageBufferHandle};
 #endif  // COMET_DEBUG_RENDERING

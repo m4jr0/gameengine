@@ -99,7 +99,12 @@
         "semaphore": "cpp",
         "charconv": "cpp",
         "format": "cpp",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "expected": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "stdfloat": "cpp",
+        "text_encoding": "cpp"
     },
     "C_Cpp.clang_format_style": "Google",
     "editor.tabSize": 4

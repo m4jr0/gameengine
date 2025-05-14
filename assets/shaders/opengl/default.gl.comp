@@ -4,14 +4,11 @@
 #define LOCAL_SIZE 256
 #endif // LOCAL_SIZE
 
-#ifdef COMET_VALIDATION_DEBUG_PRINTF_EXT
-#extension GL_EXT_debug_printf : enable
-#endif // COMET_VALIDATION_DEBUG_PRINTF_EXT
-
 struct ProxyLocalData {
   vec3 localCenter;
   vec3 localMaxExtents;
   mat4 transform;
+  uint skinningOffset;
 };
 
 struct ProxyInstance {

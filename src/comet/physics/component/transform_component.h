@@ -8,8 +8,6 @@
 #include "comet/core/essentials.h"
 #include "comet/entity/entity_id.h"
 #include "comet/math/matrix.h"
-#include "comet/math/quaternion.h"
-#include "comet/math/vector.h"
 
 namespace comet {
 namespace physics {

@@ -87,8 +87,8 @@ class ResourceManager : public Manager {
       CTStringView asset_path,
       ResourceLifeSpan life_span = ResourceLifeSpan::Manual) {
     COMET_ASSERT(!asset_path.IsEmpty(), "Asset path provided is empty!");
-    return Load<ResourceType>(GenerateResourceIdFromPath(asset_path),
-                              life_span);
+    return Load<ResourceType>(
+        GenerateResourceIdFromPath<ResourceType>(asset_path), life_span);
   }
 
   template <typename ResourceType>
@@ -102,7 +102,7 @@ class ResourceManager : public Manager {
 
   template <typename ResourceType>
   void Unload(CTStringView asset_path) {
-    Unload<ResourceType>(GenerateResourceIdFromPath(asset_path));
+    Unload<ResourceType>(GenerateResourceIdFromPath<ResourceType>(asset_path));
   }
 
   template <typename ResourceType>

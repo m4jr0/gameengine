@@ -7,7 +7,6 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_shader_view.h"
 

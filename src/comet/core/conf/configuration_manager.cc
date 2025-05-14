@@ -8,6 +8,7 @@
 
 #include <fstream>
 
+#include "comet/core/c_string.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger.h"
 
@@ -96,7 +97,7 @@ void ConfigurationManager::Initialize() {
 }
 
 void ConfigurationManager::Shutdown() {
-  values_.Clear();
+  values_.Destroy();
   allocator_.Destroy();
   Manager::Shutdown();
 }

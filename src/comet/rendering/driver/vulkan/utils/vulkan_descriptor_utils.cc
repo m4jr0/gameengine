@@ -7,6 +7,8 @@
 
 #include "vulkan_descriptor_utils.h"
 
+#include "comet/core/c_string.h"
+#include "comet/math/math_common.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
@@ -127,6 +129,22 @@ void FreeDescriptor(VkDevice device_handle,
 
   descriptor_pool_handle = VK_NULL_HANDLE;
 }
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+void SetDescriptorSetLabels(const VkDescriptorSet* set_handles, u32 count,
+                            const schar* prefix) {
+  constexpr usize kMaxPrefixLen{32};
+  auto prefix_len{math::Min(kMaxPrefixLen, GetLength(prefix))};
+  constexpr auto kBufferLen{kMaxPrefixLen + GetCharCount<u32>() + 1};
+  schar buffer[kBufferLen]{};
+  memory::CopyMemory(buffer, prefix, prefix_len);
+
+  for (u32 i{0}; i < count; ++i) {
+    ConvertToStr(i, buffer + prefix_len, kBufferLen);
+    COMET_VK_SET_DEBUG_LABEL(set_handles[i], buffer);
+  }
+}
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

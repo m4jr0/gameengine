@@ -21,6 +21,10 @@ namespace fiber {
 thread_local Fiber tls_thread_fiber{};
 thread_local Fiber* tls_current_fiber{nullptr};
 
+#ifdef COMET_IS_ASAN
+thread_local void* tls_fake_stack{nullptr};
+#endif
+
 extern "C" {
 extern void COMET_FORCE_NOT_INLINE
 SwitchExecutionContext(ExecutionContext* src, const ExecutionContext* dst);
@@ -45,21 +49,26 @@ void RunOrResume(Fiber* to) {
                "!");
   tls_current_fiber = to;
 #ifdef COMET_IS_ASAN
-  void* fake_stack{nullptr};
-  __sanitizer_start_switch_fiber(&fake_stack, to->GetStack(),
-                                 to->GetStackCapacity());
+  if (tls_fake_stack == nullptr) {
+    __sanitizer_start_switch_fiber(&tls_fake_stack, to->GetStack(),
+                                   to->GetStackCapacity());
+  }
 #endif  //  COMET_IS_ASAN
 
 #ifdef COMET_IS_TSAN
   auto* this_fiber{__tsan_get_current_fiber()};
   auto* next_fiber{__tsan_create_fiber(0)};
-  __tsan_switch_to_fiber(next_fiber, nullptr);
+  __tsan_switch_to_fiber(next_fiber, 0);
 #endif  // COMET_IS_TSAN
 
   SwitchExecutionContext(&from->GetContext(), &to->GetContext());
 
 #ifdef COMET_IS_ASAN
-  __sanitizer_finish_switch_fiber(fake_stack, nullptr, nullptr);
+  const auto* from_stack{from->GetStack()};
+  const auto** from_stack_ptr{&from_stack};
+  auto from_size{from->GetStackCapacity()};
+  __sanitizer_finish_switch_fiber(tls_fake_stack, from_stack_ptr, &from_size);
+  tls_fake_stack = nullptr;
 #endif  //  COMET_IS_ASAN
 
 #ifdef COMET_IS_TSAN
@@ -78,7 +87,33 @@ void ResumeWorker() {
                "!");
 
   tls_current_fiber = to;
+
+#ifdef COMET_IS_ASAN
+  if (tls_fake_stack == nullptr) {
+    __sanitizer_start_switch_fiber(&tls_fake_stack, to->GetStack(),
+                                   to->GetStackCapacity());
+  }
+#endif  //  COMET_IS_ASAN
+
+#ifdef COMET_IS_TSAN
+  auto* this_fiber{__tsan_get_current_fiber()};
+  auto* next_fiber{__tsan_create_fiber(0)};
+  __tsan_switch_to_fiber(next_fiber, 0);
+#endif  // COMET_IS_TSAN
+
   SwitchExecutionContext(&from->GetContext(), &to->GetContext());
+
+#ifdef COMET_IS_ASAN
+  const auto* from_stack{from->GetStack()};
+  const auto** from_stack_ptr{&from_stack};
+  auto from_size{from->GetStackCapacity()};
+  __sanitizer_finish_switch_fiber(tls_fake_stack, from_stack_ptr, &from_size);
+  tls_fake_stack = nullptr;
+#endif  //  COMET_IS_ASAN
+
+#ifdef COMET_IS_TSAN
+  __tsan_destroy_fiber(this_fiber);
+#endif  // COMET_IS_TSAN
 }
 }  // namespace internal
 

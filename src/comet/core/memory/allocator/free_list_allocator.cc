@@ -159,6 +159,8 @@ void FiberFreeListAllocator::DeallocateAll() {
 }
 
 FiberFreeListAllocator::Block* FiberFreeListAllocator::Grow(usize size) {
+  size = memory::RoundUpToMultiple(size, block_size_);
+
   auto* head_block{static_cast<Block*>(TaggedHeap::Get().AllocateAligned(
       size, alignof(Block), memory_tag_, &size))};
 
@@ -168,18 +170,19 @@ FiberFreeListAllocator::Block* FiberFreeListAllocator::Grow(usize size) {
   }
 
   auto* cursor{head_block};
-  usize remaining_size{size};
+  auto block_count{static_cast<usize>(size / block_size_)};
 
-  while (remaining_size > block_size_) {
+  for (usize i{0}; i < block_count; ++i) {
     cursor->is_free = true;
     cursor->size = block_size_;
 
-    cursor->next = AlignPointer(
-        reinterpret_cast<Block*>(reinterpret_cast<u8*>(cursor) + block_size_),
-        alignof(Block));
+    auto* next{
+        reinterpret_cast<Block*>(reinterpret_cast<u8*>(cursor) + block_size_)};
+
+    cursor->next =
+        (i + 1 < block_count) ? AlignPointer(next, alignof(Block)) : nullptr;
 
     cursor = cursor->next;
-    remaining_size -= block_size_;
     ++block_count_;
   }
 
@@ -187,13 +190,17 @@ FiberFreeListAllocator::Block* FiberFreeListAllocator::Grow(usize size) {
     tail_->next = head_block;
   }
 
-  tail_ = reinterpret_cast<Block*>(reinterpret_cast<u8*>(cursor) - block_size_);
-  tail_->next = nullptr;
+  tail_ = reinterpret_cast<Block*>(reinterpret_cast<u8*>(head_block) +
+                                   (block_count - 1) * block_size_);
   return head_block;
 }
 
 FiberFreeListAllocator::Block* FiberFreeListAllocator::ReserveBlocks(
     usize size) {
+  if (head_ == nullptr) {
+    return nullptr;
+  }
+
   auto* head_block{head_};
   auto* cursor{head_block};
   usize contiguous_size{0};

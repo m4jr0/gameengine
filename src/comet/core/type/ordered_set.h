@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/hash_set.h"
 #include "comet/core/type/iterator.h"
@@ -57,7 +56,12 @@ class OrderedSet {
     return *this;
   }
 
-  ~OrderedSet() { Clear(); }
+  ~OrderedSet() { Destroy(); }
+
+  void Destroy() {
+    this->elements_.Destroy();
+    this->hashes_.Destroy();
+  }
 
   template <typename V>
   void Add(V&& value) {

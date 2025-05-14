@@ -7,12 +7,13 @@
 
 #include "vulkan_view_handler.h"
 
+#include <type_traits>
 #include <utility>
 
-#include "vulkan/vulkan.h"
-
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/profiler/profiler.h"
+#include "vulkan/vulkan.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"
@@ -59,7 +60,7 @@ void ViewHandler::Shutdown() {
     Destroy(view.get(), true);
   }
 
-  views_.Clear();
+  views_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }

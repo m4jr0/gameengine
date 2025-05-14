@@ -5,8 +5,6 @@
 #ifndef COMET_COMET_PROFILER_PROFILER_MANAGER_H_
 #define COMET_COMET_PROFILER_PROFILER_MANAGER_H_
 
-#include <stack>
-
 #include "comet/core/essentials.h"
 
 #ifdef COMET_PROFILING

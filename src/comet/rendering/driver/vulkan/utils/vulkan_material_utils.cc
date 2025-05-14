@@ -52,49 +52,37 @@ namespace std {
 comet::rendering::vk::SamplerId hash<VkSamplerCreateInfo>::operator()(
     const VkSamplerCreateInfo& sampler_info) const {
   auto computed_hash{comet::HashCombine(
-      static_cast<underlying_type_t<VkBorderColor>>(sampler_info.borderColor),
+      static_cast<comet::u64>(sampler_info.borderColor),
       static_cast<bool>(sampler_info.unnormalizedCoordinates))};
   computed_hash = comet::HashCombine(sampler_info.maxLod, computed_hash);
   computed_hash = comet::HashCombine(sampler_info.minLod, computed_hash);
   computed_hash = comet::HashCombine(
-      static_cast<underlying_type_t<VkCompareOp>>(sampler_info.compareOp),
-      computed_hash);
+      static_cast<comet::u64>(sampler_info.compareOp), computed_hash);
   computed_hash = comet::HashCombine(
       static_cast<bool>(sampler_info.compareEnable), computed_hash);
   computed_hash = comet::HashCombine(sampler_info.maxAnisotropy, computed_hash);
   computed_hash = comet::HashCombine(
       static_cast<bool>(sampler_info.anisotropyEnable), computed_hash);
   computed_hash = comet::HashCombine(sampler_info.mipLodBias, computed_hash);
-  computed_hash =
-      comet::HashCombine(static_cast<underlying_type_t<VkSamplerAddressMode>>(
-                             sampler_info.addressModeW),
-                         computed_hash);
-  computed_hash =
-      comet::HashCombine(static_cast<underlying_type_t<VkSamplerAddressMode>>(
-                             sampler_info.addressModeV),
-                         computed_hash);
-  computed_hash =
-      comet::HashCombine(static_cast<underlying_type_t<VkSamplerAddressMode>>(
-                             sampler_info.addressModeU),
-                         computed_hash);
-  computed_hash =
-      comet::HashCombine(static_cast<underlying_type_t<VkSamplerMipmapMode>>(
-                             sampler_info.mipmapMode),
-                         computed_hash);
   computed_hash = comet::HashCombine(
-      static_cast<underlying_type_t<VkFilter>>(sampler_info.minFilter),
+      static_cast<comet::u64>(sampler_info.addressModeW), computed_hash);
+  computed_hash = comet::HashCombine(
+      static_cast<comet::u64>(sampler_info.addressModeV), computed_hash);
+  computed_hash = comet::HashCombine(
+      static_cast<comet::u64>(sampler_info.addressModeU), computed_hash);
+  computed_hash = comet::HashCombine(
+      static_cast<comet::u64>(sampler_info.mipmapMode), computed_hash);
+  computed_hash = comet::HashCombine(
+      static_cast<comet::u64>(sampler_info.minFilter), computed_hash);
+  computed_hash = comet::HashCombine(
+      static_cast<comet::u64>(sampler_info.magFilter), computed_hash);
+  computed_hash = comet::HashCombine(
+      static_cast<comet::u64>(sampler_info.flags), computed_hash);
+  computed_hash = comet::HashCombine(
+      hash<comet::u64>()(reinterpret_cast<comet::u64>(sampler_info.pNext)),
       computed_hash);
   computed_hash = comet::HashCombine(
-      static_cast<underlying_type_t<VkFilter>>(sampler_info.magFilter),
-      computed_hash);
-  computed_hash = comet::HashCombine(static_cast<uint32_t>(sampler_info.flags),
-                                     computed_hash);
-  computed_hash = comet::HashCombine(
-      hash<size_t>()(reinterpret_cast<size_t>(sampler_info.pNext)),
-      computed_hash);
-  computed_hash = comet::HashCombine(
-      static_cast<underlying_type_t<VkStructureType>>(sampler_info.sType),
-      computed_hash);
+      static_cast<comet::u64>(sampler_info.sType), computed_hash);
   return computed_hash;
 }
 }  // namespace std

@@ -10,10 +10,12 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
+#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/rendering/driver/opengl/data/opengl_mesh.h"
+#include "comet/rendering/driver/opengl/data/opengl_region_gpu_buffer.h"
 #include "comet/rendering/driver/opengl/data/opengl_storage.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 
@@ -21,12 +23,6 @@ namespace comet {
 namespace rendering {
 namespace gl {
 namespace internal {
-typedef struct CopyRegion {
-  GLsizeiptr src_offset;
-  GLsizeiptr dst_offset;
-  GLsizei size;
-} CopyRegion;
-
 struct UpdateContext {
   GLsizei new_vertex_size{0};
   GLsizei new_index_size{0};
@@ -36,17 +32,13 @@ struct UpdateContext {
   GLsizei total_index_size{0};
   GLsizei current_staging_vertex_offset{0};
   GLsizei current_staging_index_offset{0};
-  frame::FrameArray<CopyRegion> vertex_copy_regions{};
-  frame::FrameArray<CopyRegion> index_copy_regions{};
+  frame::FrameArray<GpuBufferCopyRegion> vertex_copy_regions{};
+  frame::FrameArray<GpuBufferCopyRegion> index_copy_regions{};
   void* staging_buffer{nullptr};
 };
 
-struct FreeRegion {
-  static inline constexpr auto kInvalidOffset{kS32Min};
-
-  GLint offset{0};
-  GLsizei size{0};
-};
+template <typename T>
+struct GpuBuffer {};
 }  // namespace internal
 
 using MeshHandlerDescr = HandlerDescr;
@@ -73,13 +65,16 @@ class MeshHandler : public Handler {
   StorageHandle GetIndexBufferHandle() const;
 
  private:
+  // Note: these are just wild guesses for now.
+  static inline constexpr usize kVertexCountPerBlock_{1024};
+  static inline constexpr usize kIndexCountPerBlock_{3 * kVertexCountPerBlock_};
+  static inline constexpr usize kDefaultVertexCount_{
+      memory::RoundUpToMultiple(3'000'000, kVertexCountPerBlock_)};
+  static inline constexpr usize kDefaultIndexCount_{memory::RoundUpToMultiple(
+      kIndexCountPerBlock_, 3 * kDefaultVertexCount_)};
   static inline constexpr usize kDefaultStagingBufferSize_{
-      67108864};  // 64 MiB.
-
-  static GLint AllocateFromFreeList(Array<internal::FreeRegion>& free_list,
-                                    GLsizei size);
-  static void FreeToFreeList(Array<internal::FreeRegion>& free_list,
-                             GLint offset, GLsizei size);
+      kDefaultVertexCount_ * sizeof(geometry::SkinnedVertex) +
+      kDefaultIndexCount_ * sizeof(geometry::Index)};
 
   internal::UpdateContext PrepareUpdate(const frame::FramePacket* packet);
   void FinishUpdate(internal::UpdateContext& update_context);
@@ -89,9 +84,6 @@ class MeshHandler : public Handler {
                          internal::UpdateContext& update_context);
   void DestroyMeshProxies(const frame::RemovedGeometries* geometry);
   void UploadMeshProxies(const internal::UpdateContext& update_context);
-  void ClearAllMeshProxies();
-  void ResizeVertexBuffer(GLsizei new_size);
-  void ResizeIndexBuffer(GLsizei new_size);
 
   constexpr static usize kDefaultProxyCount_{4096};
   constexpr static usize kDefaultReleaseBarrierCount_{2};
@@ -102,14 +94,8 @@ class MeshHandler : public Handler {
       memory::kEngineMemoryTagRendering};
   Map<geometry::MeshId, usize> mesh_to_proxy_map_{};
   Array<MeshProxy> proxies_{};
-  Array<internal::FreeRegion> free_vertex_regions_{};
-  Array<internal::FreeRegion> free_index_regions_{};
-  GLsizei uploaded_vertex_buffer_size_{0};
-  GLsizei uploaded_index_buffer_size_{0};
-  StorageHandle uploaded_vertex_buffer_handle_{kInvalidStorageHandle};
-  StorageHandle uploaded_index_buffer_handle_{kInvalidStorageHandle};
-  void* uploaded_vertex_buffer_memory_{nullptr};
-  void* uploaded_index_buffer_memory_{nullptr};
+  VertexGpuBuffer vertex_buffer_{};
+  IndexGpuBuffer index_buffer_{};
 };
 }  // namespace gl
 }  // namespace rendering

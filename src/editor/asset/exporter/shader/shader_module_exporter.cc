@@ -6,12 +6,15 @@
 
 #include "shader_module_exporter.h"
 
+#include <type_traits>
+
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
@@ -76,18 +79,18 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   resource::ShaderModuleResource shader_module{};
   shader_module.id =
-      resource::GenerateResourceIdFromPath(asset_descr.asset_path);
+      resource::GenerateResourceIdFromPath<resource::ShaderModuleResource>(
+          asset_descr.asset_path);
   shader_module.type_id = resource::ShaderModuleResource::kResourceTypeId;
   shader_module.descr.shader_type = shader_type;
   shader_module.descr.driver_type = driver_type;
 
-  auto& scheduler{job::Scheduler::Get()};
-  auto* counter{scheduler.GenerateCounter()};
+  {
+    job::CounterGuard guard{};
 
-  scheduler.KickAndWait(job::GenerateIOJobDescr(OnShaderModuleLoading,
-                                                &shader_code_context, counter));
-
-  scheduler.DestroyCounter(counter);
+    job::Scheduler::Get().KickAndWait(job::GenerateIOJobDescr(
+        OnShaderModuleLoading, &shader_code_context, guard.GetCounter()));
+  }
 
   COMET_LOG_GLOBAL_DEBUG("Processing shader module at: ",
                          shader_code_context.asset_abs_path, "...");

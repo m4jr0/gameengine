@@ -6,7 +6,6 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_WORLD_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_shader_view.h"
 

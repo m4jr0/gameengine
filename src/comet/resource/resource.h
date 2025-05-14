@@ -5,10 +5,10 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_RESOURCE_H_
 
+#include <type_traits>
+
 #include "comet/core/compression.h"
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/essentials.h"
-#include "comet/core/file_system/file_system.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
@@ -68,7 +68,12 @@ struct LoadingResourceState {
 using LoadedResourceStatePtr = memory::CustomUniquePtr<LoadingResourceState>;
 }  // namespace internal
 
-ResourceId GenerateResourceIdFromPath(CTStringView resource_path);
+template <typename ResourceType>
+ResourceId GenerateResourceIdFromPath(CTStringView resource_path) {
+  return HashCombine(COMET_STRING_ID(resource_path),
+                     ResourceType::kResourceTypeId);
+}
+
 void PackBytes(const u8* bytes, usize bytes_size,
                CompressionMode compression_mode, Array<u8>* packed_bytes,
                usize* packed_bytes_size);
@@ -142,11 +147,7 @@ class ResourceHandler {
   virtual void Shutdown();
 
   const Resource* Load(memory::Allocator& allocator,
-                       CTStringView root_resource_path,
-                       CTStringView resource_path);
-  const Resource* Load(memory::Allocator& allocator,
                        CTStringView root_resource_path, ResourceId resource_id);
-  void Unload(CTStringView resource_path);
   void Unload(ResourceId resource_id);
   virtual void Destroy(ResourceId resource_id);
   virtual Resource* GetDefaultResource();

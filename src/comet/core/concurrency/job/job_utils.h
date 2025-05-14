@@ -6,7 +6,6 @@
 #define COMET_COMET_CORE_CONCURRENCY_JOB_JOB_UTILS_H_
 
 #include "comet/core/concurrency/job/job.h"
-#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

@@ -9,7 +9,7 @@
   "vertex_attributes": [
     {
       "name": "inPosition",
-      "type": "vec4"
+      "type": "vec3"
     }
   ],
   "uniforms": [

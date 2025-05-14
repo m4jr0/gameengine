@@ -11,7 +11,6 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_utils.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
@@ -123,7 +122,8 @@ class Device {
       VK_NULL_HANDLE};  // Will be destroyed automatically.
 
   static constexpr StaticArray kRequiredExtensions_{
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+      VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME
 
 #ifdef COMET_DEBUG_RENDERING
       ,

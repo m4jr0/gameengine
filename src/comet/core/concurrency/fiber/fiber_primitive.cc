@@ -6,6 +6,8 @@
 
 #include "fiber_primitive.h"
 
+#include <type_traits>
+
 #include "comet/core/concurrency/fiber/fiber_context.h"
 
 namespace comet {

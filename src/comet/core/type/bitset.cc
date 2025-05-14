@@ -13,6 +13,9 @@ usize Bitset::GetWordCountFromBitCount(usize bit_count) {
   return (bit_count + kWorkBitCount_ - 1) / kWorkBitCount_;
 }
 
+Bitset::Bitset(memory::Allocator* allocator)
+    : bit_count_{0}, word_count_{0}, allocator_{allocator}, words_{nullptr} {}
+
 Bitset::Bitset(memory::Allocator* allocator, usize bit_count)
     : bit_count_{bit_count},
       word_count_{GetWordCountFromBitCount(bit_count_)},
@@ -86,7 +89,14 @@ Bitset& Bitset::operator=(Bitset&& other) noexcept {
   return *this;
 }
 
-Bitset::~Bitset() { Clear(); }
+Bitset::~Bitset() { Destroy(); }
+
+void Bitset::Destroy() {
+  if (words_ != nullptr) {
+    allocator_->Deallocate(words_);
+    words_ = nullptr;
+  }
+}
 
 void Bitset::Set(usize index) {
   COMET_ASSERT(index < bit_count_, "Index out of bounds: ", index,
@@ -113,12 +123,30 @@ void Bitset::ResetAll() {
   memory::ClearMemory(words_, word_count_ * sizeof(Word));
 }
 
-void Bitset::Clear() {
-  if (words_ != nullptr) {
-    allocator_->Deallocate(words_);
-    words_ = nullptr;
+void Bitset::Resize(usize new_bit_count) {
+  if (new_bit_count <= bit_count_) {
+    return;
   }
 
+  COMET_ASSERT(allocator_ != nullptr, "Allocator is null!");
+  auto new_word_count{GetWordCountFromBitCount(new_bit_count)};
+  auto* new_words{static_cast<Word*>(allocator_->AllocateAligned(
+      new_word_count * sizeof(Word), alignof(Word)))};
+
+  if (words_ != nullptr) {
+    memory::CopyMemory(new_words, words_, word_count_ * sizeof(Word));
+    allocator_->Deallocate(words_);
+  }
+
+  memory::ClearMemory(new_words + word_count_,
+                      (new_word_count - word_count_) * sizeof(Word));
+
+  words_ = new_words;
+  bit_count_ = new_bit_count;
+  word_count_ = new_word_count;
+}
+
+void Bitset::Clear() {
   bit_count_ = 0;
   word_count_ = 0;
 }

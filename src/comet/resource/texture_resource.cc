@@ -6,6 +6,8 @@
 
 #include "texture_resource.h"
 
+#include <type_traits>
+
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 

@@ -35,17 +35,30 @@ schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,
 
 namespace nlohmann {
 template <typename T>
-void from_json(const json& json_array, comet::Array<T>& array) {
+comet::Array<T> json_to_array(const json& json_array,
+                              comet::memory::Allocator* allocator) {
+  comet::Array<T> array{allocator};
+
   if (!json_array.is_array()) {
     COMET_LOG_GLOBAL_ERROR("Wrong type found for JSON array: ",
                            json_array.type_name(), "! Ignoring.");
-    return;
+    return array;
   }
 
   for (const auto& entry : json_array) {
     array.PushBack(entry.get<T>());
   }
+
+  return array;
 }
+
+template <typename T>
+struct adl_serializer<comet::Array<T>> {
+  static comet::Array<T> from_json(const json& json_array,
+                                   comet::memory::Allocator* allocator) {
+    return json_to_array<T>(json_array, allocator);
+  }
+};
 }  // namespace nlohmann
 
 #ifdef COMET_FIBER_DEBUG_LABEL

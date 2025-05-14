@@ -8,7 +8,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/generator.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 const schar* comet::MaximumCapacityReachedError::GenerateTmpErrorMessage(

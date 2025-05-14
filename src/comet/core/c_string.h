@@ -6,7 +6,7 @@
 #define COMET_COMET_CORE_C_STRING_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 constexpr auto kU8MaxCharCountDigits10{3};
@@ -69,6 +69,8 @@ bool AreStringsEqualInsensitive(const wchar* str1, usize str1_len,
                                 const wchar* str2, usize str2_len);
 bool IsContained(const schar* str, const schar* to_find);
 bool IsContained(const wchar* str, const wchar* to_find);
+bool IsContainedInsensitive(const schar* str, const schar* to_find);
+bool IsContainedInsensitive(const wchar* str, const wchar* to_find);
 bool IsSpace(schar c);
 bool IsSpace(wchar c);
 bool IsAlpha(schar c);
@@ -98,12 +100,20 @@ constexpr usize GetLength(const schar* str) noexcept {
   return std::char_traits<schar>::length(str);
 }
 
+constexpr usize IsEmpty(const schar* str) noexcept {
+  return GetLength(str) == 0;
+}
+
 constexpr usize GetLengthWithNullTerminator(const schar* str) noexcept {
   return GetLength(str) + 1;
 }
 
 constexpr usize GetLength(const wchar* str) noexcept {
   return std::char_traits<wchar>::length(str);
+}
+
+constexpr usize IsEmpty(const wchar* str) noexcept {
+  return GetLength(str) == 0;
 }
 
 constexpr usize GetLengthWithNullTerminator(const wchar* str) noexcept {
@@ -206,17 +216,68 @@ void ConvertToStr(bool boolean, schar* buffer, usize buffer_len,
                   usize* out_len = nullptr);
 void ConvertToStr(bool boolean, wchar* buffer, usize buffer_len,
                   usize* out_len = nullptr);
-usize GetCharCount(u8);
-usize GetCharCount(u16);
-usize GetCharCount(u32);
-usize GetCharCount(u64);
-usize GetCharCount(s8);
-usize GetCharCount(s16);
-usize GetCharCount(s32);
-usize GetCharCount(s64);
-usize GetCharCount(f32);
-usize GetCharCount(f64);
-usize GetCharCount(bool);
+template <typename T>
+constexpr usize GetCharCount() = delete;
+
+template <>
+constexpr usize GetCharCount<u8>() {
+  return kU8MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<u16>() {
+  return kU16MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<u32>() {
+  return kU32MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<u64>() {
+  return kU64MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<s8>() {
+  return kS8MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<s16>() {
+  return kS16MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<s32>() {
+  return kS32MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<s64>() {
+  return kS64MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<f32>() {
+  return kF32MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<f64>() {
+  return kF64MaxCharCountDigits10;
+}
+
+template <>
+constexpr usize GetCharCount<bool>() {
+  return kBoolMaxCharCountDigits10;
+}
+
+template <typename T>
+constexpr usize GetCharCount(const T&) {
+  return GetCharCount<T>();
+}
 
 template <typename Float,
           typename std::enable_if_t<std::is_floating_point_v<Float>>* = nullptr>
@@ -550,6 +611,8 @@ bool ParseBool(const Char* str) {
   return length != 1 || str[0] != '0';
 }
 }  // namespace internal
+
+const schar* GenerateTmpFromFormat(usize buffer_size, const schar* format, ...);
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_C_STRING_H_

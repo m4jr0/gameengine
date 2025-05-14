@@ -7,6 +7,8 @@
 
 #include "vulkan_initializer_utils.h"
 
+#include <type_traits>
+
 #include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
 
 namespace comet {
@@ -169,6 +171,24 @@ VkSubmitInfo GenerateSubmitInfo(const VkCommandBuffer* command_buffer_handle,
   info.pCommandBuffers = command_buffer_handle;
   info.signalSemaphoreCount = signal_semaphore_count;
   info.pSignalSemaphores = signal_semaphores;
+  return info;
+}
+
+VkSubmitInfo2 GenerateSubmitInfo2(
+    u32 command_buffer_info_count,
+    const VkCommandBufferSubmitInfo* command_buffer_infos,
+    const VkSemaphoreSubmitInfo* wait_semaphore_infos, u32 wait_semaphore_count,
+    const VkSemaphoreSubmitInfo* signal_semaphore_infos,
+    u32 signal_semaphore_info_count, const void* next) {
+  VkSubmitInfo2 info{};
+  info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+  info.pNext = next;
+  info.waitSemaphoreInfoCount = wait_semaphore_count;
+  info.pWaitSemaphoreInfos = wait_semaphore_infos;
+  info.commandBufferInfoCount = command_buffer_info_count;
+  info.pCommandBufferInfos = command_buffer_infos;
+  info.signalSemaphoreInfoCount = signal_semaphore_info_count;
+  info.pSignalSemaphoreInfos = signal_semaphore_infos;
   return info;
 }
 

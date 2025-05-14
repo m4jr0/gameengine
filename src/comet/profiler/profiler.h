@@ -8,7 +8,6 @@
 #include <optional>
 #include <stack>
 
-#include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
@@ -16,7 +15,6 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/profiler/profiler.h"
 #include "comet/rendering/rendering_common.h"
 
 #ifdef COMET_PROFILING
@@ -94,9 +92,9 @@ struct ProfilerRecordContext {
 };
 
 struct ProfilerData {
-  f32 physics_frame_time{0};
+  f64 physics_frame_time{0};
   u32 physics_frame_rate{0};
-  f32 rendering_frame_time{0};
+  f64 rendering_frame_time{0};
   u32 rendering_frame_rate{0};
 #ifdef COMET_DEBUG_RENDERING
   u32 rendering_draw_count{0};

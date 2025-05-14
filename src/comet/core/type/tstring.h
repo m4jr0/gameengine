@@ -5,10 +5,10 @@
 #ifndef COMET_COMET_CORE_TYPE_TSTRING_H_
 #define COMET_COMET_CORE_TYPE_TSTRING_H_
 
+#include <string_view>
+
 #include "comet/core/c_array.h"
 #include "comet/core/c_string.h"
-#include "comet/core/essentials.h"
-#include "comet/core/file_system/slash_helper.h"
 #include "comet/core/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
 
@@ -64,6 +64,12 @@ class TString {
     GetTStr()[length_] = COMET_TCHAR('\0');
   }
 
+#ifdef COMET_WIDE_TCHAR
+  TString(std::string_view str);
+#else
+  TString(std::wstring_view str);
+#endif  // COMET_WIDE_TCHAR
+
   TString(const TString& other);
   TString(const TString& other, usize pos, usize length = kInvalidIndex);
 
@@ -81,6 +87,8 @@ class TString {
   TString& operator=(const tchar* other);
   TString& operator=(TString&& other) noexcept;
   ~TString();
+
+  void Destroy();
 
   void Reserve(usize capacity);
   void Resize(usize length);
@@ -137,6 +145,13 @@ class TString {
   TString GenerateSubString(usize offset = 0,
                             usize count = kInvalidIndex) const;
   bool IsContained(tchar c) const;
+  bool IsContained(const tchar* str) const;
+  bool IsContained(const tchar* str, usize len) const;
+  bool IsContained(const TString& str) const;
+  bool IsContainedInsensitive(tchar c) const;
+  bool IsContainedInsensitive(const tchar* str) const;
+  bool IsContainedInsensitive(const tchar* str, usize len) const;
+  bool IsContainedInsensitive(const TString& str) const;
   usize GetIndex(tchar c) const;
   usize GetLastIndexOf(tchar c, usize offset = kInvalidIndex) const noexcept;
   usize GetNthToLastIndexOf(tchar c, usize count = 0,
@@ -205,6 +220,52 @@ class CTStringView {
 
   bool IsContained(tchar c) const {
     return comet::IsContained(str_, length_, c);
+  }
+
+  bool IsContained(const tchar* str) const {
+    if (str == nullptr) {
+      return false;
+    }
+
+    return IsContained(str, comet::GetLength(str));
+  }
+
+  bool IsContained(const tchar* str, usize len) const {
+    if (str == nullptr || len == 0 || len > length_) {
+      return false;
+    }
+
+    // TODO(m4jr0): Implement version that supports length as a parameter.
+    return comet::IsContained(str_, str);
+  }
+
+  bool IsContained(const TString& str) const {
+    return IsContained(str.GetCTStr(), str.GetLength());
+  }
+
+  bool IsContainedInsensitive(tchar c) const {
+    return comet::IsContainedInsensitive(str_, &c);
+  }
+
+  bool IsContainedInsensitive(const tchar* str) const {
+    if (str == nullptr) {
+      return false;
+    }
+
+    return IsContainedInsensitive(str, comet::GetLength(str));
+  }
+
+  bool IsContainedInsensitive(const tchar* str, usize len) const {
+    if (str == nullptr || len == 0 || len > length_) {
+      return false;
+    }
+
+    // TODO(m4jr0): Implement version that supports length as a parameter.
+    return comet::IsContainedInsensitive(str_, str);
+  }
+
+  bool IsContainedInsensitive(const TString& str) const {
+    return IsContainedInsensitive(str.GetCTStr(), str.GetLength());
   }
 
   usize GetIndex(tchar c) const { return comet::GetIndex(str_, length_, c); }

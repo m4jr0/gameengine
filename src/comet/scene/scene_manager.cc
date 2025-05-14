@@ -6,8 +6,10 @@
 
 #include "scene_manager.h"
 
+#include "comet/animation/animation_manager.h"
 #include "comet/core/concurrency/fiber/fiber_utils.h"
-#include "comet/core/memory/memory_utils.h"
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event_manager.h"
@@ -48,34 +50,78 @@ void SceneManager::OnEvent(const event::Event& event) {
 }
 
 void SceneManager::LoadTmp(frame::FramePacket* packet) {
-  static entity::EntityId character_id;
-  static entity::EntityId sponza_id;
+  static entity::EntityId character_eve_id{entity::kInvalidEntityId};
+  static entity::EntityId character_vampire_id{entity::kInvalidEntityId};
+  static entity::EntityId sponza_id{entity::kInvalidEntityId};
 
-  character_id =
-      entity::EntityFactoryManager::Get().GetModel()->GenerateSkeletal(
-          COMET_CTSTRING_VIEW("models/kate/kate.fbx"), packet);
+  constexpr auto kIsEveLoaded{true};
+  constexpr auto kIsVampireLoaded{true};
+  constexpr auto kIsSponzaLoaded{true};
 
-  sponza_id = entity::EntityFactoryManager::Get().GetModel()->GenerateStatic(
-      COMET_CTSTRING_VIEW("models/sponza/sponza.obj"), packet);
+  if (kIsEveLoaded) {
+    character_eve_id =
+        entity::EntityFactoryManager::Get().GetModel()->GenerateSkeletal(
+            COMET_CTSTRING_VIEW("models/eve/eve.gltf"), packet);
+  }
+
+  if (kIsVampireLoaded) {
+    character_vampire_id =
+        entity::EntityFactoryManager::Get().GetModel()->GenerateSkeletal(
+            COMET_CTSTRING_VIEW("models/dancing_vampire/dancing_vampire.dae"),
+            packet);
+  }
+
+  if (kIsSponzaLoaded) {
+    sponza_id = entity::EntityFactoryManager::Get().GetModel()->GenerateStatic(
+        COMET_CTSTRING_VIEW("models/sponza/sponza.obj"), packet);
+  }
 
   auto job_descr{job::GenerateJobDescr(
       job::JobPriority::Normal,
       [](job::JobParamsHandle) {
         fiber::WaitForEntityUpdates();
 
-        auto* character_transform{
-            entity::EntityManager::Get()
-                .GetComponent<physics::TransformComponent>(character_id)};
+        auto& entity_manager{entity::EntityManager::Get()};
+        auto& animation_manager{animation::AnimationManager::Get()};
 
-        constexpr auto kCharacterScaleFactor{0.15f};
-        physics::ScaleLocal(character_transform, kCharacterScaleFactor);
+        if (entity_manager.IsEntity(character_eve_id)) {
+          auto* character_eve_transform{
+              entity_manager.GetComponent<physics::TransformComponent>(
+                  character_eve_id)};
 
-        auto* sponza_transform{
-            entity::EntityManager::Get()
-                .GetComponent<physics::TransformComponent>(sponza_id)};
+          constexpr auto kCharacterEveScaleTransform{1500.0f};
+          physics::ScaleLocal(character_eve_transform,
+                              kCharacterEveScaleTransform);
 
-        constexpr auto kSponzaScaleFactor{0.17f};
-        physics::ScaleLocal(sponza_transform, kSponzaScaleFactor);
+          animation_manager.Play(character_eve_id, L"models/eve/eve.gltf|idle");
+        }
+
+        if (entity_manager.IsEntity(character_vampire_id)) {
+          auto* character_vampire_transform{
+              entity_manager.GetComponent<physics::TransformComponent>(
+                  character_vampire_id)};
+
+          constexpr auto kCharacterVampireScaleTransform{1000.0f};
+          physics::ScaleLocal(character_vampire_transform,
+                              kCharacterVampireScaleTransform);
+          constexpr math::Vec3 kCharacterVampireTranslationTransform{-3.0f, .0f,
+                                                                     .0f};
+          physics::TranslateLocal(character_vampire_transform,
+                                  kCharacterVampireTranslationTransform);
+
+          animation_manager.Play(
+              character_vampire_id,
+              "models/dancing_vampire/dancing_vampire.dae|Hips", 1.0f, true);
+        }
+
+        if (entity_manager.IsEntity(sponza_id)) {
+          auto* sponza_transform{
+              entity_manager.GetComponent<physics::TransformComponent>(
+                  sponza_id)};
+
+          constexpr auto kSponzaScaleFactor{0.17f};
+          physics::ScaleLocal(sponza_transform, kSponzaScaleFactor);
+        }
 
         event::EventManager::Get().FireEvent<SceneLoadedEvent>();
       },

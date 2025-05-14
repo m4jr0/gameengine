@@ -37,8 +37,6 @@ FiberLifeCycleQueue& FiberLifeCycleQueue::operator=(
   return *this;
 }
 
-FiberLifeCycleQueue::~FiberLifeCycleQueue() { queue_.Clear(); }
-
 void FiberLifeCycleQueue::Push(Fiber* fiber) { queue_.Push(fiber); }
 
 Fiber* FiberLifeCycleQueue::TryPop() {

@@ -9,9 +9,7 @@
 #include <utility>
 
 #include "comet/core/c_string.h"
-#include "comet/core/date.h"
-#include "comet/core/memory/memory_utils.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 #include "comet/profiler/profiler_manager.h"
 
 #ifdef COMET_PROFILING

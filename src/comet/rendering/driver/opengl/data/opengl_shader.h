@@ -10,6 +10,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/string_id.h"
+#include "comet/rendering/driver/opengl/data/opengl_mesh.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
 #include "comet/rendering/driver/opengl/data/opengl_storage.h"
@@ -33,9 +34,9 @@ struct Shader {
   ShaderId id{kInvalidShaderId};
   ShaderHandle compute_handle{kInvalidShaderHandle};
   ShaderHandle graphics_handle{kInvalidShaderHandle};
-  VertexAttributeHandle vertex_attribute_handle{kInvalidVertexAttributeHandle};
   StorageHandle vertex_buffer_handle{kInvalidStorageHandle};
   StorageHandle index_buffer_handle{kInvalidStorageHandle};
+  VertexAttributeHandle vertex_attribute_handle{kInvalidVertexAttributeHandle};
   sptrdiff bound_ubo_offset{0};
   MaterialInstanceId bound_instance_index{kInvalidMaterialInstanceId};
   ShaderUniformData global_uniform_data{};
@@ -44,6 +45,7 @@ struct Shader {
   ShaderUniformBufferObjectData instance_ubo_data{};
   UniformBufferHandle uniform_buffer_handle{kInvalidUniformBufferHandle};
   MaterialInstances instances{};
+  Array<VertexAttribute> vertex_attributes{};
   Array<ShaderUniform> uniforms{};
   Array<ShaderConstant> constants{};
   Array<ShaderStorage> storages{};

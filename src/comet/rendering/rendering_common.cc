@@ -7,7 +7,7 @@
 
 #include "rendering_common.h"
 
-#include "comet/core/conf/configuration_manager.h"
+#include "comet/core/conf/configuration_value.h"
 #include "comet/core/logger.h"
 #include "comet/math/plane.h"
 
@@ -47,7 +47,10 @@ const schar* GetDriverTypeLabel(DriverType type) {
   }
 }
 
-bool IsMultithreading(DriverType type) {
+bool IsMultithreading([[maybe_unused]] DriverType type) {
+#ifdef COMET_ENABLE_RENDERDOC_COMPATIBILITY
+  return false;
+#else
   switch (type) {
     case DriverType::OpenGl:
       return false;
@@ -62,6 +65,7 @@ bool IsMultithreading(DriverType type) {
     default:
       return false;
   }
+#endif  // COMET_ENABLE_RENDERDOC_COMPATIBILITY
 }
 
 AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
@@ -394,7 +398,8 @@ void SetValue(ShaderDefineDescr& descr, const schar* value, usize value_len) {
   descr.value[descr.value_len + 1] = '\0';
 }
 
-void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,
+void GenerateGeometry(const math::Aabb& aabb,
+                      Array<geometry::SkinnedVertex>& vertices,
                       Array<geometry::Index>& indices, bool is_visible) {
   COMET_ASSERT(vertices.GetSize() == 0,
                "Tried to generate geometry for AABB, but vertices provided are "
@@ -406,8 +411,8 @@ void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,
 
   vertices.Reserve(8);
 
-  geometry::Vertex vertex{};
-  vertex.color = math::Vec4{is_visible ? kColorGreen : kColorRed, 1.0f};
+  geometry::SkinnedVertex vertex{};
+  vertex.color = math::Vec4{is_visible ? kColorGreenRgb : kColorRedRgb, 1.0f};
 
   // Top right far.
   constexpr auto kTopRightFarIndex{0};
@@ -500,7 +505,8 @@ void GenerateGeometry(const math::Aabb& aabb, Array<geometry::Vertex>& vertices,
   indices.PushBack(kBottomLeftNearIndex);
 }
 
-void GenerateGeometry(const Frustum& frustum, Array<geometry::Vertex>& vertices,
+void GenerateGeometry(const Frustum& frustum,
+                      Array<geometry::SkinnedVertex>& vertices,
                       Array<geometry::Index>& indices) {
   COMET_ASSERT(
       vertices.GetSize() == 0,
@@ -519,8 +525,8 @@ void GenerateGeometry(const Frustum& frustum, Array<geometry::Vertex>& vertices,
   const auto& far_face{frustum.GetFar()};
   vertices.Reserve(8);
 
-  geometry::Vertex vertex{};
-  vertex.color = math::Vec4{kColorBlack, 1.0f};
+  geometry::SkinnedVertex vertex{};
+  vertex.color = math::Vec4{kColorBlackRgb, 1.0f};
   [[maybe_unused]] bool is_intersection{false};
 
   // Top right far.

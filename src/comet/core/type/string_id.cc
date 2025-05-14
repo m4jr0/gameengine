@@ -37,7 +37,7 @@ struct DebugData {
   }
 
   void Destroy() {
-    label_table.Clear();
+    label_table.Destroy();
     string_id_allocator.Destroy();
   }
 
@@ -140,7 +140,7 @@ StringIdHandler::~StringIdHandler() {
     return;
   }
 
-  debug_data.label_table.Clear();
+  debug_data.label_table.Destroy();
 
   if (debug_data.string_id_allocator.IsInitialized()) {
     debug_data.string_id_allocator.Destroy();

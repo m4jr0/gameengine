@@ -10,7 +10,6 @@
 #include "comet/core/frame/frame_allocator.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
-#include "comet/core/type/array.h"
 
 namespace comet {
 namespace frame {

@@ -9,8 +9,6 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_utils.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
@@ -75,6 +73,7 @@ class Context {
   bool IsSampleRateShading() const noexcept;
   ImageIndex GetImageIndex() const;
   ImageIndex GetImageCount() const;
+  VkSemaphore GetRenderSemaphoreHandle() const;
   FrameIndex GetFrameCount() const noexcept;
   FrameInFlightIndex GetFrameInFlightIndex() const noexcept;
   FrameInFlightIndex GetMaxFramesInFlight() const noexcept;

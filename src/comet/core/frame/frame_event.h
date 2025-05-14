@@ -6,7 +6,6 @@
 #define COMET_COMET_CORE_FRAME_EVENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/core/type/string_id.h"
 #include "comet/event/event.h"
 

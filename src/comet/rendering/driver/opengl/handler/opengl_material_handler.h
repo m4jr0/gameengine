@@ -6,14 +6,11 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_HANDLER_OPENGL_MATERIAL_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/map.h"
 #include "comet/rendering/driver/opengl/data/opengl_material.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace rendering {

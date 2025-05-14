@@ -10,7 +10,6 @@
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/tagged_heap.h"
-#include "comet/math/math_commons.h"
 
 namespace comet {
 namespace memory {

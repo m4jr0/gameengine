@@ -7,9 +7,7 @@
 
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
-#include "comet/rendering/rendering_common.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
 using namespace std::literals;

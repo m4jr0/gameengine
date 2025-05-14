@@ -8,7 +8,6 @@
 #include "glad/glad.h"
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/map.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture.h"

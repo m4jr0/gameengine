@@ -5,13 +5,7 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_MESH_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_MESH_H_
 
-#include "vulkan/vulkan.h"
-
 #include "comet/core/essentials.h"
-#include "comet/geometry/geometry_common.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
-#include "comet/rendering/rendering_common.h"
-#include "comet/resource/model_resource.h"
 
 namespace comet {
 namespace rendering {

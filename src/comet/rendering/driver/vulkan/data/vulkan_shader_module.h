@@ -8,7 +8,6 @@
 #include "vulkan/vulkan.h"
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
 namespace comet {

@@ -2,10 +2,11 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet/rendering/comet_rendering_pch.h"
 #include "comet_pch.h"
 
 #include "debugger_displayer_manager.h"
+
+#include "comet/rendering/comet_rendering_pch.h"
 
 #ifdef COMET_DEBUG
 #include <algorithm>
@@ -60,7 +61,7 @@ void DebuggerDisplayerManager::DrawPhysicsSection(
     const profiler::ProfilerData& profiler_data) const {
   ImGui::Text("PHYSICS");
   ImGui::Indent();
-  ImGui::Text("Frame Time: %f ms", profiler_data.physics_frame_time);
+  ImGui::Text("Frame Time: %f ms", profiler_data.physics_frame_time * 1000);
   ImGui::Text("Framerate: %u Hz", profiler_data.physics_frame_rate);
   ImGui::Unindent();
 }
@@ -71,7 +72,7 @@ void DebuggerDisplayerManager::DrawRenderingSection(
   ImGui::Indent();
   ImGui::Text("Driver: %s",
               GetDriverTypeLabel(profiler_data.rendering_driver_type));
-  ImGui::Text("Frame Time: %f ms", profiler_data.rendering_frame_time);
+  ImGui::Text("Frame Time: %f ms", profiler_data.rendering_frame_time * 1000);
   ImGui::Text("Framerate: %u FPS", profiler_data.rendering_frame_rate);
 #ifdef COMET_DEBUG_RENDERING
   ImGui::Text("Draw count: %u", profiler_data.rendering_draw_count);

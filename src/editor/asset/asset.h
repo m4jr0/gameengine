@@ -5,12 +5,12 @@
 #ifndef COMET_EDITOR_ASSET_ASSET_H_
 #define COMET_EDITOR_ASSET_ASSET_H_
 
+#include <string_view>
+
 #include "nlohmann/json.hpp"
 
 #include "comet/core/essentials.h"
-#include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/resource.h"
 
 using namespace std::literals;
 
@@ -33,6 +33,8 @@ static constexpr auto kCometEditorAssetMetadataKeyCreationTime{
 static constexpr auto kCometEditorAssetMetadataKeyUpdateTime{"update_time"sv};
 static constexpr auto kCometEditorAssetMetadataKeyCompressionMode{
     "compression_mode"sv};
+static constexpr auto kCometEditorAssetMetadataKeyResourceFiles{
+    "resource_files"sv};
 
 struct AssetDescr {
   TString asset_abs_path{};

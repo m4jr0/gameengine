@@ -10,10 +10,8 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/time/time_manager.h"
 
 namespace comet {
 namespace rendering {
@@ -35,7 +33,7 @@ class RenderingManager : public Manager {
   const Window* GetWindow() const;
   rendering::DriverType GetDriverType() const noexcept;
   FrameCount GetFrameRate() const noexcept;
-  f32 GetFrameTime() const noexcept;
+  f64 GetFrameTime() const noexcept;
   u32 GetDrawCount() const noexcept;
 
  private:

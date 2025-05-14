@@ -7,9 +7,12 @@
 
 #include "vulkan_device.h"
 
+#include <type_traits>
+
 #include "comet/core/c_string.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/logger.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/ordered_set.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
@@ -257,10 +260,17 @@ void Device::Initialize() {
   physical_device_features.fillModeNonSolid = VK_TRUE;
   physical_device_features.multiDrawIndirect = VK_TRUE;
 
+  VkPhysicalDeviceSynchronization2Features synchronization2_features{};
+  synchronization2_features.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+  synchronization2_features.synchronization2 = VK_TRUE;
+  synchronization2_features.pNext = VK_NULL_HANDLE;
+
   VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore_features{};
   timeline_semaphore_features.sType =
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
   timeline_semaphore_features.timelineSemaphore = VK_TRUE;
+  timeline_semaphore_features.pNext = &synchronization2_features;
 
   auto create_info{init::GenerateDeviceCreateInfo(
       queue_create_info, physical_device_features,
@@ -306,7 +316,7 @@ void Device::Destroy() {
   properties_ = {};
   features_ = {};
   memory_properties_ = {};
-  queue_family_properties_.Clear();
+  queue_family_properties_.Destroy();
   queue_family_indices_ = {};
   instance_handle_ = VK_NULL_HANDLE;
   physical_device_handle_ = VK_NULL_HANDLE;

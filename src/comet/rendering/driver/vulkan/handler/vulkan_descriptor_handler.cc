@@ -7,6 +7,7 @@
 
 #include "vulkan_descriptor_handler.h"
 
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
 
@@ -60,7 +61,7 @@ void DescriptorHandler::Shutdown() {
     DestroyDescriptorPool(device, dynamic_descriptor_pools_[i]);
   }
 
-  dynamic_descriptor_pools_.Clear();
+  dynamic_descriptor_pools_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }

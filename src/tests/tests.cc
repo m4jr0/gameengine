@@ -10,11 +10,8 @@
 #include "catch2/reporters/catch_reporter_event_listener.hpp"
 #include "catch2/reporters/catch_reporter_registrars.hpp"
 
-#include "comet/core/concurrency/fiber/fiber.h"
-#include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/concurrency/job/worker.h"
 #include "comet/core/concurrency/provider/thread_provider_manager.h"
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/conf/configuration_manager.h"

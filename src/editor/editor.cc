@@ -16,6 +16,7 @@
 
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
+#include "editor/asset/asset_manager.h"
 #include "editor/memory/memory.h"
 
 namespace comet {
@@ -91,21 +92,9 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::LoadTmpCode() {
-  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("models/kate/kate.fbx.meta"));
-  comet::Remove(
-      asset::AssetManager::Get().GetAssetsRootPath() /
-      COMET_CTSTRING_VIEW("shaders/vulkan/default_shader.vk.cshader.meta"));
-  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.vert.meta"));
-  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.frag.meta"));
-  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.comp.meta"));
-  // comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-  //               COMET_CTSTRING_VIEW("models/nanosuit/nanosuit.obj.meta"));
-  //  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-  //                COMET_CTSTRING_VIEW("models/sponza/sponza.obj.meta"));
+  // Insert pre-engine initialization code here.
+  // This can include tasks like deleting specific resources to force them to be
+  // re-exported.
 }
 }  // namespace editor
 

@@ -7,6 +7,7 @@
 
 #include "vulkan_context.h"
 
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -126,11 +127,6 @@ void Context::InitializeSyncStructures() {
         vkCreateSemaphore(*device_, &semaphore_create_info, VK_NULL_HANDLE,
                           &frame_data.present_semaphore_handle),
         "Unable to create frame present semaphore!");
-
-    COMET_CHECK_VK(
-        vkCreateSemaphore(*device_, &semaphore_create_info, VK_NULL_HANDLE,
-                          &frame_data.render_semaphore_handle),
-        "Unable to create frame render semaphore!");
   }
 
   VkSemaphoreTypeCreateInfo transfer_semaphore_info{};
@@ -188,7 +184,7 @@ void Context::DestroyAllocator() {
 }
 
 void Context::DestroyFrameData() {
-  frame_data_.Clear();
+  frame_data_.Destroy();
   allocator_.Destroy();
 }
 
@@ -219,12 +215,6 @@ void Context::DestroySyncStructures() {
       vkDestroySemaphore(*device_, frame_data.present_semaphore_handle,
                          VK_NULL_HANDLE);
       frame_data.present_semaphore_handle = VK_NULL_HANDLE;
-    }
-
-    if (frame_data.render_semaphore_handle != VK_NULL_HANDLE) {
-      vkDestroySemaphore(*device_, frame_data.render_semaphore_handle,
-                         VK_NULL_HANDLE);
-      frame_data.render_semaphore_handle = VK_NULL_HANDLE;
     }
   }
 
@@ -290,6 +280,12 @@ ImageIndex Context::GetImageCount() const {
   COMET_ASSERT(image_data_ != nullptr,
                "Image count was required, but image data is null!");
   return image_data_->image_count;
+}
+
+VkSemaphore Context::GetRenderSemaphoreHandle() const {
+  COMET_ASSERT(image_data_ != nullptr,
+               "Render semaphore handle was required, but image data is null!");
+  return image_data_->render_semaphore_handle;
 }
 
 FrameIndex Context::GetFrameCount() const noexcept { return frame_count_; }

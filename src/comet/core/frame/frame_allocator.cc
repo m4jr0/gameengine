@@ -6,8 +6,6 @@
 
 #include "frame_allocator.h"
 
-#include "comet/core/concurrency/fiber/fiber_context.h"
-
 namespace comet {
 namespace frame {
 thread_local memory::Allocator* tls_frame_allocator{nullptr};

@@ -8,13 +8,12 @@
 #include <type_traits>
 #include <utility>
 
-#include "comet/core/algorithm/algorithm_common.h"
 #include "comet/core/c_array.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/iterator.h"
-#include "comet/math/math_commons.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 namespace internal {
@@ -197,7 +196,7 @@ class Array : public internal::BaseArray<T> {
     return *this;
   }
 
-  ~Array() { Clear(); }
+  ~Array() { Destroy(); }
 
   bool operator==(const Array& other) {
     if (this->size_ != other.size_) {
@@ -214,6 +213,17 @@ class Array : public internal::BaseArray<T> {
   }
 
   bool operator!=(const Array& other) { return !operator=(other); }
+
+  void Destroy() {
+    if (this->data_ != nullptr) {
+      comet::Clear(this->data_, this->size_);
+      this->allocator_->Deallocate(this->data_);
+      this->data_ = nullptr;
+      this->size_ = 0;
+    }
+
+    this->capacity_ = 0;
+  }
 
   void Reserve(usize new_capacity) {
     this->data_ = comet::Reserve(this->allocator_, this->data_, this->size_,
@@ -340,12 +350,8 @@ class Array : public internal::BaseArray<T> {
   void Clear() {
     if (this->data_ != nullptr) {
       comet::Clear(this->data_, this->size_);
-      this->allocator_->Deallocate(this->data_);
-      this->data_ = nullptr;
       this->size_ = 0;
     }
-
-    this->capacity_ = 0;
   }
 
   usize GetCapacity() const noexcept { return this->capacity_; };
@@ -489,22 +495,22 @@ class StaticArray<T, 0> {
 
   T& GetFirst() {
     COMET_CASSERT(false, "Index out of bounds!");
-    return this->data_[0];
+    throw std::out_of_range{};
   }
 
   const T& GetFirst() const {
     COMET_CASSERT(false, "Index out of bounds!");
-    return this->data_[0];
+    throw std::out_of_range{};
   }
 
   T& GetLast() {
     COMET_CASSERT(false, "Index out of bounds!");
-    return this->data_[0];
+    throw std::out_of_range{};
   }
 
   const T& GetLast() const {
     COMET_CASSERT(false, "Index out of bounds!");
-    return this->data_[0];
+    throw std::out_of_range{};
   }
 
   constexpr T& operator[](usize) {
@@ -536,9 +542,9 @@ struct EnforceSame {
 };
 
 template <typename First, typename... Rest>
-StaticArray(First,
-            Rest...) -> StaticArray<typename EnforceSame<First, Rest...>::type,
-                                    1 + sizeof...(Rest)>;
+StaticArray(First, Rest...)
+    -> StaticArray<typename EnforceSame<First, Rest...>::type,
+                   1 + sizeof...(Rest)>;
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_TYPE_ARRAY_H_

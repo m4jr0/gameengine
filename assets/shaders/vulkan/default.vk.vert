@@ -4,10 +4,14 @@
 #extension GL_EXT_debug_printf : enable
 #endif // COMET_VALIDATION_DEBUG_PRINTF_EXT
 
+const uint InvalidSkinningMatrixOffset = 0xFFFFFFFFu;
+const uint InvalidJointIndex = 0xFFFFu;
+
 struct ProxyLocalData {
   vec3 localCenter;
   vec3 localMaxExtents;
   mat4 transform;
+  uint skinningOffset;
 };
 
 layout(location = 0) in vec3 inPosition;
@@ -16,6 +20,8 @@ layout(location = 2) in vec3 inTangents;
 layout(location = 3) in vec3 inBitangents;
 layout(location = 4) in vec2 inTexCoord;
 layout(location = 5) in vec4 inColor;
+layout(location = 6) in uvec4 inJointIndices;
+layout(location = 7) in vec4 inJointWeights;
 
 layout(set = 0, binding = 0) uniform GlobalUbo {
   mat4 projection;
@@ -42,13 +48,48 @@ layout(set = 2, binding = 1) readonly buffer InProxyIdsSsbo {
   uint inProxyIds[];
 };
 
+layout(std430, set = 2, binding = 7) readonly buffer InSkinningMatricesSsbo {
+  mat4 inSkinningMatrices[];
+};
+
+vec4 ApplySkinning(vec4 pos, uint offset) {
+  if (offset == InvalidSkinningMatrixOffset) {
+    return pos; // Case: static mesh.
+  }
+
+  mat4 skin = mat4(0.0);
+
+  if (inJointWeights.x > 0.0 && inJointIndices.x != InvalidJointIndex) {
+    skin += inJointWeights.x * inSkinningMatrices[offset + inJointIndices.x];
+  }
+
+  if (inJointWeights.y > 0.0 && inJointIndices.y != InvalidJointIndex) {
+    skin += inJointWeights.y * inSkinningMatrices[offset + inJointIndices.y];
+  }
+
+  if (inJointWeights.z > 0.0 && inJointIndices.z != InvalidJointIndex) {
+    skin += inJointWeights.z * inSkinningMatrices[offset + inJointIndices.z];
+  }
+
+  if (inJointWeights.w > 0.0 && inJointIndices.w != InvalidJointIndex) {
+    skin += inJointWeights.w * inSkinningMatrices[offset + inJointIndices.w];
+  }
+
+  return skin * pos;
+}
+
 void main() {
   uint proxyId = inProxyIds[gl_InstanceIndex];
-  mat4 model = inProxyLocalDatas[proxyId].transform;
+  ProxyLocalData proxy = inProxyLocalDatas[proxyId];
+  mat4 model = proxy.transform;
+
+  vec4 skinnedPosition =
+      ApplySkinning(vec4(inPosition, 1.0), proxy.skinningOffset);
+  vec3 worldPos = vec3(model * skinnedPosition);
 
   outData.texCoord = inTexCoord;
   outData.color = inColor;
-  outData.fragPos = vec3(model * vec4(inPosition, 1.0));
+  outData.fragPos = worldPos;
 
   mat3 modelMat3 = mat3(model);
 
@@ -56,6 +97,5 @@ void main() {
   outData.ambientColor = globalUbo.ambientColor;
   outData.viewPos = globalUbo.viewPos;
 
-  gl_Position =
-      globalUbo.projection * globalUbo.view * model * vec4(inPosition, 1.0);
+  gl_Position = globalUbo.projection * globalUbo.view * vec4(worldPos, 1.0);
 }

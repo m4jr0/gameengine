@@ -13,7 +13,7 @@
 namespace comet {
 namespace rendering {
 namespace vk {
-#ifdef COMET_RENDERING_DEBUG
+#ifdef COMET_DEBUG_RENDERING
 namespace internal {
 void* VKAPI_PTR VulkanAllocate(void*, std::size_t size, std::size_t align,
                                VkSystemAllocationScope);
@@ -23,21 +23,23 @@ void* VKAPI_PTR VulkanReallocate(void*, void* ptr, std::size_t size,
 
 void VKAPI_PTR VulkanDeallocate(void*, void* ptr);
 
-void VKAPI_PTR VulkanInternalAllocCallback(void*, std::size_t size,
+void VKAPI_PTR VulkanInternalAllocCallback(void*,
+                                           [[maybe_unused]] std::size_t size,
                                            VkInternalAllocationType,
                                            VkSystemAllocationScope);
 
-void VKAPI_PTR VulkanInternalDeallocCallback(void*, std::size_t size,
+void VKAPI_PTR VulkanInternalDeallocCallback(void*,
+                                             [[maybe_unused]] std::size_t size,
                                              VkInternalAllocationType,
                                              VkSystemAllocationScope);
 
 void VKAPI_PTR VmaAllocate(VmaAllocator, std::uint32_t, VkDeviceMemory,
-                           VkDeviceSize size, void*);
+                           [[maybe_unused]] VkDeviceSize size, void*);
 
 void VKAPI_PTR VmaDeallocate(VmaAllocator, std::uint32_t, VkDeviceMemory,
-                             VkDeviceSize size, void*);
+                             [[maybe_unused]] VkDeviceSize size, void*);
 }  // namespace internal
-#endif  // COMET_RENDERING_DEBUG
+#endif  // COMET_DEBUG_RENDERING
 
 struct MemoryCallbacks {
   static MemoryCallbacks Get();

@@ -37,7 +37,7 @@ class ThreadProvider {
     COMET_ASSERT(
         is_initialized_,
         "Tried to destroy thread provider, but it is not initialized!");
-    array_.Clear();
+    array_.Destroy();
     is_initialized_ = false;
   }
 

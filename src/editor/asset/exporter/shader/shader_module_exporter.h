@@ -9,8 +9,6 @@
 
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/shader_module_resource.h"
 #include "editor/asset/exporter/asset_exporter.h"

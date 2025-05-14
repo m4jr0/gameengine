@@ -8,7 +8,7 @@
 #include "driver.h"
 
 #include "comet/core/c_string.h"
-#include "comet/core/conf/configuration_value.h"
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 
 namespace comet {

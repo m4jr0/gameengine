@@ -6,10 +6,10 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_RENDER_PROXY_H_
 
 #include "comet/core/essentials.h"
+#include "comet/entity/entity_id.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 
 namespace comet {
 namespace rendering {
@@ -22,8 +22,13 @@ constexpr auto kInvalidBatchId{static_cast<BatchId>(-1)};
 
 struct RenderProxy {
   RenderProxyId id{kInvalidRenderProxyId};
+  entity::EntityId model_entity_id{entity::kInvalidEntityId};
   MeshProxyHandle mesh_handle{kInvalidMeshProxyHandle};
   MaterialId mat_id{kInvalidMaterialId};
+};
+
+struct RenderProxyModelBindings {
+  Array<RenderProxyId> proxy_ids{};
 };
 
 struct RenderBatchEntry {
@@ -45,11 +50,16 @@ struct RenderBatchGroup {
   u32 count{0};
 };
 
+using SkinningOffset = u32;
+constexpr auto kInvalidSkinningOffset{static_cast<SkinningOffset>(-1)};
+
 // Use Vec4 instances instead of Vec3 to ensure proper alignment in the shader.
 struct GpuRenderProxyLocalData {
   math::Vec4 local_center{.0f};
   math::Vec4 local_max_extents{.0f};
   math::Mat4 transform{1.0f};
+  SkinningOffset skinning_offset{kInvalidSkinningOffset};
+  SkinningOffset padding[3];
 };
 
 struct GpuRenderProxyInstance {

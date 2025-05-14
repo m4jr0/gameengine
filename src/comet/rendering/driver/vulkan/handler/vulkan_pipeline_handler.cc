@@ -7,6 +7,7 @@
 
 #include "vulkan_pipeline_handler.h"
 
+#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
@@ -34,8 +35,8 @@ void PipelineHandler::Shutdown() {
     DestroyLayout(it.value, true);
   }
 
-  pipelines_.Clear();
-  pipeline_layouts_.Clear();
+  pipelines_.Destroy();
+  pipeline_layouts_.Destroy();
   allocator_.Destroy();
   bound_pipeline_ = nullptr;
   Handler::Shutdown();

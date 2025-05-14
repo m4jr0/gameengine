@@ -13,7 +13,8 @@
 #include "comet/core/type/string_id.h"
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
-#include "comet/math/math_commons.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/math/math_common.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
@@ -21,6 +22,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
+#include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 #include "comet/resource/texture_resource.h"
 
@@ -41,7 +43,7 @@ void TextureHandler::Shutdown() {
     Destroy(it.value, true);
   }
 
-  textures_.Clear();
+  textures_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }

@@ -7,13 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/math/matrix.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/time/time_manager.h"
-
-#ifdef COMET_DEBUG
-#include "comet/rendering/debugger/debugger_displayer_manager.h"
-#endif  // COMET_DEBUG
 
 namespace comet {
 namespace rendering {

@@ -6,9 +6,12 @@
 
 #include "shader_exporter.h"
 
+#include "nlohmann/json.hpp"
+
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
+#include "comet/core/type/array.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/asset_utils.h"
@@ -23,7 +26,8 @@ bool ShaderExporter::IsCompatible(CTStringView extension) const {
 void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
   resource::ShaderResource shader{};
   auto& asset_descr{context.asset_descr};
-  shader.id = resource::GenerateResourceIdFromPath(asset_descr.asset_path);
+  shader.id = resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+      asset_descr.asset_path);
   shader.type_id = resource::ShaderResource::kResourceTypeId;
   shader.descr.shader_module_paths = Array<TString>{context.allocator};
   shader.descr.vertex_attributes =
@@ -40,27 +44,30 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
   ShaderContext shader_context{};
   shader_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
   auto& scheduler{job::Scheduler::Get()};
-  auto* size_counter{scheduler.GenerateCounter()};
 
-  scheduler.KickAndWait(job::GenerateIOJobDescr(OnShaderSizeRequest,
-                                                &shader_context, size_counter));
+  {
+    job::CounterGuard size_guard{};
 
-  scheduler.DestroyCounter(size_counter);
+    scheduler.KickAndWait(job::GenerateIOJobDescr(
+        OnShaderSizeRequest, &shader_context, size_guard.GetCounter()));
+  }
 
   // Add 1 extra character for the null terminator.
   shader_context.file_buffer_len = shader_context.file_len + 1;
 
-  shader_context.file = static_cast<schar*>(COMET_FRAME_ALLOC_ALIGNED(
-      shader_context.file_buffer_len, alignof(schar)));
+  auto* allocator{context.allocator};
+  shader_context.file =
+      allocator->AllocateMany<schar>(shader_context.file_buffer_len);
 
-  auto* load_counter{scheduler.GenerateCounter()};
+  {
+    job::CounterGuard load_guard{};
 
-  scheduler.KickAndWait(
-      job::GenerateIOJobDescr(OnShaderLoading, &shader_context, load_counter));
-
-  scheduler.DestroyCounter(load_counter);
+    scheduler.KickAndWait(job::GenerateIOJobDescr(
+        OnShaderLoading, &shader_context, load_guard.GetCounter()));
+  }
 
   if (shader_context.file_len == 0) {
+    allocator->Deallocate(shader_context.file);
     return;
   }
 
@@ -82,19 +89,21 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
     DumpShaderModules(shader_file, shader);
     DumpDefines(shader_file, context.allocator, shader);
     DumpVertexAttributes(shader_file, shader);
-    DumpUniforms(shader_file, shader);
-    DumpConstants(shader_file, shader);
+    DumpUniforms(shader_file, context.allocator, shader);
+    DumpConstants(shader_file, context.allocator, shader);
     DumpStorages(shader_file, context.allocator, shader);
 
   } catch (const nlohmann::json::exception& error) {
     COMET_LOG_GLOBAL_ERROR("An error occurred while processing shader file: ",
                            error.what());
+    allocator->Deallocate(shader_context.file);
     return;
   }
 
   resource_files.PushBack(resource::ResourceManager::Get().GetResourceFile(
       shader, compression_mode_));
 
+  allocator->Deallocate(shader_context.file);
   COMET_LOG_GLOBAL_DEBUG("Shader processed at ", shader_context.asset_abs_path,
                          "...");
 }
@@ -190,6 +199,7 @@ void ShaderExporter::DumpVertexAttributes(const nlohmann::json& shader_file,
 }
 
 void ShaderExporter::DumpUniforms(const nlohmann::json& shader_file,
+                                  memory::Allocator* allocator,
                                   resource::ShaderResource& shader) {
   if (!shader_file.contains(kCometEditorShaderKeyUniforms)) {
     return;
@@ -231,12 +241,13 @@ void ShaderExporter::DumpUniforms(const nlohmann::json& shader_file,
         GetShaderUniformScope(raw_uniform[kCometEditorShaderKeyUniformScope]);
 #endif  // COMET_GCC
 
-    uniform.stages =
-        GetShaderStageFlags(raw_uniform[kCometEditorShaderKeyUniformStages]);
+    uniform.stages = GetShaderStageFlags(
+        raw_uniform[kCometEditorShaderKeyUniformStages], allocator);
   }
 }
 
 void ShaderExporter::DumpConstants(const nlohmann::json& shader_file,
+                                   memory::Allocator* allocator,
                                    resource::ShaderResource& shader) {
   if (!shader_file.contains(kCometEditorShaderKeyConstants)) {
     return;
@@ -258,8 +269,8 @@ void ShaderExporter::DumpConstants(const nlohmann::json& shader_file,
     auto constant_name_len{constant_name.size()};
     SetName(constant, constant_name.c_str(), constant_name_len);
 
-    constant.stages =
-        GetShaderStageFlags(raw_constant[kCometEditorShaderKeyStorageStages]);
+    constant.stages = GetShaderStageFlags(
+        raw_constant[kCometEditorShaderKeyStorageStages], allocator);
 
 #ifdef COMET_GCC
     // Keep GCC happy.
@@ -298,8 +309,8 @@ void ShaderExporter::DumpStorages(const nlohmann::json& shader_file,
     auto storage_name_len{storage_name.size()};
     SetName(storage, storage_name.c_str(), storage_name_len);
 
-    storage.stages =
-        GetShaderStageFlags(raw_storage[kCometEditorShaderKeyStorageStages]);
+    storage.stages = GetShaderStageFlags(
+        raw_storage[kCometEditorShaderKeyStorageStages], allocator);
 
     storage.properties =
         Array<rendering::ShaderStoragePropertyDescr>{allocator};
@@ -402,30 +413,6 @@ rendering::PrimitiveTopology ShaderExporter::GetPrimitiveTopology(
 rendering::ShaderVertexAttributeType
 ShaderExporter::GetShaderVertexAttributeType(
     std::string_view raw_vertex_attribute_type) {
-  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF16) {
-    return rendering::ShaderVertexAttributeType::F16;
-  }
-
-  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF32) {
-    return rendering::ShaderVertexAttributeType::F32;
-  }
-
-  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF64) {
-    return rendering::ShaderVertexAttributeType::F64;
-  }
-
-  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeVec2) {
-    return rendering::ShaderVertexAttributeType::Vec2;
-  }
-
-  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeVec3) {
-    return rendering::ShaderVertexAttributeType::Vec3;
-  }
-
-  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeVec4) {
-    return rendering::ShaderVertexAttributeType::Vec4;
-  }
-
   if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS8) {
     return rendering::ShaderVertexAttributeType::S8;
   }
@@ -448,6 +435,143 @@ ShaderExporter::GetShaderVertexAttributeType(
 
   if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU32) {
     return rendering::ShaderVertexAttributeType::U32;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF16) {
+    return rendering::ShaderVertexAttributeType::F16;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF32) {
+    return rendering::ShaderVertexAttributeType::F32;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF64) {
+    return rendering::ShaderVertexAttributeType::F64;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU8Vec4) {
+    return rendering::ShaderVertexAttributeType::U8Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS8Vec4) {
+    return rendering::ShaderVertexAttributeType::S8Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU16Vec2) {
+    return rendering::ShaderVertexAttributeType::U16Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU16Vec3) {
+    return rendering::ShaderVertexAttributeType::U16Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU16Vec4) {
+    return rendering::ShaderVertexAttributeType::U16Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS16Vec2) {
+    return rendering::ShaderVertexAttributeType::S16Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS16Vec3) {
+    return rendering::ShaderVertexAttributeType::S16Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS16Vec4) {
+    return rendering::ShaderVertexAttributeType::S16Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF16Vec2) {
+    return rendering::ShaderVertexAttributeType::F16Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF16Vec4) {
+    return rendering::ShaderVertexAttributeType::F16Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU32Vec2) {
+    return rendering::ShaderVertexAttributeType::U32Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU32Vec3) {
+    return rendering::ShaderVertexAttributeType::U32Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeU32Vec4) {
+    return rendering::ShaderVertexAttributeType::U32Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS32Vec2) {
+    return rendering::ShaderVertexAttributeType::S32Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS32Vec3) {
+    return rendering::ShaderVertexAttributeType::S32Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeS32Vec4) {
+    return rendering::ShaderVertexAttributeType::S32Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF32Vec2) {
+    return rendering::ShaderVertexAttributeType::F32Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF32Vec3) {
+    return rendering::ShaderVertexAttributeType::F32Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF32Vec4) {
+    return rendering::ShaderVertexAttributeType::F32Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF64Vec2) {
+    return rendering::ShaderVertexAttributeType::F64Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF64Vec3) {
+    return rendering::ShaderVertexAttributeType::F64Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeF64Vec4) {
+    return rendering::ShaderVertexAttributeType::F64Vec4;
+  }
+
+  // Legacy aliases -> default to 32-bit versions
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeVec2) {
+    return rendering::ShaderVertexAttributeType::F32Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeVec3) {
+    return rendering::ShaderVertexAttributeType::F32Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeVec4) {
+    return rendering::ShaderVertexAttributeType::F32Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeUVec2) {
+    return rendering::ShaderVertexAttributeType::U32Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeUVec3) {
+    return rendering::ShaderVertexAttributeType::U32Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeUVec4) {
+    return rendering::ShaderVertexAttributeType::U32Vec4;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeSVec2) {
+    return rendering::ShaderVertexAttributeType::S32Vec2;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeSVec3) {
+    return rendering::ShaderVertexAttributeType::S32Vec3;
+  }
+
+  if (raw_vertex_attribute_type == kCometEditorShaderKeyAttributeTypeSVec4) {
+    return rendering::ShaderVertexAttributeType::S32Vec4;
   }
 
   COMET_LOG_GLOBAL_ERROR("Unknown or unsupported vertex attribute type: ",
@@ -614,7 +738,7 @@ rendering::ShaderUniformScope ShaderExporter::GetShaderUniformScope(
 }
 
 rendering::ShaderStageFlags ShaderExporter::GetShaderStageFlags(
-    const nlohmann::json& raw_stages) {
+    const nlohmann::json& raw_stages, memory::Allocator* allocator) {
   rendering::ShaderStageFlags stages{rendering::kShaderStageFlagBitsNone};
 
   if (!raw_stages.is_array()) {
@@ -623,7 +747,8 @@ rendering::ShaderStageFlags ShaderExporter::GetShaderStageFlags(
     return stages;
   }
 
-  auto raw_stages_list{raw_stages.get<frame::FrameArray<std::string>>()};
+  auto raw_stages_list{
+      nlohmann::json_to_array<std::string>(raw_stages, allocator)};
 
   for (const auto& raw_stage : raw_stages_list) {
     if (raw_stage == kCometEditorShaderKeyStageCompute) {

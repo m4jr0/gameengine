@@ -7,10 +7,12 @@
 
 #include "opengl_texture_handler.h"
 
+#include <type_traits>
 #include <utility>
 
 #include "comet/core/frame/frame_utils.h"
-#include "comet/math/math_commons.h"
+#include "comet/core/memory/allocator/allocator.h"
+#include "comet/math/math_common.h"
 
 namespace comet {
 namespace rendering {
@@ -42,7 +44,7 @@ void TextureHandler::Shutdown() {
     glDeleteTextures(static_cast<s32>(handles.GetSize()), handles.GetData());
   }
 
-  textures_.Clear();
+  textures_.Destroy();
   allocator_.Destroy();
   Handler::Shutdown();
 }

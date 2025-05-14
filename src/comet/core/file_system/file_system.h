@@ -43,7 +43,6 @@
 #endif  // !COMET_WINDOWS
 
 #include "comet/core/c_string.h"
-#include "comet/core/file_system/slash_helper.h"
 #include "comet/core/type/tstring.h"
 
 namespace comet {
@@ -106,7 +105,7 @@ RootType GetRootType(CTStringView path);
 bool IsAbsolute(CTStringView path);
 bool IsRelative(CTStringView path);
 bool Exists(CTStringView path);
-bool IsEmpty(CTStringView path);
+bool IsPathEmpty(CTStringView path);
 void AppendTo(CTStringView to_append, tchar* buff, usize buff_len,
               usize* out_len);
 void Append(CTStringView path_a, CTStringView path_b, tchar* buff,
