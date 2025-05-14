@@ -2,9 +2,9 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_pch.h"
-
 #include "editor.h"
+
+#include "comet_pch.h"
 
 #ifdef COMET_MSVC
 #include <iostream>
@@ -92,20 +92,13 @@ BOOL WINAPI CometEditor::HandleConsole(DWORD window_event) {
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::LoadTmpCode() {
   comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("models/kate/kate.fbx.meta"));
-  comet::Remove(
-      asset::AssetManager::Get().GetAssetsRootPath() /
-      COMET_CTSTRING_VIEW("shaders/vulkan/default_shader.vk.cshader.meta"));
+                COMET_CTSTRING_VIEW("models/kate/kate.fbx.meta"));  // >:3
   comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.vert.meta"));
+                COMET_CTSTRING_VIEW("models/kate/anims/kate_idle.fbx.meta"));
   comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.frag.meta"));
+                COMET_CTSTRING_VIEW("models/kate/anims/kate_walk.fbx.meta"));
   comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-                COMET_CTSTRING_VIEW("shaders/vulkan/default.vk.comp.meta"));
-  // comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-  //               COMET_CTSTRING_VIEW("models/nanosuit/nanosuit.obj.meta"));
-  //  comet::Remove(asset::AssetManager::Get().GetAssetsRootPath() /
-  //                COMET_CTSTRING_VIEW("models/sponza/sponza.obj.meta"));
+                COMET_CTSTRING_VIEW("models/kate/anims/kate_run.fbx.meta"));
 }
 }  // namespace editor
 

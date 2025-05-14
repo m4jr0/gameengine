@@ -2,12 +2,11 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_pch.h"
-
 #include "entity_model_handler.h"
 
 #include <utility>
 
+#include "comet/animation/component/animation_component.h"
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/job/job_utils.h"
@@ -20,6 +19,7 @@
 #include "comet/physics/component/transform_component.h"
 #include "comet/profiler/profiler.h"
 #include "comet/resource/resource_manager.h"
+#include "comet_pch.h"
 
 namespace comet {
 namespace entity {
@@ -114,7 +114,8 @@ EntityId ModelHandler::GenerateSkeletal(CTStringView model_path,
   transform_cmp.root_entity_id = root_entity_id;
 
   entity_manager.AddComponents(root_entity_id, transform_cmp,
-                               physics::TransformRootComponent{});
+                               physics::TransformRootComponent{},
+                               animation::AnimationComponent{});
 
   auto& scheduler{job::Scheduler::Get()};
   auto* counter{scheduler.GenerateCounter()};

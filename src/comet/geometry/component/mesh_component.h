@@ -18,7 +18,7 @@ struct MeshComponent {
 };
 
 struct SkeletonComponent {
-  const resource::SkinnedMeshResource* resource{nullptr};
+  const resource::SkeletalModelResource* resource{nullptr};
 };
 }  // namespace geometry
 }  // namespace comet

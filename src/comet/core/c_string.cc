@@ -193,6 +193,46 @@ bool IsContained(const wchar* str, const wchar* to_find) {
   return std::wcsstr(str, to_find) != nullptr;
 }
 
+bool IsContainedInsensitive(const schar* str, const schar* to_find) {
+  if (str == nullptr || to_find == nullptr) {
+    return false;
+  }
+
+  auto needle_len{GetLength(to_find)};
+
+  if (needle_len == 0) {
+    return true;
+  }
+
+  for (const auto* p{str}; *p != '\0'; ++p) {
+    if (CompareInsensitive(p, to_find, needle_len) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool IsContainedInsensitive(const wchar* str, const wchar* to_find) {
+  if (str == nullptr || to_find == nullptr) {
+    return false;
+  }
+
+  auto needle_len{GetLength(to_find)};
+
+  if (needle_len == 0) {
+    return true;
+  }
+
+  for (const auto* p{str}; *p != '\0'; ++p) {
+    if (CompareInsensitive(p, to_find, needle_len) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool IsSpace(schar c) { return std::isspace(c); }
 
 bool IsSpace(wchar c) { return std::iswspace(c); }

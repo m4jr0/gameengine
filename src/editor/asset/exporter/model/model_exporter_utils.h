@@ -6,7 +6,6 @@
 #define COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_UTILS_H_
 
 #include "assimp/scene.h"
-
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/math/matrix.h"
@@ -38,7 +37,6 @@ resource::ResourceId LoadStaticMesh(
 resource::SkeletalModelResource LoadSkeletalModel(memory::Allocator* allocator,
                                                   const aiScene* scene,
                                                   CTStringView path);
-
 void LoadSkeletalNode(
     memory::Allocator* allocator, resource::SkeletalModelResource& model,
     const aiNode* current_node, const aiScene* scene,

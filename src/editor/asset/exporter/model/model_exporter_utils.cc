@@ -2,11 +2,11 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_pch.h"
-
 #include "model_exporter_utils.h"
 
+#include "comet/core/frame/frame_utils.h"
 #include "comet/geometry/geometry_common.h"
+#include "comet_pch.h"
 
 namespace comet {
 namespace editor {

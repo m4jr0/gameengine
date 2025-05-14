@@ -111,6 +111,25 @@ template <class T>
 const T Log2(const T& x, const T& i = 0) {
   return (x < 2) ? i : Log2(x / 2, i + 1);
 }
+
+template <typename T>
+inline T Fmod(T x, T y) {
+  static_assert(std::is_floating_point_v<T>,
+                "Fmod requires a floating-point type");
+
+  if (y == 0) {
+    return 0;
+  }
+
+  auto div{static_cast<T>(static_cast<u64>(x / y))};
+  auto result{x - y * div};
+
+  if (result < 0) {
+    result += y;
+  }
+
+  return result;
+}
 }  // namespace math
 }  // namespace comet
 

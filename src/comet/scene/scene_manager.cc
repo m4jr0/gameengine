@@ -2,10 +2,9 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_pch.h"
-
 #include "scene_manager.h"
 
+#include "comet/animation/animation_manager.h"
 #include "comet/core/concurrency/fiber/fiber_utils.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/entity/entity_manager.h"
@@ -14,6 +13,7 @@
 #include "comet/physics/component/transform_component.h"
 #include "comet/physics/transform.h"
 #include "comet/scene/scene_event.h"
+#include "comet_pch.h"
 
 namespace comet {
 namespace scene {
@@ -66,6 +66,9 @@ void SceneManager::LoadTmp(frame::FramePacket* packet) {
         auto* character_transform{
             entity::EntityManager::Get()
                 .GetComponent<physics::TransformComponent>(character_id)};
+
+        animation::AnimationManager::Get().Play(character_id,
+                                                COMET_STRING_ID("kate|walk"));
 
         constexpr auto kCharacterScaleFactor{0.15f};
         physics::ScaleLocal(character_transform, kCharacterScaleFactor);

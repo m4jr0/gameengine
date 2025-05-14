@@ -7,11 +7,15 @@
 
 #include "comet/core/os.h"
 
+// Misc.
+#define COMET_COMMA ,
+
 // String ID.
 #ifdef COMET_DEBUG
 // TODO(m4jr0): Find lock-free solution.
 // #define COMET_LABELIZE_STRING_IDS
 #endif  // COMET_DEBUG
+
 // Memory.
 #ifdef COMET_DEBUG
 // TODO(m4jr0): Find lock-free solution.
@@ -47,6 +51,9 @@
 
 // Path.
 #define COMET_NORMALIZE_PATHS
+
+// Math.
+// #define COMET_USE_LERP_FOR_SLERP
 
 // Rendering.
 #ifdef COMET_DEBUG

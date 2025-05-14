@@ -16,7 +16,7 @@ list(APPEND EXECUTABLE_SOURCES
 )
 
 # Executable ###################################################################
-add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
+add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES} "asset/exporter/animation/animation_exporter.h")
 
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF CXX_RTTI OFF)
 

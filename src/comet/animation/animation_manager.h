@@ -5,10 +5,12 @@
 #ifndef COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 #define COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 
+#include "comet/animation/animation_common.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
+#include "comet/entity/entity_id.h"
 
 namespace comet {
 namespace animation {
@@ -16,6 +18,8 @@ class AnimationManager : public Manager {
  public:
   static AnimationManager& Get();
   void Update(frame::FramePacket* packet);
+
+  void Play(entity::EntityId entity_id, AnimationId animation_id);
 
   AnimationManager() = default;
   AnimationManager(const AnimationManager&) = delete;

@@ -16,7 +16,6 @@
 #include "comet/core/type/tstring.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/model_resource.h"
 #include "comet/resource/resource.h"
 #include "editor/asset/exporter/asset_exporter.h"
 

@@ -47,6 +47,10 @@ struct StaticModelResource : Resource {
   Array<StaticMeshResource> meshes{};
 };
 
+struct SkeletonResource {
+
+};
+
 struct SkeletalModelResourceDescr {
   // TODO(m4jr0): Add description.
   u8 empty{0};
@@ -56,6 +60,7 @@ struct SkeletalModelResource : Resource {
   static const ResourceTypeId kResourceTypeId;
 
   SkeletalModelResourceDescr descr{};
+  SkeletonResource{};
   Array<SkinnedMeshResource> meshes{};
 };
 

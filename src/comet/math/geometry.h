@@ -8,6 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
+#include "comet/math/quaternion.h"
 
 namespace comet {
 namespace math {
@@ -19,9 +20,13 @@ constexpr T ConvertToRadians(T x) {
 }
 
 Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis);
+Mat4 ToRotationMatrix(const Quat& rotation);
 Mat4 Translate(const Mat4& model, const Vec3& translation);
+Mat4 ToTranslateMatrix(const Vec3& translation);
 Mat4 Scale(const Mat4& model, f32 scale_factor);
 Mat4 Scale(const Mat4& model, const Vec3& scale_factors);
+Mat4 ToScaleMatrix(const Vec3& scale);
+Mat4 ToScaleMatrix(f32 scale_factor);
 
 template <typename T>
 T Cos(T x) {

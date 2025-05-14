@@ -21,6 +21,7 @@
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/asset_utils.h"
+#include "editor/asset/exporter/animation/animation_exporter.h"
 #include "editor/asset/exporter/model/model_exporter.h"
 #include "editor/asset/exporter/shader/shader_exporter.h"
 #include "editor/asset/exporter/shader/shader_module_exporter.h"
@@ -64,6 +65,7 @@ void AssetManager::Initialize() {
   exporters_ = Array<memory::UniquePtr<AssetExporter>>{&exporters_allocator_};
   exporters_.Reserve(4);
   exporters_.PushBack(std::make_unique<ModelExporter>());
+  exporters_.PushBack(std::make_unique<AnimationExporter>());
   exporters_.PushBack(std::make_unique<ShaderExporter>());
   exporters_.PushBack(std::make_unique<ShaderModuleExporter>());
   exporters_.PushBack(std::make_unique<TextureExporter>());

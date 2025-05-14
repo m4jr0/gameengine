@@ -62,12 +62,57 @@ Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis) {
   return result;
 }
 
+Mat4 ToRotationMatrix(const Quat& rotation) {
+  Mat4 result{1.0f};
+
+  auto x{rotation.x};
+  auto y{rotation.y};
+  auto z{rotation.z};
+  auto w{rotation.w};
+
+  auto x2{x + x};
+  auto y2{y + y};
+  auto z2{z + z};
+
+  auto xx{x * x2};
+  auto yy{y * y2};
+  auto zz{z * z2};
+  auto xy{x * y2};
+  auto xz{x * z2};
+  auto yz{y * z2};
+  auto wx{w * x2};
+  auto wy{w * y2};
+  auto wz{w * z2};
+
+  result[0][0] = 1.0f - (yy + zz);
+  result[0][1] = xy + wz;
+  result[0][2] = xz - wy;
+
+  result[1][0] = xy - wz;
+  result[1][1] = 1.0f - (xx + zz);
+  result[1][2] = yz + wx;
+
+  result[2][0] = xz + wy;
+  result[2][1] = yz - wx;
+  result[2][2] = 1.0f - (xx + yy);
+
+  return result;
+}
+
 Mat4 Translate(const Mat4& model, const Vec3& translation) {
   auto translation_mat{Mat4(1.0f)};
   translation_mat[3][0] = translation.x;
   translation_mat[3][1] = translation.y;
   translation_mat[3][2] = translation.z;
   return model * translation_mat;
+}
+
+Mat4 ToTranslateMatrix(const Vec3& translation) {
+  Mat4 result{1.0f};
+  result[3][0] = translation.x;
+  result[3][1] = translation.y;
+  result[3][2] = translation.z;
+  return result;
 }
 
 Mat4 Scale(const Mat4& model, f32 scale_factor) {
@@ -84,6 +129,18 @@ Mat4 Scale(const Mat4& model, const Vec3& scale_factors) {
   scale_mat[1][1] = scale_factors.y;
   scale_mat[2][2] = scale_factors.z;
   return model * scale_mat;
+}
+
+Mat4 ToScaleMatrix(const Vec3& scale) {
+  Mat4 result{1.0f};
+  result[0][0] = scale.x;
+  result[1][1] = scale.y;
+  result[2][2] = scale.z;
+  return result;
+}
+
+Mat4 ToScaleMatrix(f32 scale_factor) {
+  return ToScaleMatrix(Vec3{scale_factor, scale_factor, scale_factor});
 }
 }  // namespace math
 }  // namespace comet

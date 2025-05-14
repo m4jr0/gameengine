@@ -146,13 +146,13 @@ class DoubleFrameOrderedSet : public OrderedSet<T, HashLogic> {
   COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE( \
       comet::frame::DoubleFrameHashSet<T>, ##__VA_ARGS__)
 
-#define COMET_FRAME_MAP(K, V, ...)                                 \
-  COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameMap<K, V>, \
+#define COMET_FRAME_MAP(K, V, ...)                                            \
+  COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameMap<K COMET_COMMA V>, \
                                      ##__VA_ARGS__)
 
 #define COMET_DOUBLE_FRAME_MAP(K, V, ...)    \
   COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE( \
-      comet::frame::DoubleFrameMap<K, V>, ##__VA_ARGS__)
+      comet::frame::DoubleFrameMap<K COMET_COMMA V>, ##__VA_ARGS__)
 
 #define COMET_FRAME_ORDERED_SET(T, ...)                                \
   COMET_FRAME_ALLOC_ONE_AND_POPULATE(comet::frame::FrameOrderedSet<T>, \

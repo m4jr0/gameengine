@@ -26,27 +26,15 @@ struct Vertex {
 using JointIndex = u8;
 constexpr auto kInvalidJointIndex{static_cast<JointIndex>(-1)};
 
-struct Joint {
+struct SkeletonJoint {
   math::Mat4x3 bind_pose_inv{};
   stringid::StringId id{stringid::kInvalidStringId};
-  JointIndex parent{kInvalidJointIndex};
+  JointIndex parent_index{kInvalidJointIndex};
 };
 
 struct Skeleton {
   usize joint_count{0};
-  Array<Joint> joints{};
-};
-
-struct JointPose {
-  math::Quat rotation{};
-  math::Vec3 translation{};
-  f32 scale{1.0f};
-};
-
-struct SkeletonPose {
-  Skeleton* skeleton{nullptr};
-  JointPose* local_pose{nullptr};
-  math::Mat4* global_pose{nullptr};
+  Array<SkeletonJoint> joints{};
 };
 
 constexpr auto kJointIndexCount{4};

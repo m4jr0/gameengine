@@ -11,6 +11,7 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/animation_resource.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/material_resource.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cc"

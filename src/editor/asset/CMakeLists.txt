@@ -35,6 +35,9 @@ target_sources(${EXECUTABLE_NAME}
     # Exporters.
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
 
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/animation/animation_exporter.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/animation/animation_exporter_utils.cc"
+
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_exporter.cc"
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_exporter_utils.cc"
 
