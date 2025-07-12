@@ -39,10 +39,10 @@ void PhysicsManager::Update(frame::FramePacket* packet) {
   const auto delta_time{time::TimeManager::Get().GetDeltaTime()};
   lag_ += delta_time;
 
-  const int max_steps = 5;
-  int step_count = 0;
+  constexpr u32 kMaxSteps{5};
+  u32 step_count{0};
 
-  while (lag_ >= fixed_delta_time_ && step_count < max_steps) {
+  while (lag_ >= fixed_delta_time_ && step_count < kMaxSteps) {
     UpdateEntityTransforms(packet);
     lag_ -= fixed_delta_time_;
     current_time_ += fixed_delta_time_;
@@ -74,10 +74,43 @@ void PhysicsManager::UpdateTree(
 
         transform_cmp->global =
             transform_cmp->local * parent_transform_cmp->global;
+
         packet->RegisterDirtyTransform(entity_id, transform_cmp);
         UpdateTree(packet, entity_id, transform_cmp);
       },
       parent_entity_id);
+}
+
+TransformRootComponent PhysicsManager::GenerateTransformRootComponent() const {
+  TransformRootComponent transform_root_cmp{};
+  transform_root_cmp.is_child_dirty = false;
+  return transform_root_cmp;
+}
+
+TransformComponent PhysicsManager::GenerateTransformComponent(
+    entity::EntityId root_entity_id, entity::EntityId parent_entity_id,
+    math::Mat4 local, math::Mat4 global) const {
+  TransformComponent transform_cmp{};
+  transform_cmp.is_dirty = false;
+  transform_cmp.root_entity_id = root_entity_id;
+  transform_cmp.parent_entity_id = parent_entity_id;
+  transform_cmp.local = local;
+  transform_cmp.global = global;
+  return transform_cmp;
+}
+
+void PhysicsManager::DestroyTransformRootComponent(
+    TransformRootComponent* transform_root_cmp) const {
+  transform_root_cmp->is_child_dirty = false;
+}
+
+void PhysicsManager::DestroyTransformComponent(
+    TransformComponent* transform_cmp) const {
+  transform_cmp->is_dirty = false;
+  transform_cmp->root_entity_id = entity::kInvalidEntityId;
+  transform_cmp->parent_entity_id = entity::kInvalidEntityId;
+  transform_cmp->local = math::Mat4{1.0f};
+  transform_cmp->global = math::Mat4{1.0f};
 }
 
 u32 PhysicsManager::GetFrameRate() const noexcept { return frame_rate_; }

@@ -60,6 +60,10 @@ bool Thread::IsAttached() const noexcept {
 
 ThreadId Thread::GetId() const noexcept { return thread_id_; }
 
+bool Thread::IsMain() const noexcept {
+  return thread_id_ == main_thread_.thread_id_;
+}
+
 void Thread::Attach() {
   COMET_ASSERT(!IsAttached(),
                "Tried to attach thread, but it is already done!");

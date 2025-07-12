@@ -29,10 +29,6 @@ const TString& AssetExporter::GetRootAssetPath() const {
   return root_asset_path_;
 }
 
-void AssetExporter::Initialize() { asset_export_allocator_.Initialize(); }
-
-void AssetExporter::Destroy() { asset_export_allocator_.Destroy(); }
-
 void AssetExporter::Process(const AssetExportDescr& export_descr) {
   COMET_LOG_GLOBAL_INFO(
       "Processing asset at path: ", export_descr.asset_abs_path, ".");

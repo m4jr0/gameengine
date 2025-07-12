@@ -8,7 +8,6 @@
 #include "driver.h"
 
 #include "comet/core/c_string.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 
 namespace comet {
@@ -27,7 +26,6 @@ Driver::Driver(const DriverDescr& descr)
       window_width_{descr.window_width},
       window_height_{descr.window_height},
       app_name_len_{descr.app_name_len} {
-  rendering_view_descrs_allocator_.Initialize();
   rendering_view_descrs_ = {&rendering_view_descrs_allocator_,
                             descr.rendering_view_descrs.GetData(),
                             descr.rendering_view_descrs.GetSize()};
@@ -40,7 +38,6 @@ Driver::Driver(const DriverDescr& descr)
 Driver ::~Driver() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for driver, but it is still initialized!");
-  rendering_view_descrs_allocator_.Destroy();
 }
 
 void Driver ::Initialize() {

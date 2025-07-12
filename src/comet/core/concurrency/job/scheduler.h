@@ -81,7 +81,7 @@ class Scheduler {
 
   void Initialize();
   void Shutdown();
-  void Run(const JobDescr& callback_descr);
+  void Run(const JobDescr& callback_descr, bool is_main_thread_worker = true);
   void RequestShutdown();
 
   Counter* GenerateCounter();
@@ -98,6 +98,8 @@ class Scheduler {
   void KickAndWait(usize job_count, const JobDescr* job_descrs);
   void KickAndWait(const IOJobDescr& job_descr);
   void KickAndWait(usize job_count, const IOJobDescr* job_descrs);
+
+  void KickOnMainThread(const MainThreadJobDescr& descr);
 
   usize GetFiberWorkerCount() const noexcept;
   usize GetIOWorkerCount() const noexcept;
@@ -149,6 +151,10 @@ class Scheduler {
   void SubmitJob(const JobDescr& job_descr);
   void SubmitJob(const IOJobDescr& job_descr);
   void PromoteJobs();
+
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  void WorkFromMainThread();
+#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 };
 
 class CounterGuard {

@@ -107,8 +107,9 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   COMET_LOG_GLOBAL_DEBUG("Shader module processed at: ",
                          shader_code_context.asset_abs_path);
-  context.files.PushBack(resource::ResourceManager::Get().GetResourceFile(
-      shader_module, compression_mode_));
+  context.files.PushBack(
+      resource::ResourceManager::Get().GetShaderModules()->Pack(
+          shader_module, compression_mode_));
 }
 
 void ShaderModuleExporter::GenerateSpvShaderCode(

@@ -76,7 +76,7 @@ T* Populate(void* memory, Allocator* allocator, Targs&&... args) {
   }
 }
 
-void* StoreShiftAndReturnAligned(u8* ptr, usize data_size,
+void* StoreShiftAndReturnAligned(void* ptr, usize data_size,
                                  [[maybe_unused]] usize allocation_size,
                                  Alignment align);
 void* ResolveNonAligned(void* ptr);

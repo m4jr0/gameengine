@@ -7,7 +7,6 @@
 
 #include "vulkan_context.h"
 
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -67,7 +66,6 @@ void Context::InitializeAllocator() {
 }
 
 void Context::InitializeFrameData() {
-  allocator_.Initialize();
   frame_data_ = Array<FrameData>{&allocator_};
   frame_data_.Resize(max_frames_in_flight_);
 }
@@ -183,10 +181,7 @@ void Context::DestroyAllocator() {
   allocator_handle_ = VK_NULL_HANDLE;
 }
 
-void Context::DestroyFrameData() {
-  frame_data_.Destroy();
-  allocator_.Destroy();
-}
+void Context::DestroyFrameData() { frame_data_.Destroy(); }
 
 void Context::DestroyCommands() {
   for (auto& frame_data : frame_data_) {

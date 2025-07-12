@@ -138,7 +138,7 @@ class FiberThreadProvider : public ThreadProvider<T> {
 
   T& Get() override {
     COMET_ASSERT(job::GetWorkerTag() == job::FiberWorker::kTag_,
-                 "Tried to provide outside an I/O worker!");
+                 "Tried to provide outside a fiber worker!");
     auto type_index{job::GetWorkerTypeIndex()};
     COMET_ASSERT(type_index != job::kInvalidWorkerTypeIndex,
                  "Invalid worker type index retrieved!");

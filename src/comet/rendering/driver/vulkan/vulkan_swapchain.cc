@@ -8,7 +8,6 @@
 #include "vulkan_swapchain.h"
 
 #include "comet/core/frame/frame_utils.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/math/math_common.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
@@ -124,11 +123,6 @@ Swapchain::~Swapchain() {
 void Swapchain::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize Swapchain, but it is already done!");
-
-  if (!allocator_.IsInitialized()) {
-    allocator_.Initialize();
-  }
-
   images_ = Array<Image>{&allocator_};
 
   const auto& device{context_->GetDevice()};
@@ -232,7 +226,6 @@ void Swapchain::Destroy() {
     handle_ = VK_NULL_HANDLE;
   }
 
-  allocator_.Destroy();
   is_reload_needed_ = false;
   is_vsync_ = false;
   image_data_ = {};

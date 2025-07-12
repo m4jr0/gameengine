@@ -36,6 +36,7 @@ Worker& GetWorker();
 usize GetCurrentWorkerCount();
 usize GetCurrentFiberWorkerCount();
 usize GetCurrentIOWorkerCount();
+bool IsMainThreadWorkerDisabled();
 }  // namespace job
 }  // namespace comet
 

@@ -10,10 +10,8 @@
 #include <type_traits>
 #include <utility>
 
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/profiler/profiler.h"
-#include "vulkan/vulkan.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"
@@ -47,7 +45,6 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
 
 void ViewHandler::Initialize() {
   Handler::Initialize();
-  allocator_.Initialize();
   views_ = Array<memory::UniquePtr<View>>{&allocator_};
 
   for (const auto& view_descr : *rendering_view_descrs_) {
@@ -61,7 +58,6 @@ void ViewHandler::Shutdown() {
   }
 
   views_.Destroy();
-  allocator_.Destroy();
   Handler::Shutdown();
 }
 

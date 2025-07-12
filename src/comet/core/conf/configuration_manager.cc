@@ -21,7 +21,6 @@ ConfigurationManager& ConfigurationManager::Get() {
 
 void ConfigurationManager::Initialize() {
   Manager::Initialize();
-  allocator_.Initialize();
   values_ = ConfValues{&allocator_};
 
   values_.Emplace(kApplicationName, GetDefaultValue(kApplicationName));
@@ -98,7 +97,6 @@ void ConfigurationManager::Initialize() {
 
 void ConfigurationManager::Shutdown() {
   values_.Destroy();
-  allocator_.Destroy();
   Manager::Shutdown();
 }
 

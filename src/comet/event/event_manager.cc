@@ -31,7 +31,6 @@ void EventManager::Initialize() {
   COMET_ASSERT(max_event_count_ > 0,
                "Max event count is invalid: ", max_event_count_, ".");
   listener_allocator_.Initialize();
-  event_queue_allocator_.Initialize();
 
   listeners_ = EventListeners{&listener_allocator_};
   id_event_type_map_ = IdEventTypeMap{&listener_allocator_};
@@ -42,7 +41,6 @@ void EventManager::Shutdown() {
   listeners_ = {};
   id_event_type_map_ = {};
   event_queue_ = {};
-  event_queue_allocator_.Destroy();
   listener_allocator_.Destroy();
   Manager::Shutdown();
 }

@@ -59,11 +59,32 @@ void RenderingManager::Initialize() {
 #endif  // COMET_DEBUG
 
   COMET_ASSERT(driver_ != nullptr, "Rendering driver is null!");
-  is_multithreading_ = IsMultithreading(driver_type);
+  is_multithreaded_ = IsMultithreading(driver_type);
 
   // Driver can't be initialized in another thread, as it would not be
   // thread-safe with GLFW.
-  driver_->Initialize();
+  if (is_multithreaded_) {
+    driver_->Initialize();
+  } else {
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+    job::CounterGuard guard{};
+
+    job::Scheduler::Get().KickOnMainThread(job::GenerateMainThreadJobDescr(
+        [](job::MainThreadParamsHandle params_handle) {
+          auto* rendering_manager{
+              reinterpret_cast<RenderingManager*>(params_handle)};
+          rendering_manager->driver_->Initialize();
+        },
+        this, guard.GetCounter()));
+
+    guard.Wait();
+#else
+    COMET_ASSERT(false,
+                 "Multithreading is not enabled with rendering manager, but "
+                 "main thread is not available!");
+#endif  //  COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  }
+
   input::InputManager::Get().AttachGlfwWindow(
       static_cast<GlfwWindow*>(driver_->GetWindow())->GetHandle());
 
@@ -98,17 +119,17 @@ void RenderingManager::Update(frame::FramePacket* packet) {
     return;
   }
 
-  if (is_multithreading_) {
+  struct Job {
+    frame::FramePacket* packet{nullptr};
+    Driver* driver{nullptr};
+  };
+
+  auto* job{COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(Job)};
+  job->packet = packet;
+  job->driver = driver_.get();
+
+  if (is_multithreaded_) {
     auto& scheduler{job::Scheduler::Get()};
-
-    struct Job {
-      frame::FramePacket* packet{nullptr};
-      Driver* driver{nullptr};
-    };
-
-    auto* job{COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(Job)};
-    job->packet = packet;
-    job->driver = driver_.get();
 
     scheduler.Kick(job::GenerateJobDescr(
         job::JobPriority::High,
@@ -118,11 +139,19 @@ void RenderingManager::Update(frame::FramePacket* packet) {
         },
         job, job::JobStackSize::Large, packet->counter,
         "rendering_driver_update"));
+
+    input::InputManager::Get().Update();
   } else {
-    driver_->Update(packet);
+    job::Scheduler::Get().KickOnMainThread(job::GenerateMainThreadJobDescr(
+        [](job::MainThreadParamsHandle params_handle) {
+          auto* job{reinterpret_cast<Job*>(params_handle)};
+          job->driver->Update(job->packet);
+
+          input::InputManager::Get().Update();
+        },
+        job, packet->counter));
   }
 
-  input::InputManager::Get().Update();
   ++counter_;
 }
 
@@ -134,7 +163,7 @@ const Window* RenderingManager::GetWindow() const {
   return driver_->GetWindow();
 }
 
-rendering::DriverType RenderingManager::GetDriverType() const noexcept {
+DriverType RenderingManager::GetDriverType() const noexcept {
   return driver_->GetType();
 }
 
@@ -146,6 +175,10 @@ f64 RenderingManager::GetFrameTime() const noexcept {
 
 u32 RenderingManager::GetDrawCount() const noexcept {
   return driver_->GetDrawCount();
+}
+
+bool RenderingManager::IsMultithreaded() const noexcept {
+  return is_multithreaded_;
 }
 
 void RenderingManager::GenerateOpenGlDriver() {

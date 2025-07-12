@@ -50,7 +50,9 @@ void FrameManager::Initialize() {
       kFramePacketCount_, memory::kEngineMemoryTagGid);
 
   for (usize i{0}; i < kFramePacketCount_; ++i) {
-    frame_packets_[i].Reset();
+    auto& packet{frame_packets_[i]};
+    memory::Populate<FramePacket>(&packet);
+    packet.Reset();
   }
 
   UpdateInFlightFrames();
@@ -69,23 +71,14 @@ void FrameManager::Shutdown() {
 }
 
 void FrameManager::Update() {
-  if (GameStateManager::Get().IsPaused()) {
-    ClearAndSwapAllocators();
-    event::EventManager::Get().FireEvent<NewFrameEvent>();
-    return;
+  event::EventManager::Get().FireEventNow<EndFrameEvent>();
+  auto is_paused{GameStateManager::Get().IsPaused()};
+
+  if (is_paused) {
+    HandlePaused();
+  } else {
+    HandleRunning();
   }
-
-  COMET_PROFILER_END_FRAME();
-
-  {
-    fiber::FiberLockGuard lock{frame_mutex_};
-    ++frame_count_;
-  }
-
-  ClearAndSwapAllocators();
-  UpdateInFlightFrames();
-  COMET_PROFILER_START_FRAME(frame_count_);
-  frame_cv_.NotifyAll();
 
   // Fire a new frame event now, as many frame-specific systems rely on
   // temporary allocations that must be reset or reallocated at the start of
@@ -102,7 +95,17 @@ void FrameManager::WaitForNextFrame() {
   });
 }
 
-InFlightFrames& FrameManager::GetInFlightFrames() { return in_flight_frames_; }
+FramePacket* FrameManager::GetLogicFramePacket() {
+  return in_flight_frames_.logic_frame_packet;
+}
+
+FramePacket* FrameManager::GetRenderingFramePacket() {
+  return in_flight_frames_.rendering_frame_packet;
+}
+
+InFlightFramePackets& FrameManager::GetInFlightFramePackets() {
+  return in_flight_frames_;
+}
 
 memory::Allocator* FrameManager::GetFrameAllocator() {
   if (job::IsFiberWorker()) {
@@ -156,18 +159,35 @@ void FrameManager::ClearAndSwapAllocator(
 }
 
 void FrameManager::UpdateInFlightFrames() {
-  in_flight_frames_.lead_frame =
+  in_flight_frames_.logic_frame_packet =
       &frame_packets_[frame_count_ % kFramePacketCount_];
-  in_flight_frames_.middle_frame =
+  in_flight_frames_.rendering_frame_packet =
       &frame_packets_[(frame_count_ - 1) % kFramePacketCount_];
-  in_flight_frames_.trail_frame =
-      &frame_packets_[(frame_count_ - 2) % kFramePacketCount_];
 
-  in_flight_frames_.lead_frame->Reset();
+  in_flight_frames_.logic_frame_packet->Reset();
 
-  in_flight_frames_.lead_frame->frame_count = frame_count_;
-  in_flight_frames_.middle_frame->frame_count = frame_count_ - 1;
-  in_flight_frames_.trail_frame->frame_count = frame_count_ - 2;
+  in_flight_frames_.logic_frame_packet->frame_count = frame_count_;
+  in_flight_frames_.rendering_frame_packet->frame_count = frame_count_ - 1;
+}
+
+void FrameManager::HandlePaused() {
+  ClearAndSwapAllocators();
+  in_flight_frames_.logic_frame_packet->Reset();
+  in_flight_frames_.rendering_frame_packet->Reset();
+}
+
+void FrameManager::HandleRunning() {
+  COMET_PROFILER_END_FRAME();
+
+  {
+    fiber::FiberLockGuard lock{frame_mutex_};
+    ++frame_count_;
+  }
+
+  ClearAndSwapAllocators();
+  UpdateInFlightFrames();
+  COMET_PROFILER_START_FRAME(frame_count_);
+  frame_cv_.NotifyAll();
 }
 }  // namespace frame
 }  // namespace comet

@@ -8,11 +8,8 @@
 #include <type_traits>
 
 #include "comet/core/compression.h"
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/map.h"
 #include "comet/core/type/string_id.h"
 #include "comet/core/type/tstring.h"
 
@@ -26,7 +23,7 @@ constexpr auto kInvalidResourceTypeId{static_cast<ResourceTypeId>(-1)};
 
 enum class CompressionMode : u8 { None = 0, Lz4 };
 
-enum class ResourceLifeSpan : u8 { Unknown = 0, Manual, Level, Global };
+enum class ResourceLifeSpan : u8 { Unknown = 0, Manual, Scene, Global };
 
 struct ResourceFile {
   ResourceId resource_id{kInvalidResourceId};
@@ -44,6 +41,7 @@ using RefCount = u32;
 constexpr auto kInvalidRefCount{static_cast<RefCount>(-1)};
 
 struct Resource {
+  ResourceLifeSpan life_span{ResourceLifeSpan::Unknown};
   ResourceId id{kInvalidResourceId};
   ResourceId type_id{kInvalidResourceTypeId};
   RefCount ref_count{kInvalidRefCount};
@@ -57,16 +55,6 @@ struct InternalResource {
 };
 
 using ResourcePtr = memory::CustomUniquePtr<Resource>;
-
-namespace internal {
-struct LoadingResourceState {
-  bool is_loading{false};
-  usize ref_count{0};
-  Resource* resource{nullptr};
-};
-
-using LoadedResourceStatePtr = memory::CustomUniquePtr<LoadingResourceState>;
-}  // namespace internal
 
 template <typename ResourceType>
 ResourceId GenerateResourceIdFromPath(CTStringView resource_path) {
@@ -118,8 +106,8 @@ void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
 void UnpackBytes(CompressionMode compression_mode,
                  const Array<u8>& packed_bytes, usize decompressed_size,
                  Array<u8>& data);
-
-void UnpackResourceData(const ResourceFile& file, Array<u8>& data);
+void UnpackResourceData(const ResourceFile& file, Array<u8>& data,
+                        usize max_data_size = kInvalidSize);
 
 template <typename ResourceDescrType>
 void UnpackPodResourceDescr(const ResourceFile& file,
@@ -130,53 +118,6 @@ void UnpackPodResourceDescr(const ResourceFile& file,
 
 bool SaveResourceFile(CTStringView path, const ResourceFile& file);
 bool LoadResourceFile(CTStringView path, ResourceFile& file);
-
-class ResourceHandler {
- public:
-  ResourceHandler(usize resource_size,
-                  memory::Allocator* loading_resources_allocator,
-                  memory::Allocator* loading_resource_allocator);
-
-  ResourceHandler(const ResourceHandler&) = delete;
-  ResourceHandler(ResourceHandler&&) = delete;
-  ResourceHandler& operator=(const ResourceHandler&) = delete;
-  ResourceHandler& operator=(ResourceHandler&&) = delete;
-  virtual ~ResourceHandler() = default;
-
-  virtual void Initialize();
-  virtual void Shutdown();
-
-  const Resource* Load(memory::Allocator& allocator,
-                       CTStringView root_resource_path, ResourceId resource_id);
-  void Unload(ResourceId resource_id);
-  virtual void Destroy(ResourceId resource_id);
-  virtual Resource* GetDefaultResource();
-  ResourceFile GetResourceFile(memory::Allocator& allocator,
-                               const Resource& resource,
-                               CompressionMode compression_mode) const;
-
- protected:
-  virtual Resource* GetInternal(ResourceId resource_id);
-  virtual ResourceFile Pack(memory::Allocator& allocator,
-                            const Resource& resource,
-                            CompressionMode compression_mode) const = 0;
-  virtual Resource* Unpack(memory::Allocator& allocator,
-                           const ResourceFile& file) = 0;
-
-  using LoadingResources = Map<ResourceId, internal::LoadingResourceState*>;
-  using ResourceCache = Map<ResourceId, Resource*>;
-
-  LoadingResources loading_resources_{};
-  fiber::FiberMutex cache_mutex_{};
-  fiber::FiberMutex loading_mutex_{};
-  ResourceCache cache_{};
-  memory::FiberFreeListAllocator cache_allocator_{
-      sizeof(Pair<ResourceId, Resource*>), 1024,
-      memory::kEngineMemoryTagResource};
-  memory::FiberFreeListAllocator resource_allocator_{};
-  memory::Allocator* loading_resources_allocator_{nullptr};
-  memory::Allocator* loading_resource_allocator_{nullptr};
-};
 }  // namespace resource
 }  // namespace comet
 

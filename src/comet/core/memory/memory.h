@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_CORE_MEMORY_MEMORY_H_
 #define COMET_COMET_CORE_MEMORY_MEMORY_H_
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 
@@ -15,6 +16,7 @@ namespace memory {
 using Alignment = u16;
 constexpr auto kInvalidAlignment{static_cast<Alignment>(-1)};
 
+constexpr u16 kTrivialTypeMaxAlignment{alignof(std::max_align_t)};
 constexpr u16 kMaxAlignment{256};
 static_assert((kMaxAlignment & (kMaxAlignment - 1)) == 0,
               "kMaxAlignment must be a power of 2!");
@@ -47,12 +49,17 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagRenderingInternal,
   kEngineMemoryTagRenderingDevice,
   kEngineMemoryTagResource,
+  kEngineMemoryTagResourceGlobal,
+  kEngineMemoryTagResourceGlobalExtended,
+  kEngineMemoryTagResourceScene,
+  kEngineMemoryTagResourceSceneExtended,
   kEngineMemoryTagTString,
   kEngineMemoryTagEntity,
   kEngineMemoryTagFiber,
   kEngineMemoryTagThreadProvider,
   kEngineMemoryTagEvent,
   kEngineMemoryTagDebug,
+  kEngineMemoryTagMainThread,
   kEngineMemoryTagUserBase = kU32Max,
   kEngineMemoryTagInvalid = kU64Max
 };

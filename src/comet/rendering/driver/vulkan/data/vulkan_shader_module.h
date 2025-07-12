@@ -17,6 +17,7 @@ using ShaderModuleId = resource::ResourceId;
 constexpr auto kInvalidShaderModuleId{static_cast<ShaderModuleId>(-1)};
 
 struct ShaderModule {
+  u16 ref_count{0};
   ShaderModuleId id{kInvalidShaderModuleId};
   usize code_size{0};
   const u32* code{nullptr};

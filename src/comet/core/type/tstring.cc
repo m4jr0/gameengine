@@ -16,7 +16,7 @@
 
 namespace comet {
 namespace internal {
-thread_local memory::Allocator* tls_tstring_allocator{nullptr};
+static thread_local memory::Allocator* tls_tstring_allocator{nullptr};
 
 memory::Allocator* GetTStringAllocator() {
   return tls_tstring_allocator != nullptr ? tls_tstring_allocator
@@ -38,10 +38,6 @@ void TStringAllocator::Deallocate(void* p) {
   memory::Deallocate(p);
 }
 }  // namespace internal
-
-void InitializeTStrings() { internal::TStringAllocator::Get().Initialize(); }
-
-void DestroyTStrings() { internal::TStringAllocator::Get().Destroy(); }
 
 void AttachTStringAllocator(memory::Allocator* handle) {
   COMET_ASSERT(handle != nullptr, "TString allocator provided is null!");

@@ -56,11 +56,11 @@ void ShaderHandler::Shutdown() {
 
 Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
   const auto* shader_resource{
-      resource::ResourceManager::Get().Load<resource::ShaderResource>(
-          descr.resource_path)};
+      resource::ResourceManager::Get().GetShaders()->Load(descr.resource_path)};
   COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
   auto* shader{shader_instance_allocator_.AllocateOneAndPopulate<Shader>()};
   shader->id = shader_resource->id;
+  shader->ref_count = 1;
   shader->is_wireframe = shader_resource->descr.is_wireframe;
   shader->cull_mode = GetGlCullMode(shader_resource->descr.cull_mode);
   shader->topology = GetGlPrimitiveTopology(shader_resource->descr.topology);
@@ -94,13 +94,15 @@ Shader* ShaderHandler::Get(ShaderId shader_id) {
 }
 
 Shader* ShaderHandler::TryGet(ShaderId shader_id) {
-  auto shader{shaders_.TryGet(shader_id)};
+  auto shader_ptr{shaders_.TryGet(shader_id)};
 
-  if (shader == nullptr) {
+  if (shader_ptr == nullptr) {
     return nullptr;
   }
 
-  return *shader;
+  auto* shader{*shader_ptr};
+  ++shader->ref_count;
+  return shader;
 }
 
 void ShaderHandler::Bind(Shader* shader, ShaderBindType bind_type) {
@@ -967,6 +969,14 @@ const Shader* ShaderHandler::TryGet(ShaderId shader_id) const {
 }
 
 void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
+  if (!is_destroying_handler) {
+    COMET_ASSERT(shader->ref_count > 0, "Shader has a reference count of 0!");
+
+    if (--shader->ref_count > 0) {
+      return;
+    }
+  }
+
   shader->global_uniform_data = {};
   shader->storage_data = {};
   shader->global_ubo_data = {};

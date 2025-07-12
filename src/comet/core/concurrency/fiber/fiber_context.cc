@@ -15,14 +15,16 @@
 #endif  // COMET_IS_TSAN
 
 #include "comet/core/concurrency/fiber/fiber_life_cycle.h"
+#include "comet/core/concurrency/job/worker_context.h"
+#include "comet/core/concurrency/thread/thread_context.h"
 
 namespace comet {
 namespace fiber {
-thread_local Fiber tls_thread_fiber{};
-thread_local Fiber* tls_current_fiber{nullptr};
+static thread_local Fiber tls_thread_fiber{};
+static thread_local Fiber* tls_current_fiber{nullptr};
 
 #ifdef COMET_IS_ASAN
-thread_local void* tls_fake_stack{nullptr};
+static thread_local void* tls_fake_stack{nullptr};
 #endif
 
 extern "C" {
@@ -85,7 +87,6 @@ void ResumeWorker() {
   COMET_ASSERT(!IsStackOverflow(), "Stack overflow detected! ",
                from->GetCurrentStackSize(), " > ", from->GetStackCapacity(),
                "!");
-
   tls_current_fiber = to;
 
 #ifdef COMET_IS_ASAN
@@ -117,7 +118,16 @@ void ResumeWorker() {
 }
 }  // namespace internal
 
-bool IsFiber() { return tls_current_fiber != nullptr; }
+bool IsFiber() {
+  // Small workaround to force the main thread to behave like a regular thread
+  // (non-fiber).
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  if (thread::IsMainThread() && job::IsMainThreadWorkerDisabled()) {
+    return false;
+  }
+#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  return tls_current_fiber != nullptr;
+}
 
 FiberId GetFiberId() {
   return tls_current_fiber != nullptr ? tls_current_fiber->GetId()

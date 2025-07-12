@@ -11,21 +11,21 @@ namespace scene {
 const stringid::StringId SceneLoadRequestEvent::kStaticType_{
     COMET_STRING_ID("event_scene_load_request")};
 
-SceneLoadRequestEvent::SceneLoadRequestEvent(frame::FramePacket* frame_packet)
-    : frame_packet_{frame_packet} {}
-
 stringid::StringId SceneLoadRequestEvent::GetType() const noexcept {
   return kStaticType_;
-}
-
-frame::FramePacket* SceneLoadRequestEvent::GetFramePacket() const noexcept {
-  return frame_packet_;
 }
 
 const stringid::StringId SceneLoadedEvent::kStaticType_{
     COMET_STRING_ID("event_scene_loaded_event")};
 
 stringid::StringId SceneLoadedEvent::GetType() const noexcept {
+  return kStaticType_;
+}
+
+const stringid::StringId SceneUnloadedEvent::kStaticType_{
+    COMET_STRING_ID("event_scene_unloaded_event")};
+
+stringid::StringId SceneUnloadedEvent::GetType() const noexcept {
   return kStaticType_;
 }
 }  // namespace scene

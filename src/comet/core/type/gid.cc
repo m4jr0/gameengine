@@ -22,7 +22,7 @@ void InitializeGids() { internal::IdGenerationAllocator::Get().Initialize(); }
 void DestroyGids() { internal::IdGenerationAllocator::Get().Destroy(); }
 
 namespace internal {
-memory::Allocator& IdGenerationAllocator::Get() {
+memory::StatefulAllocator& IdGenerationAllocator::Get() {
   static IdGenerationAllocator singleton{512};
   return singleton;
 }
@@ -34,7 +34,7 @@ IdGenerationAllocator::IdGenerationAllocator(usize base_capacity)
 
 IdGenerationAllocator::IdGenerationAllocator(
     IdGenerationAllocator&& other) noexcept
-    : memory::Allocator{std::move(other)},
+    : memory::StatefulAllocator{std::move(other)},
       allocator_{std::move(other.allocator_)} {}
 
 IdGenerationAllocator& IdGenerationAllocator::operator=(
@@ -49,13 +49,13 @@ IdGenerationAllocator& IdGenerationAllocator::operator=(
 }
 
 void IdGenerationAllocator::Initialize() {
-  memory::Allocator::Initialize();
+  memory::StatefulAllocator::Initialize();
   allocator_.Initialize();
 }
 
 void IdGenerationAllocator::Destroy() {
   allocator_.Destroy();
-  memory::Allocator::Destroy();
+  memory::StatefulAllocator::Destroy();
 }
 
 void* IdGenerationAllocator::AllocateAligned(usize size,

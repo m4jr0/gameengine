@@ -8,8 +8,8 @@
 
 namespace comet {
 namespace frame {
-thread_local memory::Allocator* tls_frame_allocator{nullptr};
-thread_local memory::Allocator* tls_double_frame_allocator{nullptr};
+static thread_local memory::Allocator* tls_frame_allocator{nullptr};
+static thread_local memory::Allocator* tls_double_frame_allocator{nullptr};
 
 memory::Allocator& GetFrameAllocator() {
   COMET_ASSERT(tls_frame_allocator != nullptr,

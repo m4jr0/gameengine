@@ -10,6 +10,7 @@
 #include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture.h"
 #include "comet/rendering/rendering_common.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
@@ -26,6 +27,7 @@ struct Sampler {
 struct TextureMap {
   Sampler* sampler{nullptr};
   const Texture* texture{nullptr};
+  resource::ResourceId texture_resource_id{resource::kInvalidResourceId};
   rendering::TextureType type{rendering::TextureType::Unknown};
 };
 }  // namespace vk

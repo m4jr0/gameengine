@@ -16,7 +16,7 @@
 namespace comet {
 namespace memory {
 namespace internal {
-thread_local bool is_tracking_in_progress{false};
+static thread_local bool is_tracking_in_progress{false};
 
 TrackedAllocations::TrackedAllocations(memory::Allocator* allocator)
     : allocator{allocator} {}
@@ -344,7 +344,6 @@ MemoryUse& MemoryUse::Get() {
 }
 
 void MemoryUse::Initialize() {
-  allocator.Initialize();
   allocations.Initialize();
   tags.Initialize();
 }
@@ -352,7 +351,6 @@ void MemoryUse::Initialize() {
 void MemoryUse::Destroy() {
   allocations.Destroy();
   tags.Destroy();
-  allocator.Destroy();
 }
 
 ScopedFlagToggle::ScopedFlagToggle(bool& flag)

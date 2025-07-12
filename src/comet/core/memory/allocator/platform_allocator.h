@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
@@ -27,7 +28,7 @@ class PlatformAllocator : public Allocator {
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
 };
 
-class PlatformStackAllocator : public Allocator {
+class PlatformStackAllocator : public StatefulAllocator {
  public:
   PlatformStackAllocator() = default;
   PlatformStackAllocator(usize capacity, MemoryTag memory_tag);

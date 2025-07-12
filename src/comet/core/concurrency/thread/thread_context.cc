@@ -2,15 +2,15 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "comet_pch.h"
-
 #include "thread_context.h"
 
 #include <thread>
 
+#include "comet_pch.h"
+
 namespace comet {
 namespace thread {
-thread_local Thread* tls_current_thread{nullptr};
+static thread_local Thread* tls_current_thread{nullptr};
 
 namespace internal {
 void AttachThread(Thread* thread) {
@@ -54,5 +54,7 @@ usize GetConcurrentThreadCountLeft() {
 usize GetCurrentThreadCount() {
   return internal::active_thread_count.load(std::memory_order_acquire);
 }
+
+bool IsMainThread() { return tls_current_thread->IsMain(); }
 }  // namespace thread
 }  // namespace comet

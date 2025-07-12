@@ -25,6 +25,7 @@ struct Texture {
   u32 height{0};
   u32 depth{0};
   u32 mip_levels{0};
+  u16 ref_count{0};
   u8 channel_count{0};
 };
 }  // namespace vk

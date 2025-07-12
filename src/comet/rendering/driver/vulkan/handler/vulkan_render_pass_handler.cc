@@ -28,7 +28,6 @@ RenderPassHandler::RenderPassHandler(const RenderPassHandlerDescr& descr)
 
 void RenderPassHandler::Initialize() {
   Handler::Initialize();
-  allocator_.Initialize();
   render_passes_ = Map<RenderPassId, RenderPass*>{&allocator_};
 }
 
@@ -38,7 +37,6 @@ void RenderPassHandler::Shutdown() {
   }
 
   render_passes_.Destroy();
-  allocator_.Destroy();
   Handler::Shutdown();
 }
 

@@ -5,6 +5,8 @@
 #ifndef COMET_COMET_GEOMETRY_GEOMETRY_COMMON_H_
 #define COMET_COMET_GEOMETRY_GEOMETRY_COMMON_H_
 
+#include <atomic>
+
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/string_id.h"
@@ -63,7 +65,12 @@ enum class MeshType : u8 { Unknown = 0, Static, Skinned };
 const schar* GetMeshTypeLabel(MeshType mesh_type);
 
 struct Mesh {
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> needs to be always lock-free. Unsupported "
+                "architecture");
+
   bool is_dirty{false};
+  std::atomic<usize> ref_count{0};
   MeshId id{kInvalidMeshId};
   MeshType type{geometry::MeshType::Unknown};
   math::Mat4 transform{1.0f};

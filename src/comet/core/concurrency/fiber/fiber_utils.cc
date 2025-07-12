@@ -20,16 +20,14 @@ void SleepMs(u32 duration_ms) {
 
   fiber::FiberMutex mutex{};
   fiber::FiberUniqueLock lock{mutex};
-  fiber::FiberCV cv{};
   time::Chrono chrono{};
   chrono.Start(duration_ms);
-  cv.Wait(lock, [&] { return chrono.IsFinished(); });
+
+  while (!chrono.IsFinished()) {
+    Yield();
+  }
 }
 
 void WaitForNextFrame() { frame::FrameManager::Get().WaitForNextFrame(); }
-
-void WaitForEntityUpdates() {
-  entity::EntityManager::Get().WaitForEntityUpdates();
-}
 }  // namespace fiber
 }  // namespace comet

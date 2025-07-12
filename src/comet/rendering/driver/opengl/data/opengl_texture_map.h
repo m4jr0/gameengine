@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
@@ -24,6 +25,7 @@ enum TextureType { Invalid = -1, Diffuse = 0, Specular = 1, Normal = 2 };
 struct TextureMap {
   TextureHandle texture_handle{kInvalidTextureHandle};
   TextureType type{TextureType::Invalid};
+  resource::ResourceId texture_resource_id{resource::kInvalidResourceId};
 };
 }  // namespace gl
 }  // namespace rendering

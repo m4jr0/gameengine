@@ -10,10 +10,14 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/map.h"
+#include "comet/core/type/tstring.h"
 #include "comet/entity/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
+#include "comet/geometry/component/model_component.h"
+#include "comet/geometry/component/skeleton_component.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/resource/model_resource.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace geometry {
@@ -41,12 +45,34 @@ class GeometryManager : public Manager {
   void Destroy(MeshId mesh_id);
   void Destroy(Mesh* mesh);
   MeshId GenerateMeshId(const resource::MeshResource* resource) const;
-  MeshComponent GenerateComponent(const resource::StaticMeshResource* resource,
-                                  entity::EntityId entity_id,
-                                  entity::EntityId model_entity_id);
-  MeshComponent GenerateComponent(const resource::SkinnedMeshResource* resource,
-                                  entity::EntityId entity_id,
-                                  entity::EntityId model_entity_id);
+
+  StaticModelComponent GenerateStaticModelComponent(
+      entity::EntityId entity_id, CTStringView model_path,
+      resource::ResourceLifeSpan life_span =
+          resource::ResourceLifeSpan::Manual) const;
+  SkeletalModelComponent GenerateSkeletalModelComponent(
+      entity::EntityId entity_id, CTStringView model_path,
+      resource::ResourceLifeSpan life_span =
+          resource::ResourceLifeSpan::Manual) const;
+  MeshComponent GenerateStaticMeshComponent(
+      const resource::StaticMeshResource* resource, entity::EntityId entity_id,
+      entity::EntityId model_entity_id,
+      resource::ResourceLifeSpan life_span =
+          resource::ResourceLifeSpan::Manual);
+  MeshComponent GenerateSkinnedMeshComponent(
+      const resource::SkinnedMeshResource* resource, entity::EntityId entity_id,
+      entity::EntityId model_entity_id,
+      resource::ResourceLifeSpan life_span =
+          resource::ResourceLifeSpan::Manual);
+  SkeletonComponent GenerateSkeletonComponent(
+      CTStringView model_path, resource::ResourceLifeSpan life_span =
+                                   resource::ResourceLifeSpan::Manual) const;
+
+  void DestroyStaticModelComponent(StaticModelComponent* model_cmp) const;
+  void DestroySkeletalModelComponent(SkeletalModelComponent* model_cmp) const;
+  void DestroyStaticMeshComponent(MeshComponent* mesh_cmp);
+  void DestroySkinnedMeshComponent(MeshComponent* mesh_cmp);
+  void DestroySkeletonComponent(SkeletonComponent* skeleton_cmp);
 
  private:
   Mesh* GenerateInternal(const resource::MeshResource* resource);

@@ -6,7 +6,6 @@
 #define COMET_COMET_SCENE_SCENE_EVENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/core/type/string_id.h"
 #include "comet/event/event.h"
 
@@ -16,7 +15,7 @@ class SceneLoadRequestEvent : public event::Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  explicit SceneLoadRequestEvent(frame::FramePacket* packet);
+  explicit SceneLoadRequestEvent() = default;
   SceneLoadRequestEvent(const SceneLoadRequestEvent&) = default;
   SceneLoadRequestEvent(SceneLoadRequestEvent&&) noexcept = default;
   SceneLoadRequestEvent& operator=(const SceneLoadRequestEvent&) = default;
@@ -24,12 +23,6 @@ class SceneLoadRequestEvent : public event::Event {
   virtual ~SceneLoadRequestEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
-
-  frame::FramePacket* GetFramePacket() const noexcept;
-
- private:
-  // TODO(m4jr0): Add path.
-  frame::FramePacket* frame_packet_{nullptr};
 };
 
 class SceneLoadedEvent : public event::Event {
@@ -42,6 +35,20 @@ class SceneLoadedEvent : public event::Event {
   SceneLoadedEvent& operator=(const SceneLoadedEvent&) = default;
   SceneLoadedEvent& operator=(SceneLoadedEvent&&) noexcept = default;
   virtual ~SceneLoadedEvent() = default;
+
+  stringid::StringId GetType() const noexcept override;
+};
+
+class SceneUnloadedEvent : public event::Event {
+ public:
+  const static stringid::StringId kStaticType_;
+
+  SceneUnloadedEvent() = default;
+  SceneUnloadedEvent(const SceneUnloadedEvent&) = default;
+  SceneUnloadedEvent(SceneUnloadedEvent&&) noexcept = default;
+  SceneUnloadedEvent& operator=(const SceneUnloadedEvent&) = default;
+  SceneUnloadedEvent& operator=(SceneUnloadedEvent&&) noexcept = default;
+  virtual ~SceneUnloadedEvent() = default;
 
   stringid::StringId GetType() const noexcept override;
 };

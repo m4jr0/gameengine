@@ -96,6 +96,11 @@ constexpr u32 kFnvOffsetBasis32{2166136261};
 constexpr u64 kFnvPrime64{1099511628211ULL};
 constexpr u64 kFnvOffsetBasis64{14695981039346656037ULL};
 
+HashValue GenerateHash(bool value);
+HashValue GenerateHash(s8 value);
+HashValue GenerateHash(u8 value);
+HashValue GenerateHash(s16 value);
+HashValue GenerateHash(u16 value);
 HashValue GenerateHash(s32 value);
 HashValue GenerateHash(u32 value);
 HashValue GenerateHash(s64 value);

@@ -6,9 +6,13 @@
 
 #include "worker_context.h"
 
+#include "comet/core/conf/configuration_manager.h"
+#include "comet/core/conf/configuration_value.h"
+#include "comet/rendering/rendering_common.h"
+
 namespace comet {
 namespace job {
-thread_local Worker* tls_current_worker{nullptr};
+static thread_local Worker* tls_current_worker{nullptr};
 
 namespace internal {
 void AttachWorker(Worker* worker) {
@@ -80,6 +84,24 @@ usize GetCurrentFiberWorkerCount() {
 
 usize GetCurrentIOWorkerCount() {
   return internal::active_io_worker_count.load(std::memory_order_acquire);
+}
+
+bool IsMainThreadWorkerDisabled() {
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  static const bool result = [] {
+    const bool is_disabled{
+        COMET_CONF_BOOL(conf::kCoreIsMainThreadWorkerDisabled)};
+    const auto* driver_label{COMET_CONF_STR(conf::kRenderingDriver)};
+    const auto driver_type{rendering::GetDriverTypeFromStr(driver_label)};
+    const bool is_rendering_multithreaded{
+        rendering::IsMultithreading(driver_type)};
+
+    return !is_rendering_multithreaded || is_disabled;
+  }();
+  return result;
+#else
+  return false;
+#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 }
 }  // namespace job
 }  // namespace comet

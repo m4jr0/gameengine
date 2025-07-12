@@ -50,9 +50,6 @@ class AssetExporter {
   AssetExporter& operator=(AssetExporter&&) = delete;
   virtual ~AssetExporter() = default;
 
-  void Initialize();
-  void Destroy();
-
   virtual bool IsCompatible(CTStringView extension) const = 0;
   void Process(const AssetExportDescr& descr);
 

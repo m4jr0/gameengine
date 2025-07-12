@@ -2,20 +2,20 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "asset_manager.h"
+#include "comet_pch.h"
 
-#include "nlohmann/json.hpp"
+#include "asset_manager.h"
 
 #include <string>
 
-#include "comet/core/c_string.h"
+#include "nlohmann/json.hpp"
+
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource_manager.h"
-#include "comet_pch.h"
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model/model_exporter.h"
 #include "editor/asset/exporter/shader/shader_exporter.h"
@@ -54,8 +54,6 @@ void AssetManager::Initialize() {
   root_resource_path_ = resource::ResourceManager::Get().GetRootResourcePath();
   COMET_DISALLOW_STR_ALLOC(root_resource_path_);
 
-  exporters_allocator_.Initialize();
-  resource_file_allocator_.Initialize();
   exporters_ = Array<memory::UniquePtr<AssetExporter>>{&exporters_allocator_};
   exporters_.Reserve(4);
   exporters_.PushBack(std::make_unique<ModelExporter>());
@@ -80,8 +78,6 @@ void AssetManager::Shutdown() {
   root_resource_path_.Destroy();
   library_meta_path_.Destroy();
   exporters_.Destroy();
-  exporters_allocator_.Destroy();
-  resource_file_allocator_.Destroy();
   Manager::Shutdown();
 }
 
@@ -160,7 +156,7 @@ void AssetManager::RefreshAsset(job::Counter* global_counter,
   AssetExportDescr descr{};
   descr.global_counter = global_counter;
   descr.asset_abs_path = asset_abs_path.GetCTStr();
-  descr.allocator = &resource_file_allocator_;
+  descr.allocator = &byte_allocator_;
 
   for (const auto& exporter : exporters_) {
     if (exporter->IsCompatible(GetExtension(asset_abs_path))) {

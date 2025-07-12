@@ -14,5 +14,12 @@ const stringid::StringId NewFrameEvent::kStaticType_{
 stringid::StringId NewFrameEvent::GetType() const noexcept {
   return kStaticType_;
 }
+
+const stringid::StringId EndFrameEvent::kStaticType_{
+    COMET_STRING_ID("event_end_frame")};
+
+stringid::StringId EndFrameEvent::GetType() const noexcept {
+  return kStaticType_;
+}
 }  // namespace frame
 }  // namespace comet

@@ -7,6 +7,7 @@
 #include "engine.h"
 
 #include "comet/animation/animation_manager.h"
+#include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/concurrency/provider/thread_provider_manager.h"
@@ -19,7 +20,7 @@
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
 #include "comet/core/type/gid.h"
-#include "comet/core/type/tstring.h"
+#include "comet/engine/engine_event.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
@@ -79,11 +80,7 @@ void Engine::Run() {
     auto& scene_manager{scene::SceneManager::Get()};
     scene_manager.Initialize();
 
-    auto& frame_manager{frame::FrameManager::Get()};
-    auto& active_frames{frame_manager.GetInFlightFrames()};
-
-    event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>(
-        active_frames.lead_frame);
+    event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>();
 
     // To catch up time taken to render.
     f64 lag{0.0};
@@ -121,22 +118,20 @@ void Engine::Update(f64& lag) {
 
   job::CounterGuard guard{};
   auto& frame_manager{frame::FrameManager::Get()};
-  auto& active_frames{frame_manager.GetInFlightFrames()};
-  auto& lead_packet{active_frames.lead_frame};
-  lead_packet->lag = lag;
-  lead_packet->counter = guard.GetCounter();
+  auto* logic_frame_packet{frame_manager.GetLogicFramePacket()};
+  logic_frame_packet->lag = lag;
+  logic_frame_packet->counter = guard.GetCounter();
 
-  auto& middle_packet{active_frames.middle_frame};
-  middle_packet->counter = guard.GetCounter();
+  auto* rendering_frame_packet{frame_manager.GetRenderingFramePacket()};
+  rendering_frame_packet->counter = guard.GetCounter();
 
-  GameLogicManager::Get().Update(lead_packet);
-  rendering::RenderingManager::Get().Update(active_frames.middle_frame);
+  GameLogicManager::Get().Update(logic_frame_packet);
+  rendering::RenderingManager::Get().Update(rendering_frame_packet);
 
   guard.Wait();
-  lead_packet->counter = nullptr;
-  middle_packet->counter = nullptr;
-
-  lag = lead_packet->lag;
+  logic_frame_packet->counter = nullptr;
+  rendering_frame_packet->counter = nullptr;
+  lag = logic_frame_packet->lag;
   frame_manager.Update();
 
 #ifdef COMET_PROFILING
@@ -170,7 +165,6 @@ void Engine::Quit() {
   }
 
   is_exit_requested_ = true;
-  COMET_LOG_CORE_INFO("Comet is required to quit");
 }
 
 void Engine::PreLoad() {
@@ -187,7 +181,6 @@ void Engine::Load() {
   physics::PhysicsManager::Get().Initialize();
 
   const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
-
   event::EventManager::Get().Register(
       event_function, rendering::WindowCloseEvent::kStaticType_);
 
@@ -198,7 +191,20 @@ void Engine::Load() {
 }
 
 void Engine::PostLoad() {
-  input::InputManager::Get().Initialize();
+  if (job::IsMainThreadWorkerDisabled()) {
+    job::CounterGuard guard{};
+
+    job::Scheduler::Get().KickOnMainThread(job::GenerateMainThreadJobDescr(
+        [](job::MainThreadParamsHandle) {
+          input::InputManager::Get().Initialize();
+        },
+        nullptr, guard.GetCounter()));
+
+    guard.Wait();
+  } else {
+    input::InputManager::Get().Initialize();
+  }
+
   GameStateManager::Get().Initialize();
 }
 
@@ -222,7 +228,6 @@ void Engine::PreUnload() {
 void Engine::Unload() {
   resource::ResourceManager::Get().Shutdown();
   event::EventManager::Get().Shutdown();
-  DestroyTStrings();
   gid::DestroyGids();
   frame::FrameManager::Get().Shutdown();
 #ifdef COMET_PROFILING
@@ -242,13 +247,12 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   auto* engine{reinterpret_cast<Engine*>(handle)};
   memory::TaggedHeap::Get().Initialize();
   thread::ThreadProviderManager::Get().Initialize();
+  frame::FrameManager::Get().Initialize();
+  gid::InitializeGids();
+  event::EventManager::Get().Initialize();
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Initialize();
 #endif  // COMET_PROFILING
-  frame::FrameManager::Get().Initialize();
-  gid::InitializeGids();
-  InitializeTStrings();
-  event::EventManager::Get().Initialize();
   resource::ResourceManager::Get().Initialize();
   engine->Initialize();
   engine->Run();
@@ -258,6 +262,7 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
 Engine::Engine() { Engine::engine_ = this; }
 
 void Engine::Exit() {
+  event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();
   Stop();
   COMET_LOG_CORE_INFO("Comet quit");
 }

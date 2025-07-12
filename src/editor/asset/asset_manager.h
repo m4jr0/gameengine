@@ -50,8 +50,7 @@ class AssetManager : public Manager {
   TString root_resource_path_{};
   TString library_meta_path_{};
   memory::PlatformAllocator exporters_allocator_{memory::kEditorMemoryTagAsset};
-  memory::PlatformAllocator resource_file_allocator_{
-      memory::kEditorMemoryTagAsset};
+  memory::PlatformAllocator byte_allocator_{memory::kEditorMemoryTagAsset};
   Array<memory::UniquePtr<AssetExporter>> exporters_{};
 };
 }  // namespace asset

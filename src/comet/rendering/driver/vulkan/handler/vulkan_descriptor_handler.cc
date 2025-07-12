@@ -7,7 +7,6 @@
 
 #include "vulkan_descriptor_handler.h"
 
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
 
@@ -41,7 +40,6 @@ void DescriptorHandler::Initialize() {
       VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                            kMaxDynamicSetCount_}};
 
-  allocator_.Initialize();
   dynamic_descriptor_pools_ = Array<VkDescriptorPool>{&allocator_};
   dynamic_descriptor_pools_.Resize(context_->GetMaxFramesInFlight());
 
@@ -62,7 +60,6 @@ void DescriptorHandler::Shutdown() {
   }
 
   dynamic_descriptor_pools_.Destroy();
-  allocator_.Destroy();
   Handler::Shutdown();
 }
 

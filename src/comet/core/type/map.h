@@ -193,11 +193,11 @@ class Map {
     }
 
     if constexpr (std::is_constructible_v<Value, memory::Allocator*>) {
-      auto& new_pair =
-          this->pairs_.Emplace(KVPair{key, Value(this->allocator_)});
+      auto& new_pair{
+          this->pairs_.Emplace(KVPair{key, Value(this->allocator_)})};
       return new_pair.value;
     } else if constexpr (std::is_default_constructible_v<Value>) {
-      auto& new_pair = this->pairs_.Emplace(KVPair{key, Value{}});
+      auto& new_pair{this->pairs_.Emplace(KVPair{key, Value{}})};
       return new_pair.value;
     } else {
       COMET_ASSERT(false,
@@ -225,12 +225,12 @@ class Map {
 
   template <typename K, typename V>
   void Set(K&& key, V&& value) {
-    this->pairs_.Add(KVPair{std::forward<K>(key), std::forward<V>(value)});
+    this->pairs_.Set(KVPair{std::forward<K>(key), std::forward<V>(value)});
   }
 
   template <typename P>
   void Set(P&& pair) {
-    this->pairs_.Add(std::forward<P>(pair));
+    this->pairs_.Set(std::forward<P>(pair));
   }
 
   template <typename K, typename... Targs>
@@ -240,6 +240,11 @@ class Map {
   }
 
   bool Remove(const Key& key) { return this->pairs_.Remove(key); }
+
+  template <typename Predicate>
+  usize RemoveIf(Predicate&& predicate) {
+    return pairs_.RemoveIf(predicate);
+  }
 
   Value Pop(const Key& key) {
     auto pair{this->pairs_.Pop(key)};

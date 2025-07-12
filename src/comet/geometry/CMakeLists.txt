@@ -16,6 +16,8 @@ target_sources(${COMET_LIBRARY_NAME}
 
     # Components.
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/mesh_component.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/model_component.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/skeleton_component.h"
 )
 
 # Compiling ####################################################################

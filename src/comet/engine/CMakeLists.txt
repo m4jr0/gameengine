@@ -12,7 +12,7 @@
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/engine/engine.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/engine/runtime_event.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/engine/engine_event.cc"
 )
 
 # Compiling ####################################################################

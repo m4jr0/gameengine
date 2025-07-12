@@ -29,6 +29,7 @@ constexpr auto kInvalidShaderHandle{0};
 
 struct Shader {
   bool is_wireframe{false};
+  u16 ref_count{0};
   GLenum cull_mode{GL_NONE};
   GLenum topology{GL_NONE};
   ShaderId id{kInvalidShaderId};

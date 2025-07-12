@@ -15,6 +15,7 @@
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/resource/material_resource.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
@@ -46,7 +47,9 @@ class MaterialHandler : public Handler {
   void Destroy(Material* material);
 
  private:
-  TextureMap GenerateTextureMap(const resource::TextureMap* map);
+  TextureMap GenerateTextureMap(const resource::TextureMap* map,
+                                resource::ResourceLifeSpan life_span =
+                                    resource::ResourceLifeSpan::Manual);
   void Destroy(Material* material, bool is_destroying_handler);
   Sampler* GenerateSampler(SamplerId sampler_id,
                            const VkSamplerCreateInfo& info);

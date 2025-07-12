@@ -35,6 +35,7 @@ void Yield();
 usize GetMaxConcurrentThreadCount();
 usize GetConcurrentThreadCountLeft();
 usize GetCurrentThreadCount();
+bool IsMainThread();
 }  // namespace thread
 }  // namespace comet
 

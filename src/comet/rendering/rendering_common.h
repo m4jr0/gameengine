@@ -41,6 +41,7 @@ enum class DriverType : u8 { Unknown = 0, Empty, OpenGl, Vulkan, Direct3d12 };
 
 DriverType GetDriverTypeFromStr(std::string_view str);
 const schar* GetDriverTypeLabel(DriverType type);
+DriverType GetDriverType();
 bool IsMultithreading([[maybe_unused]] DriverType type);
 
 using FrameCount = u32;

@@ -81,6 +81,14 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "rendering_device (VRAM)";
     case kEngineMemoryTagResource:
       return "resource";
+    case kEngineMemoryTagResourceGlobal:
+      return "resource_global";
+    case kEngineMemoryTagResourceGlobalExtended:
+      return "resource_global_extended";
+    case kEngineMemoryTagResourceScene:
+      return "resource_scene";
+    case kEngineMemoryTagResourceSceneExtended:
+      return "resource_scene_extended";
     case kEngineMemoryTagTString:
       return "tstring";
     case kEngineMemoryTagEntity:
@@ -93,6 +101,8 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "event";
     case kEngineMemoryTagDebug:
       return "debug";
+    case kEngineMemoryTagMainThread:
+      return "main_thread";
     case kEngineMemoryTagUserBase:
       return "user_base (should not be used)";
     case kEngineMemoryTagInvalid:
@@ -148,20 +158,21 @@ void FastMemset(void* ptr, u8 value, usize size) {
 
 void ClearMemory(void* ptr, usize size) { FastMemset(ptr, 0, size); }
 
-void* StoreShiftAndReturnAligned(u8* ptr, [[maybe_unused]] usize data_size,
+void* StoreShiftAndReturnAligned(void* ptr, [[maybe_unused]] usize data_size,
                                  [[maybe_unused]] usize allocation_size,
                                  Alignment align) {
   COMET_ASSERT(allocation_size > data_size,
                "Cannot save shift, allocation size is too small!");
-  auto* aligned_ptr{AlignPointer(ptr, align)};
+  auto cast_ptr{static_cast<u8*>(ptr)};
+  auto* aligned_ptr{AlignPointer(cast_ptr, align)};
 
   // Case: pointer is already aligned. We have a minimal shift of 1 byte, so
   // we move the pointer to "align" bytes as a convention.
-  if (aligned_ptr == ptr) {
+  if (aligned_ptr == cast_ptr) {
     aligned_ptr += align;
   }
 
-  auto shift{aligned_ptr - ptr};
+  auto shift{aligned_ptr - cast_ptr};
   COMET_ASSERT(shift > 0 && shift <= kMaxAlignment,
                "Invalid shift in memory allocation! Shift is ", shift,
                ", but it must be between ", 0, " and ", kMaxAlignment, ".");
@@ -349,7 +360,6 @@ void* Allocate(usize size, MemoryTag tag) {
 
 void* AllocateAligned(usize size, Alignment align,
                       [[maybe_unused]] MemoryTag tag) {
-  // TODO(m4jr0): Handle memory tag.
   usize allocation_size{size + align};
   auto* ptr{new u8[allocation_size]};
 

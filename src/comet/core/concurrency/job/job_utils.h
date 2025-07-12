@@ -19,6 +19,7 @@ IOJobDescr GenerateIOJobDescr(
     IOEntryPoint entry_point,
     IOJobParamsHandle params_handle = kInvalidIOJobParamsHandle,
     Counter* counter = nullptr);
+constexpr auto GenerateMainThreadJobDescr = GenerateIOJobDescr;
 }  // namespace job
 }  // namespace comet
 

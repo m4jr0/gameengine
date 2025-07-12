@@ -40,7 +40,7 @@ void ShaderModuleHandler::Shutdown() {
 const ShaderModule* ShaderModuleHandler::Generate(
     CTStringView shader_module_path) {
   const auto* shader_module_resource{
-      resource::ResourceManager::Get().Load<resource::ShaderModuleResource>(
+      resource::ResourceManager::Get().GetShaderModules()->Load(
           shader_module_path)};
 
   COMET_ASSERT(shader_module_resource != nullptr,
@@ -48,6 +48,7 @@ const ShaderModule* ShaderModuleHandler::Generate(
 
   auto* shader_module{allocator_.AllocateOneAndPopulate<ShaderModule>()};
   shader_module->id = shader_module_resource->id;
+  shader_module->ref_count = 1;
   shader_module->code =
       reinterpret_cast<const u32*>(shader_module_resource->data.GetData());
   shader_module->code_size = shader_module_resource->data.GetSize();
@@ -81,13 +82,15 @@ const ShaderModule* ShaderModuleHandler::Get(
 
 const ShaderModule* ShaderModuleHandler::TryGet(
     ShaderModuleId shader_module_id) const {
-  auto shader_module{shader_modules_.TryGet(shader_module_id)};
+  auto shader_module_ptr{shader_modules_.TryGet(shader_module_id)};
 
-  if (shader_module == nullptr) {
+  if (shader_module_ptr == nullptr) {
     return nullptr;
   }
 
-  return *shader_module;
+  auto* shader_module{*shader_module_ptr};
+  ++shader_module->ref_count;
+  return shader_module;
 }
 
 const ShaderModule* ShaderModuleHandler::GetOrGenerate(CTStringView path) {
@@ -147,6 +150,15 @@ ShaderModule* ShaderModuleHandler::TryGet(ShaderModuleId shader_module_id) {
 
 void ShaderModuleHandler::Destroy(ShaderModule* shader_module,
                                   bool is_destroying_handler) {
+  if (!is_destroying_handler) {
+    COMET_ASSERT(shader_module->ref_count > 0,
+                 "Shader module has a reference count of 0!");
+
+    if (--shader_module->ref_count > 0) {
+      return;
+    }
+  }
+
   if (shader_module->handle != VK_NULL_HANDLE) {
     vkDestroyShaderModule(context_->GetDevice(), shader_module->handle,
                           VK_NULL_HANDLE);

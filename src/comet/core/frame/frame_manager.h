@@ -13,10 +13,9 @@
 
 namespace comet {
 namespace frame {
-struct InFlightFrames {
-  FramePacket* lead_frame{nullptr};
-  FramePacket* middle_frame{nullptr};
-  FramePacket* trail_frame{nullptr};
+struct InFlightFramePackets {
+  FramePacket* logic_frame_packet{nullptr};
+  FramePacket* rendering_frame_packet{nullptr};
 };
 
 class FrameManager : public Manager {
@@ -36,7 +35,10 @@ class FrameManager : public Manager {
 
   void WaitForNextFrame();
 
-  InFlightFrames& GetInFlightFrames();
+  FramePacket* GetLogicFramePacket();
+  FramePacket* GetRenderingFramePacket();
+  InFlightFramePackets& GetInFlightFramePackets();
+
   memory::Allocator* GetFrameAllocator();
   memory::Allocator* GetDoubleFrameAllocator();
 
@@ -47,6 +49,8 @@ class FrameManager : public Manager {
   void ClearAndSwapAllocator(IOFrameAllocator& frame_allocator,
                              IODoubleFrameAllocator& double_allocator);
   void UpdateInFlightFrames();
+  void HandlePaused();
+  void HandleRunning();
 
   static inline constexpr usize kInFlightFramePacketCount_{3};
   static inline constexpr usize kFramePacketCount_{16};
@@ -55,7 +59,7 @@ class FrameManager : public Manager {
 
   FrameCount frame_count_{kInFlightFramePacketCount_ - 1};
   usize frame_allocator_cursor_{0};
-  InFlightFrames in_flight_frames_{nullptr, nullptr, nullptr};
+  InFlightFramePackets in_flight_frames_{nullptr, nullptr};
   FramePacket* frame_packets_{nullptr};
 
   // Allocators.

@@ -8,12 +8,14 @@
 #include <optional>
 
 #include "comet/animation/animation_common.h"
+#include "comet/animation/component/animation_component.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
 #include "comet/entity/entity_id.h"
 #include "comet/resource/animation_resource.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace animation {
@@ -30,6 +32,14 @@ struct AnimationJob {
 class AnimationManager : public Manager {
  public:
   static AnimationManager& Get();
+
+  AnimationManager() = default;
+  AnimationManager(const AnimationManager&) = delete;
+  AnimationManager(AnimationManager&&) = delete;
+  AnimationManager& operator=(const AnimationManager&) = delete;
+  AnimationManager& operator=(AnimationManager&&) = delete;
+  virtual ~AnimationManager() = default;
+
   void Update(frame::FramePacket* packet);
 
   void Play(entity::EntityId entity_id, const schar* name, f32 speed = 1.0f,
@@ -39,12 +49,23 @@ class AnimationManager : public Manager {
   void Play(entity::EntityId entity_id, AnimationClipId id, f32 speed = 1.0f,
             std::optional<bool> is_loop = std::nullopt);
 
-  AnimationManager() = default;
-  AnimationManager(const AnimationManager&) = delete;
-  AnimationManager(AnimationManager&&) = delete;
-  AnimationManager& operator=(const AnimationManager&) = delete;
-  AnimationManager& operator=(AnimationManager&&) = delete;
-  virtual ~AnimationManager() = default;
+  AnimationComponent GenerateAnimationComponent(
+      const schar* name, f32 speed = 1.0f,
+      std::optional<bool> is_loop = std::nullopt,
+      resource::ResourceLifeSpan life_span =
+          resource::ResourceLifeSpan::Manual);
+  AnimationComponent GenerateAnimationComponent(
+      const wchar* name, f32 speed = 1.0f,
+      std::optional<bool> is_loop = std::nullopt,
+      resource::ResourceLifeSpan life_span =
+          resource::ResourceLifeSpan::Manual);
+  AnimationComponent GenerateAnimationComponent(
+      AnimationClipId id = kInvalidAnimationClipId, f32 speed = 1.0f,
+      std::optional<bool> is_loop = std::nullopt,
+      resource::ResourceLifeSpan life_span =
+          resource::ResourceLifeSpan::Manual);
+
+  void DestroyAnimationComponent(AnimationComponent* animation_cmp);
 
  private:
   static void OnAnimationProcessing(job::JobParamsHandle params_handle);

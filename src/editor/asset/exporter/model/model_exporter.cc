@@ -7,6 +7,7 @@
 #include "model_exporter.h"
 
 #include "assimp/postprocess.h"
+
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
@@ -243,16 +244,16 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
                                      scene_context->asset_path)};
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetResourceFile(
+        resource::ResourceManager::Get().GetSkeletons()->Pack(
             resources.skeleton, exporter->compression_mode_));
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetResourceFile(
+        resource::ResourceManager::Get().GetSkeletalModels()->Pack(
             resources.model, exporter->compression_mode_));
 
     for (const auto& clip : resources.animation_clips) {
       scene_context->AddResourceFile(
-          resource::ResourceManager::Get().GetResourceFile(
+          resource::ResourceManager::Get().GetAnimationClips()->Pack(
               clip, exporter->compression_mode_));
     }
 
@@ -261,7 +262,7 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
                                    scene_context->asset_path)};
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetResourceFile(
+        resource::ResourceManager::Get().GetStaticModels()->Pack(
             LoadStaticModel(scene_context->allocator, scene,
                             scene_context->asset_path)
                 .model,
@@ -338,8 +339,8 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetResourceFile(material,
-                                                         compression_mode_));
+        resource::ResourceManager::Get().GetMaterials()->Pack(
+            material, compression_mode_));
   }
 }
 

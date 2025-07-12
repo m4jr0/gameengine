@@ -14,14 +14,14 @@
 
 namespace comet {
 namespace memory {
-FiberFreeListAllocator::FiberFreeListAllocator(usize allocation_unit,
+FiberFreeListAllocator::FiberFreeListAllocator(usize allocation_unit_size,
                                                usize block_count,
                                                MemoryTag memory_tag)
-    : block_size_{memory::AlignSize(allocation_unit + sizeof(Block),
+    : block_size_{memory::AlignSize(allocation_unit_size + sizeof(Block),
                                     alignof(Block))},
       block_count_{block_count},
       memory_tag_{memory_tag} {
-  COMET_ASSERT(block_size_ >= allocation_unit + sizeof(Block),
+  COMET_ASSERT(block_size_ >= allocation_unit_size + sizeof(Block),
                "Block size must be sufficient for alignment and metadata!");
   COMET_ASSERT(block_size_ > 0, "Invalid block size!");
   COMET_ASSERT(block_count_ > 0, "Invalid block count!");
@@ -29,7 +29,7 @@ FiberFreeListAllocator::FiberFreeListAllocator(usize allocation_unit,
 
 FiberFreeListAllocator::FiberFreeListAllocator(
     FiberFreeListAllocator&& other) noexcept
-    : Allocator{std::move(other)},
+    : StatefulAllocator{std::move(other)},
       block_size_{other.block_size_},
       block_count_{other.block_count_},
       memory_tag_{other.memory_tag_},
@@ -48,7 +48,7 @@ FiberFreeListAllocator& FiberFreeListAllocator::operator=(
     return *this;
   }
 
-  Allocator::operator=(std::move(other));
+  StatefulAllocator::operator=(std::move(other));
   block_size_ = other.block_size_;
   block_count_ = other.block_count_;
   memory_tag_ = other.memory_tag_;
@@ -64,7 +64,7 @@ FiberFreeListAllocator& FiberFreeListAllocator::operator=(
 }
 
 void FiberFreeListAllocator::Initialize() {
-  Allocator::Initialize();
+  StatefulAllocator::Initialize();
   fiber::FiberLockGuard lock{mutex_};
   auto min_block_count{block_count_};
   block_count_ = 0;
@@ -72,7 +72,7 @@ void FiberFreeListAllocator::Initialize() {
 }
 
 void FiberFreeListAllocator::Destroy() {
-  Allocator::Destroy();
+  StatefulAllocator::Destroy();
   DeallocateAll();
   memory_tag_ = kEngineMemoryTagUntagged;
   block_size_ = 0;

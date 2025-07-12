@@ -30,7 +30,7 @@ PlatformStackAllocator::PlatformStackAllocator(usize capacity,
 
 PlatformStackAllocator::PlatformStackAllocator(
     PlatformStackAllocator&& other) noexcept
-    : Allocator{std::move(other)},
+    : StatefulAllocator{std::move(other)},
       memory_tag_{other.memory_tag_},
       capacity_{other.capacity_},
       root_{other.root_},
@@ -51,7 +51,7 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
     memory::Deallocate(root_);
   }
 
-  Allocator::operator=(other);
+  StatefulAllocator::operator=(other);
   memory_tag_ = other.memory_tag_;
   capacity_ = other.capacity_;
   root_ = other.root_;
@@ -66,14 +66,14 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
 }
 
 void PlatformStackAllocator::Initialize() {
-  Allocator::Initialize();
+  StatefulAllocator::Initialize();
   COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
   root_ = memory::AllocateMany<u8>(capacity_, memory_tag_);
   marker_ = root_;
 }
 
 void PlatformStackAllocator::Destroy() {
-  Allocator::Destroy();
+  StatefulAllocator::Destroy();
   memory::Deallocate(root_);
   root_ = nullptr;
   capacity_ = 0;

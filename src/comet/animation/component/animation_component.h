@@ -7,11 +7,12 @@
 
 #include "comet/animation/animation_common.h"
 #include "comet/core/essentials.h"
+#include "comet/resource/animation_resource.h"
 
 namespace comet {
 namespace animation {
 struct AnimationComponent {
-  const animation::CompressedAnimationClip* clip{nullptr};
+  const resource::AnimationClipResource* clip_resource{nullptr};
   f64 start_time{.0f};
   FrameIndex frame{0};
   f32 speed{1.0f};

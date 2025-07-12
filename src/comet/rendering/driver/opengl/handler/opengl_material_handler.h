@@ -11,6 +11,7 @@
 #include "comet/rendering/driver/opengl/data/opengl_material.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
 #include "comet/resource/material_resource.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
@@ -42,7 +43,9 @@ class MaterialHandler : public Handler {
   void Destroy(Material* material);
 
  private:
-  TextureMap GenerateTextureMap(const resource::TextureMap* map);
+  TextureMap GenerateTextureMap(const resource::TextureMap* map,
+                                resource::ResourceLifeSpan life_span =
+                                    resource::ResourceLifeSpan::Manual);
   void Destroy(Material* material, bool is_destroying_handler);
   TextureType GetTextureType(rendering::TextureType texture_type);
   RepeatMode GetRepeatMode(TextureRepeatMode repeat_mode);

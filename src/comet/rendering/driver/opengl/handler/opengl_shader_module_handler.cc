@@ -38,7 +38,7 @@ void ShaderModuleHandler::Shutdown() {
 const ShaderModule* ShaderModuleHandler::Generate(
     CTStringView shader_module_path) {
   const auto* resource{
-      resource::ResourceManager::Get().Load<resource::ShaderModuleResource>(
+      resource::ResourceManager::Get().GetShaderModules()->Load(
           shader_module_path)};
 
   auto shader_module{CompileShader(resource)};
@@ -56,13 +56,15 @@ const ShaderModule* ShaderModuleHandler::Get(
 
 const ShaderModule* ShaderModuleHandler::TryGet(
     ShaderModuleHandle shader_module_handle) const {
-  auto shader_module{shader_modules_.TryGet(shader_module_handle)};
+  auto shader_module_ptr{shader_modules_.TryGet(shader_module_handle)};
 
-  if (shader_module == nullptr) {
+  if (shader_module_ptr == nullptr) {
     return nullptr;
   }
 
-  return *shader_module;
+  auto* shader_module{*shader_module_ptr};
+  ++shader_module->ref_count;
+  return shader_module;
 }
 
 const ShaderModule* ShaderModuleHandler::GetOrGenerate(CTStringView path) {
@@ -150,8 +152,14 @@ ShaderModule* ShaderModuleHandler::TryGet(
 
 void ShaderModuleHandler::Destroy(ShaderModule* shader_module,
                                   bool is_destroying_handler) {
-  COMET_ASSERT(shader_module->ref_count == 0,
-               "Tried to destroy shader module, but it is still used!");
+  if (!is_destroying_handler) {
+    COMET_ASSERT(shader_module->ref_count > 0,
+                 "Shader module has a reference count of 0!");
+
+    if (--shader_module->ref_count > 0) {
+      return;
+    }
+  }
 
   if (shader_module->handle != kInvalidShaderModuleHandle) {
     glDeleteShader(shader_module->handle);
@@ -181,7 +189,7 @@ ShaderModule* ShaderModuleHandler::CompileShader(
     shader_module->bind_type = ShaderBindType::Graphics;
   }
 
-  shader_module->ref_count = 0;
+  shader_module->ref_count = 1;
 
   shader_module->handle = glCreateShader(shader_module->type);
   glShaderSource(shader_module->handle, 1, &code, &code_size);

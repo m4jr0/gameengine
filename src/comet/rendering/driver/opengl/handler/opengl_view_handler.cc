@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/profiler/profiler.h"
 
 #ifdef COMET_IMGUI
@@ -41,7 +40,6 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
 
 void ViewHandler::Initialize() {
   Handler::Initialize();
-  view_allocator_.Initialize();
   views_ = Array<memory::CustomUniquePtr<View>>{&view_allocator_};
 
   for (const auto& view_descr : *rendering_view_descrs_) {
@@ -55,7 +53,6 @@ void ViewHandler::Shutdown() {
   }
 
   views_.Destroy();
-  view_allocator_.Destroy();
   Handler::Shutdown();
 }
 

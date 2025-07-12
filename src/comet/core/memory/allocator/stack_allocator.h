@@ -9,12 +9,12 @@
 #include "comet/core/concurrency/provider/thread_provider.h"
 #include "comet/core/concurrency/provider/thread_provider_manager.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace memory {
-class StackAllocator : public Allocator {
+class StackAllocator : public StatefulAllocator {
  public:
   StackAllocator() = default;
   StackAllocator(usize capacity, MemoryTag memory_tag);
@@ -43,7 +43,7 @@ class StackAllocator : public Allocator {
   StackAllocatorMarker marker_{nullptr};
 };
 
-class FiberStackAllocator : public Allocator {
+class FiberStackAllocator : public StatefulAllocator {
  public:
   FiberStackAllocator() = delete;
   FiberStackAllocator(usize base_capacity, MemoryTag memory_tag,
@@ -90,7 +90,7 @@ class FiberStackAllocator : public Allocator {
   FiberStackAllocatorMarker extended_marker_{nullptr};
 };
 
-class IOStackAllocator : public Allocator {
+class IOStackAllocator : public StatefulAllocator {
  public:
   IOStackAllocator() = delete;
   IOStackAllocator(usize thread_capacity, MemoryTag memory_tag);
@@ -126,7 +126,7 @@ class IOStackAllocator : public Allocator {
       thread::ThreadProviderManager::Get().AllocateIOProvider<ThreadContext>()};
 };
 
-class LockFreeStackAllocator : public Allocator {
+class LockFreeStackAllocator : public StatefulAllocator {
  public:
   LockFreeStackAllocator() = delete;
   LockFreeStackAllocator(usize capacity, MemoryTag memory_tag);
@@ -160,7 +160,7 @@ class LockFreeStackAllocator : public Allocator {
 };
 
 template <typename Stack>
-class DoubleStackAllocator : public memory::Allocator {
+class DoubleStackAllocator : public memory::StatefulAllocator {
  public:
   DoubleStackAllocator(usize stack_capacity, MemoryTag memory_tag)
       : stacks_{Stack{stack_capacity, memory_tag},
@@ -173,13 +173,13 @@ class DoubleStackAllocator : public memory::Allocator {
   ~DoubleStackAllocator() = default;
 
   void Initialize() override {
-    Allocator::Initialize();
+    StatefulAllocator::Initialize();
     stacks_[0].Initialize();
     stacks_[1].Initialize();
   }
 
   void Destroy() override {
-    Allocator::Destroy();
+    StatefulAllocator::Destroy();
     stacks_[0].Destroy();
     stacks_[1].Destroy();
   }
@@ -202,7 +202,7 @@ class DoubleStackAllocator : public memory::Allocator {
 };
 
 template <typename Stack>
-class FiberDoubleStackAllocator : public memory::Allocator {
+class FiberDoubleStackAllocator : public memory::StatefulAllocator {
  public:
   FiberDoubleStackAllocator(
       usize stack_capacity, MemoryTag memory_tag,
@@ -219,13 +219,13 @@ class FiberDoubleStackAllocator : public memory::Allocator {
   ~FiberDoubleStackAllocator() = default;
 
   void Initialize() override {
-    Allocator::Initialize();
+    StatefulAllocator::Initialize();
     stacks_[0].Initialize();
     stacks_[1].Initialize();
   }
 
   void Destroy() override {
-    Allocator::Destroy();
+    StatefulAllocator::Destroy();
     stacks_[0].Destroy();
     stacks_[1].Destroy();
   }
@@ -246,6 +246,50 @@ class FiberDoubleStackAllocator : public memory::Allocator {
   u8 current_stack_{0};
   Stack stacks_[2];
 };
+
+template <usize Capacity, Alignment Align = kTrivialTypeMaxAlignment>
+class StaticStackAllocator : public Allocator {
+ public:
+  StaticStackAllocator() = default;
+  StaticStackAllocator(const StaticStackAllocator&) = delete;
+  StaticStackAllocator(StaticStackAllocator&&) = delete;
+  StaticStackAllocator& operator=(const StaticStackAllocator&) = delete;
+  StaticStackAllocator& operator=(StaticStackAllocator&&) = delete;
+  virtual ~StaticStackAllocator() = default;
+
+  void* AllocateAligned(usize size, Alignment align) override;
+  void Deallocate(void*) override;
+  void Clear();
+
+ private:
+  using StackAllocatorMarker = u8*;
+
+  alignas(Align) u8 root_[Capacity]{};
+  StackAllocatorMarker marker_{root_};
+};
+
+template <usize Capacity, Alignment Align>
+inline void* StaticStackAllocator<Capacity, Align>::AllocateAligned(
+    usize size, Alignment align) {
+  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  auto* p{AlignPointer(marker_, align)};
+  COMET_ASSERT(p + size <= root_ + Capacity,
+               "Could not allocate enough memory (", size, ")!");
+  marker_ = p + size;
+  return p;
+}
+
+template <usize Capacity, Alignment Align>
+inline void StaticStackAllocator<Capacity, Align>::Deallocate(void*) {
+  // A stack allocator does not support individual deallocations, as it is
+  // intended for temporary data only. Memory is only released when Clear() is
+  // called, which resets the entire stack.
+}
+
+template <usize Capacity, Alignment Align>
+inline void StaticStackAllocator<Capacity, Align>::Clear() {
+  marker_ = root_;
+}
 }  // namespace memory
 }  // namespace comet
 

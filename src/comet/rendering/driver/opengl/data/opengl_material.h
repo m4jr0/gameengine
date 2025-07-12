@@ -28,6 +28,7 @@ struct MaterialDescr {
 };
 
 struct Material {
+  u16 ref_count{0};
   f32 shininess{.0f};
   FrameCount instance_update_frame{kInvalidFrameCount};
   MaterialId id{kInvalidMaterialId};

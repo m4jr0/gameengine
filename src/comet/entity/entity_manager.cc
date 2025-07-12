@@ -15,6 +15,7 @@
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event_manager.h"
 #include "comet/math/math_common.h"
+#include "comet/profiler/profiler.h"
 
 namespace comet {
 namespace entity {
@@ -84,8 +85,12 @@ void EntityManager::Initialize() {
       DeferredEntities, kDeferredEntityInitialCount_);
   EntityFactoryManager::Get().Initialize();
 
-  event::EventManager::Get().Register(COMET_EVENT_BIND_FUNCTION(OnEvent),
+  auto on_event{COMET_EVENT_BIND_FUNCTION(OnEvent)};
+
+  event::EventManager::Get().Register(on_event,
                                       frame::NewFrameEvent::kStaticType_);
+  event::EventManager::Get().Register(on_event,
+                                      frame::EndFrameEvent::kStaticType_);
 }
 
 void EntityManager::Shutdown() {
@@ -116,6 +121,7 @@ void EntityManager::Shutdown() {
 }
 
 void EntityManager::DispatchComponentChanges() {
+  COMET_PROFILE("EntityManager::DispatchComponentChanges");
   ProcessDeferredOperations();
 
   {
@@ -153,24 +159,36 @@ bool EntityManager::IsEntity(const EntityId& entity_id) const {
 void EntityManager::Destroy(EntityId entity_id) {
   COMET_ASSERT(IsEntity(entity_id),
                "Attempting to destroy a non-existent entity!");
-  fiber::FiberLockGuard lock{deferred_mutex_};
-  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
-  auto* entity{deferred_entities_->TryGet(entity_id)};
-
-  if (entity != nullptr) {
-    entity->is_destroyed = true;
-    entity->added_cmps.Destroy();
-    entity->removed_cmps.Destroy();
-  } else {
+  {
+    fiber::FiberLockGuard lock{deferred_mutex_};
     COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
-    deferred_entities_->Emplace(entity_id,
-                                internal::DeferredEntity{true, entity_id});
+    auto* entity{deferred_entities_->TryGet(entity_id)};
+
+    if (entity != nullptr) {
+      entity->is_destroyed = true;
+      entity->added_cmps.Destroy();
+      entity->removed_cmps.Destroy();
+    } else {
+      COMET_ASSERT(deferred_entities_ != nullptr,
+                   "Deferred entities are null!");
+      deferred_entities_->Emplace(entity_id,
+                                  internal::DeferredEntity{true, entity_id});
+    }
   }
+
+  EachChild<>([&](auto child_entity_id) { Destroy(child_entity_id); },
+              entity_id);
 }
 
 bool EntityManager::HasComponent(EntityId entity_id,
                                  EntityId component_id) const {
-  const auto& record{records_.Get(entity_id)};
+  const auto* record_ptr{records_.TryGet(entity_id)};
+
+  if (record_ptr == nullptr) {
+    return false;
+  }
+
+  const auto& record{*record_ptr};
   const auto* archetype{record.archetype};
   const auto& archetype_map{
       registered_component_types_.Get(component_id).archetype_map};
@@ -632,8 +650,7 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
           "remove_deferred_entity"));
     }
 
-    old_archetype->entity_ids.Resize(old_archetype->entity_ids.GetSize() -
-                                     entities.GetSize());
+    old_archetype->size -= entities.GetSize();
   }
 
   guard.Wait();
@@ -752,6 +769,8 @@ void EntityManager::OnEvent(const event::Event& event) {
 
   if (event_type == frame::NewFrameEvent::kStaticType_) {
     PrepareNewFrame();
+  } else if (event_type == frame::EndFrameEvent::kStaticType_) {
+    DispatchComponentChanges();
   }
 }
 }  // namespace entity

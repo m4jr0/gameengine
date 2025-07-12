@@ -81,7 +81,6 @@ class EntityManager : public Manager {
   void Shutdown() override;
 
   void DispatchComponentChanges();
-
   void WaitForEntityUpdates();
 
   EntityId Generate();

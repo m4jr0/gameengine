@@ -14,6 +14,7 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
+#include "comet/event/event.h"
 #include "comet/profiler/profiler.h"
 
 namespace comet {
@@ -49,6 +50,8 @@ class ProfilerManager : public Manager {
  private:
   using ThreadProfilerContexts =
       thread::FiberThreadProvider<ThreadProfilerContext>;
+
+  static void OnEvent(const event::Event& event);
 
   void RecordFrame();
 

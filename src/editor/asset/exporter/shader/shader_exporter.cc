@@ -100,7 +100,7 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
     return;
   }
 
-  resource_files.PushBack(resource::ResourceManager::Get().GetResourceFile(
+  resource_files.PushBack(resource::ResourceManager::Get().GetShaders()->Pack(
       shader, compression_mode_));
 
   allocator->Deallocate(shader_context.file);

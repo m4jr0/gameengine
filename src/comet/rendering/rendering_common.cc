@@ -7,6 +7,7 @@
 
 #include "rendering_common.h"
 
+#include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/logger.h"
 #include "comet/math/plane.h"
@@ -47,8 +48,18 @@ const schar* GetDriverTypeLabel(DriverType type) {
   }
 }
 
+DriverType GetDriverType() {
+  return rendering::GetDriverTypeFromStr(
+      COMET_CONF_STR(conf::kRenderingDriver));
+}
+
 bool IsMultithreading([[maybe_unused]] DriverType type) {
 #ifdef COMET_ENABLE_RENDERDOC_COMPATIBILITY
+#ifndef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  COMET_ASSERT(false,
+               "To enable RenderDoc compatibility, the main thread worker must "
+               "be allowed to remain disabled.");
+#endif  // !COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   return false;
 #else
   switch (type) {

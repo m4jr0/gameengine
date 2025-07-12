@@ -45,7 +45,7 @@ struct AddedGeometry {
   entity::EntityId entity_id{entity::kInvalidEntityId};
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
   geometry::MeshId mesh_id{geometry::kInvalidMeshId};
-  const resource::MaterialResource* material{nullptr};
+  const resource::MaterialResource* material_resource{nullptr};
   DoubleFrameArray<geometry::Index>* indices{};
   DoubleFrameArray<geometry::SkinnedVertex>* vertices{};
   math::Mat4 transform{1.0f};
@@ -57,7 +57,7 @@ struct DirtyMesh {
   entity::EntityId entity_id{entity::kInvalidEntityId};
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
   geometry::MeshId mesh_id{geometry::kInvalidMeshId};
-  const resource::MaterialResource* material{nullptr};
+  const resource::MaterialResource* material_resource{nullptr};
   math::Vec3 local_center{0.0f};
   math::Vec3 local_max_extents{0.0f};
   DoubleFrameArray<geometry::Index>* indices{nullptr};
@@ -106,7 +106,8 @@ struct FramePacket {
                               const physics::TransformComponent* transform_cmp);
 
   void RegisterRemovedGeometry(entity::EntityId entity_id,
-                               const geometry::MeshComponent* mesh_cmp);
+                               entity::EntityId model_entity_id,
+                               geometry::MeshId mesh_id);
 
   bool IsFrameStageStarted(FrameStage stage) const;
   bool IsFrameStageFinished(FrameStage stage) const;
@@ -116,8 +117,6 @@ struct FramePacket {
   f64 lag{.0f};
   f64 time{.0f};
   time::Interpolation interpolation{.0f};
-  // TODO(m4jr0): Add skinning matrices.
-  // TODO(m4jr0): Add list of meshes to render.
   StageTimes stage_times[kFrameStageCount]{};
   math::Mat4 projection_matrix{};
   math::Mat4 view_matrix{};

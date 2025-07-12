@@ -31,10 +31,11 @@ class RenderingManager : public Manager {
   void Update(frame::FramePacket* packet);
 
   const Window* GetWindow() const;
-  rendering::DriverType GetDriverType() const noexcept;
+  DriverType GetDriverType() const noexcept;
   FrameCount GetFrameRate() const noexcept;
   f64 GetFrameTime() const noexcept;
   u32 GetDrawCount() const noexcept;
+  bool IsMultithreaded() const noexcept;
 
  private:
   void GenerateOpenGlDriver();
@@ -47,7 +48,7 @@ class RenderingManager : public Manager {
   frame::FrameArray<RenderingViewDescr> GenerateRenderingViewDescrs() const;
   bool IsFpsCapReached() const;
 
-  bool is_multithreading_{false};
+  bool is_multithreaded_{false};
   FrameCount frame_rate_{0};
   FrameCount counter_{0};
   f64 frame_time_threshold_{0};

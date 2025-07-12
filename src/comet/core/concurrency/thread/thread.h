@@ -55,6 +55,7 @@ class Thread {
   void TryJoin();
   bool IsAttached() const noexcept;
   ThreadId GetId() const noexcept;
+  bool IsMain() const noexcept;
 
  private:
   void Attach();

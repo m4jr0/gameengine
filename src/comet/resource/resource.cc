@@ -17,7 +17,6 @@
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/math/math_common.h"
-#include "comet/profiler/profiler.h"
 
 namespace comet {
 namespace resource {
@@ -85,8 +84,13 @@ void UnpackBytes(CompressionMode compression_mode,
               decompressed_size, data);
 }
 
-void UnpackResourceData(const ResourceFile& file, Array<u8>& data) {
-  UnpackBytes(file.compression_mode, file.data, file.data_size, data);
+void UnpackResourceData(const ResourceFile& file, Array<u8>& data,
+                        usize max_data_size) {
+  auto data_size{max_data_size != kInvalidSize
+                     ? math::Min(max_data_size, file.data_size)
+                     : file.data_size};
+
+  UnpackBytes(file.compression_mode, file.data, data_size, data);
 }
 
 bool SaveResourceFile(CTStringView path, const ResourceFile& file) {
@@ -218,194 +222,6 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
       &params, guard.GetCounter()));
 
   return params.is_loaded;
-}
-
-ResourceHandler::ResourceHandler(usize resource_size,
-                                 memory::Allocator* loading_resources_allocator,
-                                 memory::Allocator* loading_resource_allocator)
-
-    : resource_allocator_{resource_size, 1024,
-                          memory::kEngineMemoryTagResource},
-      loading_resources_allocator_{loading_resources_allocator},
-      loading_resource_allocator_{loading_resource_allocator} {}
-
-void ResourceHandler::Initialize() {
-  resource_allocator_.Initialize();
-  cache_allocator_.Initialize();
-  loading_resources_ = LoadingResources{loading_resources_allocator_};
-  cache_ = ResourceCache{&cache_allocator_, 128};
-}
-
-void ResourceHandler::Shutdown() {
-  loading_resources_ = {};
-  cache_ = {};
-  cache_allocator_.Destroy();
-  resource_allocator_.Destroy();
-}
-
-const Resource* ResourceHandler::Load(memory::Allocator& allocator,
-                                      CTStringView root_resource_path,
-                                      ResourceId resource_id) {
-#ifdef COMET_PROFILING
-  schar label[profiler::kMaxProfileLabelLen + 1]{'\0'};
-  constexpr schar kLabelPrefix[]{"ResourceHandler::Load ("};
-  constexpr auto kLabelPrefixLen{GetLength(kLabelPrefix)};
-  constexpr schar kLabelSuffix[]{")"};
-  constexpr auto kLabelSuffixLen{GetLength(kLabelSuffix)};
-
-  Copy(label, kLabelPrefix, kLabelPrefixLen);
-  usize out_len;
-  ConvertToStr(resource_id, label + kLabelPrefixLen,
-               profiler::kMaxProfileLabelLen - kLabelPrefixLen, &out_len);
-  Copy(label + kLabelPrefixLen + out_len, kLabelSuffix, kLabelSuffixLen);
-  COMET_PROFILE(label);
-#endif  // COMET_PROFILING
-
-  if (resource_id == kDefaultResourceId) {
-    return GetDefaultResource();
-  }
-
-  {
-    fiber::FiberLockGuard lock{cache_mutex_};
-    auto* resource{GetInternal(resource_id)};
-
-    if (resource != nullptr) {
-      ++resource->ref_count;
-      return resource;
-    }
-  }
-
-  internal::LoadingResourceState* state{nullptr};
-  bool is_already_loading{false};
-
-  {
-    fiber::FiberLockGuard lock{loading_mutex_};
-    auto** state_box{loading_resources_.TryGet(resource_id)};
-
-    if (state_box == nullptr) {
-      auto* resource_state_ptr{
-          loading_resource_allocator_
-              ->AllocateOneAndPopulate<internal::LoadingResourceState>()};
-
-      auto& pair{loading_resources_.Emplace(resource_id, resource_state_ptr)};
-      state = pair.value;
-      state->is_loading = true;
-      ++state->ref_count;
-    } else {
-      state = *state_box;
-      ++state->ref_count;
-      is_already_loading = true;
-    }
-  }
-
-  if (is_already_loading) {
-    for (;;) {
-      {
-        fiber::FiberLockGuard lock{loading_mutex_};
-
-        if (!state->is_loading) {
-          --state->ref_count;
-          auto* resource{state->resource};
-
-          if (state->ref_count == 0) {
-            loading_resource_allocator_->Deallocate(
-                loading_resources_.Get(resource_id));
-            loading_resources_.Remove(resource_id);
-          }
-
-          return resource;
-        }
-      }
-
-      fiber::Yield();
-    }
-  }
-
-  constexpr auto kResourceIdPathBufferLen{GetCharCount<ResourceId>() + 1};
-  tchar resource_id_path[kResourceIdPathBufferLen];
-  usize resource_id_path_len;
-  ConvertToStr(resource_id, resource_id_path, kResourceIdPathBufferLen,
-               &resource_id_path_len);
-
-  TString resource_abs_path{};
-  // Adding 1 for the hypothetical "/" between those two (if needed).
-  resource_abs_path.Reserve(root_resource_path.GetLength() + 1 +
-                            resource_id_path_len);
-  resource_abs_path = root_resource_path;
-  resource_abs_path /= resource_id_path;  // No allocation.
-
-  ResourceFile file{};
-  file.descr = Array<u8>{&allocator};
-  file.data = Array<u8>{&allocator};
-  const auto is_load{LoadResourceFile(resource_abs_path, file)};
-  Resource* resource;
-
-  if (is_load) {
-    resource = Unpack(allocator, file);
-    resource->ref_count = 1;
-
-    {
-      fiber::FiberLockGuard lock{cache_mutex_};
-      cache_.Set(resource->id, resource);
-    }
-  } else {
-    COMET_LOG_RESOURCE_ERROR("Unable to get resource with ID: ",
-                             COMET_STRING_ID_LABEL(resource_id), ".");
-    resource = GetDefaultResource();
-  }
-
-  {
-    fiber::FiberLockGuard lock{loading_mutex_};
-    auto& state_ref{loading_resources_.Get(resource_id)};
-
-    state_ref->resource = resource;
-    state_ref->is_loading = false;
-    --state_ref->ref_count;
-
-    if (state_ref->ref_count == 0) {
-      loading_resources_.Remove(resource_id);
-    }
-  }
-
-  return resource;
-}
-
-void ResourceHandler::Unload(ResourceId resource_id) {
-  COMET_ASSERT(resource_id != kDefaultResourceId,
-               "Cannot unload default resource!");
-  fiber::FiberLockGuard lock{cache_mutex_};
-  auto* resource{cache_.Get(resource_id)};
-  COMET_ASSERT(resource != nullptr, "Tried to unload resource with ID ",
-               COMET_STRING_ID_LABEL(resource_id), ", but the former is null!");
-  COMET_ASSERT(resource->ref_count > 0, "Resource with ID ",
-               COMET_STRING_ID_LABEL(resource_id),
-               ", was asked to be unloaded, but reference count is already 0! "
-               "What happened??");
-  --resource->ref_count;
-
-  if (resource->ref_count < 1) {
-    Destroy(resource_id);
-  }
-}
-
-void ResourceHandler::Destroy(ResourceId resource_id) {
-  fiber::FiberLockGuard lock{cache_mutex_};
-  auto* resource{cache_.Get(resource_id)};
-  resource->~Resource();
-  resource_allocator_.Deallocate(resource);
-  cache_.Remove(resource_id);
-}
-
-Resource* ResourceHandler::GetDefaultResource() { return nullptr; }
-
-ResourceFile ResourceHandler::GetResourceFile(
-    memory::Allocator& allocator, const Resource& resource,
-    CompressionMode compression_mode) const {
-  return Pack(allocator, resource, compression_mode);
-}
-
-Resource* ResourceHandler::GetInternal(ResourceId resource_id) {
-  return cache_.Get(resource_id);
 }
 }  // namespace resource
 }  // namespace comet

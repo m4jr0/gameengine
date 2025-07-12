@@ -24,6 +24,20 @@ class NewFrameEvent : public event::Event {
 
   stringid::StringId GetType() const noexcept override;
 };
+
+class EndFrameEvent : public event::Event {
+ public:
+  const static stringid::StringId kStaticType_;
+
+  EndFrameEvent() = default;
+  EndFrameEvent(const EndFrameEvent&) = default;
+  EndFrameEvent(EndFrameEvent&&) noexcept = default;
+  EndFrameEvent& operator=(const EndFrameEvent&) = default;
+  EndFrameEvent& operator=(EndFrameEvent&&) noexcept = default;
+  virtual ~EndFrameEvent() = default;
+
+  stringid::StringId GetType() const noexcept override;
+};
 }  // namespace frame
 }  // namespace comet
 

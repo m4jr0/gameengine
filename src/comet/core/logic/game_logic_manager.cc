@@ -61,7 +61,6 @@ void GameLogicManager::Update(frame::FramePacket* packet) {
         auto* packet{job->packet};
 
         job->physics_manager->Update(packet);
-        job->entity_manager->DispatchComponentChanges();
 
         packet->interpolation =
             packet->lag / time::TimeManager::Get().GetFixedDeltaTime();

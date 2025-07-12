@@ -9,7 +9,7 @@
 
 #include "comet/core/essentials.h"
 #ifdef COMET_LABELIZE_STRING_IDS
-#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/memory/memory.h"
 #endif  // COMET_LABELIZE_STRING_IDS
 
@@ -20,7 +20,7 @@ constexpr auto kInvalidStringId{static_cast<StringId>(-1)};
 
 #ifdef COMET_LABELIZE_STRING_IDS
 namespace internal {
-class StringIdAllocator : public memory::Allocator {
+class StringIdAllocator : public memory::StatefulAllocator {
  public:
   StringIdAllocator() = delete;
   StringIdAllocator(usize capacity);

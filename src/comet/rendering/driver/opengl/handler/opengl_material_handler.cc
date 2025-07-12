@@ -49,6 +49,7 @@ Material* MaterialHandler::Generate(const MaterialDescr& descr) {
   material->diffuse_map = descr.diffuse_map;
   material->specular_map = descr.specular_map;
   material->normal_map = descr.normal_map;
+  material->ref_count = 1;
   return materials_.Emplace(material->id, material).value;
 }
 
@@ -56,9 +57,12 @@ Material* MaterialHandler::Generate(
     const resource::MaterialResource* resource) {
   MaterialDescr descr{};
   descr.id = resource->id;
-  descr.diffuse_map = GenerateTextureMap(&resource->descr.diffuse_map);
-  descr.specular_map = GenerateTextureMap(&resource->descr.specular_map);
-  descr.normal_map = GenerateTextureMap(&resource->descr.normal_map);
+  constexpr auto kLifeSpan{resource::ResourceLifeSpan::Manual};
+  descr.diffuse_map =
+      GenerateTextureMap(&resource->descr.diffuse_map, kLifeSpan);
+  descr.specular_map =
+      GenerateTextureMap(&resource->descr.specular_map, kLifeSpan);
+  descr.normal_map = GenerateTextureMap(&resource->descr.normal_map, kLifeSpan);
 
   TString shader_path{};
   shader_path.Reserve(resource::kMaxShaderNameLen);
@@ -80,13 +84,15 @@ Material* MaterialHandler::Get(MaterialId material_id) {
 }
 
 Material* MaterialHandler::TryGet(MaterialId material_id) {
-  auto** material{materials_.TryGet(material_id)};
+  auto material_ptr{materials_.TryGet(material_id)};
 
-  if (material == nullptr) {
+  if (material_ptr == nullptr) {
     return nullptr;
   }
 
-  return *material;
+  auto* material{*material_ptr};
+  ++material->ref_count;
+  return material;
 }
 
 Material* MaterialHandler::GetOrGenerate(const MaterialDescr& descr) {
@@ -119,7 +125,7 @@ void MaterialHandler::Destroy(Material* material) {
 }
 
 TextureMap MaterialHandler::GenerateTextureMap(
-    const resource::TextureMap* map) {
+    const resource::TextureMap* map, resource::ResourceLifeSpan life_span) {
   TextureMap texture_map{};
   texture_map.type = GetTextureType(map->type);
 
@@ -127,9 +133,10 @@ TextureMap MaterialHandler::GenerateTextureMap(
                              ? map->texture_id
                              : resource::GetDefaultTextureFromType(map->type)};
 
-  const auto* resource{
-      resource::ResourceManager::Get().Load<resource::TextureResource>(
-          resource_id)};
+  texture_map.texture_resource_id = resource_id;
+
+  const auto* resource{resource::ResourceManager::Get().GetTextures()->Load(
+      resource_id, life_span)};
 
   texture_map.texture_handle =
       texture_handler_->GetOrGenerate(resource)->handle;
@@ -151,10 +158,20 @@ void MaterialHandler::Destroy(Material* material, bool is_destroying_handler) {
   COMET_PROFILE("MaterialHandler::Destroy");
 
   if (!is_destroying_handler) {
+    COMET_ASSERT(material->ref_count > 0,
+                 "Material has a reference count of 0!");
+
+    if (--material->ref_count > 0) {
+      return;
+    }
+
     StaticArray<TextureMap*, 3> texture_maps = {
         &material->diffuse_map, &material->specular_map, &material->normal_map};
+    auto* texture_resource_handler{
+        resource::ResourceManager::Get().GetTextures()};
 
     for (auto* texture_map : texture_maps) {
+      texture_resource_handler->Unload(texture_map->texture_resource_id);
       *texture_map = {};
     }
 

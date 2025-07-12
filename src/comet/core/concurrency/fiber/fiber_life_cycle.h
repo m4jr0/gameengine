@@ -47,9 +47,6 @@ class FiberLifeCycleHandler {
   FiberLifeCycleHandler& operator=(FiberLifeCycleHandler&&) = delete;
   ~FiberLifeCycleHandler();
 
-  void Initialize();
-  void Shutdown();
-
   void AttachWorkerFiber(Fiber* fiber);
   void DetachWorkerFiber();
   void PutToSleep(Fiber* fiber);

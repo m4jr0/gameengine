@@ -16,7 +16,6 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/math/math_common.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
@@ -124,13 +123,15 @@ const Texture* TextureHandler::Get(TextureId texture_id) const {
 }
 
 const Texture* TextureHandler::TryGet(TextureId texture_id) const {
-  auto texture{textures_.TryGet(texture_id)};
+  auto texture_ptr{textures_.TryGet(texture_id)};
 
-  if (texture == nullptr) {
+  if (texture_ptr == nullptr) {
     return nullptr;
   }
 
-  return *texture;
+  auto* texture{*texture_ptr};
+  ++texture->ref_count;
+  return texture;
 }
 
 const Texture* TextureHandler::GetOrGenerate(
@@ -170,6 +171,14 @@ Texture* TextureHandler::TryGet(TextureId texture_id) {
 }
 
 void TextureHandler::Destroy(Texture* texture, bool is_destroying_handler) {
+  if (!is_destroying_handler) {
+    COMET_ASSERT(texture->ref_count > 0, "Texture has a reference count of 0!");
+
+    if (--texture->ref_count > 0) {
+      return;
+    }
+  }
+
   if (texture->image.image_view_handle != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->GetDevice(), texture->image.image_view_handle,
                        MemoryCallbacks::Get().GetAllocCallbacksHandle());

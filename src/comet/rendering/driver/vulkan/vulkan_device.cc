@@ -12,7 +12,6 @@
 #include "comet/core/c_string.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/logger.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/ordered_set.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
@@ -225,7 +224,6 @@ void Device::Initialize() {
                                            &queue_family_count, VK_NULL_HANDLE);
   COMET_ASSERT(queue_family_count > 0, "No queue family found!");
 
-  allocator_.Initialize();
   queue_family_properties_ = Array<VkQueueFamilyProperties>{&allocator_};
   queue_family_properties_.Resize(queue_family_count);
   vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle_,
@@ -326,7 +324,6 @@ void Device::Destroy() {
   present_queue_handle_ = VK_NULL_HANDLE;
   transfer_queue_handle_ = VK_NULL_HANDLE;
   msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
-  allocator_.Destroy();
 
   is_initialized_ = false;
 }

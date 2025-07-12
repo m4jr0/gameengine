@@ -22,7 +22,6 @@
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
 #include "comet/core/type/gid.h"
-#include "comet/core/type/tstring.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/event/event_manager.h"
 
@@ -39,13 +38,18 @@ class TestsEventListener : public Catch::EventListenerBase {
     configuration_manager.SetBool(comet::conf::kCoreIsMainThreadWorkerDisabled,
                                   true);
     comet::job::Scheduler::Get().Initialize();
-    comet::job::Scheduler::Get().Run(comet::job::JobDescr{});
+
+    comet::job::JobDescr job_descr{};
+    job_descr.stack_size = comet::job::JobStackSize::Large;
+    job_descr.priority = comet::job::JobPriority::High;
+    job_descr.entry_point = [](comet::job::JobParamsHandle) {};
+    comet::job::Scheduler::Get().Run(job_descr, false);
+
     comet::memory::TaggedHeap::Get().Initialize();
     comet::thread::ThreadProviderManager::Get().Initialize();
     comet::event::EventManager::Get().Initialize();
     comet::frame::FrameManager::Get().Initialize();
     comet::gid::InitializeGids();
-    comet::InitializeTStrings();
     comet::entity::EntityManager::Get().Initialize();
   }
 
@@ -54,7 +58,6 @@ class TestsEventListener : public Catch::EventListenerBase {
     scheduler.RequestShutdown();
 
     comet::entity::EntityManager::Get().Shutdown();
-    comet::DestroyTStrings();
     comet::gid::DestroyGids();
     comet::frame::FrameManager::Get().Shutdown();
     comet::event::EventManager::Get().Shutdown();

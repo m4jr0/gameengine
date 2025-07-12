@@ -27,8 +27,6 @@ void InputManager::Initialize() {
   Manager::Initialize();
   thread_id_ = thread::GetThreadId();
 
-  cached_input_state_allocator_.Initialize();
-
   cached_input_state_.keys_pressed =
       Bitset(&cached_input_state_allocator_, internal::kKeyCount);
   cached_input_state_.keys_down =
@@ -190,8 +188,6 @@ void InputManager::Shutdown() {
   cached_input_state_.mouse_buttons_pressed.Destroy();
   cached_input_state_.mouse_buttons_down.Destroy();
   cached_input_state_.mouse_buttons_up.Destroy();
-
-  cached_input_state_allocator_.Destroy();
 
   thread_id_ = thread::kInvalidThreadId;
   Manager::Shutdown();

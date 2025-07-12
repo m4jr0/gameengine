@@ -20,7 +20,7 @@ StackAllocator::StackAllocator(usize capacity, MemoryTag memory_tag)
       marker_{root_} {}
 
 StackAllocator::StackAllocator(StackAllocator&& other) noexcept
-    : Allocator{std::move(other)},
+    : StatefulAllocator{std::move(other)},
       memory_tag_{other.memory_tag_},
       capacity_{other.capacity_},
       root_{other.root_},
@@ -40,7 +40,7 @@ StackAllocator& StackAllocator::operator=(StackAllocator&& other) noexcept {
     TaggedHeap::Get().DeallocateAll(memory_tag_);
   }
 
-  Allocator::operator=(other);
+  StatefulAllocator::operator=(other);
   memory_tag_ = other.memory_tag_;
   capacity_ = other.capacity_;
   root_ = other.root_;
@@ -54,7 +54,7 @@ StackAllocator& StackAllocator::operator=(StackAllocator&& other) noexcept {
 }
 
 void StackAllocator::Initialize() {
-  Allocator::Initialize();
+  StatefulAllocator::Initialize();
   COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
   root_ = static_cast<u8*>(TaggedHeap::Get().AllocateAligned(
       capacity_, alignof(u8), memory_tag_, &capacity_));
@@ -62,7 +62,7 @@ void StackAllocator::Initialize() {
 }
 
 void StackAllocator::Destroy() {
-  Allocator::Destroy();
+  StatefulAllocator::Destroy();
   TaggedHeap::Get().DeallocateAll(memory_tag_);
   root_ = nullptr;
   capacity_ = 0;
@@ -97,7 +97,7 @@ FiberStackAllocator::FiberStackAllocator(usize base_capacity,
       marker_{root_} {}
 
 void FiberStackAllocator::Initialize() {
-  Allocator::Initialize();
+  StatefulAllocator::Initialize();
   thread_capacity_ = TaggedHeap::Get().GetBlockSize() - 1;
   thread_contexts_.Initialize();
   COMET_ASSERT(base_capacity_ > 0, "Capacity is ", base_capacity_, "!");
@@ -114,7 +114,7 @@ void FiberStackAllocator::Initialize() {
 }
 
 void FiberStackAllocator::Destroy() {
-  Allocator::Destroy();
+  StatefulAllocator::Destroy();
   thread_contexts_.Destroy();
   auto& tagged_heap{TaggedHeap::Get()};
   tagged_heap.DeallocateAll(memory_tag_);
@@ -201,7 +201,7 @@ IOStackAllocator::IOStackAllocator(usize thread_capacity, MemoryTag memory_tag)
     : memory_tag_{memory_tag}, thread_capacity_{thread_capacity} {}
 
 void IOStackAllocator::Initialize() {
-  Allocator::Initialize();
+  StatefulAllocator::Initialize();
   thread_contexts_.Initialize();
   auto size{thread_contexts_.GetSize()};
   auto& tagged_heap{TaggedHeap::Get()};
@@ -214,7 +214,7 @@ void IOStackAllocator::Initialize() {
 }
 
 void IOStackAllocator::Destroy() {
-  Allocator::Destroy();
+  StatefulAllocator::Destroy();
   thread_contexts_.Destroy();
   TaggedHeap::Get().DeallocateAll(memory_tag_);
 }
@@ -249,13 +249,13 @@ LockFreeStackAllocator::LockFreeStackAllocator(usize capacity,
       root_{nullptr} {}
 
 void LockFreeStackAllocator::Initialize() {
-  Allocator::Initialize();
+  StatefulAllocator::Initialize();
   offset_ = 0;
   root_ = static_cast<u8*>(Allocate(capacity_));
 }
 
 void LockFreeStackAllocator::Destroy() {
-  Allocator::Destroy();
+  StatefulAllocator::Destroy();
   Deallocate(root_);
   offset_ = kInvalidOffset_;
   root_ = nullptr;

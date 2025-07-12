@@ -240,6 +240,9 @@ void RenderProxyHandler::GenerateUpdateTemporaryStructures(
   destroyed_batch_entries_ = COMET_FRAME_ARRAY(
       RenderBatchEntry, packet->removed_geometries->GetSize());
 
+  destroyed_entity_ids_ = COMET_FRAME_ORDERED_SET(
+      entity::EntityId, packet->removed_geometries->GetSize());
+
   indirect_batches_ =
       COMET_FRAME_ARRAY(RenderIndirectBatch, kDefaultRenderIndirectBatchCount_);
 
@@ -253,6 +256,7 @@ void RenderProxyHandler::DestroyUpdateTemporaryStructures() {
   pending_proxy_indices_ = nullptr;
   destroyed_proxies_ = nullptr;
   destroyed_batch_entries_ = nullptr;
+  destroyed_entity_ids_ = nullptr;
   indirect_batches_ = nullptr;
   batch_groups_ = nullptr;
 }
@@ -307,10 +311,10 @@ void RenderProxyHandler::GenerateRenderProxies(
 
     auto& new_proxy{proxies_[render_proxy_count_++]};
     new_proxy.id = static_cast<RenderProxyId>(render_proxy_count_ - 1);
-    auto* material{material_handler_->TryGet(geometry.material->id)};
+    auto* material{material_handler_->TryGet(geometry.material_resource->id)};
 
     if (material == nullptr) {
-      material = material_handler_->Generate(geometry.material);
+      material = material_handler_->Generate(geometry.material_resource);
       shader_handler_->BindMaterial(material);
     }
 
@@ -346,6 +350,11 @@ void RenderProxyHandler::UpdateRenderProxies(
   for (usize i{0}; i < updated_mesh_count; ++i) {
     auto& updated_mesh{meshes->Get(i)};
 
+    // Case: the mesh was destroyed during the same frame.
+    if (destroyed_entity_ids_->IsContained(updated_mesh.entity_id)) {
+      continue;
+    }
+
     COMET_ASSERT(entity_id_to_proxy_id_map_.IsContained(updated_mesh.entity_id),
                  "Tried to update non-existing mesh with entity #",
                  updated_mesh.entity_id, "!");
@@ -365,6 +374,11 @@ void RenderProxyHandler::UpdateRenderProxies(
 
   for (usize i{0}; i < updated_transform_count; ++i) {
     auto& updated_transform{transforms->Get(i)};
+
+    // Case: the transform was destroyed during the same frame.
+    if (destroyed_entity_ids_->IsContained(updated_transform.entity_id)) {
+      continue;
+    }
 
     COMET_ASSERT(
         entity_id_to_proxy_id_map_.IsContained(updated_transform.entity_id),
@@ -392,6 +406,7 @@ void RenderProxyHandler::DestroyRenderProxies(
   }
 
   for (const auto& geometry : *geometries) {
+    destroyed_entity_ids_->Add(geometry.entity_id);
     auto proxy_id_ptr{entity_id_to_proxy_id_map_.TryGet(geometry.entity_id)};
 
     if (proxy_id_ptr == nullptr) {

@@ -9,6 +9,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/type/array.h"
 
 namespace comet {
@@ -36,9 +37,9 @@ constexpr Gid GetGeneration(Gid id) noexcept { return id & kGenerationMask; }
 Gid GenerateNewGeneration(Gid id) noexcept;
 
 namespace internal {
-class IdGenerationAllocator : public memory::Allocator {
+class IdGenerationAllocator : public memory::StatefulAllocator {
  public:
-  static memory::Allocator& Get();
+  static memory::StatefulAllocator& Get();
 
   IdGenerationAllocator() = default;
   explicit IdGenerationAllocator(usize base_capacity);
@@ -48,8 +49,8 @@ class IdGenerationAllocator : public memory::Allocator {
   IdGenerationAllocator& operator=(IdGenerationAllocator&& other) noexcept;
   ~IdGenerationAllocator() = default;
 
-  void Initialize();
-  void Destroy();
+  void Initialize() override;
+  void Destroy() override;
 
   void* AllocateAligned(usize size, memory::Alignment align) override;
   void Deallocate(void* ptr) override;

@@ -10,7 +10,7 @@
 #include "comet/core/c_array.h"
 #include "comet/core/c_string.h"
 #include "comet/core/hash.h"
-#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/stateful_allocator.h"
 
 namespace comet {
 namespace internal {
@@ -31,8 +31,6 @@ class TStringAllocator : public memory::Allocator {
 };
 }  // namespace internal
 
-void InitializeTStrings();
-void DestroyTStrings();
 void AttachTStringAllocator(memory::Allocator* allocator);
 void DetachTStringAllocator();
 
@@ -197,6 +195,7 @@ class TString {
 
 class CTStringView {
  public:
+  CTStringView() noexcept : CTStringView{COMET_TCHAR(""), 0} {};
   CTStringView(const TString& str) noexcept : CTStringView{str.GetCTStr()} {}
 
   constexpr CTStringView(const tchar* str) noexcept

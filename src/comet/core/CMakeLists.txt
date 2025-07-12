@@ -84,6 +84,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/free_list_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/platform_allocator.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/stack_allocator.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/memory/allocator/stateful_allocator.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/array.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/bitset.cc"

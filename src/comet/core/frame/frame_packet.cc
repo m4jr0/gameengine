@@ -8,7 +8,6 @@
 
 #include <utility>
 
-#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/ordered_set.h"
 
@@ -24,7 +23,7 @@ void FramePacket::RegisterNewGeometry(
   geometry.entity_id = entity_id;
   geometry.model_entity_id = mesh_cmp->model_entity_id;
   geometry.mesh_id = from_mesh->id;
-  geometry.material = mesh_cmp->material;
+  geometry.material_resource = mesh_cmp->material_resource;
 
   geometry.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex);
   geometry.indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index);
@@ -49,7 +48,7 @@ void FramePacket::RegisterDirtyMesh(entity::EntityId entity_id,
   mesh.entity_id = entity_id;
   mesh.model_entity_id = mesh_cmp->model_entity_id;
   mesh.mesh_id = from_mesh->id;
-  mesh.material = mesh_cmp->material;
+  mesh.material_resource = mesh_cmp->material_resource;
 
   mesh.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex);
   mesh.indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index);
@@ -77,16 +76,15 @@ void FramePacket::RegisterDirtyTransform(
   dirty_transforms->Add(std::move(transform));
 }
 
-void FramePacket::RegisterRemovedGeometry(
-    entity::EntityId entity_id, const geometry::MeshComponent* mesh_cmp) {
-  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
-
+void FramePacket::RegisterRemovedGeometry(entity::EntityId entity_id,
+                                          entity::EntityId model_entity_id,
+                                          geometry::MeshId mesh_id) {
   RemovedGeometry geometry{};
   geometry.entity_id = entity_id;
-  geometry.model_entity_id = mesh_cmp->model_entity_id;
-  geometry.mesh_id = mesh_cmp->mesh->id;
+  geometry.model_entity_id = model_entity_id;
+  geometry.mesh_id = mesh_id;
 
-  fiber::FiberLockGuard lock{dirty_meshes_mtx};
+  fiber::FiberLockGuard lock{removed_geometries_mtx};
   removed_geometries->Add(std::move(geometry));
 }
 
@@ -103,15 +101,32 @@ bool FramePacket::IsFrameStageFinished(FrameStage stage) const {
 }
 
 void FramePacket::FramePacket::Reset() {
-  // No locking requried. This function is designed for single-threaded
+  // No locking required. This function is designed for single-threaded
   // execution.
-  memory::ClearMemory(this, sizeof(frame::FramePacket));
-  added_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(frame::AddedGeometry);
-  dirty_meshes = COMET_DOUBLE_FRAME_ORDERED_SET(frame::DirtyMesh);
-  dirty_transforms = COMET_DOUBLE_FRAME_ORDERED_SET(frame::DirtyTransform);
-  removed_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(frame::RemovedGeometry);
+
+  frame_count = 0;
+  lag = .0f;
+  time = .0f;
+  interpolation = .0f;
+
+  for (usize i{0}; i < kFrameStageCount; ++i) {
+    stage_times[i].start = 0;
+    stage_times[i].end = 0;
+  }
+
+  projection_matrix = math::Mat4{};
+  view_matrix = math::Mat4{};
+  draw_count = 0;
+
+  added_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(AddedGeometry);
+  dirty_meshes = COMET_DOUBLE_FRAME_ORDERED_SET(DirtyMesh);
+  dirty_transforms = COMET_DOUBLE_FRAME_ORDERED_SET(DirtyTransform);
+  removed_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(RemovedGeometry);
   skinning_bindings = COMET_DOUBLE_FRAME_ARRAY(animation::SkinningBinding);
   matrix_palettes = COMET_DOUBLE_FRAME_ARRAY(animation::MatrixPalette);
+
+  counter = nullptr;
+  rendering_data = nullptr;
 }
 
 HashValue GenerateHash(const AddedGeometry& value) {

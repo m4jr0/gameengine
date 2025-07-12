@@ -61,6 +61,7 @@ const Texture* TextureHandler::Generate(
   texture->format = GetGlFormat(resource);
   texture->internal_format = GetGlInternalFormat(resource);
   texture->channel_count = resource->descr.channel_count;
+  texture->ref_count = 1;
 
   glBindTexture(GL_TEXTURE_2D, texture->handle);
   glTexImage2D(GL_TEXTURE_2D, 0, texture->internal_format,
@@ -79,13 +80,15 @@ const Texture* TextureHandler::Get(TextureHandle texture_handle) const {
 }
 
 const Texture* TextureHandler::TryGet(TextureHandle texture_handle) const {
-  auto texture{textures_.TryGet(texture_handle)};
+  auto texture_ptr{textures_.TryGet(texture_handle)};
 
-  if (texture == nullptr) {
+  if (texture_ptr == nullptr) {
     return nullptr;
   }
 
-  return *texture;
+  auto* texture{*texture_ptr};
+  ++texture->ref_count;
+  return texture;
 }
 
 const Texture* TextureHandler::GetOrGenerate(
@@ -126,6 +129,12 @@ Texture* TextureHandler::TryGet(TextureHandle texture_handle) {
 
 void TextureHandler::Destroy(Texture* texture, bool is_destroying_handler) {
   if (!is_destroying_handler) {
+    COMET_ASSERT(texture->ref_count > 0, "Texture has a reference count of 0!");
+
+    if (--texture->ref_count > 0) {
+      return;
+    }
+
     if (texture->handle != kInvalidTextureHandle) {
       glDeleteTextures(1, &texture->handle);
     }

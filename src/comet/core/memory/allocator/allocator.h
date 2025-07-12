@@ -15,10 +15,7 @@ namespace comet {
 namespace memory {
 class Allocator {
  public:
-  virtual ~Allocator();
-
-  virtual void Initialize();
-  virtual void Destroy();
+  virtual ~Allocator() = default;
 
   void* Allocate(usize size);
 
@@ -40,11 +37,6 @@ class Allocator {
 
   virtual void* AllocateAligned(usize size, Alignment align) = 0;
   virtual void Deallocate(void* ptr) = 0;
-
-  bool IsInitialized() const noexcept;
-
- protected:
-  bool is_initialized_{false};
 };
 }  // namespace memory
 }  // namespace comet

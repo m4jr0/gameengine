@@ -8,7 +8,6 @@
 
 #include <utility>
 
-#include "comet/resource/material_resource.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -108,6 +107,7 @@ Mesh* GeometryManager::GetOrGenerate(const resource::MeshResource* resource) {
   auto* mesh{TryGet(resource)};
 
   if (mesh != nullptr) {
+    ++mesh->ref_count;
     return mesh;
   }
 
@@ -135,30 +135,126 @@ MeshId GeometryManager::GenerateMeshId(
          static_cast<u64>(resource->resource_id) << 32;
 }
 
-MeshComponent GeometryManager::GenerateComponent(
+StaticModelComponent GeometryManager::GenerateStaticModelComponent(
+    entity::EntityId entity_id, CTStringView model_path,
+    resource::ResourceLifeSpan life_span) const {
+  StaticModelComponent model_cmp{};
+  model_cmp.entity_id = entity_id;
+  model_cmp.resource = resource::ResourceManager::Get().GetStaticModels()->Load(
+      model_path, life_span);
+  return model_cmp;
+}
+
+SkeletalModelComponent GeometryManager::GenerateSkeletalModelComponent(
+    entity::EntityId entity_id, CTStringView model_path,
+    resource::ResourceLifeSpan life_span) const {
+  SkeletalModelComponent model_cmp{};
+  model_cmp.entity_id = entity_id;
+  model_cmp.resource =
+      resource::ResourceManager::Get().GetSkeletalModels()->Load(model_path,
+                                                                 life_span);
+  return model_cmp;
+}
+
+MeshComponent GeometryManager::GenerateStaticMeshComponent(
     const resource::StaticMeshResource* resource, entity::EntityId entity_id,
-    entity::EntityId model_entity_id) {
+    entity::EntityId model_entity_id, resource::ResourceLifeSpan life_span) {
   MeshComponent mesh_cmp{};
   mesh_cmp.entity_id = entity_id;
   mesh_cmp.model_entity_id = model_entity_id;
   mesh_cmp.mesh = GetOrGenerate(resource);
-  mesh_cmp.material =
-      resource::ResourceManager::Get().Load<resource::MaterialResource>(
-          resource->material_id);
+  mesh_cmp.material_resource =
+      resource::ResourceManager::Get().GetMaterials()->Load(
+          resource->material_id, life_span);
+
   return mesh_cmp;
 }
 
-MeshComponent GeometryManager::GenerateComponent(
+MeshComponent GeometryManager::GenerateSkinnedMeshComponent(
     const resource::SkinnedMeshResource* resource, entity::EntityId entity_id,
-    entity::EntityId model_entity_id) {
+    entity::EntityId model_entity_id, resource::ResourceLifeSpan life_span) {
   MeshComponent mesh_cmp{};
   mesh_cmp.entity_id = entity_id;
   mesh_cmp.model_entity_id = model_entity_id;
   mesh_cmp.mesh = GetOrGenerate(resource);
-  mesh_cmp.material =
-      resource::ResourceManager::Get().Load<resource::MaterialResource>(
-          resource->material_id);
+  mesh_cmp.material_resource =
+      resource::ResourceManager::Get().GetMaterials()->Load(
+          resource->material_id, life_span);
   return mesh_cmp;
+}
+
+SkeletonComponent GeometryManager::GenerateSkeletonComponent(
+    CTStringView model_path, resource::ResourceLifeSpan life_span) const {
+  SkeletonComponent skeleton_cmp{};
+  skeleton_cmp.resource = resource::ResourceManager::Get().GetSkeletons()->Load(
+      model_path, life_span);
+  return skeleton_cmp;
+}
+
+void GeometryManager::DestroyStaticModelComponent(
+    StaticModelComponent* model_cmp) const {
+  model_cmp->entity_id = entity::kInvalidEntityId;
+
+  if (model_cmp->resource != nullptr) {
+    resource::ResourceManager::Get().GetStaticModels()->Unload(
+        model_cmp->resource->id);
+    model_cmp->resource = nullptr;
+  }
+}
+
+void GeometryManager::DestroySkeletalModelComponent(
+    SkeletalModelComponent* model_cmp) const {
+  model_cmp->entity_id = entity::kInvalidEntityId;
+
+  if (model_cmp->resource != nullptr) {
+    resource::ResourceManager::Get().GetSkeletalModels()->Unload(
+        model_cmp->resource->id);
+    model_cmp->resource = nullptr;
+  }
+}
+
+void GeometryManager::DestroyStaticMeshComponent(MeshComponent* mesh_cmp) {
+  mesh_cmp->entity_id = entity::kInvalidEntityId;
+  mesh_cmp->model_entity_id = entity::kInvalidEntityId;
+
+  if (mesh_cmp->mesh != nullptr) {
+    Destroy(mesh_cmp->mesh);
+    mesh_cmp->mesh = nullptr;
+  }
+
+  if (mesh_cmp->material_resource != nullptr) {
+    resource::ResourceManager::Get().GetMaterials()->Unload(
+        mesh_cmp->material_resource->id);
+  }
+
+  mesh_cmp->material_resource = nullptr;
+}
+
+void GeometryManager::DestroySkinnedMeshComponent(MeshComponent* mesh_cmp) {
+  mesh_cmp->entity_id = entity::kInvalidEntityId;
+  mesh_cmp->model_entity_id = entity::kInvalidEntityId;
+
+  if (mesh_cmp->mesh != nullptr) {
+    Destroy(mesh_cmp->mesh);
+    mesh_cmp->mesh = nullptr;
+  }
+
+  if (mesh_cmp->material_resource != nullptr) {
+    resource::ResourceManager::Get().GetMaterials()->Unload(
+        mesh_cmp->material_resource->id);
+  }
+
+  mesh_cmp->material_resource = nullptr;
+}
+
+void GeometryManager::DestroySkeletonComponent(
+    SkeletonComponent* skeleton_cmp) {
+  if (skeleton_cmp->resource != nullptr) {
+    resource::ResourceManager::Get().GetSkeletons()->Unload(
+        skeleton_cmp->resource->id);
+  }
+
+  skeleton_cmp->resource = nullptr;
 }
 
 Mesh* GeometryManager::GenerateInternal(
@@ -190,19 +286,30 @@ Mesh* GeometryManager::GenerateInternal(
     COMET_ASSERT(false, "Could not insert mesh #", mesh_id, "!");
   }
 
+  to_return->ref_count = 1;
   return to_return;
 }
 
 void GeometryManager::Destroy(Mesh* mesh, bool is_destroying_handler) {
   COMET_ASSERT(mesh != nullptr, "Mesh provided is null!");
-  if (!is_destroying_handler) {
-    {
-      fiber::FiberLockGuard lock{mutex_};
-      meshes_.Remove(mesh->id);
-    }
+  COMET_ASSERT(mesh->ref_count > 0, "Mesh has a reference count of 0!");
 
-    mesh_allocator_.Deallocate(mesh);
+  if (is_destroying_handler) {
+    return;
   }
+
+  auto ref_count{mesh->ref_count.fetch_sub(1) - 1};
+
+  if (ref_count > 0) {
+    return;
+  }
+
+  {
+    fiber::FiberLockGuard lock{mutex_};
+    meshes_.Remove(mesh->id);
+  }
+
+  mesh_allocator_.Deallocate(mesh);
 }
 }  // namespace geometry
 }  // namespace comet

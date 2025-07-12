@@ -6,7 +6,6 @@
 #define COMET_COMET_RESOURCE_MODEL_RESOURCE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/math/matrix.h"
@@ -70,65 +69,12 @@ struct SkeletonResource : Resource {
   geometry::Skeleton skeleton{};
 };
 
-class StaticModelHandler : public ResourceHandler {
- public:
-  StaticModelHandler(memory::Allocator* loading_resources_allocator,
-                     memory::Allocator* loading_resource_allocator);
-  StaticModelHandler(const StaticModelHandler&) = delete;
-  StaticModelHandler(StaticModelHandler&&) = delete;
-  StaticModelHandler& operator=(const StaticModelHandler&) = delete;
-  StaticModelHandler& operator=(StaticModelHandler&&) = delete;
-  virtual ~StaticModelHandler() = default;
-
- protected:
-  usize GetMeshSize(const StaticMeshResource& mesh) const;
-  usize GetModelSize(const StaticModelResource& model) const;
-
-  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
-                    CompressionMode compression_mode) const override;
-  Resource* Unpack(memory::Allocator& allocator,
-                   const ResourceFile& file) override;
-};
-
-class SkeletalModelHandler : public ResourceHandler {
- public:
-  SkeletalModelHandler(memory::Allocator* loading_resources_allocator,
-                       memory::Allocator* loading_resource_allocator);
-  SkeletalModelHandler(const SkeletalModelHandler&) = delete;
-  SkeletalModelHandler(SkeletalModelHandler&&) = delete;
-  SkeletalModelHandler& operator=(const SkeletalModelHandler&) = delete;
-  SkeletalModelHandler& operator=(SkeletalModelHandler&&) = delete;
-  virtual ~SkeletalModelHandler() = default;
-
- protected:
-  usize GetMeshSize(const SkinnedMeshResource& mesh) const;
-  usize GetModelSize(const SkeletalModelResource& model) const;
-
-  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
-                    CompressionMode compression_mode) const override;
-  Resource* Unpack(memory::Allocator& allocator,
-                   const ResourceFile& file) override;
-};
-
-class SkeletonHandler : public ResourceHandler {
- public:
-  SkeletonHandler(memory::Allocator* loading_resources_allocator,
-                  memory::Allocator* loading_resource_allocator);
-  SkeletonHandler(const SkeletonHandler&) = delete;
-  SkeletonHandler(SkeletonHandler&&) = delete;
-  SkeletonHandler& operator=(const SkeletonHandler&) = delete;
-  SkeletonHandler& operator=(SkeletonHandler&&) = delete;
-  virtual ~SkeletonHandler() = default;
-
- protected:
-  usize GetSkeletonJointSize() const;
-  usize GetSkeletonSize(const SkeletonResource& skeleton) const;
-
-  ResourceFile Pack(memory::Allocator& allocator, const Resource& resource,
-                    CompressionMode compression_mode) const override;
-  Resource* Unpack(memory::Allocator& allocator,
-                   const ResourceFile& file) override;
-};
+usize GetMeshSize(const StaticMeshResource& resource);
+usize GetModelSize(const StaticModelResource& resource);
+usize GetMeshSize(const SkinnedMeshResource& resource);
+usize GetModelSize(const SkeletalModelResource& resource);
+usize GetSkeletonJointSize();
+usize GetSkeletonSize(const SkeletonResource& resource);
 }  // namespace resource
 }  // namespace comet
 

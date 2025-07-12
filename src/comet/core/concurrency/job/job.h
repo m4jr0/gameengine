@@ -73,6 +73,10 @@ struct IOJobDescr {
   Counter* counter{nullptr};
 };
 
+using MainThreadJobDescr = IOJobDescr;
+using MainThreadEntryPoint = IOEntryPoint;
+using MainThreadParamsHandle = IOJobParamsHandle;
+
 #ifdef COMET_DEBUG
 using JobPrimitiveDebugId = usize;
 constexpr auto kInvalidJobPrimitiveDebugId{

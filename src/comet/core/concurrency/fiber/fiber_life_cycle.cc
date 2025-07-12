@@ -60,20 +60,6 @@ FiberLifeCycleHandler::~FiberLifeCycleHandler() {
                "Destructor called for handler, but it is still initialized!");
 }
 
-void FiberLifeCycleHandler::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize handler, but it is already done!");
-  queue_allocator_.Initialize();
-  is_initialized_ = true;
-}
-
-void FiberLifeCycleHandler::Shutdown() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to shutdown handler, but it is not initialized!");
-  queue_allocator_.Destroy();
-  is_initialized_ = false;
-}
-
 void FiberLifeCycleHandler::AttachWorkerFiber(Fiber* fiber) {
   tls_worker_fiber_ = fiber;
 }

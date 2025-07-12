@@ -6,13 +6,13 @@
 
 #include "animation_manager.h"
 
-#include "comet/animation/component/animation_component.h"
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_manager.h"
-#include "comet/geometry/component/mesh_component.h"
+#include "comet/geometry/component/skeleton_component.h"
+#include "comet/resource/animation_resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/scene/scene_manager.h"
 
@@ -47,7 +47,7 @@ void AnimationManager::Update(frame::FramePacket* packet) {
     auto* animation_cmp{
         entity_manager.GetComponent<AnimationComponent>(entity_id)};
 
-    if (animation_cmp->clip == nullptr) {
+    if (animation_cmp->clip_resource == nullptr) {
       continue;
     }
 
@@ -88,15 +88,90 @@ void AnimationManager::Play(entity::EntityId entity_id, const wchar* name,
 
 void AnimationManager::Play(entity::EntityId entity_id, AnimationClipId id,
                             f32 speed, std::optional<bool> is_loop) {
-  const auto* anim_resource{
-      resource::ResourceManager::Get().Load<resource::AnimationClipResource>(
-          id)};
+  auto* animation_cmp{
+      entity::EntityManager::Get().GetComponent<AnimationComponent>(entity_id)};
+  const resource::AnimationClipResource* resource{nullptr};
 
-  if (anim_resource == nullptr) {
+  const auto* existing_resource{
+      animation_cmp != nullptr ? animation_cmp->clip_resource : nullptr};
+  auto* resource_animation_clips_handler{
+      resource::ResourceManager::Get().GetAnimationClips()};
+
+  if (existing_resource == nullptr) {
+    resource = resource_animation_clips_handler->Load(
+        static_cast<resource::ResourceId>(id));
+  } else {
+    if (existing_resource->id == id) {
+      resource = existing_resource;
+    } else {
+      resource_animation_clips_handler->Unload(existing_resource->id);
+      resource = resource_animation_clips_handler->Load(
+          static_cast<resource::ResourceId>(id));
+    }
+  }
+
+  if (resource == nullptr) {
     return;
   }
 
-  PlayInternal(entity_id, anim_resource, speed, is_loop);
+  PlayInternal(entity_id, resource, speed, is_loop);
+}
+
+AnimationComponent AnimationManager::GenerateAnimationComponent(
+    const schar* name, f32 speed, std::optional<bool> is_loop,
+    resource::ResourceLifeSpan life_span) {
+  return GenerateAnimationComponent(COMET_STRING_ID(name), speed, is_loop,
+                                    life_span);
+}
+
+AnimationComponent AnimationManager::GenerateAnimationComponent(
+    const wchar* name, f32 speed, std::optional<bool> is_loop,
+    resource::ResourceLifeSpan life_span) {
+  return GenerateAnimationComponent(COMET_STRING_ID(name), speed, is_loop,
+                                    life_span);
+}
+
+AnimationComponent AnimationManager::GenerateAnimationComponent(
+    AnimationClipId id, f32 speed, std::optional<bool> is_loop,
+    resource::ResourceLifeSpan life_span) {
+  AnimationComponent animation_cmp{};
+
+  if (id != kInvalidAnimationClipId) {
+    animation_cmp.clip_resource =
+        resource::ResourceManager::Get().GetAnimationClips()->Load(id,
+                                                                   life_span);
+  } else {
+    animation_cmp.clip_resource = nullptr;
+  }
+
+  animation_cmp.start_time = .0f;
+  animation_cmp.frame = 0;
+  animation_cmp.speed = speed;
+
+  if (is_loop.has_value()) {
+    animation_cmp.override_flags |= kAnimationOverrideFlagBitsIsLoop;
+    animation_cmp.is_loop = is_loop.value();
+  } else {
+    animation_cmp.is_loop = false;
+    animation_cmp.override_flags = kAnimationOverrideFlagBitsNone;
+  }
+
+  return animation_cmp;
+}
+
+void AnimationManager::DestroyAnimationComponent(
+    AnimationComponent* animation_cmp) {
+  if (animation_cmp->clip_resource != nullptr) {
+    resource::ResourceManager::Get().GetAnimationClips()->Unload(
+        animation_cmp->clip_resource->id);
+    animation_cmp->clip_resource = nullptr;
+  }
+
+  animation_cmp->start_time = .0f;
+  animation_cmp->frame = 0;
+  animation_cmp->speed = 1.0f;
+  animation_cmp->is_loop = false;
+  animation_cmp->override_flags = kAnimationOverrideFlagBitsNone;
 }
 
 void AnimationManager::OnAnimationProcessing(
@@ -118,7 +193,7 @@ void AnimationManager::OnAnimationProcessing(
   auto animation_time{time - animation_cmp->start_time};
 
   auto pose{DecompressClipAndExtractPose(
-      *animation_cmp->clip, animation_time, animation_cmp->speed,
+      animation_cmp->clip_resource->clip, animation_time, animation_cmp->speed,
       animation_cmp->override_flags, animation_cmp->is_loop)};
 
   // TODO(m4jr0): Support pose blending.
@@ -147,7 +222,13 @@ void AnimationManager::PlayInternal(
       entity::EntityManager::Get().GetComponent<AnimationComponent>(entity_id)};
   COMET_ASSERT(animation_cmp != nullptr, "No animation component for entity #",
                entity_id, "!");
-  animation_cmp->clip = &resource->clip;
+
+  if (animation_cmp->clip_resource != nullptr) {
+    resource::ResourceManager::Get().GetAnimationClips()->Unload(
+        animation_cmp->clip_resource->id);
+  }
+
+  animation_cmp->clip_resource = resource;
   animation_cmp->start_time = last_time_;
   animation_cmp->speed = speed;
   animation_cmp->override_flags = kAnimationOverrideFlagBitsNone;

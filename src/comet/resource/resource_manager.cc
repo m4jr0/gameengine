@@ -8,12 +8,6 @@
 
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/resource/animation_resource.h"
-#include "comet/resource/material_resource.h"
-#include "comet/resource/model_resource.h"
-#include "comet/resource/shader_module_resource.h"
-#include "comet/resource/shader_resource.h"
-#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace resource {
@@ -24,42 +18,60 @@ ResourceManager& ResourceManager::Get() {
 
 void ResourceManager::Initialize() {
   Manager::Initialize();
-  handler_allocator_.Initialize();
-  resource_file_allocator_.Initialize();
-  loading_resources_allocator_.Initialize();
-  loading_resource_allocator_.Initialize();
+  global_allocator_.Initialize();
+  scene_allocator_.Initialize();
+  byte_allocator_.Initialize();
 
-  handlers_ = ResourceHandlers{&handler_allocator_, 6};
   root_resource_path_.Reserve(conf::kMaxStrValueLength);
   root_resource_path_ = COMET_CONF_TSTR(conf::kResourceRootPath);
   COMET_DISALLOW_STR_ALLOC(root_resource_path_);
   Clean(root_resource_path_);
-  InitializeResourcesDirectory();
 
-  AddHandler<MaterialHandler>(MaterialResource::kResourceTypeId);
-  AddHandler<StaticModelHandler>(StaticModelResource::kResourceTypeId);
-  AddHandler<SkeletalModelHandler>(SkeletalModelResource::kResourceTypeId);
-  AddHandler<SkeletonHandler>(SkeletonResource::kResourceTypeId);
-  AddHandler<AnimationClipHandler>(AnimationClipResource::kResourceTypeId);
-  AddHandler<ShaderHandler>(ShaderResource::kResourceTypeId);
-  AddHandler<ShaderModuleHandler>(ShaderModuleResource::kResourceTypeId);
-  AddHandler<TextureHandler>(TextureResource::kResourceTypeId);
+  InitializeResourcesDirectory();
+  InitializeHandlers();
 }
 
 void ResourceManager::Shutdown() {
   root_resource_path_.Destroy();
-
-  for (auto& handler : handlers_) {
-    handler.value->Shutdown();
-    handler_allocator_.Deallocate(handler.value);
-  }
-
-  handlers_ = {};
-  loading_resource_allocator_.Destroy();
-  loading_resources_allocator_.Destroy();
-  resource_file_allocator_.Destroy();
-  handler_allocator_.Destroy();
+  DestroyHandlers();
+  byte_allocator_.Destroy();
+  scene_allocator_.Destroy();
+  global_allocator_.Destroy();
   Manager::Shutdown();
+}
+
+const TString& ResourceManager::GetRootResourcePath() {
+  return root_resource_path_;
+}
+
+MaterialResourceHandler* ResourceManager::GetMaterials() {
+  return materials_.get();
+}
+
+StaticModelResourceHandler* ResourceManager::GetStaticModels() {
+  return static_models_.get();
+}
+
+SkeletalModelResourceHandler* ResourceManager::GetSkeletalModels() {
+  return skeletal_models_.get();
+}
+
+SkeletonResourceHandler* ResourceManager::GetSkeletons() {
+  return skeletons_.get();
+}
+
+AnimationClipResourceHandler* ResourceManager::GetAnimationClips() {
+  return animation_clips_.get();
+}
+
+ShaderModuleResourceHandler* ResourceManager::GetShaderModules() {
+  return shader_modules_.get();
+}
+
+ShaderResourceHandler* ResourceManager::GetShaders() { return shaders_.get(); }
+
+TextureResourceHandler* ResourceManager::GetTextures() {
+  return textures_.get();
 }
 
 void ResourceManager::InitializeResourcesDirectory() {
@@ -68,21 +80,66 @@ void ResourceManager::InitializeResourcesDirectory() {
   }
 }
 
-const TString& ResourceManager::GetRootResourcePath() {
-  return root_resource_path_;
+void ResourceManager::InitializeHandlers() {
+  ResourceHandlerDescr descr{};
+  descr.root_path = root_resource_path_;
+  descr.life_span_allocators.global = &global_allocator_;
+  descr.life_span_allocators.scene = &scene_allocator_;
+  descr.ptr_allocator = &ptr_allocator_;
+  descr.byte_allocator = &byte_allocator_;
+
+  // TODO(m4jr0): Those are wild guesses. Not sure if it should be
+  // updated/configurable.
+  descr.initial_capacity = 256;
+  materials_ = std::make_unique<MaterialResourceHandler>(descr);
+
+  descr.initial_capacity = 1024;
+  static_models_ = std::make_unique<StaticModelResourceHandler>(descr);
+
+  descr.initial_capacity = 128;
+  skeletal_models_ = std::make_unique<SkeletalModelResourceHandler>(descr);
+  skeletons_ = std::make_unique<SkeletonResourceHandler>(descr);
+
+  descr.initial_capacity = 1024;
+  animation_clips_ = std::make_unique<AnimationClipResourceHandler>(descr);
+
+  descr.initial_capacity = 256;
+  shader_modules_ = std::make_unique<ShaderModuleResourceHandler>(descr);
+
+  descr.initial_capacity = 128;
+  shaders_ = std::make_unique<ShaderResourceHandler>(descr);
+
+  descr.initial_capacity = 2048;
+  textures_ = std::make_unique<TextureResourceHandler>(descr);
+
+  materials_->Initialize();
+  static_models_->Initialize();
+  skeletal_models_->Initialize();
+  skeletons_->Initialize();
+  animation_clips_->Initialize();
+  shader_modules_->Initialize();
+  shaders_->Initialize();
+  textures_->Initialize();
 }
 
-void ResourceManager::RemoveHandler(ResourceTypeId resource_type_id) {
-  if (!handlers_.IsContained(resource_type_id)) {
-    COMET_LOG_RESOURCE_ERROR(
-        "Removing unknown handler supposedly bound to resource type ID: ",
-        resource_type_id, ". Aborting.");
-    return;
-  }
+void ResourceManager::DestroyHandlers() {
+  materials_->Destroy();
+  static_models_->Destroy();
+  skeletal_models_->Destroy();
+  skeletons_->Destroy();
+  animation_clips_->Destroy();
+  shader_modules_->Destroy();
+  shaders_->Destroy();
+  textures_->Destroy();
 
-  auto* handler{handlers_.Pop(resource_type_id)};
-  handler->~ResourceHandler();
-  handler_allocator_.Deallocate(handler);
+  materials_ = nullptr;
+  static_models_ = nullptr;
+  skeletal_models_ = nullptr;
+  skeletons_ = nullptr;
+  animation_clips_ = nullptr;
+  shader_modules_ = nullptr;
+  shaders_ = nullptr;
+  textures_ = nullptr;
 }
 }  // namespace resource
 }  // namespace comet

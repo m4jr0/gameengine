@@ -4,11 +4,18 @@
 
 #include "comet_pch.h"
 
-#include "runtime_event.h"
+#include "engine_event.h"
 
 namespace comet {
+const stringid::StringId ApplicationQuitEvent::kStaticType_{
+    COMET_STRING_ID("event_engine_application_quit")};
+
+stringid::StringId ApplicationQuitEvent::GetType() const noexcept {
+  return kStaticType_;
+}
+
 const stringid::StringId UnrecoverableErrorEvent::kStaticType_{
-    COMET_STRING_ID("event_unrecoverable_error")};
+    COMET_STRING_ID("event_engine_unrecoverable_error")};
 
 stringid::StringId UnrecoverableErrorEvent::GetType() const noexcept {
   return kStaticType_;

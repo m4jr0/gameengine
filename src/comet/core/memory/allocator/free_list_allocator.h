@@ -7,15 +7,15 @@
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/memory/memory.h"
 
 namespace comet {
 namespace memory {
-class FiberFreeListAllocator : public Allocator {
+class FiberFreeListAllocator : public StatefulAllocator {
  public:
   FiberFreeListAllocator() = default;
-  FiberFreeListAllocator(usize allocation_unit, usize block_count,
+  FiberFreeListAllocator(usize allocation_unit_size, usize block_count,
                          MemoryTag memory_tag);
   FiberFreeListAllocator(const FiberFreeListAllocator&) = delete;
   FiberFreeListAllocator(FiberFreeListAllocator&&) noexcept;

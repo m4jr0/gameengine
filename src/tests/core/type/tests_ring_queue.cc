@@ -23,21 +23,6 @@ enum TestsMemoryTag : comet::memory::MemoryTag {
 }  // namespace memory
 
 comet::memory::PlatformAllocator allocator{memory::kTestsMemoryTagGeneral};
-
-class TestsFileSystemEventListener : public Catch::EventListenerBase {
-  using Catch::EventListenerBase::EventListenerBase;
-
- public:
-  void testCaseStarting(Catch::TestCaseInfo const&) override {
-    allocator.Initialize();
-  }
-
-  void testCaseEnded(Catch::TestCaseStats const&) override {
-    allocator.Destroy();
-  }
-};
-
-CATCH_REGISTER_LISTENER(TestsFileSystemEventListener)
 }  // namespace comettests
 }  // namespace comet
 

@@ -26,6 +26,7 @@ using VertexAttributeStride = s32;
 
 struct Shader {
   bool is_wireframe{false};
+  u16 ref_count{0};
   CullMode cull_mode{CullMode::Unknown};
   PrimitiveTopology topology{PrimitiveTopology::Unknown};
   ShaderId id{kInvalidShaderId};

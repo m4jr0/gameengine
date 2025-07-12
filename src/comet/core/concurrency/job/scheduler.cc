@@ -9,7 +9,6 @@
 #include <optional>
 #include <type_traits>
 
-#include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/fiber/fiber_life_cycle.h"
@@ -20,7 +19,6 @@
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
-#include "comet/rendering/rendering_common.h"
 #include "comet/time/chrono.h"
 
 namespace comet {
@@ -30,8 +28,6 @@ FiberPool::FiberPool(usize fiber_count, usize fiber_stack_size)
     : initial_fiber_count_{fiber_count}, fiber_stack_size_{fiber_stack_size} {}
 
 void FiberPool::Initialize() {
-  queue_allocator_.Initialize();
-
   fibers_ = LockFreeMPMCRingQueue<fiber::Fiber*>{&queue_allocator_,
                                                  initial_fiber_count_};
 
@@ -61,7 +57,6 @@ void FiberPool::Destroy() {
 
   fibers_.Destroy();
   fiber_allocator_.Destroy();
-  queue_allocator_.Destroy();
 }
 
 fiber::Fiber* FiberPool::TryPop() {
@@ -88,8 +83,6 @@ usize FiberPool::GetTotalAllocatedStackSize() const {
 }
 
 void CounterPool::Initialize() {
-  queue_allocator_.Initialize();
-
   counters_ = LockFreeMPMCRingQueue<Counter*>{
       &queue_allocator_,
       static_cast<usize>(COMET_CONF_U16(conf::kCoreJobCounterCount))};
@@ -110,7 +103,6 @@ void CounterPool::Initialize() {
 void CounterPool::Destroy() {
   counters_.Destroy();
   counter_allocator_.Destroy();
-  queue_allocator_.Destroy();
 }
 
 Counter* CounterPool::TryGet() {
@@ -127,8 +119,6 @@ Scheduler& Scheduler::Get() {
 }
 
 void Scheduler::Initialize() {
-  job_queue_allocator_.Initialize();
-
   low_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
       &job_queue_allocator_,
       static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
@@ -182,12 +172,10 @@ void Scheduler::Initialize() {
 
   COMET_LOG_CORE_INFO("Worker count: ", fiber_worker_count_,
                       ", I/O worker count: ", io_worker_count_, ".");
-  worker_allocator.Initialize();
   fiber_workers_ = Array<FiberWorker>{&worker_allocator};
   fiber_workers_.Resize(fiber_worker_count_);
   io_workers_ = Array<IOWorker>{&worker_allocator};
   io_workers_.Resize(io_worker_count_);
-  fiber::FiberLifeCycleHandler::Get().Initialize();
 }
 
 void Scheduler::Shutdown() {
@@ -195,7 +183,6 @@ void Scheduler::Shutdown() {
   normal_priority_queue_.Destroy();
   high_priority_queue_.Destroy();
   io_queue_.Destroy();
-  job_queue_allocator_.Destroy();
 
   for (auto& fiber_worker : fiber_workers_) {
     fiber_worker.Stop();
@@ -205,8 +192,6 @@ void Scheduler::Shutdown() {
     io_worker.Stop();
   }
 
-  fiber::FiberLifeCycleHandler::Get().Shutdown();
-  worker_allocator.Destroy();
   large_stack_fibers_.Destroy();
   gigantic_stack_fibers_.Destroy();
 #ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
@@ -217,7 +202,8 @@ void Scheduler::Shutdown() {
   fiber::DestroyFiberStackMemory();
 }
 
-void Scheduler::Run(const JobDescr& callback_descr) {
+void Scheduler::Run(const JobDescr& callback_descr,
+                    bool is_main_thread_worker) {
   for (usize i{1}; i < fiber_worker_count_; ++i) {
     auto& fiber_worker{fiber_workers_[i]};
     fiber_worker.Run(&Scheduler::Work, this, &fiber_worker,
@@ -236,40 +222,31 @@ void Scheduler::Run(const JobDescr& callback_descr) {
     thread::Yield();
   }
 
-  bool is_main_thread_worker_disabled{
-#ifdef COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
-      true
-#else
-      COMET_CONF_BOOL(conf::kCoreIsMainThreadWorkerDisabled)
-#endif  // COMET_FORCE_DISABLED_MAIN_THREAD_WORKER
-  };
-
-  auto driver_type{
-      rendering::GetDriverTypeFromStr(COMET_CONF_STR(conf::kRenderingDriver))};
-  auto is_multithreaded_rendering{rendering::IsMultithreading(driver_type)};
-
-  if (!is_multithreaded_rendering && !is_main_thread_worker_disabled) {
-    COMET_LOG_CORE_WARNING(
-        rendering::GetDriverTypeLabel(driver_type),
-        " has been picked. Worker will be disabled for main thread.");
-    is_main_thread_worker_disabled = true;
-  }
-
-  if (is_main_thread_worker_disabled) {
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  if (IsMainThreadWorkerDisabled()) {
     // Case: main thread. We only need to attach its worker since the thread is
     // already running.
     fiber_workers_[0].Attach();
-
-    if (callback_descr.entry_point != nullptr) {
-      callback_descr.entry_point(callback_descr.params_handle);
-    }
-  } else {
-    // From this point onward, the rest of the code must be fully jobified.
-    // Otherwise, a stack overflow or memory corruption could occur, as
-    // non-jobified code may require a large stack that exceeds the capacity of
-    // our fibers.
     Scheduler::Get().Kick(callback_descr);
 
+    if (is_main_thread_worker) {
+      WorkFromMainThread();
+    }
+    return;
+  }
+#else
+  COMET_ASSERT(!IsMainThreadWorkerDisabled(),
+               "Rendering must run on the main thread, but the main thread "
+               "worker cannot be disabled.");
+#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+
+  // From this point onward, the rest of the code must be fully jobified.
+  // Otherwise, a stack overflow or memory corruption could occur, as
+  // non-jobified code may require a large stack that exceeds the capacity of
+  // our fibers.
+  Scheduler::Get().Kick(callback_descr);
+
+  if (is_main_thread_worker) {
     Work(&fiber_workers_[0],
          &Scheduler::WorkOnFibers);  // Main thread now behaves as a worker.
   }
@@ -340,6 +317,17 @@ void Scheduler::KickAndWait(usize job_count, const IOJobDescr* job_descrs) {
   for (usize i{0}; i < job_count; ++i) {
     Wait(job_descrs[i].counter);
   }
+}
+
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+static LockFreeMPMCRingQueue<MainThreadJobDescr> main_thread_queue{};
+#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+
+void Scheduler::KickOnMainThread(const MainThreadJobDescr& descr) {
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  descr.counter->Increment();
+  main_thread_queue.Push(descr);
+#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 }
 
 usize Scheduler::GetFiberWorkerCount() const noexcept {
@@ -544,6 +532,34 @@ void Scheduler::PromoteJobs() {
     job_box = low_priority_queue_.TryPop();
   }
 }
+
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+void Scheduler::WorkFromMainThread() {
+  memory::PlatformAllocator allocator{memory::kEngineMemoryTagMainThread};
+  constexpr auto kMaxMainThreadJobCount{
+      16};  // Consider exposing this as a configurable setting.
+
+  main_thread_queue = LockFreeMPMCRingQueue<MainThreadJobDescr>{
+      &allocator, kMaxMainThreadJobCount};
+
+  while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
+    auto job_box{main_thread_queue.TryPop()};
+
+    if (!job_box.has_value()) {
+      continue;
+    }
+
+    auto& job{job_box.value()};
+    job.entry_point(job.params_handle);
+
+    if (job.counter != nullptr) {
+      job.counter->Decrement();
+    }
+  }
+
+  main_thread_queue.Destroy();
+}
+#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
 CounterGuard::CounterGuard() : counter_(Scheduler::Get().GenerateCounter()) {}
 

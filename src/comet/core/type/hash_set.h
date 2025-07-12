@@ -284,9 +284,31 @@ class HashSet {
     auto& hashable{HashLogic::GetHashable(obj)};
     auto index{GetBucketIndex(hashable)};
     COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
+    auto& bucket{this->buckets_[index]};
 
-    for (const auto& existing_obj : this->buckets_[index]) {
+    for (const auto& existing_obj : bucket) {
       if (HashLogic::AreEqual(HashLogic::GetHashable(existing_obj), hashable)) {
+        return;
+      }
+    }
+
+    bucket.PushBack(std::forward<V>(obj));
+    ++this->entry_count_;
+  }
+
+  template <typename V>
+  void Set(V&& obj) {
+    CheckSize();
+    auto& hashable{HashLogic::GetHashable(obj)};
+    auto index{GetBucketIndex(hashable)};
+    COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
+    auto& bucket{this->buckets_[index]};
+
+    for (usize i{0}; i < bucket.GetSize(); ++i) {
+      const auto& existing_obj{bucket[i]};
+
+      if (HashLogic::AreEqual(HashLogic::GetHashable(existing_obj), hashable)) {
+        bucket[i] = std::forward<V>(obj);
         return;
       }
     }
@@ -334,6 +356,29 @@ class HashSet {
     }
 
     return false;
+  }
+
+  template <typename Predicate>
+  usize RemoveIf(Predicate&& predicate) {
+    usize removed_count{0};
+
+    for (auto& bucket : buckets_) {
+      for (usize i{0}; i < bucket.GetSize();) {
+        const auto& pair{bucket[i]};
+        const auto& key{HashLogic::GetHashable(pair)};
+        const auto& value{pair.value};
+
+        if (predicate(key, value)) {
+          bucket.RemoveFromIndex(i);
+          --entry_count_;
+          ++removed_count;
+        } else {
+          ++i;
+        }
+      }
+    }
+
+    return removed_count;
   }
 
   void Clear() {

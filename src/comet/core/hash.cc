@@ -70,13 +70,31 @@ void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len) {
   picosha2::hash256(stream, buffer, buffer + buffer_len);
 }
 
-HashValue GenerateHash(s32 value) {
+HashValue GenerateHash(bool value) {
   return static_cast<u32>(value) * kFnvPrime32;
 }
 
-HashValue GenerateHash(u32 value) {
-  return static_cast<u32>(value) * kFnvPrime32;
+HashValue GenerateHash(s8 value) {
+  return GenerateHash(static_cast<u32>(value));
 }
+
+HashValue GenerateHash(u8 value) {
+  return GenerateHash(static_cast<u32>(value));
+}
+
+HashValue GenerateHash(s16 value) {
+  return GenerateHash(static_cast<u32>(value));
+}
+
+HashValue GenerateHash(u16 value) {
+  return GenerateHash(static_cast<u32>(value));
+}
+
+HashValue GenerateHash(s32 value) {
+  return GenerateHash(static_cast<u32>(value));
+}
+
+HashValue GenerateHash(u32 value) { return value * kFnvPrime32; }
 
 HashValue GenerateHash(s64 value) {
   return static_cast<u32>(value) ^ static_cast<u32>(value >> 32);
@@ -107,11 +125,11 @@ HashValue GenerateHash(f64 value) {
 }
 
 HashValue GenerateHash(schar value) {
-  return static_cast<u32>(value) * kFnvPrime32;
+  return GenerateHash(static_cast<u32>(value));
 }
 
 HashValue GenerateHash(wchar value) {
-  return static_cast<u32>(value) * kFnvPrime32;
+  return GenerateHash(static_cast<u32>(value));
 }
 
 HashValue GenerateHash(const schar* value) {

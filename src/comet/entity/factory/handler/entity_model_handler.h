@@ -7,7 +7,6 @@
 
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_id.h"
@@ -27,12 +26,20 @@ class ModelHandler : public Handler {
   virtual ~ModelHandler() = default;
 
   EntityId GenerateStatic(CTStringView model_path,
-                          frame::FramePacket* packet = nullptr) const;
+                          resource::ResourceLifeSpan life_span =
+                              resource::ResourceLifeSpan::Manual) const;
   EntityId GenerateSkeletal(CTStringView model_path,
-                            frame::FramePacket* packet = nullptr) const;
+                            resource::ResourceLifeSpan life_span =
+                                resource::ResourceLifeSpan::Manual) const;
+
+  void DestroyStatic(EntityId entity_id) const;
+  void DestroySkeletal(EntityId entity_id) const;
 
  private:
   static constexpr inline usize kMaxConcurrentJobs_{10};
+
+  void DestroyStaticChildren(EntityId current_entity_id) const;
+  void DestroySkeletalChildren(EntityId current_entity_id) const;
 
   static void OnStaticGeneration(job::JobParamsHandle params_handle);
   static void OnSkeletalGeneration(job::JobParamsHandle params_handle);
@@ -42,19 +49,19 @@ namespace internal {
 using ParentEntityIds = Map<resource::ResourceId, EntityId>;
 
 struct StaticGenerationJobParams {
+  resource::ResourceLifeSpan life_span{resource::ResourceLifeSpan::Manual};
   EntityId id{kInvalidEntityId};
   EntityId root_entity_id{kInvalidEntityId};
   EntityId parent_id{kInvalidEntityId};
   const resource::StaticMeshResource* mesh{nullptr};
-  frame::FramePacket* packet{nullptr};
 };
 
 struct SkeletalGenerationJobParams {
+  resource::ResourceLifeSpan life_span{resource::ResourceLifeSpan::Manual};
   EntityId id{kInvalidEntityId};
   EntityId root_entity_id{kInvalidEntityId};
   EntityId parent_id{kInvalidEntityId};
   const resource::SkinnedMeshResource* mesh{nullptr};
-  frame::FramePacket* packet{nullptr};
 };
 }  // namespace internal
 }  // namespace entity

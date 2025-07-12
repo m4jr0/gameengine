@@ -174,6 +174,7 @@ class RenderProxyHandler : public Handler {
   frame::FrameArray<RenderBatchGroup>* batch_groups_{nullptr};
   frame::FrameArray<RenderProxy>* destroyed_proxies_{nullptr};
   frame::FrameArray<RenderBatchEntry>* destroyed_batch_entries_{nullptr};
+  frame::FrameOrderedSet<entity::EntityId>* destroyed_entity_ids_{nullptr};
   frame::FrameOrderedSet<RenderProxyId>* pending_proxy_ids_{nullptr};
   frame::FrameArray<usize>* pending_proxy_indices_{nullptr};
   frame::FrameArray<GpuRenderProxyLocalData>* pending_proxy_local_data_{
