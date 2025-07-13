@@ -92,5 +92,7 @@ const schar* Window::GetName() const noexcept { return name_; }
 WindowSize Window::GetWidth() const noexcept { return width_; }
 
 WindowSize Window::GetHeight() const noexcept { return height_; }
+
+bool Window::IsFlat() const noexcept { return width_ == 0 || height_ == 0; }
 }  // namespace rendering
 }  // namespace comet

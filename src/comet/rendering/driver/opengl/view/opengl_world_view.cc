@@ -36,21 +36,25 @@ void WorldView::Destroy() {
 
 void WorldView::Update(frame::FramePacket* packet) {
   COMET_PROFILE("WorldView::Update");
-  packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
 
-  // Need to bind shader here for the constants.
-  shader_handler_->Bind(shader_, ShaderBindType::Compute);
-  shader_handler_->UpdateGlobals(shader_, packet);
-  shader_handler_->UpdateStorages(shader_, packet);
-  shader_handler_->UpdateConstants(shader_, packet);
+  if (!packet->is_rendering_skipped) {
+    packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
 
-  render_proxy_handler_->Cull(shader_);
+    // Need to bind shader here for the constants.
+    shader_handler_->Bind(shader_, ShaderBindType::Compute);
+    shader_handler_->UpdateGlobals(shader_, packet);
+    shader_handler_->UpdateStorages(shader_, packet);
+    shader_handler_->UpdateConstants(shader_, packet);
 
-  shader_handler_->Bind(shader_, ShaderBindType::Graphics);
-  shader_handler_->UpdateGlobals(shader_, packet);
-  shader_handler_->UpdateStorages(shader_, packet);
-  render_proxy_handler_->Draw(shader_,
-                              static_cast<FrameCount>(packet->frame_count));
+    render_proxy_handler_->Cull(shader_);
+
+    shader_handler_->Bind(shader_, ShaderBindType::Graphics);
+    shader_handler_->UpdateGlobals(shader_, packet);
+    shader_handler_->UpdateStorages(shader_, packet);
+    render_proxy_handler_->Draw(shader_,
+                                static_cast<FrameCount>(packet->frame_count));
+  }
+
   shader_handler_->Reset();
 }
 }  // namespace gl

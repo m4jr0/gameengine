@@ -242,6 +242,7 @@ bool Swapchain::Reload() {
     is_initialized_ = false;
     old_handle_ = handle_;
     DestroyImageViews();
+    DestroyRenderSemaphores();
   }
 
   // Reload has been requested, but no draw area is available at this moment.
@@ -306,8 +307,8 @@ void Swapchain::HandlePostSwapchainReload() {
 }
 
 bool Swapchain::IsPresentationAvailable() const noexcept {
-  return is_initialized_ && !is_reload_needed_ && extent_.width > 0 &&
-         extent_.height > 0;
+  return !window_->IsFlat() && is_initialized_ && !is_reload_needed_ &&
+         extent_.width > 0 && extent_.height > 0;
 }
 
 bool Swapchain::IsInitialized() const noexcept { return is_initialized_; }

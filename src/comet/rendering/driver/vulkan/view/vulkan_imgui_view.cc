@@ -154,8 +154,13 @@ void ImGuiView::Destroy() {
   View::Destroy();
 }
 
-void ImGuiView::Update(frame::FramePacket*) {
+void ImGuiView::Update(frame::FramePacket* packet) {
   COMET_PROFILE("ImGuiView::Update");
+
+  if (packet->is_rendering_skipped) {
+    return;
+  }
+
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();

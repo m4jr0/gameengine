@@ -113,19 +113,22 @@ void WorldView::Destroy() {
 
 void WorldView::Update(frame::FramePacket* packet) {
   COMET_PROFILE("WorldView::Update");
-  packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
 
-  shader_handler_->UpdateGlobals(shader_, packet);
-  shader_handler_->UpdateStorages(shader_, packet);
-  shader_handler_->UpdateConstants(shader_, packet);
+  if (!packet->is_rendering_skipped) {
+    packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
 
-  render_proxy_handler_->Cull(shader_);
+    shader_handler_->UpdateGlobals(shader_, packet);
+    shader_handler_->UpdateStorages(shader_, packet);
+    shader_handler_->UpdateConstants(shader_, packet);
 
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  render_pass_handler_->BeginPass(render_pass_, command_buffer_handle,
-                                  context_->GetImageIndex());
-  render_proxy_handler_->Draw(shader_);
-  render_pass_handler_->EndPass(command_buffer_handle);
+    render_proxy_handler_->Cull(shader_);
+
+    auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+    render_pass_handler_->BeginPass(render_pass_, command_buffer_handle,
+                                    context_->GetImageIndex());
+    render_proxy_handler_->Draw(shader_);
+    render_pass_handler_->EndPass(command_buffer_handle);
+  }
 
   render_proxy_handler_->Reset();
   shader_handler_->Reset();

@@ -115,9 +115,7 @@ void RenderingManager::Update(frame::FramePacket* packet) {
     counter_ = 0;
   }
 
-  if (IsFpsCapReached()) {
-    return;
-  }
+  packet->is_rendering_skipped = IsFpsCapReached();
 
   struct Job {
     frame::FramePacket* packet{nullptr};

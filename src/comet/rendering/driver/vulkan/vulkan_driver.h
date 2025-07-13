@@ -19,6 +19,7 @@
 #include "comet/core/type/array.h"
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
@@ -68,12 +69,14 @@ class VulkanDriver : public Driver {
   void DestroyHandlers();
   void DestroyInstance();
 
-  void OnEvent(const event::Event& event);
   void ApplyWindowResize();
 
-  bool PreDraw();
-  void PostDraw();
+  void PreDraw(const frame::FramePacket* packet);
+  void PostDraw(const frame::FramePacket* packet);
   void Draw(frame::FramePacket* packet);
+
+  void PrepareRenderBarriers(const CommandData& command_data);
+  void PrepareViewportAndScissor(const CommandData& command_data);
 
   frame::FrameArray<const schar*> GetRequiredExtensions();
 

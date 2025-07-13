@@ -104,6 +104,7 @@ void FramePacket::FramePacket::Reset() {
   // No locking required. This function is designed for single-threaded
   // execution.
 
+  is_rendering_skipped = false;
   frame_count = 0;
   lag = .0f;
   time = .0f;

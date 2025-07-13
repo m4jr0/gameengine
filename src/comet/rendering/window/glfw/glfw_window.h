@@ -30,7 +30,6 @@ class GlfwWindow : public Window {
   virtual void Update() override;
   virtual void SetGlfwHints();
   virtual void SetSize(WindowSize width, WindowSize height) override;
-  void SetUpResizeEvent(WindowSize width, WindowSize height);
 
   virtual GLFWwindow* GetHandle() noexcept;
   operator GLFWwindow*() noexcept;
@@ -40,9 +39,9 @@ class GlfwWindow : public Window {
   GLFWwindow* handle_{nullptr};
 
  private:
-  bool is_resize_event_{false};
-  WindowSize new_width_{0};
-  WindowSize new_height_{0};
+  void UpdateSize();
+
+  bool is_resize_{false};
 };
 }  // namespace rendering
 }  // namespace comet

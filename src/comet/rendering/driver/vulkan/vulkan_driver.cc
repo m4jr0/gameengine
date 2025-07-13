@@ -47,10 +47,6 @@ void VulkanDriver::Initialize() {
   COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
   InitializeVulkanInstance();
 
-  event::EventManager::Get().Register(
-      COMET_EVENT_BIND_FUNCTION(VulkanDriver::OnEvent),
-      rendering::WindowResizeEvent::kStaticType_);
-
 #ifdef COMET_DEBUG_RENDERING
   InitializeDebugMessenger();
   InitializeDebugReportCallback();
@@ -133,15 +129,14 @@ void VulkanDriver::Update(frame::FramePacket* packet) {
 
   if (swapchain_->IsReloadNeeded()) {
     ApplyWindowResize();
-    return;
+    packet->is_rendering_skipped = true;
   } else if (!swapchain_->IsPresentationAvailable()) {
-    return;
+    packet->is_rendering_skipped = true;
   }
 
-  if (PreDraw()) {
-    Draw(packet);
-    PostDraw();
-  }
+  PreDraw(packet);
+  Draw(packet);
+  PostDraw(packet);
 
   context_->GoToNextFrame();
 }
@@ -386,16 +381,6 @@ void VulkanDriver::DestroyInstance() {
   instance_handle_ = VK_NULL_HANDLE;
 }
 
-void VulkanDriver::OnEvent(const event::Event& event) {
-  const auto& event_type{event.GetType()};
-
-  if (event_type == rendering::WindowResizeEvent::kStaticType_) {
-    const auto& window_event{
-        static_cast<const rendering::WindowResizeEvent&>(event)};
-    SetSize(window_event.GetWidth(), window_event.GetHeight());
-  }
-}
-
 void VulkanDriver::ApplyWindowResize() {
   device_->WaitIdle();
   swapchain_->HandlePreSwapchainReload();
@@ -412,7 +397,7 @@ void VulkanDriver::ApplyWindowResize() {
                          static_cast<WindowSize>(extent.height));
 }
 
-bool VulkanDriver::PreDraw() {
+void VulkanDriver::PreDraw(const frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::PreDraw");
   auto& frame_data{context_->GetFrameData()};
 
@@ -423,22 +408,31 @@ bool VulkanDriver::PreDraw() {
 
   descriptor_handler_->ResetDynamic();
 
+  if (packet->is_rendering_skipped) {
+    return;
+  }
+
   auto result{
       swapchain_->AcquireNextImage(frame_data.present_semaphore_handle)};
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     ApplyWindowResize();
-    return false;
+    return;
   }
 
   COMET_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR,
                "Failed to acquire swapchain image!");
 
-  return true;
+  return;
 }
 
-void VulkanDriver::PostDraw() {
+void VulkanDriver::PostDraw(const frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::PostDraw");
+
+  if (packet->is_rendering_skipped) {
+    return;
+  }
+
   const auto result{swapchain_->QueuePresent()};
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
@@ -449,6 +443,11 @@ void VulkanDriver::PostDraw() {
   COMET_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
 }
 
+// TODO(m4jr0): Refactor this part to improve clarity and maintainability. The
+// current intermixing of `is_rendering_skipped` checks has made the logic
+// tangled. Separate internal (non-rendering) updates cleanly from
+// rendering-related updates. This will make the code easier to understand,
+// extend, and use correctly.
 void VulkanDriver::Draw(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::Draw");
   auto& frame_data{context_->GetFrameData()};
@@ -463,10 +462,77 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
 
   auto command_data{
       GenerateCommandData(*device_, frame_data.command_buffer_handle)};
+
   RecordCommand(command_data);
 
   mesh_handler_->Wait();
+  mesh_handler_->Update(packet);
+  render_proxy_handler_->Update(packet);
 
+  if (!packet->is_rendering_skipped) {
+    PrepareRenderBarriers(command_data);
+    PrepareViewportAndScissor(command_data);
+  }
+
+  view_handler_->Update(packet);
+
+  VkPipelineStageFlags2 wait_stage{
+      VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+  frame::FrameArray<VkSemaphore> signal_semaphores{};
+  signal_semaphores.Reserve(2);
+  signal_semaphores.PushBack(context_->GetRenderSemaphoreHandle());
+  signal_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
+
+  const auto wait_value{context_->GetTransferTimelineValue()};
+  context_->UpdateTransferTimelineValue();
+  const auto signal_value{context_->GetTransferTimelineValue()};
+
+  frame::FrameArray<VkSemaphoreSubmitInfo> wait_infos{};
+  wait_infos.Reserve(2);
+
+  if (!packet->is_rendering_skipped) {
+    auto& wait_present{wait_infos.EmplaceBack()};
+    wait_present.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    wait_present.semaphore = frame_data.present_semaphore_handle;
+    wait_present.value = 0;
+    wait_present.stageMask = wait_stage;
+    wait_present.deviceIndex = 0;
+  }
+
+  auto& wait_transfer{wait_infos.EmplaceBack()};
+  wait_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+  wait_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
+  wait_transfer.value = wait_value;
+  wait_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+  wait_transfer.deviceIndex = 0;
+
+  frame::FrameArray<VkSemaphoreSubmitInfo> signal_infos{};
+  signal_infos.Reserve(2);
+
+  if (!packet->is_rendering_skipped) {
+    auto& signal_render{signal_infos.EmplaceBack()};
+    signal_render.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    signal_render.semaphore = context_->GetRenderSemaphoreHandle();
+    signal_render.value = 0;
+    signal_render.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+    signal_render.deviceIndex = 0;
+  }
+
+  auto& signal_transfer{signal_infos.EmplaceBack()};
+  signal_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+  signal_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
+  signal_transfer.value = signal_value;
+  signal_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+  signal_transfer.deviceIndex = 0;
+
+  SubmitCommand2(command_data, device_->GetGraphicsQueueHandle(),
+                 frame_data.render_fence_handle, wait_infos.GetData(),
+                 static_cast<u32>(wait_infos.GetSize()), signal_infos.GetData(),
+                 static_cast<u32>(signal_infos.GetSize()), VK_NULL_HANDLE);
+}
+
+void VulkanDriver::PrepareRenderBarriers(const CommandData& command_data) {
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -489,7 +555,9 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0,
                        VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
+}
 
+void VulkanDriver::PrepareViewportAndScissor(const CommandData& command_data) {
   const auto& extent{swapchain_->GetExtent()};
 
   VkViewport viewport{};
@@ -506,61 +574,6 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
 
   vkCmdSetViewport(command_data.command_buffer_handle, 0, 1, &viewport);
   vkCmdSetScissor(command_data.command_buffer_handle, 0, 1, &scissor);
-
-  mesh_handler_->Update(packet);
-  render_proxy_handler_->Update(packet);
-  view_handler_->Update(packet);
-
-  VkPipelineStageFlags2 wait_stage{
-      VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-  frame::FrameArray<VkSemaphore> signal_semaphores{};
-  signal_semaphores.Reserve(2);
-  signal_semaphores.PushBack(context_->GetRenderSemaphoreHandle());
-  signal_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
-
-  const auto wait_value{context_->GetTransferTimelineValue()};
-  context_->UpdateTransferTimelineValue();
-  const auto signal_value{context_->GetTransferTimelineValue()};
-
-  frame::FrameArray<VkSemaphoreSubmitInfo> wait_infos{};
-  wait_infos.Reserve(2);
-
-  auto& wait_present{wait_infos.EmplaceBack()};
-  wait_present.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  wait_present.semaphore = frame_data.present_semaphore_handle;
-  wait_present.value = 0;
-  wait_present.stageMask = wait_stage;
-  wait_present.deviceIndex = 0;
-
-  auto& wait_transfer{wait_infos.EmplaceBack()};
-  wait_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  wait_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
-  wait_transfer.value = wait_value;
-  wait_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-  wait_transfer.deviceIndex = 0;
-
-  frame::FrameArray<VkSemaphoreSubmitInfo> signal_infos{};
-  signal_infos.Reserve(2);
-
-  auto& signal_render{signal_infos.EmplaceBack()};
-  signal_render.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  signal_render.semaphore = context_->GetRenderSemaphoreHandle();
-  signal_render.value = 0;
-  signal_render.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-  signal_render.deviceIndex = 0;
-
-  auto& signal_transfer{signal_infos.EmplaceBack()};
-  signal_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  signal_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
-  signal_transfer.value = signal_value;
-  signal_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-  signal_transfer.deviceIndex = 0;
-
-  SubmitCommand2(command_data, device_->GetGraphicsQueueHandle(),
-                 frame_data.render_fence_handle, wait_infos.GetData(),
-                 static_cast<u32>(wait_infos.GetSize()), signal_infos.GetData(),
-                 static_cast<u32>(signal_infos.GetSize()), VK_NULL_HANDLE);
 }
 
 frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {

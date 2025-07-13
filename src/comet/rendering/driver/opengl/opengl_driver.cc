@@ -86,6 +86,7 @@ void OpenGlDriver::Initialize() {
 void OpenGlDriver::Shutdown() {
   DestroyHandlers();
   window_->Destroy();
+  is_resize_ = false;
   frame_count_ = 0;
   Driver::Shutdown();
 }
@@ -95,6 +96,11 @@ void OpenGlDriver::Update(frame::FramePacket* packet) {
                clear_color_[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  packet->is_rendering_skipped =
+      packet->is_rendering_skipped || window_->IsFlat();
+
+  HandleResize();
+  window_->Update();
   Draw(packet);
   window_->SwapBuffers();
   ++frame_count_;
@@ -167,7 +173,9 @@ void OpenGlDriver::DestroyHandlers() {
 }
 
 void OpenGlDriver::SetSize(WindowSize, WindowSize) {
-  glViewport(0, 0, window_->GetWidth(), window_->GetHeight());
+  // Postpone resizing until the Update method, where it's safe to modify due to
+  // OpenGL's main thread constraints.
+  is_resize_ = true;
 }
 
 void OpenGlDriver::OnEvent(const event::Event& event) {
@@ -191,6 +199,15 @@ void OpenGlDriver::Draw(frame::FramePacket* packet) {
   mesh_handler_->Update(packet);
   render_proxy_handler_->Update(packet);
   view_handler_->Update(packet);
+}
+
+void OpenGlDriver::HandleResize() {
+  if (!is_resize_) {
+    return;
+  }
+
+  glViewport(0, 0, window_->GetWidth(), window_->GetHeight());
+  is_resize_ = false;
 }
 
 #ifdef COMET_DEBUG_RENDERING

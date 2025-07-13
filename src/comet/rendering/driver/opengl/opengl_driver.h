@@ -48,6 +48,7 @@ class OpenGlDriver : public Driver {
   void OnEvent(const event::Event&);
 
   void Draw(frame::FramePacket* packet);
+  void HandleResize();
 
   Window* GetWindow() override;
   u32 GetDrawCount() const override;
@@ -60,6 +61,7 @@ class OpenGlDriver : public Driver {
                                           const void* user_param);
 #endif  // COMET_DEBUG_RENDERING
 
+  bool is_resize_{false};
   FrameCount frame_count_{0};
 
   memory::UniquePtr<OpenGlGlfwWindow> window_{nullptr};

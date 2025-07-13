@@ -36,6 +36,10 @@ void DebugView::Destroy() {
 void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   COMET_PROFILE("DebugView::Update");
 #ifdef COMET_DEBUG_CULLING
+  if (packet->is_rendering_skipped) {
+    return;
+  }
+
   shader_handler_->UpdateGlobals(shader_, packet);
   shader_handler_->UpdateStorages(shader_, packet);
 

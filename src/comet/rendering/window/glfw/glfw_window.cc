@@ -24,13 +24,9 @@ GlfwWindow::GlfwWindow(const GlfwWindow& other)
 GlfwWindow::GlfwWindow(GlfwWindow&& other) noexcept
     : Window{std::move(other)},
       handle_{other.handle_},
-      is_resize_event_{other.is_resize_event_},
-      new_width_{other.new_width_},
-      new_height_{other.new_height_} {
+      is_resize_{other.is_resize_} {
   other.handle_ = nullptr;
-  other.new_width_ = 0;
-  other.new_height_ = 0;
-  other.is_resize_event_ = false;
+  other.is_resize_ = false;
 }
 
 GlfwWindow& GlfwWindow::operator=(const GlfwWindow& other) {
@@ -40,9 +36,7 @@ GlfwWindow& GlfwWindow::operator=(const GlfwWindow& other) {
 
   Window::operator=(other);
   handle_ = nullptr;
-  new_width_ = other.new_width_;
-  new_height_ = other.new_height_;
-  is_resize_event_ = other.is_resize_event_;
+  is_resize_ = other.is_resize_;
   return *this;
 }
 
@@ -53,13 +47,9 @@ GlfwWindow& GlfwWindow::operator=(GlfwWindow&& other) noexcept {
 
   Window::operator=(std::move(other));
   handle_ = other.handle_;
-  new_width_ = other.new_width_;
-  new_height_ = other.new_height_;
-  is_resize_event_ = other.is_resize_event_;
+  is_resize_ = other.is_resize_;
   other.handle_ = nullptr;
-  other.new_width_ = 0;
-  other.new_height_ = 0;
-  other.is_resize_event_ = false;
+  other.is_resize_ = false;
   return *this;
 }
 
@@ -91,9 +81,9 @@ void GlfwWindow::Initialize() {
 
   glfwSetWindowSizeCallback(
       handle_, [](GLFWwindow* window, s32 width, s32 height) {
-        auto* self = static_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
-        self->SetUpResizeEvent(static_cast<WindowSize>(width),
-                               static_cast<WindowSize>(height));
+        auto* self{static_cast<GlfwWindow*>(glfwGetWindowUserPointer(window))};
+        self->SetSize(static_cast<WindowSize>(width),
+                      static_cast<WindowSize>(height));
       });
 }
 
@@ -109,25 +99,19 @@ void GlfwWindow::Destroy() {
     }
   }
 
-  is_resize_event_ = false;
-  new_width_ = 0;
-  new_height_ = 0;
+  is_resize_ = false;
   Window::Destroy();
 }
 
 void GlfwWindow::Update() {
-  if (!is_resize_event_ ||
+  if (!is_resize_ ||
       input::InputManager::Get().IsMousePressed(input::MouseButton::Left)) {
     return;
   }
 
-  if (new_width_ != width_ || new_height_ != height_) {
-    event::EventManager::Get().FireEvent<rendering::WindowResizeEvent>(
-        new_width_, new_height_);
-  }
-
-  new_width_ = new_height_ = 0;
-  is_resize_event_ = false;
+  event::EventManager::Get().FireEvent<rendering::WindowResizeEvent>(width_,
+                                                                     height_);
+  is_resize_ = false;
 }
 
 void GlfwWindow::SetGlfwHints() {
@@ -138,7 +122,14 @@ void GlfwWindow::SetGlfwHints() {
 void GlfwWindow::SetSize(WindowSize width, WindowSize height) {
   width_ = width;
   height_ = height;
+  is_resize_ = true;
+}
 
+GLFWwindow* GlfwWindow::GetHandle() noexcept { return handle_; }
+
+GlfwWindow::operator GLFWwindow*() noexcept { return GetHandle(); }
+
+void GlfwWindow::UpdateSize() {
   if (handle_ != nullptr) {
     glfwSetWindowSize(handle_, width_, height_);
 
@@ -146,16 +137,8 @@ void GlfwWindow::SetSize(WindowSize width, WindowSize height) {
       glfwSetWindowAspectRatio(handle_, width_, height_);
     }
   }
+
+  is_resize_ = true;
 }
-
-void GlfwWindow::SetUpResizeEvent(WindowSize width, WindowSize height) {
-  new_width_ = width;
-  new_height_ = height;
-  is_resize_event_ = true;
-}
-
-GLFWwindow* GlfwWindow::GetHandle() noexcept { return handle_; }
-
-GlfwWindow::operator GLFWwindow*() noexcept { return GetHandle(); }
 }  // namespace rendering
 }  // namespace comet

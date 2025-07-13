@@ -113,6 +113,7 @@ struct FramePacket {
   bool IsFrameStageFinished(FrameStage stage) const;
   void Reset();
 
+  bool is_rendering_skipped{false};
   FrameCount frame_count{0};
   f64 lag{.0f};
   f64 time{.0f};
