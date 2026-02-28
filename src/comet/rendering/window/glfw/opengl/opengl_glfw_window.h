@@ -1,12 +1,14 @@
-// Copyright 2025 m4jr0. All Rights Reserved.
+// Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_RENDERING_WINDOW_GLFW_OPENGL_OPENGL_GLFW_WINDOW_H_
 #define COMET_COMET_RENDERING_WINDOW_GLFW_OPENGL_OPENGL_GLFW_WINDOW_H_
 
+// External. ///////////////////////////////////////////////////////////////////
 #define GLFW_INCLUDE_NONE
 #include "glad/glad.h"
+////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
 #include "comet/rendering/window/glfw/glfw_window.h"

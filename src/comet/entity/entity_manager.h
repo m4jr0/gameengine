@@ -1,11 +1,13 @@
-// Copyright 2025 m4jr0. All Rights Reserved.
+// Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 #define COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 
+// External. ///////////////////////////////////////////////////////////////////
 #include <utility>
+////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"

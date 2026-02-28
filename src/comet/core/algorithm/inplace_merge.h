@@ -1,12 +1,14 @@
-// Copyright 2025 m4jr0. All Rights Reserved.
+// Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_CORE_ALGORITHM_INPLACE_MERGE_H_
 #define COMET_COMET_CORE_ALGORITHM_INPLACE_MERGE_H_
 
+// External. ///////////////////////////////////////////////////////////////////
 #include <iterator>
 #include <utility>
+////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/algorithm/algorithm_common.h"
 #include "comet/core/essentials.h"

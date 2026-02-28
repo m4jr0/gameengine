@@ -1,14 +1,18 @@
-// Copyright 2025 m4jr0. All Rights Reserved.
+// Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Precompiled. ////////////////////////////////////////////////////////////////
 #include "comet_pch.h"
+////////////////////////////////////////////////////////////////////////////////
 
+// External. ///////////////////////////////////////////////////////////////////
 #define CATCH_CONFIG_MAIN
 
 #include "catch.hpp"
 #include "catch2/reporters/catch_reporter_event_listener.hpp"
 #include "catch2/reporters/catch_reporter_registrars.hpp"
+////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/scheduler.h"

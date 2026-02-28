@@ -1,9 +1,13 @@
-// Copyright 2025 m4jr0. All Rights Reserved.
+// Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_COMET_CORE_VERSION_H_
 #define COMET_COMET_CORE_VERSION_H_
+
+// External. ///////////////////////////////////////////////////////////////////
+#include <string_view>
+////////////////////////////////////////////////////////////////////////////////
 
 #ifndef COMET_NAME
 static_assert(false, "COMET_NAME preprocessor macro must be defined!");
@@ -20,8 +24,6 @@ static_assert(false, "COMET_VERSION_MINOR preprocessor macro must be defined!");
 #ifndef COMET_VERSION_PATCH
 static_assert(false, "COMET_VERSION_PATCH preprocessor macro must be defined!");
 #endif  // COMET_VERSION_PATCH
-
-#include <string_view>
 
 #include "comet/core/essentials.h"
 

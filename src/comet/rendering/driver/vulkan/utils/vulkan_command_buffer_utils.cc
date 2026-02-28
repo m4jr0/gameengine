@@ -1,11 +1,15 @@
-﻿// Copyright 2025 m4jr0. All Rights Reserved.
+﻿// Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+// Precompiled. ////////////////////////////////////////////////////////////////
 #include "comet/rendering/comet_rendering_pch.h"
 #include "comet_pch.h"
+////////////////////////////////////////////////////////////////////////////////
 
+// Header. /////////////////////////////////////////////////////////////////////
 #include "vulkan_command_buffer_utils.h"
+////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"

@@ -1,14 +1,16 @@
-// Copyright 2025 m4jr0. All Rights Reserved.
+// Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_H_
 #define COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORTER_H_
 
+// External. ///////////////////////////////////////////////////////////////////
 #include "assimp/Importer.hpp"
 #include "assimp/material.h"
 #include "assimp/scene.h"
 #include "assimp/types.h"
+////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
