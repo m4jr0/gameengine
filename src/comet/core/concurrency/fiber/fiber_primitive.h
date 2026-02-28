@@ -36,7 +36,7 @@ class SimpleLock {
   void Unlock();
 
  private:
-  std::atomic_flag flag_{ATOMIC_FLAG_INIT};
+  std::atomic_flag flag_{};
 };
 
 class SimpleLockGuard {

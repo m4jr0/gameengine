@@ -175,13 +175,13 @@ void FiberSharedMutex::UnlockExclusive() {
 void FiberSharedMutex::LockShared() {
   FiberUniqueLock lock{mutex_};
   cv_.Wait(lock, [this] { return !is_writer_; });
-  reader_count_.fetch_add(std::memory_order_acq_rel);
+  reader_count_.fetch_add(1, std::memory_order_acq_rel);
 }
 
 void FiberSharedMutex::UnlockShared() {
   FiberLockGuard lock{mutex_};
 
-  if (reader_count_.fetch_sub(std::memory_order_acq_rel) == 1) {
+  if (reader_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
     cv_.NotifyAll();
   }
 }

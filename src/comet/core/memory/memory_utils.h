@@ -69,8 +69,11 @@ T* Populate(void* memory, Allocator* allocator, Targs&&... args) {
 
   if constexpr (std::is_constructible_v<T, Allocator*, Targs...>) {
     return new (memory) T(allocator, std::forward<Targs>(args)...);
-  } else if constexpr (std::is_constructible_v<T, Allocator*>) {
+  } else if constexpr (sizeof...(Targs) == 0 &&
+                       std::is_constructible_v<T, Allocator*> &&
+                       !std::is_aggregate_v<T>) {
     return new (memory) T(allocator);
+
   } else {
     return new (memory) T(std::forward<Targs>(args)...);
   }

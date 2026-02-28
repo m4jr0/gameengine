@@ -6,11 +6,10 @@
 #  Platform: Unix (GAS)
 #  https://wiki.osdev.org/System_V_ABI
 
-.text
-.align   4
+.section .text
+.p2align 4
 
 #  struct ExecutionContext
-.section .data
 .equ     EXEC_CON_RBX, 0x00
 .equ     EXEC_CON_RBP, 0x08
 .equ     EXEC_CON_R12, 0x10
@@ -21,12 +20,11 @@
 .equ     EXEC_CON_RIP, 0x38
 .equ     EXEC_CON_RDI, 0x40
 
-.section .text
-
 #  Switch execution contexts.
 # void SwitchExecutionContext(ExecutionContext* src, 
 #  const ExecutionContext* dst)
 .global  SwitchExecutionContext
+.type SwitchExecutionContext, @function
 SwitchExecutionContext:
     # Step 1: store current context in src. ####################################
     # Save callee registers state.
@@ -62,3 +60,7 @@ SwitchExecutionContext:
 
     movq EXEC_CON_RIP(%r8), %rcx
     jmp  *%rcx
+
+.size SwitchExecutionContext, .-SwitchExecutionContext
+
+.section .note.GNU-stack,"",@progbits

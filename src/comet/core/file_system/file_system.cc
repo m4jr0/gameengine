@@ -83,8 +83,7 @@ const tchar* GetNextElementForRelativePath(const tchar*& cursor,
 
 bool OpenFileToWriteTo(CTStringView path, std::ofstream& out_file,
                        bool is_append, bool is_binary) {
-  auto mode{
-      static_cast<std::ios_base::openmode>(std::ios::out | std::ios::failbit)};
+  auto mode{std::ios::out};
 
   if (is_binary) {
     mode |= std::ios::binary;

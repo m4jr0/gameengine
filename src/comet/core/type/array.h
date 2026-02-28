@@ -113,7 +113,8 @@ class Array : public internal::BaseArray<T> {
         capacity_{sizeof...(Targs)},
         allocator_{allocator} {
     usize index{0};
-    ((memory::Populate<T>(&this->data_[index++], std::forward<T>(args))), ...);
+    ((memory::Populate<T>(&this->data_[index++], std::forward<Targs>(args))),
+     ...);
   }
 
   Array(memory::Allocator* allocator, const T* data, usize count)
