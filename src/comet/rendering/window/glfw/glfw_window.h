@@ -43,6 +43,7 @@ class GlfwWindow : public Window {
 
  private:
   void UpdateSize();
+  void DumpPlatform() const;
 
   bool is_resize_{false};
 };

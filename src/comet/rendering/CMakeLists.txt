@@ -10,13 +10,19 @@
 
 # Packages #####################################################################
 # GLFW.
-find_package(glfw3 REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
 # OpenGL.
 find_package(glad REQUIRED)
 find_package(OpenGL REQUIRED)
 
 # Vulkan.
+if(LINUX)
+  # Using the VCPKG's loader create issues with Wayland...
+  set(Vulkan_LIBRARY "/lib/x86_64-linux-gnu/libvulkan.so.1" CACHE FILEPATH "" FORCE)
+  set(Vulkan_INCLUDE_DIR "/usr/include" CACHE PATH "" FORCE)
+endif()
+
 find_package(Vulkan REQUIRED)
 
 if(NOT WIN32)
@@ -27,19 +33,8 @@ endif()
 find_package(imgui CONFIG REQUIRED)
 
 if(LINUX)
-  # X11.
-  find_package(X11 REQUIRED)
-endif()
-
-if(WIN32 AND NOT DEFINED VULKAN_SDK)
-  if(NOT DEFINED ENV{VULKAN_SDK})
-    message(FATAL_ERROR
-      "${MESSAGE_PREFIX}VULKAN_SDK is not set. "
-      "Please define VULKAN_SDK to your Vulkan SDK root directory. "
-      "Aborting.")
-  endif()
-
-  set(VULKAN_SDK $ENV{VULKAN_SDK})
+  # X11 is optional. Wayland-native builds shouldn't require it.
+  find_package(X11 QUIET)
 endif()
 
 # Workaround: Some vcpkg installations place "vk_mem_alloc.h" directly in the 
@@ -214,15 +209,14 @@ target_link_libraries(${COMET_LIBRARY_NAME}
     glad
     imgui::imgui
     glfw
+    Vulkan::Vulkan
 )
 
 if(WIN32)
   target_link_libraries(${COMET_LIBRARY_NAME}
     PRIVATE
-      "${VULKAN_SDK}/Lib/vulkan-1.lib"
       bcrypt
       opengl32
-      glfw3dll
   )
 endif()
 
@@ -230,11 +224,12 @@ if(LINUX)
   target_link_libraries(${COMET_LIBRARY_NAME}
     PRIVATE
       ${OPENGL_opengl_LIBRARY}
-      glfw3
       pthread
-      ${Vulkan_LIBRARIES}
       GPUOpen::VulkanMemoryAllocator
       ${CMAKE_DL_LIBS}
-      ${X11_X11_LIB}
   )
+
+  if(X11_FOUND)
+    target_link_libraries(${COMET_LIBRARY_NAME} PRIVATE ${X11_X11_LIB})
+  endif()
 endif()

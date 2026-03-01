@@ -41,6 +41,17 @@ enc_temp_folder/
 *.user
 TestResults/
 
+# JetBrains IDEs
+.idea/*
+!.idea/codeStyles
+!.idea/codeStyles/Project.xml
+!.idea/inspectionProfiles
+!.idea/vcs.xml
+!.idea/.gitignore
+
+# CMake build
+cmake-build-*/
+
 # Assets
 !**/assets/**
 *.meta

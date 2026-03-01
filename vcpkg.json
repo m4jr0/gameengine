@@ -18,7 +18,15 @@
       "name": "glad"
     },
     {
-      "name": "glfw3"
+      "name": "glfw3",
+      "platform": "windows"
+    },
+    {
+      "name": "glfw3",
+      "features": [
+        "wayland"
+      ],
+      "platform": "linux"
     },
     {
       "name": "glm"

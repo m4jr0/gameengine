@@ -66,6 +66,7 @@ void GlfwWindow::Initialize() {
     COMET_LOG_RENDERING_INFO("Initializing GLFW...");
     [[maybe_unused]] const auto result{glfwInit()};
     COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
+    DumpPlatform();
     SetGlfwHints();
 
     glfwSetErrorCallback([](s32 error_code, const schar* description) {
@@ -145,6 +146,32 @@ void GlfwWindow::UpdateSize() {
   }
 
   is_resize_ = true;
+}
+
+void GlfwWindow::DumpPlatform() const {
+  auto platform = glfwGetPlatform();
+
+  const char* label = "???";
+
+  switch (platform) {
+    case GLFW_PLATFORM_WIN32:
+      label = "WIN32";
+      break;
+    case GLFW_PLATFORM_COCOA:
+      label = "COCOA";
+      break;
+    case GLFW_PLATFORM_WAYLAND:
+      label = "WAYLAND";
+      break;
+    case GLFW_PLATFORM_X11:
+      label = "X11";
+      break;
+    case GLFW_PLATFORM_NULL:
+      label = "NULL";
+      break;
+  }
+
+  COMET_LOG_RENDERING_INFO("GLFW platform: ", label);
 }
 }  // namespace rendering
 }  // namespace comet

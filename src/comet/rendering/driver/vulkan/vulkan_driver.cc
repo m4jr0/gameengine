@@ -227,6 +227,8 @@ void VulkanDriver::InitializeVulkanInstance() {
   validation_features.pNext = VK_NULL_HANDLE;
 #endif  // COMET_DEBUG_RENDERING
 
+  COMET_ASSERT(glfwVulkanSupported(), "GLFW reports Vulkan not supported!");
+
   const auto required_extensions{GetRequiredExtensions()};
   const u32 required_extension_count{
       static_cast<u32>(required_extensions.GetSize())};
@@ -584,8 +586,18 @@ frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
   u32 glfw_extension_count{0};
   const auto** glfw_extensions{
       glfwGetRequiredInstanceExtensions(&glfw_extension_count)};
-
   frame::FrameArray<const schar*> extensions{};
+
+  if (glfw_extensions == nullptr || glfw_extension_count == 0) {
+    const char* desc;
+    auto code{glfwGetError(&desc)};
+    COMET_LOG_RENDERING_ERROR(
+        "glfwGetRequiredInstanceExtensions returned 0. GLFW error ", code, ": ",
+        desc ? desc : "(null)");
+    COMET_ASSERT(false,
+                 "Cannot continue without required instance extensions.");
+  }
+
   extensions.Reserve(glfw_extension_count);
 
   for (usize i{0}; i < glfw_extension_count; ++i) {
