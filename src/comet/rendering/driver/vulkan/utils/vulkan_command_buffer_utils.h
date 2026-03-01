@@ -67,6 +67,17 @@ void SubmitOneTimeCommand(
     const VkSemaphore* signal_semaphore = VK_NULL_HANDLE,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
     const void* next = VK_NULL_HANDLE);
+void SubmitOneTimeCommandAsync(
+    VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
+    VkFence fence_handle = VK_NULL_HANDLE,
+    const VkSemaphore* wait_semaphore = VK_NULL_HANDLE,
+    const VkSemaphore* signal_semaphore = VK_NULL_HANDLE,
+    const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
+    const void* next = VK_NULL_HANDLE);
+void WaitAndRecycleOneTimeCommand(VkDevice device_handle,
+                                  VkCommandPool command_pool_handle,
+                                  VkCommandBuffer& command_buffer_handle,
+                                  VkFence fence_handle);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

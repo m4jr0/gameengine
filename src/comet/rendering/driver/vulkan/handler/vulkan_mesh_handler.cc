@@ -113,7 +113,7 @@ void MeshHandler::Bind() {
   index_buffer_.Bind(command_buffer_handle);
 }
 
-void MeshHandler::Wait() {
+void MeshHandler::AcquireFromTransferQueueIfNeeded() {
   if (!is_transfer_) {
     return;
   }
@@ -254,11 +254,15 @@ void MeshHandler::FinishUpdate(internal::UpdateContext& update_context) {
   auto timeline_semaphore_info{init::GenerateTimelineSemaphoreSubmitInfo(
       1, &transfer_value, 0, VK_NULL_HANDLE)};
 
-  SubmitOneTimeCommand(
-      update_context.command_buffer_handle, update_context.command_pool_handle,
-      *update_context.device, update_context.device->GetTransferQueueHandle(),
-      upload_fence_handle_, context_->GetTransferSemaphoreHandle(),
-      VK_NULL_HANDLE, &wait_stage, &timeline_semaphore_info);
+  SubmitOneTimeCommandAsync(
+      update_context.command_buffer_handle,
+      update_context.device->GetTransferQueueHandle(), upload_fence_handle_,
+      context_->GetTransferSemaphoreHandle(), VK_NULL_HANDLE, &wait_stage,
+      &timeline_semaphore_info);
+
+  WaitAndRecycleOneTimeCommand(
+      *update_context.device, update_context.command_pool_handle,
+      update_context.command_buffer_handle, upload_fence_handle_);
 }
 
 void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,

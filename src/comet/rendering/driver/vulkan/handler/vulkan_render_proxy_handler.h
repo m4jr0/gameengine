@@ -13,6 +13,7 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/entity/entity_id.h"
@@ -131,6 +132,9 @@ class RenderProxyHandler : public Handler {
       sizeof(RenderBatchEntry) * 16, kDefaultProxyCount_,
       memory::kEngineMemoryTagRendering};
 
+  memory::PlatformAllocator platform_allocator_{
+      memory::kEngineMemoryTagRendering};
+
   Map<entity::EntityId, RenderProxyId> entity_id_to_proxy_id_map_{};
   Map<entity::EntityId, RenderProxyModelBindings> model_to_proxies_map_{};
   Array<entity::EntityId> proxy_id_to_entity_id_map_{};
@@ -140,13 +144,14 @@ class RenderProxyHandler : public Handler {
 
   Buffer staging_ssbo_proxy_local_datas_{};
   Buffer ssbo_proxy_local_datas_{};
-  Buffer staging_ssbo_indirect_proxies_{};
-  Buffer ssbo_indirect_proxies_{};
   Buffer ssbo_proxy_ids_{};
-  Buffer staging_ssbo_proxy_instances_{};
-  Buffer ssbo_proxy_instances_{};
   Buffer ssbo_matrix_palettes_{};
   Buffer ssbo_word_indices_{};
+
+  Array<Buffer> staging_ssbo_indirect_proxies_{};
+  Array<Buffer> ssbo_indirect_proxies_{};
+  Array<Buffer> staging_ssbo_proxy_instances_{};
+  Array<Buffer> ssbo_proxy_instances_{};
 
 #ifdef COMET_DEBUG_RENDERING
   Buffer ssbo_debug_data_[kDebugDataBufferCount_]{};

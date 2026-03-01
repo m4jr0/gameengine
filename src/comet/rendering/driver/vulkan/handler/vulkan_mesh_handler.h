@@ -61,7 +61,7 @@ class MeshHandler : public Handler {
   void Shutdown() override;
   void Update(const frame::FramePacket* packet);
   void Bind();
-  void Wait();
+  void AcquireFromTransferQueueIfNeeded();
 
   MeshProxyHandle GetHandle(geometry::MeshId mesh_id) const;
   const MeshProxy* Get(MeshProxyHandle handle) const;

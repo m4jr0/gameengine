@@ -187,6 +187,35 @@ void SubmitOneTimeCommand(
 
   command_buffer_handle = VK_NULL_HANDLE;
 }
+
+void SubmitOneTimeCommandAsync(VkCommandBuffer command_buffer_handle,
+                               VkQueue queue_handle, VkFence fence_handle,
+                               const VkSemaphore* wait_semaphore,
+                               const VkSemaphore* signal_semaphore,
+                               const VkPipelineStageFlags* wait_dst_stage_mask,
+                               const void* next) {
+  SubmitCommand(command_buffer_handle, queue_handle, fence_handle,
+                wait_semaphore, wait_semaphore != VK_NULL_HANDLE ? 1 : 0,
+                signal_semaphore, signal_semaphore != VK_NULL_HANDLE ? 1 : 0,
+                wait_dst_stage_mask, next);
+}
+
+void WaitAndRecycleOneTimeCommand(VkDevice device_handle,
+                                  VkCommandPool command_pool_handle,
+                                  VkCommandBuffer& command_buffer_handle,
+                                  VkFence fence_handle) {
+  COMET_CHECK_VK(
+      vkWaitForFences(device_handle, 1, &fence_handle, VK_TRUE, UINT64_MAX),
+      "Failed waiting for one-time command fence");
+
+  vkFreeCommandBuffers(device_handle, command_pool_handle, 1,
+                       &command_buffer_handle);
+
+  COMET_CHECK_VK(vkResetFences(device_handle, 1, &fence_handle),
+                 "Failed to reset one-time command fence");
+
+  command_buffer_handle = VK_NULL_HANDLE;
+}
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

@@ -471,7 +471,7 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
 
   RecordCommand(command_data);
 
-  mesh_handler_->Wait();
+  mesh_handler_->AcquireFromTransferQueueIfNeeded();
   mesh_handler_->Update(packet);
   render_proxy_handler_->Update(packet);
 
@@ -490,10 +490,6 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
   signal_semaphores.PushBack(context_->GetRenderSemaphoreHandle());
   signal_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
 
-  const auto wait_value{context_->GetTransferTimelineValue()};
-  context_->UpdateTransferTimelineValue();
-  const auto signal_value{context_->GetTransferTimelineValue()};
-
   frame::FrameArray<VkSemaphoreSubmitInfo> wait_infos{};
   wait_infos.Reserve(2);
 
@@ -506,15 +502,8 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
     wait_present.deviceIndex = 0;
   }
 
-  auto& wait_transfer{wait_infos.EmplaceBack()};
-  wait_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  wait_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
-  wait_transfer.value = wait_value;
-  wait_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-  wait_transfer.deviceIndex = 0;
-
   frame::FrameArray<VkSemaphoreSubmitInfo> signal_infos{};
-  signal_infos.Reserve(2);
+  signal_infos.Reserve(0 + static_cast<ssize>(!packet->is_rendering_skipped));
 
   if (!packet->is_rendering_skipped) {
     auto& signal_render{signal_infos.EmplaceBack()};
@@ -524,13 +513,6 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
     signal_render.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
     signal_render.deviceIndex = 0;
   }
-
-  auto& signal_transfer{signal_infos.EmplaceBack()};
-  signal_transfer.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-  signal_transfer.semaphore = *context_->GetTransferSemaphoreHandle();
-  signal_transfer.value = signal_value;
-  signal_transfer.stageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-  signal_transfer.deviceIndex = 0;
 
   SubmitCommand2(command_data, device_->GetGraphicsQueueHandle(),
                  frame_data.render_fence_handle, wait_infos.GetData(),

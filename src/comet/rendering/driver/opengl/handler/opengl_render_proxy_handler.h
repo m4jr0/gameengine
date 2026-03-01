@@ -57,6 +57,7 @@ class RenderProxyHandler : public Handler {
   u32 GetVisibleCount() const noexcept;
 
  private:
+  static inline constexpr u32 kFramesInFlight_{2};
   static inline constexpr usize kMaxRenderProxyCount_{100000};
   static inline constexpr usize kDefaultRenderIndirectBatchCount_{128};
   static inline constexpr usize kDefaultRenderBatchGroupCount_{128};
@@ -80,13 +81,13 @@ class RenderProxyHandler : public Handler {
   void GenerateIndirectBatches();
   void GenerateBatchGroups();
 
-  void UploadRenderProxyLocalData();
+  void UploadRenderProxyLocalData(const frame::FramePacket* packet);
   void UploadAllRenderProxyLocalData();
   void UploadPendingRenderProxyLocalData();
   void CommitUpdate(frame::FramePacket* packet);
-  void ReallocateRenderProxyDrawBuffers();
-  void PrepareRenderProxyDrawData();
-  void PopulateRenderProxyDrawData();
+  void ReallocateRenderProxyDrawBuffers(const frame::FramePacket* packet);
+  void PrepareRenderProxyDrawData(const frame::FramePacket* packet);
+  void PopulateRenderProxyDrawData(const frame::FramePacket* packet);
   void PopulateRenderIndirectProxy(BatchId batch_id,
                                    GpuIndirectRenderProxy* memory);
   void PopulateProxyInstances(BatchId batch_id, GpuRenderProxyInstance* memory,
@@ -98,6 +99,7 @@ class RenderProxyHandler : public Handler {
   u64 GenerateRenderProxySortKey(const RenderProxy& proxy);
   void InitializeBuffers();
   void DestroyBuffers();
+  u32 GetFrameIndex(FrameCount frame_count) const;
 #ifdef COMET_DEBUG_RENDERING
   void InitializeDebugData();
   void DestroyDebugData();
@@ -130,11 +132,12 @@ class RenderProxyHandler : public Handler {
 
   StorageHandle staging_ssbo_proxy_local_datas_handle_{kInvalidStorageHandle};
   StorageHandle ssbo_proxy_local_datas_handle_{kInvalidStorageHandle};
-  StorageHandle ssbo_indirect_proxies_handle_{kInvalidStorageHandle};
-  StorageHandle ssbo_proxy_ids_handle_{kInvalidStorageHandle};
-  StorageHandle ssbo_proxy_instances_handle_{kInvalidStorageHandle};
   StorageHandle ssbo_matrix_palettes_handle_{kInvalidStorageHandle};
   StorageHandle ssbo_word_indices_handle_{kInvalidStorageHandle};
+
+  StorageHandle ssbo_indirect_proxies_handle_[kFramesInFlight_]{};
+  StorageHandle ssbo_proxy_ids_handle_[kFramesInFlight_]{};
+  StorageHandle ssbo_proxy_instances_handle_[kFramesInFlight_]{};
 
 #ifdef COMET_DEBUG_RENDERING
   StorageHandle ssbo_debug_data_handle_{kInvalidStorageHandle};
@@ -147,11 +150,12 @@ class RenderProxyHandler : public Handler {
 
   GLsizei staging_ssbo_proxy_local_datas_buffer_size_{0};
   GLsizei ssbo_proxy_local_datas_buffer_size_{0};
-  GLsizei ssbo_indirect_proxies_buffer_size_{0};
-  GLsizei ssbo_proxy_ids_buffer_size_{0};
-  GLsizei ssbo_proxy_instances_buffer_size_{0};
   GLsizei ssbo_matrix_palettes_buffer_size_{0};
   GLsizei ssbo_word_indices_buffer_size_{0};
+
+  GLsizei ssbo_indirect_proxies_buffer_size_[kFramesInFlight_]{};
+  GLsizei ssbo_proxy_ids_buffer_size_[kFramesInFlight_]{};
+  GLsizei ssbo_proxy_instances_buffer_size_[kFramesInFlight_]{};
 
 #ifdef COMET_DEBUG_RENDERING
   GLsizei ssbo_debug_data_buffer_size_{0};
