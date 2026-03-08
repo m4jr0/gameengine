@@ -1,0 +1,53 @@
+{
+  "is_wireframe": false,
+  "cull_mode": "front",
+  "shader_module_paths": [
+    "shaders/vulkan/shadow.vk.vert",
+    "shaders/vulkan/shadow.vk.frag"
+  ],
+  "vertex_attributes": [
+    { "name": "inPosition", "type": "vec3" },
+    { "name": "inJointIndices", "type": "u16vec4" },
+    { "name": "inJointWeights", "type": "vec4" }
+  ],
+  "uniforms": [
+    {
+      "name": "projection",
+      "type": "mat4",
+      "scope": "global",
+      "stages": ["vertex"]
+    },
+    {
+      "name": "view",
+      "type": "mat4",
+      "scope": "global",
+      "stages": ["vertex"]
+    }
+  ],
+  "constants": [],
+  "storages": [
+    {
+      "name": "proxyLocalDatas",
+      "stages": ["vertex"],
+      "layout": [
+        { "name": "localCenter", "type": "vec3" },
+        { "name": "localMaxExtents", "type": "vec3" },
+        { "name": "transform", "type": "mat4" }
+      ]
+    },
+    {
+      "name": "proxyIds",
+      "stages": ["vertex"],
+      "layout": [
+        { "name": "proxyId", "type": "u32" }
+      ]
+    },
+    {
+      "name": "matrixPalettes",
+      "stages": ["vertex"],
+      "layout": [
+        { "name": "skinningMatrix", "type": "mat4" }
+      ]
+    }
+  ]
+}

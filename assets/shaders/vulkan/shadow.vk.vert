@@ -15,22 +15,13 @@ struct ProxyLocalData {
 };
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormals;
-layout(location = 2) in vec3 inTangents;
-layout(location = 3) in vec3 inBitangents;
-layout(location = 4) in vec2 inTexCoord;
-layout(location = 5) in vec4 inColor;
 layout(location = 6) in uvec4 inJointIndices;
 layout(location = 7) in vec4 inJointWeights;
 
-layout(set = 0, binding = 0) uniform GlobalUbo {
-  mat4 projection;
-  mat4 view;
-  vec4 ambientColor;
-  vec3 viewPos;
+layout(set = 0, binding = 0) uniform ShadowUbo {
   mat4 lightViewProj;
 }
-globalUbo;
+shadowUbo;
 
 layout(location = 1) out struct FragmentData {
   vec4 ambientColor;
@@ -39,7 +30,6 @@ layout(location = 1) out struct FragmentData {
   vec3 viewPos;
   vec3 fragPos;
   vec4 color;
-  vec4 lightClipPos;
 } outData;
 
 layout(std430, set = 2, binding = 0) readonly buffer InProxyLocalDatasSsbo {
@@ -89,17 +79,5 @@ void main() {
       ApplySkinning(vec4(inPosition, 1.0), proxy.skinningOffset);
   vec3 worldPos = vec3(model * skinnedPosition);
 
-  outData.texCoord = inTexCoord;
-  outData.color = inColor;
-  outData.fragPos = worldPos;
-
-  mat3 modelMat3 = mat3(model);
-
-  outData.normals = normalize(modelMat3 * inNormals);
-  outData.ambientColor = globalUbo.ambientColor;
-  outData.viewPos = globalUbo.viewPos;
-
-  outData.lightClipPos = globalUbo.lightViewProj * vec4(worldPos, 1.0);
-
-  gl_Position = globalUbo.projection * globalUbo.view * vec4(worldPos, 1.0);
+  gl_Position = shadowUbo.lightViewProj * worldPos;
 }
