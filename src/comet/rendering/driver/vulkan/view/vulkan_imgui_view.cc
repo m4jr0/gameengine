@@ -134,20 +134,18 @@ void ImGuiView::Initialize() {
   imgui_info.Queue = device.GetGraphicsQueueHandle();
   imgui_info.PipelineCache = VK_NULL_HANDLE;
   imgui_info.DescriptorPool = descriptor_pool_handle_;
-  imgui_info.RenderPass = render_pass_->handle;
-  imgui_info.Subpass = 0;
+  imgui_info.PipelineInfoMain.RenderPass = render_pass_->handle;
+  imgui_info.PipelineInfoMain.Subpass = 0;
   imgui_info.MinImageCount = image_count;
   imgui_info.ImageCount = image_count;
-  imgui_info.MSAASamples = device.GetMsaaSamples();
+  imgui_info.PipelineInfoMain.MSAASamples = device.GetMsaaSamples();
 
   ImGui_ImplVulkan_Init(&imgui_info);
   ImGui::StyleColorsDark();
-  ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 void ImGuiView::Destroy() {
   ImGui_ImplGlfw_Shutdown();
-  ImGui_ImplVulkan_DestroyFontsTexture();
 
   if (descriptor_pool_handle_ != VK_NULL_HANDLE) {
     vkDestroyDescriptorPool(context_->GetDevice(), descriptor_pool_handle_,
