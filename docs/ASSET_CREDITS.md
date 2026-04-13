@@ -17,6 +17,6 @@ This folder contains character animations combined into a single file.
 
 ## Sponza Atrium Scene
 
-This scene is based on a fixed version of the original Sponza Atrium model.
+This scene uses the Sponza Atrium model from the official glTF Sample Models repository, maintained by the Khronos Group.
 
-**Source:** https://github.com/jimmiebergmann/Sponza
+**Source:** https://github.com/KhronosGroup/glTF-Sample-Models/tree/main/2.0/Sponza
