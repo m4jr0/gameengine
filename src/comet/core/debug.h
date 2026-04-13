@@ -65,6 +65,6 @@ void GenerateStackTrace(schar *buffer, usize buffer_len);
                                                         \
     COMET_CASSERT(isOk, "Critical failure!");           \
   } while (false)
-#endif
+#endif  // !COMET_DEBUG
 
 #endif  // COMET_COMET_CORE_DEBUG_H_

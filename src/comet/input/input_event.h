@@ -54,7 +54,7 @@ class MouseMoveEvent : public event::Event {
   const math::Vec2& GetPosition() const noexcept;
 
  private:
-  math::Vec2 position_{0.0f, 0.0f};
+  math::Vec2 position_{.0f, .0f};
 };
 
 class MouseScrollEvent : public event::Event {

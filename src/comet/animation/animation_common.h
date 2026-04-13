@@ -20,12 +20,12 @@ constexpr auto kInvalidAnimationClipId{resource::kInvalidResourceId};
 
 using FrameIndex = u32;
 
-enum AnimationOverrideFlagBits {
+using AnimationOverrideFlags = u8;
+
+enum AnimationOverrideFlagBits : AnimationOverrideFlags {
   kAnimationOverrideFlagBitsNone = 0x0,
   kAnimationOverrideFlagBitsIsLoop = 0x1,
 };
-
-using AnimationOverrideFlags = u8;
 
 struct JointPose {
   math::Quat rotation{};

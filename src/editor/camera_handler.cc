@@ -79,7 +79,7 @@ void CameraHandler::Update() {
   }
 
   if (is_keyboard_key) {
-    math::Vec3 delta{0.0f};
+    math::Vec3 delta{.0f};
 
     if (is_left) {
       delta.x += -1.0f;
@@ -107,14 +107,14 @@ void CameraHandler::Update() {
 
   auto mouse_pos_delta{last_mouse_pos_ - current_mouse_pos_};
   last_mouse_pos_ = current_mouse_pos_;
-  auto is_mouse_moving{math::GetSquaredMagnitude(mouse_pos_delta) > 0.05f};
+  auto is_mouse_moving{math::GetSquaredMagnitude(mouse_pos_delta) > .05f};
 
   if (!is_mouse_moving) {
     return;
   }
 
   if (is_orbiting_from_mouse_) {
-    math::Vec3 delta{mouse_pos_delta.x, -mouse_pos_delta.y, 0.0f};
+    math::Vec3 delta{mouse_pos_delta.x, -mouse_pos_delta.y, .0f};
     delta *= kMouseOrbitSensitivity_;
     camera->Orbit(delta);
     return;
@@ -127,14 +127,14 @@ void CameraHandler::Update() {
   }
 
   if (is_panning_from_mouse_) {
-    math::Vec3 delta{-mouse_pos_delta.x, -mouse_pos_delta.y, 0.0f};
+    math::Vec3 delta{-mouse_pos_delta.x, -mouse_pos_delta.y, .0f};
     delta *= kMousePanSensitivity_;
     camera->Move(delta);
     return;
   }
 
   if (is_zooming_from_mouse_) {
-    math::Vec3 delta{0.0f, 0.0f, -mouse_pos_delta.x + mouse_pos_delta.y};
+    math::Vec3 delta{.0f, .0f, -mouse_pos_delta.x + mouse_pos_delta.y};
     delta *= kMouseZoomSensitivity_;
     camera->Move(delta);
     return;
@@ -144,7 +144,7 @@ void CameraHandler::Update() {
 bool CameraHandler::IsInitialized() const noexcept { return is_initialized_; }
 
 void CameraHandler::OnEvent(const event::Event& event) {
-  const auto event_type{event.GetType()};
+  auto event_type{event.GetType()};
   auto& camera_manager{rendering::CameraManager::Get()};
 
   if (event_type == input::KeyboardEvent::kStaticType_) {
@@ -212,7 +212,7 @@ void CameraHandler::OnEvent(const event::Event& event) {
     const auto& mouse_scroll_event{
         static_cast<const input::MouseScrollEvent&>(event)};
     auto camera{camera_manager.GetMainCamera()};
-    camera->Move(math::Vec3(0.0f, 0.0f,
+    camera->Move(math::Vec3(.0f, .0f,
                             static_cast<f32>(mouse_scroll_event.GetYOffset())));
     return;
 

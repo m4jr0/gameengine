@@ -113,7 +113,7 @@ class NullInputManager : public InputManager {
   virtual bool IsMouseUp(MouseButton) const override { return false; };
 
   virtual math::Vec2 GetMousePosition() const override {
-    return math::Vec2{0.0f, 0.0f};
+    return math::Vec2{.0f, .0f};
   };
 
   virtual void SetMousePosition(f32, f32) override{};

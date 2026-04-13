@@ -334,8 +334,7 @@ int munmapHooked(void* addr, size_t len) {
 
   return result;
 }
-#endif
-// COMET_MSVC
+#endif  // COMET_MSVC
 
 MemoryUse& MemoryUse::Get() {
   static MemoryUse* singleton{nullptr};
@@ -372,8 +371,7 @@ void (*PlatformFree)(void*){nullptr};
 
 void* (*PlatformMmap)(void*, std::size_t, int, int, int, off_t){nullptr};
 int (*PlatformMunmap)(void*, std::size_t){nullptr};
-#endif
-// !COMET_MSVC
+#endif  // !COMET_MSVC
 }  // namespace internal
 
 void InitializeAllocationTracking() {

@@ -49,6 +49,7 @@ enum class LoggerType {
   Core,
   Event,
   Entity,
+  Geometry,
   Input,
   Math,
   Physics,
