@@ -7,6 +7,7 @@
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <atomic>
+#include <semaphore>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/fiber/fiber.h"
@@ -109,6 +110,8 @@ class Scheduler {
  private:
   static constexpr usize kDefaultIOWorkerCount{2};
 
+  std::counting_semaphore<> io_worker_wakeup_{0};
+
   usize fiber_worker_count_{0};
   usize io_worker_count_{0};
   u32 promotion_interval_{1000};
@@ -153,6 +156,12 @@ class Scheduler {
   void SubmitJob(const JobDescr& job_descr);
   void SubmitJob(const IOJobDescr& job_descr);
   void PromoteJobs();
+  bool TryAcquireRunnableJobFromQueue(LockFreeMPMCRingQueue<JobDescr>& queue,
+                                      JobDescr& job_descr,
+                                      fiber::Fiber*& fiber);
+
+  bool TryAcquireRunnableJob(JobDescr& job_descr, fiber::Fiber*& fiber);
+  void RequeueJob(const JobDescr& job_descr);
 
 #ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   void WorkFromMainThread();

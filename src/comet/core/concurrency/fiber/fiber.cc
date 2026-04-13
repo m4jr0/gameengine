@@ -17,8 +17,6 @@
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
 #include "comet/core/c_string.h"
@@ -99,7 +97,7 @@ void Fiber::Attach(EntryPoint entry_point, ParamsHandle params_handle,
 
   auto len{math::Min(GetLength(debug_label), kDebugLabelMaxLen_)};
   Copy(debug_label_, debug_label, len);
-  debug_label_[len + 1] = '\0';
+  debug_label_[len] = '\0';
 #endif  // COMET_FIBER_DEBUG_LABEL
 }
 

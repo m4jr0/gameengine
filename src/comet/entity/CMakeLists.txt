@@ -22,7 +22,7 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/entity/factory/entity_factory_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/factory/handler/entity_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/entity/factory/handler/entity_model_handler.cc"
-
+    "${PROJECT_SOURCE_DIR}/src/comet/entity/factory/handler/entity_primitive_handler.cc"
 )
 
 # Compiling ####################################################################

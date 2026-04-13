@@ -185,10 +185,7 @@ void Scheduler::Initialize() {
 }
 
 void Scheduler::Shutdown() {
-  low_priority_queue_.Destroy();
-  normal_priority_queue_.Destroy();
-  high_priority_queue_.Destroy();
-  io_queue_.Destroy();
+  RequestShutdown();
 
   for (auto& fiber_worker : fiber_workers_) {
     fiber_worker.Stop();
@@ -197,6 +194,11 @@ void Scheduler::Shutdown() {
   for (auto& io_worker : io_workers_) {
     io_worker.Stop();
   }
+
+  low_priority_queue_.Destroy();
+  normal_priority_queue_.Destroy();
+  high_priority_queue_.Destroy();
+  io_queue_.Destroy();
 
   large_stack_fibers_.Destroy();
   gigantic_stack_fibers_.Destroy();
@@ -260,6 +262,10 @@ void Scheduler::Run(const JobDescr& callback_descr,
 
 void Scheduler::RequestShutdown() {
   is_shutdown_required_.store(true, std::memory_order_release);
+
+  for (usize i{0}; i < io_worker_count_; ++i) {
+    io_worker_wakeup_.release();
+  }
 }
 
 Counter* Scheduler::GenerateCounter() {
@@ -329,7 +335,8 @@ void Scheduler::KickAndWait(usize job_count, const IOJobDescr* job_descrs) {
 static LockFreeMPMCRingQueue<MainThreadJobDescr> main_thread_queue{};
 #endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
-void Scheduler::KickOnMainThread(const MainThreadJobDescr& descr) {
+void Scheduler::KickOnMainThread(
+    [[maybe_unused]] const MainThreadJobDescr& descr) {
 #ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   descr.counter->Increment();
   main_thread_queue.Push(descr);
@@ -354,36 +361,36 @@ void Scheduler::WorkOnFibers() {
   time::Chrono chrono{};
   chrono.Start(promotion_interval_);
 
+  constexpr usize kIdleYieldCount{64};
+  constexpr auto kIdleSleepDuration{std::chrono::microseconds{100}};
+  usize idle_count{0};
+
   while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
     if (chrono.IsFinished()) {
       PromoteJobs();
       chrono.Restart();
     }
 
-    std::optional<JobDescr> job_box{high_priority_queue_.TryPop()};
+    CleanCompletedAndTryResumeNext();
 
-    if (!job_box.has_value()) {
-      job_box = normal_priority_queue_.TryPop();
-    }
+    JobDescr job_descr{};
+    fiber::Fiber* fiber{nullptr};
 
-    if (!job_box.has_value()) {
-      job_box = low_priority_queue_.TryPop();
-    }
-
-    if (!job_box.has_value()) {
+    if (!TryAcquireRunnableJob(job_descr, fiber)) {
       CleanCompletedAndTryResumeNext();
+
+      if (idle_count < kIdleYieldCount) {
+        ++idle_count;
+        thread::Yield();
+      } else {
+        std::this_thread::sleep_for(kIdleSleepDuration);
+        idle_count = 0;
+      }
+
       continue;
     }
 
-    auto& job_descr{job_box.value()};
-    auto* fibers{ResolveFiberPool(job_descr)};
-    COMET_ASSERT(fibers != nullptr, "Could not resolve which fiber to use!");
-    fiber::Fiber* fiber{nullptr};
-
-    while (fiber == nullptr) {
-      fiber = fibers->TryPop();
-      CleanCompletedAndTryResumeNext();
-    }
+    idle_count = 0;
 
     fiber->Attach(job_descr.entry_point, job_descr.params_handle, OnFiberEnd,
                   job_descr.counter
@@ -399,18 +406,26 @@ void Scheduler::WorkOnFibers() {
 }
 
 void Scheduler::WorkOnIO() {
-  while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
-    auto job_box{io_queue_.TryPop()};
+  while (true) {
+    io_worker_wakeup_.acquire();
 
-    if (!job_box.has_value()) {
-      continue;
+    if (is_shutdown_required_.load(std::memory_order_acquire)) {
+      break;
     }
 
-    auto& job{job_box.value()};
-    job.entry_point(job.params_handle);
+    for (;;) {
+      auto job_box{io_queue_.TryPop()};
 
-    if (job.counter != nullptr) {
-      job.counter->Decrement();
+      if (!job_box.has_value()) {
+        break;
+      }
+
+      auto& job{job_box.value()};
+      job.entry_point(job.params_handle);
+
+      if (job.counter != nullptr) {
+        job.counter->Decrement();
+      }
     }
   }
 }
@@ -521,6 +536,7 @@ void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
   }
 
   io_queue_.Push(job_descr);
+  io_worker_wakeup_.release();
 }
 
 void Scheduler::PromoteJobs() {
@@ -536,6 +552,67 @@ void Scheduler::PromoteJobs() {
   while (job_box.has_value()) {
     normal_priority_queue_.Push(job_box.value());
     job_box = low_priority_queue_.TryPop();
+  }
+}
+
+bool Scheduler::TryAcquireRunnableJobFromQueue(
+    LockFreeMPMCRingQueue<JobDescr>& queue, JobDescr& job_descr,
+    fiber::Fiber*& fiber) {
+  auto job_box{queue.TryPop()};
+
+  if (!job_box.has_value()) {
+    return false;
+  }
+
+  job_descr = job_box.value();
+  auto* fibers{ResolveFiberPool(job_descr)};
+  COMET_ASSERT(fibers != nullptr, "Could not resolve which fiber to use!");
+  fiber = fibers->TryPop();
+
+  if (fiber != nullptr) {
+    return true;
+  }
+
+  RequeueJob(job_descr);
+  return false;
+}
+
+bool Scheduler::TryAcquireRunnableJob(JobDescr& job_descr,
+                                      fiber::Fiber*& fiber) {
+  fiber = nullptr;
+
+  if (TryAcquireRunnableJobFromQueue(high_priority_queue_, job_descr, fiber)) {
+    return true;
+  }
+
+  if (TryAcquireRunnableJobFromQueue(normal_priority_queue_, job_descr,
+                                     fiber)) {
+    return true;
+  }
+
+  return TryAcquireRunnableJobFromQueue(low_priority_queue_, job_descr, fiber);
+}
+
+void Scheduler::RequeueJob(const JobDescr& job_descr) {
+  switch (job_descr.priority) {
+    case JobPriority::High:
+      high_priority_queue_.Push(job_descr);
+      break;
+
+    case JobPriority::Normal:
+      normal_priority_queue_.Push(job_descr);
+      break;
+
+    case JobPriority::Low:
+      low_priority_queue_.Push(job_descr);
+      break;
+
+    default:
+      COMET_ASSERT(
+          false, "Unknown or unsupported job priority: ",
+          static_cast<std::underlying_type_t<JobPriority>>(job_descr.priority),
+          "!");
+      break;
   }
 }
 

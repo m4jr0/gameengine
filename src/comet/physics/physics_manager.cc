@@ -123,6 +123,10 @@ f64 PhysicsManager::GetFrameTime() const noexcept {
   return frame_rate_ == 0 ? 0.0 : (1.0 / static_cast<f64>(frame_rate_));
 }
 
+f64 PhysicsManager::GetFixedDeltaTime() const noexcept {
+  return fixed_delta_time_;
+}
+
 void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {
   auto& entity_manager{entity::EntityManager::Get()};
 
@@ -140,6 +144,7 @@ void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {
 
         if (transform_cmp->is_dirty) {
           transform_cmp->global = transform_cmp->local;
+          packet->RegisterDirtyTransform(entity_id, transform_cmp);
         }
 
         UpdateTree(packet, entity_id, transform_cmp);

@@ -349,7 +349,7 @@ class EntityManager : public Manager {
 
   using DeferredEntities = frame::FrameMap<EntityId, internal::DeferredEntity>;
 
-  bool is_update_{false};
+  usize update_generation_{0};
   fiber::FiberMutex deferred_mutex_{};
   fiber::FiberMutex update_mutex_{};
   fiber::FiberCV update_cv_{};

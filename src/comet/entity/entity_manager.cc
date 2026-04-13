@@ -130,20 +130,18 @@ void EntityManager::DispatchComponentChanges() {
 
   {
     fiber::FiberUniqueLock lock{update_mutex_};
-    is_update_ = true;
+    ++update_generation_;
   }
 
   update_cv_.NotifyAll();
-
-  {
-    fiber::FiberUniqueLock lock{update_mutex_};
-    is_update_ = false;
-  }
 }
 
 void EntityManager::WaitForEntityUpdates() {
   fiber::FiberUniqueLock lock{update_mutex_};
-  update_cv_.Wait(lock, [this] { return is_update_; });
+  const auto target_generation{update_generation_ + 1};
+  update_cv_.Wait(lock, [this, target_generation] {
+    return update_generation_ >= target_generation;
+  });
 }
 
 EntityId EntityManager::Generate() {
@@ -307,8 +305,8 @@ void EntityManager::ResizeArchetype(Archetype* archetype, s16 delta) {
 
 void EntityManager::ReserveArchetypeCapacity(Archetype* archetype,
                                              usize capacity) {
-  constexpr f32 kGrowthThreshold{0.1f};
-  constexpr f32 kShrinkThreshold{0.25f};
+  constexpr f32 kGrowthThreshold{.1f};
+  constexpr f32 kShrinkThreshold{.25f};
   constexpr usize kMinCapacity{16};
 
   if (capacity < kMinCapacity) {

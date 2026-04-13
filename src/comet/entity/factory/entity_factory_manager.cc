@@ -20,18 +20,25 @@ EntityFactoryManager& EntityFactoryManager::Get() {
 void EntityFactoryManager::Initialize() {
   Manager::Initialize();
 
+  primitive_handler_ = std::make_unique<PrimitiveHandler>();
   model_handler_ = std::make_unique<ModelHandler>();
+  primitive_handler_->Initialize();
   model_handler_->Initialize();
 }
 
 void EntityFactoryManager::Shutdown() {
   model_handler_->Shutdown();
+  primitive_handler_->Shutdown();
   model_handler_ = nullptr;
   Manager::Shutdown();
 }
 
 const ModelHandler* EntityFactoryManager::GetModel() const {
   return model_handler_.get();
+}
+
+const PrimitiveHandler* EntityFactoryManager::GetPrimitive() const {
+  return primitive_handler_.get();
 }
 }  // namespace entity
 }  // namespace comet

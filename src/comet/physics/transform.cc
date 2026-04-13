@@ -43,7 +43,7 @@ void TranslateLocal(TransformComponent* cmp,
   internal::MakeDirty(cmp);
 }
 
-void RotateLocal(TransformComponent* cmp, float rotation_angle,
+void RotateLocal(TransformComponent* cmp, f32 rotation_angle,
                  const comet::math::Vec3& rotation_axis) {
   cmp->local = math::Rotate(cmp->local, rotation_angle, rotation_axis);
   internal::MakeDirty(cmp);

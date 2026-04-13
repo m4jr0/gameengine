@@ -9,6 +9,7 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
 #include "comet/entity/factory/handler/entity_model_handler.h"
+#include "comet/entity/factory/handler/entity_primitive_handler.h"
 
 namespace comet {
 namespace entity {
@@ -27,9 +28,11 @@ class EntityFactoryManager : public Manager {
   void Shutdown() override;
 
   const ModelHandler* GetModel() const;
+  const PrimitiveHandler* GetPrimitive() const;
 
  private:
   memory::UniquePtr<ModelHandler> model_handler_{nullptr};
+  memory::UniquePtr<PrimitiveHandler> primitive_handler_{nullptr};
 };
 }  // namespace entity
 }  // namespace comet

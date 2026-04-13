@@ -31,7 +31,7 @@ static thread_local Fiber* tls_current_fiber{nullptr};
 
 #ifdef COMET_IS_ASAN
 static thread_local void* tls_fake_stack{nullptr};
-#endif
+#endif  // COMET_IS_ASAN
 
 extern "C" {
 extern void COMET_FORCE_NOT_INLINE

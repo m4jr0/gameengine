@@ -44,6 +44,7 @@ class PhysicsManager : public Manager {
 
   u32 GetFrameRate() const noexcept;
   f64 GetFrameTime() const noexcept;
+  f64 GetFixedDeltaTime() const noexcept;
 
  private:
   void UpdateEntityTransforms(frame::FramePacket* packet);

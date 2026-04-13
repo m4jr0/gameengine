@@ -203,15 +203,17 @@ class FiberCV {
     auto* fiber{GetFiber()};
     COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
 
-    {
-      FiberSpinLockGuard spin_lock{spin_lock_};
+    while (!pred()) {
+      {
+        FiberSpinLockGuard spin_lock{spin_lock_};
 
-      if (!pred()) {
+        if (pred()) {
+          break;
+        }
+
         awaiting_fibers_.push_back(fiber);
       }
-    }
 
-    while (!pred()) {
       lock.Unlock();
       internal::ResumeWorker();
       lock.Lock();

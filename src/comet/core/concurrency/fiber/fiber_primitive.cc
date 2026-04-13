@@ -50,11 +50,19 @@ FiberSpinLockGuard::~FiberSpinLockGuard() { spin_lock_.Unlock(); }
 void FiberMutex::Lock() {
   for (;;) {
     auto* fiber{GetFiber()};
-    FiberSpinLockGuard guard{spin_lock_};
-    COMET_ASSERT(fiber != owner_, "Lock is already owned by current fiber!");
+    bool is_locked{false};
 
-    if (owner_ == nullptr) {
-      owner_ = fiber;
+    {
+      FiberSpinLockGuard guard{spin_lock_};
+      COMET_ASSERT(fiber != owner_, "Lock is already owned by current fiber!");
+
+      if (owner_ == nullptr) {
+        owner_ = fiber;
+        is_locked = true;
+      }
+    }
+
+    if (is_locked) {
       return;
     }
 
@@ -136,10 +144,10 @@ void FiberCV::NotifyOne() {
       to_resume = awaiting_fibers_.front();
       awaiting_fibers_.pop_front();
     }
+  }
 
-    if (to_resume != nullptr) {
-      internal::Sleep(to_resume);
-    }
+  if (to_resume != nullptr) {
+    internal::Sleep(to_resume);
   }
 }
 
@@ -152,14 +160,14 @@ void FiberCV::NotifyAll() {
   }
 
   for (auto* fiber : to_resume) {
-    internal::SleepTo(fiber);
+    internal::Sleep(fiber);
   }
 }
 
 void FiberSharedMutex::LockExclusive() {
   FiberUniqueLock lock{mutex_};
 
-  while (reader_count_.load(std::memory_order_acquire) > 0) {
+  while (is_writer_ || reader_count_.load(std::memory_order_acquire) > 0) {
     cv_.Wait(lock);
   }
 
