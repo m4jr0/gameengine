@@ -25,20 +25,22 @@ void FramePacket::RegisterNewGeometry(
   auto* from_mesh{mesh_cmp->mesh};
   COMET_ASSERT(from_mesh != nullptr, "Mesh from mesh component is null!");
 
-  AddedGeometry geometry{};
-  geometry.entity_id = entity_id;
-  geometry.model_entity_id = mesh_cmp->model_entity_id;
-  geometry.mesh_id = from_mesh->id;
-  geometry.material_resource = mesh_cmp->material_resource;
+  AddedGeometry geometry{
+      .entity_id = entity_id,
+      .model_entity_id = mesh_cmp->model_entity_id,
+      .mesh_id = from_mesh->id,
+      .material_resource = mesh_cmp->material_resource,
 
-  geometry.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex);
-  geometry.indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index);
+      .indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index),
+      .vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex),
+
+      .transform = transform_cmp->global,
+      .local_center = from_mesh->local_center,
+      .local_max_extents = from_mesh->local_max_extents,
+  };
+
   geometry.vertices->PushFromRange(from_mesh->vertices);
   geometry.indices->PushFromRange(from_mesh->indices);
-
-  geometry.transform = transform_cmp->global;
-  geometry.local_center = from_mesh->local_center;
-  geometry.local_max_extents = from_mesh->local_max_extents;
 
   fiber::FiberLockGuard lock{added_geometries_mtx};
   added_geometries->Add(std::move(geometry));
@@ -50,20 +52,21 @@ void FramePacket::RegisterDirtyMesh(entity::EntityId entity_id,
   auto* from_mesh{mesh_cmp->mesh};
   COMET_ASSERT(from_mesh != nullptr, "Mesh from mesh component is null!");
 
-  DirtyMesh mesh{};
-  mesh.entity_id = entity_id;
-  mesh.model_entity_id = mesh_cmp->model_entity_id;
-  mesh.mesh_id = from_mesh->id;
-  mesh.material_resource = mesh_cmp->material_resource;
+  DirtyMesh mesh{
+      .entity_id = entity_id,
+      .model_entity_id = mesh_cmp->model_entity_id,
+      .mesh_id = from_mesh->id,
+      .material_resource = mesh_cmp->material_resource,
 
-  mesh.vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex);
-  mesh.indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index);
+      .local_center = from_mesh->local_center,
+      .local_max_extents = from_mesh->local_max_extents,
+
+      .indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index),
+      .vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex),
+  };
 
   mesh.vertices->PushFromRange(from_mesh->vertices);
   mesh.indices->PushFromRange(from_mesh->indices);
-
-  mesh.local_center = from_mesh->local_center;
-  mesh.local_max_extents = from_mesh->local_max_extents;
 
   fiber::FiberLockGuard lock{dirty_meshes_mtx};
   dirty_meshes->Add(std::move(mesh));
@@ -74,9 +77,10 @@ void FramePacket::RegisterDirtyTransform(
     const physics::TransformComponent* transform_cmp) {
   COMET_ASSERT(transform_cmp != nullptr, "Transform component is null!");
 
-  DirtyTransform transform{};
-  transform.entity_id = entity_id;
-  transform.transform = transform_cmp->global;
+  DirtyTransform transform{
+      .entity_id = entity_id,
+      .transform = transform_cmp->global,
+  };
 
   fiber::FiberLockGuard lock{dirty_transforms_mtx};
   dirty_transforms->Add(std::move(transform));
@@ -85,13 +89,49 @@ void FramePacket::RegisterDirtyTransform(
 void FramePacket::RegisterRemovedGeometry(entity::EntityId entity_id,
                                           entity::EntityId model_entity_id,
                                           geometry::MeshId mesh_id) {
-  RemovedGeometry geometry{};
-  geometry.entity_id = entity_id;
-  geometry.model_entity_id = model_entity_id;
-  geometry.mesh_id = mesh_id;
+  RemovedGeometry geometry{
+      .entity_id = entity_id,
+      .model_entity_id = model_entity_id,
+      .mesh_id = mesh_id,
+  };
 
   fiber::FiberLockGuard lock{removed_geometries_mtx};
   removed_geometries->Add(std::move(geometry));
+}
+
+void FramePacket::RegisterNewLight(rendering::LightId light_id,
+                                   const rendering::LightProperties* props,
+                                   const rendering::LightShadow* shadow) {
+  AddedLight light{
+      .light_id = light_id,
+      .props = *props,
+      .shadow = *shadow,
+  };
+
+  fiber::FiberLockGuard lock{added_lights_mtx};
+  added_lights->Add(std::move(light));
+}
+
+void FramePacket::RegisterDirtyLight(rendering::LightId light_id,
+                                     const rendering::LightProperties* props,
+                                     const rendering::LightShadow* shadow) {
+  DirtyLight light{
+      .light_id = light_id,
+      .props = *props,
+      .shadow = *shadow,
+  };
+
+  fiber::FiberLockGuard lock{dirty_lights_mtx};
+  dirty_lights->Add(std::move(light));
+}
+
+void FramePacket::RegisterRemovedLight(rendering::LightId light_id) {
+  RemovedLight light{
+      .light_id = light_id,
+  };
+
+  fiber::FiberLockGuard lock{removed_lights_mtx};
+  removed_lights->Add(std::move(light));
 }
 
 bool FramePacket::IsFrameStageStarted(FrameStage stage) const {
@@ -110,7 +150,7 @@ void FramePacket::FramePacket::Reset() {
   // No locking required. This function is designed for single-threaded
   // execution.
 
-  is_rendering_skipped = false;
+  can_present = true;
   frame_count = 0;
   lag = .0f;
   time = .0f;
@@ -121,14 +161,17 @@ void FramePacket::FramePacket::Reset() {
     stage_times[i].end = 0;
   }
 
-  projection_matrix = math::Mat4{};
-  view_matrix = math::Mat4{};
+  ambient_color = rendering::kColorWhiteRgb;
   draw_count = 0;
+  camera_data = {};
 
   added_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(AddedGeometry);
   dirty_meshes = COMET_DOUBLE_FRAME_ORDERED_SET(DirtyMesh);
   dirty_transforms = COMET_DOUBLE_FRAME_ORDERED_SET(DirtyTransform);
   removed_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(RemovedGeometry);
+  added_lights = COMET_DOUBLE_FRAME_ORDERED_SET(AddedLight);
+  dirty_lights = COMET_DOUBLE_FRAME_ORDERED_SET(DirtyLight);
+  removed_lights = COMET_DOUBLE_FRAME_ORDERED_SET(RemovedLight);
   skinning_bindings = COMET_DOUBLE_FRAME_ARRAY(animation::SkinningBinding);
   matrix_palettes = COMET_DOUBLE_FRAME_ARRAY(animation::MatrixPalette);
 
@@ -150,6 +193,18 @@ HashValue GenerateHash(const DirtyTransform& value) {
 
 HashValue GenerateHash(const RemovedGeometry& value) {
   return comet::GenerateHash(value.entity_id);
+}
+
+HashValue GenerateHash(const AddedLight& value) {
+  return comet::GenerateHash(value.light_id);
+}
+
+HashValue GenerateHash(const DirtyLight& value) {
+  return comet::GenerateHash(value.light_id);
+}
+
+HashValue GenerateHash(const RemovedLight& value) {
+  return comet::GenerateHash(value.light_id);
 }
 }  // namespace frame
 }  // namespace comet

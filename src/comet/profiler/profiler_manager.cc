@@ -45,6 +45,11 @@ void ProfilerManager::Initialize() {
       COMET_EVENT_BIND_FUNCTION(ProfilerManager::OnEvent)};
   event::EventManager::Get().Register(event_function,
                                       ApplicationQuitEvent::kStaticType_);
+
+#ifdef COMET_PROFILING
+#ifdef COMET_IMGUI
+#endif  // COMET_IMGUI
+#endif  // COMET_DEBUG
 }
 
 void ProfilerManager::Shutdown() {

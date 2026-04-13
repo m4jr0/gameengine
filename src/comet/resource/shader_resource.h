@@ -14,15 +14,16 @@
 namespace comet {
 namespace resource {
 struct ShaderResourceDescr {
-  bool is_wireframe{false};
-  rendering::CullMode cull_mode{rendering::CullMode::Unknown};
+  rendering::RasterizerDescr rasterizer{};
+  rendering::DepthStencilDescr depth_stencil{};
   rendering::PrimitiveTopology topology{rendering::PrimitiveTopology::Unknown};
+  rendering::ShaderVertexLayout vertex_layout{
+      rendering::ShaderVertexLayout::None};
+
   Array<TString> shader_module_paths{};
   Array<rendering::ShaderDefineDescr> defines{};
-  Array<rendering::ShaderVertexAttributeDescr> vertex_attributes{};
-  Array<rendering::ShaderUniformDescr> uniforms{};
-  Array<rendering::ShaderConstantDescr> constants{};
-  Array<rendering::ShaderStorageDescr> storages{};
+  Array<rendering::ShaderBindingDescr> bindings{};
+  Array<rendering::ShaderPushConstantDescr> push_constants{};
 };
 
 struct ShaderResource : Resource {
@@ -36,6 +37,7 @@ usize GetSizeFromDescr(const ShaderResourceDescr& descr);
 const schar** GetActiveShaderEngineDefines(usize& count);
 bool IsShaderEngineDefineSet(const schar* engine_define,
                              usize engine_define_len);
+ResourceId GetDefaultShaderResourceId();
 }  // namespace resource
 }  // namespace comet
 

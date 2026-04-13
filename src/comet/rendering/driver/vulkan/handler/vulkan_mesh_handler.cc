@@ -136,7 +136,9 @@ void MeshHandler::AcquireFromTransferQueueIfNeeded() {
         VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
         transfer_queue_index, graphics_queue_index);
 
-    ApplyBufferMemoryBarriers(&acquire_barriers,
+    COMET_ASSERT(acquire_barriers != nullptr, "Acquire barriers are null!");
+
+    ApplyBufferMemoryBarriers(*acquire_barriers,
                               context_->GetFrameData().command_buffer_handle,
                               VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                               VK_PIPELINE_STAGE_VERTEX_INPUT_BIT |
@@ -242,8 +244,10 @@ void MeshHandler::FinishUpdate(internal::UpdateContext& update_context) {
                              VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
                              transfer_queue_index, graphics_queue_index);
 
+      COMET_ASSERT(release_barriers != nullptr, "Release barriers are null!");
+
       ApplyBufferMemoryBarriers(
-          &release_barriers, update_context.command_buffer_handle,
+          *release_barriers, update_context.command_buffer_handle,
           VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
     }
   }

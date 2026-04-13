@@ -12,11 +12,20 @@
 
 namespace comet {
 namespace math {
+constexpr f32 kParallelThreshold{.99f};
+
 constexpr auto kPi{3.14159265358979323846};
+constexpr auto kHalfPi{.5 * kPi};
+constexpr auto kTwoPi{2 * kPi};
 
 template <typename T>
 constexpr T ConvertToRadians(T x) {
   return static_cast<T>(x * (kPi / 180));
+}
+
+template <typename T>
+constexpr T ConvertToDegrees(T x) {
+  return static_cast<T>(x * (180 / kPi));
 }
 
 Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis);

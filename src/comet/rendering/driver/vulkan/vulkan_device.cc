@@ -493,7 +493,7 @@ PhysicalDeviceScore Device::GetPhysicalDeviceScore(
     score += 1000;
   }
 
-  const auto msaa_samples{GetMaxUsableSampleCount(physical_device_handle)};
+  auto msaa_samples{GetMaxUsableSampleCount(physical_device_handle)};
   score += 5 * msaa_samples;
   score += properties.limits.maxImageDimension2D;
 
@@ -565,7 +565,7 @@ void Device::ResolvePhysicalDeviceHandle() {
   PhysicalDeviceScore best_score{0};
 
   for (const auto& physical_device_handle : physical_device_handles) {
-    const auto score{GetPhysicalDeviceScore(physical_device_handle)};
+    auto score{GetPhysicalDeviceScore(physical_device_handle)};
 
     if (score > best_score || physical_device_handle_ == VK_NULL_HANDLE) {
       physical_device_handle_ = physical_device_handle;

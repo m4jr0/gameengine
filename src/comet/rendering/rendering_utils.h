@@ -11,10 +11,21 @@
 
 namespace comet {
 namespace rendering {
+enum class ClipSpaceDepthRange : u8 { MinusOneToOne, ZeroToOne };
+
+math::Vec3 ComputeStableUpVector(const math::Vec3& forward);
 math::Mat4 LookAt(const math::Vec3& eye, const math::Vec3& center,
                   const math::Vec3& up);
-math::Mat4 GenerateProjectionMatrix(f32 vertical_fov, f32 ratio, f32 z_near,
-                                    f32 z_far);
+math::Mat4 GeneratePerspectiveMatrix(f32 vertical_fov, f32 ratio, f32 z_near,
+                                     f32 z_far,
+                                     ClipSpaceDepthRange depth_range);
+math::Mat4 GenerateOrthographicMatrix(f32 left, f32 right, f32 bottom, f32 top,
+                                      f32 z_near, f32 z_far,
+                                      ClipSpaceDepthRange depth_range);
+
+math::Vec4 GenerateTangentWithSign(const math::Vec3& raw_normal,
+                                   const math::Vec3& raw_tangent,
+                                   const math::Vec3* raw_bitangent = nullptr);
 }  // namespace rendering
 }  // namespace comet
 

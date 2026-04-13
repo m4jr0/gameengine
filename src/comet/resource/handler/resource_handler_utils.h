@@ -203,6 +203,7 @@ class LoadingTracker {
                                        bool& is_already_loading);
   T* Wait(LoadingResourceState<T>* state);
   void Finish(LoadingResourceState<T>* state, T* resource);
+  void Release(LoadingResourceState<T>* state);
 
  private:
   void ReleaseLoadingState(LoadingResourceState<T>* state);
@@ -279,6 +280,11 @@ inline void LoadingTracker<T>::Finish(LoadingResourceState<T>* state,
   fiber::FiberLockGuard lock{mtx_};
   state->resource = resource;
   state->is_loading = false;
+}
+
+template <typename T>
+inline void LoadingTracker<T>::Release(LoadingResourceState<T>* state) {
+  fiber::FiberLockGuard lock{mtx_};
   ReleaseLoadingState(state);
 }
 

@@ -8,6 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
@@ -17,6 +18,7 @@ namespace rendering {
 namespace vk {
 struct ShaderViewDescr : ViewDescr {
   ShaderHandler* shader_handler{nullptr};
+  MaterialHandler* material_handler{nullptr};
   PipelineHandler* pipeline_handler{nullptr};
 };
 
@@ -35,6 +37,7 @@ class ShaderView : public View {
  protected:
   Shader* shader_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
+  MaterialHandler* material_handler_{nullptr};
   PipelineHandler* pipeline_handler_{nullptr};
 };
 }  // namespace vk

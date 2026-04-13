@@ -85,13 +85,13 @@ ResourceFile StaticModelResourceHandler::Pack(
     memory::CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
     cursor += kParentMeshIdSize;
 
-    const auto vertex_count{mesh.vertices.GetSize()};
-    const auto index_count{mesh.indices.GetSize()};
+    auto vertex_count{mesh.vertices.GetSize()};
+    auto index_count{mesh.indices.GetSize()};
 
     memory::CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
 
     cursor += kVertexCountSize;
-    const auto vertex_total_size{kVertexSize * vertex_count};
+    auto vertex_total_size{kVertexSize * vertex_count};
 
     memory::CopyMemory(&buffer[cursor], mesh.vertices.GetData(),
                        vertex_total_size);
@@ -101,7 +101,7 @@ ResourceFile StaticModelResourceHandler::Pack(
     memory::CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
 
     cursor += kIndexCountSize;
-    const auto index_total_size{kIndexSize * index_count};
+    auto index_total_size{kIndexSize * index_count};
 
     memory::CopyMemory(&buffer[cursor], mesh.indices.GetData(),
                        index_total_size);
@@ -188,7 +188,7 @@ void StaticModelResourceHandler::Unpack(const ResourceFile& file,
     mesh.vertices = Array<geometry::SkinnedVertex>{
         ResolveAllocator(byte_allocator_, life_span)};
     mesh.vertices.Resize(vertex_count);
-    const auto vertex_total_size{kVertexSize * vertex_count};
+    auto vertex_total_size{kVertexSize * vertex_count};
     memory::CopyMemory(mesh.vertices.GetData(), &buffer[cursor],
                        vertex_total_size);
     cursor += vertex_total_size;
@@ -200,7 +200,7 @@ void StaticModelResourceHandler::Unpack(const ResourceFile& file,
     mesh.indices =
         Array<geometry::Index>{ResolveAllocator(byte_allocator_, life_span)};
     mesh.indices.Resize(index_count);
-    const auto index_total_size{kIndexSize * index_count};
+    auto index_total_size{kIndexSize * index_count};
     memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
                        index_total_size);
     cursor += index_total_size;
@@ -280,13 +280,13 @@ ResourceFile SkeletalModelResourceHandler::Pack(
     memory::CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
     cursor += kParentMeshIdSize;
 
-    const auto vertex_count{mesh.vertices.GetSize()};
-    const auto index_count{mesh.indices.GetSize()};
+    auto vertex_count{mesh.vertices.GetSize()};
+    auto index_count{mesh.indices.GetSize()};
 
     memory::CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
 
     cursor += kVertexCountSize;
-    const auto vertex_total_size{kVertexSize * vertex_count};
+    auto vertex_total_size{kVertexSize * vertex_count};
 
     memory::CopyMemory(&buffer[cursor], mesh.vertices.GetData(),
                        vertex_total_size);
@@ -296,7 +296,7 @@ ResourceFile SkeletalModelResourceHandler::Pack(
     memory::CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
 
     cursor += kIndexCountSize;
-    const auto index_total_size{kIndexSize * index_count};
+    auto index_total_size{kIndexSize * index_count};
 
     memory::CopyMemory(&buffer[cursor], mesh.indices.GetData(),
                        index_total_size);
@@ -387,7 +387,7 @@ void SkeletalModelResourceHandler::Unpack(const ResourceFile& file,
     mesh.vertices = Array<geometry::SkinnedVertex>{
         ResolveAllocator(byte_allocator_, life_span)};
     mesh.vertices.Resize(vertex_count);
-    const auto vertex_total_size{kVertexSize * vertex_count};
+    auto vertex_total_size{kVertexSize * vertex_count};
     memory::CopyMemory(mesh.vertices.GetData(), &buffer[cursor],
                        vertex_total_size);
     cursor += vertex_total_size;
@@ -399,7 +399,7 @@ void SkeletalModelResourceHandler::Unpack(const ResourceFile& file,
     mesh.indices =
         Array<geometry::Index>{ResolveAllocator(byte_allocator_, life_span)};
     mesh.indices.Resize(index_count);
-    const auto index_total_size{kIndexSize * index_count};
+    auto index_total_size{kIndexSize * index_count};
     memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
                        index_total_size);
     cursor += index_total_size;

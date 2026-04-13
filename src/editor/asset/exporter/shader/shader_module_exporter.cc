@@ -35,7 +35,7 @@ bool ShaderModuleExporter::IsCompatible(CTStringView extension) const {
 
 void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   auto& asset_descr{context.asset_descr};
-  const auto driver_keyword_pos{
+  auto driver_keyword_pos{
       asset_descr.asset_path.GetNthToLastIndexOf(COMET_TCHAR('.'), 2)};
 
   if (driver_keyword_pos == kInvalidIndex) {
@@ -153,7 +153,7 @@ void ShaderModuleExporter::GenerateSpvShaderCode(
       break;
   }
 
-  const auto tmp_input_file_name{GetName(shader_code_context.asset_abs_path)};
+  auto tmp_input_file_name{GetName(shader_code_context.asset_abs_path)};
 #ifdef COMET_WIDE_TCHAR
   const auto* input_file_name{GenerateForOneFrame<schar>(
       tmp_input_file_name.GetCTStr(), tmp_input_file_name.GetLength())};
@@ -161,8 +161,8 @@ void ShaderModuleExporter::GenerateSpvShaderCode(
   const auto* input_file_name{tmp_input_file_name.GetCTStr()};
 #endif  // COMET_WIDE_TCHAR
 
-  const auto result{compiler.CompileGlslToSpv(
-      shader_code_context.code, shader_kind, input_file_name, options)};
+  auto result{compiler.CompileGlslToSpv(shader_code_context.code, shader_kind,
+                                        input_file_name, options)};
 
   if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
     COMET_LOG_GLOBAL_ERROR("Shaderc compilation error! At ",

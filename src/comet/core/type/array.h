@@ -165,14 +165,16 @@ class Array : public internal::BaseArray<T> {
       return *this;
     }
 
-    Clear();
+    Destroy();
+
     this->size_ = other.size_;
     this->capacity_ = other.capacity_;
     this->allocator_ = other.allocator_;
 
     if (this->size_ != 0) {
-      this->data_ = static_cast<T*>(
-          allocator_->AllocateAligned(this->capacity_ * sizeof(T), alignof(T)));
+      this->data_ = static_cast<T*>(this->allocator_->AllocateAligned(
+          this->capacity_ * sizeof(T), alignof(T)));
+
       for (usize i{0}; i < this->size_; ++i) {
         memory::Populate<T>(&this->data_[i], other.data_[i]);
       }
@@ -186,7 +188,8 @@ class Array : public internal::BaseArray<T> {
       return *this;
     }
 
-    Clear();
+    Destroy();
+
     this->size_ = other.size_;
     this->capacity_ = other.capacity_;
     this->data_ = other.data_;
@@ -196,6 +199,7 @@ class Array : public internal::BaseArray<T> {
     other.capacity_ = 0;
     other.data_ = nullptr;
     other.allocator_ = nullptr;
+
     return *this;
   }
 
@@ -215,20 +219,25 @@ class Array : public internal::BaseArray<T> {
     return true;
   }
 
-  bool operator!=(const Array& other) { return !operator=(other); }
+  bool operator!=(const Array& other) { return !operator==(other); }
 
   void Destroy() {
     if (this->data_ != nullptr) {
       comet::Clear(this->data_, this->size_);
       this->allocator_->Deallocate(this->data_);
-      this->data_ = nullptr;
-      this->size_ = 0;
     }
 
+    this->allocator_ = nullptr;
+    this->data_ = nullptr;
+    this->size_ = 0;
     this->capacity_ = 0;
   }
 
   void Reserve(usize new_capacity) {
+    if (new_capacity <= this->capacity_) {
+      return;
+    }
+
     this->data_ = comet::Reserve(this->allocator_, this->data_, this->size_,
                                  this->capacity_, new_capacity);
     this->capacity_ = new_capacity;
@@ -239,18 +248,20 @@ class Array : public internal::BaseArray<T> {
       Reserve(new_size);
     }
 
-    if constexpr (std::is_trivially_constructible_v<T>) {
-      if (new_size > this->size_) {
+    if (new_size > this->size_) {
+      if constexpr (std::is_trivially_constructible_v<T>) {
         memory::ClearMemory(this->data_ + this->size_,
                             (new_size - this->size_) * sizeof(T));
+      } else {
+        for (usize i{this->size_}; i < new_size; ++i) {
+          memory::Populate<T>(&this->data_[i], this->allocator_);
+        }
       }
-    } else {
-      for (usize i{this->size_}; i < new_size; ++i) {
-        memory::Populate<T>(&this->data_[i], allocator_);
-      }
-
-      for (usize i{new_size}; i < this->size_; ++i) {
-        this->data_[i].~T();
+    } else if (new_size < this->size_) {
+      if constexpr (!std::is_trivially_destructible_v<T>) {
+        for (usize i{new_size}; i < this->size_; ++i) {
+          this->data_[i].~T();
+        }
       }
     }
 
@@ -284,6 +295,27 @@ class Array : public internal::BaseArray<T> {
     memory::Populate<T>(&this->data_[this->size_],
                         std::forward<Targs>(args)...);
     return this->data_[this->size_++];
+  }
+
+  void PopBack() {
+    COMET_ASSERT(this->size_ > 0, "Array is empty!");
+    --this->size_;
+
+    if constexpr (!std::is_trivially_destructible_v<T>) {
+      this->data_[this->size_].~T();
+    }
+  }
+
+  T TakeBack() {
+    COMET_ASSERT(this->size_ > 0, "Array is empty!");
+    auto value{std::move(this->data_[this->size_ - 1])};
+    --this->size_;
+
+    if constexpr (!std::is_trivially_destructible_v<T>) {
+      this->data_[this->size_].~T();
+    }
+
+    return value;
   }
 
   ContiguousIterator<T> RemoveFromPos(ContiguousIterator<T> pos) {

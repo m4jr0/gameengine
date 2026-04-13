@@ -8,7 +8,9 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/map.h"
+#include "comet/math/math_common.h"
 #include "comet/rendering/driver/opengl/data/opengl_material.h"
+#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
@@ -16,6 +18,8 @@
 namespace comet {
 namespace rendering {
 namespace gl {
+using MaterialDestroyCallback = void (*)(Material* material, void* user_data);
+
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
 };
@@ -33,12 +37,12 @@ class MaterialHandler : public Handler {
   void Initialize() override;
   void Shutdown() override;
 
+  void SetDestroyCallback(MaterialDestroyCallback callback, void* user_data);
+
   Material* Generate(const MaterialDescr& descr);
   Material* Generate(const resource::MaterialResource* resource);
   Material* Get(MaterialId material_id);
   Material* TryGet(MaterialId material_id);
-  Material* GetOrGenerate(const MaterialDescr& descr);
-  Material* GetOrGenerate(const resource::MaterialResource* resource);
   void Destroy(MaterialId material_id);
   void Destroy(Material* material);
 
@@ -47,14 +51,28 @@ class MaterialHandler : public Handler {
                                 resource::ResourceLifeSpan life_span =
                                     resource::ResourceLifeSpan::Manual);
   void Destroy(Material* material, bool is_destroying_handler);
-  TextureType GetTextureType(rendering::TextureType texture_type);
-  RepeatMode GetRepeatMode(TextureRepeatMode repeat_mode);
-  FilterMode GetFilterMode(TextureFilterMode filter_mode);
 
-  memory::FiberFreeListAllocator allocator_{sizeof(Pair<MaterialId, Material>),
-                                            256,
-                                            memory::kEngineMemoryTagRendering};
+  Sampler* GenerateSampler(SamplerId sampler_id, GLenum wrap_s, GLenum wrap_t,
+                           GLenum min_filter, GLenum mag_filter);
+  Sampler* GetSampler(SamplerId sampler_id);
+  Sampler* TryGetSampler(SamplerId sampler_id);
+  Sampler* GetOrGenerateSampler(const resource::TextureMap* texture_map);
+  void Destroy(Sampler* sampler);
+
+  static GLenum GetWrapMode(TextureRepeatMode repeat_mode);
+  static GLenum GetFilterMode(TextureFilterMode filter_mode);
+
+  memory::FiberFreeListAllocator allocator_{
+      math::Max(sizeof(Pair<MaterialId, Material>),
+                sizeof(Pair<SamplerId, Sampler>)),
+      256, memory::kEngineMemoryTagRendering};
+
+  MaterialDestroyCallback destroy_callback_{nullptr};
+  void* destroy_callback_user_data_{nullptr};
+
   Map<MaterialId, Material*> materials_{};
+  Map<SamplerId, Sampler*> samplers_{};
+
   TextureHandler* texture_handler_{nullptr};
 };
 }  // namespace gl

@@ -7,25 +7,26 @@
 
 #include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using RepeatMode = u32;
-constexpr auto kInvalidRepeatMode{static_cast<RepeatMode>(-1)};
+using SamplerId = usize;
+constexpr auto kInvalidSamplerId{static_cast<SamplerId>(-1)};
 
-using FilterMode = u32;
-constexpr auto kInvalidFilterMode{static_cast<FilterMode>(-1)};
-
-constexpr auto kMaxTextureLabelSize{32};
-
-enum TextureType { Invalid = -1, Diffuse = 0, Specular = 1, Normal = 2 };
+struct Sampler {
+  SamplerId id{kInvalidSamplerId};
+  usize ref_count{0};
+  GLuint handle{0};
+};
 
 struct TextureMap {
-  TextureHandle texture_handle{kInvalidTextureHandle};
-  TextureType type{TextureType::Invalid};
+  Sampler* sampler{nullptr};
+  const Texture* texture{nullptr};
   resource::ResourceId texture_resource_id{resource::kInvalidResourceId};
+  rendering::TextureType type{rendering::TextureType::Unknown};
 };
 }  // namespace gl
 }  // namespace rendering

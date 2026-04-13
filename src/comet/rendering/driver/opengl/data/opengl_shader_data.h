@@ -10,15 +10,29 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/gid.h"
-#include "comet/math/matrix.h"
+#include "comet/core/type/map.h"
+#include "comet/rendering/driver/opengl/data/opengl_material.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
+namespace shaderconsts {
+constexpr u32 kGlobalSet{0};
+constexpr u32 kMaterialSet{1};
+constexpr u32 kPassSet{2};
+
+constexpr u32 kGlobalSetOffset{0};
+constexpr u32 kMaterialSetOffset{10};
+constexpr u32 kPassSetOffset{20};
+
+// OpenGL bridge for Vulkan push constants.
+constexpr u32 kPushConstantBindingOffset{50};
+}  // namespace shaderconsts
+
 using UniformBufferHandle = GLuint;
 constexpr auto kInvalidUniformBufferHandle{0};
 
@@ -27,233 +41,179 @@ constexpr auto kInvalidStorageBufferHandle{0};
 
 using ShaderWord = u32;
 
-constexpr auto kUniformNameProjection{"projection"sv};
-constexpr auto kUniformNameView{"view"sv};
-constexpr auto kUniformNameAmbientColor{"ambientColor"sv};
-constexpr auto kUniformNameViewPos{"viewPos"sv};
-constexpr auto kUniformNameDiffuseColor{"diffuseColor"sv};
-constexpr auto kUniformNameDiffuseMap{"diffuseMap"sv};
-constexpr auto kUniformNameSpecularMap{"specularMap"sv};
-constexpr auto kUniformNameNormalMap{"normalMap"sv};
-constexpr auto kUniformNameShininess{"shininess"sv};
+constexpr auto kDescriptorSetMaxLayoutCount{8};
+constexpr auto kDescriptorBindingMaxCount{32};
+constexpr auto kMaxShaderBindings{64};
+constexpr auto kMaxShaderFieldsPerBlock{64};
+constexpr auto kMaxShaderPushConstantBlocks{8};
 
-constexpr auto kConstantNameDrawCount{"drawCount"sv};
-constexpr auto kConstantNameCount{"count"sv};
+using ShaderFieldIndex = u16;
+constexpr auto kInvalidShaderFieldIndex{static_cast<ShaderFieldIndex>(-1)};
 
-constexpr auto kStorageNameProxyLocalDatas{"proxyLocalDatas"sv};
-constexpr auto kStorageNameProxyIds{"proxyIds"sv};
-constexpr auto kStorageNameProxyInstances{"proxyInstances"sv};
-constexpr auto kStorageNameIndirectProxies{"indirectProxies"sv};
-constexpr auto kStorageNameWordIndices{"wordIndices"sv};
-constexpr auto kStorageNameSourceWords{"sourceWords"sv};
-constexpr auto kStorageNameDestinationWords{"destinationWords"sv};
-constexpr auto kStorageNameMatrixPalettes{"matrixPalettes"sv};
-
-#ifdef COMET_DEBUG_RENDERING
-constexpr auto kStorageNameDebugData{"debugData"sv};
-#endif  // COMET_DEBUG_RENDERING
-
-#ifdef COMET_DEBUG_CULLING
-constexpr auto kStorageNameDebugAabbs{"debugAabbs"sv};
-constexpr auto kStorageNameLineVertices{"lineVertices"sv};
-#endif  // COMET_DEBUG_CULLING
-
-using ShaderBindingIndex = u32;
+using ShaderBindingIndex = u16;
 constexpr auto kInvalidShaderBindingIndex{static_cast<ShaderBindingIndex>(-1)};
 
-constexpr ShaderBindingIndex kStorageBindingOffset{10};
-constexpr ShaderBindingIndex kStorageBindingProxyLocalDatas{
-    kStorageBindingOffset + 0};
-constexpr ShaderBindingIndex kStorageBindingProxyIds{kStorageBindingOffset + 1};
-constexpr ShaderBindingIndex kStorageBindingProxyInstances{
-    kStorageBindingOffset + 2};
-constexpr ShaderBindingIndex kStorageBindingIndirectProxies{
-    kStorageBindingOffset + 3};
-constexpr ShaderBindingIndex kStorageBindingWordIndices{kStorageBindingOffset +
-                                                        4};
-constexpr ShaderBindingIndex kStorageBindingSourceWords{kStorageBindingOffset +
-                                                        5};
-constexpr ShaderBindingIndex kStorageBindingDestinationWords{
-    kStorageBindingOffset + 6};
-constexpr ShaderBindingIndex kStorageBindingMatrixPalettes{
-    kStorageBindingOffset + 7};
+using ShaderPushConstantIndex = u16;
+constexpr auto kInvalidShaderPushConstantIndex{
+    static_cast<ShaderPushConstantIndex>(-1)};
 
-constexpr ShaderBindingIndex kStorageBindingDebugOffset{kStorageBindingOffset +
-                                                        64};
-#ifdef COMET_DEBUG_RENDERING
-constexpr ShaderBindingIndex kStorageBindingDebugData{
-    kStorageBindingDebugOffset};
-#endif  // COMET_DEBUG_RENDERING
-#ifdef COMET_DEBUG_CULLING
-constexpr ShaderBindingIndex kStorageBindingDebugAabbs{
-    kStorageBindingDebugOffset + 1};
-constexpr ShaderBindingIndex kStorageBindingLineVertices{
-    kStorageBindingDebugOffset + 2};
-#endif  // COMET_DEBUG_CULLING
+using ShaderOffset = sptrdiff;
 
-using ShaderUniformLocation = u16;
-constexpr auto kInvalidShaderUniformLocation{
-    static_cast<ShaderUniformLocation>(-1)};
+struct ShaderFieldLayoutInfo {
+  Alignment alignment{kInvalidAlignment};
+  ShaderVariableSize element_size{kInvalidShaderVariableSize};
+  ShaderVariableSize aligned_size{kInvalidShaderVariableSize};
+  ShaderVariableSize stride{0};
+  ShaderVariableSize total_size{kInvalidShaderVariableSize};
+};
 
-using ShaderConstantLocation = ShaderUniformLocation;
-constexpr auto kInvalidShaderConstantLocation{kInvalidShaderUniformLocation};
+struct ShaderField {
+  ShaderVariableType type{ShaderVariableType::Unknown};
 
-using ShaderUniformIndex = u16;
-constexpr auto kInvalidShaderUniformIndex{static_cast<ShaderUniformIndex>(-1)};
-
-using ShaderConstantIndex = u16;
-constexpr auto kInvalidShaderConstantIndex{
-    static_cast<ShaderConstantIndex>(-1)};
-
-using ShaderStorageIndex = u16;
-constexpr auto kInvalidShaderStorageIndex{static_cast<ShaderStorageIndex>(-1)};
-
-using ShaderOffset = s32;
-
-struct ShaderUniform {
   ShaderOffset offset{0};
-  ShaderUniformSize size{kInvalidShaderUniformSize};
-  ShaderUniformIndex index{kInvalidShaderUniformIndex};
-  ShaderUniformLocation location{kInvalidShaderUniformLocation};
-  ShaderVariableType type{ShaderVariableType::Unknown};
-  ShaderUniformScope scope{ShaderUniformScope::Unknown};
+
+  ShaderVariableSize element_size{kInvalidShaderVariableSize};
+  ShaderVariableSize aligned_size{kInvalidShaderVariableSize};
+  ShaderVariableSize stride{0};
+  ShaderVariableSize size{kInvalidShaderVariableSize};
+
+  u32 array_count{1};
 };
 
-struct ShaderConstant {
-  ShaderConstantLocation location{kInvalidShaderConstantLocation};
-  ShaderConstantSize size{kInvalidShaderConstantSize};
-  ShaderConstantIndex index{kInvalidShaderConstantIndex};
-  ShaderVariableType type{ShaderVariableType::Unknown};
+struct ShaderBinding {
+  ShaderBindingType type{ShaderBindingType::Unknown};
+  ShaderBindingScope scope{ShaderBindingScope::Unknown};
+  ShaderMemoryLayout layout{ShaderMemoryLayout::Unknown};
+  ShaderStageFlags stages{kShaderStageFlagBitsNone};
+
+  ShaderBindingIndex index{kInvalidShaderBindingIndex};
+  u32 set{0};          // Logical set.
+  u32 binding{0};      // Logical binding.
+  u32 api_binding{0};  // Flattened OpenGL binding.
+  u32 descriptor_count{1};
+
+  ShaderImageBindingSemantic image_semantic{
+      ShaderImageBindingSemantic::Unknown};
+
+  ShaderOffset size{0};
+  ShaderOffset stride{0};
+  ShaderOffset offset{0};
+
+  Array<ShaderField> fields{};
 };
 
-using ShaderStoragePropertySize = u32;
-constexpr auto kInvalidShaderStoragePropertySize{
-    static_cast<ShaderStoragePropertySize>(-1)};
-
-struct ShaderStorageProperty {
-  ShaderStoragePropertySize size{kInvalidShaderStoragePropertySize};
-  ShaderVariableType type{ShaderVariableType::Unknown};
+struct ShaderPushConstantBlock {
+  ShaderPushConstantIndex index{kInvalidShaderPushConstantIndex};
+  ShaderStageFlags stages{kShaderStageFlagBitsNone};
+  ShaderOffset offset{0};
+  ShaderOffset size{0};
+  Array<ShaderField> fields{};
 };
 
-constexpr usize kMaxShaderStorageLayoutPropertyCount{5};
+using ShaderDescriptorSetIndex = u8;
+constexpr auto kInvalidShaderDescriptorSetIndex{
+    static_cast<ShaderDescriptorSetIndex>(-1)};
 
-struct ShaderStorage {
-  ShaderStorageIndex index{kInvalidShaderStorageIndex};
-  ShaderBindingIndex binding{kInvalidShaderBindingIndex};
-  usize property_count{0};
-  ShaderStorageProperty properties[kMaxShaderStorageLayoutPropertyCount]{};
+struct DescriptorSetLayoutBinding {
+  StaticArray<ShaderBindingIndex, kDescriptorBindingMaxCount> binding_indices{};
+  u32 binding_count{0};
 };
 
-using ShaderUniformBufferIndex = u8;
-constexpr auto kInvalidShaderUniformBufferIndex{
-    static_cast<ShaderUniformBufferIndex>(-1)};
-
-struct ShaderUniformBufferIndices {
-  ShaderUniformBufferIndex global{kInvalidShaderUniformBufferIndex};
-  ShaderUniformBufferIndex instance{kInvalidShaderUniformBufferIndex};
+struct DescriptorSetLayoutBindings {
+  StaticArray<DescriptorSetLayoutBinding, kDescriptorSetMaxLayoutCount> list{};
+  u32 count{0};
 };
 
-struct ShaderUniformIndices {
-  ShaderUniformIndex projection{kInvalidShaderUniformIndex};
-  ShaderUniformIndex view{kInvalidShaderUniformIndex};
-  ShaderUniformIndex ambient_color{kInvalidShaderUniformIndex};
-  ShaderUniformIndex view_pos{kInvalidShaderUniformIndex};
-  ShaderUniformIndex diffuse_color{kInvalidShaderUniformIndex};
-  ShaderUniformIndex diffuse_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex specular_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex normal_map{kInvalidShaderUniformIndex};
-  ShaderUniformIndex shininess{kInvalidShaderUniformIndex};
+struct ShaderImageDescriptor {
+  const Texture* texture{nullptr};
+  const Sampler* sampler{nullptr};
 };
 
-struct ShaderConstantIndices {
-  ShaderConstantIndex draw_count{kInvalidShaderConstantIndex};
-  ShaderConstantIndex count{kInvalidShaderConstantIndex};
+struct ShaderBindingImageRuntimeData {
+  ShaderBindingIndex binding_index{kInvalidShaderBindingIndex};
+  Array<ShaderImageDescriptor> descriptors{};
 };
 
-struct ShaderStorageIndices {
-  ShaderStorageIndex proxy_local_datas{kInvalidShaderStorageIndex};
-  ShaderStorageIndex proxy_ids{kInvalidShaderStorageIndex};
-  ShaderStorageIndex proxy_instances{kInvalidShaderStorageIndex};
-  ShaderStorageIndex indirect_proxies{kInvalidShaderStorageIndex};
-  ShaderStorageIndex word_indices{kInvalidShaderStorageIndex};
-  ShaderStorageIndex source_words{kInvalidShaderStorageIndex};
-  ShaderStorageIndex destination_words{kInvalidShaderStorageIndex};
-  ShaderStorageIndex matrix_palettes{kInvalidShaderStorageIndex};
-#ifdef COMET_DEBUG_RENDERING
-  ShaderStorageIndex debug_data{kInvalidShaderStorageIndex};
-#endif  // COMET_DEBUG_RENDERING
-#ifdef COMET_DEBUG_CULLING
-  ShaderStorageIndex debug_aabbs{kInvalidShaderStorageIndex};
-  ShaderStorageIndex line_vertices{kInvalidShaderStorageIndex};
-#endif  // COMET_DEBUG_CULLING
+struct ShaderBindingRuntimeData {
+  Array<ShaderBindingImageRuntimeData> image_bindings{};
 };
 
-struct ShaderDescr {
-  TString resource_path{};
+struct ShaderUniformBufferObjectData {
+  ShaderStageFlags stages{kShaderStageFlagBitsNone};
+  ShaderOffset size{0};
+  ShaderOffset stride{0};
+  ShaderOffset offset{0};
+};
+
+struct ShaderDescriptorSetRuntimeData {
+  FrameCount update_frame{kInvalidFrameCount};
+
+  // Logical runtime data for OpenGL.
+  // There is no Vulkan-style descriptor set object here, but we keep a parallel
+  // abstraction so the higher-level engine model stays consistent.
+  Array<ShaderBindingIndex> binding_indices{};
 };
 
 constexpr auto kMaxMaterialInstances{1024};
 
-struct ShaderUniformData {
-  Array<const TextureMap*> texture_maps{};
-  FrameCount update_frame{kInvalidFrameCount};
-};
-
-struct ShaderStorageData {
-  u32 count{0};
-};
-
-struct ShaderUniformBufferObjectData {
-  u32 uniform_count{0};
-  u32 sampler_count{0};
-  u32 uniform_block_index{GL_INVALID_VALUE};
-  usize ubo_size{0};
-  sptrdiff ubo_stride{0};
-  sptrdiff ubo_offset{0};
-};
-
-using MaterialInstanceId = gid::Gid;
-constexpr auto kInvalidMaterialInstanceId{gid::kInvalidId};
-
 struct MaterialInstance {
-  MaterialInstanceId id{kInvalidMaterialInstanceId};
+  MaterialId material_id{kInvalidMaterialId};
   sptrdiff offset{0};
-  ShaderUniformData uniform_data{};
+  ShaderDescriptorSetRuntimeData descriptor_data{};
+  ShaderBindingRuntimeData binding_data{};
 };
 
 struct MaterialInstances {
   Array<MaterialInstance> list{};
-  Array<MaterialInstanceId> ids{};
+  Map<MaterialId, u32> indices{};
 };
 
-struct ShaderGlobalsUpdate {
-  const math::Mat4* projection_matrix{nullptr};
-  const math::Mat4* view_matrix{nullptr};
+struct ShaderBufferFieldUpdate {
+  ShaderBindingIndex binding_index{kInvalidShaderBindingIndex};
+  ShaderFieldIndex field_index{kInvalidShaderFieldIndex};
+  const void* data{nullptr};
+  usize size{0};
 };
 
-struct ShaderConstantsUpdate {
-  const u32* draw_count{nullptr};
-  const u32* count{nullptr};
+struct ShaderImageBindingUpdate {
+  ShaderBindingIndex binding_index{kInvalidShaderBindingIndex};
+  const ShaderImageDescriptor* descriptors{nullptr};
+  u32 descriptor_count{0};
 };
 
-struct ShaderStoragesUpdate {
-  StorageBufferHandle ssbo_proxy_local_datas_handle{
-      kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_proxy_ids_handle{kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_proxy_instances_handle{kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_indirect_proxies_handle{kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_word_indices_handle{kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_source_words_handle{kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_destination_words_handle{
-      kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_matrix_palettes_handle{kInvalidStorageBufferHandle};
-#ifdef COMET_DEBUG_RENDERING
-  StorageBufferHandle ssbo_debug_data_handle{kInvalidStorageBufferHandle};
-#endif  // COMET_DEBUG_RENDERING
-#ifdef COMET_DEBUG_CULLING
-  StorageBufferHandle ssbo_debug_aabbs_handle{kInvalidStorageBufferHandle};
-  StorageBufferHandle ssbo_debug_lines_handle{kInvalidStorageBufferHandle};
-#endif  // COMET_DEBUG_CULLING
+struct ShaderBufferBindingUpdate {
+  ShaderBindingIndex binding_index{kInvalidShaderBindingIndex};
+  GLuint buffer_handle{kInvalidStorageBufferHandle};
+  usize buffer_size{0};
+  usize buffer_offset{0};
+};
+
+struct ShaderPassUpdate {
+  frame::FrameArray<ShaderBufferFieldUpdate>* field_updates{nullptr};
+  frame::FrameArray<ShaderImageBindingUpdate>* image_bindings{nullptr};
+  frame::FrameArray<ShaderBufferBindingUpdate>* buffer_bindings{nullptr};
+};
+
+struct ShaderGlobalUpdate {
+  frame::FrameArray<ShaderBufferFieldUpdate>* field_updates{nullptr};
+  frame::FrameArray<ShaderImageBindingUpdate>* image_bindings{nullptr};
+  frame::FrameArray<ShaderBufferBindingUpdate>* buffer_bindings{nullptr};
+};
+
+struct ShaderInstanceUpdate {
+  frame::FrameArray<ShaderBufferFieldUpdate>* field_updates{nullptr};
+  frame::FrameArray<ShaderImageBindingUpdate>* image_bindings{nullptr};
+  frame::FrameArray<ShaderBufferBindingUpdate>* buffer_bindings{nullptr};
+};
+
+struct ShaderPushConstantBlockUpdate {
+  ShaderPushConstantIndex block_index{kInvalidShaderPushConstantIndex};
+  const void* data{nullptr};
+  usize size{0};
+};
+
+struct ShaderPushConstantsUpdate {
+  frame::FrameArray<ShaderPushConstantBlockUpdate>* blocks{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

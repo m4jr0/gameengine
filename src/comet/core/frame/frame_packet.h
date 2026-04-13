@@ -17,6 +17,8 @@
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/physics/component/transform_component.h"
+#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/rendering_common.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -49,8 +51,8 @@ struct AddedGeometry {
   DoubleFrameArray<geometry::Index>* indices{};
   DoubleFrameArray<geometry::SkinnedVertex>* vertices{};
   math::Mat4 transform{1.0f};
-  math::Vec3 local_center{0.0f};
-  math::Vec3 local_max_extents{0.0f};
+  math::Vec3 local_center{.0f};
+  math::Vec3 local_max_extents{.0f};
 };
 
 struct DirtyMesh {
@@ -58,8 +60,8 @@ struct DirtyMesh {
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
   geometry::MeshId mesh_id{geometry::kInvalidMeshId};
   const resource::MaterialResource* material_resource{nullptr};
-  math::Vec3 local_center{0.0f};
-  math::Vec3 local_max_extents{0.0f};
+  math::Vec3 local_center{.0f};
+  math::Vec3 local_max_extents{.0f};
   DoubleFrameArray<geometry::Index>* indices{nullptr};
   DoubleFrameArray<geometry::SkinnedVertex>* vertices{nullptr};
 };
@@ -75,15 +77,37 @@ struct RemovedGeometry {
   geometry::MeshId mesh_id{geometry::kInvalidMeshId};
 };
 
+struct AddedLight {
+  rendering::LightId light_id{rendering::kInvalidLightId};
+  rendering::LightProperties props{};
+  rendering::LightShadow shadow{};
+};
+
+struct DirtyLight {
+  rendering::LightId light_id{rendering::kInvalidLightId};
+  rendering::LightProperties props{};
+  rendering::LightShadow shadow{};
+};
+
+struct RemovedLight {
+  rendering::LightId light_id{rendering::kInvalidLightId};
+};
+
 HashValue GenerateHash(const AddedGeometry& value);
 HashValue GenerateHash(const DirtyMesh& value);
 HashValue GenerateHash(const DirtyTransform& value);
 HashValue GenerateHash(const RemovedGeometry& value);
+HashValue GenerateHash(const AddedLight& value);
+HashValue GenerateHash(const DirtyLight& value);
+HashValue GenerateHash(const RemovedLight& value);
 
 using AddedGeometries = frame::DoubleFrameOrderedSet<AddedGeometry>;
 using DirtyMeshes = frame::DoubleFrameOrderedSet<DirtyMesh>;
 using DirtyTransforms = frame::DoubleFrameOrderedSet<DirtyTransform>;
 using RemovedGeometries = frame::DoubleFrameOrderedSet<RemovedGeometry>;
+using AddedLights = frame::DoubleFrameOrderedSet<AddedLight>;
+using DirtyLights = frame::DoubleFrameOrderedSet<DirtyLight>;
+using RemovedLights = frame::DoubleFrameOrderedSet<RemovedLight>;
 using SkinningBindings = frame::DoubleFrameArray<animation::SkinningBinding>;
 using MatrixPalettes = frame::DoubleFrameArray<animation::MatrixPalette>;
 
@@ -109,24 +133,37 @@ struct FramePacket {
                                entity::EntityId model_entity_id,
                                geometry::MeshId mesh_id);
 
+  void RegisterNewLight(rendering::LightId light_id,
+                        const rendering::LightProperties* props,
+                        const rendering::LightShadow* shadow);
+
+  void RegisterDirtyLight(rendering::LightId light_id,
+                          const rendering::LightProperties* props,
+                          const rendering::LightShadow* shadow);
+
+  void RegisterRemovedLight(rendering::LightId light_id);
+
   bool IsFrameStageStarted(FrameStage stage) const;
   bool IsFrameStageFinished(FrameStage stage) const;
   void Reset();
 
-  bool is_rendering_skipped{false};
+  bool can_present{true};
   FrameCount frame_count{0};
   f64 lag{.0f};
   f64 time{.0f};
   time::Interpolation interpolation{.0f};
   StageTimes stage_times[kFrameStageCount]{};
-  math::Mat4 projection_matrix{};
-  math::Mat4 view_matrix{};
+  math::Vec3 ambient_color{rendering::kColorWhiteRgb};
   usize draw_count{0};
+  rendering::RenderCameraData camera_data{};
 
   AddedGeometries* added_geometries{nullptr};
   DirtyMeshes* dirty_meshes{nullptr};
   DirtyTransforms* dirty_transforms{nullptr};
   RemovedGeometries* removed_geometries{nullptr};
+  AddedLights* added_lights{nullptr};
+  DirtyLights* dirty_lights{nullptr};
+  RemovedLights* removed_lights{nullptr};
   SkinningBindings* skinning_bindings{nullptr};
   MatrixPalettes* matrix_palettes{nullptr};
 
@@ -138,6 +175,9 @@ struct FramePacket {
   fiber::FiberMutex dirty_meshes_mtx{};
   fiber::FiberMutex dirty_transforms_mtx{};
   fiber::FiberMutex removed_geometries_mtx{};
+  fiber::FiberMutex added_lights_mtx{};
+  fiber::FiberMutex dirty_lights_mtx{};
+  fiber::FiberMutex removed_lights_mtx{};
 };
 }  // namespace frame
 }  // namespace comet

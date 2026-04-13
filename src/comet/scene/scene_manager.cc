@@ -17,9 +17,13 @@
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event_manager.h"
+#include "comet/math/geometry.h"
 #include "comet/physics/component/transform_component.h"
 #include "comet/physics/transform.h"
+#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/light/light_manager.h"
 #include "comet/resource/resource.h"
+#include "comet/scene/environment/environment_manager.h"
 #include "comet/scene/scene_event.h"
 
 namespace comet {
@@ -58,7 +62,11 @@ void SceneManager::OnEvent(const event::Event& event) {
 }
 
 void SceneManager::LoadTmp() {
-  auto* model_handler{entity::EntityFactoryManager::Get().GetModel()};
+  EnvironmentManager::Get().SetAzimuthOffsetRadians(
+      math::ConvertToRadians(-180.0f));
+
+  auto& factory_manager{entity::EntityFactoryManager::Get()};
+  auto* model_handler{factory_manager.GetModel()};
 
   constexpr auto kIsEveLoaded{true};
   constexpr auto kIsVampireLoaded{true};
@@ -80,8 +88,44 @@ void SceneManager::LoadTmp() {
 
   if (kIsSponzaLoaded) {
     sponza_id_tmp_ = model_handler->GenerateStatic(
-        COMET_CTSTRING_VIEW("models/sponza/sponza.obj"), kLifeSpan);
+        COMET_CTSTRING_VIEW("models/sponza/Sponza.gltf"), kLifeSpan);
     ++models_to_load_count_;
+  }
+
+  constexpr math::Vec3 kSpotLightColor{1.0f, .55f, .18f};
+  constexpr usize kSpotLightCount{4};
+  constexpr f32 kSpotlightHeight{1.4f};
+  constexpr bool kSpotlightHasShadows{false};
+
+  constexpr StaticArray<math::Vec3, kSpotLightCount> kSpotLightOffsets{
+      math::Vec3{6.63f, kSpotlightHeight, 2.0f},
+      math::Vec3{-8.43f, kSpotlightHeight, 2.0f},
+      math::Vec3{6.63f, kSpotlightHeight, -3.0f},
+      math::Vec3{-8.43f, kSpotlightHeight, -3.0f}};
+
+  for (usize i{0}; i < kSpotLightCount; ++i) {
+    const auto& offset{kSpotLightOffsets[i]};
+
+    rendering::LightManager::Get().Generate({
+        .props =
+            {
+                .type = rendering::LightType::Spot,
+                .position = offset,
+                .direction = {.0f, -1.0f, .0f},
+                .color = math::Vec3{1.0f, .55f, .18f},
+                .intensity = 6.0f,
+                .range = 12.0f,
+                .inner_angle = .35f,
+                .outer_angle = .40f,
+            },
+        .shadow =
+            {
+                .is_enabled = kSpotlightHasShadows,
+                .max_distance = 12.0f,
+                .bias_constant = .0001f,
+                .bias_slope = .001f,
+            },
+    });
   }
 }
 
@@ -111,9 +155,18 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
                   scene_manager.character_eve_id_tmp_)};
 
           if (character_eve_transform != nullptr) {
-            constexpr auto kCharacterEveScaleTransform{1500.0f};
+            constexpr auto kCharacterEveScaleTransform{153.0f};
             physics::ScaleLocal(character_eve_transform,
                                 kCharacterEveScaleTransform);
+            constexpr math::Vec3 kCharacterEveTranslationTransform{1.0f, .0f,
+                                                                   .0f};
+            physics::TranslateLocal(character_eve_transform,
+                                    kCharacterEveTranslationTransform);
+            constexpr auto kCharacterEveRotateTransform{
+                math::ConvertToRadians(40.f)};
+            physics::RotateLocal(character_eve_transform,
+                                 kCharacterEveRotateTransform,
+                                 {.0f, 1.0f, .0f});
 
             animation_manager.Play(scene_manager.character_eve_id_tmp_,
                                    L"models/eve/eve.gltf|idle");
@@ -126,13 +179,19 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
                   scene_manager.character_vampire_id_tmp_)};
 
           if (character_vampire_transform != nullptr) {
-            constexpr auto kCharacterVampireScaleTransform{1000.0f};
+            constexpr auto kCharacterVampireScaleTransform{102.0f};
             physics::ScaleLocal(character_vampire_transform,
                                 kCharacterVampireScaleTransform);
             constexpr math::Vec3 kCharacterVampireTranslationTransform{
-                -3.0f, .0f, .0f};
+                -1.0f, .0f, .0f};
             physics::TranslateLocal(character_vampire_transform,
                                     kCharacterVampireTranslationTransform);
+
+            constexpr auto kCharacterVampireRotateTransform{
+                math::ConvertToRadians(70.0f)};
+            physics::RotateLocal(character_vampire_transform,
+                                 kCharacterVampireRotateTransform,
+                                 {.0f, 1.0f, .0f});
 
             animation_manager.Play(
                 scene_manager.character_vampire_id_tmp_,
@@ -146,7 +205,7 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
                   scene_manager.sponza_id_tmp_)};
 
           if (sponza_transform != nullptr) {
-            constexpr auto kSponzaScaleFactor{0.17f};
+            constexpr auto kSponzaScaleFactor{1.7f};
             physics::ScaleLocal(sponza_transform, kSponzaScaleFactor);
           }
         }

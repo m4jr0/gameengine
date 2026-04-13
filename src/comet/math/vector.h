@@ -18,6 +18,10 @@ using Vec2 = glm::vec2;
 using Vec3 = glm::vec3;
 using Vec4 = glm::vec4;
 
+using S32Vec2 = glm::vec<2, s32, glm::defaultp>;
+using S32Vec3 = glm::vec<3, s32, glm::defaultp>;
+using S32Vec4 = glm::vec<4, s32, glm::defaultp>;
+
 f32 GetMagnitude(const Vec2& vec);
 f32 GetMagnitude(const Vec3& vec);
 f32 GetMagnitude(const Vec4& vec);

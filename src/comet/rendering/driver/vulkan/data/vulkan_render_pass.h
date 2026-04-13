@@ -11,7 +11,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/string_id.h"
+#include "comet/core/type/gid.h"
 
 namespace comet {
 namespace rendering {
@@ -38,34 +38,59 @@ struct VulkanRenderTarget {
   Array<Attachment> attachments{};
 };
 
-enum RenderPassClearFlag {
-  None = 0x0,
-  ColorBuffer = 0x1,
-  DepthBuffer = 0x2,
-  StencilBuffer = 0x4
+using RenderPassClearFlags = u8;
+
+enum RenderPassClearFlagBits : RenderPassClearFlags {
+  kRenderPassClearFlagBitsNone = 0x0,
+  kRenderPassClearFlagBitsColorBuffer = 0x1,
+  kRenderPassClearFlagBitsDepthBuffer = 0x2,
+  kRenderPassClearFlagBitsStencilBuffer = 0x4
 };
 
-using RenderPassId = stringid::StringId;
-constexpr auto kInvalidRenderPassId = static_cast<RenderPassId>(-1);
+using RenderPassHandle = gid::Gid;
+constexpr auto kInvalidRenderPassHandle{
+    static_cast<RenderPassHandle>(gid::kInvalidId)};
+
+using RenderPassCacheKey = u64;
+constexpr auto kInvalidRenderPassCacheKey{static_cast<RenderPassCacheKey>(0)};
+
+enum RenderPassOptionFlagBits {
+  kRenderPassOptionFlagBitsNone = 0x0,
+  kRenderPassOptionFlagBitsMultisampled = 0x1,
+  kRenderPassOptionFlagBitsSwapchainTarget = 0x2,
+};
+
+using RenderPassOptionFlags = u8;
+
+inline bool IsMultisampled(RenderPassOptionFlags flags) {
+  return (flags & kRenderPassOptionFlagBitsMultisampled) != 0;
+}
+
+inline bool IsSwapchainTarget(RenderPassOptionFlags flags) {
+  return (flags & kRenderPassOptionFlagBitsSwapchainTarget) != 0;
+}
 
 struct RenderPassDescr {
-  u8 clear_flags{RenderPassClearFlag::None};
+  RenderPassClearFlags clear_flags{kRenderPassClearFlagBitsNone};
+  RenderPassOptionFlags options{kRenderPassOptionFlagBitsNone};
+  RenderPassHandle handle{kInvalidRenderPassHandle};
   VkExtent2D extent{};
   VkOffset2D offset{};
-  RenderPassId id{kInvalidRenderPassId};
   Array<VkSubpassDependency> dependencies{};
   Array<AttachmentDescr> attachment_descrs{};
-  StaticArray<VkClearValue, 2> clear_values{};
 };
 
 struct RenderPass {
-  u8 clear_flags{RenderPassClearFlag::None};
+  bool is_shared{false};
+  RenderPassClearFlags clear_flags{kRenderPassClearFlagBitsNone};
+  VkSampleCountFlagBits samples{VK_SAMPLE_COUNT_1_BIT};
   VkExtent2D extent{};
   VkOffset2D offset{};
-  RenderPassId id{kInvalidRenderPassId};
-  VkRenderPass handle{VK_NULL_HANDLE};
+  RenderPassHandle handle{kInvalidRenderPassHandle};
+  VkRenderPass vk_handle{VK_NULL_HANDLE};
+  u32 ref_count{0};
+  RenderPassCacheKey cache_key{kInvalidRenderPassCacheKey};
   Array<VulkanRenderTarget> render_targets{};
-  StaticArray<VkClearValue, 2> clear_values{};
 };
 }  // namespace vk
 }  // namespace rendering

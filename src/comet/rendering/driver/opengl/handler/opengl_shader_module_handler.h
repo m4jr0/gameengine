@@ -25,6 +25,7 @@ using ShaderModuleHandlerDescr = HandlerDescr;
 
 class ShaderModuleHandler : public Handler {
  public:
+  ShaderModuleHandler() = delete;
   explicit ShaderModuleHandler(const ShaderModuleHandlerDescr& descr);
   ShaderModuleHandler(const ShaderModuleHandler&) = delete;
   ShaderModuleHandler(ShaderModuleHandler&&) = delete;
@@ -36,27 +37,28 @@ class ShaderModuleHandler : public Handler {
   void Shutdown() override;
 
   const ShaderModule* Generate(CTStringView shader_module_path);
-  const ShaderModule* Get(ShaderModuleHandle shader_module_handle) const;
-  const ShaderModule* TryGet(ShaderModuleHandle shader_module_handle) const;
+  const ShaderModule* Get(ShaderModuleId shader_module_id) const;
+  const ShaderModule* TryGet(ShaderModuleId shader_module_id) const;
   const ShaderModule* GetOrGenerate(CTStringView path);
-  void Destroy(ShaderModuleHandle shader_module_handle);
+  void Destroy(ShaderModuleId shader_module_id);
   void Destroy(ShaderModule* shader_module);
-  void Attach(const Shader* shader, ShaderModuleHandle shader_module_handle);
+
+  void Attach(const Shader* shader, ShaderModuleId shader_module_id);
   void Attach(const Shader* shader, ShaderModule* shader_module);
-  void Detach(const Shader* shader, ShaderModuleHandle shader_module_handle);
+  void Detach(const Shader* shader, ShaderModuleId shader_module_id);
   void Detach(const Shader* shader, ShaderModule* shader_module);
 
  private:
   static GLenum GetOpenGlType(ShaderModuleType module_type);
 
-  ShaderModule* Get(ShaderModuleHandle shader_module_handle);
-  ShaderModule* TryGet(ShaderModuleHandle shader_module_handle);
+  ShaderModule* Get(ShaderModuleId shader_module_id);
+  ShaderModule* TryGet(ShaderModuleId shader_module_id);
   void Destroy(ShaderModule* shader_module, bool is_destroying_handler);
   ShaderModule* CompileShader(const resource::ShaderModuleResource* resource);
 
   memory::FiberFreeListAllocator allocator_{sizeof(ShaderModule), 256,
                                             memory::kEngineMemoryTagRendering};
-  Map<ShaderModuleHandle, ShaderModule*> shader_modules_{};
+  Map<ShaderModuleId, ShaderModule*> shader_modules_{};
 };
 }  // namespace gl
 }  // namespace rendering

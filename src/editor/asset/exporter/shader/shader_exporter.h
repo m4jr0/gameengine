@@ -17,45 +17,62 @@ using namespace std::literals;
 namespace comet {
 namespace editor {
 namespace asset {
-static constexpr auto kCometEditorShaderKeyIsWireframe{"is_wireframe"sv};
-static constexpr auto kCometEditorShaderKeyCullMode{"cull_mode"sv};
+static constexpr auto kCometEditorShaderKeyRasterizer{"rasterizer"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencil{"depth_stencil"sv};
 static constexpr auto kCometEditorShaderKeyTopology{"topology"sv};
 static constexpr auto kCometEditorShaderKeyShaderModulePaths{
     "shader_module_paths"sv};
 static constexpr auto kCometEditorShaderKeyDefines{"defines"sv};
-static constexpr auto kCometEditorShaderKeyVertexAttributes{
-    "vertex_attributes"sv};
-static constexpr auto kCometEditorShaderKeyVertexAttributeName{"name"sv};
-static constexpr auto kCometEditorShaderKeyVertexAttributeType{"type"sv};
+static constexpr auto kCometEditorShaderKeyBindings{"bindings"sv};
+static constexpr auto kCometEditorShaderKeyPushConstants{"push_constants"sv};
 
-static constexpr auto kCometEditorShaderKeyUniforms{"uniforms"sv};
-static constexpr auto kCometEditorShaderKeyUniformName{"name"sv};
-static constexpr auto kCometEditorShaderKeyUniformType{"type"sv};
-static constexpr auto kCometEditorShaderKeyUniformScope{"scope"sv};
-static constexpr auto kCometEditorShaderKeyUniformStages{"stages"sv};
+static constexpr auto kCometEditorShaderKeyName{"name"sv};
+static constexpr auto kCometEditorShaderKeyType{"type"sv};
+static constexpr auto kCometEditorShaderKeyValue{"value"sv};
+static constexpr auto kCometEditorShaderKeyScope{"scope"sv};
+static constexpr auto kCometEditorShaderKeyLayout{"layout"sv};
+static constexpr auto kCometEditorShaderKeyStages{"stages"sv};
+static constexpr auto kCometEditorShaderKeySet{"set"sv};
+static constexpr auto kCometEditorShaderKeyBinding{"binding"sv};
+static constexpr auto kCometEditorShaderKeyDescriptorCount{
+    "descriptor_count"sv};
+static constexpr auto kCometEditorShaderKeyFields{"fields"sv};
+static constexpr auto kCometEditorShaderKeyArrayCount{"array_count"sv};
 
-static constexpr auto kCometEditorShaderKeyUniformScopeGlobal{"global"sv};
-static constexpr auto kCometEditorShaderKeyUniformScopeInstance{"instance"sv};
+static constexpr auto kCometEditorShaderKeyRasterizerIsWireframe{
+    "is_wireframe"sv};
+static constexpr auto kCometEditorShaderKeyRasterizerIsDepthBias{
+    "is_depth_bias"sv};
+static constexpr auto kCometEditorShaderKeyRasterizerCullMode{"cull_mode"sv};
 
-static constexpr auto kCometEditorShaderKeyConstants{"constants"sv};
-static constexpr auto kCometEditorShaderKeyConstantName{"name"sv};
-static constexpr auto kCometEditorShaderKeyConstantType{"type"sv};
-static constexpr auto kCometEditorShaderKeyConstantStages{"stages"sv};
-
-static constexpr auto kCometEditorShaderKeyStorages{"storages"sv};
-static constexpr auto kCometEditorShaderKeyStorageName{"name"sv};
-static constexpr auto kCometEditorShaderKeyStorageStages{"stages"sv};
-static constexpr auto kCometEditorShaderKeyStorageLayout{"layout"sv};
-static constexpr auto kCometEditorShaderKeyStorageEngineDefine{
-    "engine_define"sv};
-static constexpr auto kCometEditorShaderKeyStoragePropertyName{"name"sv};
-static constexpr auto kCometEditorShaderKeyStoragePropertyType{"type"sv};
-
-static constexpr auto kCometEditorShaderKeyCullModeNone{"none"sv};
-static constexpr auto kCometEditorShaderKeyCullModeFront{"front"sv};
-static constexpr auto kCometEditorShaderKeyCullModeBack{"back"sv};
-static constexpr auto kCometEditorShaderKeyCullModeFrontAndBack{
+static constexpr auto kCometEditorShaderKeyRasterizerCullModeNone{"none"sv};
+static constexpr auto kCometEditorShaderKeyRasterizerCullModeFront{"front"sv};
+static constexpr auto kCometEditorShaderKeyRasterizerCullModeBack{"back"sv};
+static constexpr auto kCometEditorShaderKeyRasterizerCullModeFrontAndBack{
     "front_and_back"sv};
+
+static constexpr auto kCometEditorShaderKeyDepthStencilIsDepthTest{
+    "is_depth_test"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilIsDepthWrite{
+    "is_depth_write"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOp{
+    "compare_op"sv};
+
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpNever{
+    "never"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpLess{"less"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpEqual{
+    "equal"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpLessOrEqual{
+    "less_or_equal"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpGreater{
+    "greater"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpNotEqual{
+    "not_equal"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpGreaterOrEqual{
+    "greater_or_equal"sv};
+static constexpr auto kCometEditorShaderKeyDepthStencilCompareOpAlways{
+    "always"sv};
 
 static constexpr auto kCometEditorShaderKeyTopologyPoints{"points"sv};
 static constexpr auto kCometEditorShaderKeyTopologyLines{"lines"sv};
@@ -64,46 +81,12 @@ static constexpr auto kCometEditorShaderKeyTopologyTriangles{"triangles"sv};
 static constexpr auto kCometEditorShaderKeyTopologyTriangleStrip{
     "triangle_strip"sv};
 
-static constexpr auto kCometEditorShaderKeyAttributeTypeS8{"s8"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS16{"s16"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS32{"s32"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU8{"u8"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU16{"u16"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU32{"u32"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF16{"f16"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF32{"f32"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF64{"f64"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU8Vec4{"u8vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS8Vec4{"s8vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU16Vec2{"u16vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU16Vec3{"u16vec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU16Vec4{"u16vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS16Vec2{"s16vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS16Vec3{"s16vec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS16Vec4{"s16vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF16Vec2{"f16vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF16Vec4{"f16vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU32Vec2{"u32vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU32Vec3{"u32vec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeU32Vec4{"u32vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS32Vec2{"s32vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS32Vec3{"s32vec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeS32Vec4{"s32vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF32Vec2{"f32vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF32Vec3{"f32vec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF32Vec4{"f32vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF64Vec2{"f64vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF64Vec3{"f64vec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeF64Vec4{"f64vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeVec2{"vec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeVec3{"vec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeVec4{"vec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeUVec2{"uvec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeUVec3{"uvec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeUVec4{"uvec4"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeSVec2{"svec2"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeSVec3{"svec3"sv};
-static constexpr auto kCometEditorShaderKeyAttributeTypeSVec4{"svec4"sv};
+static constexpr auto kCometEditorShaderKeyVertexLayout{"vertex_layout"sv};
+static constexpr auto kCometEditorShaderKeyVertexLayoutNone{"none"sv};
+static constexpr auto kCometEditorShaderKeyVertexLayoutSkinnedVertex{
+    "skinned_vertex"sv};
+static constexpr auto kCometEditorShaderKeyVertexLayoutDebugLine{
+    "debug_line"sv};
 
 static constexpr auto kCometEditorShaderKeyVariableTypeB32{"b32"sv};
 static constexpr auto kCometEditorShaderKeyVariableTypeS32{"s32"sv};
@@ -122,6 +105,9 @@ static constexpr auto kCometEditorShaderKeyVariableTypeU32Vec4{"u32vec4"sv};
 static constexpr auto kCometEditorShaderKeyVariableTypeVec2{"vec2"sv};
 static constexpr auto kCometEditorShaderKeyVariableTypeVec3{"vec3"sv};
 static constexpr auto kCometEditorShaderKeyVariableTypeVec4{"vec4"sv};
+static constexpr auto kCometEditorShaderKeyVariableTypeSVec2{"svec2"sv};
+static constexpr auto kCometEditorShaderKeyVariableTypeSVec3{"svec3"sv};
+static constexpr auto kCometEditorShaderKeyVariableTypeSVec4{"svec4"sv};
 static constexpr auto kCometEditorShaderKeyVariableTypeF64Vec2{"f64vec2"sv};
 static constexpr auto kCometEditorShaderKeyVariableTypeF64Vec3{"f64vec3"sv};
 static constexpr auto kCometEditorShaderKeyVariableTypeF64Vec4{"f64vec4"sv};
@@ -145,8 +131,42 @@ static constexpr auto kCometEditorShaderKeyStageCompute{"compute"sv};
 static constexpr auto kCometEditorShaderKeyStageVertex{"vertex"sv};
 static constexpr auto kCometEditorShaderKeyStageFragment{"fragment"sv};
 
-static constexpr auto kCometEditorShaderKeyDefineName{"name"sv};
-static constexpr auto kCometEditorShaderKeyDefineValue{"value"sv};
+static constexpr auto kCometEditorShaderKeyBindingTypeUniformBuffer{
+    "uniform_buffer"sv};
+static constexpr auto kCometEditorShaderKeyBindingTypeStorageBuffer{
+    "storage_buffer"sv};
+static constexpr auto kCometEditorShaderKeyBindingTypeCombinedImageSampler{
+    "combined_image_sampler"sv};
+static constexpr auto kCometEditorShaderKeyBindingTypeSampledImage{
+    "sampled_image"sv};
+static constexpr auto kCometEditorShaderKeyBindingTypeSampler{"sampler"sv};
+static constexpr auto kCometEditorShaderKeyBindingTypeStorageImage{
+    "storage_image"sv};
+
+static constexpr auto kCometEditorShaderKeyBindingScopeGlobal{"global"sv};
+static constexpr auto kCometEditorShaderKeyBindingScopeMaterial{"material"sv};
+static constexpr auto kCometEditorShaderKeyBindingScopePass{"pass"sv};
+static constexpr auto kCometEditorShaderKeyBindingScopeDraw{"draw"sv};
+
+static constexpr auto kCometEditorShaderKeyMemoryLayoutStd140{"std140"sv};
+static constexpr auto kCometEditorShaderKeyMemoryLayoutStd430{"std430"sv};
+static constexpr auto kCometEditorShaderKeyMemoryLayoutPacked{"packed"sv};
+
+static constexpr auto kCometEditorShaderKeyBindingImageSemantic{
+    "image_semantic"sv};
+
+static constexpr auto kCometEditorShaderKeyImageSemanticMaterialDiffuse{
+    "material_diffuse"sv};
+static constexpr auto kCometEditorShaderKeyImageSemanticMaterialSpecular{
+    "material_specular"sv};
+static constexpr auto kCometEditorShaderKeyImageSemanticMaterialNormal{
+    "material_normal"sv};
+static constexpr auto kCometEditorShaderKeyImageSemanticMaterialTextures{
+    "material_textures"sv};
+static constexpr auto kCometEditorShaderKeyImageSemanticMainShadowMap{
+    "main_shadow_map"sv};
+static constexpr auto kCometEditorShaderKeyImageSemanticShadowMaps{
+    "shadow_maps"sv};
 
 class ShaderExporter : public AssetExporter {
  public:
@@ -155,7 +175,7 @@ class ShaderExporter : public AssetExporter {
   ShaderExporter(ShaderExporter&&) = delete;
   ShaderExporter& operator=(const ShaderExporter&) = delete;
   ShaderExporter& operator=(ShaderExporter&&) = delete;
-  virtual ~ShaderExporter() = default;
+  ~ShaderExporter() override = default;
 
   bool IsCompatible(CTStringView extension) const override;
 
@@ -175,29 +195,36 @@ class ShaderExporter : public AssetExporter {
   static void DumpDefines(const nlohmann::json& shader_file,
                           memory::Allocator* allocator,
                           resource::ShaderResource& shader);
-  static void DumpVertexAttributes(const nlohmann::json& shader_file,
-                                   resource::ShaderResource& shader);
-  static void DumpUniforms(const nlohmann::json& shader_file,
+  static void DumpBindings(const nlohmann::json& shader_file,
                            memory::Allocator* allocator,
                            resource::ShaderResource& shader);
-  static void DumpConstants(const nlohmann::json& shader_file,
-                            memory::Allocator* allocator,
-                            resource::ShaderResource& shader);
-  static void DumpStorages(const nlohmann::json& shader_file,
-                           memory::Allocator* allocator,
-                           resource::ShaderResource& shader);
+  static void DumpPushConstants(const nlohmann::json& shader_file,
+                                memory::Allocator* allocator,
+                                resource::ShaderResource& shader);
 
   static rendering::CullMode GetCullMode(std::string_view raw_cull_mode);
+  static rendering::RasterizerDescr GetRasterizerDescr(
+      const nlohmann::json& shader_file);
+  static rendering::CompareOp GetCompareOp(std::string_view raw_compare_op);
+  static rendering::DepthStencilDescr GetDepthStencilDescr(
+      const nlohmann::json& shader_file);
   static rendering::PrimitiveTopology GetPrimitiveTopology(
       std::string_view raw_topology);
-  static rendering::ShaderVertexAttributeType GetShaderVertexAttributeType(
-      std::string_view raw_vertex_attribute_type);
+  static rendering::ShaderVertexLayout GetShaderVertexLayout(
+      std::string_view raw_vertex_layout);
   static rendering::ShaderVariableType GetShaderVariableType(
-      std::string_view raw_uniform_type);
-  static rendering::ShaderUniformScope GetShaderUniformScope(
-      std::string_view raw_uniform_scope);
+      std::string_view raw_data_type);
+  static rendering::ShaderBindingType GetShaderBindingType(
+      std::string_view raw_binding_type);
+  static rendering::ShaderBindingScope GetShaderBindingScope(
+      std::string_view raw_binding_scope);
+  static rendering::ShaderMemoryLayout GetShaderMemoryLayout(
+      std::string_view raw_layout);
   static rendering::ShaderStageFlags GetShaderStageFlags(
       const nlohmann::json& raw_stages, memory::Allocator* allocator);
+  static rendering::ShaderImageBindingSemantic GetShaderImageBindingSemantic(
+      std::string_view raw_semantic);
+
   static void OnShaderSizeRequest(job::IOJobParamsHandle params_handle);
   static void OnShaderLoading(job::IOJobParamsHandle params_handle);
 };

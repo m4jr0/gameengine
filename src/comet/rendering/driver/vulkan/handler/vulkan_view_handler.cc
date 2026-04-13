@@ -18,11 +18,12 @@
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/profiler/profiler.h"
+#include "comet/rendering/driver/vulkan/view/vulkan_shadow_view.h"
+#include "comet/rendering/driver/vulkan/view/vulkan_world_view.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"
 #endif  // COMET_IMGUI
-#include "comet/rendering/driver/vulkan/view/vulkan_world_view.h"
 #ifdef COMET_DEBUG
 #include "comet/rendering/driver/vulkan/view/vulkan_debug_view.h"
 #endif  // COMET_DEBUG
@@ -32,18 +33,30 @@ namespace rendering {
 namespace vk {
 ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
     : Handler{descr},
+      shadow_settings_{descr.shadow_settings},
       shader_handler_{descr.shader_handler},
+      material_handler_{descr.material_handler},
       pipeline_handler_{descr.pipeline_handler},
       render_pass_handler_{descr.render_pass_handler},
       render_proxy_handler_{descr.render_proxy_handler},
+      mesh_handler_{descr.mesh_handler},
+      lighting_handler_{descr.lighting_handler},
       window_{descr.window},
       rendering_view_descrs_{descr.rendering_view_descrs} {
   COMET_ASSERT(shader_handler_ != nullptr,
                "Shader handler cannot be null for view handler!");
+  COMET_ASSERT(material_handler_ != nullptr,
+               "Material handler cannot be null for view handler!");
+  COMET_ASSERT(pipeline_handler_ != nullptr,
+               "Pipeline handler cannot be null for view handler!");
   COMET_ASSERT(render_pass_handler_ != nullptr,
                "Render pass handler cannot be null for view handler!");
   COMET_ASSERT(render_proxy_handler_ != nullptr,
                "Render proxy handler cannot be null for view handler!");
+  COMET_ASSERT(mesh_handler_ != nullptr,
+               "Mesh handler cannot be null for view handler!");
+  COMET_ASSERT(lighting_handler_ != nullptr,
+               "Lighting handler cannot be null for view handler!");
   COMET_ASSERT(window_ != nullptr, "Window cannot be null for view handler!");
   COMET_ASSERT(rendering_view_descrs_ != nullptr,
                "Render view descriptions cannot be null for view handler!");
@@ -81,6 +94,10 @@ void ViewHandler::Update(frame::FramePacket* packet) {
 
 void ViewHandler::SetSize(WindowSize width, WindowSize height) {
   for (auto& view : views_) {
+    if (!view->IsSwapchainTarget()) {
+      continue;
+    }
+
     view->SetSize(width, height);
   }
 }
@@ -105,18 +122,57 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
     case RenderingViewType::World: {
       WorldViewDescr view_descr{};
       view_descr.id = descr.id;
-      view_descr.is_first = descr.is_first;
-      view_descr.is_last = descr.is_last;
+
+      view_descr.pass_descr.flags = kViewPassFlagBitsSwapchainTarget |
+                                    kViewPassFlagBitsHasColor |
+                                    kViewPassFlagBitsHasDepth;
+
+      view_descr.pass_descr.color_load_op = ViewLoadOp::Clear;
+      view_descr.pass_descr.color_store_op = ViewStoreOp::Store;
+      view_descr.pass_descr.depth_load_op = ViewLoadOp::Clear;
+      view_descr.pass_descr.depth_store_op = ViewStoreOp::DontCare;
+      view_descr.pass_descr.final_color_op = ViewFinalColorOp::Keep;
+
+      view_descr.width = descr.width;
+      view_descr.height = descr.height;
+      memory::CopyMemory(view_descr.clear_color, descr.clear_color,
+                         sizeof(descr.clear_color[0]) * 4);
+      view_descr.context = context_;
+      view_descr.shadow_settings = shadow_settings_;
+      view_descr.shader_handler = shader_handler_;
+      view_descr.material_handler = material_handler_;
+      view_descr.pipeline_handler = pipeline_handler_;
+      view_descr.render_pass_handler = render_pass_handler_;
+      view_descr.render_proxy_handler = render_proxy_handler_;
+      view_descr.mesh_handler = mesh_handler_;
+      view_descr.lighting_handler = lighting_handler_;
+      view = std::make_unique<WorldView>(view_descr);
+      break;
+    }
+
+    case RenderingViewType::Shadow: {
+      ShadowViewDescr view_descr{};
+      view_descr.id = descr.id;
+
+      view_descr.pass_descr.flags =
+          kViewPassFlagBitsOffscreenTarget | kViewPassFlagBitsHasDepth;
+
+      view_descr.pass_descr.depth_load_op = ViewLoadOp::Clear;
+      view_descr.pass_descr.depth_store_op = ViewStoreOp::Store;
+
       view_descr.width = descr.width;
       view_descr.height = descr.height;
       memory::CopyMemory(view_descr.clear_color, descr.clear_color,
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
+      view_descr.material_handler = material_handler_;
       view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
-      view = std::make_unique<WorldView>(view_descr);
+      view_descr.lighting_handler = lighting_handler_;
+      view_descr.mesh_handler = mesh_handler_;
+      view = std::make_unique<ShadowView>(view_descr);
       break;
     }
 
@@ -124,14 +180,24 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
     case RenderingViewType::Debug: {
       DebugViewDescr view_descr{};
       view_descr.id = descr.id;
-      view_descr.is_first = descr.is_first;
-      view_descr.is_last = descr.is_last;
+
+      view_descr.pass_descr.flags = kViewPassFlagBitsSwapchainTarget |
+                                    kViewPassFlagBitsHasColor |
+                                    kViewPassFlagBitsHasDepth;
+
+      view_descr.pass_descr.color_load_op = ViewLoadOp::Load;
+      view_descr.pass_descr.color_store_op = ViewStoreOp::Store;
+      view_descr.pass_descr.depth_load_op = ViewLoadOp::Load;
+      view_descr.pass_descr.depth_store_op = ViewStoreOp::DontCare;
+      view_descr.pass_descr.final_color_op = ViewFinalColorOp::Keep;
+
       view_descr.width = descr.width;
       view_descr.height = descr.height;
       memory::CopyMemory(view_descr.clear_color, descr.clear_color,
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
+      view_descr.material_handler = material_handler_;
       view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
@@ -140,21 +206,18 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
     }
 #endif  // COMET_DEBUG
 
-    // TODO(m4jr0).
-    // case RenderingViewType::SimpleWorld: {
-    //   break;
-    // }
-
-    // case RenderingViewType::Skybox: {
-    //   break;
-    // }
-
 #ifdef COMET_IMGUI
     case RenderingViewType::ImGui: {
       ImGuiViewDescr view_descr{};
       view_descr.id = descr.id;
-      view_descr.is_first = descr.is_first;
-      view_descr.is_last = descr.is_last;
+
+      view_descr.pass_descr.flags =
+          kViewPassFlagBitsSwapchainTarget | kViewPassFlagBitsHasColor;
+
+      view_descr.pass_descr.color_load_op = ViewLoadOp::Load;
+      view_descr.pass_descr.color_store_op = ViewStoreOp::Store;
+      view_descr.pass_descr.final_color_op = ViewFinalColorOp::Present;
+
       view_descr.width = descr.width;
       view_descr.height = descr.height;
       memory::CopyMemory(view_descr.clear_color, descr.clear_color,
@@ -202,7 +265,7 @@ void ViewHandler::Destroy(View* view, bool is_destroying_handler) {
     return;
   }
 
-  const auto view_id{view->GetId()};
+  auto view_id{view->GetId()};
   auto view_index{kInvalidIndex};
 
   for (u32 i{0}; i < views_.GetSize(); ++i) {

@@ -82,6 +82,36 @@ void ConfigurationManager::Initialize() {
                   GetDefaultValue(kRenderingIsSamplerAnisotropy));
   values_.Emplace(kRenderingIsSampleRateShading,
                   GetDefaultValue(kRenderingIsSampleRateShading));
+  values_.Emplace(kRenderingShadowResolution,
+                  GetDefaultValue(kRenderingShadowResolution));
+  values_.Emplace(kRenderingShadowDistance,
+                  GetDefaultValue(kRenderingShadowDistance));
+  values_.Emplace(kRenderingShadowCascadeCount,
+                  GetDefaultValue(kRenderingShadowCascadeCount));
+  values_.Emplace(kRenderingShadowCascadeLambda,
+                  GetDefaultValue(kRenderingShadowCascadeLambda));
+  values_.Emplace(kRenderingShadowBiasConstant,
+                  GetDefaultValue(kRenderingShadowBiasConstant));
+  values_.Emplace(kRenderingShadowBiasSlope,
+                  GetDefaultValue(kRenderingShadowBiasSlope));
+  values_.Emplace(kRenderingShadowCasterExtrusionFactor,
+                  GetDefaultValue(kRenderingShadowCasterExtrusionFactor));
+  values_.Emplace(kRenderingShadowReceiverPadXY,
+                  GetDefaultValue(kRenderingShadowReceiverPadXY));
+  values_.Emplace(kRenderingShadowReceiverPadZ,
+                  GetDefaultValue(kRenderingShadowReceiverPadZ));
+  values_.Emplace(kRenderingShadowCascadeBlendRatio,
+                  GetDefaultValue(kRenderingShadowCascadeBlendRatio));
+  values_.Emplace(kRenderingShadowPcfRadius,
+                  GetDefaultValue(kRenderingShadowPcfRadius));
+  values_.Emplace(kRenderingShadowPcfSamples,
+                  GetDefaultValue(kRenderingShadowPcfSamples));
+  values_.Emplace(kRenderingShadowDebugCascades,
+                  GetDefaultValue(kRenderingShadowDebugCascades));
+  values_.Emplace(kRenderingShadowDebugSingleCascade,
+                  GetDefaultValue(kRenderingShadowDebugSingleCascade));
+  values_.Emplace(kRenderingShadowDisableBlending,
+                  GetDefaultValue(kRenderingShadowDisableBlending));
   values_.Emplace(kRenderingOpenGlMajorVersion,
                   GetDefaultValue(kRenderingOpenGlMajorVersion));
   values_.Emplace(kRenderingOpenGlMinorVersion,
@@ -367,7 +397,9 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
       key == kRenderingAntiAliasing) {
     SetStr(key, value);
   } else if (key == kCoreForcedFiberWorkerCount ||
-             key == kCoreForcedIOWorkerCount) {
+             key == kCoreForcedIOWorkerCount ||
+             key == kRenderingShadowCascadeCount ||
+             key == kRenderingShadowPcfSamples) {
     SetU8(key, ParseU8(value));
   } else if (key == kEventMaxQueueSize || key == kApplicationMajorVersion ||
              key == kApplicationMinorVersion ||
@@ -376,7 +408,8 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
              key == kCoreExternalLibraryFiberCount ||
              key == kCoreJobCounterCount || key == kCoreJobQueueCount ||
              key == kRenderingWindowWidth || key == kRenderingWindowHeight ||
-             key == kRenderingFpsCap || key == kRenderingOpenGlMajorVersion ||
+             key == kRenderingFpsCap || key == kRenderingShadowResolution ||
+             key == kRenderingOpenGlMajorVersion ||
              key == kRenderingOpenGlMinorVersion ||
              key == kRenderingVulkanVariantVersion ||
              key == kRenderingVulkanMajorVersion ||
@@ -393,12 +426,26 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
   } else if (key == kRenderingClearColorR || key == kRenderingClearColorG ||
              key == kRenderingClearColorB || key == kRenderingClearColorA) {
     SetF32(key, ParseF32(value));
+  } else if (key == kRenderingShadowDebugSingleCascade) {
+    SetS8(key, ParseS8(value));
+  } else if (key == kRenderingShadowDistance ||
+             key == kRenderingShadowCascadeLambda ||
+             key == kRenderingShadowBiasConstant ||
+             key == kRenderingShadowBiasSlope ||
+             key == kRenderingShadowCasterExtrusionFactor ||
+             key == kRenderingShadowReceiverPadXY ||
+             key == kRenderingShadowReceiverPadZ ||
+             key == kRenderingShadowCascadeBlendRatio ||
+             key == kRenderingShadowPcfRadius) {
+    SetF32(key, ParseF32(value));
   } else if (key == kCoreMsPerUpdate) {
     SetF64(key, ParseF64(value));
   } else if (key == kCoreIsMainThreadWorkerDisabled ||
              key == kRenderingIsVsync || key == kRenderingIsTripleBuffering ||
              key == kRenderingIsSamplerAnisotropy ||
-             key == kRenderingIsSampleRateShading) {
+             key == kRenderingIsSampleRateShading ||
+             key == kRenderingShadowDebugCascades ||
+             key == kRenderingShadowDisableBlending) {
     SetBool(key, ParseBool(value));
   } else if (key == kResourceRootPath) {
 #ifdef COMET_WIDE_TCHAR

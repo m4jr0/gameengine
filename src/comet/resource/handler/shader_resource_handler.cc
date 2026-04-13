@@ -17,6 +17,27 @@
 
 namespace comet {
 namespace resource {
+namespace internal {
+constexpr usize kU32Size{sizeof(u32)};
+constexpr usize kUsizeSize{sizeof(usize)};
+constexpr usize kBoolSize{sizeof(bool)};
+constexpr usize kCullModeSize{sizeof(rendering::CullMode)};
+constexpr usize kCompareOpSize{sizeof(rendering::CompareOp)};
+constexpr usize kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
+constexpr usize kShaderVertexLayoutSize{sizeof(rendering::ShaderVertexLayout)};
+constexpr usize kShaderBindingTypeSize{sizeof(rendering::ShaderBindingType)};
+constexpr usize kShaderBindingScopeSize{sizeof(rendering::ShaderBindingScope)};
+constexpr usize kShaderMemoryLayoutSize{sizeof(rendering::ShaderMemoryLayout)};
+constexpr usize kShaderStageFlagsSize{sizeof(rendering::ShaderStageFlags)};
+constexpr usize kShaderVariableTypeSize{sizeof(rendering::ShaderVariableType)};
+constexpr usize kShaderImageBindingSemanticSize{
+    sizeof(rendering::ShaderImageBindingSemantic)};
+
+usize GetTStringByteSize(const TString& str) {
+  return str.GetLengthWithNullTerminator() * sizeof(tchar);
+}
+}  // namespace internal
+
 ShaderResourceHandler::ShaderResourceHandler(const ResourceHandlerDescr& descr)
     : ResourceHandler<ShaderResource>{descr} {}
 
@@ -31,8 +52,10 @@ ResourceFile ShaderResourceHandler::Pack(const ShaderResource& resource,
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
+
   Array<u8> data{byte_allocator_};
   data.Resize(kResourceIdSize + kResourceTypeIdSize);
+
   usize cursor{0};
   auto* buffer{data.GetData()};
 
@@ -42,11 +65,13 @@ ResourceFile ShaderResourceHandler::Pack(const ShaderResource& resource,
   memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  const auto dumped_descr{DumpDescr(resource.descr)};
+  auto dumped_descr{DumpDescr(resource.descr)};
   file.descr_size = dumped_descr.GetSize();
+
   PackBytes(dumped_descr, file.compression_mode, &file.descr,
             &file.packed_descr_size);
   PackResourceData(data, file);
+
   return file;
 }
 
@@ -59,6 +84,7 @@ void ShaderResourceHandler::Unpack(const ResourceFile& file,
 
   Array<u8> data{byte_allocator_};
   UnpackResourceData(file, data);
+
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
@@ -70,52 +96,70 @@ void ShaderResourceHandler::Unpack(const ResourceFile& file,
 
   memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
+
   resource->life_span = life_span;
 }
 
 Array<u8> ShaderResourceHandler::DumpDescr(const ShaderResourceDescr& descr) {
-  constexpr auto kBoolSize{sizeof(bool)};
-  constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
-  constexpr auto kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
+  auto data_size{GetSizeFromDescr(descr)};
 
-  const auto data_size{GetSizeFromDescr(descr)};
   Array<u8> dumped_descr{byte_allocator_};
   dumped_descr.Resize(data_size);
+
   usize cursor{0};
   auto* buffer{dumped_descr.GetData()};
 
-  memory::CopyMemory(&buffer[cursor], &descr.is_wireframe, kBoolSize);
-  cursor += kBoolSize;
+  memory::CopyMemory(&buffer[cursor], &descr.rasterizer.is_wireframe,
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
 
-  memory::CopyMemory(&buffer[cursor], &descr.cull_mode, kCullModeSize);
-  cursor += kCullModeSize;
+  memory::CopyMemory(&buffer[cursor], &descr.rasterizer.is_depth_bias,
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
 
-  memory::CopyMemory(&buffer[cursor], &descr.topology, kPrimitiveTopologySize);
-  cursor += kPrimitiveTopologySize;
+  memory::CopyMemory(&buffer[cursor], &descr.rasterizer.cull_mode,
+                     internal::kCullModeSize);
+  cursor += internal::kCullModeSize;
+
+  memory::CopyMemory(&buffer[cursor], &descr.depth_stencil.is_depth_test,
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
+
+  memory::CopyMemory(&buffer[cursor], &descr.depth_stencil.is_depth_write,
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
+
+  memory::CopyMemory(&buffer[cursor], &descr.depth_stencil.compare_op,
+                     internal::kCompareOpSize);
+  cursor += internal::kCompareOpSize;
+
+  memory::CopyMemory(&buffer[cursor], &descr.topology,
+                     internal::kPrimitiveTopologySize);
+  cursor += internal::kPrimitiveTopologySize;
+
+  memory::CopyMemory(&buffer[cursor], &descr.vertex_layout,
+                     internal::kShaderVertexLayoutSize);
+  cursor += internal::kShaderVertexLayoutSize;
 
   DumpShaderModules(descr, buffer, cursor);
   DumpShaderDefines(descr, buffer, cursor);
-  DumpVertexAttributes(descr, buffer, cursor);
-  DumpUniforms(descr, buffer, cursor);
-  DumpConstants(descr, buffer, cursor);
-  DumpStorages(descr, buffer, cursor);
+  DumpBindings(descr, buffer, cursor);
+  DumpPushConstants(descr, buffer, cursor);
 
   return dumped_descr;
 }
 
 void ShaderResourceHandler::DumpShaderModules(const ShaderResourceDescr& descr,
                                               u8* buffer, usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-
-  const auto module_path_count{descr.shader_module_paths.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &module_path_count, kUsizeSize);
-  cursor += kUsizeSize;
+  auto module_path_count{descr.shader_module_paths.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &module_path_count, internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
 
   for (const auto& module_path : descr.shader_module_paths) {
-    const auto module_path_size{(module_path.GetLengthWithNullTerminator()) *
-                                sizeof(tchar)};
-    memory::CopyMemory(&buffer[cursor], &module_path_size, kUsizeSize);
-    cursor += kUsizeSize;
+    auto module_path_size{internal::GetTStringByteSize(module_path)};
+    memory::CopyMemory(&buffer[cursor], &module_path_size,
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
 
     memory::CopyMemory(&buffer[cursor], module_path.GetCTStr(),
                        module_path_size);
@@ -125,216 +169,222 @@ void ShaderResourceHandler::DumpShaderModules(const ShaderResourceDescr& descr,
 
 void ShaderResourceHandler::DumpShaderDefines(const ShaderResourceDescr& descr,
                                               u8* buffer, usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-
-  const auto define_count{descr.defines.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &define_count, kUsizeSize);
-  cursor += kUsizeSize;
+  auto define_count{descr.defines.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &define_count, internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
 
   for (const auto& define : descr.defines) {
-    const auto define_name_len{define.name_len};
-    memory::CopyMemory(&buffer[cursor], &define_name_len, kUsizeSize);
-    cursor += kUsizeSize;
+    auto define_name_len{define.name_len};
+    memory::CopyMemory(&buffer[cursor], &define_name_len, internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
 
-    memory::CopyMemory(&buffer[cursor], define.name, define_name_len);
-    cursor += define_name_len;
-
-    const auto define_value_len{define.value_len};
-    memory::CopyMemory(&buffer[cursor], &define_value_len, kUsizeSize);
-    cursor += kUsizeSize;
-
-    memory::CopyMemory(&buffer[cursor], define.value, define_value_len);
-    cursor += define_value_len;
-  }
-}
-
-void ShaderResourceHandler::DumpVertexAttributes(
-    const ShaderResourceDescr& descr, u8* buffer, usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderVertexAttributeTypeSize(
-      sizeof(rendering::ShaderVertexAttributeType));
-
-  const auto vertex_attribute_count{descr.vertex_attributes.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &vertex_attribute_count, kUsizeSize);
-  cursor += kUsizeSize;
-
-  for (const auto& vertex_attribute : descr.vertex_attributes) {
-    memory::CopyMemory(&buffer[cursor], &vertex_attribute.type,
-                       kShaderVertexAttributeTypeSize);
-    cursor += kShaderVertexAttributeTypeSize;
-
-    const auto vertex_attribute_name_size{vertex_attribute.name_len};
-    memory::CopyMemory(&buffer[cursor], &vertex_attribute_name_size,
-                       kUsizeSize);
-    cursor += kUsizeSize;
-
-    memory::CopyMemory(&buffer[cursor], vertex_attribute.name,
-                       vertex_attribute_name_size);
-    cursor += vertex_attribute_name_size;
-  }
-}
-
-void ShaderResourceHandler::DumpUniforms(const ShaderResourceDescr& descr,
-                                         u8* buffer, usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderUniformTypeSize(sizeof(rendering::ShaderVariableType));
-  constexpr auto kShaderUniformScopeSize(sizeof(rendering::ShaderUniformScope));
-  constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
-
-  const auto uniform_count{descr.uniforms.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &uniform_count, kUsizeSize);
-  cursor += kUsizeSize;
-
-  for (const auto& uniform : descr.uniforms) {
-    memory::CopyMemory(&buffer[cursor], &uniform.type, kShaderUniformTypeSize);
-    cursor += kShaderUniformTypeSize;
-
-    memory::CopyMemory(&buffer[cursor], &uniform.scope,
-                       kShaderUniformScopeSize);
-    cursor += kShaderUniformScopeSize;
-
-    memory::CopyMemory(&buffer[cursor], &uniform.stages, kShaderStageFlagsSize);
-    cursor += kShaderStageFlagsSize;
-
-    const auto uniform_name_len{uniform.name_len};
-    memory::CopyMemory(&buffer[cursor], &uniform_name_len, kUsizeSize);
-    cursor += kUsizeSize;
-
-    memory::CopyMemory(&buffer[cursor], uniform.name, uniform_name_len);
-    cursor += uniform_name_len;
-  }
-}
-
-void ShaderResourceHandler::DumpConstants(const ShaderResourceDescr& descr,
-                                          u8* buffer, usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderConstantTypeSize(sizeof(rendering::ShaderVariableType));
-  constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
-
-  const auto constant_count{descr.constants.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &constant_count, kUsizeSize);
-  cursor += kUsizeSize;
-
-  for (const auto& constant : descr.constants) {
-    memory::CopyMemory(&buffer[cursor], &constant.type,
-                       kShaderConstantTypeSize);
-    cursor += kShaderConstantTypeSize;
-
-    memory::CopyMemory(&buffer[cursor], &constant.stages,
-                       kShaderStageFlagsSize);
-    cursor += kShaderStageFlagsSize;
-
-    const auto constant_name_len{constant.name_len};
-    memory::CopyMemory(&buffer[cursor], &constant_name_len, kUsizeSize);
-    cursor += kUsizeSize;
-
-    memory::CopyMemory(&buffer[cursor], constant.name, constant_name_len);
-    cursor += constant_name_len;
-  }
-}
-
-void ShaderResourceHandler::DumpStorages(const ShaderResourceDescr& descr,
-                                         u8* buffer, usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
-  constexpr auto kShaderStoragePropertyTypeSize(
-      sizeof(rendering::ShaderVariableType));
-
-  const auto storage_count{descr.storages.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &storage_count, kUsizeSize);
-  cursor += kUsizeSize;
-
-  for (const auto& storage : descr.storages) {
-    const auto storage_name_len{storage.name_len};
-    memory::CopyMemory(&buffer[cursor], &storage_name_len, kUsizeSize);
-    cursor += kUsizeSize;
-
-    memory::CopyMemory(&buffer[cursor], storage.name, storage_name_len);
-    cursor += storage_name_len;
-
-    memory::CopyMemory(&buffer[cursor], &storage.stages, kShaderStageFlagsSize);
-    cursor += kShaderStageFlagsSize;
-
-    const auto property_count{storage.properties.GetSize()};
-    memory::CopyMemory(&buffer[cursor], &property_count, kUsizeSize);
-    cursor += kUsizeSize;
-
-    for (const auto& property : storage.properties) {
-      memory::CopyMemory(&buffer[cursor], &property.type,
-                         kShaderStoragePropertyTypeSize);
-      cursor += kShaderStoragePropertyTypeSize;
-
-      const auto property_name_len{property.name_len};
-      memory::CopyMemory(&buffer[cursor], &property_name_len, kUsizeSize);
-      cursor += kUsizeSize;
-
-      memory::CopyMemory(&buffer[cursor], property.name, property_name_len);
-      cursor += property_name_len;
+    if (define_name_len > 0) {
+      memory::CopyMemory(&buffer[cursor], define.name, define_name_len);
+      cursor += define_name_len;
     }
 
-    const auto storage_engine_define_len{storage.engine_define_len};
-    memory::CopyMemory(&buffer[cursor], &storage_engine_define_len, kUsizeSize);
-    cursor += kUsizeSize;
+    auto define_value_len{define.value_len};
+    memory::CopyMemory(&buffer[cursor], &define_value_len,
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
 
-    memory::CopyMemory(&buffer[cursor], storage.engine_define,
-                       storage_engine_define_len);
-    cursor += storage_engine_define_len;
+    if (define_value_len > 0) {
+      memory::CopyMemory(&buffer[cursor], define.value, define_value_len);
+      cursor += define_value_len;
+    }
+  }
+}
+
+void ShaderResourceHandler::DumpBindings(const ShaderResourceDescr& descr,
+                                         u8* buffer, usize& cursor) {
+  auto binding_count{descr.bindings.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &binding_count, internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
+
+  for (const auto& binding : descr.bindings) {
+    auto binding_name_len{binding.name_len};
+    memory::CopyMemory(&buffer[cursor], &binding_name_len,
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
+
+    if (binding_name_len > 0) {
+      memory::CopyMemory(&buffer[cursor], binding.name, binding_name_len);
+      cursor += binding_name_len;
+    }
+
+    memory::CopyMemory(&buffer[cursor], &binding.type,
+                       internal::kShaderBindingTypeSize);
+    cursor += internal::kShaderBindingTypeSize;
+
+    memory::CopyMemory(&buffer[cursor], &binding.scope,
+                       internal::kShaderBindingScopeSize);
+    cursor += internal::kShaderBindingScopeSize;
+
+    memory::CopyMemory(&buffer[cursor], &binding.layout,
+                       internal::kShaderMemoryLayoutSize);
+    cursor += internal::kShaderMemoryLayoutSize;
+
+    memory::CopyMemory(&buffer[cursor], &binding.set, internal::kU32Size);
+    cursor += internal::kU32Size;
+
+    memory::CopyMemory(&buffer[cursor], &binding.binding, internal::kU32Size);
+    cursor += internal::kU32Size;
+
+    memory::CopyMemory(&buffer[cursor], &binding.descriptor_count,
+                       internal::kU32Size);
+    cursor += internal::kU32Size;
+
+    memory::CopyMemory(&buffer[cursor], &binding.image_semantic,
+                       internal::kShaderImageBindingSemanticSize);
+    cursor += internal::kShaderImageBindingSemanticSize;
+
+    memory::CopyMemory(&buffer[cursor], &binding.stages,
+                       internal::kShaderStageFlagsSize);
+    cursor += internal::kShaderStageFlagsSize;
+
+    auto field_count{binding.fields.GetSize()};
+    memory::CopyMemory(&buffer[cursor], &field_count, internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
+
+    for (const auto& field : binding.fields) {
+      auto field_name_len{field.name_len};
+      memory::CopyMemory(&buffer[cursor], &field_name_len,
+                         internal::kUsizeSize);
+      cursor += internal::kUsizeSize;
+
+      if (field_name_len > 0) {
+        memory::CopyMemory(&buffer[cursor], field.name, field_name_len);
+        cursor += field_name_len;
+      }
+
+      memory::CopyMemory(&buffer[cursor], &field.type,
+                         internal::kShaderVariableTypeSize);
+      cursor += internal::kShaderVariableTypeSize;
+
+      memory::CopyMemory(&buffer[cursor], &field.array_count,
+                         internal::kU32Size);
+      cursor += internal::kU32Size;
+    }
+  }
+}
+
+void ShaderResourceHandler::DumpPushConstants(const ShaderResourceDescr& descr,
+                                              u8* buffer, usize& cursor) {
+  auto push_constant_count{descr.push_constants.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &push_constant_count,
+                     internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
+
+  for (const auto& push_constant : descr.push_constants) {
+    auto push_constant_name_len{push_constant.name_len};
+    memory::CopyMemory(&buffer[cursor], &push_constant_name_len,
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
+
+    if (push_constant_name_len > 0) {
+      memory::CopyMemory(&buffer[cursor], push_constant.name,
+                         push_constant_name_len);
+      cursor += push_constant_name_len;
+    }
+
+    memory::CopyMemory(&buffer[cursor], &push_constant.stages,
+                       internal::kShaderStageFlagsSize);
+    cursor += internal::kShaderStageFlagsSize;
+
+    auto field_count{push_constant.fields.GetSize()};
+    memory::CopyMemory(&buffer[cursor], &field_count, internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
+
+    for (const auto& field : push_constant.fields) {
+      auto field_name_len{field.name_len};
+      memory::CopyMemory(&buffer[cursor], &field_name_len,
+                         internal::kUsizeSize);
+      cursor += internal::kUsizeSize;
+
+      if (field_name_len > 0) {
+        memory::CopyMemory(&buffer[cursor], field.name, field_name_len);
+        cursor += field_name_len;
+      }
+
+      memory::CopyMemory(&buffer[cursor], &field.type,
+                         internal::kShaderVariableTypeSize);
+      cursor += internal::kShaderVariableTypeSize;
+
+      memory::CopyMemory(&buffer[cursor], &field.array_count,
+                         internal::kU32Size);
+      cursor += internal::kU32Size;
+    }
   }
 }
 
 void ShaderResourceHandler::ParseDescr(const Array<u8>& dumped_descr,
                                        ShaderResourceDescr& descr) {
-  constexpr auto kBoolSize{sizeof(bool)};
-  constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
-  constexpr auto kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
-
   descr.shader_module_paths = Array<TString>{byte_allocator_};
   descr.defines = Array<rendering::ShaderDefineDescr>{byte_allocator_};
-  descr.vertex_attributes =
-      Array<rendering::ShaderVertexAttributeDescr>{byte_allocator_};
-  descr.uniforms = Array<rendering::ShaderUniformDescr>{byte_allocator_};
-  descr.constants = Array<rendering::ShaderConstantDescr>{byte_allocator_};
-  descr.storages = Array<rendering::ShaderStorageDescr>{byte_allocator_};
+  descr.bindings = Array<rendering::ShaderBindingDescr>{byte_allocator_};
+  descr.push_constants =
+      Array<rendering::ShaderPushConstantDescr>{byte_allocator_};
 
   const auto* buffer{dumped_descr.GetData()};
   usize cursor{0};
 
-  memory::CopyMemory(&descr.is_wireframe, &buffer[cursor], kBoolSize);
-  cursor += kBoolSize;
+  memory::CopyMemory(&descr.rasterizer.is_wireframe, &buffer[cursor],
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
 
-  memory::CopyMemory(&descr.cull_mode, &buffer[cursor], kCullModeSize);
-  cursor += kCullModeSize;
+  memory::CopyMemory(&descr.rasterizer.is_depth_bias, &buffer[cursor],
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
 
-  memory::CopyMemory(&descr.topology, &buffer[cursor], kPrimitiveTopologySize);
-  cursor += kPrimitiveTopologySize;
+  memory::CopyMemory(&descr.rasterizer.cull_mode, &buffer[cursor],
+                     internal::kCullModeSize);
+  cursor += internal::kCullModeSize;
+
+  memory::CopyMemory(&descr.depth_stencil.is_depth_test, &buffer[cursor],
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
+
+  memory::CopyMemory(&descr.depth_stencil.is_depth_write, &buffer[cursor],
+                     internal::kBoolSize);
+  cursor += internal::kBoolSize;
+
+  memory::CopyMemory(&descr.depth_stencil.compare_op, &buffer[cursor],
+                     internal::kCompareOpSize);
+  cursor += internal::kCompareOpSize;
+
+  memory::CopyMemory(&descr.topology, &buffer[cursor],
+                     internal::kPrimitiveTopologySize);
+  cursor += internal::kPrimitiveTopologySize;
+
+  memory::CopyMemory(&descr.vertex_layout, &buffer[cursor],
+                     internal::kShaderVertexLayoutSize);
+  cursor += internal::kShaderVertexLayoutSize;
 
   ParseShaderModules(buffer, descr, cursor);
   ParseShaderDefines(buffer, descr, cursor);
-  ParseVertexAttributes(buffer, descr, cursor);
-  ParseUniforms(buffer, descr, cursor);
-  ParseConstants(buffer, descr, cursor);
-  ParseStorages(buffer, descr, cursor);
+  ParseBindings(buffer, descr, cursor);
+  ParsePushConstants(buffer, descr, cursor);
 }
 
 void ShaderResourceHandler::ParseShaderModules(const u8* buffer,
                                                ShaderResourceDescr& descr,
                                                usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-
-  usize module_path_count;
-  memory::CopyMemory(&module_path_count, &buffer[cursor], kUsizeSize);
-  cursor += kUsizeSize;
+  usize module_path_count{0};
+  memory::CopyMemory(&module_path_count, &buffer[cursor], internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
 
   descr.shader_module_paths.Reserve(module_path_count);
 
   for (usize i{0}; i < module_path_count; ++i) {
-    usize module_path_size;
-    memory::CopyMemory(&module_path_size, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
+    usize module_path_size{0};
+    memory::CopyMemory(&module_path_size, &buffer[cursor],
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
 
     const auto* str{reinterpret_cast<const tchar*>(&buffer[cursor])};
+    auto char_count{module_path_size / sizeof(tchar)};
 
-    TString module_path{str, str + module_path_size};
+    TString module_path{str, str + char_count - 1};
     cursor += module_path_size;
 
     descr.shader_module_paths.PushBack(std::move(module_path));
@@ -344,28 +394,29 @@ void ShaderResourceHandler::ParseShaderModules(const u8* buffer,
 void ShaderResourceHandler::ParseShaderDefines(const u8* buffer,
                                                ShaderResourceDescr& descr,
                                                usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-
-  usize define_count;
-  memory::CopyMemory(&define_count, &buffer[cursor], kUsizeSize);
-  cursor += kUsizeSize;
+  usize define_count{0};
+  memory::CopyMemory(&define_count, &buffer[cursor], internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
 
   descr.defines.Reserve(define_count);
 
-  for (usize j{0}; j < define_count; ++j) {
+  for (usize i{0}; i < define_count; ++i) {
     auto& define_descr{descr.defines.EmplaceBack()};
 
-    usize define_name_len;
-    memory::CopyMemory(&define_name_len, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
+    usize define_name_len{0};
+    memory::CopyMemory(&define_name_len, &buffer[cursor], internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
 
-    SetName(define_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
-            define_name_len);
-    cursor += define_name_len;
+    if (define_name_len > 0) {
+      SetName(define_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+              define_name_len);
+      cursor += define_name_len;
+    }
 
-    usize define_value_len;
-    memory::CopyMemory(&define_value_len, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
+    usize define_value_len{0};
+    memory::CopyMemory(&define_value_len, &buffer[cursor],
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
 
     if (define_value_len > 0) {
       SetValue(define_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
@@ -375,168 +426,151 @@ void ShaderResourceHandler::ParseShaderDefines(const u8* buffer,
   }
 }
 
-void ShaderResourceHandler::ParseVertexAttributes(const u8* buffer,
-                                                  ShaderResourceDescr& descr,
-                                                  usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderVertexAttributeTypeSize(
-      sizeof(rendering::ShaderVertexAttributeType));
-
-  usize vertex_attribute_count;
-  memory::CopyMemory(&vertex_attribute_count, &buffer[cursor], kUsizeSize);
-  cursor += kUsizeSize;
-
-  descr.vertex_attributes.Reserve(vertex_attribute_count);
-
-  for (usize i{0}; i < vertex_attribute_count; ++i) {
-    auto& vertex_attribute_descr{descr.vertex_attributes.EmplaceBack()};
-    memory::CopyMemory(&vertex_attribute_descr.type, &buffer[cursor],
-                       kShaderVertexAttributeTypeSize);
-    cursor += kShaderVertexAttributeTypeSize;
-
-    usize vertex_attribute_name_len;
-    memory::CopyMemory(&vertex_attribute_name_len, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
-
-    SetName(vertex_attribute_descr,
-            reinterpret_cast<const schar*>(&buffer[cursor]),
-            vertex_attribute_name_len);
-    cursor += vertex_attribute_name_len;
-  }
-}
-
-void ShaderResourceHandler::ParseUniforms(const u8* buffer,
+void ShaderResourceHandler::ParseBindings(const u8* buffer,
                                           ShaderResourceDescr& descr,
                                           usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderUniformTypeSize(sizeof(rendering::ShaderVariableType));
-  constexpr auto kShaderUniformScopeSize(sizeof(rendering::ShaderUniformScope));
-  constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
+  usize binding_count{0};
+  memory::CopyMemory(&binding_count, &buffer[cursor], internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
 
-  usize uniform_count;
-  memory::CopyMemory(&uniform_count, &buffer[cursor], kUsizeSize);
-  cursor += kUsizeSize;
+  descr.bindings.Reserve(binding_count);
 
-  descr.uniforms.Reserve(uniform_count);
+  for (usize i{0}; i < binding_count; ++i) {
+    auto& binding_descr{descr.bindings.EmplaceBack()};
 
-  for (usize i{0}; i < uniform_count; ++i) {
-    auto& uniform_descr{descr.uniforms.EmplaceBack()};
-    memory::CopyMemory(&uniform_descr.type, &buffer[cursor],
-                       kShaderUniformTypeSize);
-    cursor += kShaderUniformTypeSize;
+    usize binding_name_len{0};
+    memory::CopyMemory(&binding_name_len, &buffer[cursor],
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
 
-    memory::CopyMemory(&uniform_descr.scope, &buffer[cursor],
-                       kShaderUniformScopeSize);
-    cursor += kShaderUniformScopeSize;
-
-    memory::CopyMemory(&uniform_descr.stages, &buffer[cursor],
-                       kShaderStageFlagsSize);
-    cursor += kShaderStageFlagsSize;
-
-    usize uniform_name_len;
-    memory::CopyMemory(&uniform_name_len, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
-
-    SetName(uniform_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
-            uniform_name_len);
-    cursor += uniform_name_len;
-  }
-}
-
-void ShaderResourceHandler::ParseConstants(const u8* buffer,
-                                           ShaderResourceDescr& descr,
-                                           usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderConstantTypeSize(sizeof(rendering::ShaderVariableType));
-  constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
-
-  usize constant_count;
-  memory::CopyMemory(&constant_count, &buffer[cursor], kUsizeSize);
-  cursor += kUsizeSize;
-
-  descr.constants.Reserve(constant_count);
-
-  for (usize i{0}; i < constant_count; ++i) {
-    auto& constant_descr{descr.constants.EmplaceBack()};
-    memory::CopyMemory(&constant_descr.type, &buffer[cursor],
-                       kShaderConstantTypeSize);
-    cursor += kShaderConstantTypeSize;
-
-    memory::CopyMemory(&constant_descr.stages, &buffer[cursor],
-                       kShaderStageFlagsSize);
-    cursor += kShaderStageFlagsSize;
-
-    usize constant_name_len;
-    memory::CopyMemory(&constant_name_len, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
-
-    SetName(constant_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
-            constant_name_len);
-    cursor += constant_name_len;
-  }
-}
-
-void ShaderResourceHandler::ParseStorages(const u8* buffer,
-                                          ShaderResourceDescr& descr,
-                                          usize& cursor) {
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
-  constexpr auto kShaderStoragePropertyTypeSize(
-      sizeof(rendering::ShaderVariableType));
-
-  usize storage_count;
-  memory::CopyMemory(&storage_count, &buffer[cursor], kUsizeSize);
-  cursor += kUsizeSize;
-
-  descr.storages.Reserve(storage_count);
-
-  for (usize i{0}; i < storage_count; ++i) {
-    auto& storage_descr{descr.storages.EmplaceBack()};
-
-    usize storage_name_len;
-    memory::CopyMemory(&storage_name_len, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
-
-    SetName(storage_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
-            storage_name_len);
-    cursor += storage_name_len;
-
-    memory::CopyMemory(&storage_descr.stages, &buffer[cursor],
-                       kShaderStageFlagsSize);
-    cursor += kShaderStageFlagsSize;
-
-    usize property_count;
-    memory::CopyMemory(&property_count, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
-
-    storage_descr.properties =
-        Array<rendering::ShaderStoragePropertyDescr>{byte_allocator_};
-    storage_descr.properties.Reserve(property_count);
-
-    for (usize j{0}; j < property_count; ++j) {
-      auto& property_descr{storage_descr.properties.EmplaceBack()};
-
-      memory::CopyMemory(&property_descr.type, &buffer[cursor],
-                         kShaderStoragePropertyTypeSize);
-      cursor += kShaderStoragePropertyTypeSize;
-
-      usize property_name_len;
-      memory::CopyMemory(&property_name_len, &buffer[cursor], kUsizeSize);
-      cursor += kUsizeSize;
-
-      SetName(property_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
-              property_name_len);
-      cursor += property_name_len;
+    if (binding_name_len > 0) {
+      SetName(binding_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+              binding_name_len);
+      cursor += binding_name_len;
     }
 
-    usize engine_define_len;
-    memory::CopyMemory(&engine_define_len, &buffer[cursor], kUsizeSize);
-    cursor += kUsizeSize;
+    memory::CopyMemory(&binding_descr.type, &buffer[cursor],
+                       internal::kShaderBindingTypeSize);
+    cursor += internal::kShaderBindingTypeSize;
 
-    SetEngineDefine(storage_descr,
-                    reinterpret_cast<const schar*>(&buffer[cursor]),
-                    engine_define_len);
-    cursor += engine_define_len;
+    memory::CopyMemory(&binding_descr.scope, &buffer[cursor],
+                       internal::kShaderBindingScopeSize);
+    cursor += internal::kShaderBindingScopeSize;
+
+    memory::CopyMemory(&binding_descr.layout, &buffer[cursor],
+                       internal::kShaderMemoryLayoutSize);
+    cursor += internal::kShaderMemoryLayoutSize;
+
+    memory::CopyMemory(&binding_descr.set, &buffer[cursor], internal::kU32Size);
+    cursor += internal::kU32Size;
+
+    memory::CopyMemory(&binding_descr.binding, &buffer[cursor],
+                       internal::kU32Size);
+    cursor += internal::kU32Size;
+
+    memory::CopyMemory(&binding_descr.descriptor_count, &buffer[cursor],
+                       internal::kU32Size);
+    cursor += internal::kU32Size;
+
+    memory::CopyMemory(&binding_descr.image_semantic, &buffer[cursor],
+                       internal::kShaderImageBindingSemanticSize);
+    cursor += internal::kShaderImageBindingSemanticSize;
+
+    memory::CopyMemory(&binding_descr.stages, &buffer[cursor],
+                       internal::kShaderStageFlagsSize);
+    cursor += internal::kShaderStageFlagsSize;
+
+    usize field_count{0};
+    memory::CopyMemory(&field_count, &buffer[cursor], internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
+
+    binding_descr.fields = Array<rendering::ShaderFieldDescr>{byte_allocator_};
+    binding_descr.fields.Reserve(field_count);
+
+    for (usize j{0}; j < field_count; ++j) {
+      auto& field_descr{binding_descr.fields.EmplaceBack()};
+
+      usize field_name_len{0};
+      memory::CopyMemory(&field_name_len, &buffer[cursor],
+                         internal::kUsizeSize);
+      cursor += internal::kUsizeSize;
+
+      if (field_name_len > 0) {
+        SetName(field_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+                field_name_len);
+        cursor += field_name_len;
+      }
+
+      memory::CopyMemory(&field_descr.type, &buffer[cursor],
+                         internal::kShaderVariableTypeSize);
+      cursor += internal::kShaderVariableTypeSize;
+
+      memory::CopyMemory(&field_descr.array_count, &buffer[cursor],
+                         internal::kU32Size);
+      cursor += internal::kU32Size;
+    }
+  }
+}
+
+void ShaderResourceHandler::ParsePushConstants(const u8* buffer,
+                                               ShaderResourceDescr& descr,
+                                               usize& cursor) {
+  usize push_constant_count{0};
+  memory::CopyMemory(&push_constant_count, &buffer[cursor],
+                     internal::kUsizeSize);
+  cursor += internal::kUsizeSize;
+
+  descr.push_constants.Reserve(push_constant_count);
+
+  for (usize i{0}; i < push_constant_count; ++i) {
+    auto& push_constant_descr{descr.push_constants.EmplaceBack()};
+
+    usize push_constant_name_len{0};
+    memory::CopyMemory(&push_constant_name_len, &buffer[cursor],
+                       internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
+
+    if (push_constant_name_len > 0) {
+      SetName(push_constant_descr,
+              reinterpret_cast<const schar*>(&buffer[cursor]),
+              push_constant_name_len);
+      cursor += push_constant_name_len;
+    }
+
+    memory::CopyMemory(&push_constant_descr.stages, &buffer[cursor],
+                       internal::kShaderStageFlagsSize);
+    cursor += internal::kShaderStageFlagsSize;
+
+    usize field_count{0};
+    memory::CopyMemory(&field_count, &buffer[cursor], internal::kUsizeSize);
+    cursor += internal::kUsizeSize;
+
+    push_constant_descr.fields =
+        Array<rendering::ShaderFieldDescr>{byte_allocator_};
+    push_constant_descr.fields.Reserve(field_count);
+
+    for (usize j{0}; j < field_count; ++j) {
+      auto& field_descr{push_constant_descr.fields.EmplaceBack()};
+
+      usize field_name_len{0};
+      memory::CopyMemory(&field_name_len, &buffer[cursor],
+                         internal::kUsizeSize);
+      cursor += internal::kUsizeSize;
+
+      if (field_name_len > 0) {
+        SetName(field_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+                field_name_len);
+        cursor += field_name_len;
+      }
+
+      memory::CopyMemory(&field_descr.type, &buffer[cursor],
+                         internal::kShaderVariableTypeSize);
+      cursor += internal::kShaderVariableTypeSize;
+
+      memory::CopyMemory(&field_descr.array_count, &buffer[cursor],
+                         internal::kU32Size);
+      cursor += internal::kU32Size;
+    }
   }
 }
 }  // namespace resource

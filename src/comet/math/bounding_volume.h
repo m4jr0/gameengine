@@ -13,12 +13,12 @@
 namespace comet {
 namespace math {
 struct Aabb {
-  Vec3 center{0.0f};
-  Vec3 extents{0.0f};
+  Vec3 center{.0f};
+  Vec3 extents{.0f};
 };
 
 struct Sphere {
-  Vec3 center{0.0f};
+  Vec3 center{.0f};
   f32 radius{0};
 };
 

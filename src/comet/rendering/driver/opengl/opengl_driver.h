@@ -10,12 +10,15 @@
 #include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_module_handler.h"
+#include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_view_handler.h"
+#include "comet/rendering/driver/opengl/opengl_frame_state.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
@@ -34,26 +37,33 @@ class OpenGlDriver : public Driver {
   OpenGlDriver(OpenGlDriver&&) = delete;
   OpenGlDriver& operator=(const OpenGlDriver&) = delete;
   OpenGlDriver& operator=(OpenGlDriver&&) = delete;
-  virtual ~OpenGlDriver() = default;
+  ~OpenGlDriver() override = default;
 
   void Initialize() override;
   void Shutdown() override;
   void Update(frame::FramePacket* packet) override;
   DriverType GetType() const noexcept override;
 
-  void InitializeHandlers();
-  void DestroyHandlers();
-
   void SetSize(WindowSize width, WindowSize height);
-  void OnEvent(const event::Event&);
-
-  void Draw(frame::FramePacket* packet);
-  void HandleResize();
+  void OnEvent(const event::Event& event);
 
   Window* GetWindow() override;
   u32 GetDrawCount() const override;
 
  private:
+  void InitializeHandlers();
+  void DestroyHandlers();
+
+  void ApplyWindowResize();
+
+  void PreDraw(frame::FramePacket* packet);
+  void PostDraw(const frame::FramePacket* packet);
+  void Draw(frame::FramePacket* packet);
+
+  void HandlePresentationState(frame::FramePacket* packet);
+  void UpdateGpuSceneState(frame::FramePacket* packet);
+  void RecordFrame(frame::FramePacket* packet);
+
 #ifdef COMET_DEBUG_RENDERING
   static void GLAPIENTRY LogOpenGlMessage(GLenum source, GLenum type, GLuint id,
                                           GLenum severity, GLsizei length,
@@ -62,15 +72,16 @@ class OpenGlDriver : public Driver {
 #endif  // COMET_DEBUG_RENDERING
 
   bool is_resize_{false};
-  FrameCount frame_count_{0};
+  memory::UniquePtr<FrameState> frame_state_{nullptr};
 
   memory::UniquePtr<OpenGlGlfwWindow> window_{nullptr};
+  memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
+  memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
   memory::UniquePtr<MaterialHandler> material_handler_{nullptr};
   memory::UniquePtr<MeshHandler> mesh_handler_{nullptr};
-  memory::UniquePtr<RenderProxyHandler> render_proxy_handler_{nullptr};
   memory::UniquePtr<ShaderHandler> shader_handler_{nullptr};
-  memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
-  memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
+  memory::UniquePtr<LightingHandler> lighting_handler_{nullptr};
+  memory::UniquePtr<RenderProxyHandler> render_proxy_handler_{nullptr};
   memory::UniquePtr<ViewHandler> view_handler_{nullptr};
 };
 }  // namespace gl

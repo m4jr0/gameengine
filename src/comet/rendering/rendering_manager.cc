@@ -25,6 +25,10 @@
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
 #include "comet/time/time_manager.h"
 
+#ifdef COMET_HAS_DEBUG_UI
+#include "comet/rendering/debug_ui_registry.h"
+#endif  // COMET_HAS_DEBUG_UI
+
 namespace comet {
 namespace rendering {
 RenderingManager& RenderingManager::Get() {
@@ -34,7 +38,7 @@ RenderingManager& RenderingManager::Get() {
 
 void RenderingManager::Initialize() {
   Manager::Initialize();
-  const auto fps_cap{COMET_CONF_U16(conf::kRenderingFpsCap)};
+  auto fps_cap{COMET_CONF_U16(conf::kRenderingFpsCap)};
 
   if (fps_cap > 0) {
     frame_time_threshold_ =
@@ -43,9 +47,11 @@ void RenderingManager::Initialize() {
     frame_time_threshold_ = 0;
   }
 
+  shadow_settings_ = GenerateShadowSettings();
+
   const auto* driver_label{COMET_CONF_STR(conf::kRenderingDriver)};
   COMET_LOG_RENDERING_INFO("Graphics backend: ", driver_label, ".");
-  const auto driver_type{GetDriverTypeFromStr(driver_label)};
+  auto driver_type{GetDriverTypeFromStr(driver_label)};
   COMET_ASSERT(driver_type != DriverType::Unknown,
                "Unknown rendering driver type!");
 
@@ -97,9 +103,17 @@ void RenderingManager::Initialize() {
     input::InputManager::EnableImGui();
   }
 #endif  // COMET_IMGUI
+
+#ifdef COMET_HAS_DEBUG_UI
+  DebugUiRegistry::Get().Initialize();
+#endif  // COMET_HAS_DEBUG_UI
 }
 
 void RenderingManager::Shutdown() {
+#ifdef COMET_HAS_DEBUG_UI
+  DebugUiRegistry::Get().Destroy();
+#endif  // COMET_HAS_DEBUG_UI
+
   driver_->Shutdown();
   driver_ = nullptr;
   frame_rate_ = 0;
@@ -119,7 +133,7 @@ void RenderingManager::Update(frame::FramePacket* packet) {
     counter_ = 0;
   }
 
-  packet->is_rendering_skipped = IsFpsCapReached();
+  packet->can_present = !IsFpsCapReached();
 
   struct Job {
     frame::FramePacket* packet{nullptr};
@@ -172,11 +186,15 @@ DriverType RenderingManager::GetDriverType() const noexcept {
 u32 RenderingManager::GetFrameRate() const noexcept { return frame_rate_; }
 
 f64 RenderingManager::GetFrameTime() const noexcept {
-  return frame_rate_ == 0 ? 0.0 : (1.0 / static_cast<f64>(frame_rate_));
+  return frame_rate_ == 0 ? .0 : (1.0 / static_cast<f64>(frame_rate_));
 }
 
 u32 RenderingManager::GetDrawCount() const noexcept {
   return driver_->GetDrawCount();
+}
+
+const ShadowSettings& RenderingManager::GetShadowSettings() const noexcept {
+  return shadow_settings_;
 }
 
 bool RenderingManager::IsMultithreaded() const noexcept {
@@ -257,19 +275,20 @@ void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
   descr.app_major_version = COMET_CONF_U8(conf::kRenderingVulkanMajorVersion);
   descr.app_minor_version = COMET_CONF_U8(conf::kRenderingVulkanMinorVersion);
   descr.app_patch_version = COMET_CONF_U8(conf::kRenderingVulkanPatchVersion);
+
+  descr.shadow_settings = &shadow_settings_;
 }
 
 frame::FrameArray<RenderingViewDescr>
 RenderingManager::GenerateRenderingViewDescrs() const {
   frame::FrameArray<RenderingViewDescr> descrs{};
 
-  usize size{1};
+  usize size{2};
 
 #ifdef COMET_DEBUG_VIEW
   ++size;
 #endif  // COMET_DEBUG_VIEW
 
-  // TODO(m4jr0): Implement the rest of the views.
 #ifdef COMET_IMGUI
   ++size;
 #endif  // COMET_IMGUI
@@ -282,22 +301,29 @@ RenderingManager::GenerateRenderingViewDescrs() const {
   clear_color[2] = COMET_CONF_F32(conf::kRenderingClearColorB);
   clear_color[3] = COMET_CONF_F32(conf::kRenderingClearColorA);
 
-  const auto window_width{
+  auto window_width{
       static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth)),
   };
 
-  const auto window_height{
+  auto window_height{
       static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight)),
   };
 
   usize cursor{0};
 
+  auto& shadow_view_descr{descrs[cursor]};
+  shadow_view_descr.type = RenderingViewType::Shadow;
+  shadow_view_descr.width =
+      static_cast<WindowSize>(shadow_settings_.resolution);
+  shadow_view_descr.height =
+      static_cast<WindowSize>(shadow_settings_.resolution);
+  shadow_view_descr.id = COMET_STRING_ID("rendering_shadow_view");
+  ++cursor;
+
   // TODO(m4jr0): Do this from configuration.
   auto& world_view_descr{descrs[cursor]};
   world_view_descr.matrix_source = RenderingViewMatrixSource::SceneCamera;
   world_view_descr.type = RenderingViewType::World;
-  world_view_descr.is_first = cursor == 0;
-  world_view_descr.is_last = cursor == descrs.GetSize() - 1;
   world_view_descr.width = window_width;
   world_view_descr.height = window_height;
   memory::CopyMemory(world_view_descr.clear_color, clear_color,
@@ -305,38 +331,10 @@ RenderingManager::GenerateRenderingViewDescrs() const {
   world_view_descr.id = COMET_STRING_ID("rendering_world_view");
   ++cursor;
 
-  // TODO(m4jr0): Implement these views.
-  // auto& skybox_view_descr{descrs[cursor]};
-  // skybox_view_descr.matrix_source = RenderingViewMatrixSource::SceneCamera;
-  // skybox_view_descr.type = RenderingViewType::Skybox;
-  // skybox_view_descr.is_first = cursor == 0;
-  // skybox_view_descr.is_last = cursor == descrs.GetSize() - 1;
-  // skybox_view_descr.width = window_width;
-  // skybox_view_descr.height = window_height;
-  // memory::CopyMemory(skybox_view_descr.clear_color, clear_color,
-  // sizeof(clear_color)); skybox_view_descr.id =
-  // COMET_STRING_ID("rendering_skybox_view");
-  // ++cursor;
-
-  // auto& light_world_view_descr{descrs[cursor]};
-  // light_world_view_descr.matrix_source =
-  // RenderingViewMatrixSource::SceneCamera; light_world_view_descr.type =
-  // RenderingViewType::SimpleWorld;
-  // light_world_view_descr.is_first = cursor == 0;
-  // light_world_view_descr.is_last = cursor == descrs.GetSize() - 1;
-  // light_world_view_descr.width = window_width;
-  // light_world_view_descr.height = window_height;
-  // memory::CopyMemory(light_world_view_descr.clear_color, clear_color,
-  //             sizeof(clear_color));
-  // light_world_view_descr.id = COMET_STRING_ID("rendering_light_world_view");
-  // ++cursor;
-
 #ifdef COMET_DEBUG_VIEW
   auto& debug_view_descr{descrs[cursor]};
   debug_view_descr.matrix_source = RenderingViewMatrixSource::SceneCamera;
   debug_view_descr.type = RenderingViewType::Debug;
-  debug_view_descr.is_first = cursor == 0;
-  debug_view_descr.is_last = cursor == descrs.GetSize() - 1;
   debug_view_descr.width = window_width;
   debug_view_descr.height = window_height;
   memory::CopyMemory(debug_view_descr.clear_color, clear_color,
@@ -349,8 +347,6 @@ RenderingManager::GenerateRenderingViewDescrs() const {
   auto& imgui_view_descr{descrs[cursor]};
   imgui_view_descr.matrix_source = RenderingViewMatrixSource::Unknown;
   imgui_view_descr.type = RenderingViewType::ImGui;
-  imgui_view_descr.is_first = cursor == 0;
-  imgui_view_descr.is_last = cursor == descrs.GetSize() - 1;
   imgui_view_descr.width = window_width;
   imgui_view_descr.height = window_height;
   memory::CopyMemory(imgui_view_descr.clear_color, clear_color,
@@ -360,6 +356,40 @@ RenderingManager::GenerateRenderingViewDescrs() const {
 #endif  // COMET_IMGUI
 
   return descrs;
+}
+
+ShadowSettings RenderingManager::GenerateShadowSettings() const {
+  ShadowSettings settings{};
+  settings.resolution =
+      static_cast<u32>(COMET_CONF_U16(conf::kRenderingShadowResolution));
+  settings.max_distance = COMET_CONF_F32(conf::kRenderingShadowDistance);
+  settings.cascade_count =
+      static_cast<u32>(COMET_CONF_U8(conf::kRenderingShadowCascadeCount));
+  settings.cascade_lambda = COMET_CONF_F32(conf::kRenderingShadowCascadeLambda);
+  settings.bias_constant = COMET_CONF_F32(conf::kRenderingShadowBiasConstant);
+  settings.bias_slope = COMET_CONF_F32(conf::kRenderingShadowBiasSlope);
+
+  settings.caster_extrusion_factor =
+      COMET_CONF_F32(conf::kRenderingShadowCasterExtrusionFactor);
+  settings.receiver_pad_xy =
+      COMET_CONF_F32(conf::kRenderingShadowReceiverPadXY);
+  settings.receiver_pad_z = COMET_CONF_F32(conf::kRenderingShadowReceiverPadZ);
+
+  settings.cascade_blend_ratio =
+      COMET_CONF_F32(conf::kRenderingShadowCascadeBlendRatio);
+
+  settings.pcf_radius = COMET_CONF_F32(conf::kRenderingShadowPcfRadius);
+  settings.pcf_samples =
+      static_cast<u32>(COMET_CONF_U8(conf::kRenderingShadowPcfSamples));
+
+  settings.is_debug_cascades =
+      COMET_CONF_BOOL(conf::kRenderingShadowDebugCascades);
+  settings.debug_single_cascade =
+      static_cast<s32>(COMET_CONF_S8(conf::kRenderingShadowDebugSingleCascade));
+  settings.is_blending_disabled =
+      COMET_CONF_BOOL(conf::kRenderingShadowDisableBlending);
+
+  return settings;
 }
 
 bool RenderingManager::IsFpsCapReached() const {

@@ -17,6 +17,18 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+struct RasterizerState {
+  bool is_wireframe{false};
+  bool is_depth_bias{false};
+  CullMode cull_mode{CullMode::Unknown};
+};
+
+struct DepthStencilState {
+  bool is_depth_test{true};
+  bool is_depth_write{true};
+  CompareOp compare_op{CompareOp::Less};
+};
+
 using PipelineLayoutId = u32;
 constexpr auto kInvalidPipelineLayoutId{static_cast<PipelineLayoutId>(-1)};
 struct PipelineLayout {
@@ -29,7 +41,7 @@ using PipelineId = u32;
 constexpr auto kInvalidPipelineId{static_cast<PipelineId>(-1)};
 
 struct PipelineLayoutDescr {
-  u8 descriptor_set_layout_count{0};
+  u32 descriptor_set_layout_count{0};
   StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>*
       descriptor_set_layout_handles{nullptr};
   Array<VkPushConstantRange>* push_constant_ranges{nullptr};
@@ -41,7 +53,7 @@ struct ComputePipelineDescr {
 };
 
 struct GraphicsPipelineDescr {
-  const RenderPass* render_pass{nullptr};
+  RenderPassHandle render_pass_handle{kInvalidRenderPassHandle};
 
   VkViewport viewport;
   VkRect2D scissor;

@@ -21,7 +21,9 @@ namespace comet {
 namespace rendering {
 namespace vk {
 PipelineHandler::PipelineHandler(const PipelineHandlerDescr& descr)
-    : Handler{descr} {}
+    : Handler{descr}, render_pass_handler_{descr.render_pass_handler} {
+  COMET_ASSERT(render_pass_handler_ != nullptr, "Render pass handler is null!");
+}
 
 void PipelineHandler::Initialize() {
   Handler::Initialize();
@@ -76,7 +78,7 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
   viewport_info.scissorCount = 1;
   viewport_info.pScissors = &descr.scissor;
 
-  const auto color_blend_info{init::GeneratePipelineColorBlendStateCreateInfo(
+  auto color_blend_info{init::GeneratePipelineColorBlendStateCreateInfo(
       &descr.color_blend_attachment_state, 1)};
 
   constexpr StaticArray<VkDynamicState, 3> dynamic_states{
@@ -92,7 +94,8 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
 
   VkPipelineVertexInputStateCreateInfo vertex_input_state_info{};
 
-  if (!descr.vertex_attributes->IsEmpty()) {
+  if (descr.vertex_attributes != nullptr &&
+      !descr.vertex_attributes->IsEmpty()) {
     vertex_input_state_info = init::GeneratePipelineVertexInputStateCreateInfo(
         &descr.vertex_input_binding_description, 1,
         descr.vertex_attributes->GetData(),
@@ -118,7 +121,8 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
   pipeline_info.pDynamicState = &dynamic_state_info;
 
   pipeline_info.layout = pipeline->layout_handle;
-  pipeline_info.renderPass = descr.render_pass->handle;
+  pipeline_info.renderPass =
+      render_pass_handler_->GetVkHandle(descr.render_pass_handle);
   pipeline_info.subpass = 0;
 
   pipeline_info.basePipelineHandle = VK_NULL_HANDLE;

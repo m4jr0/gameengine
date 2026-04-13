@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_FRAME_UTILS_H_
-#define COMET_COMET_CORE_FRAME_UTILS_H_
+#ifndef COMET_COMET_CORE_FRAME_FRAME_UTILS_H_
+#define COMET_COMET_CORE_FRAME_FRAME_UTILS_H_
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_allocator.h"
@@ -162,4 +162,4 @@ class DoubleFrameOrderedSet : public OrderedSet<T, HashLogic> {
   COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(   \
       comet::frame::DoubleFrameOrderedSet<T>, ##__VA_ARGS__)
 
-#endif  // COMET_COMET_CORE_FRAME_UTILS_H_
+#endif  // COMET_COMET_CORE_FRAME_FRAME_UTILS_H_

@@ -16,22 +16,15 @@ namespace comet {
 namespace rendering {
 namespace vk {
 namespace debug {
+const schar* GetVkResultString(VkResult result);
+const schar* GenerateTmpVkResultString(VkResult result);
+
 #define COMET_VULKAN_ABORT_ON_ERROR
 
 #define VMA_LEAK_LOG_FORMAT(...) \
   COMET_LOG_RENDERING_DEBUG(comet::GenerateTmpFromFormat(1024, __VA_ARGS__))
 
 #define VMA_ASSERT(cond) COMET_ASSERT((cond), "VMA assert error!")
-
-#ifndef COMET_DEBUG
-#define COMET_CHECK_VK(vk_expression, ...) vk_expression
-#else
-// Disable Vulkan's validation layers even in debug mode, if necessary.
-#define COMET_CHECK_VK(vk_expression, ...)                  \
-  do {                                                      \
-    COMET_ASSERT(vk_expression == VK_SUCCESS, __VA_ARGS__); \
-  } while (false)
-#endif  // !COMET_DEBUG
 
 #ifdef COMET_DEBUG_RENDERING
 #undef VMA_DEBUG_LOG
@@ -42,7 +35,7 @@ namespace debug {
   do {                                                                      \
     constexpr auto kMessageLength{255};                                     \
     char message[kMessageLength]{'\0'};                                     \
-    const auto len{                                                         \
+    auto len{                                                               \
         std::snprintf(message, kMessageLength - 1, format, ##__VA_ARGS__)}; \
     message[len] = '\0';                                                    \
     COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                           \
@@ -91,5 +84,18 @@ void SetDebugLabel(VkDescriptorSet descriptor_set_handle, const schar* label);
 #define COMET_VK_INITIALIZE_DEBUG_LABELS(instance_handle, device_handle)
 #define COMET_VK_SET_DEBUG_LABEL(object_handle, label)
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
+
+#ifndef COMET_DEBUG
+#define COMET_CHECK_VK(vk_expression, ...) vk_expression
+#else
+// Disable Vulkan's validation layers even in debug mode, if necessary.
+#define COMET_CHECK_VK(vk_expression, ...)                               \
+  do {                                                                   \
+    COMET_ASSERT(static_cast<VkResult>(vk_expression) == VK_SUCCESS,     \
+                 __VA_ARGS__, " VkResult: ",                             \
+                 comet::rendering::vk::debug::GenerateTmpVkResultString( \
+                     static_cast<VkResult>(vk_expression)));             \
+  } while (false)
+#endif  // !COMET_DEBUG
 
 #endif  // COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_DEBUG_H_

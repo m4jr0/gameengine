@@ -85,6 +85,7 @@ void OpenGlGlfwWindow::SetGlfwHints() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl_major_version_);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl_minor_version_);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
   if (anti_aliasing_type_ != AntiAliasingType::None) {
     s32 bit_value;

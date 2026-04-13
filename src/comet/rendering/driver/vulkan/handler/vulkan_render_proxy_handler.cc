@@ -46,10 +46,12 @@ void RenderProxyHandler::Initialize() {
   Handler::Initialize();
   proxy_local_data_allocator_.Initialize();
   general_allocator_.Initialize();
+
   proxy_local_datas_ = Array<GpuRenderProxyLocalData>{
       &proxy_local_data_allocator_, kDefaultProxyCount_};
   batch_entries_ =
       Array<RenderBatchEntry>{&general_allocator_, kDefaultProxyCount_};
+
   entity_id_to_proxy_id_map_ = Map<entity::EntityId, RenderProxyId>{
       &general_allocator_, kDefaultProxyCount_};
   model_to_proxies_map_ = Map<entity::EntityId, RenderProxyModelBindings>{
@@ -57,10 +59,7 @@ void RenderProxyHandler::Initialize() {
   proxy_id_to_entity_id_map_ =
       Array<entity::EntityId>{&general_allocator_, kDefaultProxyCount_};
 
-  ShaderDescr shader_descr{};
-  shader_descr.resource_path =
-      COMET_TCHAR("shaders/vulkan/sparse_upload.vk.cshader");
-  sparse_upload_shader_ = shader_handler_->Generate(shader_descr);
+  sparse_upload_word_count_ = 0;
 
   InitializeBuffers();
 
@@ -81,6 +80,7 @@ void RenderProxyHandler::Shutdown() {
 #ifdef COMET_DEBUG_CULLING
   DestroyCullingDebug();
 #endif  // COMET_DEBUG_CULLING
+
   DestroyUpdateTemporaryStructures();
 
   proxy_local_datas_.Destroy();
@@ -95,12 +95,9 @@ void RenderProxyHandler::Shutdown() {
   update_frame_ = kInvalidFrameIndex;
   render_proxy_count_ = 0;
   render_proxy_visible_count_ = 0;
+  sparse_upload_word_count_ = 0;
 
   DestroyBuffers();
-
-  if (sparse_upload_shader_ != nullptr) {
-    shader_handler_->Destroy(sparse_upload_shader_);
-  }
 
   Handler::Shutdown();
 }
@@ -113,14 +110,18 @@ void RenderProxyHandler::Update(frame::FramePacket* packet) {
     return;
   }
 
+  sparse_upload_word_count_ = 0;
+
   GenerateUpdateTemporaryStructures(packet);
   ApplyRenderProxyChanges(packet);
   ProcessBatches();
   UploadRenderProxyLocalData();
-  PrepareRenderProxyDrawData();
-  CommitUpdate(packet);
+  PrepareRenderProxyDrawData(context_->GetFrameInFlightIndex());
 
-  ApplyBufferMemoryBarriers(&post_update_barriers_,
+  COMET_ASSERT(post_update_barriers_ != nullptr,
+               "Post-update barriers are null!");
+
+  ApplyBufferMemoryBarriers(*post_update_barriers_,
                             context_->GetFrameData().command_buffer_handle,
                             VK_PIPELINE_STAGE_TRANSFER_BIT,
                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
@@ -130,130 +131,10 @@ void RenderProxyHandler::Update(frame::FramePacket* packet) {
   update_frame_ = frame_count;
 }
 
-void RenderProxyHandler::Reset() { DestroyUpdateTemporaryStructures(); }
-
-void RenderProxyHandler::Cull(Shader* shader) {
-  COMET_PROFILE("RenderProxyHandler::Cull");
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  shader_handler_->Bind(shader, PipelineBindType::Compute);
-
-#ifdef COMET_DEBUG_RENDERING
-  auto& debug_data{debug_data_[GetDebugDataWriteIndex()]};
-  render_proxy_visible_count_ = debug_data->visible_count;
-  debug_data->visible_count = 0;
-#endif  // COMET_DEBUG_RENDERING
-
-  vkCmdDispatch(command_buffer_handle,
-                static_cast<u32>((batch_entries_.GetSize() +
-                                  rendering::kShaderLocalSize - 1) /
-                                 rendering::kShaderLocalSize),
-                1, 1);
-
-  AddBufferMemoryBarrier(ssbo_proxy_ids_, cull_barriers_,
-                         VK_ACCESS_SHADER_WRITE_BIT,
-                         VK_ACCESS_INDIRECT_COMMAND_READ_BIT);
-
-  auto frame_findex{context_->GetFrameInFlightIndex()};
-  auto& indirect{ssbo_indirect_proxies_[frame_findex]};
-
-  AddBufferMemoryBarrier(indirect, cull_barriers_, VK_ACCESS_SHADER_WRITE_BIT,
-                         VK_ACCESS_INDIRECT_COMMAND_READ_BIT);
-
-  ApplyBufferMemoryBarriers(&cull_barriers_, command_buffer_handle,
-                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                            VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT);
-
-#ifdef COMET_DEBUG_RENDERING
-  auto& ssbo_debug_data{ssbo_debug_data_[GetDebugDataWriteIndex()]};
-  AddBufferMemoryBarrier(ssbo_debug_data, debug_data_barriers_,
-                         VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_HOST_READ_BIT);
-
-  ApplyBufferMemoryBarriers(&debug_data_barriers_, command_buffer_handle,
-                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                            VK_PIPELINE_STAGE_HOST_BIT);
-#endif  // COMET_DEBUG_RENDERING
+void RenderProxyHandler::Reset() {
+  DestroyUpdateTemporaryStructures();
+  sparse_upload_word_count_ = 0;
 }
-
-void RenderProxyHandler::Draw(Shader* shader) {
-  COMET_PROFILE("RenderProxyHandler::Draw");
-
-  if (batch_groups_->IsEmpty()) {
-    return;
-  }
-
-  auto frame_findex{context_->GetFrameInFlightIndex()};
-  auto& indirect{ssbo_indirect_proxies_[frame_findex]};
-
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  mesh_handler_->Bind();
-  auto last_mat_id{kInvalidMaterialId};
-  shader_handler_->Bind(shader, PipelineBindType::Graphics);
-
-  for (const auto& group : *batch_groups_) {
-    auto& instance{indirect_batches_->Get(group.offset)};
-    const auto* proxy{instance.proxy};
-
-    if (proxy->mat_id != last_mat_id) {
-      shader_handler_->UpdateInstance(shader, proxy->mat_id);
-      shader_handler_->BindInstance(shader, proxy->mat_id,
-                                    PipelineBindType::Graphics);
-      last_mat_id = proxy->mat_id;
-    }
-
-    vkCmdDrawIndexedIndirect(command_buffer_handle, indirect.handle,
-                             group.offset * sizeof(GpuIndirectRenderProxy),
-                             group.count, sizeof(GpuIndirectRenderProxy));
-  }
-}
-
-#ifdef COMET_DEBUG_CULLING
-void RenderProxyHandler::DebugCull(Shader* shader) {
-  COMET_PROFILE("RenderProxyHandler::DebugCull");
-
-  if (render_proxy_count_ == 0) {
-    return;
-  }
-
-  auto* allocator_handle{context_->GetAllocatorHandle()};
-
-  ReallocateBuffer(
-      ssbo_debug_lines_, allocator_handle,
-      render_proxy_count_ * 24 * sizeof(math::Vec3),
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
-      "ssbo_debug_lines_");
-
-  ShaderStoragesUpdate update{};
-  update.ssbo_debug_aabbs_handle = ssbo_debug_aabbs_.handle;
-  update.ssbo_debug_aabbs_size = ssbo_debug_aabbs_.size;
-
-  update.ssbo_debug_lines_handle = ssbo_debug_lines_.handle;
-  update.ssbo_debug_lines_size = ssbo_debug_lines_.size;
-
-  shader_handler_->UpdateStorages(shader, update);
-
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  shader_handler_->Bind(shader, PipelineBindType::Compute);
-
-  vkCmdDispatch(
-      command_buffer_handle,
-      static_cast<u32>(render_proxy_count_ + rendering::kShaderLocalSize - 1) /
-          rendering::kShaderLocalSize,
-      1, 1);
-}
-
-void RenderProxyHandler::DrawDebugCull(Shader* shader) {
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  shader_handler_->Bind(shader, PipelineBindType::Graphics);
-
-  VkBuffer vertex_buffers[] = {ssbo_debug_lines_.handle};
-  VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(command_buffer_handle, 0, 1, vertex_buffers, offsets);
-  vkCmdDraw(command_buffer_handle, 24, 1, 0, 0);
-  vkCmdDraw(command_buffer_handle, static_cast<u32>(render_proxy_count_ * 24),
-            1, 0, 0);
-}
-#endif  // COMET_DEBUG_CULLING
 
 u32 RenderProxyHandler::GetRenderProxyCount() const noexcept {
   return static_cast<u32>(render_proxy_count_);
@@ -262,6 +143,159 @@ u32 RenderProxyHandler::GetRenderProxyCount() const noexcept {
 u32 RenderProxyHandler::GetVisibleCount() const noexcept {
   return static_cast<u32>(render_proxy_visible_count_);
 }
+
+RenderProxyGpuData RenderProxyHandler::GetGpuData(
+    FrameInFlightIndex frame_index) const noexcept {
+  RenderProxyGpuData gpu_data{};
+
+  gpu_data.ssbo_proxy_local_datas_handle = ssbo_proxy_local_datas_.handle;
+  gpu_data.ssbo_proxy_local_datas_size = ssbo_proxy_local_datas_.size;
+
+  gpu_data.ssbo_proxy_ids_handle = ssbo_proxy_ids_.handle;
+  gpu_data.ssbo_proxy_ids_size = ssbo_proxy_ids_.size;
+
+  const auto& proxy_instances{ssbo_proxy_instances_[frame_index]};
+  const auto& indirect_proxies{ssbo_indirect_proxies_[frame_index]};
+
+  gpu_data.ssbo_proxy_instances_handle = proxy_instances.handle;
+  gpu_data.ssbo_proxy_instances_size = proxy_instances.size;
+
+  gpu_data.ssbo_indirect_proxies_handle = indirect_proxies.handle;
+  gpu_data.ssbo_indirect_proxies_size = indirect_proxies.size;
+
+  gpu_data.ssbo_matrix_palettes_handle = ssbo_matrix_palettes_.handle;
+  gpu_data.ssbo_matrix_palettes_size = ssbo_matrix_palettes_.size;
+
+#ifdef COMET_DEBUG_RENDERING
+  const auto& ssbo_debug_data{ssbo_debug_data_[frame_index]};
+  gpu_data.ssbo_debug_data_handle = ssbo_debug_data.handle;
+  gpu_data.ssbo_debug_data_size = ssbo_debug_data.size;
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  gpu_data.ssbo_debug_aabbs_handle = ssbo_debug_aabbs_.handle;
+  gpu_data.ssbo_debug_aabbs_size = ssbo_debug_aabbs_.size;
+
+  gpu_data.ssbo_debug_lines_handle = ssbo_debug_lines_.handle;
+  gpu_data.ssbo_debug_lines_size = ssbo_debug_lines_.size;
+#endif  // COMET_DEBUG_CULLING
+
+  return gpu_data;
+}
+
+bool RenderProxyHandler::HasPendingSparseUpload() const noexcept {
+  return sparse_upload_word_count_ > 0;
+}
+
+u32 RenderProxyHandler::GetSparseUploadWordCount() const noexcept {
+  return sparse_upload_word_count_;
+}
+
+u32 RenderProxyHandler::GetSparseUploadGroupCount() const noexcept {
+  return static_cast<u32>(
+      (sparse_upload_word_count_ + rendering::kShaderLocalSize - 1) /
+      rendering::kShaderLocalSize);
+}
+
+RenderProxySparseUploadData RenderProxyHandler::GetSparseUploadGpuData()
+    const noexcept {
+  RenderProxySparseUploadData gpu_data{};
+
+  gpu_data.ssbo_word_indices_handle = ssbo_word_indices_.handle;
+  gpu_data.ssbo_word_indices_size = ssbo_word_indices_.size;
+
+  gpu_data.ssbo_source_words_handle = staging_ssbo_proxy_local_datas_.handle;
+  gpu_data.ssbo_source_words_size = staging_ssbo_proxy_local_datas_.size;
+
+  gpu_data.ssbo_destination_words_handle = ssbo_proxy_local_datas_.handle;
+  gpu_data.ssbo_destination_words_size = ssbo_proxy_local_datas_.size;
+
+  gpu_data.word_count = sparse_upload_word_count_;
+
+  return gpu_data;
+}
+
+void RenderProxyHandler::PopulateSparseUploadBarriers(
+    Array<VkBufferMemoryBarrier>& out) const {
+  if (sparse_upload_word_count_ == 0) {
+    return;
+  }
+
+  AddBufferMemoryBarrier(ssbo_proxy_local_datas_, &out,
+                         VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+}
+
+u32 RenderProxyHandler::GetCullGroupCount() const noexcept {
+  return static_cast<u32>(
+      (batch_entries_.GetSize() + rendering::kShaderLocalSize - 1) /
+      rendering::kShaderLocalSize);
+}
+
+void RenderProxyHandler::PopulateDrawCullBarriers(
+    FrameInFlightIndex frame_index, Array<VkBufferMemoryBarrier>& out) const {
+  if (batch_entries_.IsEmpty()) {
+    return;
+  }
+
+  AddBufferMemoryBarrier(ssbo_proxy_ids_, &out, VK_ACCESS_SHADER_WRITE_BIT,
+                         VK_ACCESS_SHADER_READ_BIT);
+
+  const auto& indirect{ssbo_indirect_proxies_[frame_index]};
+
+  AddBufferMemoryBarrier(
+      indirect, &out, VK_ACCESS_SHADER_WRITE_BIT,
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT);
+}
+
+#ifdef COMET_DEBUG_RENDERING
+void RenderProxyHandler::PopulateCullDebugReadBarriers(
+    FrameInFlightIndex frame_index, Array<VkBufferMemoryBarrier>& out) const {
+  const auto& ssbo_debug_data{ssbo_debug_data_[frame_index]};
+
+  if (ssbo_debug_data.handle == VK_NULL_HANDLE) {
+    return;
+  }
+
+  AddBufferMemoryBarrier(ssbo_debug_data, &out, VK_ACCESS_SHADER_WRITE_BIT,
+                         VK_ACCESS_HOST_READ_BIT);
+}
+
+void RenderProxyHandler::PrepareCullDebugWrite(FrameInFlightIndex frame_index) {
+  auto& debug_data{debug_data_[frame_index]};
+  render_proxy_visible_count_ = debug_data->visible_count;
+  debug_data->visible_count = 0;
+}
+#endif  // COMET_DEBUG_RENDERING
+
+const Array<RenderBatchGroup>* RenderProxyHandler::GetBatchGroups()
+    const noexcept {
+  return batch_groups_;
+}
+
+const Array<RenderIndirectBatch>* RenderProxyHandler::GetIndirectBatches()
+    const noexcept {
+  return indirect_batches_;
+}
+
+const Buffer& RenderProxyHandler::GetIndirectBuffer(
+    FrameInFlightIndex frame_index) const noexcept {
+  return ssbo_indirect_proxies_[frame_index];
+}
+
+const Buffer& RenderProxyHandler::GetShadowIndirectBuffer(
+    FrameInFlightIndex frame_index) const noexcept {
+  return ssbo_shadow_indirect_proxies_[frame_index];
+}
+
+#ifdef COMET_DEBUG_CULLING
+const Buffer& RenderProxyHandler::GetDebugLineBuffer() const noexcept {
+  return ssbo_debug_lines_;
+}
+
+u32 RenderProxyHandler::GetDebugLineVertexCount() const noexcept {
+  return render_proxy_count_ * 24;
+}
+#endif  // COMET_DEBUG_CULLING
 
 bool RenderProxyHandler::OnRenderBatchSort(const RenderBatchEntry& a,
                                            const RenderBatchEntry& b) {
@@ -272,18 +306,17 @@ bool RenderProxyHandler::OnRenderBatchSort(const RenderBatchEntry& a,
   return a.proxy->id < b.proxy->id;
 }
 
+u64 RenderProxyHandler::GenerateRenderProxySortKey(const RenderProxy& proxy) {
+  auto shader_hash{comet::GenerateHash(proxy.mat_id)};
+  auto mesh_material_hash{HashCombine(comet::GenerateHash(proxy.mat_id),
+                                      comet::GenerateHash(proxy.mesh_handle))};
+  return static_cast<u64>(shader_hash) << 32 | mesh_material_hash;
+}
+
 void RenderProxyHandler::GenerateUpdateTemporaryStructures(
     const frame::FramePacket* packet) {
   post_update_barriers_ =
       COMET_FRAME_ARRAY(VkBufferMemoryBarrier, kDefaultUpdateBarrierCapacity_);
-
-  cull_barriers_ =
-      COMET_FRAME_ARRAY(VkBufferMemoryBarrier, kDefaultCullBarrierCapacity_);
-
-#ifdef COMET_DEBUG_RENDERING
-  debug_data_barriers_ = COMET_FRAME_ARRAY(VkBufferMemoryBarrier,
-                                           kDefaultDebugDataBarrierCapacity_);
-#endif  // COMET_DEBUG_RENDERING
 
   shader_to_transfer_barriers_ = COMET_FRAME_ARRAY(
       VkBufferMemoryBarrier, kDefaultShaderToTransferBarrierCapacity_);
@@ -318,10 +351,6 @@ void RenderProxyHandler::GenerateUpdateTemporaryStructures(
 
 void RenderProxyHandler::DestroyUpdateTemporaryStructures() {
   post_update_barriers_ = nullptr;
-  cull_barriers_ = nullptr;
-#ifdef COMET_DEBUG_RENDERING
-  debug_data_barriers_ = nullptr;
-#endif  // COMET_DEBUG_RENDERING
   shader_to_transfer_barriers_ = nullptr;
   pending_proxy_ids_ = nullptr;
   pending_proxy_local_data_ = nullptr;
@@ -382,12 +411,7 @@ void RenderProxyHandler::GenerateRenderProxies(
 
     auto& new_proxy{proxies_[render_proxy_count_++]};
     new_proxy.id = static_cast<RenderProxyId>(render_proxy_count_ - 1);
-    auto* material{material_handler_->TryGet(geometry.material_resource->id)};
-
-    if (material == nullptr) {
-      material = material_handler_->Generate(geometry.material_resource);
-      shader_handler_->BindMaterial(material);
-    }
+    auto* material{material_handler_->Generate(geometry.material_resource)};
 
     new_proxy.mat_id = material->id;
     new_proxy.mesh_handle = mesh_handler_->GetHandle(geometry.mesh_id);
@@ -451,10 +475,9 @@ void RenderProxyHandler::UpdateRenderProxies(
       continue;
     }
 
-    COMET_ASSERT(
-        entity_id_to_proxy_id_map_.IsContained(updated_transform.entity_id),
-        "Tried to update non-existing transform with entity #",
-        updated_transform.entity_id, "!");
+    if (!entity_id_to_proxy_id_map_.IsContained(updated_transform.entity_id)) {
+      continue;
+    }
 
     auto proxy_id{entity_id_to_proxy_id_map_[updated_transform.entity_id]};
 
@@ -491,6 +514,8 @@ void RenderProxyHandler::DestroyRenderProxies(
     COMET_ASSERT(proxy_id < render_proxy_count_,
                  "Invalid render proxy ID: ", proxy_id, " > ",
                  render_proxy_count_, "!");
+
+    material_handler_->Destroy(proxies_[proxy_id].mat_id);
 
     // Preserve a valid reference to the proxy before it gets overwritten
     // during the swap.
@@ -596,7 +621,7 @@ void RenderProxyHandler::UpdateSkinningMatrices(
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "ssbo_matrix_palettes_");
 
-  MapBuffer(ssbo_matrix_palettes_);
+  ScopedMappedBuffer mapped{ssbo_matrix_palettes_};
   auto* memory{static_cast<u8*>(ssbo_matrix_palettes_.mapped_memory)};
   sptrdiff cursor{0};
 
@@ -606,8 +631,6 @@ void RenderProxyHandler::UpdateSkinningMatrices(
     memory::CopyMemory(memory + cursor, palette.skinning_matrices, size);
     cursor += size;
   }
-
-  UnmapBuffer(ssbo_matrix_palettes_);
 }
 
 void RenderProxyHandler::GenerateBatchEntries() {
@@ -726,6 +749,13 @@ void RenderProxyHandler::UploadRenderProxyLocalData() {
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "ssbo_debug_aabbs_");
+
+  ReallocateBuffer(
+      ssbo_debug_lines_, context_->GetAllocatorHandle(),
+      render_proxy_count_ * 24 * sizeof(math::Vec4),
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
+      "ssbo_debug_lines_");
 #endif  // COMET_DEBUG_CULLING
 
   auto ssbo_proxy_ids_buffer_size{proxy_local_datas_.GetSize() *
@@ -759,11 +789,10 @@ void RenderProxyHandler::UploadAllRenderProxyLocalData() {
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "staging_ssbo_proxy_local_data_");
 
-  MapBuffer(staging_ssbo_proxy_local_datas_);
+  ScopedMappedBuffer mapped{staging_ssbo_proxy_local_datas_};
   auto* memory{staging_ssbo_proxy_local_datas_.mapped_memory};
   memory::CopyMemory(memory, proxy_local_datas_.GetData(),
                      ssbo_proxy_local_datas_buffer_size);
-  UnmapBuffer(staging_ssbo_proxy_local_datas_);
 
   ReallocateBuffer(
       ssbo_proxy_local_datas_, allocator_handle,
@@ -789,6 +818,7 @@ void RenderProxyHandler::UploadAllRenderProxyLocalData() {
 
 void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   COMET_PROFILE("RenderProxyHandler::UploadPendingRenderProxyLocalData");
+
   auto pending_count{pending_proxy_ids_->GetSize()};
   auto* allocator_handle{context_->GetAllocatorHandle()};
   auto ssbo_proxy_local_datas_buffer_size{proxy_local_datas_.GetSize() *
@@ -796,8 +826,6 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
 
   auto& device{context_->GetDevice()};
 
-  // Resize the buffer if necessary to preserve existing data, instead of
-  // reallocating it.
   ResizeBuffer(
       ssbo_proxy_local_datas_, device,
       context_->GetFrameData().command_pool_handle, allocator_handle,
@@ -806,14 +834,9 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
       VMA_MEMORY_USAGE_GPU_ONLY, device.GetGraphicsQueueHandle(), 0, 0,
       VK_SHARING_MODE_EXCLUSIVE, VK_NULL_HANDLE, "ssbo_proxy_local_datas_");
 
-  // The staging buffer is smaller than or equal to the full buffer size (only
-  // pending data is uploaded).
   auto staging_ssbo_proxy_local_datas_buffer_size{
       pending_count * sizeof(GpuRenderProxyLocalData)};
 
-  // From this point, we perform a sparse update on the data at the
-  // granularity of shader words. This generic approach lets us update only
-  // the modified parts without requiring knowledge of the full structure.
   COMET_ASSERT(
       staging_ssbo_proxy_local_datas_buffer_size % sizeof(ShaderWord) == 0,
       "Data should be a multiple of ShaderWord!");
@@ -825,14 +848,14 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "staging_ssbo_proxy_local_data_");
 
-  MapBuffer(staging_ssbo_proxy_local_datas_);
+  {
+    ScopedMappedBuffer mapped{staging_ssbo_proxy_local_datas_};
 
-  auto* data_memory{
-      static_cast<ShaderWord*>(staging_ssbo_proxy_local_datas_.mapped_memory)};
-  memory::CopyMemory(data_memory, pending_proxy_local_data_->GetData(),
-                     staging_ssbo_proxy_local_datas_buffer_size);
-
-  UnmapBuffer(staging_ssbo_proxy_local_datas_);
+    auto* data_memory{static_cast<ShaderWord*>(
+        staging_ssbo_proxy_local_datas_.mapped_memory)};
+    memory::CopyMemory(data_memory, pending_proxy_local_data_->GetData(),
+                       staging_ssbo_proxy_local_datas_buffer_size);
+  }
 
   auto word_count_per_data{static_cast<VkDeviceSize>(
       sizeof(GpuRenderProxyLocalData) / sizeof(ShaderWord))};
@@ -846,100 +869,37 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "ssbo_word_indices_");
 
-  MapBuffer(ssbo_word_indices_);
+  {
+    ScopedMappedBuffer mapped{ssbo_word_indices_};
 
-  auto* word_indices_memory{
-      static_cast<RenderProxyId*>(ssbo_word_indices_.mapped_memory)};
+    auto* word_indices_memory{
+        static_cast<ShaderWord*>(ssbo_word_indices_.mapped_memory)};
 
-  u32 total_word_count{0};
+    sparse_upload_word_count_ = 0;
 
-  for (usize i{0}; i < pending_count; ++i) {
-    auto proxy_word_offset{static_cast<ShaderWord>(word_count_per_data *
-                                                   pending_proxy_ids_->Get(i))};
+    for (usize i{0}; i < pending_count; ++i) {
+      auto proxy_word_offset{static_cast<ShaderWord>(
+          word_count_per_data * pending_proxy_ids_->Get(i))};
 
-    for (u32 word_index{0}; word_index < word_count_per_data; ++word_index) {
-      word_indices_memory[total_word_count] = proxy_word_offset + word_index;
-      ++total_word_count;
+      for (u32 word_index{0}; word_index < word_count_per_data; ++word_index) {
+        word_indices_memory[sparse_upload_word_count_] =
+            proxy_word_offset + word_index;
+        ++sparse_upload_word_count_;
+      }
     }
   }
-
-  UnmapBuffer(ssbo_word_indices_);
-
-  ShaderStoragesUpdate update{};
-  update.ssbo_word_indices_handle = ssbo_word_indices_.handle;
-  update.ssbo_word_indices_size = ssbo_word_indices_.size;
-
-  update.ssbo_source_words_handle = staging_ssbo_proxy_local_datas_.handle;
-  update.ssbo_source_words_size = staging_ssbo_proxy_local_datas_.size;
-
-  update.ssbo_destination_words_handle = ssbo_proxy_local_datas_.handle;
-  update.ssbo_destination_words_size = ssbo_proxy_local_datas_.size;
-
-  shader_handler_->UpdateConstants(sparse_upload_shader_,
-                                   {nullptr, &total_word_count});
-  shader_handler_->UpdateStorages(sparse_upload_shader_, update);
-  shader_handler_->Bind(sparse_upload_shader_, PipelineBindType::Compute);
-
-  vkCmdDispatch(
-      context_->GetFrameData().command_buffer_handle,
-      static_cast<u32>(total_word_count + rendering::kShaderLocalSize - 1) /
-          rendering::kShaderLocalSize,
-      1, 1);
 }
 
-void RenderProxyHandler::CommitUpdate(frame::FramePacket* packet) {
-  COMET_PROFILE("RenderProxyHandler::CommitUpdate");
-  packet->rendering_data = &storages_update_;
-
-  storages_update_.ssbo_proxy_local_datas_handle =
-      ssbo_proxy_local_datas_.handle;
-  storages_update_.ssbo_proxy_local_datas_size = ssbo_proxy_local_datas_.size;
-
-  storages_update_.ssbo_proxy_ids_handle = ssbo_proxy_ids_.handle;
-  storages_update_.ssbo_proxy_ids_size = ssbo_proxy_ids_.size;
-
-  auto frame_index{context_->GetFrameInFlightIndex()};
-  const auto& proxy_instances{ssbo_proxy_instances_[frame_index]};
-  const auto& indirect_proxies{ssbo_indirect_proxies_[frame_index]};
-
-  storages_update_.ssbo_proxy_instances_handle = proxy_instances.handle;
-  storages_update_.ssbo_proxy_instances_size = proxy_instances.size;
-
-  storages_update_.ssbo_indirect_proxies_handle = indirect_proxies.handle;
-  storages_update_.ssbo_indirect_proxies_size = indirect_proxies.size;
-
-  storages_update_.ssbo_source_words_handle = VK_NULL_HANDLE;
-  storages_update_.ssbo_destination_words_handle = VK_NULL_HANDLE;
-
-  storages_update_.ssbo_source_words_size = 0;
-  storages_update_.ssbo_destination_words_size = 0;
-
-  storages_update_.ssbo_matrix_palettes_handle = ssbo_matrix_palettes_.handle;
-  storages_update_.ssbo_matrix_palettes_size = ssbo_matrix_palettes_.size;
-
-#ifdef COMET_DEBUG_RENDERING
-  auto& ssbo_debug_data{ssbo_debug_data_[GetDebugDataWriteIndex()]};
-  storages_update_.ssbo_debug_data_handle = ssbo_debug_data.handle;
-  storages_update_.ssbo_debug_data_size = ssbo_debug_data.size;
-#endif  // COMET_DEBUG_RENDERING
-
-#ifdef COMET_DEBUG_CULLING
-  storages_update_.ssbo_debug_aabbs_handle = ssbo_debug_aabbs_.handle;
-  storages_update_.ssbo_debug_aabbs_size = ssbo_debug_aabbs_.size;
-
-  storages_update_.ssbo_debug_lines_handle = VK_NULL_HANDLE;
-  storages_update_.ssbo_debug_lines_size = 0;
-#endif  // COMET_DEBUG_CULLING
-}
-
-void RenderProxyHandler::PrepareRenderProxyDrawData() {
+void RenderProxyHandler::PrepareRenderProxyDrawData(
+    FrameInFlightIndex frame_index) {
   COMET_PROFILE("RenderProxyHandler::PrepareRenderProxyDrawData");
-  ReallocateRenderProxyDrawBuffers();
-  PopulateRenderProxyDrawData();
-  UploadRenderDrawData();
+  ReallocateRenderProxyDrawBuffers(frame_index);
+  PopulateRenderProxyDrawData(frame_index);
+  UploadRenderDrawData(frame_index);
 }
 
-void RenderProxyHandler::ReallocateRenderProxyDrawBuffers() {
+void RenderProxyHandler::ReallocateRenderProxyDrawBuffers(
+    FrameInFlightIndex frame_index) {
   COMET_PROFILE("RenderProxyHandler::ReallocateRenderProxyDrawBuffers");
 
   if (indirect_batches_->IsEmpty()) {
@@ -951,10 +911,11 @@ void RenderProxyHandler::ReallocateRenderProxyDrawBuffers() {
   auto ssbo_indirect_proxies_buffer_size{indirect_batches_->GetSize() *
                                          sizeof(GpuIndirectRenderProxy)};
 
-  auto frame_index{context_->GetFrameInFlightIndex()};
-
   auto& staging_indirect{staging_ssbo_indirect_proxies_[frame_index]};
   auto& indirect{ssbo_indirect_proxies_[frame_index]};
+  auto& staging_shadow_indirect{
+      staging_ssbo_shadow_indirect_proxies_[frame_index]};
+  auto& shadow_indirect{ssbo_shadow_indirect_proxies_[frame_index]};
   auto& staging_instances{staging_ssbo_proxy_instances_[frame_index]};
   auto& instances{ssbo_proxy_instances_[frame_index]};
 
@@ -971,6 +932,21 @@ void RenderProxyHandler::ReallocateRenderProxyDrawBuffers() {
           VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "ssbo_indirect_proxies_");
+
+  ReallocateBuffer(staging_shadow_indirect, allocator_handle,
+                   ssbo_indirect_proxies_buffer_size,
+                   VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                       VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+                   VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
+                   "staging_ssbo_shadow_indirect_proxies_");
+
+  ReallocateBuffer(
+      shadow_indirect, allocator_handle, ssbo_indirect_proxies_buffer_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+          VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
+      "ssbo_shadow_indirect_proxies_");
 
   auto ssbo_proxy_instances_buffer_size{sizeof(GpuRenderProxyInstance) *
                                         batch_entries_.GetSize()};
@@ -989,22 +965,28 @@ void RenderProxyHandler::ReallocateRenderProxyDrawBuffers() {
       "ssbo_proxy_instances_");
 }
 
-void RenderProxyHandler::PopulateRenderProxyDrawData() {
+void RenderProxyHandler::PopulateRenderProxyDrawData(
+    FrameInFlightIndex frame_index) {
   COMET_PROFILE("RenderProxyHandler::PopulateRenderProxyDrawData");
 
   if (indirect_batches_->IsEmpty()) {
     return;
   }
 
-  auto frame_index{context_->GetFrameInFlightIndex()};
   auto& staging_indirect{staging_ssbo_indirect_proxies_[frame_index]};
+  auto& staging_shadow_indirect{
+      staging_ssbo_shadow_indirect_proxies_[frame_index]};
   auto& staging_instances{staging_ssbo_proxy_instances_[frame_index]};
 
-  MapBuffer(staging_indirect);
-  MapBuffer(staging_instances);
+  ScopedMappedBuffer indirect_mapped{staging_indirect};
+  ScopedMappedBuffer shadow_indirect_mapped{staging_shadow_indirect};
+  ScopedMappedBuffer instances_mapped{staging_instances};
 
   auto* indirect_proxies_memory{
       static_cast<GpuIndirectRenderProxy*>(staging_indirect.mapped_memory)};
+
+  auto* shadow_indirect_proxies_memory{static_cast<GpuIndirectRenderProxy*>(
+      staging_shadow_indirect.mapped_memory)};
 
   auto* proxy_instances_memory{
       static_cast<GpuRenderProxyInstance*>(staging_instances.mapped_memory)};
@@ -1014,60 +996,85 @@ void RenderProxyHandler::PopulateRenderProxyDrawData() {
   for (usize batch_id{0}; batch_id < indirect_batches_->GetSize(); ++batch_id) {
     PopulateRenderIndirectProxy(static_cast<BatchId>(batch_id),
                                 indirect_proxies_memory);
+    PopulateShadowRenderIndirectProxy(static_cast<BatchId>(batch_id),
+                                      shadow_indirect_proxies_memory);
     PopulateProxyInstances(static_cast<BatchId>(batch_id),
                            proxy_instances_memory, proxy_instance_index);
   }
-
-  UnmapBuffer(staging_indirect);
-  UnmapBuffer(staging_instances);
 }
 
-void RenderProxyHandler::UploadRenderDrawData() {
+void RenderProxyHandler::UploadRenderDrawData(FrameInFlightIndex frame_index) {
   COMET_PROFILE("RenderProxyHandler::UploadRenderDrawData");
 
   if (indirect_batches_->IsEmpty()) {
     return;
   }
 
-  auto max_frame{context_->GetFrameInFlightIndex()};
+  COMET_ASSERT(shader_to_transfer_barriers_ != nullptr,
+               "Shader-to-transfer barriers are null!");
+  shader_to_transfer_barriers_->Clear();
+
   auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
 
-  auto& staging_indirect{staging_ssbo_indirect_proxies_[max_frame]};
-  auto& indirect{ssbo_indirect_proxies_[max_frame]};
-  auto& staging_instances{staging_ssbo_proxy_instances_[max_frame]};
-  auto& instances{ssbo_proxy_instances_[max_frame]};
+  auto& staging_indirect{staging_ssbo_indirect_proxies_[frame_index]};
+  auto& indirect{ssbo_indirect_proxies_[frame_index]};
 
-  VkBufferCopy indirect_proxies_copy{};
-  indirect_proxies_copy.dstOffset = 0;
-  indirect_proxies_copy.size = staging_indirect.size;
-  indirect_proxies_copy.srcOffset = 0;
+  auto& staging_shadow_indirect{
+      staging_ssbo_shadow_indirect_proxies_[frame_index]};
+  auto& shadow_indirect{ssbo_shadow_indirect_proxies_[frame_index]};
 
-  AddBufferMemoryBarrier(indirect, shader_to_transfer_barriers_,
-                         VK_ACCESS_SHADER_READ_BIT,
-                         VK_ACCESS_TRANSFER_WRITE_BIT);
+  auto& staging_instances{staging_ssbo_proxy_instances_[frame_index]};
+  auto& instances{ssbo_proxy_instances_[frame_index]};
 
-  ApplyBufferMemoryBarriers(
-      &shader_to_transfer_barriers_, command_buffer_handle,
-      VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+  VkBufferCopy indirect_copy{};
+  indirect_copy.srcOffset = 0;
+  indirect_copy.dstOffset = 0;
+  indirect_copy.size = staging_indirect.size;
 
-  vkCmdCopyBuffer(command_buffer_handle, staging_indirect.handle,
-                  indirect.handle, 1, &indirect_proxies_copy);
-
-  AddBufferMemoryBarrier(staging_indirect, post_update_barriers_,
-                         VK_ACCESS_TRANSFER_WRITE_BIT,
-                         VK_ACCESS_INDIRECT_COMMAND_READ_BIT);
-
-  AddBufferMemoryBarrier(
-      indirect, post_update_barriers_, VK_ACCESS_TRANSFER_WRITE_BIT,
-      VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT);
+  VkBufferCopy shadow_indirect_copy{};
+  shadow_indirect_copy.srcOffset = 0;
+  shadow_indirect_copy.dstOffset = 0;
+  shadow_indirect_copy.size = staging_shadow_indirect.size;
 
   VkBufferCopy proxy_instances_copy{};
   proxy_instances_copy.srcOffset = 0;
   proxy_instances_copy.dstOffset = 0;
   proxy_instances_copy.size = staging_instances.size;
 
+  AddBufferMemoryBarrier(indirect, shader_to_transfer_barriers_,
+                         VK_ACCESS_SHADER_READ_BIT,
+                         VK_ACCESS_TRANSFER_WRITE_BIT);
+
+  AddBufferMemoryBarrier(shadow_indirect, shader_to_transfer_barriers_,
+                         VK_ACCESS_SHADER_READ_BIT,
+                         VK_ACCESS_TRANSFER_WRITE_BIT);
+
+  AddBufferMemoryBarrier(instances, shader_to_transfer_barriers_,
+                         VK_ACCESS_SHADER_READ_BIT,
+                         VK_ACCESS_TRANSFER_WRITE_BIT);
+
+  ApplyBufferMemoryBarriers(*shader_to_transfer_barriers_,
+                            command_buffer_handle,
+                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                                VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+                            VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+  vkCmdCopyBuffer(command_buffer_handle, staging_indirect.handle,
+                  indirect.handle, 1, &indirect_copy);
+
+  vkCmdCopyBuffer(command_buffer_handle, staging_shadow_indirect.handle,
+                  shadow_indirect.handle, 1, &shadow_indirect_copy);
+
   vkCmdCopyBuffer(command_buffer_handle, staging_instances.handle,
                   instances.handle, 1, &proxy_instances_copy);
+
+  AddBufferMemoryBarrier(
+      indirect, post_update_barriers_, VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT);
+
+  AddBufferMemoryBarrier(
+      shadow_indirect, post_update_barriers_, VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT);
 
   AddBufferMemoryBarrier(instances, post_update_barriers_,
                          VK_ACCESS_TRANSFER_WRITE_BIT,
@@ -1083,6 +1090,21 @@ void RenderProxyHandler::PopulateRenderIndirectProxy(
   auto& indirect_proxy{memory[batch_id]};
   indirect_proxy.command.firstInstance = batch.offset;
   indirect_proxy.command.instanceCount = 0;
+  indirect_proxy.command.vertexOffset = mesh_proxy->vertex_offset;
+  indirect_proxy.command.firstIndex = mesh_proxy->index_offset;
+  indirect_proxy.command.indexCount = mesh_proxy->index_count;
+  indirect_proxy.proxy_id = batch.proxy->id;
+  indirect_proxy.batch_id = batch_id;
+}
+
+void RenderProxyHandler::PopulateShadowRenderIndirectProxy(
+    BatchId batch_id, GpuIndirectRenderProxy* memory) {
+  auto& batch{indirect_batches_->Get(batch_id)};
+  const auto* mesh_proxy{mesh_handler_->Get(batch.proxy->mesh_handle)};
+
+  auto& indirect_proxy{memory[batch_id]};
+  indirect_proxy.command.firstInstance = batch.offset;
+  indirect_proxy.command.instanceCount = batch.count;
   indirect_proxy.command.vertexOffset = mesh_proxy->vertex_offset;
   indirect_proxy.command.firstIndex = mesh_proxy->index_offset;
   indirect_proxy.command.indexCount = mesh_proxy->index_count;
@@ -1133,13 +1155,6 @@ void RenderProxyHandler::UnregisterModelProxy(entity::EntityId model_entity_id,
   }
 }
 
-u64 RenderProxyHandler::GenerateRenderProxySortKey(const RenderProxy& proxy) {
-  auto shader_hash{GenerateHash(proxy.mat_id)};
-  auto mesh_material_hash{
-      HashCombine(GenerateHash(proxy.mat_id), GenerateHash(proxy.mesh_handle))};
-  return static_cast<u64>(shader_hash) << 32 | mesh_material_hash;
-}
-
 void RenderProxyHandler::InitializeBuffers() {
   auto allocator_handle{context_->GetAllocatorHandle()};
 
@@ -1175,6 +1190,10 @@ void RenderProxyHandler::InitializeBuffers() {
       Array<Buffer>{&platform_allocator_, max_frames_in_flight};
   ssbo_indirect_proxies_ =
       Array<Buffer>{&platform_allocator_, max_frames_in_flight};
+  staging_ssbo_shadow_indirect_proxies_ =
+      Array<Buffer>{&platform_allocator_, max_frames_in_flight};
+  ssbo_shadow_indirect_proxies_ =
+      Array<Buffer>{&platform_allocator_, max_frames_in_flight};
   staging_ssbo_proxy_instances_ =
       Array<Buffer>{&platform_allocator_, max_frames_in_flight};
   ssbo_proxy_instances_ =
@@ -1182,6 +1201,9 @@ void RenderProxyHandler::InitializeBuffers() {
 
   staging_ssbo_indirect_proxies_.Resize(max_frames_in_flight);
   ssbo_indirect_proxies_.Resize(max_frames_in_flight);
+
+  staging_ssbo_shadow_indirect_proxies_.Resize(max_frames_in_flight);
+  ssbo_shadow_indirect_proxies_.Resize(max_frames_in_flight);
   staging_ssbo_proxy_instances_.Resize(max_frames_in_flight);
   ssbo_proxy_instances_.Resize(max_frames_in_flight);
 
@@ -1202,6 +1224,22 @@ void RenderProxyHandler::InitializeBuffers() {
         VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
         "ssbo_indirect_proxies_");
 
+    staging_ssbo_shadow_indirect_proxies_[i] = GenerateBuffer(
+        allocator_handle,
+        kMaxRenderProxyCount_ * sizeof(GpuIndirectRenderProxy),
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+            VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+        VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
+        "staging_ssbo_shadow_indirect_proxies_");
+
+    ssbo_shadow_indirect_proxies_[i] = GenerateBuffer(
+        allocator_handle,
+        kMaxRenderProxyCount_ * sizeof(GpuIndirectRenderProxy),
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+            VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
+        "ssbo_shadow_indirect_proxies_");
+
     staging_ssbo_proxy_instances_[i] = GenerateBuffer(
         allocator_handle,
         kMaxRenderProxyCount_ * sizeof(GpuRenderProxyInstance),
@@ -1220,11 +1258,11 @@ void RenderProxyHandler::InitializeBuffers() {
   auto word_count_per_data{static_cast<VkDeviceSize>(
       sizeof(GpuRenderProxyLocalData) / sizeof(ShaderWord))};
 
-  auto ssbo_proxy_ids_buffer_size{kMaxRenderProxyCount_ * sizeof(ShaderWord) *
-                                  word_count_per_data};
+  auto ssbo_word_indices_buffer_size{kMaxRenderProxyCount_ *
+                                     sizeof(ShaderWord) * word_count_per_data};
 
   ssbo_word_indices_ = GenerateBuffer(
-      allocator_handle, ssbo_proxy_ids_buffer_size,
+      allocator_handle, ssbo_word_indices_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "ssbo_word_indices_");
@@ -1256,12 +1294,16 @@ void RenderProxyHandler::DestroyBuffers() {
   for (FrameInFlightIndex i{0}; i < max_frames_in_flight; ++i) {
     DestroyBuffer(staging_ssbo_indirect_proxies_[i]);
     DestroyBuffer(ssbo_indirect_proxies_[i]);
+    DestroyBuffer(staging_ssbo_shadow_indirect_proxies_[i]);
+    DestroyBuffer(ssbo_shadow_indirect_proxies_[i]);
     DestroyBuffer(staging_ssbo_proxy_instances_[i]);
     DestroyBuffer(ssbo_proxy_instances_[i]);
   }
 
   staging_ssbo_indirect_proxies_.Destroy();
   ssbo_indirect_proxies_.Destroy();
+  staging_ssbo_shadow_indirect_proxies_.Destroy();
+  ssbo_shadow_indirect_proxies_.Destroy();
   staging_ssbo_proxy_instances_.Destroy();
   ssbo_proxy_instances_.Destroy();
 }
@@ -1293,22 +1335,10 @@ void RenderProxyHandler::DestroyDebugData() {
     }
   }
 }
-
-usize RenderProxyHandler::GetDebugDataReadIndex() const {
-  return (context_->GetFrameCount() + kDebugDataBufferCount_ - 1) %
-         kDebugDataBufferCount_;
-}
-
-usize RenderProxyHandler::GetDebugDataWriteIndex() const {
-  return context_->GetFrameCount() % kDebugDataBufferCount_;
-}
 #endif  // COMET_DEBUG_RENDERING
 
 #ifdef COMET_DEBUG_CULLING
 void RenderProxyHandler::InitializeCullingDebug() {
-  ShaderDescr shader_descr{};
-  shader_descr.resource_path =
-      COMET_TCHAR("shaders/vulkan/debug_shader.vk.cshader");
   auto* allocator_handle{context_->GetAllocatorHandle()};
 
   ReallocateBuffer(
@@ -1320,7 +1350,7 @@ void RenderProxyHandler::InitializeCullingDebug() {
 
   ReallocateBuffer(
       ssbo_debug_lines_, allocator_handle,
-      kDefaultProxyCount_ * 24 * sizeof(math::Vec3),
+      kDefaultProxyCount_ * 24 * sizeof(math::Vec4),
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY, 0, 0, VK_SHARING_MODE_EXCLUSIVE,
       "ssbo_debug_lines_");

@@ -11,6 +11,7 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/light/light_common.h"
 #include "comet/rendering/rendering_common.h"
 
 namespace comet {
@@ -35,6 +36,7 @@ class RenderingManager : public Manager {
   FrameCount GetFrameRate() const noexcept;
   f64 GetFrameTime() const noexcept;
   u32 GetDrawCount() const noexcept;
+  const ShadowSettings& GetShadowSettings() const noexcept;
   bool IsMultithreaded() const noexcept;
 
  private:
@@ -46,6 +48,7 @@ class RenderingManager : public Manager {
 #endif  // COMET_DEBUG
   void FillDriverDescr(DriverDescr& descr) const;
   frame::FrameArray<RenderingViewDescr> GenerateRenderingViewDescrs() const;
+  ShadowSettings GenerateShadowSettings() const;
   bool IsFpsCapReached() const;
 
   bool is_multithreaded_{false};
@@ -53,6 +56,7 @@ class RenderingManager : public Manager {
   FrameCount counter_{0};
   f64 frame_time_threshold_{0};
   f64 current_time_{0};
+  ShadowSettings shadow_settings_{};
   memory::UniquePtr<Driver> driver_{nullptr};
 };
 }  // namespace rendering

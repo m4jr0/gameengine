@@ -8,6 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
+#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
 
@@ -16,6 +17,7 @@ namespace rendering {
 namespace gl {
 struct ShaderViewDescr : ViewDescr {
   ShaderHandler* shader_handler{nullptr};
+  MaterialHandler* material_handler{nullptr};
 };
 
 class ShaderView : public View {
@@ -27,12 +29,13 @@ class ShaderView : public View {
   ShaderView& operator=(ShaderView&&) = delete;
   virtual ~ShaderView() = default;
 
-  virtual void Destroy() override;
+  void Destroy() override;
   virtual void Update(frame::FramePacket*) = 0;
 
  protected:
   Shader* shader_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
+  MaterialHandler* material_handler_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

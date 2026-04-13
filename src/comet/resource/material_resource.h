@@ -27,15 +27,13 @@ struct TextureMap {
       rendering::TextureFilterMode::Unknown};
 };
 
-constexpr auto kMaxShaderNameLen{128};
-
 struct MaterialResourceDescr {
   f32 shininess{.0f};
+  ResourceId shader_id{kInvalidResourceId};
   math::Vec4 diffuse_color{};
-  TextureMap diffuse_map{};
-  TextureMap specular_map{};
-  TextureMap normal_map{};
-  schar shader_name[kMaxShaderNameLen]{0};
+  TextureMap diffuse_map{.type = rendering::TextureType::Diffuse};
+  TextureMap specular_map{.type = rendering::TextureType::Specular};
+  TextureMap normal_map{.type = rendering::TextureType::Normal};
 };
 
 struct MaterialResource : Resource {

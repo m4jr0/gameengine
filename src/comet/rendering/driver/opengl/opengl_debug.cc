@@ -18,6 +18,10 @@ namespace debug {
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
 namespace internal {
 void SetDebugLabel(GLenum identifier, GLuint name, const schar* label) {
+  if (label == nullptr || name == 0) {
+    return;
+  }
+
   glObjectLabel(identifier, name, -1, label);
 }
 }  // namespace internal
@@ -32,7 +36,7 @@ void SetUniformBufferDebugLabel(UniformBufferHandle handle,
 }
 
 void SetTextureDebugLabel(TextureHandle handle, const schar* label) {
-  internal::SetDebugLabel(GL_BUFFER, handle, label);
+  internal::SetDebugLabel(GL_TEXTURE, handle, label);
 }
 
 void SetVertexAttributeDebugLabel(VertexAttributeHandle handle,
@@ -47,7 +51,6 @@ void SetShaderModuleDebugLabel(ShaderModuleHandle handle, const schar* label) {
 void SetShaderDebugLabel(ShaderHandle handle, const schar* label) {
   internal::SetDebugLabel(GL_PROGRAM, handle, label);
 }
-
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace gl

@@ -37,6 +37,7 @@ class GeometryManager : public Manager {
 
   Mesh* Generate(const resource::StaticMeshResource* resource);
   Mesh* Generate(const resource::SkinnedMeshResource* resource);
+  Mesh* GenerateCube(f32 size = 1.0f);
   Mesh* Get(MeshId mesh_id);
   Mesh* Get(const resource::MeshResource* resource);
   Mesh* TryGet(MeshId mesh_id);
@@ -76,6 +77,11 @@ class GeometryManager : public Manager {
 
  private:
   Mesh* GenerateInternal(const resource::MeshResource* resource);
+  Mesh* GenerateProceduralMesh(MeshId mesh_id, MeshType type,
+                               const Array<geometry::SkinnedVertex>& vertices,
+                               const Array<geometry::Index>& indices,
+                               const math::Vec3& local_center,
+                               const math::Vec3& local_max_extents);
   void Destroy(Mesh* mesh, bool is_destroying_handler);
 
   memory::FiberFreeListAllocator mesh_allocator_;

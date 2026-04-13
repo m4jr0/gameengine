@@ -64,7 +64,7 @@ void GlfwWindow::Initialize() {
 
   if (window_count_ == 0) {
     COMET_LOG_RENDERING_INFO("Initializing GLFW...");
-    [[maybe_unused]] const auto result{glfwInit()};
+    [[maybe_unused]] auto result{glfwInit()};
     COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
     DumpPlatform();
     SetGlfwHints();
@@ -149,8 +149,7 @@ void GlfwWindow::UpdateSize() {
 }
 
 void GlfwWindow::DumpPlatform() const {
-  auto platform = glfwGetPlatform();
-
+  auto platform{glfwGetPlatform()};
   const char* label = "???";
 
   switch (platform) {
@@ -168,6 +167,10 @@ void GlfwWindow::DumpPlatform() const {
       break;
     case GLFW_PLATFORM_NULL:
       label = "NULL";
+      break;
+
+    default:
+      label = "???";
       break;
   }
 

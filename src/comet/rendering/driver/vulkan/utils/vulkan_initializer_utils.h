@@ -75,11 +75,15 @@ VkPipelineInputAssemblyStateCreateInfo
 GeneratePipelineInputAssemblyStateCreateInfo(
     PrimitiveTopology topology, bool is_primitive_restart_enabled = VK_FALSE);
 VkPipelineRasterizationStateCreateInfo
-GeneratePipelineRasterizationStateCreateInfo(
-    bool is_wireframe, VkCullModeFlags cull_mode = VK_CULL_MODE_NONE);
+GeneratePipelineRasterizationStateCreateInfo(bool is_wireframe,
+                                             VkCullModeFlags cull_mode,
+                                             bool is_depth_bias);
 VkPipelineRasterizationStateCreateInfo
 GeneratePipelineRasterizationStateCreateInfo(bool is_wireframe,
-                                             CullMode = CullMode::None);
+                                             VkCullModeFlags cull_mode,
+                                             bool is_depth_bias);
+VkPipelineRasterizationStateCreateInfo
+GeneratePipelineRasterizationStateCreateInfo(const RasterizerState& rasterizer);
 VkPipelineMultisampleStateCreateInfo
 GeneratePipelineMultisampleStateCreateInfo();
 VkPipelineColorBlendAttachmentState GeneratePipelineColorBlendAttachmentState();
@@ -92,15 +96,20 @@ VkPipelineDepthStencilStateCreateInfo
 GeneratePipelineDepthStencilStateCreateInfo(
     bool is_depth_test, bool is_depth_write,
     VkCompareOp compare_op = VK_COMPARE_OP_ALWAYS);
+VkPipelineDepthStencilStateCreateInfo
+GeneratePipelineDepthStencilStateCreateInfo(
+    const DepthStencilState& depth_stencil);
 VkImageCreateInfo GenerateImageCreateInfo(
-    u32 width, u32 height, u32 mip_levels, VkSampleCountFlagBits num_samples,
-    VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags,
+    u32 width, u32 height, u32 mip_levels, u32 array_layers,
+    VkSampleCountFlagBits num_samples, VkFormat format, VkImageTiling tiling,
+    VkImageUsageFlags usage_flags,
     VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
     const u32* queue_family_indices = nullptr,
     u32 queue_family_index_count = 0);
 VkImageViewCreateInfo GenerateImageViewCreateInfo(
     VkImage image_handle, VkFormat format, VkImageAspectFlags aspect_flags,
-    u32 mip_levels);
+    u32 mip_levels, u32 base_array_layer = 0, u32 layer_count = 1,
+    VkImageViewType view_type = VK_IMAGE_VIEW_TYPE_2D);
 VkDescriptorSetLayoutCreateInfo GenerateDescriptorSetLayoutCreateInfo(
     const DescriptorSetLayoutBinding& descriptor_set_data);
 VkDescriptorSetLayoutBinding GenerateDescriptorSetLayoutBinding(
@@ -124,9 +133,9 @@ VkWriteDescriptorSet GenerateImageWriteDescriptorSet(
 VkSamplerCreateInfo GenerateSamplerCreateInfo(
     VkFilter filters,
     VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_REPEAT);
+VkSamplerCreateInfo GenerateBaseSamplerCreateInfo();
 VkSamplerCreateInfo GenerateSamplerCreateInfo(
-    VkFilter filters, VkSamplerAddressMode address_mode,
-    const resource::TextureMap* texture_map, bool is_sampler_anisotropy,
+    const resource::TextureMap& texture_map, bool is_sampler_anisotropy,
     f32 max_sampler_anisotropy);
 VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
     const Buffer& buffer, VkAccessFlags src_access_mask,

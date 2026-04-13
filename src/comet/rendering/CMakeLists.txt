@@ -54,6 +54,7 @@ endif()
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debug_ui_registry.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_common.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_utils.cc"
@@ -61,18 +62,10 @@ target_sources(${COMET_LIBRARY_NAME}
     # Camera.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/camera.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/camera_manager.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/camera/frustum.cc"
 
-    # Debugger.
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/debugger_displayer_manager.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/imgui_utils.cc"
-      
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/memory/allocation_tracker_displayer.cc"
-
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_displayer.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_displayer_context.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_graph.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/debugger/profiler/cpu_profiler_tree.cc"
+    # Culling.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/culling/culling_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/culling/frustum.cc"
 
     # Driver.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/driver.cc"
@@ -80,19 +73,26 @@ target_sources(${COMET_LIBRARY_NAME}
     # OpenGL.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_debug.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_driver.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/opengl_frame_state.cc"
     
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_frame.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_framebuffer.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_light.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_material.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_mesh.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_pipeline.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_region_gpu_buffer.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_render_proxy.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader_data.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shader_module.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_shadow.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_storage.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_texture.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_texture.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/data/opengl_texture_map.h"
 
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_lighting_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_material_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_mesh_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.cc"
@@ -100,19 +100,32 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_shader_module_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_texture_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/handler/opengl_view_handler.cc"
+    
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/utils/opengl_common_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/utils/opengl_shader_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/utils/opengl_view_shader_utils.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_debug_view.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_imgui_view.cc"  
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_imgui_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_shader_view.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_shadow_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/opengl/view/opengl_world_view.cc"
 
     # Vulkan.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_alloc.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_context.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_debug.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_device.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_driver.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_swapchain.cc"
+
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_buffer.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_descriptor.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_frame.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_image.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_light.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_material.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_mesh.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
@@ -122,11 +135,12 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_shader.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_shader_module.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_texture.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_texture.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
     
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_handler.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_material_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.cc"
@@ -144,22 +158,24 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_image_utils.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_material_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_shader_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_texture_map_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/utils/vulkan_view_utils.cc"
 
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_debug_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_imgui_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_shader_view.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_shadow_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_view.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/view/vulkan_world_view.cc"
 
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_alloc.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_context.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_debug.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_device.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_driver.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/vulkan/vulkan_swapchain.cc"
-
     # Empty.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/driver/empty/empty_driver.cc"
+
+    # Light.
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/light/light_common.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/light/light_manager.cc"
 
     # Windows.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/window/glfw/glfw_window.cc"

@@ -99,6 +99,8 @@ Below are additional articles, papers, and resources grouped by topic.
 * **Parminder Singh** - [Learning Vulkan](https://www.packtpub.com/product/learning-vulkan/9781786469809)
 * **Matthias Bauchinger** - [Designing a Modern Rendering Engine](https://matt77hias.medium.com/)
 * **Iago Toral** - [Working with Lights and Shadows - Part II: The Shadow Map](https://blogs.igalia.com/itoral/2017/07/30/working-with-lights-and-shadows-part-ii-the-shadow-map/)
+* **DigitalRune** - [Shadow Mapping Documentation](https://digitalrune.github.io/DigitalRune-Documentation/html/3f4d959e-9c98-4a97-8d85-7a73c26145d7.htm)
+* **NVIDIA** - [Percentage-Closer Soft Shadows (PCSS)](https://developer.download.nvidia.com/assets/gamedev/docs/PCSS_Integration.pdf)
 * **Rye Terrell** - [Instanced Line Rendering, Part I](https://wwwtyro.net/2019/11/18/instanced-lines.html)
 * **Ankit Singh Kushwah** - [Skeletal Animation](https://learnopengl.com/Guest-Articles/2020/Skeletal-Animation)
 * **Jean-Colas Prunier** - [Scratchapixel 4.0](https://www.scratchapixel.com/)

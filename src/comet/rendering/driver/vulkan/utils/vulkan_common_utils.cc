@@ -48,6 +48,43 @@ bool IsBindPoint(VkPipelineBindPoint bind_point,
          (bind_point == VK_PIPELINE_BIND_POINT_COMPUTE &&
           IsComputeStage(stage_flags));
 }
+
+bool IsDepthFormat(VkFormat format) {
+  switch (format) {
+    case VK_FORMAT_D16_UNORM:
+    case VK_FORMAT_X8_D24_UNORM_PACK32:
+    case VK_FORMAT_D32_SFLOAT:
+    case VK_FORMAT_D16_UNORM_S8_UINT:
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+      return true;
+    default:
+      return false;
+  }
+}
+VkCompareOp GetVkCompareOp(CompareOp op) {
+  switch (op) {
+    case CompareOp::Never:
+      return VK_COMPARE_OP_NEVER;
+    case CompareOp::Less:
+      return VK_COMPARE_OP_LESS;
+    case CompareOp::Equal:
+      return VK_COMPARE_OP_EQUAL;
+    case CompareOp::LessOrEqual:
+      return VK_COMPARE_OP_LESS_OR_EQUAL;
+    case CompareOp::Greater:
+      return VK_COMPARE_OP_GREATER;
+    case CompareOp::NotEqual:
+      return VK_COMPARE_OP_NOT_EQUAL;
+    case CompareOp::GreaterOrEqual:
+      return VK_COMPARE_OP_GREATER_OR_EQUAL;
+    case CompareOp::Always:
+      return VK_COMPARE_OP_ALWAYS;
+    default:
+      COMET_ASSERT(false, "Unknown compare op provided!");
+      return VK_COMPARE_OP_LESS;
+  }
+}
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

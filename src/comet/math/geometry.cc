@@ -160,7 +160,7 @@ Vec3 ExtractScale(const Mat4& transform) {
 }
 
 f32 ExtractUniformScale(const Mat4& transform) {
-  Vec3 scale = ExtractScale(transform);
+  auto scale{ExtractScale(transform)};
   return AverageComponents(scale);
 }
 

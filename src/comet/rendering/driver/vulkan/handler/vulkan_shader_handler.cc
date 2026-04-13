@@ -31,6 +31,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_common_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
@@ -39,108 +40,170 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+namespace internal {
+constexpr u32 kGlobalSet{0};
+constexpr u32 kMaterialSet{1};
+constexpr u32 kPassSet{2};
+
+bool HasBindingInSet(const Shader* shader, u32 set) {
+  for (const auto& binding : shader->bindings) {
+    if (binding.set == set) {
+      return true;
+    }
+  }
+  return false;
+}
+}  // namespace internal
+
 ShaderHandler::ShaderHandler(const ShaderHandlerDescr& descr)
     : Handler{descr},
       shader_module_handler_{descr.shader_module_handler},
       pipeline_handler_{descr.pipeline_handler},
       material_handler_{descr.material_handler},
       texture_handler_{descr.texture_handler},
-      descriptor_handler_{descr.descriptor_handler} {
+      descriptor_handler_{descr.descriptor_handler},
+      render_pass_handler_{descr.render_pass_handler} {
   COMET_ASSERT(shader_module_handler_ != nullptr,
                "Shader module handler is null!");
   COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
   COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
   COMET_ASSERT(descriptor_handler_ != nullptr, "Descriptor handler is null!");
+  COMET_ASSERT(render_pass_handler_ != nullptr, "Render pass handler is null!");
 }
 
 void ShaderHandler::Initialize() {
   Handler::Initialize();
   general_allocator_.Initialize();
   shader_instance_allocator_.Initialize();
-  shaders_ = Map<ShaderId, Shader*>{&shader_instance_allocator_};
+  shaders_ = Array<Shader*>{&shader_instance_allocator_};
+  shader_keys_ =
+      Map<ShaderKey, ShaderHandle, ShaderKeyHashLogic>{&general_allocator_};
   descriptor_set_layout_count_ = context_->GetImageCount();
+
+  material_handler_->SetDestroyCallback(
+      [](Material* material, void* user_data) {
+        auto* shader_handler{static_cast<ShaderHandler*>(user_data)};
+        shader_handler->UnbindMaterialFromAllShaders(material);
+      },
+      this);
 }
 
 void ShaderHandler::Shutdown() {
+  material_handler_->SetDestroyCallback(nullptr, nullptr);
   descriptor_set_layout_count_ = 0;
 
-  for (auto& it : shaders_) {
-    Destroy(it.value, true);
+  for (auto* shader : shaders_) {
+    if (shader != nullptr) {
+      Destroy(shader, true);
+    }
   }
 
+  shader_keys_.Destroy();
   shaders_.Destroy();
   bound_shader_ = nullptr;
-  instance_id_handler_.Shutdown();
   shader_instance_allocator_.Destroy();
   general_allocator_.Destroy();
   Handler::Shutdown();
 }
 
-Shader* ShaderHandler::Generate(const ShaderDescr& descr) {
-  const auto* shader_resource{
-      resource::ResourceManager::Get().GetShaders()->Load(descr.resource_path)};
-  COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
-  auto* shader{shader_instance_allocator_.AllocateOneAndPopulate<Shader>()};
-  shader->id = shader_resource->id;
-  shader->ref_count = 1;
-  shader->render_pass = descr.render_pass;
-  shader->is_wireframe = shader_resource->descr.is_wireframe;
-  shader->cull_mode = shader_resource->descr.cull_mode;
-  shader->topology = shader_resource->descr.topology;
-
-  shader->vertex_attributes =
-      Array<VkVertexInputAttributeDescription>{&general_allocator_};
-  shader->uniforms = Array<ShaderUniform>{&general_allocator_};
-  shader->constants = Array<ShaderConstant>{&general_allocator_};
-  shader->storages = Array<ShaderStorage>{&general_allocator_};
-  shader->modules = Array<const ShaderModule*>{&general_allocator_};
-  shader->push_constant_ranges =
-      Array<VkPushConstantRange>{&general_allocator_};
-
-  shader->global_uniform_data.descriptor_set_handles =
-      Array<VkDescriptorSet>{&general_allocator_};
-  shader->global_uniform_data.texture_maps =
-      Array<const TextureMap*>{&general_allocator_};
-
-  shader->storage_data.descriptor_set_handles =
-      Array<VkDescriptorSet>{&general_allocator_};
-
-  shader->instances.list = Array<MaterialInstance>{&shader_instance_allocator_};
-  shader->instances.ids =
-      Array<MaterialInstanceId>{&shader_instance_allocator_};
-
-  HandleShaderModulesGeneration(shader, shader_resource);
-  HandleAttributesGeneration(shader, shader_resource);
-  HandleUniformsGeneration(shader, shader_resource);
-  HandleConstantsGeneration(shader, shader_resource);
-  HandleStorageGeneration(shader, shader_resource);
-  HandleBindingsGeneration(shader);
-  HandleDescriptorSetLayoutsGeneration(shader);
-  HandlePipelineGeneration(shader);
-  HandleDescriptorPoolGeneration(shader);
-  HandleUboBufferGeneration(shader);
-
-  return shaders_.Emplace(shader->id, shader).value;
-}
-
-Shader* ShaderHandler::Get(ShaderId shader_id) {
-  auto* shader{TryGet(shader_id)};
+Shader* ShaderHandler::Get(ShaderHandle shader_handle) {
+  COMET_ASSERT(shader_handle_handler_.IsAlive(shader_handle));
+  auto* shader{TryGet(shader_handle)};
   COMET_ASSERT(shader != nullptr, "Requested shader does not exist: ",
-               COMET_STRING_ID_LABEL(shader_id), "!");
+               COMET_STRING_ID_LABEL(shader_handle), "!");
   return shader;
 }
 
-Shader* ShaderHandler::TryGet(ShaderId shader_id) {
-  auto shader_ptr{shaders_.TryGet(shader_id)};
+const Shader* ShaderHandler::Get(ShaderHandle shader_handle) const {
+  COMET_ASSERT(shader_handle_handler_.IsAlive(shader_handle));
+  auto* shader{TryGet(shader_handle)};
+  COMET_ASSERT(shader != nullptr, "Requested shader does not exist: ",
+               COMET_STRING_ID_LABEL(shader_handle), "!");
+  return shader;
+}
 
-  if (shader_ptr == nullptr) {
-    return nullptr;
+Shader* ShaderHandler::TryGet(ShaderHandle shader_handle) {
+  if (!shader_handle_handler_.IsAlive(shader_handle)) return nullptr;
+  return shaders_[gid::GetIndex(shader_handle)];
+}
+
+const Shader* ShaderHandler::TryGet(ShaderHandle shader_handle) const {
+  if (!shader_handle_handler_.IsAlive(shader_handle)) return nullptr;
+  return shaders_[gid::GetIndex(shader_handle)];
+}
+
+Shader* ShaderHandler::GetOrGenerate(const ShaderDescr& descr) {
+  return GetOrGenerate(descr.shader_id, descr.render_pass_handle);
+}
+
+Shader* ShaderHandler::GetOrGenerate(resource::ResourceId shader_id,
+                                     RenderPassHandle render_pass_handle) {
+  COMET_ASSERT(shader_id != resource::kInvalidResourceId,
+               "Shader resource id is invalid!");
+  COMET_ASSERT(render_pass_handle != kInvalidRenderPassHandle,
+               "Render pass handle is invalid!");
+
+  ShaderKey key{};
+  key.shader_id = shader_id;
+  key.render_pass_handle = render_pass_handle;
+
+  if (auto* shader_handle{shader_keys_.TryGet(key)}; shader_handle != nullptr) {
+    auto* shader{Get(*shader_handle)};
+    ++shader->ref_count;
+    return shader;
   }
 
-  auto* shader{*shader_ptr};
-  ++shader->ref_count;
+  const auto* shader_resource{
+      resource::ResourceManager::Get().GetShaders()->Load(shader_id)};
+  COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
+
+  ShaderDescr descr{};
+  descr.shader_id = shader_id;
+  descr.render_pass_handle = render_pass_handle;
+
+  auto* shader{Generate(descr, shader_resource)};
+  shader_keys_.Emplace(key, shader->handle);
   return shader;
+}
+
+void ShaderHandler::UnbindMaterialFromAllShaders(Material* material) {
+  COMET_ASSERT(material != nullptr, "Material is null!");
+
+  for (auto* shader : shaders_) {
+    if (shader == nullptr) {
+      continue;
+    }
+
+    if (!HasMaterial(shader, material)) {
+      continue;
+    }
+
+    UnbindMaterial(shader, material);
+  }
+}
+
+void ShaderHandler::Destroy(ShaderHandle shader_handle) {
+  Destroy(Get(shader_handle));
+}
+
+void ShaderHandler::Destroy(Shader* shader) { Destroy(shader, false); }
+
+ShaderBindingIndex ShaderHandler::GetBindingIndex(const Shader* shader, u32 set,
+                                                  u32 binding) const {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+
+  for (ShaderBindingIndex i{0}; i < shader->bindings.GetSize(); ++i) {
+    const auto& shader_binding{shader->bindings[i]};
+
+    if (shader_binding.set == set && shader_binding.binding == binding) {
+      return i;
+    }
+  }
+
+  COMET_ASSERT(false, "Unable to find shader binding in set ", set,
+               ", binding ", binding, "!");
+  return 0;
 }
 
 void ShaderHandler::Bind(const Shader* shader,
@@ -163,25 +226,23 @@ void ShaderHandler::Bind(const Shader* shader,
   auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
   auto image_index{context_->GetImageIndex()};
 
-  auto global_set_index{shader->descriptor_set_indices.global};
-  auto storage_set_index{shader->descriptor_set_indices.storage};
-
-  if (global_set_index != kInvalidShaderDescriptorSetIndex &&
-      IsBindPoint(bind_point, shader->global_ubo_data.stages)) {
+  if (!shader->global_descriptor_data.descriptor_set_handles.IsEmpty() &&
+      internal::HasBindingInSet(shader, internal::kGlobalSet)) {
     auto set_handle{
-        shader->global_uniform_data.descriptor_set_handles[image_index]};
+        shader->global_descriptor_data.descriptor_set_handles[image_index]};
 
     vkCmdBindDescriptorSets(command_buffer_handle, bind_point,
-                            pipeline->layout_handle, global_set_index, 1,
+                            pipeline->layout_handle, internal::kGlobalSet, 1,
                             &set_handle, 0, VK_NULL_HANDLE);
   }
 
-  if (storage_set_index != kInvalidShaderDescriptorSetIndex &&
-      IsBindPoint(bind_point, shader->storage_data.stages)) {
-    auto set_handle{shader->storage_data.descriptor_set_handles[image_index]};
+  if (!shader->storage_descriptor_data.descriptor_set_handles.IsEmpty() &&
+      internal::HasBindingInSet(shader, internal::kPassSet)) {
+    auto set_handle{
+        shader->storage_descriptor_data.descriptor_set_handles[image_index]};
 
     vkCmdBindDescriptorSets(command_buffer_handle, bind_point,
-                            pipeline->layout_handle, storage_set_index, 1,
+                            pipeline->layout_handle, internal::kPassSet, 1,
                             &set_handle, 0, VK_NULL_HANDLE);
   }
 }
@@ -193,9 +254,7 @@ void ShaderHandler::BindInstance(Shader* shader, MaterialId material_id,
 
 void ShaderHandler::BindInstance(Shader* shader, const Material* material,
                                  PipelineBindType pipeline_type) {
-  auto instance_set_index{shader->descriptor_set_indices.instance};
-
-  if (instance_set_index == kInvalidShaderDescriptorSetIndex) {
+  if (!internal::HasBindingInSet(shader, internal::kMaterialSet)) {
     return;
   }
 
@@ -214,812 +273,708 @@ void ShaderHandler::BindInstance(Shader* shader, const Material* material,
                       ? VK_PIPELINE_BIND_POINT_GRAPHICS
                       : VK_PIPELINE_BIND_POINT_COMPUTE};
 
-  if (shader->instance_ubo_data.ubo_size > 0 &&
-      IsBindPoint(bind_point, shader->instance_ubo_data.stages)) {
-    auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-    auto image_index{context_->GetImageIndex()};
-    auto& instance{GetInstance(shader, material)};
-    auto set_handle{instance.uniform_data.descriptor_set_handles[image_index]};
+  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  auto image_index{context_->GetImageIndex()};
+  auto& instance{GetInstance(shader, material)};
 
-    vkCmdBindDescriptorSets(command_buffer_handle, bind_point,
-                            pipeline->layout_handle, instance_set_index, 1,
-                            &set_handle, 0, VK_NULL_HANDLE);
+  if (instance.descriptor_data.descriptor_set_handles.IsEmpty()) {
+    return;
   }
+
+  auto set_handle{instance.descriptor_data.descriptor_set_handles[image_index]};
+
+  vkCmdBindDescriptorSets(command_buffer_handle, bind_point,
+                          pipeline->layout_handle, internal::kMaterialSet, 1,
+                          &set_handle, 0, VK_NULL_HANDLE);
 }
-
-void ShaderHandler::Destroy(ShaderId shader_id) { Destroy(Get(shader_id)); }
-
-void ShaderHandler::Destroy(Shader* shader) { Destroy(shader, false); }
 
 void ShaderHandler::Reset() { bound_shader_ = nullptr; }
 
-void ShaderHandler::UpdateGlobals(Shader* shader,
-                                  const frame::FramePacket* packet) const {
-  UpdateGlobals(shader, {&packet->projection_matrix, &packet->view_matrix});
-}
-
-void ShaderHandler::UpdateGlobals(Shader* shader,
-                                  const ShaderGlobalsUpdate& update) const {
-  auto global_set_index{shader->descriptor_set_indices.global};
-
-  if (global_set_index == kInvalidShaderDescriptorSetIndex) {
-    return;
-  }
-
-  auto frame_count{context_->GetFrameCount()};
-
-  if (shader->global_uniform_data.update_frame == frame_count) {
-    return;
-  }
-
-  shader->bound_ubo_offset = shader->global_ubo_data.ubo_offset;
-  SetUniform(shader, shader->uniform_indices.projection,
-             update.projection_matrix);
-  SetUniform(shader, shader->uniform_indices.view, update.view_matrix);
-
-  auto global_descriptor_set_handle{
-      shader->global_uniform_data
-          .descriptor_set_handles[context_->GetImageIndex()]};
-
-  auto buffer_info{init::GenerateDescriptorBufferInfo(
-      shader->uniform_buffers[context_->GetImageIndex()].handle,
-      shader->global_ubo_data.ubo_offset, shader->global_ubo_data.ubo_stride)};
-
-  auto ubo_write_descriptor_set{init::GenerateBufferWriteDescriptorSet(
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, global_descriptor_set_handle,
-      &buffer_info, 0)};
-  const auto binding_count{
-      shader->layout_bindings.list[global_set_index].binding_count};
-
-  vkUpdateDescriptorSets(context_->GetDevice(), binding_count,
-                         &ubo_write_descriptor_set, 0, VK_NULL_HANDLE);
-  shader->global_uniform_data.update_frame = frame_count;
-}
-
-void ShaderHandler::UpdateConstants(Shader* shader,
-                                    const frame::FramePacket* packet) const {
-  auto draw_count{static_cast<u32>(packet->draw_count)};
-  UpdateConstants(shader, {&draw_count, nullptr});
-}
-
-void ShaderHandler::UpdateConstants(Shader* shader,
-                                    const ShaderConstantsUpdate& update) const {
-  if (update.draw_count != nullptr) {
-    SetConstant(shader, shader->constant_indices.draw_count, update.draw_count);
-  }
-
-  if (update.count != nullptr) {
-    SetConstant(shader, shader->constant_indices.count, update.count);
-  }
-}
-
-void ShaderHandler::UpdateStorages(Shader* shader,
-                                   const frame::FramePacket* packet) const {
-  if (packet->rendering_data == nullptr) {
-    return;
-  }
-
-  const auto* update{
-      static_cast<const ShaderStoragesUpdate*>(packet->rendering_data)};
-  UpdateStorages(shader, *update);
-}
-
-void ShaderHandler::UpdateStorages(Shader* shader,
-                                   const ShaderStoragesUpdate& update) const {
-  auto storage_set_index{shader->descriptor_set_indices.storage};
-
-  if (storage_set_index == kInvalidShaderDescriptorSetIndex) {
-    return;
-  }
-
-  const auto binding_count{
-      shader->layout_bindings.list[storage_set_index].binding_count};
-
-  if (binding_count == 0) {
-    return;
-  }
-
-  frame::FrameArray<VkDescriptorSetLayout> layout_buffer{};
-  layout_buffer.Reserve(descriptor_set_layout_count_);
-
-  for (u32 i{0}; i < descriptor_set_layout_count_; ++i) {
-    layout_buffer.PushBack(shader->layout_handles[storage_set_index]);
-  }
-
-  shader->storage_data.descriptor_set_handles.Resize(
-      descriptor_set_layout_count_);
-
-  [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
-      layout_buffer.GetData(),
-      shader->storage_data.descriptor_set_handles.GetData(),
-      descriptor_set_layout_count_, DescriptorType::Dynamic)};
-
-  COMET_ASSERT(is_allocated,
-               "Failed to allocate spatial uniform descriptor sets!");
-  COMET_VK_SET_DESCRIPTOR_SET_LABELS(
-      shader->storage_data.descriptor_set_handles.GetData(),
-      static_cast<u32>(shader->storage_data.descriptor_set_handles.GetSize()),
-      "spatial_uniform_set_");
-
-  VkDescriptorSet set_handle{
-      shader->storage_data.descriptor_set_handles[context_->GetImageIndex()]};
-
-  frame::FrameArray<VkDescriptorBufferInfo> buffer_info{};
-  frame::FrameArray<VkDescriptorSetLayoutBinding> bindings{};
-  frame::FrameArray<VkWriteDescriptorSet> write_descriptor_sets{};
-
-  buffer_info.Reserve(binding_count);
-  bindings.Reserve(binding_count);
-  write_descriptor_sets.Reserve(binding_count);
-
-  BindStorageBuffer(
-      shader, set_handle, shader->storage_indices.proxy_local_datas,
-      update.ssbo_proxy_local_datas_handle, update.ssbo_proxy_local_datas_size,
-      buffer_info, bindings, write_descriptor_sets);
-
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.proxy_ids,
-                    update.ssbo_proxy_ids_handle, update.ssbo_proxy_ids_size,
-                    buffer_info, bindings, write_descriptor_sets);
-
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.proxy_instances,
-                    update.ssbo_proxy_instances_handle,
-                    update.ssbo_proxy_instances_size, buffer_info, bindings,
-                    write_descriptor_sets);
-
-  BindStorageBuffer(
-      shader, set_handle, shader->storage_indices.indirect_proxies,
-      update.ssbo_indirect_proxies_handle, update.ssbo_indirect_proxies_size,
-      buffer_info, bindings, write_descriptor_sets);
-
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.word_indices,
-                    update.ssbo_word_indices_handle,
-                    update.ssbo_word_indices_size, buffer_info, bindings,
-                    write_descriptor_sets);
-
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.source_words,
-                    update.ssbo_source_words_handle,
-                    update.ssbo_source_words_size, buffer_info, bindings,
-                    write_descriptor_sets);
-
-  BindStorageBuffer(
-      shader, set_handle, shader->storage_indices.destination_words,
-      update.ssbo_destination_words_handle, update.ssbo_destination_words_size,
-      buffer_info, bindings, write_descriptor_sets);
-
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.matrix_palettes,
-                    update.ssbo_matrix_palettes_handle,
-                    update.ssbo_matrix_palettes_size, buffer_info, bindings,
-                    write_descriptor_sets);
-
-#ifdef COMET_DEBUG_RENDERING
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.debug_data,
-                    update.ssbo_debug_data_handle, update.ssbo_debug_data_size,
-                    buffer_info, bindings, write_descriptor_sets);
-#endif  // COMET_DEBUG_RENDERING
-
-#ifdef COMET_DEBUG_CULLING
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.debug_aabbs,
-                    update.ssbo_debug_aabbs_handle,
-                    update.ssbo_debug_aabbs_size, buffer_info, bindings,
-                    write_descriptor_sets);
-
-  BindStorageBuffer(shader, set_handle, shader->storage_indices.line_vertices,
-                    update.ssbo_debug_lines_handle,
-                    update.ssbo_debug_lines_size, buffer_info, bindings,
-                    write_descriptor_sets);
-#endif  // COMET_DEBUG_CULLING
-
-  vkUpdateDescriptorSets(context_->GetDevice(),
-                         static_cast<u32>(write_descriptor_sets.GetSize()),
-                         write_descriptor_sets.GetData(), 0, VK_NULL_HANDLE);
-}
-
-void ShaderHandler::UpdateInstance(Shader* shader, MaterialId material_id) {
-  UpdateInstance(shader, material_handler_->Get(material_id));
-}
-
-void ShaderHandler::UpdateInstance(Shader* shader, Material* material) {
-  auto instance_set_index{shader->descriptor_set_indices.instance};
-
-  if (instance_set_index == kInvalidShaderDescriptorSetIndex) {
-    return;
-  }
+void ShaderHandler::UpdatePass(Shader* shader,
+                               const ShaderPassUpdate& update) const {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
 
   auto image_index{context_->GetImageIndex()};
-  auto& instance{GetInstance(shader, material)};
-  auto instance_descriptor_set_handle{
-      instance.uniform_data.descriptor_set_handles[image_index]};
-  u32 descriptor_count{0};
-  auto frame_count{context_->GetFrameCount()};
 
-  if (material->instance_update_frame != frame_count) {
-    shader->bound_instance_index =
-        GetInstanceIndex(shader, material->instance_id);
-    shader->bound_ubo_offset =
-        shader->global_ubo_data.ubo_stride +
-        shader->instances.list[shader->bound_instance_index].offset;
-
-    SetUniform(shader, shader->uniform_indices.diffuse_map,
-               &material->diffuse_map);
-    SetUniform(shader, shader->uniform_indices.specular_map,
-               &material->specular_map);
-    SetUniform(shader, shader->uniform_indices.normal_map,
-               &material->normal_map);
-    SetUniform(shader, shader->uniform_indices.diffuse_color,
-               &material->diffuse_color);
-    SetUniform(shader, shader->uniform_indices.shininess, &material->shininess);
-
-    VkDescriptorBufferInfo buffer_info;
-    StaticArray<VkWriteDescriptorSet, kDescriptorBindingCount>
-        write_descriptor_sets{};
-
-    if (shader->instance_ubo_data.uniform_count > 0) {
-      buffer_info = init::GenerateDescriptorBufferInfo(
-          shader->uniform_buffers[context_->GetImageIndex()].handle,
-          shader->bound_ubo_offset, shader->instance_ubo_data.ubo_stride);
-      write_descriptor_sets[descriptor_count] =
-          init::GenerateBufferWriteDescriptorSet(
-              VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, instance_descriptor_set_handle,
-              &buffer_info, descriptor_count);
-      instance.uniform_data.update_frame = frame_count;
-      ++descriptor_count;
-    }
-
-    auto& descriptor_set_data{shader->layout_bindings.list[instance_set_index]};
-    auto sampler_count{
-        descriptor_set_data.bindings[descriptor_set_data.sampler_binding_index]
-            .descriptorCount};
-    frame::FrameArray<VkDescriptorImageInfo> image_info_list{};
-    image_info_list.Resize(sampler_count);
-
-    if (shader->instance_ubo_data.sampler_count > 0) {
-      for (u32 i{0}; i < sampler_count; ++i) {
-        auto& texture_map{instance.uniform_data.texture_maps[i]};
-        const auto* texture{texture_map->texture};
-        auto& image_info{image_info_list[i]};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = texture->image.image_view_handle;
-        image_info.sampler = texture_map->sampler->handle;
-      }
-
-      write_descriptor_sets[descriptor_count] =
-          init::GenerateImageWriteDescriptorSet(
-              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              instance_descriptor_set_handle, image_info_list.GetData(),
-              static_cast<u32>(image_info_list.GetSize()), descriptor_count);
-
-      ++descriptor_count;
-    }
-
-    if (descriptor_count > 0) {
-      vkUpdateDescriptorSets(context_->GetDevice(), descriptor_count,
-                             write_descriptor_sets.GetData(), 0,
-                             VK_NULL_HANDLE);
-    }
-  }
-
-  material->instance_update_frame = frame_count;
-}
-
-void ShaderHandler::SetUniform(Shader* shader, const ShaderUniform& uniform,
-                               const void* value) const {
-  if (uniform.type == ShaderVariableType::Sampler) {
-    if (uniform.scope == ShaderUniformScope::Global) {
-      shader->global_uniform_data.texture_maps[uniform.location] =
-          static_cast<const TextureMap*>(value);
-    } else {
-      shader->instances.list[shader->bound_instance_index]
-          .uniform_data.texture_maps[uniform.location] =
-          static_cast<const TextureMap*>(value);
-    }
-
+  if (shader->storage_descriptor_data.descriptor_set_handles.IsEmpty()) {
     return;
   }
 
-  auto& buffer{shader->uniform_buffers[context_->GetImageIndex()]};
-  MapBuffer(buffer);
-  CopyToBuffer(buffer, value, uniform.size,
-               shader->bound_ubo_offset + uniform.offset);
-  UnmapBuffer(buffer);
+  auto set_handle{
+      shader->storage_descriptor_data.descriptor_set_handles[image_index]};
+
+  if (update.buffer_bindings != nullptr && !update.buffer_bindings->IsEmpty()) {
+    for (const auto& buffer_update : *update.buffer_bindings) {
+      COMET_ASSERT(buffer_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in pass buffer update!");
+
+      const auto& binding{shader->bindings[buffer_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Pass,
+                   "Pass buffer update targets non-pass binding!");
+      COMET_ASSERT(binding.type == ShaderBindingType::UniformBuffer ||
+                       binding.type == ShaderBindingType::StorageBuffer,
+                   "Pass buffer update targets non-buffer binding!");
+
+      UpdateDescriptorSetBuffer(
+          set_handle, binding, buffer_update.buffer_handle,
+          buffer_update.buffer_size, buffer_update.buffer_offset);
+    }
+  }
+
+  if (update.image_bindings != nullptr && !update.image_bindings->IsEmpty()) {
+    for (const auto& image_update : *update.image_bindings) {
+      COMET_ASSERT(image_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in pass image update!");
+
+      const auto& binding{shader->bindings[image_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Pass,
+                   "Pass image update targets non-pass binding!");
+      COMET_ASSERT(IsImageBindingType(binding.type),
+                   "Pass image update targets non-image binding!");
+      COMET_ASSERT(image_update.descriptors != nullptr,
+                   "Pass image update descriptors are null!");
+      COMET_ASSERT(image_update.descriptor_count > 0,
+                   "Pass image update descriptor count is 0!");
+
+      UpdateDescriptorSetImages(set_handle, binding, image_update.descriptors,
+                                image_update.descriptor_count);
+    }
+  }
 }
 
-void ShaderHandler::SetUniform(ShaderId id, const ShaderUniform& uniform,
-                               const void* value) {
-  auto* shader{Get(id)};
-  COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from ID ", id,
-               ", but instance is null!");
-  SetUniform(shader, uniform, value);
+void ShaderHandler::UpdateGlobals(Shader* shader,
+                                  const ShaderGlobalUpdate& update) const {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+
+  auto image_index{context_->GetImageIndex()};
+
+  if (shader->global_descriptor_data.descriptor_set_handles.IsEmpty()) {
+    return;
+  }
+
+  auto set_handle{
+      shader->global_descriptor_data.descriptor_set_handles[image_index]};
+
+  if (update.field_updates != nullptr && !update.field_updates->IsEmpty()) {
+    auto& buffer{shader->uniform_buffers[image_index]};
+    ScopedMappedBuffer mapped{buffer};
+
+    for (const auto& field_update : *update.field_updates) {
+      COMET_ASSERT(field_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in global field update!");
+
+      const auto& binding{shader->bindings[field_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Global,
+                   "Global field update targets non-global binding!");
+      COMET_ASSERT(binding.type == ShaderBindingType::UniformBuffer,
+                   "Global field update targets non-UBO binding!");
+
+      WriteBindingFieldToMappedUbo(buffer, shader->bound_global_ubo_offset,
+                                   binding, field_update.field_index,
+                                   field_update.data, field_update.size);
+    }
+  }
+
+  if (update.buffer_bindings != nullptr && !update.buffer_bindings->IsEmpty()) {
+    for (const auto& buffer_update : *update.buffer_bindings) {
+      COMET_ASSERT(buffer_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in global buffer update!");
+
+      const auto& binding{shader->bindings[buffer_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Global,
+                   "Global buffer update targets non-global binding!");
+      COMET_ASSERT(binding.type == ShaderBindingType::UniformBuffer ||
+                       binding.type == ShaderBindingType::StorageBuffer,
+                   "Global buffer update targets non-buffer binding!");
+
+      UpdateDescriptorSetBuffer(
+          set_handle, binding, buffer_update.buffer_handle,
+          buffer_update.buffer_size, buffer_update.buffer_offset);
+    }
+  }
+
+  if (update.image_bindings != nullptr && !update.image_bindings->IsEmpty()) {
+    for (const auto& image_update : *update.image_bindings) {
+      COMET_ASSERT(image_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in global image update!");
+
+      const auto& binding{shader->bindings[image_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Global,
+                   "Global image update targets non-global binding!");
+      COMET_ASSERT(IsImageBindingType(binding.type),
+                   "Global image update targets non-image binding!");
+      COMET_ASSERT(image_update.descriptors != nullptr,
+                   "Global image update descriptors are null!");
+      COMET_ASSERT(image_update.descriptor_count > 0,
+                   "Global image update descriptor count is 0!");
+
+      UpdateDescriptorSetImages(set_handle, binding, image_update.descriptors,
+                                image_update.descriptor_count);
+    }
+  }
 }
 
-void ShaderHandler::SetUniform(Shader* shader, ShaderUniformIndex index,
-                               const void* value) const {
-  COMET_ASSERT(index < shader->uniforms.GetSize(),
-               "Tried to set uniform at index #", index,
-               " for shader pass, but uniform count is ",
-               shader->uniforms.GetSize(), "!");
-  SetUniform(shader, shader->uniforms[index], value);
+void ShaderHandler::UpdateInstance(Shader* shader, MaterialId material_id,
+                                   const ShaderInstanceUpdate& update) {
+  UpdateInstance(shader, material_handler_->Get(material_id), update);
 }
 
-void ShaderHandler::SetUniform(ShaderId id, ShaderUniformIndex index,
-                               const void* value) {
-  auto* shader{Get(id)};
-  COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from ID ", id,
-               ", but instance is null!");
-  SetUniform(shader, index, value);
+void ShaderHandler::UpdateInstance(Shader* shader, Material* material,
+                                   const ShaderInstanceUpdate& update) {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(material != nullptr, "Material is null!");
+
+  auto& instance{GetInstance(shader, material)};
+  auto image_index{context_->GetImageIndex()};
+
+  if (instance.descriptor_data.descriptor_set_handles.IsEmpty()) {
+    return;
+  }
+
+  auto set_handle{instance.descriptor_data.descriptor_set_handles[image_index]};
+
+  shader->bound_instance_ubo_offset =
+      shader->global_ubo_data.stride + instance.offset;
+
+  if (update.field_updates != nullptr && !update.field_updates->IsEmpty()) {
+    auto& buffer{shader->uniform_buffers[image_index]};
+    ScopedMappedBuffer mapped{buffer};
+
+    for (const auto& field_update : *update.field_updates) {
+      COMET_ASSERT(field_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in instance field update!");
+
+      const auto& binding{shader->bindings[field_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Material,
+                   "Instance field update targets non-material binding!");
+      COMET_ASSERT(binding.type == ShaderBindingType::UniformBuffer,
+                   "Instance field update targets non-UBO binding!");
+
+      WriteBindingFieldToMappedUbo(buffer, shader->bound_instance_ubo_offset,
+                                   binding, field_update.field_index,
+                                   field_update.data, field_update.size);
+    }
+  }
+
+  if (update.buffer_bindings != nullptr && !update.buffer_bindings->IsEmpty()) {
+    for (const auto& buffer_update : *update.buffer_bindings) {
+      COMET_ASSERT(buffer_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in instance buffer update!");
+
+      const auto& binding{shader->bindings[buffer_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Material,
+                   "Instance buffer update targets non-material binding!");
+      COMET_ASSERT(binding.type == ShaderBindingType::UniformBuffer ||
+                       binding.type == ShaderBindingType::StorageBuffer,
+                   "Instance buffer update targets non-buffer binding!");
+
+      UpdateDescriptorSetBuffer(
+          set_handle, binding, buffer_update.buffer_handle,
+          buffer_update.buffer_size, buffer_update.buffer_offset);
+    }
+  }
+
+  if (update.image_bindings != nullptr && !update.image_bindings->IsEmpty()) {
+    for (const auto& image_update : *update.image_bindings) {
+      COMET_ASSERT(image_update.binding_index < shader->bindings.GetSize(),
+                   "Invalid binding index in instance image update!");
+
+      const auto& binding{shader->bindings[image_update.binding_index]};
+
+      COMET_ASSERT(binding.scope == ShaderBindingScope::Material,
+                   "Instance image update targets non-material binding!");
+      COMET_ASSERT(IsImageBindingType(binding.type),
+                   "Instance image update targets non-image binding!");
+      COMET_ASSERT(image_update.descriptors != nullptr,
+                   "Instance image update descriptors are null!");
+      COMET_ASSERT(image_update.descriptor_count > 0,
+                   "Instance image update descriptor count is 0!");
+
+      UpdateDescriptorSetImages(set_handle, binding, image_update.descriptors,
+                                image_update.descriptor_count);
+
+      if (image_index == 0) {
+        auto* runtime_binding{FindBindingRuntimeData(
+            instance.binding_data, image_update.binding_index)};
+
+        if (runtime_binding == nullptr) {
+          ShaderBindingImageRuntimeData new_runtime_binding{};
+          new_runtime_binding.binding_index = image_update.binding_index;
+          new_runtime_binding.descriptors =
+              Array<ShaderImageDescriptor>{&general_allocator_};
+          new_runtime_binding.descriptors.PushFromRange(
+              image_update.descriptors, image_update.descriptor_count);
+          instance.binding_data.image_bindings.EmplaceBack(
+              std::move(new_runtime_binding));
+        } else {
+          runtime_binding->descriptors.Clear();
+          runtime_binding->descriptors.PushFromRange(
+              image_update.descriptors, image_update.descriptor_count);
+        }
+      }
+    }
+  }
 }
 
-void ShaderHandler::SetConstant(Shader* shader, const ShaderConstant& constant,
-                                const void* value) const {
+void ShaderHandler::PushConstants(
+    Shader* shader, const ShaderPushConstantsUpdate& update) const {
+  if (update.blocks == nullptr) {
+    return;
+  }
+
   auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
 
-  if (IsGraphicsStage(constant.stages)) {
+  for (const auto& block_update : *update.blocks) {
     COMET_ASSERT(
-        shader->graphics_pipeline != nullptr,
-        "Tried to push constants to a non-existing graphics pipeline!");
+        block_update.block_index < shader->push_constant_blocks.GetSize(),
+        "Invalid push constant block index!");
 
-    vkCmdPushConstants(command_buffer_handle,
-                       shader->graphics_pipeline->layout_handle,
-                       constant.stages, constant.offset, constant.size, value);
+    const auto& block{shader->push_constant_blocks[block_update.block_index]};
+    COMET_ASSERT(block_update.data != nullptr,
+                 "Push constant block data is null!");
+    COMET_ASSERT(block_update.size <= static_cast<u32>(block.size),
+                 "Push constant update exceeds block size!");
+
+    if (shader->graphics_pipeline != nullptr && IsGraphicsStage(block.stages)) {
+      vkCmdPushConstants(
+          command_buffer_handle, shader->graphics_pipeline->layout_handle,
+          block.stages, static_cast<u32>(block.offset),
+          static_cast<u32>(block_update.size), block_update.data);
+    }
+
+    if (shader->compute_pipeline != nullptr && IsComputeStage(block.stages)) {
+      vkCmdPushConstants(
+          command_buffer_handle, shader->compute_pipeline->layout_handle,
+          block.stages, static_cast<u32>(block.offset),
+          static_cast<u32>(block_update.size), block_update.data);
+    }
   }
-
-  if (IsComputeStage(constant.stages)) {
-    COMET_ASSERT(shader->compute_pipeline != nullptr,
-                 "Tried to push constant to a non-existing compute pipeline!");
-
-    vkCmdPushConstants(command_buffer_handle,
-                       shader->compute_pipeline->layout_handle, constant.stages,
-                       constant.offset, constant.size, value);
-  }
 }
 
-void ShaderHandler::SetConstant(ShaderId id, const ShaderConstant& constant,
-                                const void* value) {
-  auto* shader{Get(id)};
-  COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from ID ", id,
-               ", but instance is null!");
-  SetConstant(shader, constant, value);
-}
+void ShaderHandler::BindMaterial(Shader* shader, Material* material) {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(material != nullptr, "Material is null!");
+  COMET_ASSERT(!HasMaterial(shader, material),
+               "Material is already bound to this shader instance!");
+  COMET_ASSERT(shader->instances.list.GetSize() < kMaxMaterialInstances,
+               "Maximum material instance count reached!");
 
-void ShaderHandler::SetConstant(Shader* shader, ShaderConstantIndex index,
-                                const void* value) const {
-  COMET_ASSERT(index < shader->constants.GetSize(),
-               "Tried to set constant at index #", index,
-               " for shader pass, but constant count is ",
-               shader->constants.GetSize(), "!");
-  SetConstant(shader, shader->constants[index], value);
-}
-
-void ShaderHandler::SetConstant(ShaderId id, ShaderConstantIndex index,
-                                const void* value) {
-  auto* shader{Get(id)};
-  COMET_ASSERT(shader != nullptr, "Tried to retrieve shader pass from ID ", id,
-               ", but instance is null!");
-  SetUniform(shader, index, value);
-}
-
-void ShaderHandler::BindMaterial(Material* material) {
-  auto* shader{Get(material->shader_id)};
-
-  if (shader == nullptr) {
-    return;
-  }
-
-  auto instance_set_index{shader->descriptor_set_indices.instance};
-
-  if (instance_set_index == kInvalidShaderDescriptorSetIndex) {
+  if (!internal::HasBindingInSet(shader, internal::kMaterialSet)) {
     return;
   }
 
   MaterialInstance instance{};
-  auto& descriptor_set{shader->layout_bindings.list[instance_set_index]};
-  auto sampler_binding_index{descriptor_set.sampler_binding_index};
-  auto instance_texture_count{
-      descriptor_set.bindings[sampler_binding_index].descriptorCount};
-
-  instance.uniform_data.descriptor_set_handles =
+  instance.descriptor_data.descriptor_set_handles =
       Array<VkDescriptorSet>{&general_allocator_};
-  instance.uniform_data.texture_maps =
-      Array<const TextureMap*>{&general_allocator_};
+  instance.binding_data.image_bindings =
+      Array<ShaderBindingImageRuntimeData>{&general_allocator_};
 
-  if (instance_texture_count > 0) {
-    instance.uniform_data.texture_maps.Resize(instance_texture_count);
+  u32 material_image_binding_count{0};
 
-    // TODO(m4jr0): Put texture maps in generic array.
-    StaticArray<TextureMap*, 3> maps{
-        &material->diffuse_map, &material->specular_map, &material->normal_map};
-    memory::CopyMemory(instance.uniform_data.texture_maps.GetData(),
-                       maps.GetData(), sizeof(TextureMap*) * maps.GetSize());
+  for (const auto& binding : shader->bindings) {
+    if (binding.set == internal::kMaterialSet &&
+        IsImageBindingType(binding.type)) {
+      ++material_image_binding_count;
+    }
   }
 
-  frame::FrameArray<VkDescriptorSetLayout> layout_buffer{};
-  layout_buffer.Reserve(descriptor_set_layout_count_);
-  instance.uniform_data.descriptor_set_handles.Resize(
-      descriptor_set_layout_count_);
-  instance.uniform_data.descriptor_pool_handle = shader->descriptor_pool_handle;
+  instance.binding_data.image_bindings.Reserve(material_image_binding_count);
+  auto instance_index{static_cast<u32>(shader->instances.list.GetSize())};
+  AllocateMaterialDescriptorSets(shader, instance);
+  instance.material_id = material->id;
+  UpdateInstanceUboDescriptors(shader, instance, instance_index);
 
-  for (u32 i{0}; i < descriptor_set_layout_count_; ++i) {
-    layout_buffer.PushBack(shader->layout_handles[instance_set_index]);
+  auto& resolved_image_descriptors{*COMET_FRAME_ARRAY(ShaderImageDescriptor)};
+
+  for (u32 image_index{0}; image_index < descriptor_set_layout_count_;
+       ++image_index) {
+    auto set_handle{
+        instance.descriptor_data.descriptor_set_handles[image_index]};
+
+    for (const auto& binding : shader->bindings) {
+      if (binding.set != internal::kMaterialSet) {
+        continue;
+      }
+
+      if (IsImageBindingType(binding.type)) {
+        CollectMaterialImageDescriptors(material, binding,
+                                        resolved_image_descriptors);
+
+        if (image_index == 0) {
+          ShaderBindingImageRuntimeData runtime_binding{};
+          runtime_binding.binding_index = binding.index;
+          runtime_binding.descriptors =
+              Array<ShaderImageDescriptor>{&general_allocator_};
+          runtime_binding.descriptors.PushFromRange(resolved_image_descriptors);
+          instance.binding_data.image_bindings.EmplaceBack(
+              std::move(runtime_binding));
+        }
+
+        UpdateDescriptorSetImages(
+            set_handle, binding, resolved_image_descriptors.GetData(),
+            static_cast<u32>(resolved_image_descriptors.GetSize()));
+      }
+    }
   }
 
-  [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
-      layout_buffer.GetData(),
-      instance.uniform_data.descriptor_set_handles.GetData(),
-      descriptor_set_layout_count_, DescriptorType::Static)};
-
-  COMET_ASSERT(is_allocated,
-               "Failed to allocate instance uniform descriptor sets!");
-  COMET_VK_SET_DESCRIPTOR_SET_LABELS(
-      instance.uniform_data.descriptor_set_handles.GetData(),
-      static_cast<u32>(instance.uniform_data.descriptor_set_handles.GetSize()),
-      "instance_uniform_set_");
-
-  instance.offset =
-      shader->instance_ubo_data.ubo_stride * shader->instances.list.GetSize();
-
-  // Generate material instance.
+  shader->instances.indices.Emplace(material->id, instance_index);
   shader->instances.list.EmplaceBack(std::move(instance));
-  material->instance_id = instance_id_handler_.Generate();
-  instance.id = material->instance_id;
-  shader->instances.ids.PushBack(material->instance_id);
 }
 
-void ShaderHandler::UnbindMaterial(Material* material) {
-  COMET_ASSERT(HasMaterial(material),
-               "Trying to destroy dead material instance #",
-               material->instance_id, "!");
+void ShaderHandler::UnbindMaterial(Shader* shader, Material* material) {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(material != nullptr, "Material is null!");
+  COMET_ASSERT(HasMaterial(shader, material),
+               "Trying to destroy dead material instance for material ",
+               material->id, "!");
 
-  auto* shader{Get(material->shader_id)};
-  auto index{GetInstanceIndex(shader, material)};
+  auto* index_ptr{shader->instances.indices.TryGet(material->id)};
+  COMET_ASSERT(index_ptr != nullptr, "Material instance index is null!");
+
+  const u32 index{*index_ptr};
   auto& instances{shader->instances.list};
   auto& instance{instances[index]};
   auto& device{context_->GetDevice()};
 
-  auto& uniform_data{instance.uniform_data};
-  FreeDescriptor(device, uniform_data.descriptor_set_handles,
-                 uniform_data.descriptor_pool_handle);
-  instance.uniform_data.texture_maps.Clear();
+  auto& descriptor_data{instance.descriptor_data};
+  FreeDescriptor(device, descriptor_data.descriptor_set_handles,
+                 descriptor_data.descriptor_pool_handle);
 
-  // Delete material instance.
-  // Copy last instance in place of the deleted one + Remove last duplicate in
-  // the list.
-  auto& instance_ids{shader->instances.ids};
-  COMET_ASSERT(instance_ids.GetSize() == instances.GetSize(),
-               "Size mismatch between material IDs (", instance_ids.GetSize(),
-               ") and instances (", instances.GetSize(),
-               ")! Something very wrong must have happened!");
-  auto max_index{instance_ids.GetSize() - 1};
+  DestroyBindingRuntimeData(instance.binding_data);
 
-  if (index != max_index) {
-    instance_ids[index] = instance_ids[max_index];
-    instances[index] = instances[max_index];
+  const u32 last_index{static_cast<u32>(instances.GetSize() - 1)};
+  const MaterialId removed_material_id{material->id};
+
+  if (index != last_index) {
+    instances[index] = std::move(instances[last_index]);
+    auto& moved_instance{instances[index]};
+    shader->instances.indices[moved_instance.material_id] = index;
+    UpdateInstanceUboDescriptors(shader, moved_instance, index);
   }
 
-  instance_ids.Resize(max_index);
-  instances.Resize(max_index);
-  instance_id_handler_.Destroy(material->instance_id);
-  material->instance_id = kInvalidMaterialInstanceId;
+  instances.Resize(last_index);
+  shader->instances.indices.Remove(removed_material_id);
 }
 
-bool ShaderHandler::HasMaterial(const Material* material) const {
-  return instance_id_handler_.IsAlive(material->instance_id);
+bool ShaderHandler::HasMaterial(const Shader* shader,
+                                const Material* material) const {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(material != nullptr, "Material is null!");
+  return shader->instances.indices.TryGet(material->id) != nullptr;
 }
 
 MaterialInstance& ShaderHandler::GetInstance(Shader* shader,
                                              const Material* material) {
-  return shader->instances.list[GetInstanceIndex(shader, material)];
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(material != nullptr, "Material is null!");
+
+  auto* index{shader->instances.indices.TryGet(material->id)};
+  COMET_ASSERT(index != nullptr, "Material ", material->id,
+               " is not bound to shader ",
+               COMET_STRING_ID_LABEL(shader->handle), "!");
+
+  return shader->instances.list[*index];
 }
 
-ShaderVertexAttributeSize ShaderHandler::GetVertexAttributeSize(
-    ShaderVertexAttributeType type) {
+const MaterialInstance* ShaderHandler::TryGetInstance(
+    const Shader* shader, const Material* material) const {
+  if (shader == nullptr || material == nullptr) {
+    return nullptr;
+  }
+
+  auto* index{shader->instances.indices.TryGet(material->id)};
+  if (index == nullptr) {
+    return nullptr;
+  }
+
+  return &shader->instances.list[*index];
+}
+
+bool ShaderHandler::HasVertexStage(const Shader* shader) {
+  for (const auto& module : shader->modules) {
+    if (module->type == VK_SHADER_STAGE_VERTEX_BIT) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+VkDescriptorType ShaderHandler::GetVkDescriptorType(ShaderBindingType type) {
   switch (type) {
-    case ShaderVertexAttributeType::S8:
-    case ShaderVertexAttributeType::U8:
-      return 1;
+    case ShaderBindingType::UniformBuffer:
+      return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case ShaderBindingType::StorageBuffer:
+      return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    case ShaderBindingType::CombinedImageSampler:
+      return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    case ShaderBindingType::SampledImage:
+      return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case ShaderBindingType::Sampler:
+      return VK_DESCRIPTOR_TYPE_SAMPLER;
+    case ShaderBindingType::StorageImage:
+      return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    default:
+      COMET_ASSERT(false, "Unsupported shader binding type!");
+  }
 
-    case ShaderVertexAttributeType::S16:
-    case ShaderVertexAttributeType::U16:
-    case ShaderVertexAttributeType::F16:
-      return 2;
+  return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+}
 
-    case ShaderVertexAttributeType::S32:
-    case ShaderVertexAttributeType::U32:
-    case ShaderVertexAttributeType::F32:
-      return 4;
+Alignment ShaderHandler::GetBindingFieldAlignment(ShaderMemoryLayout layout,
+                                                  ShaderVariableType type) {
+  switch (layout) {
+    case ShaderMemoryLayout::Std140:
+      return GetStd140Alignment(type);
+    case ShaderMemoryLayout::Std430:
+      return GetStd430Alignment(type);
+    case ShaderMemoryLayout::Packed:
+      return GetScalarAlignment(type);
+    default:
+      COMET_ASSERT(false, "Unknown shader memory layout!");
+  }
 
-    case ShaderVertexAttributeType::F64:
-      return 8;
+  return kInvalidAlignment;
+}
 
-    case ShaderVertexAttributeType::U8Vec2:
-    case ShaderVertexAttributeType::S8Vec2:
-      return 2 * 1;
+ShaderOffset ShaderHandler::AlignOffset(ShaderOffset offset,
+                                        Alignment alignment) {
+  return static_cast<ShaderOffset>(
+      memory::AlignSize(offset, static_cast<memory::Alignment>(alignment)));
+}
 
-    case ShaderVertexAttributeType::U8Vec3:
-    case ShaderVertexAttributeType::S8Vec3:
-      return 3 * 1;
+ShaderFieldLayoutInfo ShaderHandler::GetFieldLayoutInfo(
+    ShaderMemoryLayout layout, ShaderVariableType type, u32 array_count) {
+  ShaderFieldLayoutInfo info{};
 
-    case ShaderVertexAttributeType::U8Vec4:
-    case ShaderVertexAttributeType::S8Vec4:
-      return 4 * 1;
+  info.element_size = GetShaderVariableTypeSize(type);
+  COMET_ASSERT(info.element_size != kInvalidShaderVariableSize,
+               "Invalid shader variable type size!");
 
-    case ShaderVertexAttributeType::U16Vec2:
-    case ShaderVertexAttributeType::S16Vec2:
-    case ShaderVertexAttributeType::F16Vec2:
-      return 2 * 2;
+  info.alignment = GetBindingFieldAlignment(layout, type);
 
-    case ShaderVertexAttributeType::U16Vec3:
-    case ShaderVertexAttributeType::S16Vec3:
-    case ShaderVertexAttributeType::F16Vec3:
-      return 3 * 2;
+  info.aligned_size = static_cast<ShaderVariableSize>(memory::AlignSize(
+      info.element_size, static_cast<memory::Alignment>(info.alignment)));
 
-    case ShaderVertexAttributeType::U16Vec4:
-    case ShaderVertexAttributeType::S16Vec4:
-    case ShaderVertexAttributeType::F16Vec4:
-      return 4 * 2;
+  info.stride = info.aligned_size;
 
-    case ShaderVertexAttributeType::U32Vec2:
-    case ShaderVertexAttributeType::S32Vec2:
-    case ShaderVertexAttributeType::F32Vec2:
-      return 2 * 4;
+  if (array_count > 1) {
+    info.total_size =
+        static_cast<ShaderVariableSize>(info.stride * array_count);
+  } else {
+    info.total_size = info.aligned_size;
+  }
 
-    case ShaderVertexAttributeType::U32Vec3:
-    case ShaderVertexAttributeType::S32Vec3:
-    case ShaderVertexAttributeType::F32Vec3:
-      return 3 * 4;
+  return info;
+}
 
-    case ShaderVertexAttributeType::U32Vec4:
-    case ShaderVertexAttributeType::S32Vec4:
-    case ShaderVertexAttributeType::F32Vec4:
-      return 4 * 4;
+void ShaderHandler::PopulateVertexAttributes(
+    ShaderVertexLayout layout,
+    Array<VkVertexInputAttributeDescription>& attributes, u32& stride) {
+  switch (layout) {
+    case ShaderVertexLayout::None:
+      attributes.Clear();
+      stride = 0;
+      return;
 
-    case ShaderVertexAttributeType::F64Vec2:
-      return 2 * 8;
+    case ShaderVertexLayout::SkinnedVertex:
+      PopulateSkinnedVertexAttributes(attributes, stride);
+      return;
 
-    case ShaderVertexAttributeType::F64Vec3:
-      return 3 * 8;
-
-    case ShaderVertexAttributeType::F64Vec4:
-      return 4 * 8;
+    case ShaderVertexLayout::DebugLine:
+      PopulateDebugLineVertexAttributes(attributes, stride);
+      return;
 
     default:
       COMET_ASSERT(
-          false, "Unknown or unsupported shader vertex attribute type: ",
-          static_cast<std::underlying_type_t<ShaderVariableType>>(type), "!");
+          false, "Unsupported shader vertex layout: ",
+          static_cast<std::underlying_type_t<ShaderVertexLayout>>(layout), "!");
+      attributes.Clear();
+      stride = 0;
+      return;
   }
-
-  return kInvalidShaderVertexAttributeSize;
 }
 
-ShaderUniformSize ShaderHandler::GetShaderVariableTypeSize(
-    ShaderVariableType type) {
-  switch (type) {
-    case ShaderVariableType::B32:
-    case ShaderVariableType::S32:
-    case ShaderVariableType::U32:
-    case ShaderVariableType::F32:
-      return 4;
+void ShaderHandler::PopulateSkinnedVertexAttributes(
+    Array<VkVertexInputAttributeDescription>& attributes, u32& stride) {
+  attributes.Clear();
+  attributes.Reserve(7);
 
-    case ShaderVariableType::B32Vec2:
-    case ShaderVariableType::S32Vec2:
-    case ShaderVariableType::U32Vec2:
-    case ShaderVariableType::Vec2:
-      return 2 * 4;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 0,
+      .binding = 0,
+      .format = VK_FORMAT_R32G32B32_SFLOAT,
+      .offset = static_cast<u32>(offsetof(geometry::SkinnedVertex, position)),
+  });
 
-    case ShaderVariableType::B32Vec3:
-    case ShaderVariableType::S32Vec3:
-    case ShaderVariableType::U32Vec3:
-    case ShaderVariableType::Vec3:
-      return 3 * 4;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 1,
+      .binding = 0,
+      .format = VK_FORMAT_R32G32B32_SFLOAT,
+      .offset = static_cast<u32>(offsetof(geometry::SkinnedVertex, normal)),
+  });
 
-    case ShaderVariableType::B32Vec4:
-    case ShaderVariableType::S32Vec4:
-    case ShaderVariableType::U32Vec4:
-    case ShaderVariableType::Vec4:
-      return 4 * 4;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 2,
+      .binding = 0,
+      .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+      .offset = static_cast<u32>(offsetof(geometry::SkinnedVertex, tangent)),
+  });
 
-    case ShaderVariableType::F64:
-      return 8;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 3,
+      .binding = 0,
+      .format = VK_FORMAT_R32G32_SFLOAT,
+      .offset = static_cast<u32>(offsetof(geometry::SkinnedVertex, uv)),
+  });
 
-    case ShaderVariableType::F64Vec2:
-      return 2 * 8;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 4,
+      .binding = 0,
+      .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+      .offset = static_cast<u32>(offsetof(geometry::SkinnedVertex, color)),
+  });
 
-    case ShaderVariableType::F64Vec3:
-      return 3 * 8;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 5,
+      .binding = 0,
+      .format = VK_FORMAT_R16G16B16A16_UINT,
+      .offset =
+          static_cast<u32>(offsetof(geometry::SkinnedVertex, joint_indices)),
+  });
 
-    case ShaderVariableType::F64Vec4:
-      return 4 * 8;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 6,
+      .binding = 0,
+      .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+      .offset =
+          static_cast<u32>(offsetof(geometry::SkinnedVertex, joint_weights)),
+  });
 
-    case ShaderVariableType::Mat2x2:
-      return 2 * 2 * 4;
-
-    case ShaderVariableType::Mat2x3:
-    case ShaderVariableType::Mat3x2:
-      return 2 * 3 * 4;
-
-    case ShaderVariableType::Mat3x3:
-      return 3 * 3 * 4;
-
-    case ShaderVariableType::Mat2x4:
-    case ShaderVariableType::Mat4x2:
-      return 2 * 4 * 4;
-
-    case ShaderVariableType::Mat3x4:
-    case ShaderVariableType::Mat4x3:
-      return 3 * 4 * 4;
-
-    case ShaderVariableType::Mat4x4:
-      return 4 * 4 * 4;
-
-    case ShaderVariableType::Sampler:
-    case ShaderVariableType::Image:
-    case ShaderVariableType::Atomic:
-      return kInvalidShaderUniformSize;
-
-    default:
-      COMET_ASSERT(
-          false, "Unknown or unsupported shader data type: ",
-          static_cast<std::underlying_type_t<ShaderVariableType>>(type), "!");
-  }
-
-  return kInvalidShaderUniformSize;
+  stride = static_cast<u32>(sizeof(geometry::SkinnedVertex));
 }
 
-VkFormat ShaderHandler::GetVkFormat(ShaderVertexAttributeType type) {
-  switch (type) {
-    case ShaderVertexAttributeType::S8:
-      return VK_FORMAT_R8_SINT;
+void ShaderHandler::PopulateDebugLineVertexAttributes(
+    Array<VkVertexInputAttributeDescription>& attributes, u32& stride) {
+  attributes.Clear();
+  attributes.Reserve(1);
 
-    case ShaderVertexAttributeType::S16:
-      return VK_FORMAT_R16_SINT;
+  attributes.PushBack(VkVertexInputAttributeDescription{
+      .location = 0,
+      .binding = 0,
+      .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+      .offset = 0,
+  });
 
-    case ShaderVertexAttributeType::S32:
-      return VK_FORMAT_R32_SINT;
-
-    case ShaderVertexAttributeType::U8:
-      return VK_FORMAT_R8_UINT;
-
-    case ShaderVertexAttributeType::U16:
-      return VK_FORMAT_R16_UINT;
-
-    case ShaderVertexAttributeType::U32:
-      return VK_FORMAT_R32_UINT;
-
-    case ShaderVertexAttributeType::F16:
-      return VK_FORMAT_R16_SFLOAT;
-
-    case ShaderVertexAttributeType::F32:
-      return VK_FORMAT_R32_SFLOAT;
-
-    case ShaderVertexAttributeType::F64:
-      return VK_FORMAT_R64_SFLOAT;
-
-    case ShaderVertexAttributeType::U8Vec2:
-      return VK_FORMAT_R8G8_UINT;
-
-    case ShaderVertexAttributeType::U8Vec3:
-      return VK_FORMAT_R8G8B8_UINT;
-
-    case ShaderVertexAttributeType::U8Vec4:
-      return VK_FORMAT_R8G8B8A8_UINT;
-
-    case ShaderVertexAttributeType::S8Vec2:
-      return VK_FORMAT_R8G8_SINT;
-
-    case ShaderVertexAttributeType::S8Vec3:
-      return VK_FORMAT_R8G8B8_SINT;
-
-    case ShaderVertexAttributeType::S8Vec4:
-      return VK_FORMAT_R8G8B8A8_SINT;
-
-    case ShaderVertexAttributeType::U16Vec2:
-      return VK_FORMAT_R16G16_UINT;
-
-    case ShaderVertexAttributeType::U16Vec3:
-      return VK_FORMAT_R16G16B16_UINT;
-
-    case ShaderVertexAttributeType::U16Vec4:
-      return VK_FORMAT_R16G16B16A16_UINT;
-
-    case ShaderVertexAttributeType::S16Vec2:
-      return VK_FORMAT_R16G16_SINT;
-
-    case ShaderVertexAttributeType::S16Vec3:
-      return VK_FORMAT_R16G16B16_SINT;
-
-    case ShaderVertexAttributeType::S16Vec4:
-      return VK_FORMAT_R16G16B16A16_SINT;
-
-    case ShaderVertexAttributeType::U32Vec2:
-      return VK_FORMAT_R32G32_UINT;
-
-    case ShaderVertexAttributeType::U32Vec3:
-      return VK_FORMAT_R32G32B32_UINT;
-
-    case ShaderVertexAttributeType::U32Vec4:
-      return VK_FORMAT_R32G32B32A32_UINT;
-
-    case ShaderVertexAttributeType::S32Vec2:
-      return VK_FORMAT_R32G32_SINT;
-
-    case ShaderVertexAttributeType::S32Vec3:
-      return VK_FORMAT_R32G32B32_SINT;
-
-    case ShaderVertexAttributeType::S32Vec4:
-      return VK_FORMAT_R32G32B32A32_SINT;
-
-    case ShaderVertexAttributeType::F16Vec2:
-      return VK_FORMAT_R16G16_SFLOAT;
-
-    case ShaderVertexAttributeType::F16Vec3:
-      return VK_FORMAT_R16G16B16_SFLOAT;
-
-    case ShaderVertexAttributeType::F16Vec4:
-      return VK_FORMAT_R16G16B16A16_SFLOAT;
-
-    case ShaderVertexAttributeType::F32Vec2:
-      return VK_FORMAT_R32G32_SFLOAT;
-
-    case ShaderVertexAttributeType::F32Vec3:
-      return VK_FORMAT_R32G32B32_SFLOAT;
-
-    case ShaderVertexAttributeType::F32Vec4:
-      return VK_FORMAT_R32G32B32A32_SFLOAT;
-
-    case ShaderVertexAttributeType::F64Vec2:
-      return VK_FORMAT_R64G64_SFLOAT;
-
-    case ShaderVertexAttributeType::F64Vec3:
-      return VK_FORMAT_R64G64B64_SFLOAT;
-
-    case ShaderVertexAttributeType::F64Vec4:
-      return VK_FORMAT_R64G64B64A64_SFLOAT;
-
-    default:
-      COMET_ASSERT(
-          false, "Unknown or unsupported shader vertex attribute type: ",
-          static_cast<std::underlying_type_t<ShaderVariableType>>(type), "!");
-  }
-
-  return VK_FORMAT_UNDEFINED;
+  stride = sizeof(math::Vec4);
 }
 
-void ShaderHandler::BindStorageBuffer(
-    const Shader* shader, VkDescriptorSet set_handle,
-    ShaderStorageIndex storage_index, VkBuffer buffer_handle,
-    VkDeviceSize buffer_size, Array<VkDescriptorBufferInfo>& buffer_info,
-    Array<VkDescriptorSetLayoutBinding>& bindings,
-    Array<VkWriteDescriptorSet>& write_descriptor_sets) {
-  if (storage_index == kInvalidShaderStorageIndex ||
-      buffer_handle == VK_NULL_HANDLE) {
-    return;
-  }
+Shader* ShaderHandler::Generate(
+    const ShaderDescr& descr, const resource::ShaderResource* shader_resource) {
+  COMET_ASSERT(shader_resource != nullptr, "Shader resource is null!");
+  auto* shader{shader_instance_allocator_.AllocateOneAndPopulate<Shader>()};
+  auto shader_handle{shader_handle_handler_.Generate()};
 
-  buffer_info.EmplaceBack(
-      init::GenerateDescriptorBufferInfo(buffer_handle, 0, buffer_size));
+  shader->handle = shader_handle;
 
-  auto binding{shader->storages[storage_index].binding};
+  shader->id = shader_resource->id;
+  shader->render_pass_handle = descr.render_pass_handle;
+  shader->ref_count = 1;
 
-  bindings.EmplaceBack(init::GenerateDescriptorSetLayoutBinding(
-      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, shader->storages[storage_index].stages,
-      binding));
+  const auto& rasterizer_resource{shader_resource->descr.rasterizer};
 
-  write_descriptor_sets.EmplaceBack(init::GenerateBufferWriteDescriptorSet(
-      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, set_handle, &buffer_info.GetLast(),
-      binding));
+  shader->rasterizer = {
+      .is_wireframe = rasterizer_resource.is_wireframe,
+      .is_depth_bias = rasterizer_resource.is_depth_bias,
+      .cull_mode = rasterizer_resource.cull_mode,
+  };
+
+  const auto& depth_stencil_resource{shader_resource->descr.depth_stencil};
+
+  shader->depth_stencil = {
+      .is_depth_test = depth_stencil_resource.is_depth_test,
+      .is_depth_write = depth_stencil_resource.is_depth_write,
+      .compare_op = depth_stencil_resource.compare_op,
+  };
+
+  shader->topology = shader_resource->descr.topology;
+  shader->vertex_layout = shader_resource->descr.vertex_layout;
+
+  shader->vertex_attributes =
+      Array<VkVertexInputAttributeDescription>{&general_allocator_};
+  shader->bindings = Array<ShaderBinding>{&general_allocator_};
+  shader->push_constant_blocks =
+      Array<ShaderPushConstantBlock>{&general_allocator_};
+  shader->modules = Array<const ShaderModule*>{&general_allocator_};
+  shader->push_constant_ranges =
+      Array<VkPushConstantRange>{&general_allocator_};
+
+  shader->global_descriptor_data.descriptor_set_handles =
+      Array<VkDescriptorSet>{&general_allocator_};
+
+  shader->storage_descriptor_data.descriptor_set_handles =
+      Array<VkDescriptorSet>{&general_allocator_};
+
+  shader->instances.list = Array<MaterialInstance>{&shader_instance_allocator_};
+  shader->instances.indices = Map<MaterialId, u32>{&general_allocator_};
+
+  HandleShaderModulesGeneration(shader, shader_resource);
+  HandleAttributesGeneration(shader, shader_resource);
+  HandleBindingsGeneration(shader, shader_resource);
+  HandlePushConstantBlocksGeneration(shader, shader_resource);
+  HandleDescriptorSetLayoutsGeneration(shader);
+  HandlePipelineGeneration(shader);
+  HandleDescriptorPoolGeneration(shader);
+  HandleUboBufferGeneration(shader);
+
+  AllocateGlobalDescriptorSets(shader);
+  AllocateStorageDescriptorSets(shader);
+
+  auto shader_index{gid::GetIndex(shader_handle)};
+  shaders_.Resize(shader_index + 1);
+  shaders_[shader_index] = shader;
+  return shader;
 }
 
 void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  auto shader_index{gid::GetIndex(shader->handle)};
+
   if (!is_destroying_handler) {
-    COMET_ASSERT(shader->ref_count > 0, "Shader has a reference count of 0!");
+    COMET_ASSERT(shader->ref_count > 0, "Shader ref count is 0!");
 
     if (--shader->ref_count > 0) {
       return;
     }
+
+    ShaderKey key{};
+    key.shader_id = shader->id;
+    key.render_pass_handle = shader->render_pass_handle;
+    shader_keys_.Remove(key);
+    shader_handle_handler_.Destroy(shader->handle);
+  }
+
+  if (shader_index < shaders_.GetSize()) {
+    shaders_[shader_index] = nullptr;
   }
 
   const auto& device{context_->GetDevice()};
 
-  shader->global_uniform_data = {};
-  shader->storage_data = {};
+  shader->global_descriptor_data.descriptor_set_handles.Destroy();
+  shader->storage_descriptor_data.descriptor_set_handles.Destroy();
+
+  shader->global_descriptor_data.descriptor_pool_handle = VK_NULL_HANDLE;
+  shader->storage_descriptor_data.descriptor_pool_handle = VK_NULL_HANDLE;
+  shader->global_descriptor_data.update_frame = kInvalidFrameIndex;
+  shader->storage_descriptor_data.update_frame = kInvalidFrameIndex;
+
   shader->global_ubo_data = {};
   shader->instance_ubo_data = {};
 
@@ -1031,29 +986,41 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
     }
   }
 
+  shader->uniform_buffers.Destroy();
+
   if (shader->descriptor_pool_handle != VK_NULL_HANDLE) {
     DestroyDescriptorPool(device, shader->descriptor_pool_handle);
   }
 
-  shader->instances.ids.Destroy();
+  for (auto& instance : shader->instances.list) {
+    DestroyBindingRuntimeData(instance.binding_data);
+  }
+
   shader->instances.list.Destroy();
+  shader->instances.indices.Destroy();
 
   for (u32 i{0}; i < shader->layout_bindings.count; ++i) {
     auto layout_handle{shader->layout_handles[i]};
 
-    if (layout_handle == VK_NULL_HANDLE) {
-      continue;
+    if (layout_handle != VK_NULL_HANDLE) {
+      vkDestroyDescriptorSetLayout(device, layout_handle, VK_NULL_HANDLE);
+      shader->layout_handles[i] = VK_NULL_HANDLE;
     }
-
-    vkDestroyDescriptorSetLayout(device, layout_handle, VK_NULL_HANDLE);
-    shader->layout_handles[i] = VK_NULL_HANDLE;
   }
 
   shader->layout_bindings = {};
   shader->vertex_attributes.Destroy();
-  shader->uniforms.Destroy();
-  shader->constants.Destroy();
-  shader->storages.Destroy();
+
+  for (auto& binding : shader->bindings) {
+    binding.fields.Destroy();
+  }
+
+  for (auto& block : shader->push_constant_blocks) {
+    block.fields.Destroy();
+  }
+
+  shader->bindings.Destroy();
+  shader->push_constant_blocks.Destroy();
 
   if (shader_module_handler_->IsInitialized()) {
     for (auto& module : shader->modules) {
@@ -1063,31 +1030,20 @@ void ShaderHandler::Destroy(Shader* shader, bool is_destroying_handler) {
 
   shader->modules.Destroy();
   shader->push_constant_ranges.Destroy();
-
-  if (!is_destroying_handler) {
-    shaders_.Remove(shader->id);
-  }
-
   shader_instance_allocator_.Deallocate(shader);
 }
 
-u32 ShaderHandler::GetInstanceIndex(const Shader* shader,
-                                    const Material* material) const {
-  return GetInstanceIndex(shader, material->instance_id);
-}
+void ShaderHandler::DestroyBindingRuntimeData(
+    ShaderBindingRuntimeData& binding_data) const {
+  for (auto& runtime_binding : binding_data.image_bindings) {
+    runtime_binding.descriptors.Destroy();
+  }
 
-u32 ShaderHandler::GetInstanceIndex(
-    const Shader* shader, const MaterialInstanceId instance_id) const {
-  auto& instance_ids{shader->instances.ids};
-  auto it{std::find(instance_ids.begin(), instance_ids.end(), instance_id)};
-  COMET_ASSERT(it != instance_ids.end(),
-               "Unable to find bound material instance (ID: ", instance_id,
-               ") in shader ", COMET_STRING_ID_LABEL(shader->id), "!");
-  return static_cast<u32>(it - instance_ids.begin());
+  binding_data.image_bindings.Destroy();
 }
 
 void ShaderHandler::HandleShaderModulesGeneration(
-    Shader* shader, const resource::ShaderResource* resource) const {
+    Shader* shader, const resource::ShaderResource* resource) {
   shader->modules.Reserve(resource->descr.shader_module_paths.GetSize());
 
   for (const auto& shader_module_path : resource->descr.shader_module_paths) {
@@ -1097,371 +1053,217 @@ void ShaderHandler::HandleShaderModulesGeneration(
 }
 
 void ShaderHandler::HandleAttributesGeneration(
-    Shader* shader, const resource::ShaderResource* resource) const {
-  auto vertex_attribute_count{
-      static_cast<u32>(resource->descr.vertex_attributes.GetSize())};
-  u32 offset{0};
-  shader->vertex_attributes.Reserve(vertex_attribute_count);
+    Shader* shader, const resource::ShaderResource* resource) {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(resource != nullptr, "Shader resource is null!");
 
-  for (u32 i{0}; i < resource->descr.vertex_attributes.GetSize(); ++i) {
-    const auto& vertex_attribute_descr{resource->descr.vertex_attributes[i]};
-    VkVertexInputAttributeDescription vertex_attribute{};
-    vertex_attribute.location = i;
-    vertex_attribute.binding = 0;
-    vertex_attribute.offset = offset;
-    vertex_attribute.format = GetVkFormat(vertex_attribute_descr.type);
-    offset += GetVertexAttributeSize(vertex_attribute_descr.type);
-    shader->vertex_attributes.PushBack(vertex_attribute);
-  }
-
-  shader->vertex_attribute_stride = offset;
+  u32 stride{0};
+  PopulateVertexAttributes(resource->descr.vertex_layout,
+                           shader->vertex_attributes, stride);
+  shader->vertex_attribute_stride = static_cast<VertexAttributeStride>(stride);
 }
 
-void ShaderHandler::HandleUniformsGeneration(
-    Shader* shader, const resource::ShaderResource* resource) const {
-  u32 instance_texture_count{0};
+void ShaderHandler::HandleBindingsGeneration(
+    Shader* shader, const resource::ShaderResource* resource) {
+  shader->bindings.Reserve(resource->descr.bindings.GetSize());
 
-  for (const auto& uniform_descr : resource->descr.uniforms) {
-    if (uniform_descr.type == ShaderVariableType::Sampler) {
-      HandleSamplerGeneration(shader, uniform_descr, instance_texture_count);
-      continue;
+  for (const auto& binding_descr : resource->descr.bindings) {
+    ShaderBinding binding{};
+    binding.type = binding_descr.type;
+    binding.scope = binding_descr.scope;
+    binding.layout = binding_descr.layout;
+    binding.stages = ResolveStageFlags(binding_descr.stages);
+    binding.index = static_cast<ShaderBindingIndex>(shader->bindings.GetSize());
+    binding.set = binding_descr.set;
+    binding.binding = binding_descr.binding;
+    binding.descriptor_count = binding_descr.descriptor_count;
+    binding.fields = Array<ShaderField>{&general_allocator_};
+    binding.image_semantic = binding_descr.image_semantic;
+
+    binding.fields.Reserve(binding_descr.fields.GetSize());
+
+    for (const auto& field_descr : binding_descr.fields) {
+      ShaderField field{};
+      field.type = field_descr.type;
+      field.array_count = field_descr.array_count;
+      binding.fields.PushBack(field);
     }
 
-    AddUniform(shader, uniform_descr, 0);
-  }
-}
+    ComputeBindingLayout(binding);
 
-void ShaderHandler::HandleConstantsGeneration(
-    Shader* shader, const resource::ShaderResource* resource) const {
-  for (const auto& constant_descr : resource->descr.constants) {
-    AddConstant(shader, constant_descr);
-  }
-}
+    if (binding.scope == ShaderBindingScope::Global &&
+        binding.type == ShaderBindingType::UniformBuffer) {
+      auto align{static_cast<ShaderOffset>(
+          context_->GetDevice()
+              .GetProperties()
+              .limits.minUniformBufferOffsetAlignment)};
 
-void ShaderHandler::HandleStorageGeneration(
-    Shader* shader, const resource::ShaderResource* resource) const {
-  for (const auto& storage_descr : resource->descr.storages) {
-    if (!IsEmpty(storage_descr.engine_define,
-                 storage_descr.engine_define_len) &&
-        !resource::IsShaderEngineDefineSet(storage_descr.engine_define,
-                                           storage_descr.engine_define_len)) {
-      continue;
+      shader->global_ubo_data.size =
+          AlignOffset(shader->global_ubo_data.size, align);
+      binding.offset = shader->global_ubo_data.size;
+      shader->global_ubo_data.size += binding.size;
+      shader->global_ubo_data.stages |= binding.stages;
     }
 
-    AddStorage(shader, storage_descr);
-  }
-}
+    if (binding.scope == ShaderBindingScope::Material &&
+        binding.type == ShaderBindingType::UniformBuffer) {
+      auto align{static_cast<ShaderOffset>(
+          context_->GetDevice()
+              .GetProperties()
+              .limits.minUniformBufferOffsetAlignment)};
 
-void ShaderHandler::HandleBindingsGeneration(Shader* shader) const {
-  shader->global_ubo_data.uniform_count = 0;
-  shader->global_ubo_data.sampler_count = 0;
-  shader->instance_ubo_data.uniform_count = 0;
-  shader->instance_ubo_data.sampler_count = 0;
-  shader->storage_data.count = 0;
-
-  for (const auto& uniform : shader->uniforms) {
-    if (uniform.scope == ShaderUniformScope::Global) {
-      if (uniform.type == ShaderVariableType::Sampler) {
-        ++shader->global_ubo_data.sampler_count;
-      } else {
-        ++shader->global_ubo_data.uniform_count;
-      }
-    } else if (uniform.scope == ShaderUniformScope::Instance) {
-      if (uniform.type == ShaderVariableType::Sampler) {
-        ++shader->instance_ubo_data.sampler_count;
-      } else {
-        ++shader->instance_ubo_data.uniform_count;
-      }
-    } else {
-      COMET_ASSERT(false, "Unknown or unsupported uniform scope: ",
-                   static_cast<std::underlying_type_t<ShaderUniformScope>>(
-                       uniform.scope),
-                   "!");
-    }
-  }
-
-  ShaderDescriptorSetIndex descriptor_set_index{0};
-
-  if (shader->global_ubo_data.uniform_count > 0 ||
-      shader->global_ubo_data.sampler_count > 0) {
-    shader->descriptor_set_indices.global = descriptor_set_index++;
-
-    auto& descriptor_set_data{
-        shader->layout_bindings.list[shader->descriptor_set_indices.global]};
-
-    if (shader->global_ubo_data.uniform_count > 0) {
-      auto& descriptor_set{
-          descriptor_set_data.bindings[descriptor_set_data.binding_count]};
-      descriptor_set.binding = descriptor_set_data.binding_count;
-      descriptor_set.descriptorCount = 1;
-      descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      descriptor_set.stageFlags = shader->global_ubo_data.stages;
-      ++descriptor_set_data.binding_count;
+      shader->instance_ubo_data.size =
+          AlignOffset(shader->instance_ubo_data.size, align);
+      binding.offset = shader->instance_ubo_data.size;
+      shader->instance_ubo_data.size += binding.size;
+      shader->instance_ubo_data.stages |= binding.stages;
     }
 
-    if (shader->global_ubo_data.sampler_count > 0) {
-      auto& descriptor_set{
-          descriptor_set_data.bindings[shader->descriptor_set_indices.global]};
-
-      descriptor_set.binding = descriptor_set_data.binding_count;
-      descriptor_set.descriptorCount = shader->global_ubo_data.sampler_count;
-      descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      descriptor_set.stageFlags = shader->global_ubo_data.stages;
-      descriptor_set_data.sampler_binding_index =
-          descriptor_set_data.binding_count;
-      ++descriptor_set_data.binding_count;
+    if (binding.type == ShaderBindingType::UniformBuffer &&
+        binding.scope != ShaderBindingScope::Global &&
+        binding.scope != ShaderBindingScope::Material) {
+      COMET_ASSERT(false, "Pass/Draw uniform buffers are not implemented yet!");
     }
 
-    ++shader->layout_bindings.count;
-  }
-
-  if (shader->instance_ubo_data.uniform_count > 0 ||
-      shader->instance_ubo_data.sampler_count > 0) {
-    shader->descriptor_set_indices.instance = descriptor_set_index++;
-
-    auto& descriptor_set_data{
-        shader->layout_bindings.list[shader->descriptor_set_indices.instance]};
-
-    if (shader->instance_ubo_data.uniform_count > 0) {
-      auto& descriptor_set{
-          descriptor_set_data.bindings[descriptor_set_data.binding_count]};
-      descriptor_set.binding = descriptor_set_data.binding_count;
-      descriptor_set.descriptorCount = 1;
-      descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      descriptor_set.stageFlags = shader->instance_ubo_data.stages;
-      ++descriptor_set_data.binding_count;
-    }
-
-    if (shader->instance_ubo_data.sampler_count > 0) {
-      auto& descriptor_set{
-          descriptor_set_data.bindings[descriptor_set_data.binding_count]};
-
-      descriptor_set.binding = descriptor_set_data.binding_count;
-      descriptor_set.descriptorCount = shader->instance_ubo_data.sampler_count;
-      descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      descriptor_set.stageFlags = shader->instance_ubo_data.stages;
-      descriptor_set_data.sampler_binding_index =
-          descriptor_set_data.binding_count;
-      ++descriptor_set_data.binding_count;
-    }
-
-    ++shader->layout_bindings.count;
-  }
-
-  shader->storage_data.count = static_cast<u32>(shader->storages.GetSize());
-
-  if (shader->storage_data.count > 0) {
-    shader->descriptor_set_indices.storage = descriptor_set_index++;
-
-    auto& descriptor_set_data{
-        shader->layout_bindings.list[shader->descriptor_set_indices.storage]};
-    COMET_ASSERT(shader->storages.GetSize() <= kDescriptorBindingCount,
-                 "Too many bindings (", shader->storages.GetSize(), " > ",
-                 kDescriptorBindingCount, ")!");
-
-    for (const auto& storage : shader->storages) {
-      auto& descriptor_set{
-          descriptor_set_data.bindings[descriptor_set_data.binding_count]};
-
-      descriptor_set.binding = static_cast<u32>(storage.binding);
-      descriptor_set.descriptorCount = 1;
-      descriptor_set.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      descriptor_set.stageFlags = shader->storage_data.stages;
-      ++descriptor_set_data.binding_count;
-    }
-
-    ++shader->layout_bindings.count;
+    shader->bindings.PushBack(std::move(binding));
   }
 }
 
-void ShaderHandler::HandleSamplerGeneration(
-    Shader* shader, const ShaderUniformDescr& uniform_descr,
-    u32& instance_texture_count) const {
-  auto location{kInvalidShaderUniformLocation};
+void ShaderHandler::HandlePushConstantBlocksGeneration(
+    Shader* shader, const resource::ShaderResource* resource) {
+  shader->push_constant_blocks.Reserve(
+      resource->descr.push_constants.GetSize());
+  shader->push_constant_ranges.Reserve(
+      resource->descr.push_constants.GetSize());
 
-  if (uniform_descr.scope == ShaderUniformScope::Global) {
-    COMET_ASSERT(shader->global_uniform_data.texture_maps.GetSize() ==
-                     kMaxShaderTextureMapCount,
-                 "Max texture map count reached: ", kMaxShaderTextureMapCount,
-                 " for shader ", COMET_STRING_ID_LABEL(shader->id), "!");
+  ShaderOffset push_constant_cursor{0};
 
-    location = static_cast<ShaderUniformLocation>(
-        shader->global_uniform_data.texture_maps.GetSize() - 1);
-    shader->global_uniform_data.texture_maps.Resize(
-        shader->global_uniform_data.texture_maps.GetSize() + 1);
-  } else {
-    COMET_ASSERT(instance_texture_count <= kMaxShaderTextureMapCount,
-                 "Max texture map count reached: ", kMaxShaderTextureMapCount,
-                 " for shader ", COMET_STRING_ID_LABEL(shader->id), "!");
-    location = static_cast<ShaderUniformLocation>(instance_texture_count++);
+  for (const auto& block_descr : resource->descr.push_constants) {
+    ShaderPushConstantBlock block{};
+    block.index = static_cast<ShaderPushConstantIndex>(
+        shader->push_constant_blocks.GetSize());
+    block.stages = ResolveStageFlags(block_descr.stages);
+    block.fields = Array<ShaderField>{&general_allocator_};
+    block.fields.Reserve(block_descr.fields.GetSize());
+
+    for (const auto& field_descr : block_descr.fields) {
+      ShaderField field{};
+      field.type = field_descr.type;
+      field.array_count = field_descr.array_count;
+      block.fields.PushBack(field);
+    }
+
+    ComputePushConstantBlockLayout(block);
+
+    push_constant_cursor = AlignOffset(push_constant_cursor, 4);
+    block.offset = push_constant_cursor;
+    push_constant_cursor += block.size;
+
+    VkPushConstantRange range{};
+    range.stageFlags = block.stages;
+    range.offset = static_cast<u32>(block.offset);
+    range.size = static_cast<u32>(block.size);
+
+    shader->push_constant_ranges.PushBack(range);
+    shader->push_constant_blocks.PushBack(std::move(block));
   }
 
-  COMET_ASSERT(location != kInvalidShaderUniformLocation,
-               "Location found is invalid for shader ",
-               COMET_STRING_ID_LABEL(shader->id), "!");
-  AddUniform(shader, uniform_descr, location);
+#ifdef COMET_RENDERING_DEBUG
+  auto max_push_constants{
+      context_->GetDevice().GetProperties().limits.maxPushConstantsSize};
+  COMET_ASSERT(push_constant_cursor <= max_push_constants,
+               "Push constant data exceeds device limit!");
+#endif  // COMET_RENDERING_DEBUG
 }
 
-ShaderUniformIndex ShaderHandler::HandleUniformIndex(
-    Shader* shader, const ShaderUniformDescr& uniform_descr) const {
-  ShaderUniformIndex* index{nullptr};
-
-  if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                      kUniformNameProjection.data(),
-                      kUniformNameProjection.size())) {
-    index = &shader->uniform_indices.projection;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameView.data(),
-                             kUniformNameView.size())) {
-    index = &shader->uniform_indices.view;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameAmbientColor.data(),
-                             kUniformNameAmbientColor.size())) {
-    index = &shader->uniform_indices.ambient_color;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameViewPos.data(),
-                             kUniformNameViewPos.size())) {
-    index = &shader->uniform_indices.view_pos;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameDiffuseColor.data(),
-                             kUniformNameDiffuseColor.size())) {
-    index = &shader->uniform_indices.diffuse_color;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameDiffuseMap.data(),
-                             kUniformNameDiffuseMap.size())) {
-    index = &shader->uniform_indices.diffuse_map;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameSpecularMap.data(),
-                             kUniformNameSpecularMap.size())) {
-    index = &shader->uniform_indices.specular_map;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameNormalMap.data(),
-                             kUniformNameNormalMap.size())) {
-    index = &shader->uniform_indices.normal_map;
-  } else if (AreStringsEqual(uniform_descr.name, uniform_descr.name_len,
-                             kUniformNameShininess.data(),
-                             kUniformNameShininess.size())) {
-    index = &shader->uniform_indices.shininess;
+void ShaderHandler::ComputeBindingLayout(ShaderBinding& binding) const {
+  if (!IsBufferBindingType(binding.type) || binding.fields.IsEmpty()) {
+    binding.size = 0;
+    binding.stride = 0;
+    return;
   }
 
-  COMET_ASSERT(index != nullptr, "Unable to find uniform index with name \"",
-               uniform_descr.name, "\"!");
-  COMET_ASSERT(*index == kInvalidShaderUniformIndex,
-               "Uniform index with name \"", uniform_descr.name,
-               "\" was already bound!");
-  *index = static_cast<ShaderUniformIndex>(shader->uniforms.GetSize());
-  return *index;
+  ShaderOffset cursor{0};
+
+  for (ShaderFieldIndex i{0}; i < binding.fields.GetSize(); ++i) {
+    auto& field{binding.fields[i]};
+    auto info{
+        GetFieldLayoutInfo(binding.layout, field.type, field.array_count)};
+
+    cursor = AlignOffset(cursor, info.alignment);
+
+    field.offset = cursor;
+    field.element_size = info.element_size;
+    field.aligned_size = info.aligned_size;
+    field.stride = info.stride;
+    field.size = info.total_size;
+
+    cursor += field.size;
+  }
+
+  binding.size = cursor;
+  binding.stride = cursor;
 }
 
-ShaderConstantIndex ShaderHandler::HandleConstantIndex(
-    Shader* shader, const ShaderConstantDescr& constant_descr) const {
-  ShaderConstantIndex* index{nullptr};
+void ShaderHandler::ComputePushConstantBlockLayout(
+    ShaderPushConstantBlock& block) const {
+  ShaderOffset cursor{0};
 
-  if (AreStringsEqual(constant_descr.name, constant_descr.name_len,
-                      kConstantNameDrawCount.data(),
-                      kConstantNameDrawCount.size())) {
-    index = &shader->constant_indices.draw_count;
-  } else if (AreStringsEqual(constant_descr.name, constant_descr.name_len,
-                             kConstantNameCount.data(),
-                             kConstantNameCount.size())) {
-    index = &shader->constant_indices.count;
+  for (ShaderFieldIndex i{0}; i < block.fields.GetSize(); ++i) {
+    auto& field{block.fields[i]};
+
+    auto alignment{GetStd430Alignment(field.type)};
+    auto element_size{GetShaderVariableTypeSize(field.type)};
+    auto aligned_size{static_cast<ShaderVariableSize>(memory::AlignSize(
+        element_size, static_cast<memory::Alignment>(alignment)))};
+
+    cursor = AlignOffset(cursor, alignment);
+
+    field.offset = cursor;
+    field.element_size = element_size;
+    field.aligned_size = aligned_size;
+    field.stride = aligned_size;
+    field.size =
+        field.array_count > 1
+            ? static_cast<ShaderVariableSize>(field.stride * field.array_count)
+            : aligned_size;
+
+    cursor += field.size;
   }
 
-  COMET_ASSERT(index != nullptr, "Unable to find constant index with name \"",
-               constant_descr.name, "\"!");
-  COMET_ASSERT(*index == kInvalidShaderConstantIndex,
-               "Uniform index with name \"", constant_descr.name,
-               "\" was already bound!");
-  *index = static_cast<ShaderUniformIndex>(shader->constants.GetSize());
-  return *index;
-}
-
-void ShaderHandler::HandleStorageIndexAndBinding(
-    Shader* shader, const ShaderStorageDescr& storage_descr,
-    ShaderStorage& storage) const {
-  ShaderStorageIndex* index{nullptr};
-
-  if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                      kStorageNameProxyLocalDatas.data(),
-                      kStorageNameProxyLocalDatas.size())) {
-    index = &shader->storage_indices.proxy_local_datas;
-    storage.binding = kStorageBindingProxyLocalDatas;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameProxyIds.data(),
-                             kStorageNameProxyIds.size())) {
-    index = &shader->storage_indices.proxy_ids;
-    storage.binding = kStorageBindingProxyIds;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameProxyInstances.data(),
-                             kStorageNameProxyInstances.size())) {
-    index = &shader->storage_indices.proxy_instances;
-    storage.binding = kStorageBindingProxyInstances;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameIndirectProxies.data(),
-                             kStorageNameIndirectProxies.size())) {
-    index = &shader->storage_indices.indirect_proxies;
-    storage.binding = kStorageBindingIndirectProxies;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameWordIndices.data(),
-                             kStorageNameWordIndices.size())) {
-    index = &shader->storage_indices.word_indices;
-    storage.binding = kStorageBindingWordIndices;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameSourceWords.data(),
-                             kStorageNameSourceWords.size())) {
-    index = &shader->storage_indices.source_words;
-    storage.binding = kStorageBindingSourceWords;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameDestinationWords.data(),
-                             kStorageNameDestinationWords.size())) {
-    index = &shader->storage_indices.destination_words;
-    storage.binding = kStorageBindingDestinationWords;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameMatrixPalettes.data(),
-                             kStorageNameMatrixPalettes.size())) {
-    index = &shader->storage_indices.matrix_palettes;
-    storage.binding = kStorageBindingMatrixPalettes;
-  }
-#ifdef COMET_DEBUG_RENDERING
-  else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                           kStorageNameDebugData.data(),
-                           kStorageNameDebugData.size())) {
-    index = &shader->storage_indices.debug_data;
-    storage.binding = kStorageBindingDebugData;
-  }
-#endif  // COMET_DEBUG_RENDERING
-#ifdef COMET_DEBUG_CULLING
-  else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                           kStorageNameDebugAabbs.data(),
-                           kStorageNameDebugAabbs.size())) {
-    index = &shader->storage_indices.debug_aabbs;
-    storage.binding = kStorageBindingDebugAabbs;
-  } else if (AreStringsEqual(storage_descr.name, storage_descr.name_len,
-                             kStorageNameLineVertices.data(),
-                             kStorageNameLineVertices.size())) {
-    index = &shader->storage_indices.line_vertices;
-    storage.binding = kStorageBindingLineVertices;
-  }
-#endif  // COMET_DEBUG_CULLING
-
-  COMET_ASSERT(index != nullptr, "Unable to find storage index with name \"",
-               storage_descr.name, "\"!");
-  COMET_ASSERT(*index == kInvalidShaderStorageIndex,
-               "Storage index with name \"", storage_descr.name,
-               "\" was already bound!");
-  *index = static_cast<ShaderStorageIndex>(shader->storages.GetSize() - 1);
-  storage.index = *index;
+  block.size = cursor;
 }
 
 void ShaderHandler::HandleDescriptorSetLayoutsGeneration(Shader* shader) const {
+  shader->layout_bindings.count = 0;
+
+  for (const auto& binding : shader->bindings) {
+    COMET_ASSERT(binding.set < kDescriptorSetMaxLayoutCount,
+                 "Descriptor set index out of bounds!");
+
+    auto& set_layout{shader->layout_bindings.list[binding.set]};
+    COMET_ASSERT(set_layout.binding_count < kDescriptorBindingMaxCount,
+                 "Too many bindings in descriptor set ", binding.set, "!");
+    auto& vk_binding{set_layout.bindings[set_layout.binding_count++]};
+
+    vk_binding.binding = binding.binding;
+    vk_binding.descriptorCount = binding.descriptor_count;
+    vk_binding.descriptorType = GetVkDescriptorType(binding.type);
+    vk_binding.stageFlags = binding.stages;
+
+    shader->layout_bindings.count =
+        math::Max(shader->layout_bindings.count, binding.set + 1);
+  }
+
   for (u32 i{0}; i < shader->layout_bindings.count; ++i) {
-    const auto info{init::GenerateDescriptorSetLayoutCreateInfo(
+    auto info{init::GenerateDescriptorSetLayoutCreateInfo(
         shader->layout_bindings.list[i])};
+
     COMET_CHECK_VK(
         vkCreateDescriptorSetLayout(context_->GetDevice(), &info,
                                     VK_NULL_HANDLE, &shader->layout_handles[i]),
-        "Could not creat descriptor set layout for shader ",
-        COMET_STRING_ID_LABEL(shader->id), "!");
+        "Could not create descriptor set layout for shader ",
+        COMET_STRING_ID_LABEL(shader->handle), "!");
   }
 }
 
@@ -1479,6 +1281,11 @@ void ShaderHandler::HandlePipelineGeneration(Shader* shader) const {
     if (is_compute && is_graphics) {
       break;
     }
+  }
+
+  if (HasVertexStage(shader)) {
+    COMET_ASSERT(shader->vertex_layout != ShaderVertexLayout::None,
+                 "Shader with a vertex stage requires a vertex layout!");
   }
 
   PipelineLayoutDescr layout_descr{};
@@ -1499,18 +1306,18 @@ void ShaderHandler::HandlePipelineGeneration(Shader* shader) const {
 
 void ShaderHandler::HandleGraphicsPipelineGeneration(
     Shader* shader, const PipelineLayout* pipeline_layout) const {
-  const auto& device{context_->GetDevice()};
-
   GraphicsPipelineDescr pipeline_descr{};
-  pipeline_descr.render_pass = shader->render_pass;
+  pipeline_descr.render_pass_handle = shader->render_pass_handle;
   pipeline_descr.layout_handle = pipeline_layout->handle;
 
-  pipeline_descr.vertex_input_binding_description.binding = 0;
-  pipeline_descr.vertex_input_binding_description.stride =
-      shader->vertex_attribute_stride;
-  pipeline_descr.vertex_input_binding_description.inputRate =
-      VK_VERTEX_INPUT_RATE_VERTEX;
-  pipeline_descr.vertex_attributes = &shader->vertex_attributes;
+  if (!shader->vertex_attributes.IsEmpty()) {
+    pipeline_descr.vertex_input_binding_description.binding = 0;
+    pipeline_descr.vertex_input_binding_description.stride =
+        shader->vertex_attribute_stride;
+    pipeline_descr.vertex_input_binding_description.inputRate =
+        VK_VERTEX_INPUT_RATE_VERTEX;
+    pipeline_descr.vertex_attributes = &shader->vertex_attributes;
+  }
 
   pipeline_descr.shader_stages =
       frame::FrameArray<VkPipelineShaderStageCreateInfo>{};
@@ -1528,38 +1335,32 @@ void ShaderHandler::HandleGraphicsPipelineGeneration(
 
   pipeline_descr.input_assembly_state =
       init::GeneratePipelineInputAssemblyStateCreateInfo(shader->topology);
-
   pipeline_descr.rasterization_state =
-      init::GeneratePipelineRasterizationStateCreateInfo(shader->is_wireframe,
-                                                         shader->cull_mode);
+      init::GeneratePipelineRasterizationStateCreateInfo(shader->rasterizer);
   pipeline_descr.color_blend_attachment_state =
       init::GeneratePipelineColorBlendAttachmentState();
 
   pipeline_descr.multisample_state =
       init::GeneratePipelineMultisampleStateCreateInfo();
 
-  if (device.IsMsaa()) {
-    auto is_sample_rate_shading{context_->IsSampleRateShading()};
+  auto sample_count{
+      shader->render_pass_handle != kInvalidRenderPassHandle
+          ? render_pass_handler_->GetSamples(shader->render_pass_handle)
+          : VK_SAMPLE_COUNT_1_BIT};
 
-    pipeline_descr.multisample_state.rasterizationSamples =
-        device.GetMsaaSamples();
-    pipeline_descr.multisample_state.sampleShadingEnable =
-        is_sample_rate_shading ? VK_TRUE : VK_FALSE;
-    pipeline_descr.multisample_state.minSampleShading =
-        is_sample_rate_shading ? .2f : .0f;  // Min fraction for sample shading;
-                                             // closer to one is smoother.
-  } else {
-    pipeline_descr.multisample_state.rasterizationSamples =
-        VK_SAMPLE_COUNT_1_BIT;
-    pipeline_descr.multisample_state.sampleShadingEnable = VK_FALSE;
-    pipeline_descr.multisample_state.minSampleShading = .0f;
-  }
+  pipeline_descr.multisample_state.rasterizationSamples = sample_count;
+
+  auto is_multisampled{sample_count != VK_SAMPLE_COUNT_1_BIT};
+  auto is_sample_rate_shading{is_multisampled &&
+                              context_->IsSampleRateShading()};
+
+  pipeline_descr.multisample_state.sampleShadingEnable =
+      is_sample_rate_shading ? VK_TRUE : VK_FALSE;
+  pipeline_descr.multisample_state.minSampleShading =
+      is_sample_rate_shading ? .2f : .0f;
 
   pipeline_descr.depth_stencil_state =
-      init::GeneratePipelineDepthStencilStateCreateInfo(
-          true, true, VK_COMPARE_OP_LESS  // New fragments should be less
-                                          // (lower depth = closer).
-      );
+      init::GeneratePipelineDepthStencilStateCreateInfo(shader->depth_stencil);
 
   shader->graphics_pipeline = pipeline_handler_->Generate(pipeline_descr);
 }
@@ -1589,186 +1390,383 @@ void ShaderHandler::HandleComputePipelineGeneration(
 }
 
 void ShaderHandler::HandleDescriptorPoolGeneration(Shader* shader) const {
-  constexpr VkDescriptorPoolSize pool_sizes[3]{
+  constexpr VkDescriptorPoolSize pool_sizes[6]{
       {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024},
       {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096},
-      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024}};
+      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 4096},
+      {VK_DESCRIPTOR_TYPE_SAMPLER, 1024},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024},
+  };
 
-  shader->descriptor_pool_handle = shader->storage_data.descriptor_pool_handle =
-      shader->global_uniform_data.descriptor_pool_handle =
-          GenerateDescriptorPool(
-              context_->GetDevice(), 1024, pool_sizes, 3,
-              VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+  shader->descriptor_pool_handle =
+      GenerateDescriptorPool(context_->GetDevice(), 1024, pool_sizes, 6,
+                             VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+
+  shader->global_descriptor_data.descriptor_pool_handle =
+      shader->descriptor_pool_handle;
+  shader->storage_descriptor_data.descriptor_pool_handle =
+      shader->descriptor_pool_handle;
 }
 
 void ShaderHandler::HandleUboBufferGeneration(Shader* shader) {
-  const auto align{context_->GetDevice()
-                       .GetProperties()
-                       .limits.minUniformBufferOffsetAlignment};
+  auto align{context_->GetDevice()
+                 .GetProperties()
+                 .limits.minUniformBufferOffsetAlignment};
 
-  shader->global_ubo_data.ubo_stride = memory::AlignSize(
-      shader->global_ubo_data.ubo_size, static_cast<memory::Alignment>(align));
-  shader->instance_ubo_data.ubo_stride =
-      memory::AlignSize(shader->instance_ubo_data.ubo_size,
-                        static_cast<memory::Alignment>(align));
+  shader->global_ubo_data.stride = static_cast<ShaderOffset>(memory::AlignSize(
+      shader->global_ubo_data.size, static_cast<memory::Alignment>(align)));
+
+  shader->instance_ubo_data.stride = static_cast<ShaderOffset>(
+      memory::AlignSize(shader->instance_ubo_data.size,
+                        static_cast<memory::Alignment>(align)));
 
 #ifdef COMET_DEBUG
-  const auto max_range{
+  auto max_range{
       context_->GetDevice().GetProperties().limits.maxUniformBufferRange};
-  COMET_ASSERT(shader->global_ubo_data.ubo_stride < max_range,
+  COMET_ASSERT(shader->global_ubo_data.stride < max_range,
                "Shader global UBO data is too big!");
-  COMET_ASSERT(shader->instance_ubo_data.ubo_stride < max_range,
+  COMET_ASSERT(shader->instance_ubo_data.stride < max_range,
                "Shader instance UBO data is too big!");
-#endif  // COMET_DEBUG
+#endif
 
-  auto buffer_size{static_cast<VkDeviceSize>(
-      shader->global_ubo_data.ubo_stride +
-      shader->instance_ubo_data.ubo_stride * kMaxMaterialInstances)};
+  auto buffer_size{static_cast<VkDeviceSize>(shader->global_ubo_data.stride +
+                                             shader->instance_ubo_data.stride *
+                                                 kMaxMaterialInstances)};
 
-  if (buffer_size > 0) {
-    shader->uniform_buffers = Array<Buffer>{&general_allocator_};
-    shader->uniform_buffers.Resize(context_->GetImageCount());
-
-    for (usize i{0}; i < shader->uniform_buffers.GetSize(); ++i) {
-      shader->uniform_buffers[i] = GenerateBuffer(
-          context_->GetAllocatorHandle(), buffer_size,
-          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0,
-          VK_SHARING_MODE_EXCLUSIVE, "shader->uniform_buffers");
-    }
+  if (buffer_size == 0) {
+    return;
   }
 
-  auto global_set_index{shader->descriptor_set_indices.global};
+  shader->uniform_buffers = Array<Buffer>{&general_allocator_};
+  shader->uniform_buffers.Resize(context_->GetImageCount());
 
-  if (global_set_index == kInvalidShaderDescriptorSetIndex) {
+  for (usize i{0}; i < shader->uniform_buffers.GetSize(); ++i) {
+    shader->uniform_buffers[i] = GenerateBuffer(
+        context_->GetAllocatorHandle(), buffer_size,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0,
+        VK_SHARING_MODE_EXCLUSIVE, "shader->uniform_buffers");
+  }
+
+  shader->global_ubo_data.offset = 0;
+  shader->bound_global_ubo_offset = 0;
+}
+
+void ShaderHandler::AllocateGlobalDescriptorSets(Shader* shader) {
+  if (!internal::HasBindingInSet(shader, internal::kGlobalSet)) {
     return;
   }
 
   frame::FrameArray<VkDescriptorSetLayout> layout_buffer{};
-  shader->global_uniform_data.descriptor_set_handles.Resize(
+  shader->global_descriptor_data.descriptor_set_handles.Resize(
       descriptor_set_layout_count_);
 
   for (u32 i{0}; i < descriptor_set_layout_count_; ++i) {
-    layout_buffer.PushBack(shader->layout_handles[global_set_index]);
+    layout_buffer.PushBack(shader->layout_handles[internal::kGlobalSet]);
   }
 
   [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
       layout_buffer.GetData(),
-      shader->global_uniform_data.descriptor_set_handles.GetData(),
+      shader->global_descriptor_data.descriptor_set_handles.GetData(),
       descriptor_set_layout_count_, DescriptorType::Static)};
 
-  COMET_ASSERT(is_allocated,
-               "Failed to allocate global uniform descriptor sets!");
-  COMET_VK_SET_DESCRIPTOR_SET_LABELS(
-      shader->global_uniform_data.descriptor_set_handles.GetData(),
-      static_cast<u32>(
-          shader->global_uniform_data.descriptor_set_handles.GetSize()),
-      "global_set_");
-}
+  COMET_ASSERT(is_allocated, "Failed to allocate global descriptor sets!");
 
-void ShaderHandler::AddUniform(Shader* shader, const ShaderUniformDescr& descr,
-                               ShaderUniformLocation location) const {
-  COMET_ASSERT(shader->uniforms.GetSize() + 1 <= kMaxShaderUniformCount,
-               "Too many uniforms to be added to shader ",
-               COMET_STRING_ID_LABEL(shader->id), "! Max uniform count is ",
-               kMaxShaderUniformCount, ".");
-  ShaderUniform uniform{};
-  uniform.scope = descr.scope;
-  uniform.type = descr.type;
-  uniform.index = HandleUniformIndex(shader, descr);
-  uniform.stages = ResolveStageFlags(descr.stages);
-  auto is_sampler{uniform.type == ShaderVariableType::Sampler};
+  for (u32 image_index{0}; image_index < descriptor_set_layout_count_;
+       ++image_index) {
+    auto set_handle{
+        shader->global_descriptor_data.descriptor_set_handles[image_index]};
 
-  if (is_sampler) {
-    uniform.location = location;
-  } else {
-    uniform.location = uniform.index;
-  }
+    for (const auto& binding : shader->bindings) {
+      if (binding.set != internal::kGlobalSet ||
+          binding.type != ShaderBindingType::UniformBuffer) {
+        continue;
+      }
 
-  auto size{GetShaderVariableTypeSize(uniform.type)};
-
-  uniform.offset =
-      is_sampler ? 0
-      : uniform.scope == ShaderUniformScope::Global
-          ? static_cast<ShaderOffset>(shader->global_ubo_data.ubo_size)
-          : static_cast<ShaderOffset>(shader->instance_ubo_data.ubo_size);
-  uniform.size = size;
-
-  shader->uniforms.PushBack(uniform);
-
-  if (uniform.scope == ShaderUniformScope::Global) {
-    shader->global_ubo_data.stages |= uniform.stages;
-  } else if (uniform.scope == ShaderUniformScope::Instance) {
-    shader->instance_ubo_data.stages |= uniform.stages;
-  }
-
-  if (!is_sampler) {
-    if (uniform.scope == ShaderUniformScope::Global) {
-      shader->global_ubo_data.ubo_size += uniform.size;
-    } else if (uniform.scope == ShaderUniformScope::Instance) {
-      shader->instance_ubo_data.ubo_size += uniform.size;
+      UpdateDescriptorSetBuffer(
+          set_handle, binding, shader->uniform_buffers[image_index].handle,
+          binding.size, shader->global_ubo_data.offset + binding.offset);
     }
   }
 }
 
-void ShaderHandler::AddConstant(Shader* shader,
-                                const ShaderConstantDescr& descr) const {
-  COMET_ASSERT(shader->constants.GetSize() + 1 <= kMaxShaderUniformCount,
-               "Too many constants to be added to shader ",
-               COMET_STRING_ID_LABEL(shader->id), "! Max constant count is ",
-               kMaxShaderConstantCount, ".");
-  ShaderConstant constant{};
-  constant.type = descr.type;
-  constant.index = HandleConstantIndex(shader, descr);
-  constant.stages = ResolveStageFlags(descr.stages);
-  constant.offset =
-      static_cast<ShaderOffset>(shader->push_constant_ranges.GetSize());
-
-  auto size{GetShaderVariableTypeSize(constant.type)};
-
-  if (shader->constants.IsEmpty()) {
-    constant.offset = 0;
-  } else {
-    const auto& last_constant{shader->constants.GetLast()};
-    constant.offset = last_constant.offset + last_constant.size;
+void ShaderHandler::AllocateStorageDescriptorSets(Shader* shader) {
+  if (!internal::HasBindingInSet(shader, internal::kPassSet)) {
+    return;
   }
 
-  constant.size = static_cast<ShaderUniformSize>(memory::AlignSize(
-      size, static_cast<memory::Alignment>(GetStd430Alignment(constant.type))));
+  frame::FrameArray<VkDescriptorSetLayout> layout_buffer{};
+  shader->storage_descriptor_data.descriptor_set_handles.Resize(
+      descriptor_set_layout_count_);
 
-  VkPushConstantRange range{};
-  range.offset = constant.offset;
-  range.size = constant.size;
-  range.stageFlags = constant.stages;
+  for (u32 i{0}; i < descriptor_set_layout_count_; ++i) {
+    layout_buffer.PushBack(shader->layout_handles[internal::kPassSet]);
+  }
 
-  shader->constants.PushBack(constant);
-  shader->push_constant_ranges.PushBack(range);
+  [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
+      layout_buffer.GetData(),
+      shader->storage_descriptor_data.descriptor_set_handles.GetData(),
+      descriptor_set_layout_count_, DescriptorType::Static)};
+
+  COMET_ASSERT(is_allocated,
+               "Failed to allocate storage/pass descriptor sets!");
+
+  // Storage/pass descriptor sets are only allocated here.
+  // Actual buffer bindings are provided later by the rendering pass, since
+  // those buffers are pass-owned and may vary per frame.
 }
 
-void ShaderHandler::AddStorage(Shader* shader,
-                               const ShaderStorageDescr& descr) const {
-  auto& storage{shader->storages.EmplaceBack()};
-  HandleStorageIndexAndBinding(shader, descr, storage);
-  storage.stages = ResolveStageFlags(descr.stages);
-  shader->storage_data.stages |= storage.stages;
-
-  auto property_count{
-      static_cast<ShaderStoragePropertySize>(descr.properties.GetSize())};
-
-  if (property_count > kMaxShaderStorageLayoutPropertyCount) {
-    COMET_LOG_RENDERING_ERROR("Too many storage properties: ", property_count,
-                              "! Max is ", kMaxShaderStorageLayoutPropertyCount,
-                              ". Exceeding properties will be ignored.");
-    property_count = kMaxShaderStorageLayoutPropertyCount;
+void ShaderHandler::AllocateMaterialDescriptorSets(Shader* shader,
+                                                   MaterialInstance& instance) {
+  if (!internal::HasBindingInSet(shader, internal::kMaterialSet)) {
+    return;
   }
 
-  storage.property_count = property_count;
+  frame::FrameArray<VkDescriptorSetLayout> layout_buffer{};
+  instance.descriptor_data.descriptor_set_handles.Resize(
+      descriptor_set_layout_count_);
+  instance.descriptor_data.descriptor_pool_handle =
+      shader->descriptor_pool_handle;
 
-  for (ShaderStoragePropertySize i{0}; i < storage.property_count; ++i) {
-    const auto& property_descr{descr.properties[i]};
-    auto& property{storage.properties[i]};
-    property.type = property_descr.type;
-    property.size = GetShaderVariableTypeSize(property.type);
+  for (u32 i{0}; i < descriptor_set_layout_count_; ++i) {
+    layout_buffer.PushBack(shader->layout_handles[internal::kMaterialSet]);
   }
+
+  [[maybe_unused]] auto is_allocated{descriptor_handler_->Generate(
+      layout_buffer.GetData(),
+      instance.descriptor_data.descriptor_set_handles.GetData(),
+      descriptor_set_layout_count_, DescriptorType::Static)};
+
+  COMET_ASSERT(is_allocated, "Failed to allocate material descriptor sets!");
+}
+
+void ShaderHandler::CollectMaterialTextureMaps(
+    const Material* material, const ShaderBinding& binding,
+    Array<const TextureMap*>& texture_maps) const {
+  COMET_ASSERT(material != nullptr, "Material is null!");
+  COMET_ASSERT(IsImageBindingType(binding.type),
+               "Binding is not an image binding!");
+
+  texture_maps.Clear();
+  texture_maps.Reserve(binding.descriptor_count);
+
+  switch (binding.image_semantic) {
+    case ShaderImageBindingSemantic::MaterialDiffuse:
+      COMET_ASSERT(binding.descriptor_count == 1,
+                   "MaterialDiffuse binding must have descriptor_count == 1!");
+      texture_maps.PushBack(&material->diffuse_map);
+      return;
+
+    case ShaderImageBindingSemantic::MaterialSpecular:
+      COMET_ASSERT(binding.descriptor_count == 1,
+                   "MaterialSpecular binding must have descriptor_count == 1!");
+      texture_maps.PushBack(&material->specular_map);
+      return;
+
+    case ShaderImageBindingSemantic::MaterialNormal:
+      COMET_ASSERT(binding.descriptor_count == 1,
+                   "MaterialNormal binding must have descriptor_count == 1!");
+      texture_maps.PushBack(&material->normal_map);
+      return;
+
+    case ShaderImageBindingSemantic::MaterialTextures:
+      COMET_ASSERT(binding.descriptor_count == 3,
+                   "MaterialTextures binding must have descriptor_count == 3!");
+      texture_maps.PushBack(&material->diffuse_map);
+      texture_maps.PushBack(&material->specular_map);
+      texture_maps.PushBack(&material->normal_map);
+      return;
+
+    default:
+      COMET_ASSERT(false, "Unsupported material image binding semantic!");
+      return;
+  }
+}
+
+void ShaderHandler::CollectMaterialImageDescriptors(
+    const Material* material, const ShaderBinding& binding,
+    Array<ShaderImageDescriptor>& descriptors) const {
+  auto& texture_maps{*COMET_FRAME_ARRAY(const TextureMap*)};
+  CollectMaterialTextureMaps(material, binding, texture_maps);
+  GenerateImageDescriptors(binding.type, texture_maps, descriptors);
+}
+
+void ShaderHandler::UpdateDescriptorSetImages(
+    VkDescriptorSet set_handle, const ShaderBinding& binding,
+    const ShaderImageDescriptor* descriptors, u32 descriptor_count) const {
+  COMET_ASSERT(descriptors != nullptr, "Image descriptors are null!");
+  COMET_ASSERT(descriptor_count > 0, "Image descriptor count is 0!");
+  COMET_ASSERT(descriptor_count == binding.descriptor_count,
+               "Descriptor count does not match binding descriptor count!");
+  COMET_ASSERT(IsImageBindingType(binding.type),
+               "Tried to update image descriptors for a non-image binding!");
+
+  frame::FrameArray<VkDescriptorImageInfo> image_infos{};
+  image_infos.Reserve(descriptor_count);
+
+  for (u32 i{0}; i < descriptor_count; ++i) {
+    const auto& descriptor{descriptors[i]};
+    VkDescriptorImageInfo image_info{};
+
+    switch (binding.type) {
+      case ShaderBindingType::CombinedImageSampler:
+        COMET_ASSERT(descriptor.texture != nullptr,
+                     "CombinedImageSampler requires a texture!");
+        COMET_ASSERT(descriptor.sampler != nullptr,
+                     "CombinedImageSampler requires a sampler!");
+        image_info.imageView = descriptor.texture->image.image_view_handle;
+        image_info.sampler = descriptor.sampler->handle;
+        image_info.imageLayout = descriptor.image_layout;
+        break;
+
+      case ShaderBindingType::SampledImage:
+        COMET_ASSERT(descriptor.texture != nullptr,
+                     "SampledImage requires a texture!");
+        image_info.imageView = descriptor.texture->image.image_view_handle;
+        image_info.sampler = VK_NULL_HANDLE;
+        image_info.imageLayout = descriptor.image_layout;
+        break;
+
+      case ShaderBindingType::Sampler:
+        COMET_ASSERT(descriptor.sampler != nullptr,
+                     "Sampler binding requires a sampler!");
+        image_info.imageView = VK_NULL_HANDLE;
+        image_info.sampler = descriptor.sampler->handle;
+        image_info.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        break;
+
+      case ShaderBindingType::StorageImage:
+        COMET_ASSERT(descriptor.texture != nullptr,
+                     "StorageImage requires a texture!");
+        image_info.imageView = descriptor.texture->image.image_view_handle;
+        image_info.sampler = VK_NULL_HANDLE;
+        image_info.imageLayout = descriptor.image_layout;
+        break;
+
+      default:
+        COMET_ASSERT(false, "Unsupported image binding type!");
+        break;
+    }
+
+    image_infos.PushBack(image_info);
+  }
+
+  auto write{init::GenerateImageWriteDescriptorSet(
+      GetVkDescriptorType(binding.type), set_handle, image_infos.GetData(),
+      descriptor_count, binding.binding)};
+
+  vkUpdateDescriptorSets(context_->GetDevice(), 1, &write, 0, VK_NULL_HANDLE);
+}
+
+void ShaderHandler::UpdateDescriptorSetBuffer(VkDescriptorSet set_handle,
+                                              const ShaderBinding& binding,
+                                              VkBuffer buffer_handle,
+                                              VkDeviceSize range,
+                                              VkDeviceSize offset) const {
+  COMET_ASSERT(
+      binding.type == ShaderBindingType::UniformBuffer ||
+          binding.type == ShaderBindingType::StorageBuffer,
+      "Tried to update descriptor set buffer for a non-buffer binding!");
+  COMET_ASSERT(buffer_handle != VK_NULL_HANDLE,
+               "Tried to update descriptor set with null buffer!");
+
+  auto buffer_info{
+      init::GenerateDescriptorBufferInfo(buffer_handle, offset, range)};
+
+  auto write{init::GenerateBufferWriteDescriptorSet(
+      GetVkDescriptorType(binding.type), set_handle, &buffer_info,
+      binding.binding)};
+
+  vkUpdateDescriptorSets(context_->GetDevice(), 1, &write, 0, VK_NULL_HANDLE);
+}
+
+void ShaderHandler::WriteBindingFieldToUbo(
+    Buffer& buffer, ShaderOffset base_offset, const ShaderBinding& binding,
+    ShaderFieldIndex field_index, const void* value, usize value_size) const {
+  ScopedMappedBuffer mapped{buffer};
+  WriteBindingFieldToMappedUbo(buffer, base_offset, binding, field_index, value,
+                               value_size);
+}
+
+void ShaderHandler::WriteBindingFieldToMappedUbo(
+    Buffer& buffer, ShaderOffset base_offset, const ShaderBinding& binding,
+    ShaderFieldIndex field_index, const void* value, usize value_size) const {
+  COMET_ASSERT(field_index < binding.fields.GetSize(),
+               "Invalid field index for binding!");
+
+  const auto& field{binding.fields[field_index]};
+  COMET_ASSERT(value != nullptr, "Field value is null!");
+
+  auto raw_size{static_cast<usize>(field.element_size)};
+  auto copy_size{value_size == 0 ? raw_size : value_size};
+
+  COMET_ASSERT(copy_size <= field.size,
+               "Field update size exceeds field size!");
+
+  CopyToBuffer(buffer, value, copy_size,
+               base_offset + binding.offset + field.offset);
+}
+
+void ShaderHandler::UpdateInstanceUboDescriptors(Shader* shader,
+                                                 MaterialInstance& instance,
+                                                 u32 instance_index) {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(instance.descriptor_data.descriptor_set_handles.GetSize() ==
+                   descriptor_set_layout_count_,
+               "Invalid material descriptor set handle count!");
+
+  instance.offset = shader->instance_ubo_data.stride * instance_index;
+
+  bool has_material_ubo_binding{false};
+
+  for (const auto& binding : shader->bindings) {
+    if (binding.set == internal::kMaterialSet &&
+        binding.type == ShaderBindingType::UniformBuffer) {
+      has_material_ubo_binding = true;
+      break;
+    }
+  }
+
+  if (!has_material_ubo_binding) {
+    return;
+  }
+
+  COMET_ASSERT(
+      shader->uniform_buffers.GetSize() == descriptor_set_layout_count_,
+      "Invalid uniform buffer count!");
+
+  for (u32 image_index{0}; image_index < descriptor_set_layout_count_;
+       ++image_index) {
+    auto set_handle{
+        instance.descriptor_data.descriptor_set_handles[image_index]};
+
+    for (const auto& binding : shader->bindings) {
+      if (binding.set != internal::kMaterialSet) {
+        continue;
+      }
+
+      if (binding.type != ShaderBindingType::UniformBuffer) {
+        continue;
+      }
+
+      UpdateDescriptorSetBuffer(
+          set_handle, binding, shader->uniform_buffers[image_index].handle,
+          binding.size,
+          shader->global_ubo_data.stride + instance.offset + binding.offset);
+    }
+  }
+}
+
+ShaderBindingImageRuntimeData* ShaderHandler::FindBindingRuntimeData(
+    ShaderBindingRuntimeData& binding_data,
+    ShaderBindingIndex binding_index) const {
+  for (auto& runtime_binding : binding_data.image_bindings) {
+    if (runtime_binding.binding_index == binding_index) {
+      return &runtime_binding;
+    }
+  }
+
+  return nullptr;
 }
 }  // namespace vk
 }  // namespace rendering

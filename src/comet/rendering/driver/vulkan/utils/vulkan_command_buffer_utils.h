@@ -23,7 +23,7 @@ void AllocateCommandData(CommandData& command_data,
                          const schar* debug_label = nullptr);
 void DestroyCommandData(CommandData& command_data);
 void RecordCommand(VkCommandBuffer command_buffer_handle);
-void RecordCommand(const CommandData& command_data);
+void BeginFrameCommandRecording(const CommandData& command_data);
 void SubmitCommand(
     VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
     VkFence fence_handle = VK_NULL_HANDLE,

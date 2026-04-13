@@ -14,7 +14,16 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-View::View(const ViewDescr& descr) : id_{descr.id} {}
+View::View(const ViewDescr& descr)
+    : pass_descr_{descr.pass_descr},
+      width_{descr.width},
+      height_{descr.height},
+      clear_color_{descr.clear_color[0], descr.clear_color[1],
+                   descr.clear_color[2], descr.clear_color[3]},
+      id_{descr.id},
+      frame_state_{descr.frame_state} {
+  COMET_ASSERT(frame_state_ != nullptr, "Frame state is null!");
+}
 
 View::~View() {
   COMET_ASSERT(!is_initialized_,
@@ -29,12 +38,37 @@ void View::Initialize() {
 
 void View::Destroy() {
   id_ = kInvalidRenderingViewId;
+  width_ = 0;
+  height_ = 0;
+  clear_color_[0] = kColorBlackRgb[0];
+  clear_color_[1] = kColorBlackRgb[1];
+  clear_color_[2] = kColorBlackRgb[2];
+  clear_color_[3] = 1.0f;
+  pass_descr_ = {};
   is_initialized_ = false;
+  frame_state_ = nullptr;
+}
+
+void View::SetSize(WindowSize width, WindowSize height) {
+  if (width_ == width && height_ == height) {
+    return;
+  }
+
+  width_ = width;
+  height_ = height;
 }
 
 bool View::IsInitialized() const noexcept { return is_initialized_; }
 
 RenderingViewId View::GetId() const noexcept { return id_; }
+
+bool View::IsSwapchainTarget() const noexcept {
+  return (pass_descr_.flags & kViewPassFlagBitsSwapchainTarget) != 0;
+}
+
+bool View::IsOffscreenTarget() const noexcept {
+  return (pass_descr_.flags & kViewPassFlagBitsOffscreenTarget) != 0;
+}
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

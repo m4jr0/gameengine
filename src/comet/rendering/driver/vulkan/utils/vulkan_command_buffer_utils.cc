@@ -70,7 +70,7 @@ void RecordCommand(VkCommandBuffer command_buffer_handle) {
                  "Failed to begin recording command buffer");
 }
 
-void RecordCommand(const CommandData& command_data) {
+void BeginFrameCommandRecording(const CommandData& command_data) {
   RecordCommand(command_data.command_buffer_handle);
 }
 

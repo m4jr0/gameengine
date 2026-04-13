@@ -94,6 +94,38 @@ static constexpr auto kRenderingAntiAliasingTypeMsaaX4{"msaax4"sv};
 static constexpr auto kRenderingAntiAliasingTypeMsaaX2{"msaax2"sv};
 static constexpr auto kRenderingAntiAliasingTypeMsaa{"msaa"sv};
 
+// Shadows.
+static const ConfKey kRenderingShadowResolution{
+    COMET_STRING_ID("rendering_shadow_resolution")};
+static const ConfKey kRenderingShadowDistance{
+    COMET_STRING_ID("rendering_shadow_distance")};
+static const ConfKey kRenderingShadowCascadeCount{
+    COMET_STRING_ID("rendering_shadow_cascade_count")};
+static const ConfKey kRenderingShadowCascadeLambda{
+    COMET_STRING_ID("rendering_shadow_cascade_lambda")};
+static const ConfKey kRenderingShadowBiasConstant{
+    COMET_STRING_ID("rendering_shadow_bias_constant")};
+static const ConfKey kRenderingShadowBiasSlope{
+    COMET_STRING_ID("rendering_shadow_bias_slope")};
+static const ConfKey kRenderingShadowCasterExtrusionFactor{
+    COMET_STRING_ID("rendering_shadow_caster_extrusion_factor")};
+static const ConfKey kRenderingShadowReceiverPadXY{
+    COMET_STRING_ID("rendering_shadow_receiver_pad_xy")};
+static const ConfKey kRenderingShadowReceiverPadZ{
+    COMET_STRING_ID("rendering_shadow_receiver_pad_z")};
+static const ConfKey kRenderingShadowCascadeBlendRatio{
+    COMET_STRING_ID("rendering_shadow_cascade_blend_ratio")};
+static const ConfKey kRenderingShadowPcfRadius{
+    COMET_STRING_ID("rendering_shadow_pcf_radius")};
+static const ConfKey kRenderingShadowPcfSamples{
+    COMET_STRING_ID("rendering_shadow_pcf_samples")};
+static const ConfKey kRenderingShadowDebugCascades{
+    COMET_STRING_ID("rendering_shadow_debug_cascades")};
+static const ConfKey kRenderingShadowDebugSingleCascade{
+    COMET_STRING_ID("rendering_shadow_debug_single_cascade")};
+static const ConfKey kRenderingShadowDisableBlending{
+    COMET_STRING_ID("rendering_shadow_disable_blending")};
+
 // OpenGL.
 static constexpr auto kRenderingDriverOpengl{"opengl"sv};
 

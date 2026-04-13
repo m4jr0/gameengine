@@ -20,8 +20,7 @@ namespace geometry {
 struct Vertex {
   math::Vec3 position{};
   math::Vec3 normal{};
-  math::Vec3 tangent{};
-  math::Vec3 bitangent{};
+  math::Vec4 tangent{};
   math::Vec2 uv{};
   math::Vec4 color{};
 };
@@ -50,7 +49,12 @@ constexpr SkeletonJointIndex kMaxSkeletonJointCount{4};
 
 using JointWeight = f32;
 
-struct SkinnedVertex : Vertex {
+struct SkinnedVertex {
+  math::Vec3 position{};
+  math::Vec3 normal{};
+  math::Vec4 tangent{};
+  math::Vec2 uv{};
+  math::Vec4 color{};
   SkeletonJointIndex joint_indices[kMaxSkeletonJointCount]{
       kInvalidSkeletonJointIndex, kInvalidSkeletonJointIndex,
       kInvalidSkeletonJointIndex, kInvalidSkeletonJointIndex};
@@ -76,8 +80,8 @@ struct Mesh {
   MeshId id{kInvalidMeshId};
   MeshType type{geometry::MeshType::Unknown};
   math::Mat4 transform{1.0f};
-  math::Vec3 local_center{0.0f};
-  math::Vec3 local_max_extents{0.0f};
+  math::Vec3 local_center{.0f};
+  math::Vec3 local_max_extents{.0f};
   Array<geometry::Index> indices{};
   Array<geometry::SkinnedVertex> vertices{};
 };

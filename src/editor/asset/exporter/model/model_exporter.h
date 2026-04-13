@@ -66,7 +66,6 @@ class ModelExporter : public AssetExporter {
                             resource::MaterialResource& material,
                             aiMaterial* raw_material,
                             aiTextureType raw_texture_type) const;
-  void LoadDefaultTextures(resource::MaterialResource& material) const;
   static rendering::TextureType GetTextureType(aiTextureType raw_texture_type);
   static rendering::TextureRepeatMode GetTextureRepeatMode(
       aiTextureMapMode raw_texture_repeat_mode);

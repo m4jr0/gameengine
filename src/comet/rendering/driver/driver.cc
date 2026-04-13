@@ -29,7 +29,8 @@ Driver::Driver(const DriverDescr& descr)
       app_patch_version_{descr.app_patch_version},
       window_width_{descr.window_width},
       window_height_{descr.window_height},
-      app_name_len_{descr.app_name_len} {
+      app_name_len_{descr.app_name_len},
+      shadow_settings_{descr.shadow_settings} {
   rendering_view_descrs_ = {&rendering_view_descrs_allocator_,
                             descr.rendering_view_descrs.GetData(),
                             descr.rendering_view_descrs.GetSize()};

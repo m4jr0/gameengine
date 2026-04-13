@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_VIEW_OPENGL_DEBUG_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
+#include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_shader_view.h"
 
@@ -31,7 +31,13 @@ class DebugView : public ShaderView {
   void Update(frame::FramePacket* packet) override;
 
  private:
+  void UpdateDebugShader(const frame::FramePacket* packet);
+  void RunDebugCullGeneration();
+  void DrawDebugCull();
+  void SetViewport() const;
+
   RenderProxyHandler* render_proxy_handler_{nullptr};
+  Shader* debug_shader_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

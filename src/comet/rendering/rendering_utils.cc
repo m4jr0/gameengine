@@ -12,9 +12,39 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/math/geometry.h"
+#include "comet/math/math_common.h"
+#include "comet/math/numeric_utils.h"
 
 namespace comet {
 namespace rendering {
+namespace internal {
+math::Vec3 GetFallbackTangentAxis(const math::Vec3& normal) {
+  return math::Abs(normal.y) < .999f ? math::Vec3{.0f, 1.0f, .0f}
+                                     : math::Vec3{1.0f, .0f, .0f};
+}
+
+math::Vec3 SanitizeNormal(math::Vec3 normal) {
+  if (!math::IsAlmostZero(math::GetSquaredMagnitude(normal))) {
+    math::Normalize(normal);
+    return normal;
+  }
+
+  return math::Vec3{.0f, 1.0f, .0f};
+}
+}  // namespace internal
+
+math::Vec3 ComputeStableUpVector(const math::Vec3& forward) {
+  math::Vec3 dir{math::GetNormalizedCopy(forward)};
+  math::Vec3 world_up{.0f, 1.0f, .0f};
+  math::Vec3 fallback_up{.0f, .0f, 1.0f};
+
+  if (math::Abs(math::Dot(dir, world_up)) > math::kParallelThreshold) {
+    return fallback_up;
+  }
+
+  return world_up;
+}
+
 math::Mat4 LookAt(const math::Vec3& eye, const math::Vec3& target,
                   const math::Vec3& world_up) {
   auto forward{target - eye};
@@ -34,15 +64,15 @@ math::Mat4 LookAt(const math::Vec3& eye, const math::Vec3& target,
   matrix[0][0] = right.x;
   matrix[1][0] = right.y;
   matrix[2][0] = right.z;
-  // matrix[3][0] = 0.0f; // Useless, but just to be explicit.
+
   matrix[0][1] = up.x;
   matrix[1][1] = up.y;
   matrix[2][1] = up.z;
-  // matrix[3][1] = 0.0f;
+
   matrix[0][2] = -forward.x;
   matrix[1][2] = -forward.y;
   matrix[2][2] = -forward.z;
-  // matrix[3][2] = 0.0f;
+
   matrix[3][0] = -math::Dot(right, eye);
   matrix[3][1] = -math::Dot(up, eye);
   matrix[3][2] = math::Dot(forward, eye);
@@ -51,27 +81,80 @@ math::Mat4 LookAt(const math::Vec3& eye, const math::Vec3& target,
   return matrix;
 }
 
-math::Mat4 GenerateProjectionMatrix(f32 vertical_fov, f32 ratio, f32 z_near,
-                                    f32 z_far) {
-  auto tan_half_fov{math::Tan(vertical_fov / 2)};
-  math::Mat4 matrix{0.0f};
+math::Mat4 GeneratePerspectiveMatrix(f32 vertical_fov, f32 ratio, f32 z_near,
+                                     f32 z_far,
+                                     ClipSpaceDepthRange depth_range) {
+  const f32 tan_half_fov{math::Tan(vertical_fov * .5f)};
+  math::Mat4 matrix{.0f};
 
-  // OpenGL matrix after simplicifications.
-  // 2n / (r - l)
-  matrix[0][0] = 1 / (ratio * tan_half_fov);
-  // 2n / (t - b)
-  matrix[1][1] = 1 / tan_half_fov;
-  // -(f + n) / (f - n)
-  matrix[2][2] = -(z_far + z_near) / (z_far - z_near);
-  matrix[2][3] = -1;
-  // -(2 * f * n) / (f - n)
-  matrix[3][2] = -(2 * z_far * z_near) / (z_far - z_near);
-  // (r + l) / (r - l)
-  // matrix[2][0] = 0.0f;  // Useless, but just to be explicit.
-  // (t + b) / (t - b)
-  // matrix[2][1] = 0.0f;  // Useless, but just to be explicit.
+  matrix[0][0] = 1.0f / (ratio * tan_half_fov);
+  matrix[1][1] = 1.0f / tan_half_fov;
+  matrix[2][3] = -1.0f;
+
+  if (depth_range == ClipSpaceDepthRange::MinusOneToOne) {
+    matrix[2][2] = -(z_far + z_near) / (z_far - z_near);
+    matrix[3][2] = -(2.0f * z_far * z_near) / (z_far - z_near);
+  } else {
+    matrix[2][2] = -z_far / (z_far - z_near);
+    matrix[3][2] = -(z_far * z_near) / (z_far - z_near);
+  }
 
   return matrix;
+}
+
+math::Mat4 GenerateOrthographicMatrix(f32 left, f32 right, f32 bottom, f32 top,
+                                      f32 z_near, f32 z_far,
+                                      ClipSpaceDepthRange depth_range) {
+  math::Mat4 matrix{.0f};
+
+  matrix[0][0] = 2.0f / (right - left);
+  matrix[1][1] = 2.0f / (top - bottom);
+  matrix[3][0] = -(right + left) / (right - left);
+  matrix[3][1] = -(top + bottom) / (top - bottom);
+  matrix[3][3] = 1.0f;
+
+  if (depth_range == ClipSpaceDepthRange::MinusOneToOne) {
+    matrix[2][2] = -2.0f / (z_far - z_near);
+    matrix[3][2] = -(z_far + z_near) / (z_far - z_near);
+  } else {
+    matrix[2][2] = -1.0f / (z_far - z_near);
+    matrix[3][2] = -z_near / (z_far - z_near);
+  }
+
+  return matrix;
+}
+
+math::Vec4 GenerateTangentWithSign(const math::Vec3& raw_normal,
+                                   const math::Vec3& raw_tangent,
+                                   const math::Vec3* raw_bitangent) {
+  auto normal{internal::SanitizeNormal(raw_normal)};
+  auto tangent{raw_tangent};
+
+  if (math::IsAlmostZero(math::GetSquaredMagnitude(tangent))) {
+    tangent = math::Cross(internal::GetFallbackTangentAxis(normal), normal);
+  }
+
+  tangent = tangent - normal * math::Dot(normal, tangent);
+
+  if (math::IsAlmostZero(math::GetSquaredMagnitude(tangent))) {
+    tangent = math::Cross(internal::GetFallbackTangentAxis(normal), normal);
+  }
+
+  math::Normalize(tangent);
+
+  auto sign{1.0f};
+
+  if (raw_bitangent != nullptr) {
+    auto bitangent{*raw_bitangent};
+
+    if (!math::IsAlmostZero(math::GetSquaredMagnitude(bitangent))) {
+      math::Normalize(bitangent);
+      sign = math::Dot(math::Cross(normal, tangent), bitangent) < .0f ? -1.0f
+                                                                      : 1.0f;
+    }
+  }
+
+  return math::Vec4{tangent.x, tangent.y, tangent.z, sign};
 }
 }  // namespace rendering
 }  // namespace comet

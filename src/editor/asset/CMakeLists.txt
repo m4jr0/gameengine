@@ -60,12 +60,12 @@ target_include_directories(${EXECUTABLE_NAME}
 target_link_directories(${EXECUTABLE_NAME}
   PRIVATE
     ${VCPKG_LIBRARY_DIR}
-    target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 )
 
 target_link_libraries(${EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARY_NAME}
+    nlohmann_json::nlohmann_json
     assimp::assimp
     SPIRV-Tools-opt
     glslang

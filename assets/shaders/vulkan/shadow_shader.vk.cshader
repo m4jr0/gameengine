@@ -1,0 +1,100 @@
+{
+  "rasterizer": {
+    "is_wireframe": false,
+    "is_depth_bias": true,
+    "cull_mode": "front"
+  },
+  "depth_stencil": {
+    "is_depth_test": true,
+    "is_depth_write": true,
+    "compare_op": "less"
+  },
+  "shader_module_paths": [
+    "shaders/vulkan/shadow.vk.vert",
+    "shaders/vulkan/shadow.vk.frag"
+  ],
+  "vertex_layout": "skinned_vertex",
+  "bindings": [
+    {
+      "name": "ProxyLocalDatas",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 0,
+      "stages": [
+        "vertex"
+      ],
+      "fields": [
+        {
+          "name": "localCenter",
+          "type": "vec4"
+        },
+        {
+          "name": "localMaxExtents",
+          "type": "vec4"
+        },
+        {
+          "name": "transform",
+          "type": "mat4"
+        },
+        {
+          "name": "skinningOffset",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "ProxyInstances",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 2,
+      "stages": [
+        "vertex"
+      ],
+      "fields": [
+        {
+          "name": "proxyId",
+          "type": "u32"
+        },
+        {
+          "name": "batchId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "MatrixPalettes",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 7,
+      "stages": [
+        "vertex"
+      ],
+      "fields": [
+        {
+          "name": "skinningMatrix",
+          "type": "mat4"
+        }
+      ]
+    }
+  ],
+  "push_constants": [
+    {
+      "name": "ShadowPushConstants",
+      "stages": [
+        "vertex"
+      ],
+      "fields": [
+        {
+          "name": "lightViewProj",
+          "type": "mat4"
+        }
+      ]
+    }
+  ]
+}

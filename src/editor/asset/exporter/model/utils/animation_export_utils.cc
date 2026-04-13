@@ -10,6 +10,7 @@
 #include "animation_export_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/logger.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/math/geometry.h"
 #include "comet/math/vector.h"

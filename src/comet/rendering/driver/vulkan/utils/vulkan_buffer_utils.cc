@@ -36,7 +36,7 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
   buffer_info.flags = 0;
   buffer_info.pNext = VK_NULL_HANDLE;
 
-  VmaAllocationCreateInfo alloc_info = {};
+  VmaAllocationCreateInfo alloc_info{};
   alloc_info.usage = vma_memory_usage;
   alloc_info.requiredFlags = memory_property_flags;
   alloc_info.flags = vma_flags;
@@ -192,7 +192,7 @@ void ResizeBuffer(Buffer& buffer, const Device& device,
 }
 
 void AddBufferMemoryBarrier(const Buffer& buffer,
-                            frame::FrameArray<VkBufferMemoryBarrier>* barriers,
+                            Array<VkBufferMemoryBarrier>* barriers,
                             VkAccessFlags src_access_mask,
                             VkAccessFlags dst_access_mask,
                             u32 src_queue_family_index,
@@ -204,7 +204,7 @@ void AddBufferMemoryBarrier(const Buffer& buffer,
 }
 
 void AddBufferMemoryBarrier(VkBuffer buffer_handle,
-                            frame::FrameArray<VkBufferMemoryBarrier>* barriers,
+                            Array<VkBufferMemoryBarrier>* barriers,
                             VkAccessFlags src_access_mask,
                             VkAccessFlags dst_access_mask,
                             u32 src_queue_family_index,
@@ -221,22 +221,24 @@ void AddBufferMemoryBarrier(VkBuffer buffer_handle,
       dst_queue_family_index, offset, size));
 }
 
-void ApplyBufferMemoryBarriers(
-    frame::FrameArray<VkBufferMemoryBarrier>** barriers_ptr,
-    VkCommandBuffer command_buffer_handle, VkPipelineStageFlags src_stage_mask,
-    VkPipelineStageFlags dst_stage_mask) {
-  auto* barriers{*barriers_ptr};
-
-  if (barriers == nullptr) {
+void ApplyBufferMemoryBarriers(const Array<VkBufferMemoryBarrier>& barriers,
+                               VkCommandBuffer command_buffer_handle,
+                               VkPipelineStageFlags src_stage_mask,
+                               VkPipelineStageFlags dst_stage_mask) {
+  if (barriers.IsEmpty()) {
     return;
   }
 
   vkCmdPipelineBarrier(command_buffer_handle, src_stage_mask, dst_stage_mask, 0,
-                       0, VK_NULL_HANDLE, static_cast<u32>(barriers->GetSize()),
-                       barriers->GetData(), 0, VK_NULL_HANDLE);
-
-  barriers = nullptr;
+                       0, VK_NULL_HANDLE, static_cast<u32>(barriers.GetSize()),
+                       barriers.GetData(), 0, VK_NULL_HANDLE);
 }
+
+ScopedMappedBuffer::ScopedMappedBuffer(Buffer& buffer) : buffer_{buffer} {
+  MapBuffer(buffer_);
+}
+
+ScopedMappedBuffer::~ScopedMappedBuffer() { UnmapBuffer(buffer_); }
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

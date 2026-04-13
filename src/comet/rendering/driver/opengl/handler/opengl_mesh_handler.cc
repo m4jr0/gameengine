@@ -59,11 +59,6 @@ void MeshHandler::Update(const frame::FramePacket* packet) {
   FinishUpdate(update_context);
 }
 
-void MeshHandler::Bind() {
-  vertex_buffer_.Bind();
-  index_buffer_.Bind();
-}
-
 MeshProxyHandle MeshHandler::GetHandle(geometry::MeshId mesh_id) const {
   auto* index{mesh_to_proxy_map_.TryGet(mesh_id)};
   return index != nullptr ? static_cast<MeshProxyHandle>(*index)
@@ -80,6 +75,17 @@ StorageHandle MeshHandler::GetVertexBufferHandle() const {
 
 StorageHandle MeshHandler::GetIndexBufferHandle() const {
   return index_buffer_.GetHandle();
+}
+
+ShaderVertexSource MeshHandler::GetVertexSource() const {
+  ShaderVertexSource source{};
+  source.vertex_buffer_handle = GetVertexBufferHandle();
+  source.index_buffer_handle = GetIndexBufferHandle();
+  source.has_index_buffer = true;
+  source.vertex_source_id =
+      (static_cast<u64>(source.vertex_buffer_handle) << 32) |
+      static_cast<u64>(source.index_buffer_handle);
+  return source;
 }
 
 internal::UpdateContext MeshHandler::PrepareUpdate(

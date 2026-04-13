@@ -19,10 +19,10 @@
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger.h"
-#include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource_manager.h"
+#include "comet/resource/shader_resource.h"
 #include "comet/resource/texture_resource.h"
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model/utils/model_exporter_utils.h"
@@ -36,7 +36,8 @@ namespace editor {
 namespace asset {
 bool ModelExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("obj") || extension == COMET_TCHAR("fbx") ||
-         extension == COMET_TCHAR("dae") || extension == COMET_TCHAR("gltf");
+         extension == COMET_TCHAR("dae") || extension == COMET_TCHAR("gltf") ||
+         extension == COMET_TCHAR("glb");
 }
 
 void ModelExporter::PopulateFiles(ResourceFilesContext& context) const {
@@ -75,7 +76,8 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
                                          resource::MaterialResource& material,
                                          aiMaterial* raw_material,
                                          aiTextureType raw_texture_type) const {
-  const auto texture_count{raw_material->GetTextureCount(raw_texture_type)};
+  COMET_ASSERT(raw_material != nullptr, "Raw material is null!");
+  auto texture_count{raw_material->GetTextureCount(raw_texture_type)};
 
   if (texture_count == 0) {
     return;
@@ -84,10 +86,11 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
   auto texture_type{GetTextureType(raw_texture_type)};
 
   if (texture_count > 1) {
-    COMET_LOG_GLOBAL_WARNING("Texture count for type \"",
-                             rendering::GetTextureTypeLabel(texture_type),
-                             "\" is greater than 1. This is not supported. "
-                             "Ignoring excess textures.");
+    COMET_LOG_GLOBAL_WARNING(
+        "Texture count for type \"",
+        rendering::GetTextureTypeLabel(texture_type),
+        "\" is greater than 1. This is not supported. Ignoring excess "
+        "textures.");
   }
 
   resource::TextureMap* map{nullptr};
@@ -96,30 +99,25 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
     case rendering::TextureType::Diffuse:
       map = &material.descr.diffuse_map;
       break;
+
     case rendering::TextureType::Specular:
       map = &material.descr.specular_map;
       break;
-      // TODO(m4jr0): Check behavior. Apparently, Assimp might process normal
-      // textures as height ones. See
-      // https://github.com/assimp/assimp/issues/430
+
     case rendering::TextureType::Normal:
       map = &material.descr.normal_map;
       break;
+
     default:
       COMET_LOG_GLOBAL_WARNING("Unsupported texture type: ",
                                rendering::GetTextureTypeLabel(texture_type),
                                ". Ignoring.");
-      break;
+      return;
   }
 
-  if (map == nullptr) {
-    return;
-  }
+  aiString raw_texture_path{};
 
-  aiString raw_texture_path;
-  raw_material->GetTexture(raw_texture_type, 0, &raw_texture_path);
-
-  if (!raw_material->GetTexture(raw_texture_type, 0, &raw_texture_path) ==
+  if (raw_material->GetTexture(raw_texture_type, 0, &raw_texture_path) !=
       AI_SUCCESS) {
     COMET_LOG_GLOBAL_ERROR("Could not load ", GetTextureTypeLabel(texture_type),
                            " texture from material ",
@@ -130,11 +128,17 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
 
   auto path{resource_path / GetTmpTChar(raw_texture_path.C_Str())};
   Clean(path);
+
+  COMET_LOG_GLOBAL_DEBUG(
+      "Material \"", raw_material->GetName().C_Str(), "\" uses texture type \"",
+      GetTextureTypeLabel(texture_type), "\" from Assimp slot ",
+      static_cast<int>(raw_texture_type), " at path ", path);
+
   map->texture_id =
       resource::GenerateResourceIdFromPath<resource::TextureResource>(path);
-
   map->type = texture_type;
-  aiTextureMapMode raw_texture_repeat_mode;
+
+  aiTextureMapMode raw_texture_repeat_mode{aiTextureMapMode_Wrap};
 
   if (raw_material->Get(AI_MATKEY_MAPPINGMODE_U(raw_texture_type, 0),
                         raw_texture_repeat_mode) != AI_SUCCESS) {
@@ -143,58 +147,42 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
     raw_texture_repeat_mode = aiTextureMapMode_Wrap;
   }
 
-  map->u_repeat_mode = GetTextureRepeatMode(raw_texture_repeat_mode);
-
   if (raw_material->Get(AI_MATKEY_MAPPINGMODE_V(raw_texture_type, 0),
                         raw_texture_repeat_mode) != AI_SUCCESS) {
     COMET_LOG_GLOBAL_DEBUG(
-        "Could not get texture repeat mode for V. Setting it to repeat "
-        "mode.");
+        "Could not get texture repeat mode for V. Setting it to repeat mode.");
     raw_texture_repeat_mode = aiTextureMapMode_Wrap;
   }
 
-  map->v_repeat_mode = GetTextureRepeatMode(raw_texture_repeat_mode);
+  aiTextureMapMode raw_u_repeat_mode;
+  aiTextureMapMode raw_v_repeat_mode;
 
-  // TODO(m4jr0): Handle filter modes better.
+  if (raw_material->Get(AI_MATKEY_MAPPINGMODE_U(raw_texture_type, 0),
+                        raw_u_repeat_mode) != AI_SUCCESS) {
+    COMET_LOG_GLOBAL_DEBUG(
+        "Could not get texture repeat mode for U. Setting it to repeat mode.");
+    raw_u_repeat_mode = aiTextureMapMode_Wrap;
+  }
+
+  if (raw_material->Get(AI_MATKEY_MAPPINGMODE_V(raw_texture_type, 0),
+                        raw_v_repeat_mode) != AI_SUCCESS) {
+    COMET_LOG_GLOBAL_DEBUG(
+        "Could not get texture repeat mode for V. Setting it to repeat mode.");
+    raw_v_repeat_mode = aiTextureMapMode_Wrap;
+  }
+
+  map->u_repeat_mode = GetTextureRepeatMode(raw_u_repeat_mode);
+  map->v_repeat_mode = GetTextureRepeatMode(raw_v_repeat_mode);
+  map->w_repeat_mode =
+      rendering::TextureRepeatMode::Repeat;  // No AI_MATKEY_MAPPINGMODE_W.
+
   map->min_filter_mode = rendering::TextureFilterMode::Linear;
   map->mag_filter_mode = rendering::TextureFilterMode::Linear;
 }
 
-void ModelExporter::LoadDefaultTextures(
-    resource::MaterialResource& material) const {
-  if (material.descr.diffuse_map.type == rendering::TextureType::Unknown) {
-    auto& map{material.descr.diffuse_map};
-    map.texture_id = resource::kInvalidResourceId;
-    map.type = rendering::TextureType::Diffuse;
-    map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    map.min_filter_mode = rendering::TextureFilterMode::Linear;
-    map.mag_filter_mode = rendering::TextureFilterMode::Linear;
-  }
-
-  if (material.descr.specular_map.type == rendering::TextureType::Unknown) {
-    auto& map{material.descr.specular_map};
-    map.texture_id = resource::kInvalidResourceId;
-    map.type = rendering::TextureType::Specular;
-    map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    map.min_filter_mode = rendering::TextureFilterMode::Linear;
-    map.mag_filter_mode = rendering::TextureFilterMode::Linear;
-  }
-
-  if (material.descr.normal_map.type == rendering::TextureType::Unknown) {
-    auto& map{material.descr.normal_map};
-    map.texture_id = resource::kInvalidResourceId;
-    map.type = rendering::TextureType::Normal;
-    map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    map.min_filter_mode = rendering::TextureFilterMode::Linear;
-    map.mag_filter_mode = rendering::TextureFilterMode::Linear;
-  }
-}
-
 void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
   auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
+
 #ifdef COMET_WIDE_TCHAR
   auto length{GetLength(scene_context->asset_abs_path)};
   auto* scene_path{scene_context->allocator->AllocateMany<schar>(length + 1)};
@@ -205,9 +193,13 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
 #endif  // COMET_WIDE_TCHAR
 
   COMET_LOG_GLOBAL_DEBUG("Loading scene at ", scene_path, "...");
+
   const auto* scene{scene_context->assimp_importer.ReadFile(
-      scene_path,
-      aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace)};
+      scene_path, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
+                      aiProcess_ImproveCacheLocality |
+                      aiProcess_LimitBoneWeights | aiProcess_FindInvalidData |
+                      aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace |
+                      aiProcess_FlipUVs)};
 
   if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
       scene->mRootNode == nullptr) {
@@ -218,7 +210,7 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
         assimp_error = "Scene is null";
       } else if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
         assimp_error = "Scene is incomplete";
-      } else if (scene->mRootNode) {
+      } else if (scene->mRootNode == nullptr) {
         assimp_error = "Scene has no root node";
       } else {
         assimp_error = "Unknown error";
@@ -269,10 +261,7 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
 
     scene_context->AddResourceFile(
         resource::ResourceManager::Get().GetStaticModels()->Pack(
-            LoadStaticModel(scene_context->allocator, scene,
-                            scene_context->asset_path)
-                .model,
-            exporter->compression_mode_));
+            resources.model, exporter->compression_mode_));
   }
 
   COMET_LOG_GLOBAL_DEBUG("Model processed at: ", scene_context->asset_abs_path);
@@ -291,27 +280,20 @@ void ModelExporter::OnMaterialsProcessing(job::JobParamsHandle params_handle) {
 void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
   auto* scene{scene_context->scene};
   auto directory_path{GetDirectoryPath(scene_context->asset_abs_path)};
-  const auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
-  constexpr StaticArray<aiTextureType, 4> exported_texture_types{
-      aiTextureType_DIFFUSE, aiTextureType_SPECULAR, aiTextureType_HEIGHT,
-      aiTextureType_AMBIENT};
+  auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
 
   for (usize i{0}; i < scene->mNumMaterials; ++i) {
-    const auto raw_material{scene->mMaterials[i]};
-    const auto& raw_material_name{raw_material->GetName()};
-    const auto* material_name{raw_material_name.C_Str()};
-
-    if (IsEmpty(material_name)) {
-      COMET_LOG_GLOBAL_ERROR("Empty material found. Ignoring.");
-      continue;
-    }
-
-    COMET_LOG_GLOBAL_DEBUG("Material \"", material_name, "\" found.");
+    auto* raw_material{scene->mMaterials[i]};
 
     resource::MaterialResource material{};
-    constexpr auto kDefaultShaderName{"default_shader"};
-    memory::CopyMemory(material.descr.shader_name, kDefaultShaderName,
-                       GetLength(kDefaultShaderName));
+    material.descr.shader_id = resource::GetDefaultShaderResourceId();
+
+    InitializeDefaultTextureMap(material.descr.diffuse_map,
+                                rendering::TextureType::Diffuse);
+    InitializeDefaultTextureMap(material.descr.specular_map,
+                                rendering::TextureType::Specular);
+    InitializeDefaultTextureMap(material.descr.normal_map,
+                                rendering::TextureType::Normal);
 
     if (aiGetMaterialFloat(raw_material, AI_MATKEY_SHININESS,
                            &material.descr.shininess) != AI_SUCCESS) {
@@ -321,7 +303,7 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
       material.descr.shininess = kDefaultMaterialShininess_;
     }
 
-    aiColor3D color;
+    aiColor3D color{};
 
     if (raw_material->Get(AI_MATKEY_COLOR_DIFFUSE, color) != AI_SUCCESS) {
       COMET_LOG_GLOBAL_WARNING(
@@ -329,19 +311,29 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
           "to (",
           kDefaultColor_.r, ", ", kDefaultColor_.g, ", ", kDefaultColor_.b,
           ").");
-
       color = kDefaultColor_;
     }
 
-    material.descr.diffuse_color = math::Vec4(color.r, color.g, color.b, 1.0f);
+    material.descr.diffuse_color = math::Vec4{color.r, color.g, color.b, 1.0f};
 
-    for (auto raw_texture_type : exported_texture_types) {
+    LoadMaterialTextures(resource_path, material, raw_material,
+                         aiTextureType_BASE_COLOR);
+    if (material.descr.diffuse_map.texture_id == resource::kInvalidResourceId) {
       LoadMaterialTextures(resource_path, material, raw_material,
-                           raw_texture_type);
+                           aiTextureType_DIFFUSE);
     }
 
-    LoadDefaultTextures(material);
-    material.id = resource::GenerateMaterialId(material_name);
+    LoadMaterialTextures(resource_path, material, raw_material,
+                         aiTextureType_SPECULAR);
+    LoadMaterialTextures(resource_path, material, raw_material,
+                         aiTextureType_NORMALS);
+
+    if (material.descr.normal_map.texture_id == resource::kInvalidResourceId) {
+      LoadMaterialTextures(resource_path, material, raw_material,
+                           aiTextureType_HEIGHT);
+    }
+
+    material.id = GenerateMaterialId(raw_material, static_cast<u32>(i));
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
     scene_context->AddResourceFile(
@@ -353,20 +345,19 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
 rendering::TextureType ModelExporter::GetTextureType(
     aiTextureType raw_texture_type) {
   switch (raw_texture_type) {
+    case aiTextureType_BASE_COLOR:
     case aiTextureType_DIFFUSE:
       return rendering::TextureType::Diffuse;
 
     case aiTextureType_SPECULAR:
       return rendering::TextureType::Specular;
 
+    case aiTextureType_NORMALS:
     case aiTextureType_HEIGHT:
       return rendering::TextureType::Normal;
 
     case aiTextureType_AMBIENT:
       return rendering::TextureType::Ambient;
-
-    case aiTextureType_BASE_COLOR:
-      return rendering::TextureType::Color;
 
     default:
       return rendering::TextureType::Unknown;

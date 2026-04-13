@@ -18,8 +18,8 @@ struct MeshResource : InternalResource {
   geometry::MeshType type{geometry::MeshType::Unknown};
   ResourceId material_id{kInvalidResourceId};
   math::Mat4 transform{1.0f};
-  math::Vec3 local_center{0.0f};
-  math::Vec3 local_max_extents{0.0f};
+  math::Vec3 local_center{.0f};
+  math::Vec3 local_max_extents{.0f};
   ResourceId parent_id{kInvalidResourceId};
   Array<geometry::Index> indices{};
 };

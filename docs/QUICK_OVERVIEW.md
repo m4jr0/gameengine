@@ -9,7 +9,9 @@ They're not deep documentation, just quick explanations and design generalities.
 The project is split into two parts: the engine and the editor. The editor is mostly empty for now and uses a few extra libraries: it's not the focus at the moment.
 Overall, the engine is still basic and experimental; it's mainly a sandbox for trying ideas rather than a finished product.
 
-<img src="images/comet_editor.png" width="600" alt="The Comet Engine">
+<p align="center">  
+  <img src="images/comet_editor.png" width="600" alt="The Comet Engine">
+</p>  
 
 ## Architecture
 
@@ -72,6 +74,79 @@ Animation data comes from 3D models and supports skeletons/joints.
 * Standard pose interpolation from keyframes
 * Blending will come later
 
+## Lighting & Shadows
+
+**Comet** provides a flexible lighting system built around a central light manager, supporting multiple light types and real-time shadowing.
+
+### Light Types
+
+* **Directional lights** (e.g. sun)
+* **Spot lights**
+* **Point lights**
+
+### Shadows
+
+* Shadow mapping is supported for:
+  * **Directional lights** (orthographic, cascade-based)
+  * **Spot lights** (perspective)
+* **Point light shadows (cubemaps)** are not implemented yet
+
+### Environment & Day-Night Cycle
+
+A lightweight **environment manager** is used to drive global lighting conditions and simulate a full day–night cycle.
+
+It controls a primary directional light (the sun) and updates it dynamically every frame based on time progression.
+
+#### Features
+
+* Configurable **time of day** (in hours)
+* Adjustable **day duration** and **time scaling**
+* Optional **playback window** (e.g. restrict simulation to a specific time range)
+* Dynamic **sun direction and intensity**
+* Smooth **ambient color transitions** (night → dawn → day)
+* Ability to **freeze or manually control time**
+
+#### Runtime Control (Debug UI)
+
+A built-in debug interface allows real-time control over all environment parameters, making it easy to iterate on lighting and shadow behavior.
+
+* Adjust time of day interactively
+* Speed up or slow down the simulation
+* Tune sun behavior and lighting response
+* Visualize changes instantly in the scene
+
+<p align="center">  
+  <img src="images/environment_ui.png" width="600" alt="Environment manager debug UI">
+</p>  
+
+#### Some Examples
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="images/environment_lighting_morning_07h.png" width="100%"><br>
+      <sub>07:00 - Morning</sub>
+    </td>
+    <td align="center">
+      <img src="images/environment_lighting_noon_12h.png" width="100%"><br>
+      <sub>12:00 - Noon</sub>
+    </td>
+    <td align="center">
+      <img src="images/environment_lighting_night_22h.png" width="100%"><br>
+      <sub>22:00 - Night</sub>
+    </td>
+  </tr>
+</table>
+
+#### Usage
+
+The environment manager updates:
+
+* The main directional light (sun)
+* The scene ambient color
+
+This keeps lighting fully data-driven and consistent with the engine's frame-based architecture.
+
 ## Resources
 
 **Assets:** raw input files (from artists/programmers *(which are also artists, don't be shy!)*).
@@ -118,22 +193,40 @@ Modes:
 * Frame metrics and CPU profiler (`COMET_IMGUI`)
 * Memory tracking (`COMET_TRACK_ALLOCATIONS`)
 
-<img src="images/profiling.png" width="600" alt="Frame metrics and CPU profiler">
+<p align="center">  
+  <img src="images/profiling.png" width="600" alt="Frame metrics and CPU profiler">
+</p>  
 
-<img src="images/tracked_allocations.png" width="600" alt="Memory tracking">
+<p align="center">  
+  <img src="images/tracked_allocations.png" width="600" alt="Memory tracking">
+</p>  
 
 ## Notable Preprocessor Directives
 
 | Define | Description |
 |--------|-------------|
-| `COMET_DEBUG` | Enables debug features |
-| `COMET_PROFILING` + `COMET_IMGUI` | Enables debug UI & CPU profiler |
-| `COMET_TRACK_ALLOCATIONS` | Memory tracking per tag |
-| `COMET_POISON_ALLOCATIONS` / `COMET_POISON_FIBER_STACKS` | Poison memory for debugging |
-| `COMET_FIBER_DEBUG_LABEL` | Names fiber jobs |
-| `COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS` | Custom memory tag labels |
-| `COMET_RESERVE_SYSTEM_THREADS` | Reserve 2 threads for OS |
-| `COMET_COMPRESS_ANIMATIONS` | Compress animation transforms |
-| `COMET_RENDERING_USE_DEBUG_LABELS` | Add debug labels visible in RenderDoc |
-| `COMET_ENABLE_RENDERDOC_COMPATIBILITY` | Force main thread for RenderDoc |
-| `COMET_LOG_IS_FIBER_PREFIX` | Prefix logs with fiber/thread info |
+| `COMET_DEBUG` | Enables debug-only features and development tooling |
+| `COMET_PROFILING` | Enables profiling instrumentation |
+| `COMET_IMGUI` | Enables the Dear ImGui debug UI |
+| `COMET_HAS_DEBUG_UI` | Internal derived define enabled when debug UI support is available |
+| `COMET_HAS_PROFILER_DEBUG_UI` | Internal derived define for profiler UI support |
+| `COMET_TRACK_ALLOCATIONS` | Tracks memory usage per memory tag |
+| `COMET_POISON_ALLOCATIONS` | Fills allocated/freed memory with debug patterns |
+| `COMET_POISON_FIBER_STACKS` | Fills fiber stacks with debug patterns |
+| `COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS` | Allows custom labels for memory tags |
+| `COMET_RESERVE_SYSTEM_THREADS` | Keeps a small number of threads reserved for the OS |
+| `COMET_FIBER_DEBUG_LABEL` | Adds readable names to fiber jobs for debugging |
+| `COMET_LOG_IS_FIBER_PREFIX` | Prefixes log lines with the current fiber/thread |
+| `COMET_WIDE_TCHAR` | Uses wide-character paths/strings on Windows |
+| `COMET_NORMALIZE_PATHS` | Normalizes file paths across platforms |
+| `COMET_COMPRESS_ANIMATIONS` | Compresses animation transform data |
+| `COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER` | Allows disabling the main thread worker, required by the OpenGL backend |
+| `COMET_RENDERING_OPENGL_CLIP_CONTROL_ZERO_TO_ONE` | Uses a `[0, 1]` depth range in OpenGL to better match Vulkan-style clip space |
+| `COMET_DEBUG_RENDERING` | Enables rendering-specific debugging features |
+| `COMET_RENDERING_USE_DEBUG_LABELS` | Adds GPU object labels visible in tools such as RenderDoc |
+| `COMET_ENABLE_RENDERDOC_COMPATIBILITY` | Applies compatibility constraints for RenderDoc captures |
+| `COMET_DEBUG_VIEW` | Enables a rendering debug view |
+| `COMET_DEBUG_SHADER` | Compiles shaders with debug information and reduced optimization |
+| `COMET_DEBUG_CULLING` | Enables culling debug visualization/data |
+| `COMET_VALIDATION_DEBUG_PRINTF_EXT` | Enables Vulkan shader debug printf support |
+| `COMET_VALIDATION_SYNCHRONIZATION_VALIDATION_EXT` | Enables Vulkan synchronization validation |

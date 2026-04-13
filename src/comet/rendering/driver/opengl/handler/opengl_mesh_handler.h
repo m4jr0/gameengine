@@ -58,13 +58,13 @@ class MeshHandler : public Handler {
   void Initialize() override;
   void Shutdown() override;
   void Update(const frame::FramePacket* packet);
-  void Bind();
 
   MeshProxyHandle GetHandle(geometry::MeshId mesh_id) const;
   const MeshProxy* Get(MeshProxyHandle handle) const;
 
   StorageHandle GetVertexBufferHandle() const;
   StorageHandle GetIndexBufferHandle() const;
+  ShaderVertexSource GetVertexSource() const;
 
  private:
   // Note: these are just wild guesses for now.

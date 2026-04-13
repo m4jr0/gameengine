@@ -22,6 +22,8 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+using MaterialDestroyCallback = void (*)(Material* material, void* user_data);
+
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
 };
@@ -39,12 +41,12 @@ class MaterialHandler : public Handler {
   void Initialize() override;
   void Shutdown() override;
 
+  void SetDestroyCallback(MaterialDestroyCallback callback, void* user_data);
+
   Material* Generate(const MaterialDescr& descr);
   Material* Generate(const resource::MaterialResource* resource);
   Material* Get(MaterialId material_id);
   Material* TryGet(MaterialId material_id);
-  Material* GetOrGenerate(const MaterialDescr& descr);
-  Material* GetOrGenerate(const resource::MaterialResource* resource);
   void Destroy(MaterialId material_id);
   void Destroy(Material* material);
 
@@ -64,6 +66,9 @@ class MaterialHandler : public Handler {
       math::Max(sizeof(Pair<MaterialId, Material>),
                 sizeof(Pair<SamplerId, Sampler>)),
       256, memory::kEngineMemoryTagRendering};
+
+  MaterialDestroyCallback destroy_callback_{nullptr};
+  void* destroy_callback_user_data_{nullptr};
   Map<MaterialId, Material*> materials_{};
   Map<SamplerId, Sampler*> samplers_{};
   TextureHandler* texture_handler_{nullptr};

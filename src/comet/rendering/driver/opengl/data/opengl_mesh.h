@@ -10,6 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
+#include "comet/rendering/driver/opengl/data/opengl_storage.h"
 
 namespace comet {
 namespace rendering {
@@ -24,13 +25,14 @@ struct MeshProxy {
   GLint index_offset{0};
 };
 
-struct VertexAttribute {
-  GLuint index{0};
-  GLint component_count{0};
-  GLenum component_type{0};
-  GLboolean is_normalized{GL_FALSE};
-  GLsizei stride{0};
-  const void* offset{nullptr};
+using VertexSourceId = u64;
+constexpr auto kInvalidVertexSourceId{0};
+
+struct ShaderVertexSource {
+  bool has_index_buffer{false};
+  StorageHandle vertex_buffer_handle{kInvalidStorageHandle};
+  StorageHandle index_buffer_handle{kInvalidStorageHandle};
+  VertexSourceId vertex_source_id{0};
 };
 }  // namespace gl
 }  // namespace rendering

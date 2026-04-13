@@ -134,6 +134,67 @@ constexpr T Fmod(T x, T y) {
 
   return x - Trunc(x / y) * y;
 }
+
+template <typename T>
+constexpr T Wrap(T value, T period) {
+  static_assert(std::is_floating_point_v<T>,
+                "Wrap requires a floating-point type");
+
+  if (period <= T{0}) {
+    return T{0};
+  }
+
+  value = Fmod(value, period);
+
+  if (value < T{0}) {
+    value += period;
+  }
+
+  return value;
+}
+
+template <typename T, typename Exp,
+          typename = std::enable_if_t<std::is_integral_v<Exp>>>
+constexpr T Pow(T base, Exp exp) {
+  if constexpr (std::is_signed_v<Exp>) {
+    if (exp < 0) {
+      static_assert(std::is_floating_point_v<T>,
+                    "Negative exponents require a floating-point base!");
+
+      if (base == T{0}) {
+        return T{0};
+      }
+
+      return T{1} / Pow(base, static_cast<std::make_unsigned_t<Exp>>(-exp));
+    }
+  }
+
+  using UExp =
+      std::conditional_t<std::is_signed_v<Exp>, std::make_unsigned_t<Exp>, Exp>;
+
+  UExp e{static_cast<UExp>(exp)};
+  T result{1};
+
+  while (e > 0) {
+    if ((e & 1) != 0) {
+      result *= base;
+    }
+
+    e >>= 1;
+    if (e != 0) {
+      base *= base;
+    }
+  }
+
+  return result;
+}
+
+template <typename Base, typename Exp,
+          typename = std::enable_if_t<std::is_floating_point_v<Base> ||
+                                      std::is_floating_point_v<Exp>>>
+auto Pow(Base base, Exp exp) {
+  return std::pow(base, exp);
+}
 }  // namespace math
 }  // namespace comet
 

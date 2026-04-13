@@ -19,10 +19,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/profiler/profiler.h"
-
-#ifdef COMET_DEBUG
-#include "comet/rendering/debugger/debugger_displayer_manager.h"
-#endif  // COMET_DEBUG
+#include "comet/rendering/debug_ui_registry.h"
 
 namespace comet {
 namespace rendering {
@@ -38,6 +35,7 @@ void ImGuiView::Initialize() {
 #ifdef COMET_DEBUG
   IMGUI_CHECKVERSION();
 #endif  // COMET_DEBUG
+
   ImGui::CreateContext();
   ImGui_ImplGlfw_InitForOpenGL(window_->GetHandle(), false);
   ImGui_ImplOpenGL3_Init();
@@ -51,13 +49,8 @@ void ImGuiView::Destroy() {
   View::Destroy();
 }
 
-void ImGuiView::Update(frame::FramePacket* packet) {
+void ImGuiView::Update(frame::FramePacket*) {
   COMET_PROFILE("ImGuiView::Update");
-
-  if (packet->is_rendering_skipped) {
-    return;
-  }
-
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
@@ -68,10 +61,10 @@ void ImGuiView::Update(frame::FramePacket* packet) {
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void gl::ImGuiView::Draw() const {
-#ifdef COMET_PROFILING
-  DebuggerDisplayerManager::Get().Draw();
-#endif  // COMET_PROFILING
+void ImGuiView::Draw() const {
+#ifdef COMET_HAS_DEBUG_UI
+  DebugUiRegistry::Get().Draw();
+#endif  // COMET_HAS_DEBUG_UI
 }
 }  // namespace gl
 }  // namespace rendering

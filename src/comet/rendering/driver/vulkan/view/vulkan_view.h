@@ -16,21 +16,47 @@
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/rendering_common.h"
 
-#ifdef COMET_DEBUG
-#include "comet/rendering/debugger/debugger_displayer_manager.h"
-#endif  // COMET_DEBUG
-
 namespace comet {
 namespace rendering {
 namespace vk {
+enum class RenderTargetKind : u8 { Swapchain, Offscreen };
+
+enum class ViewLoadOp : u8 { DontCare, Load, Clear };
+
+enum class ViewStoreOp : u8 { DontCare, Store };
+
+enum class ViewFinalColorOp : u8 { Keep, Present };
+
+using ViewPassFlags = u32;
+
+enum ViewPassFlagBits : ViewPassFlags {
+  kViewPassFlagBitsNone = 0x0,
+  kViewPassFlagBitsSwapchainTarget = 0x1,
+  kViewPassFlagBitsOffscreenTarget = 0x2,
+  kViewPassFlagBitsHasColor = 0x4,
+  kViewPassFlagBitsHasDepth = 0x8
+};
+
+struct ViewPassDescr {
+  RenderTargetKind target_kind{RenderTargetKind::Swapchain};
+  ViewPassFlags flags{kViewPassFlagBitsNone};
+
+  ViewLoadOp color_load_op{ViewLoadOp::DontCare};
+  ViewStoreOp color_store_op{ViewStoreOp::Store};
+
+  ViewLoadOp depth_load_op{ViewLoadOp::DontCare};
+  ViewStoreOp depth_store_op{ViewStoreOp::DontCare};
+
+  ViewFinalColorOp final_color_op{ViewFinalColorOp::Keep};
+};
+
 struct ViewDescr {
-  bool is_first{false};
-  bool is_last{false};
   WindowSize width{0};
   WindowSize height{0};
   f32 clear_color[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                      1.0f};
   RenderingViewId id{kInvalidRenderingViewId};
+  ViewPassDescr pass_descr{};
   const Context* context{nullptr};
   RenderPassHandler* render_pass_handler{nullptr};
 };
@@ -51,18 +77,19 @@ class View {
 
   bool IsInitialized() const noexcept;
   RenderingViewId GetId() const noexcept;
+  bool IsSwapchainTarget() const noexcept;
+  bool IsOffscreenTarget() const noexcept;
 
  protected:
   bool is_initialized_{false};
-  bool is_first_{false};
-  bool is_last_{false};
+  ViewPassDescr pass_descr_{};
   WindowSize width_{0};
   WindowSize height_{0};
   f32 clear_color_[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                       1.0f};
   RenderingViewId id_{kInvalidRenderingViewId};
   const Context* context_{nullptr};
-  RenderPass* render_pass_{nullptr};
+  RenderPassHandle render_pass_handle_{kInvalidRenderPassHandle};
   RenderPassHandler* render_pass_handler_{nullptr};
 };
 }  // namespace vk

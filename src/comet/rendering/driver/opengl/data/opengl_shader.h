@@ -11,52 +11,72 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/string_id.h"
-#include "comet/rendering/driver/opengl/data/opengl_mesh.h"
+#include "comet/rendering/driver/opengl/data/opengl_pipeline.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
-#include "comet/rendering/driver/opengl/data/opengl_storage.h"
+#include "comet/rendering/rendering_common.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using ShaderId = stringid::StringId;
-constexpr auto kInvalidShaderId{static_cast<ShaderId>(-1)};
+using ShaderHandle = u32;
+constexpr auto kInvalidShaderHandle{static_cast<ShaderHandle>(-1)};
 
-using VertexAttributeHandle = u32;
+using VertexAttributeHandle = GLuint;
 constexpr auto kInvalidVertexAttributeHandle{0};
 
-using ShaderHandle = u32;
-constexpr auto kInvalidShaderHandle{0};
+using VertexAttributeStride = s32;
+
+struct VertexAttribute {
+  GLuint index{0};
+  GLint component_count{0};
+  GLenum component_type{0};
+  GLboolean is_normalized{GL_FALSE};
+  GLsizei stride{0};
+  const void* offset{nullptr};
+};
+
+struct ShaderDescr {
+  resource::ResourceId shader_id{resource::kInvalidResourceId};
+};
 
 struct Shader {
-  bool is_wireframe{false};
-  u16 ref_count{0};
-  GLenum cull_mode{GL_NONE};
-  GLenum topology{GL_NONE};
-  ShaderId id{kInvalidShaderId};
+  RasterizerState rasterizer{};
+  DepthStencilState depth_stencil{};
+  GLenum topology{0};
+  ShaderVertexLayout vertex_layout{ShaderVertexLayout::None};
+
+  resource::ResourceId id{resource::kInvalidResourceId};
+  ShaderHandle handle{kInvalidShaderHandle};
+  u32 ref_count{0};
+
+  bool has_vertex_source_binding{false};
+  u64 vertex_source_id{0};
+
+  VertexAttributeStride vertex_attribute_stride{0};
+
+  sptrdiff bound_global_ubo_offset{0};
+  sptrdiff bound_instance_ubo_offset{0};
+
   ShaderHandle compute_handle{kInvalidShaderHandle};
   ShaderHandle graphics_handle{kInvalidShaderHandle};
-  StorageHandle vertex_buffer_handle{kInvalidStorageHandle};
-  StorageHandle index_buffer_handle{kInvalidStorageHandle};
+
   VertexAttributeHandle vertex_attribute_handle{kInvalidVertexAttributeHandle};
-  sptrdiff bound_ubo_offset{0};
-  MaterialInstanceId bound_instance_index{kInvalidMaterialInstanceId};
-  ShaderUniformData global_uniform_data{};
-  ShaderStorageData storage_data{};
+  UniformBufferHandle uniform_buffer_handle{kInvalidUniformBufferHandle};
+
+  Array<VertexAttribute> vertex_attributes{};
+  Array<ShaderBinding> bindings{};
+  Array<ShaderPushConstantBlock> push_constant_blocks{};
+  Array<const ShaderModule*> modules{};
+
   ShaderUniformBufferObjectData global_ubo_data{};
   ShaderUniformBufferObjectData instance_ubo_data{};
-  UniformBufferHandle uniform_buffer_handle{kInvalidUniformBufferHandle};
+
+  ShaderDescriptorSetRuntimeData global_descriptor_data{};
+  ShaderDescriptorSetRuntimeData storage_descriptor_data{};
+
   MaterialInstances instances{};
-  Array<VertexAttribute> vertex_attributes{};
-  Array<ShaderUniform> uniforms{};
-  Array<ShaderConstant> constants{};
-  Array<ShaderStorage> storages{};
-  ShaderUniformBufferIndices uniform_buffer_indices{};
-  ShaderUniformIndices uniform_indices{};
-  ShaderConstantIndices constant_indices{};
-  ShaderStorageIndices storage_indices{};
-  Array<const ShaderModule*> modules{};
 };
 
 ShaderHandle ResolveHandle(const Shader* shader, ShaderBindType bind_type);

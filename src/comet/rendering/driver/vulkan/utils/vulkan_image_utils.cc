@@ -22,9 +22,9 @@ namespace comet {
 namespace rendering {
 namespace vk {
 void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
-                   u32 mip_levels, VkSampleCountFlagBits num_samples,
-                   VkFormat format, VkImageTiling tiling,
-                   VkImageUsageFlags usage_flags,
+                   u32 mip_levels, u32 array_layers,
+                   VkSampleCountFlagBits num_samples, VkFormat format,
+                   VkImageTiling tiling, VkImageUsageFlags usage_flags,
                    VkMemoryPropertyFlags properties,
                    [[maybe_unused]] const schar* debug_label) {
   auto& queue_family_indices{device.GetQueueFamilyIndices()};
@@ -45,8 +45,9 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
   }
 
   auto create_info{init::GenerateImageCreateInfo(
-      width, height, mip_levels, num_samples, format, tiling, usage_flags,
-      sharing_mode, queue_family_indices_pointer, queue_family_index_count)};
+      width, height, mip_levels, array_layers, num_samples, format, tiling,
+      usage_flags, sharing_mode, queue_family_indices_pointer,
+      queue_family_index_count)};
 
   VmaAllocationCreateInfo alloc_info{};
   alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
@@ -78,9 +79,12 @@ void DestroyImage(Image& image) {
 
 VkImageView GenerateImageView(VkDevice device_handle, VkImage image_handle,
                               VkFormat format, VkImageAspectFlags aspect_flags,
-                              u32 mip_levels) {
-  auto create_info{init::GenerateImageViewCreateInfo(image_handle, format,
-                                                     aspect_flags, mip_levels)};
+                              u32 mip_levels, u32 base_array_layer,
+                              u32 layer_count, VkImageViewType view_type) {
+  auto create_info{init::GenerateImageViewCreateInfo(
+      image_handle, format, aspect_flags, mip_levels, base_array_layer,
+      layer_count, view_type)};
+
   VkImageView image_view_handle{VK_NULL_HANDLE};
 
   COMET_CHECK_VK(
@@ -96,6 +100,15 @@ bool IsImageInitialized(const Image& image) noexcept {
   return image.allocator_handle != VK_NULL_HANDLE &&
          image.handle != VK_NULL_HANDLE &&
          image.allocation_handle != VK_NULL_HANDLE;
+}
+
+bool HasDepthComponent(VkFormat format) {
+  return format == VK_FORMAT_D16_UNORM ||
+         format == VK_FORMAT_X8_D24_UNORM_PACK32 ||
+         format == VK_FORMAT_D32_SFLOAT ||
+         format == VK_FORMAT_D16_UNORM_S8_UINT ||
+         format == VK_FORMAT_D24_UNORM_S8_UINT ||
+         format == VK_FORMAT_D32_SFLOAT_S8_UINT;
 }
 
 bool HasStencilComponent(VkFormat format) {
@@ -130,14 +143,43 @@ void CopyBufferToImage(const CommandData& command_data, const Buffer& buffer,
 void TransitionImageLayout(const Context& context, VkImage image_handle,
                            VkFormat format, VkImageLayout old_layout,
                            VkImageLayout new_layout, u32 mip_levels,
-                           u32 src_queue_family_index,
+                           u32 layer_count, u32 src_queue_family_index,
                            u32 dst_queue_family_index) {
   VkImageMemoryBarrier barrier{};
-  VkPipelineStageFlags source_stage;
-  VkPipelineStageFlags destination_stage;
-  VkCommandPool command_pool_handle;
-  VkQueue queue_handle;
-  auto& device{context.GetDevice()};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.oldLayout = old_layout;
+  barrier.newLayout = new_layout;
+  barrier.srcQueueFamilyIndex = src_queue_family_index;
+  barrier.dstQueueFamilyIndex = dst_queue_family_index;
+  barrier.image = image_handle;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = mip_levels;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = layer_count;
+
+  VkPipelineStageFlags source_stage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+  VkPipelineStageFlags destination_stage{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT};
+  VkCommandPool command_pool_handle{context.GetFrameData().command_pool_handle};
+  VkQueue queue_handle{context.GetDevice().GetGraphicsQueueHandle()};
+  const auto& device{context.GetDevice()};
+
+  bool is_depth_format{HasDepthComponent(format) ||
+                       HasStencilComponent(format)};
+  bool is_depth_layout{
+      new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
+      new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL ||
+      old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
+      old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL};
+
+  if (is_depth_format || is_depth_layout) {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    if (HasStencilComponent(format)) {
+      barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+  } else {
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  }
 
   if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
       new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
@@ -153,8 +195,6 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    command_pool_handle = context.GetFrameData().command_pool_handle;
-    queue_handle = device.GetGraphicsQueueHandle();
   } else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
              new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
     barrier.srcAccessMask = 0;
@@ -162,39 +202,36 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    command_pool_handle = context.GetFrameData().command_pool_handle;
-    queue_handle = device.GetGraphicsQueueHandle();
+  } else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else if (old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
+             new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
+    barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    source_stage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else if (old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL &&
+             new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   } else {
     COMET_ASSERT(false, "Unsupported layout transition!");
     return;
   }
 
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.oldLayout = old_layout;
-  barrier.newLayout = new_layout;
-  barrier.srcQueueFamilyIndex = src_queue_family_index;
-  barrier.dstQueueFamilyIndex = dst_queue_family_index;
-  barrier.image = image_handle;
-
-  if (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-    if (HasStencilComponent(format)) {
-      barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-  } else {
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  }
-
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = mip_levels;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
-
   auto command_buffer_handle{
       GenerateOneTimeCommand(device, command_pool_handle)};
+
   vkCmdPipelineBarrier(command_buffer_handle, source_stage, destination_stage,
                        0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
+
   SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
                        queue_handle);
 }

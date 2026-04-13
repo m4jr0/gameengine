@@ -1,0 +1,34 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_COMMON_UTILS_H_
+#define COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_COMMON_UTILS_H_
+
+#include "comet/core/essentials.h"
+#include "comet/core/frame/frame_utils.h"
+#include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
+
+namespace comet {
+namespace rendering {
+namespace gl {
+u32 ResolveBinding(u32 set, u32 binding);
+
+void AddBufferBinding(frame::FrameArray<ShaderBufferBindingUpdate>& updates,
+                      ShaderBindingIndex binding_index, GLuint buffer_handle,
+                      usize buffer_size, usize buffer_offset = 0);
+
+void AddImageBinding(frame::FrameArray<ShaderImageBindingUpdate>& updates,
+                     ShaderBindingIndex binding_index,
+                     const ShaderImageDescriptor* descriptors,
+                     u32 descriptor_count);
+
+void AddFieldUpdate(frame::FrameArray<ShaderBufferFieldUpdate>& updates,
+                    ShaderBindingIndex binding_index,
+                    ShaderFieldIndex field_index, const void* data,
+                    usize size = 0);
+}  // namespace gl
+}  // namespace rendering
+}  // namespace comet
+
+#endif  // COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_COMMON_UTILS_H_

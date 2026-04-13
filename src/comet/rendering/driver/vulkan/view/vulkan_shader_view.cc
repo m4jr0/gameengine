@@ -17,8 +17,10 @@ namespace vk {
 ShaderView::ShaderView(const ShaderViewDescr& descr)
     : View{descr},
       shader_handler_{descr.shader_handler},
+      material_handler_{descr.material_handler},
       pipeline_handler_{descr.pipeline_handler} {
   COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
+  COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
   COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
 }
 

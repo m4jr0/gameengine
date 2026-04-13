@@ -32,20 +32,22 @@
 #include "comet/input/input_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/camera/camera_manager.h"
+#include "comet/rendering/light/light_manager.h"
 #include "comet/rendering/rendering_manager.h"
 #include "comet/rendering/window/window_event.h"
 #include "comet/resource/resource_manager.h"
+#include "comet/scene/environment/environment_manager.h"
 #include "comet/scene/scene_event.h"
 #include "comet/scene/scene_manager.h"
 #include "comet/time/time_manager.h"
 
 #ifdef COMET_PROFILING
 #include "comet/profiler/profiler_manager.h"
-#endif  // COMET_PROFILIN
+#endif  // COMET_PROFILING
 
-#ifdef COMET_DEBUG
-#include "comet/rendering/debugger/debugger_displayer_manager.h"
-#endif  // COMET_DEBUG
+#ifdef COMET_HAS_DEBUG_UI
+#include "comet/debug_ui/debug_ui_manager.h"
+#endif  // COMET_HAS_DEBUG_UI
 
 namespace comet {
 Engine::~Engine() {
@@ -83,11 +85,12 @@ void Engine::Run() {
 
     auto& scene_manager{scene::SceneManager::Get()};
     scene_manager.Initialize();
+    scene::EnvironmentManager::Get().Initialize();
 
     event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>();
 
     // To catch up time taken to render.
-    f64 lag{0.0};
+    f64 lag{.0};
     COMET_LOG_CORE_INFO("Comet started");
 
     while (is_running_) {
@@ -177,14 +180,12 @@ void Engine::PreLoad() {
 }
 
 void Engine::Load() {
-#ifdef COMET_DEBUG
-  rendering::DebuggerDisplayerManager::Get().Initialize();
-#endif  // COMET_DEBUG
   rendering::RenderingManager::Get().Initialize();
+  rendering::LightManager::Get().Initialize();
   rendering::CameraManager::Get().Initialize();
   physics::PhysicsManager::Get().Initialize();
 
-  const auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
+  auto event_function{COMET_EVENT_BIND_FUNCTION(Engine::OnEvent)};
   event::EventManager::Get().Register(
       event_function, rendering::WindowCloseEvent::kStaticType_);
 
@@ -192,6 +193,9 @@ void Engine::Load() {
   entity::EntityManager::Get().Initialize();
   geometry::GeometryManager::Get().Initialize();
   GameLogicManager::Get().Initialize();
+#ifdef COMET_HAS_DEBUG_UI
+  debugui::DebugUiManager::Get().Initialize();
+#endif  // COMET_HAS_DEBUG_UI
 }
 
 void Engine::PostLoad() {
@@ -213,6 +217,10 @@ void Engine::PostLoad() {
 }
 
 void Engine::PreUnload() {
+#ifdef COMET_HAS_DEBUG_UI
+  debugui::DebugUiManager::Get().Shutdown();
+#endif  // COMET_HAS_DEBUG_UI
+  scene::EnvironmentManager::Get().Shutdown();
   GameStateManager::Get().Shutdown();
   scene::SceneManager::Get().Shutdown();
   time::TimeManager::Get().Shutdown();
@@ -223,10 +231,8 @@ void Engine::PreUnload() {
   animation::AnimationManager::Get().Shutdown();
   physics::PhysicsManager::Get().Shutdown();
   rendering::CameraManager::Get().Shutdown();
+  rendering::LightManager::Get().Shutdown();
   rendering::RenderingManager::Get().Shutdown();
-#ifdef COMET_DEBUG
-  rendering::DebuggerDisplayerManager::Get().Shutdown();
-#endif  // COMET_DEBUG
 }
 
 void Engine::Unload() {

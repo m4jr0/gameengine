@@ -41,15 +41,15 @@ void SetShaderDebugLabel(ShaderHandle handle, const schar* label);
 #define COMET_GL_SET_STORAGE_DEBUG_LABEL(handle, label) \
   comet::rendering::gl::debug::SetStorageDebugLabel(handle, label)
 #define COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(handle, label) \
-  comet::rendering::gl::debug::SetUniformBufferDebugLabel(handle, label);
+  comet::rendering::gl::debug::SetUniformBufferDebugLabel(handle, label)
 #define COMET_GL_SET_TEXTURE_DEBUG_LABEL(handle, label) \
-  comet::rendering::gl::debug::SetTextureDebugLabel(handle, label);
+  comet::rendering::gl::debug::SetTextureDebugLabel(handle, label)
 #define COMET_GL_SET_VERTEX_ATTRIBUTE_DEBUG_LABEL(handle, label) \
-  comet::rendering::gl::debug::SetVertexAttributeDebugLabel(handle, label);
+  comet::rendering::gl::debug::SetVertexAttributeDebugLabel(handle, label)
 #define COMET_GL_SET_SHADER_MODULE_DEBUG_LABEL(handle, label) \
-  comet::rendering::gl::debug::SetShaderModuleDebugLabel(handle, label);
+  comet::rendering::gl::debug::SetShaderModuleDebugLabel(handle, label)
 #define COMET_GL_SET_SHADER_DEBUG_LABEL(handle, label) \
-  comet::rendering::gl::debug::SetShaderDebugLabel(handle, label);
+  comet::rendering::gl::debug::SetShaderDebugLabel(handle, label)
 #else
 #define COMET_GL_SET_STORAGE_DEBUG_LABEL(handle, label)
 #define COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(handle, label)

@@ -2,22 +2,18 @@
   "shader_module_paths": [
     "shaders/vulkan/sparse_upload.vk.comp"
   ],
-  "constants": [
+  "bindings": [
     {
-      "name": "count",
-      "type": "u32",
-      "stages": [
-        "compute"
-      ]
-    }
-  ],
-  "storages": [
-    {
-      "name": "wordIndices",
+      "name": "WordIndices",
+      "type": "storage_buffer",
+      "scope": "global",
+      "layout": "std430",
+      "set": 0,
+      "binding": 0,
       "stages": [
         "compute"
       ],
-      "layout": [
+      "fields": [
         {
           "name": "wordIndex",
           "type": "u32"
@@ -25,11 +21,16 @@
       ]
     },
     {
-      "name": "sourceWords",
+      "name": "SourceWords",
+      "type": "storage_buffer",
+      "scope": "global",
+      "layout": "std430",
+      "set": 0,
+      "binding": 1,
       "stages": [
         "compute"
       ],
-      "layout": [
+      "fields": [
         {
           "name": "word",
           "type": "u32"
@@ -37,13 +38,32 @@
       ]
     },
     {
-      "name": "destinationWords",
+      "name": "DestinationWords",
+      "type": "storage_buffer",
+      "scope": "global",
+      "layout": "std430",
+      "set": 0,
+      "binding": 2,
       "stages": [
         "compute"
       ],
-      "layout": [
+      "fields": [
         {
           "name": "word",
+          "type": "u32"
+        }
+      ]
+    }
+  ],
+  "push_constants": [
+    {
+      "name": "SparseUploadPushConstants",
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "count",
           "type": "u32"
         }
       ]

@@ -13,22 +13,23 @@
 #include "comet/core/type/array.h"
 #include "comet/geometry/geometry_common.h"
 #include "comet/math/bounding_volume.h"
+#include "comet/math/matrix.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/camera/frustum.h"
+#include "comet/rendering/culling/frustum.h"
 
 namespace comet {
 namespace rendering {
 constexpr auto kMaxAppNameLen{256};
 constexpr auto kMaxWindowNameLen{256};
 
-constexpr math::Vec3 kColorBlackRgb{0.0f, 0.0f, 0.0f};
+constexpr math::Vec3 kColorBlackRgb{.0f, .0f, .0f};
 constexpr math::Vec3 kColorWhiteRgb{1.0f, 1.0f, 1.0f};
-constexpr math::Vec3 kColorRedRgb{1.0f, 0.0f, 0.0f};
-constexpr math::Vec3 kColorGreenRgb{0.0f, 1.0f, 0.0f};
-constexpr math::Vec3 kColorBlueRgb{0.0f, 0.0f, 1.0f};
-constexpr math::Vec3 kColorYellowRgb{1.0f, 1.0f, 0.0f};
-constexpr math::Vec3 kColorCyanRgb{0.0f, 1.0f, 1.0f};
-constexpr math::Vec3 kColorMagentaRgb{1.0f, 0.0f, 1.0f};
+constexpr math::Vec3 kColorRedRgb{1.0f, .0f, .0f};
+constexpr math::Vec3 kColorGreenRgb{.0f, 1.0f, .0f};
+constexpr math::Vec3 kColorBlueRgb{.0f, .0f, 1.0f};
+constexpr math::Vec3 kColorYellowRgb{1.0f, 1.0f, .0f};
+constexpr math::Vec3 kColorCyanRgb{.0f, 1.0f, 1.0f};
+constexpr math::Vec3 kColorMagentaRgb{1.0f, .0f, 1.0f};
 
 constexpr math::Vec4 kColorBlackRgba{kColorBlackRgb, 1.0f};
 constexpr math::Vec4 kColorWhiteRgba{kColorWhiteRgb, 1.0f};
@@ -92,8 +93,8 @@ enum class TextureFormat : u32 { Unknown = 0, Rgba8, Rgb8 };
 enum class RenderingViewType : u16 {
   Unknown = 0,
   World,
+  Shadow,
   Skybox,
-  SimpleWorld,
   Debug,
   ImGui
 };
@@ -101,16 +102,13 @@ enum class RenderingViewType : u16 {
 enum class RenderingViewMatrixSource : u8 {
   Unknown = 0,
   SceneCamera,
-  UiCamera,
-  LightCamera
+  UiCamera
 };
 
 using RenderingViewId = stringid::StringId;
 constexpr auto kInvalidRenderingViewId{static_cast<RenderingViewId>(-1)};
 
 struct RenderingViewDescr {
-  bool is_first{false};
-  bool is_last{false};
   RenderingViewMatrixSource matrix_source{RenderingViewMatrixSource::Unknown};
   RenderingViewType type{RenderingViewType::Unknown};
   WindowSize width{0};
@@ -132,50 +130,6 @@ struct ShaderDefineDescr {
   schar value[kMaxShaderDefineValueLen + 1]{'\0'};
   usize name_len{0};
   usize value_len{0};
-};
-
-using ShaderVertexAttributeSize = u32;
-constexpr auto kInvalidShaderVertexAttributeSize{
-    static_cast<ShaderVertexAttributeSize>(-1)};
-
-enum class ShaderVertexAttributeType : u8 {
-  Unknown = 0,
-  S8,
-  S16,
-  S32,
-  U8,
-  U16,
-  U32,
-  F16,
-  F32,
-  F64,
-  U8Vec2,
-  U8Vec3,
-  U8Vec4,
-  U16Vec2,
-  U16Vec3,
-  U16Vec4,
-  U32Vec2,
-  U32Vec3,
-  U32Vec4,
-  S8Vec2,
-  S8Vec3,
-  S8Vec4,
-  S16Vec2,
-  S16Vec3,
-  S16Vec4,
-  S32Vec2,
-  S32Vec3,
-  S32Vec4,
-  F16Vec2,
-  F16Vec3,
-  F16Vec4,
-  F32Vec2,
-  F32Vec3,
-  F32Vec4,
-  F64Vec2,
-  F64Vec3,
-  F64Vec4
 };
 
 enum class ShaderVariableType : u8 {
@@ -221,16 +175,10 @@ Alignment GetScalarAlignment(ShaderVariableType type);
 Alignment GetStd140Alignment(ShaderVariableType type);
 Alignment GetStd430Alignment(ShaderVariableType type);
 
-constexpr auto kVertexAttributeDescrMaxNameLen{63};
+using ShaderVariableSize = u32;
+constexpr auto kInvalidShaderVariableSize{static_cast<ShaderVariableSize>(-1)};
 
-struct ShaderVertexAttributeDescr {
-  ShaderVertexAttributeType type{ShaderVertexAttributeType::Unknown};
-  schar name[kVertexAttributeDescrMaxNameLen + 1]{'\0'};
-  usize name_len{0};
-};
-
-void SetName(ShaderVertexAttributeDescr& descr, const schar* name,
-             usize name_len);
+ShaderVariableSize GetShaderVariableTypeSize(ShaderVariableType type);
 
 enum ShaderStageFlagBits {
   kShaderStageFlagBitsNone = 0x0,
@@ -241,67 +189,121 @@ enum ShaderStageFlagBits {
 
 using ShaderStageFlags = u8;
 
-using ShaderUniformSize = u32;
-constexpr auto kInvalidShaderUniformSize{static_cast<ShaderUniformSize>(-1)};
+enum class ShaderBindingType : u8 {
+  Unknown = 0,
+  UniformBuffer,
+  StorageBuffer,
+  CombinedImageSampler,
+  SampledImage,
+  Sampler,
+  StorageImage
+};
 
-enum class ShaderUniformScope : u8 { Unknown = 0, Global, Instance };
-constexpr auto kShaderUniformDescrMaxNameLen{63};
+enum class ShaderBindingScope : u8 {
+  Unknown = 0,
+  Global,
+  Material,
+  Pass,
+  Draw
+};
 
-struct ShaderUniformDescr {
+enum class ShaderMemoryLayout : u8 { Unknown = 0, Std140, Std430, Packed };
+
+constexpr auto kShaderNameMaxLen{63};
+
+struct ShaderNamedDescr {
+  schar name[kShaderNameMaxLen + 1]{'\0'};
+  usize name_len{0};
+};
+
+enum class ShaderVertexLayout : u8 {
+  None = 0,
+
+  // Static meshes currently bind to the skinned layout too.
+  // Joint indices / weights are simply unused by static shaders.
+  SkinnedVertex,
+  DebugLine
+};
+
+const schar* GetShaderVertexLayoutLabel(ShaderVertexLayout layout);
+
+struct ShaderFieldDescr : ShaderNamedDescr {
   ShaderVariableType type{ShaderVariableType::Unknown};
-  ShaderUniformScope scope{ShaderUniformScope::Unknown};
+  u32 array_count{1};
+};
+
+enum class ShaderImageBindingSemantic : u8 {
+  Unknown = 0,
+
+  // Material.
+  MaterialDiffuse,
+  MaterialSpecular,
+  MaterialNormal,
+  MaterialTextures,
+
+  // Global / shadowing.
+  MainShadowMap,
+  ShadowMaps,
+
+  // Future deferred / generic.
+  GbufferAlbedo,
+  GbufferNormal,
+  GbufferDepth,
+};
+
+struct ShaderBindingDescr : ShaderNamedDescr {
+  ShaderBindingType type{ShaderBindingType::Unknown};
+  ShaderBindingScope scope{ShaderBindingScope::Unknown};
+  ShaderMemoryLayout layout{ShaderMemoryLayout::Unknown};
   ShaderStageFlags stages{kShaderStageFlagBitsNone};
-  schar name[kShaderUniformDescrMaxNameLen + 1]{'\0'};
-  usize name_len{0};
+  u32 set{0};
+  u32 binding{0};
+  u32 descriptor_count{1};
+  ShaderImageBindingSemantic image_semantic{
+      ShaderImageBindingSemantic::Unknown};
+  Array<ShaderFieldDescr> fields{};
 };
 
-using ShaderConstantSize = u32;
-constexpr auto kInvalidShaderConstantSize{static_cast<ShaderConstantSize>(-1)};
-
-constexpr auto kShaderConstantDescrMaxNameLen{63};
-
-struct ShaderConstantDescr {
-  ShaderVariableType type{ShaderVariableType::Unknown};
+struct ShaderPushConstantDescr : ShaderNamedDescr {
   ShaderStageFlags stages{kShaderStageFlagBitsNone};
-  schar name[kShaderConstantDescrMaxNameLen + 1]{'\0'};
-  usize name_len{0};
+  Array<ShaderFieldDescr> fields{};
 };
 
-constexpr auto kShaderStoragePropertyDescrMaxNameLen{63};
-
-struct ShaderStoragePropertyDescr {
-  ShaderVariableType type{ShaderVariableType::Unknown};
-  schar name[kShaderStoragePropertyDescrMaxNameLen + 1]{'\0'};
-  usize name_len{0};
-};
-
-constexpr auto kShaderStorageDescrMaxNameLen{63};
-
-struct ShaderStorageDescr {
-  schar name[kShaderStorageDescrMaxNameLen + 1]{'\0'};
-  schar engine_define[kMaxShaderDefineNameLen + 1]{'\0'};
-  ShaderStageFlags stages{kShaderStageFlagBitsNone};
-  usize name_len{0};
-  usize engine_define_len{0};
-  Array<ShaderStoragePropertyDescr> properties{};
-};
-
-void SetName(ShaderUniformDescr& descr, const schar* name, usize name_len);
-void SetName(ShaderConstantDescr& descr, const schar* name, usize name_len);
-void SetName(ShaderStorageDescr& descr, const schar* name, usize name_len);
-void SetEngineDefine(ShaderStorageDescr& descr, const schar* engine_define,
-                     usize engine_define_len);
-void SetName(ShaderStoragePropertyDescr& descr, const schar* name,
-             usize name_len);
+void SetName(ShaderNamedDescr& descr, const schar* name, usize name_len);
+void SetName(ShaderFieldDescr& descr, const schar* name, usize name_len);
+void SetName(ShaderBindingDescr& descr, const schar* name, usize name_len);
+void SetName(ShaderPushConstantDescr& descr, const schar* name, usize name_len);
 void SetName(ShaderDefineDescr& descr, const schar* name, usize name_len);
 void SetValue(ShaderDefineDescr& descr, const schar* value, usize value_len);
 
 constexpr auto kMaxShaderCount{256};
-constexpr auto kMaxShaderUniformCount{128};
-constexpr auto kMaxShaderConstantCount{32};
 constexpr auto kMaxShaderTextureMapCount{32};
 
 enum class CullMode { Unknown = 0, None, Front, Back, FrontAndBack };
+
+struct RasterizerDescr {
+  bool is_wireframe{false};
+  bool is_depth_bias{false};
+  CullMode cull_mode{CullMode::Unknown};
+};
+
+enum class CompareOp : u8 {
+  Unknown = 0,
+  Never,
+  Less,
+  Equal,
+  LessOrEqual,
+  Greater,
+  NotEqual,
+  GreaterOrEqual,
+  Always
+};
+
+struct DepthStencilDescr {
+  bool is_depth_test{true};
+  bool is_depth_write{true};
+  CompareOp compare_op{CompareOp::Less};
+};
 
 enum class PrimitiveTopology {
   Unknown = 0,
@@ -319,6 +321,23 @@ void GenerateGeometry(const math::Aabb& aabb,
 void GenerateGeometry(const Frustum& frustum,
                       Array<geometry::SkinnedVertex>& vertices,
                       Array<geometry::Index>& indices);
+
+bool IsBufferBindingType(ShaderBindingType type);
+
+bool IsImageBindingType(ShaderBindingType type);
+
+struct RenderCameraData {
+  math::Mat4 projection_matrix{1.0f};
+  math::Mat4 view_matrix{1.0f};
+  math::Vec3 view_position{.0f};
+  f32 near_plane{.05f};
+  math::Vec3 front{.0f, .0f, -1.0f};
+  f32 far_plane{1000.0f};
+  math::Vec3 up{.0f, 1.0f, .0f};
+  f32 fov_y_radians{.0f};
+  math::Vec3 right{1.0f, .0f, .0f};
+  f32 aspect_ratio{1.0f};
+};
 }  // namespace rendering
 }  // namespace comet
 

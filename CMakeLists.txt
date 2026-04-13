@@ -140,7 +140,7 @@ message(STATUS
 project("comet_game_engine"
   VERSION 0.1.0
   DESCRIPTION "Simple video game engine"
-  LANGUAGES CXX ASM ASM_MASM
+  LANGUAGES CXX C ASM ASM_MASM
 )
 
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)

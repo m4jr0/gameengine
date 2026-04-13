@@ -1,0 +1,100 @@
+{
+  "rasterizer": {
+    "is_wireframe": true,
+    "is_depth_bias": false,
+    "cull_mode": "back"
+  },
+  "depth_stencil": {
+    "is_depth_test": false,
+    "is_depth_write": false,
+    "compare_op": "always"
+  },
+  "topology": "lines",
+  "shader_module_paths": [
+    "shaders/vulkan/forward_debug.vk.comp",
+    "shaders/vulkan/forward_debug.vk.vert",
+    "shaders/vulkan/forward_debug.vk.frag"
+  ],
+  "vertex_layout": "debug_line",
+  "bindings": [
+    {
+      "name": "DebugGlobals",
+      "type": "uniform_buffer",
+      "scope": "global",
+      "layout": "std140",
+      "set": 0,
+      "binding": 0,
+      "stages": [
+        "vertex"
+      ],
+      "fields": [
+        {
+          "name": "projection",
+          "type": "mat4"
+        },
+        {
+          "name": "view",
+          "type": "mat4"
+        }
+      ]
+    },
+    {
+      "name": "DebugAabbs",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 5,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "minExtents",
+          "type": "vec3"
+        },
+        {
+          "name": "maxExtents",
+          "type": "vec3"
+        }
+      ]
+    },
+    {
+      "name": "LineVertices",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 6,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "lineVertex",
+          "type": "vec4"
+        }
+      ]
+    }
+  ],
+  "push_constants": [
+    {
+      "name": "DebugPushConstants",
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "count",
+          "type": "u32"
+        }
+      ]
+    }
+  ],
+  "defines": [
+    {
+      "name": "COMET_DEBUG_CULLING",
+      "value": "1"
+    }
+  ]
+}

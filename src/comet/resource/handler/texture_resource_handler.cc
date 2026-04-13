@@ -42,7 +42,7 @@ ResourceFile TextureResourceHandler::Pack(const TextureResource& resource,
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  const auto data_size{sizeof(u8) * texture.data.GetSize()};
+  auto data_size{sizeof(u8) * texture.data.GetSize()};
 
   Array<u8> data{byte_allocator_};
   data.Resize(kResourceIdSize + kResourceTypeIdSize + data_size);
@@ -75,8 +75,8 @@ void TextureResourceHandler::Unpack(const ResourceFile& file,
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  const auto data_size{sizeof(u8) * data.GetSize() - kResourceIdSize -
-                       kResourceTypeIdSize};
+  auto data_size{sizeof(u8) * data.GetSize() - kResourceIdSize -
+                 kResourceTypeIdSize};
 
   memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
@@ -122,8 +122,8 @@ TextureResource* TextureResourceHandler::GetDefaultTextureResource() {
       }
 
       for (usize row{0}; row < kDimension; ++row) {
-        const auto row_image_index{col * kDimension + row};
-        const auto data_index{kChannelCount * row_image_index};
+        auto row_image_index{col * kDimension + row};
+        auto data_index{kChannelCount * row_image_index};
 
         if (row_image_index % kPatternThreshold == 0) {
           is_color_1 = !is_color_1;
@@ -205,7 +205,7 @@ TextureResource* TextureResourceHandler::GetDefaultNormalTextureResource() {
   if (normal_texture_ == nullptr) {
     constexpr auto kDimension{1};
     constexpr auto kChannelCount{4};
-    constexpr u8 kColor[]{127, 127, 255, 255};
+    constexpr u8 kColor[]{128, 128, 255, 255};
 
     normal_texture_ = std::make_unique<TextureResource>();
     normal_texture_->id = kDefaultNormalTextureResourceId;

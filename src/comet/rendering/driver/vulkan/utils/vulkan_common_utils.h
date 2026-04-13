@@ -20,6 +20,8 @@ bool IsGraphicsStage(VkShaderStageFlags stage_flags);
 bool IsComputeStage(VkShaderStageFlags stage_flags);
 bool IsBindPoint(VkPipelineBindPoint bind_point,
                  VkShaderStageFlags stage_flags);
+bool IsDepthFormat(VkFormat format);
+VkCompareOp GetVkCompareOp(CompareOp op);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

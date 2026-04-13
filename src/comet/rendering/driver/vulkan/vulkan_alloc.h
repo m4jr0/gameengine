@@ -52,8 +52,8 @@ struct MemoryCallbacks {
  private:
   MemoryCallbacks();
 
-  VkAllocationCallbacks allocationCallbacks = {};
-  VmaDeviceMemoryCallbacks memory_callbacks = {};
+  VkAllocationCallbacks allocationCallbacks{};
+  VmaDeviceMemoryCallbacks memory_callbacks{};
 };
 }  // namespace vk
 }  // namespace rendering

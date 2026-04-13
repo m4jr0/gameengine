@@ -158,7 +158,7 @@ void Swapchain::Initialize() {
     image_count = details.capabilities.maxImageCount;
   }
 
-  const auto queue_family_indices{
+  auto queue_family_indices{
       FindQueueFamilies(physical_device_handle, *window_)};
 
   auto queue_family_unique_indices{GetUniqueIndices(queue_family_indices)};
@@ -370,7 +370,7 @@ void Swapchain::InitializeColorResources() {
 
   color_image_.allocator_handle = context_->GetAllocatorHandle();
 
-  GenerateImage(color_image_, device, extent_.width, extent_.height, 1,
+  GenerateImage(color_image_, device, extent_.width, extent_.height, 1, 1,
                 device.GetMsaaSamples(), format_, VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -388,7 +388,7 @@ void Swapchain::InitializeDepthResources() {
   auto depth_format{device.ChooseDepthFormat()};
   depth_image_.allocator_handle = context_->GetAllocatorHandle();
 
-  GenerateImage(depth_image_, device, extent_.width, extent_.height, 1,
+  GenerateImage(depth_image_, device, extent_.width, extent_.height, 1, 1,
                 device.GetMsaaSamples(), depth_format, VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

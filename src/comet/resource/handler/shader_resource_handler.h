@@ -15,12 +15,12 @@ namespace comet {
 namespace resource {
 class ShaderResourceHandler : public ResourceHandler<ShaderResource> {
  public:
-  ShaderResourceHandler(const ResourceHandlerDescr& descr);
+  explicit ShaderResourceHandler(const ResourceHandlerDescr& descr);
   ShaderResourceHandler(const ShaderResourceHandler&) = delete;
   ShaderResourceHandler(ShaderResourceHandler&&) = delete;
   ShaderResourceHandler& operator=(const ShaderResourceHandler&) = delete;
   ShaderResourceHandler& operator=(ShaderResourceHandler&&) = delete;
-  virtual ~ShaderResourceHandler() = default;
+  ~ShaderResourceHandler() override = default;
 
   ResourceFile Pack(const ShaderResource& resource,
                     CompressionMode compression_mode) override;
@@ -29,31 +29,26 @@ class ShaderResourceHandler : public ResourceHandler<ShaderResource> {
 
  private:
   Array<u8> DumpDescr(const ShaderResourceDescr& descr);
+
   void DumpShaderModules(const ShaderResourceDescr& descr, u8* buffer,
                          usize& cursor);
   void DumpShaderDefines(const ShaderResourceDescr& descr, u8* buffer,
                          usize& cursor);
-  void DumpVertexAttributes(const ShaderResourceDescr& descr, u8* buffer,
-                            usize& cursor);
-  void DumpUniforms(const ShaderResourceDescr& descr, u8* buffer,
+  void DumpBindings(const ShaderResourceDescr& descr, u8* buffer,
                     usize& cursor);
-  void DumpConstants(const ShaderResourceDescr& descr, u8* buffer,
-                     usize& cursor);
-  void DumpStorages(const ShaderResourceDescr& descr, u8* buffer,
-                    usize& cursor);
+  void DumpPushConstants(const ShaderResourceDescr& descr, u8* buffer,
+                         usize& cursor);
+
   void ParseDescr(const Array<u8>& dumped_descr, ShaderResourceDescr& descr);
+
   void ParseShaderModules(const u8* buffer, ShaderResourceDescr& descr,
                           usize& cursor);
   void ParseShaderDefines(const u8* buffer, ShaderResourceDescr& descr,
                           usize& cursor);
-  void ParseVertexAttributes(const u8* buffer, ShaderResourceDescr& descr,
-                             usize& cursor);
-  void ParseUniforms(const u8* buffer, ShaderResourceDescr& descr,
+  void ParseBindings(const u8* buffer, ShaderResourceDescr& descr,
                      usize& cursor);
-  void ParseConstants(const u8* buffer, ShaderResourceDescr& descr,
-                      usize& cursor);
-  void ParseStorages(const u8* buffer, ShaderResourceDescr& descr,
-                     usize& cursor);
+  void ParsePushConstants(const u8* buffer, ShaderResourceDescr& descr,
+                          usize& cursor);
 };
 }  // namespace resource
 }  // namespace comet

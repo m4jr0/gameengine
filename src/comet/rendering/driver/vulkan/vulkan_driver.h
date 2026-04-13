@@ -19,10 +19,10 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/event/event.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
@@ -73,12 +73,16 @@ class VulkanDriver : public Driver {
 
   void ApplyWindowResize();
 
-  void PreDraw(const frame::FramePacket* packet);
-  void PostDraw(const frame::FramePacket* packet);
+  void PreDraw(frame::FramePacket* packet);
+  void PostDraw();
   void Draw(frame::FramePacket* packet);
 
-  void PrepareRenderBarriers(const CommandData& command_data);
-  void PrepareViewportAndScissor(const CommandData& command_data);
+  void HandleSwapchainState(frame::FramePacket* packet);
+  void ResetRenderFence(FrameData& frame_data);
+  void UpdateGpuSceneState(frame::FramePacket* packet);
+  void RecordFrame(frame::FramePacket* packet);
+  void SubmitFrame(const frame::FramePacket* packet,
+                   const CommandData& command_data, FrameData& frame_data);
 
   frame::FrameArray<const schar*> GetRequiredExtensions();
 
@@ -105,6 +109,7 @@ class VulkanDriver : public Driver {
   memory::UniquePtr<ShaderHandler> shader_handler_{nullptr};
   memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
   memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
+  memory::UniquePtr<LightingHandler> lighting_handler_{nullptr};
   memory::UniquePtr<ViewHandler> view_handler_{nullptr};
 
 #ifdef COMET_DEBUG_RENDERING

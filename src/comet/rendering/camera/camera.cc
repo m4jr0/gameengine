@@ -50,8 +50,11 @@ void Camera::Orbit(const math::Vec2& delta) {
 
 void Camera::Reset() {
   // TODO(m4jr0): Focus on default primitive.
-  SetPosition({0.0f, 7.5f, 30.0f});
-  SetRotation({1.0f, 0.0f, 0.0f, 0.0f});  // No rotation.
+  constexpr math::Vec3 kDefaultPosition{4.491f, 1.285f, 1.995f};
+  constexpr math::Quat kDefaultRotation{.831f, .0f, .55f, .01f};
+
+  SetPosition(kDefaultPosition);
+  SetRotation(kDefaultRotation);
 }
 
 void Camera::SetRotation(const math::Quat& rotation) {
@@ -93,7 +96,7 @@ void Camera::SetPosition(const math::Vec3& position) {
 
 const math::Vec3& Camera::GetPosition() const noexcept { return position_; }
 
-const math::Vec3& Camera::GetView() const noexcept { return front_; }
+const math::Vec3& Camera::GetFront() const noexcept { return front_; }
 
 const math::Vec3& Camera::GetUp() const noexcept { return up_; }
 
@@ -156,13 +159,14 @@ void Camera::UpdateViewMatrix() {
 
 void Camera::UpdateProjectionMatrix() {
   projection_matrix_ =
-      GenerateProjectionMatrix(GetFovInRadians(), GetRatio(), z_near_, z_far_);
+      GeneratePerspectiveMatrix(GetFovInRadians(), GetRatio(), z_near_, z_far_,
+                                ClipSpaceDepthRange::ZeroToOne);
 }
 
 void Camera::UpdateFrustum() {
-  const auto half_vertical{z_far_ * math::Tan(GetFovInRadians() * 0.5f)};
-  const auto half_horizontal{half_vertical * GetRatio()};
-  const auto z_far_vec{z_far_ * front_};
+  auto half_vertical{z_far_ * math::Tan(GetFovInRadians() * .5f)};
+  auto half_horizontal{half_vertical * GetRatio()};
+  auto z_far_vec{z_far_ * front_};
 
   frustum_.SetNear({position_ + z_near_ * front_, front_});
   frustum_.SetFar({position_ + z_far_vec, -front_});
@@ -180,8 +184,8 @@ math::Vec3 Camera::GetCenterPivotPoint() {
   const auto& ray_direction{front_};
   const auto& ray_origin{position_};
   // Find point where the ray intersects the XY plane.
-  const auto t{-ray_origin.z / ray_direction.z};
-  const auto intersection_point{ray_origin + ray_direction * t};
+  auto t{-ray_origin.z / ray_direction.z};
+  auto intersection_point{ray_origin + ray_direction * t};
   return intersection_point;
 }
 

@@ -14,7 +14,10 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-Handler::Handler(const HandlerDescr&) {}
+Handler::Handler(const HandlerDescr& descr) : frame_state_{descr.frame_state} {
+  COMET_ASSERT(frame_state_ != nullptr,
+               "Frame state cannot be null for handler!");
+}
 
 Handler::~Handler() {
   COMET_ASSERT(!is_initialized_,

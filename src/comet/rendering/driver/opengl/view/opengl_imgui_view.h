@@ -30,7 +30,7 @@ class ImGuiView : public View {
 
   void Initialize() override;
   void Destroy() override;
-  void Update(frame::FramePacket* packet) override;
+  void Update(frame::FramePacket*) override;
 
  private:
   void Draw() const;

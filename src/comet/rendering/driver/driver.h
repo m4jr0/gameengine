@@ -29,6 +29,7 @@ struct DriverDescr {
                      1.0f};
   schar app_name[kMaxAppNameLen]{'\0'};
   usize app_name_len{0};
+  const ShadowSettings* shadow_settings{nullptr};
   Array<RenderingViewDescr> rendering_view_descrs{};
 };
 
@@ -66,6 +67,7 @@ class Driver {
                       1.0f};
   schar app_name_[kMaxAppNameLen]{'\0'};
   usize app_name_len_{0};
+  const ShadowSettings* shadow_settings_{};
   memory::PlatformAllocator rendering_view_descrs_allocator_{
       memory::kEngineMemoryTagRendering};
   Array<RenderingViewDescr> rendering_view_descrs_{};

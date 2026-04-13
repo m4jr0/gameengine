@@ -6,6 +6,7 @@
 #define COMET_COMET_RESOURCE_SHADER_MODULE_RESOURCE_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/type/array.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/resource/resource.h"
 

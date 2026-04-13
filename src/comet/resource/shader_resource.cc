@@ -19,25 +19,29 @@ const ResourceTypeId ShaderResource::kResourceTypeId{COMET_STRING_ID("shader")};
 usize GetSizeFromDescr(const ShaderResourceDescr& descr) {
   constexpr auto kBoolSize{sizeof(bool)};
   constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
+  constexpr auto kCompareOpSize{sizeof(rendering::CompareOp)};
   constexpr auto kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
-  constexpr auto kUsizeSize(sizeof(usize));
-  constexpr auto kShaderVertexAttributeTypeSize(
-      sizeof(rendering::ShaderVertexAttributeType));
-  constexpr auto kShaderUniformTypeSize(sizeof(rendering::ShaderVariableType));
-  constexpr auto kShaderUniformScopeSize(sizeof(rendering::ShaderUniformScope));
-  constexpr auto kShaderConstantTypeSize(sizeof(rendering::ShaderVariableType));
-  constexpr auto kShaderStoragePropertyTypeSize(
-      sizeof(rendering::ShaderVariableType));
-  constexpr auto kShaderStageFlagsSize(sizeof(rendering::ShaderStageFlags));
+  constexpr auto kShaderVertexLayoutSize{sizeof(rendering::ShaderVertexLayout)};
+  constexpr auto kUsizeSize{sizeof(usize)};
+  constexpr auto kU32Size{sizeof(u32)};
 
-  // is_wireframe size, cull_mode size, topology size, and shader_module_paths
-  // size.
-  auto total_size{kBoolSize + kCullModeSize + kPrimitiveTopologySize +
-                  kUsizeSize};
+  constexpr auto kShaderBindingTypeSize{sizeof(rendering::ShaderBindingType)};
+  constexpr auto kShaderBindingScopeSize{sizeof(rendering::ShaderBindingScope)};
+  constexpr auto kShaderMemoryLayoutSize{sizeof(rendering::ShaderMemoryLayout)};
+  constexpr auto kShaderStageFlagsSize{sizeof(rendering::ShaderStageFlags)};
+  constexpr auto kShaderVariableTypeSize{sizeof(rendering::ShaderVariableType)};
+  constexpr auto kShaderImageBindingSemanticSize{
+      sizeof(rendering::ShaderImageBindingSemantic)};
+
+  auto total_size{kBoolSize + kBoolSize + kCullModeSize + kBoolSize +
+                  kBoolSize + kCompareOpSize + kPrimitiveTopologySize +
+                  kShaderVertexLayoutSize};
+
+  total_size += kUsizeSize;
 
   for (const auto& module_path : descr.shader_module_paths) {
-    total_size += kUsizeSize +
-                  (module_path.GetLengthWithNullTerminator()) * sizeof(tchar);
+    total_size += kUsizeSize;
+    total_size += module_path.GetLengthWithNullTerminator() * sizeof(tchar);
   }
 
   total_size += kUsizeSize;
@@ -49,38 +53,39 @@ usize GetSizeFromDescr(const ShaderResourceDescr& descr) {
 
   total_size += kUsizeSize;
 
-  for (const auto& vertex_attribute : descr.vertex_attributes) {
-    total_size +=
-        kShaderVertexAttributeTypeSize + kUsizeSize + vertex_attribute.name_len;
-  }
-
-  total_size += kUsizeSize;
-
-  for (const auto& uniform : descr.uniforms) {
-    total_size += kShaderUniformTypeSize + kShaderUniformScopeSize +
-                  kShaderStageFlagsSize + kUsizeSize + uniform.name_len;
-  }
-
-  total_size += kUsizeSize;
-
-  for (const auto& constant : descr.constants) {
-    total_size += kShaderConstantTypeSize + kShaderStageFlagsSize + kUsizeSize +
-                  constant.name_len;
-  }
-
-  total_size += kUsizeSize;
-
-  for (const auto& buffer : descr.storages) {
-    total_size += kUsizeSize + buffer.name_len;
+  for (const auto& binding : descr.bindings) {
+    total_size += kUsizeSize + binding.name_len;
+    total_size += kShaderBindingTypeSize;
+    total_size += kShaderBindingScopeSize;
+    total_size += kShaderMemoryLayoutSize;
+    total_size += kU32Size;
+    total_size += kU32Size;
+    total_size += kU32Size;
+    total_size += kShaderImageBindingSemanticSize;
     total_size += kShaderStageFlagsSize;
+
     total_size += kUsizeSize;
 
-    for (const auto& property : buffer.properties) {
-      total_size +=
-          kShaderStoragePropertyTypeSize + kUsizeSize + property.name_len;
+    for (const auto& field : binding.fields) {
+      total_size += kUsizeSize + field.name_len;
+      total_size += kShaderVariableTypeSize;
+      total_size += kU32Size;
     }
+  }
 
-    total_size += kUsizeSize + buffer.engine_define_len;
+  total_size += kUsizeSize;
+
+  for (const auto& push_constant : descr.push_constants) {
+    total_size += kUsizeSize + push_constant.name_len;
+    total_size += kShaderStageFlagsSize;
+
+    total_size += kUsizeSize;
+
+    for (const auto& field : push_constant.fields) {
+      total_size += kUsizeSize + field.name_len;
+      total_size += kShaderVariableTypeSize;
+      total_size += kU32Size;
+    }
   }
 
   return total_size;
@@ -88,15 +93,15 @@ usize GetSizeFromDescr(const ShaderResourceDescr& descr) {
 
 const schar** GetActiveShaderEngineDefines(usize& count) {
   static const schar* kActiveDefines[]{
-#if defined(COMET_VALIDATION_DEBUG_PRINTF_EXT)
+#ifdef COMET_VALIDATION_DEBUG_PRINTF_EXT
       "COMET_VALIDATION_DEBUG_PRINTF_EXT",
-#endif
-#if defined(COMET_DEBUG_RENDERING)
+#endif  // COMET_VALIDATION_DEBUG_PRINTF_EXT
+#ifdef COMET_DEBUG_RENDERING
       "COMET_DEBUG_RENDERING",
-#endif
-#if defined(COMET_DEBUG_CULLING)
+#endif  // COMET_DEBUG_RENDERING
+#ifdef COMET_DEBUG_CULLING
       "COMET_DEBUG_CULLING",
-#endif
+#endif  // COMET_DEBUG_CULLING
       nullptr};
 
   usize actual_count{0};
@@ -124,6 +129,11 @@ bool IsShaderEngineDefineSet(const schar* engine_define,
   }
 
   return false;
+}
+
+ResourceId GetDefaultShaderResourceId() {
+  return resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+      COMET_TCHAR("shaders/vulkan/default_shader.vk.cshader"));
 }
 }  // namespace resource
 }  // namespace comet

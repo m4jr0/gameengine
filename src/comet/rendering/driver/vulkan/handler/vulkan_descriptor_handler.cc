@@ -107,7 +107,8 @@ void DescriptorHandler::Destroy(VkDescriptorSet* descriptor_set_handles,
                 ? static_descriptor_pool_
                 : dynamic_descriptor_pools_[context_->GetFrameInFlightIndex()]};
   FreeDescriptor(device, descriptor_set_handles, pool, count);
-  for (u32 i = 0; i < count; ++i) {
+
+  for (u32 i{0}; i < count; ++i) {
     descriptor_set_handles[i] = VK_NULL_HANDLE;
   }
 }

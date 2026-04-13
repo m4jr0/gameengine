@@ -82,8 +82,8 @@ bool AllocateDescriptor(
   allocate_info.descriptorPool = descriptor_pool_handle;
   allocate_info.pNext = VK_NULL_HANDLE;
 
-  const auto result{vkAllocateDescriptorSets(device_handle, &allocate_info,
-                                             descriptor_set_handles)};
+  auto result{vkAllocateDescriptorSets(device_handle, &allocate_info,
+                                       descriptor_set_handles)};
 
   switch (result) {
     case VK_SUCCESS:

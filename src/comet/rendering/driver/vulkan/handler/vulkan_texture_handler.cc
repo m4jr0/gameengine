@@ -11,6 +11,10 @@
 #include "vulkan_texture_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+// External. ///////////////////////////////////////////////////////////////////
+#include "vulkan/vulkan.h"
+////////////////////////////////////////////////////////////////////////////////
+
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
 #include "comet/core/c_string.h"
 #include "comet/core/file_system/file_system.h"
@@ -38,7 +42,7 @@ TextureHandler::TextureHandler(const TextureHandlerDescr& descr)
 void TextureHandler::Initialize() {
   Handler::Initialize();
   allocator_.Initialize();
-  textures_ = Map<TextureId, Texture*>{&allocator_};
+  textures_ = Map<TextureKey, Texture*, TextureKeyHashLogic>{&allocator_};
 }
 
 void TextureHandler::Shutdown() {
@@ -53,16 +57,21 @@ void TextureHandler::Shutdown() {
 
 const Texture* TextureHandler::Generate(
     const resource::TextureResource* resource) {
-  auto* texture{
-      textures_.Emplace(resource->id, GenerateInstance(resource)).value};
+  return Generate(resource, TextureType::Unknown);
+}
 
-  // TODO(m4jr0): Support compatibility with GPU properly.
-  texture->channel_count = 4;
-  texture->format = VK_FORMAT_R8G8B8A8_SRGB;
+const Texture* TextureHandler::Generate(
+    const resource::TextureResource* resource, TextureType type) {
+  COMET_ASSERT(resource != nullptr, "Texture resource is null!");
 
-  // Generate texture image.
-  const auto image_size{texture->width * texture->height *
-                        texture->channel_count};
+  TextureKey key{};
+  key.id = resource->id;
+  key.type = type;
+
+  auto* texture{textures_.Emplace(key, GenerateInstance(resource, type)).value};
+
+  auto image_size{static_cast<VkDeviceSize>(texture->width * texture->height *
+                                            texture->channel_count)};
   Buffer staging_buffer{};
   auto& device{context_->GetDevice()};
 
@@ -73,10 +82,11 @@ const Texture* TextureHandler::Generate(
                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
                      VK_SHARING_MODE_EXCLUSIVE, "staging_buffer");
-
-  MapBuffer(staging_buffer);
-  CopyToBuffer(staging_buffer, resource->data.GetData(), image_size);
-  UnmapBuffer(staging_buffer);
+  {
+    ScopedMappedBuffer mapped{staging_buffer};
+    CopyToBuffer(staging_buffer, resource->data.GetData(),
+                 static_cast<usize>(image_size));
+  }
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
   constexpr auto kDebugLabelLen{kMaxPathLength};
@@ -90,32 +100,35 @@ const Texture* TextureHandler::Generate(
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
   GenerateImage(texture->image, device, texture->width, texture->height,
-                texture->mip_levels, VK_SAMPLE_COUNT_1_BIT, texture->format,
+                texture->mip_levels, 1, VK_SAMPLE_COUNT_1_BIT, texture->format,
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                     VK_IMAGE_USAGE_SAMPLED_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debug_label);
 
-  auto old_layout{VK_IMAGE_LAYOUT_UNDEFINED};
-  auto new_layout{VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL};
+  // vkCmdBlitImage is only in a queue with graphics capacility.
   auto command_pool_handle{context_->GetFrameData().command_pool_handle};
 
   TransitionImageLayout(*context_, texture->image.handle, texture->format,
-                        old_layout, new_layout, texture->mip_levels);
+                        VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        texture->mip_levels, 1);
+
   auto command_buffer_handle{
       GenerateOneTimeCommand(device, command_pool_handle)};
   CopyBufferToImage(command_buffer_handle, staging_buffer, texture->image,
                     texture->width, texture->height);
   SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
                        device.GetGraphicsQueueHandle());
+
   DestroyBuffer(staging_buffer);
   GenerateMipmaps(texture);
 
-  // Generate texture image view.
   texture->image.image_view_handle =
       GenerateImageView(device, texture->image.handle, texture->format,
                         VK_IMAGE_ASPECT_COLOR_BIT, texture->mip_levels);
+
   return texture;
 }
 
@@ -126,8 +139,25 @@ const Texture* TextureHandler::Get(TextureId texture_id) const {
   return texture;
 }
 
+const Texture* TextureHandler::Get(TextureId texture_id,
+                                   TextureType type) const {
+  const auto* texture{TryGet(texture_id, type)};
+  COMET_ASSERT(texture != nullptr,
+               "Requested texture does not exist: ", texture_id, "!");
+  return texture;
+}
+
 const Texture* TextureHandler::TryGet(TextureId texture_id) const {
-  auto texture_ptr{textures_.TryGet(texture_id)};
+  return TryGet(texture_id, TextureType::Unknown);
+}
+
+const Texture* TextureHandler::TryGet(TextureId texture_id,
+                                      TextureType type) const {
+  TextureKey key{};
+  key.id = texture_id;
+  key.type = type;
+
+  auto texture_ptr{textures_.TryGet(key)};
 
   if (texture_ptr == nullptr) {
     return nullptr;
@@ -140,17 +170,28 @@ const Texture* TextureHandler::TryGet(TextureId texture_id) const {
 
 const Texture* TextureHandler::GetOrGenerate(
     const resource::TextureResource* resource) {
-  const auto* texture{TryGet(resource->id)};
+  return GetOrGenerate(resource, TextureType::Unknown);
+}
+
+const Texture* TextureHandler::GetOrGenerate(
+    const resource::TextureResource* resource, TextureType type) {
+  COMET_ASSERT(resource != nullptr, "Texture resource is null!");
+
+  const auto* texture{TryGet(resource->id, type)};
 
   if (texture != nullptr) {
     return texture;
   }
 
-  return Generate(resource);
+  return Generate(resource, type);
 }
 
 void TextureHandler::Destroy(TextureId texture_id) {
-  return Destroy(Get(texture_id));
+  Destroy(texture_id, TextureType::Unknown);
+}
+
+void TextureHandler::Destroy(TextureId texture_id, TextureType type) {
+  return Destroy(Get(texture_id, type));
 }
 
 void TextureHandler::Destroy(Texture* texture) {
@@ -164,8 +205,23 @@ Texture* TextureHandler::Get(TextureId texture_id) {
   return texture;
 }
 
+Texture* TextureHandler::Get(TextureId texture_id, TextureType type) {
+  auto* texture{TryGet(texture_id, type)};
+  COMET_ASSERT(texture != nullptr,
+               "Requested texture does not exist: ", texture_id, "!");
+  return texture;
+}
+
 Texture* TextureHandler::TryGet(TextureId texture_id) {
-  auto** texture{textures_.TryGet(texture_id)};
+  return TryGet(texture_id, TextureType::Unknown);
+}
+
+Texture* TextureHandler::TryGet(TextureId texture_id, TextureType type) {
+  TextureKey key{};
+  key.id = texture_id;
+  key.type = type;
+
+  auto** texture{textures_.TryGet(key)};
 
   if (texture == nullptr) {
     return nullptr;
@@ -191,7 +247,10 @@ void TextureHandler::Destroy(Texture* texture, bool is_destroying_handler) {
   DestroyImage(texture->image);
 
   if (!is_destroying_handler) {
-    textures_.Remove(texture->id);
+    TextureKey key{};
+    key.id = texture->id;
+    key.type = texture->type;
+    textures_.Remove(key);
   }
 
   allocator_.Deallocate(texture);
@@ -203,16 +262,48 @@ u32 TextureHandler::GetMipLevels(const resource::TextureResource* resource) {
          1;
 }
 
-VkFormat TextureHandler::GetVkFormat(
-    const resource::TextureResource* resource) {
+bool TextureHandler::IsSrgbTextureType(TextureType type) {
+  switch (type) {
+    case TextureType::Diffuse:
+    case TextureType::Color:
+      return true;
+
+    case TextureType::Specular:
+    case TextureType::Normal:
+    case TextureType::Ambient:
+    case TextureType::Unknown:
+    default:
+      return false;
+  }
+}
+
+VkFormat TextureHandler::GetVkFormat(const resource::TextureResource* resource,
+                                     TextureType type) {
+  auto is_srgb{IsSrgbTextureType(type)};
+
   switch (resource->descr.format) {
-    case (rendering::TextureFormat::Rgba8):
-      return VK_FORMAT_R8G8B8A8_SRGB;
-      break;
-    case (rendering::TextureFormat::Rgb8):
-      return VK_FORMAT_R8G8B8_SRGB;
+    case rendering::TextureFormat::Rgba8:
+      return is_srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+
+    case rendering::TextureFormat::Rgb8:
+      return is_srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+
     default:
       return VK_FORMAT_UNDEFINED;
+  }
+}
+
+u8 TextureHandler::GetResolvedChannelCount(
+    const resource::TextureResource* resource) {
+  switch (resource->descr.format) {
+    case rendering::TextureFormat::Rgba8:
+      return 4;
+
+    case rendering::TextureFormat::Rgb8:
+      return 4;
+
+    default:
+      return resource->descr.channel_count;
   }
 }
 
@@ -229,7 +320,6 @@ void TextureHandler::GenerateMipmaps(const Texture* texture) const {
                         VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT),
       "Texture image format does not support linear blitting");
 
-  // vkCmdBlitImage is only in a queue with graphics capacility.
   auto command_pool_handle{context_->GetFrameData().command_pool_handle};
   auto command_buffer_handle{
       GenerateOneTimeCommand(device, command_pool_handle)};
@@ -309,15 +399,16 @@ void TextureHandler::GenerateMipmaps(const Texture* texture) const {
 }
 
 Texture* TextureHandler::GenerateInstance(
-    const resource::TextureResource* resource) {
+    const resource::TextureResource* resource, TextureType type) {
   auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
   texture->id = resource->id;
+  texture->type = type;
   texture->width = resource->descr.resolution[0];
   texture->height = resource->descr.resolution[1];
   texture->depth = resource->descr.resolution[2];
   texture->mip_levels = GetMipLevels(resource);
-  texture->format = GetVkFormat(resource);
-  texture->channel_count = resource->descr.channel_count;
+  texture->format = GetVkFormat(resource, type);
+  texture->channel_count = GetResolvedChannelCount(resource);
   texture->image.allocator_handle = context_->GetAllocatorHandle();
   return texture;
 }

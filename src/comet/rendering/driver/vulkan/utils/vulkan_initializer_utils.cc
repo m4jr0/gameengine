@@ -15,6 +15,7 @@
 #include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/rendering/driver/vulkan/utils/vulkan_common_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
 
 namespace comet {
@@ -291,7 +292,8 @@ GeneratePipelineInputAssemblyStateCreateInfo(
 
 VkPipelineRasterizationStateCreateInfo
 GeneratePipelineRasterizationStateCreateInfo(bool is_wireframe,
-                                             VkCullModeFlags cull_mode) {
+                                             VkCullModeFlags cull_mode,
+                                             bool is_depth_bias) {
   VkPipelineRasterizationStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   info.pNext = VK_NULL_HANDLE;
@@ -301,16 +303,17 @@ GeneratePipelineRasterizationStateCreateInfo(bool is_wireframe,
   info.lineWidth = 1.0f;
   info.cullMode = cull_mode;
   info.frontFace = VK_FRONT_FACE_CLOCKWISE;
-  info.depthBiasEnable = VK_FALSE;
-  info.depthBiasConstantFactor = 0.0f;
-  info.depthBiasClamp = 0.0f;
-  info.depthBiasSlopeFactor = 0.0f;
+  info.depthBiasEnable = is_depth_bias ? VK_TRUE : VK_FALSE;
+  info.depthBiasConstantFactor = .0f;
+  info.depthBiasClamp = .0f;
+  info.depthBiasSlopeFactor = .0f;
   return info;
 }
 
 VkPipelineRasterizationStateCreateInfo
 GeneratePipelineRasterizationStateCreateInfo(bool is_wireframe,
-                                             CullMode cull_mode) {
+                                             CullMode cull_mode,
+                                             bool is_depth_bias) {
   VkCullModeFlags vk_cull_mode{VK_CULL_MODE_NONE};
 
   switch (cull_mode) {
@@ -332,8 +335,15 @@ GeneratePipelineRasterizationStateCreateInfo(bool is_wireframe,
                    "!");
   }
 
-  return GeneratePipelineRasterizationStateCreateInfo(is_wireframe,
-                                                      vk_cull_mode);
+  return GeneratePipelineRasterizationStateCreateInfo(
+      is_wireframe, vk_cull_mode, is_depth_bias);
+}
+
+VkPipelineRasterizationStateCreateInfo
+GeneratePipelineRasterizationStateCreateInfo(
+    const RasterizerState& rasterizer) {
+  return GeneratePipelineRasterizationStateCreateInfo(
+      rasterizer.is_wireframe, rasterizer.cull_mode, rasterizer.is_depth_bias);
 }
 
 VkPipelineMultisampleStateCreateInfo
@@ -375,10 +385,10 @@ VkPipelineColorBlendStateCreateInfo GeneratePipelineColorBlendStateCreateInfo(
   info.logicOp = VK_LOGIC_OP_COPY;
   info.attachmentCount = static_cast<u32>(color_blend_attachment_count);
   info.pAttachments = color_blend_attachments;
-  info.blendConstants[0] = 0.0f;
-  info.blendConstants[1] = 0.0f;
-  info.blendConstants[2] = 0.0f;
-  info.blendConstants[3] = 0.0f;
+  info.blendConstants[0] = .0f;
+  info.blendConstants[1] = .0f;
+  info.blendConstants[2] = .0f;
+  info.blendConstants[3] = .0f;
   info.pNext = VK_NULL_HANDLE;
   return info;
 }
@@ -423,7 +433,7 @@ GeneratePipelineDepthStencilStateCreateInfo(bool is_depth_test,
   info.depthWriteEnable = is_depth_write;
   info.depthCompareOp = is_depth_test ? compare_op : VK_COMPARE_OP_ALWAYS;
   info.depthBoundsTestEnable = VK_FALSE;
-  info.minDepthBounds = 0.0f;
+  info.minDepthBounds = .0f;
   info.maxDepthBounds = 1.0f;
   info.stencilTestEnable = VK_FALSE;
   info.front = {};
@@ -431,13 +441,19 @@ GeneratePipelineDepthStencilStateCreateInfo(bool is_depth_test,
   return info;
 }
 
-VkImageCreateInfo GenerateImageCreateInfo(u32 width, u32 height, u32 mip_levels,
-                                          VkSampleCountFlagBits num_samples,
-                                          VkFormat format, VkImageTiling tiling,
-                                          VkImageUsageFlags usage_flags,
-                                          VkSharingMode sharing_mode,
-                                          const u32* queue_family_indices,
-                                          u32 queue_family_index_count) {
+VkPipelineDepthStencilStateCreateInfo
+GeneratePipelineDepthStencilStateCreateInfo(
+    const DepthStencilState& depth_stencil) {
+  return GeneratePipelineDepthStencilStateCreateInfo(
+      depth_stencil.is_depth_test, depth_stencil.is_depth_write,
+      GetVkCompareOp(depth_stencil.compare_op));
+}
+
+VkImageCreateInfo GenerateImageCreateInfo(
+    u32 width, u32 height, u32 mip_levels, u32 array_layers,
+    VkSampleCountFlagBits num_samples, VkFormat format, VkImageTiling tiling,
+    VkImageUsageFlags usage_flags, VkSharingMode sharing_mode,
+    const u32* queue_family_indices, u32 queue_family_index_count) {
   VkImageCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   info.imageType = VK_IMAGE_TYPE_2D;
@@ -445,13 +461,13 @@ VkImageCreateInfo GenerateImageCreateInfo(u32 width, u32 height, u32 mip_levels,
   info.extent.height = height;
   info.extent.depth = 1;
   info.mipLevels = mip_levels;
-  info.arrayLayers = 1;
+  info.arrayLayers = array_layers;
   info.format = format;
   info.tiling = tiling;
   info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   info.usage = usage_flags;
   info.samples = num_samples;
-  info.flags = 0;  // Optional.
+  info.flags = 0;
   info.sharingMode = sharing_mode;
   info.queueFamilyIndexCount = queue_family_index_count;
   info.pQueueFamilyIndices = queue_family_indices;
@@ -460,11 +476,12 @@ VkImageCreateInfo GenerateImageCreateInfo(u32 width, u32 height, u32 mip_levels,
 
 VkImageViewCreateInfo GenerateImageViewCreateInfo(
     VkImage image_handle, VkFormat format, VkImageAspectFlags aspect_flags,
-    u32 mip_levels) {
+    u32 mip_levels, u32 base_array_layer, u32 layer_count,
+    VkImageViewType view_type) {
   VkImageViewCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   info.image = image_handle;
-  info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  info.viewType = view_type;
   info.format = format;
 
   info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -475,8 +492,8 @@ VkImageViewCreateInfo GenerateImageViewCreateInfo(
   info.subresourceRange.aspectMask = aspect_flags;
   info.subresourceRange.baseMipLevel = 0;
   info.subresourceRange.levelCount = mip_levels;
-  info.subresourceRange.baseArrayLayer = 0;
-  info.subresourceRange.layerCount = 1;
+  info.subresourceRange.baseArrayLayer = base_array_layer;
+  info.subresourceRange.layerCount = layer_count;
   return info;
 }
 
@@ -577,30 +594,33 @@ VkSamplerCreateInfo GenerateSamplerCreateInfo(
   return info;
 }
 
-VkSamplerCreateInfo GenerateSamplerCreateInfo(
-    VkFilter filters, VkSamplerAddressMode address_mode,
-    const resource::TextureMap* texture_map, bool is_sampler_anisotropy,
-    f32 max_sampler_anisotropy) {
-  auto info{GenerateSamplerCreateInfo(filters, address_mode)};
-
+VkSamplerCreateInfo GenerateBaseSamplerCreateInfo() {
+  VkSamplerCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
   info.pNext = VK_NULL_HANDLE;
-  info.minFilter = GetFilter(texture_map->min_filter_mode);
-  info.magFilter = GetFilter(texture_map->mag_filter_mode);
-  info.addressModeU = GetSamplerAddressMode(texture_map->u_repeat_mode);
-  info.addressModeV = GetSamplerAddressMode(texture_map->v_repeat_mode);
-  info.addressModeW = GetSamplerAddressMode(texture_map->w_repeat_mode);
-
-  info.anisotropyEnable = is_sampler_anisotropy ? VK_TRUE : VK_FALSE;
-  info.maxAnisotropy = max_sampler_anisotropy;
   info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
   info.unnormalizedCoordinates = VK_FALSE;
   info.compareEnable = VK_FALSE;
   info.compareOp = VK_COMPARE_OP_ALWAYS;
   info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  info.mipLodBias = 0.0f;
-  info.minLod = 0.0f;
+  info.mipLodBias = .0f;
+  info.minLod = .0f;
   info.maxLod = VK_LOD_CLAMP_NONE;
+  return info;
+}
+
+VkSamplerCreateInfo GenerateSamplerCreateInfo(
+    const resource::TextureMap& texture_map, bool is_sampler_anisotropy,
+    f32 max_sampler_anisotropy) {
+  auto info{GenerateBaseSamplerCreateInfo()};
+
+  info.minFilter = GetFilter(texture_map.min_filter_mode);
+  info.magFilter = GetFilter(texture_map.mag_filter_mode);
+  info.addressModeU = GetSamplerAddressMode(texture_map.u_repeat_mode);
+  info.addressModeV = GetSamplerAddressMode(texture_map.v_repeat_mode);
+  info.addressModeW = GetSamplerAddressMode(texture_map.w_repeat_mode);
+  info.anisotropyEnable = is_sampler_anisotropy ? VK_TRUE : VK_FALSE;
+  info.maxAnisotropy = max_sampler_anisotropy;
 
   return info;
 }
@@ -618,7 +638,7 @@ VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
     VkBuffer buffer_handle, VkAccessFlags src_access_mask,
     VkAccessFlags dst_access_mask, u32 src_queue_family_index,
     u32 dst_queue_family_index, VkDeviceSize offset, VkDeviceSize size) {
-  VkBufferMemoryBarrier barrier = {};
+  VkBufferMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
   barrier.pNext = VK_NULL_HANDLE;
   barrier.srcAccessMask = src_access_mask;

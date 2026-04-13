@@ -34,8 +34,8 @@ math::Aabb GenerateGlobalAabb(const Vec3& local_center,
                               const Vec3& local_extents, const Mat4& global) {
   auto local_max_extents{local_center + local_extents};
   auto local_min_extents{local_center - local_extents};
-  math::Vec3 global_min_extents{0.0f};
-  math::Vec3 global_max_extents{0.0f};
+  math::Vec3 global_min_extents{.0f};
+  math::Vec3 global_max_extents{.0f};
 
   for (u8 i{0}; i < 3; ++i) {
     for (u8 j{0}; j < 3; ++j) {
@@ -53,7 +53,7 @@ math::Aabb GenerateGlobalAabb(const Vec3& local_center,
   }
 
   math::Aabb aabb{};
-  aabb.center = (global_min_extents + global_max_extents) * 0.5f;
+  aabb.center = (global_min_extents + global_max_extents) * .5f;
   aabb.extents = global_max_extents - aabb.center;
   return aabb;
 }

@@ -65,11 +65,11 @@ ConfValue GetDefaultValue(ConfKey key) {
   } else if (key == kRenderingWindowHeight) {
     default_value.u16_value = 600;
   } else if (key == kRenderingClearColorR) {
-    default_value.f32_value = 0.5f;
+    default_value.f32_value = .5f;
   } else if (key == kRenderingClearColorG) {
-    default_value.f32_value = 0.5f;
+    default_value.f32_value = .5f;
   } else if (key == kRenderingClearColorB) {
-    default_value.f32_value = 0.5f;
+    default_value.f32_value = .5f;
   } else if (key == kRenderingClearColorA) {
     default_value.f32_value = 1.0f;
   } else if (key == kRenderingIsVsync) {
@@ -85,6 +85,36 @@ ConfValue GetDefaultValue(ConfKey key) {
     default_value.bool_value = true;
   } else if (key == kRenderingIsSampleRateShading) {
     default_value.bool_value = true;
+  } else if (key == kRenderingShadowResolution) {
+    default_value.u16_value = 2048;
+  } else if (key == kRenderingShadowDistance) {
+    default_value.f32_value = 30.0f;
+  } else if (key == kRenderingShadowCascadeCount) {
+    default_value.u8_value = 4;
+  } else if (key == kRenderingShadowCascadeLambda) {
+    default_value.f32_value = .5f;
+  } else if (key == kRenderingShadowBiasConstant) {
+    default_value.f32_value = .0005f;
+  } else if (key == kRenderingShadowBiasSlope) {
+    default_value.f32_value = .005f;
+  } else if (key == kRenderingShadowCasterExtrusionFactor) {
+    default_value.f32_value = 4.0f;
+  } else if (key == kRenderingShadowReceiverPadXY) {
+    default_value.f32_value = 2.0f;
+  } else if (key == kRenderingShadowReceiverPadZ) {
+    default_value.f32_value = 5.0f;
+  } else if (key == kRenderingShadowCascadeBlendRatio) {
+    default_value.f32_value = .10f;
+  } else if (key == kRenderingShadowPcfRadius) {
+    default_value.f32_value = 1.0f;
+  } else if (key == kRenderingShadowPcfSamples) {
+    default_value.u8_value = 4;
+  } else if (key == kRenderingShadowDebugCascades) {
+    default_value.bool_value = false;
+  } else if (key == kRenderingShadowDebugSingleCascade) {
+    default_value.s8_value = -1;
+  } else if (key == kRenderingShadowDisableBlending) {
+    default_value.bool_value = false;
   } else if (key == kRenderingOpenGlMajorVersion) {
     default_value.u16_value = 4;
   } else if (key == kRenderingOpenGlMinorVersion) {

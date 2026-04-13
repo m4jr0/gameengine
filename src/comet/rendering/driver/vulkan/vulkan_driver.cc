@@ -16,16 +16,13 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/logger.h"
 #include "comet/core/type/array.h"
-#include "comet/event/event_manager.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/rendering/rendering_common.h"
-#include "comet/rendering/window/window_event.h"
 
 namespace comet {
 namespace rendering {
@@ -128,19 +125,17 @@ void VulkanDriver::Shutdown() {
 }
 
 void VulkanDriver::Update(frame::FramePacket* packet) {
-  packet->projection_matrix[1][1] *= -1;  // Axis is inverted in Vulkan.
+  // Axis is inverted in Vulkan.
+  packet->camera_data.projection_matrix[1][1] *= -1;
   window_->Update();
 
-  if (swapchain_->IsReloadNeeded()) {
-    ApplyWindowResize();
-    packet->is_rendering_skipped = true;
-  } else if (!swapchain_->IsPresentationAvailable()) {
-    packet->is_rendering_skipped = true;
-  }
-
+  HandleSwapchainState(packet);
   PreDraw(packet);
   Draw(packet);
-  PostDraw(packet);
+
+  if (packet->can_present) {
+    PostDraw();
+  }
 
   context_->GoToNextFrame();
 }
@@ -229,8 +224,8 @@ void VulkanDriver::InitializeVulkanInstance() {
 
   COMET_ASSERT(glfwVulkanSupported(), "GLFW reports Vulkan not supported!");
 
-  const auto required_extensions{GetRequiredExtensions()};
-  const u32 required_extension_count{
+  auto required_extensions{GetRequiredExtensions()};
+  auto required_extension_count{
       static_cast<u32>(required_extensions.GetSize())};
 
   COMET_LOG_RENDERING_DEBUG("Required extensions:");
@@ -290,8 +285,15 @@ void VulkanDriver::InitializeHandlers() {
   texture_handler_descr.context = context_.get();
   texture_handler_ = std::make_unique<TextureHandler>(texture_handler_descr);
 
+  RenderPassHandlerDescr render_pass_handler_descr{};
+  render_pass_handler_descr.context = context_.get();
+  render_pass_handler_descr.swapchain = swapchain_.get();
+  render_pass_handler_ =
+      std::make_unique<RenderPassHandler>(render_pass_handler_descr);
+
   PipelineHandlerDescr pipeline_handler_descr{};
   pipeline_handler_descr.context = context_.get();
+  pipeline_handler_descr.render_pass_handler = render_pass_handler_.get();
   pipeline_handler_ = std::make_unique<PipelineHandler>(pipeline_handler_descr);
 
   ShaderModuleHandlerDescr shader_module_handler_descr{};
@@ -311,17 +313,12 @@ void VulkanDriver::InitializeHandlers() {
   shader_handler_descr.material_handler = material_handler_.get();
   shader_handler_descr.texture_handler = texture_handler_.get();
   shader_handler_descr.descriptor_handler = descriptor_handler_.get();
+  shader_handler_descr.render_pass_handler = render_pass_handler_.get();
   shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
 
   MeshHandlerDescr mesh_handler_descr{};
   mesh_handler_descr.context = context_.get();
   mesh_handler_ = std::make_unique<MeshHandler>(mesh_handler_descr);
-
-  RenderPassHandlerDescr render_pass_handler_descr{};
-  render_pass_handler_descr.context = context_.get();
-  render_pass_handler_descr.swapchain = swapchain_.get();
-  render_pass_handler_ =
-      std::make_unique<RenderPassHandler>(render_pass_handler_descr);
 
   RenderProxyHandlerDescr proxy_handler_descr{};
   proxy_handler_descr.context = context_.get();
@@ -331,12 +328,22 @@ void VulkanDriver::InitializeHandlers() {
   render_proxy_handler_ =
       std::make_unique<RenderProxyHandler>(proxy_handler_descr);
 
+  LightingHandlerDescr lighting_handler_descr{};
+  lighting_handler_descr.context = context_.get();
+  lighting_handler_descr.shadow_settings = shadow_settings_;
+  lighting_handler_descr.render_pass_handler = render_pass_handler_.get();
+  lighting_handler_ = std::make_unique<LightingHandler>(lighting_handler_descr);
+
   ViewHandlerDescr view_handler_descr{};
   view_handler_descr.context = context_.get();
+  view_handler_descr.shadow_settings = shadow_settings_;
   view_handler_descr.shader_handler = shader_handler_.get();
+  view_handler_descr.material_handler = material_handler_.get();
   view_handler_descr.pipeline_handler = pipeline_handler_.get();
   view_handler_descr.render_pass_handler = render_pass_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
+  view_handler_descr.mesh_handler = mesh_handler_.get();
+  view_handler_descr.lighting_handler = lighting_handler_.get();
   view_handler_descr.rendering_view_descrs = &rendering_view_descrs_;
   view_handler_descr.window = window_.get();
   view_handler_ = std::make_unique<ViewHandler>(view_handler_descr);
@@ -345,27 +352,29 @@ void VulkanDriver::InitializeHandlers() {
   texture_handler_->Initialize();
   pipeline_handler_->Initialize();
   shader_module_handler_->Initialize();
-  shader_handler_->Initialize();
   material_handler_->Initialize();
   mesh_handler_->Initialize();
   render_pass_handler_->Initialize();
+  shader_handler_->Initialize();
+  lighting_handler_->Initialize();
   render_proxy_handler_->Initialize();
   view_handler_->Initialize();
 }
 
 void VulkanDriver::DestroyHandlers() {
-  // Order is important to improve performance.
-  shader_module_handler_->Shutdown();
+  view_handler_->Shutdown();
+  lighting_handler_->Shutdown();
   render_proxy_handler_->Shutdown();
-  shader_handler_->Shutdown();
-  texture_handler_->Shutdown();
-  material_handler_->Shutdown();
   mesh_handler_->Shutdown();
+  shader_handler_->Shutdown();
+  material_handler_->Shutdown();
+  texture_handler_->Shutdown();
+  shader_module_handler_->Shutdown();
   pipeline_handler_->Shutdown();
   render_pass_handler_->Shutdown();
-  view_handler_->Shutdown();
   descriptor_handler_->Shutdown();
 
+  lighting_handler_ = nullptr;
   shader_module_handler_ = nullptr;
   shader_handler_ = nullptr;
   texture_handler_ = nullptr;
@@ -403,7 +412,7 @@ void VulkanDriver::ApplyWindowResize() {
                          static_cast<WindowSize>(extent.height));
 }
 
-void VulkanDriver::PreDraw(const frame::FramePacket* packet) {
+void VulkanDriver::PreDraw(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::PreDraw");
   auto& frame_data{context_->GetFrameData()};
 
@@ -414,7 +423,7 @@ void VulkanDriver::PreDraw(const frame::FramePacket* packet) {
 
   descriptor_handler_->ResetDynamic();
 
-  if (packet->is_rendering_skipped) {
+  if (!packet->can_present) {
     return;
   }
 
@@ -422,6 +431,7 @@ void VulkanDriver::PreDraw(const frame::FramePacket* packet) {
       swapchain_->AcquireNextImage(frame_data.present_semaphore_handle)};
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    packet->can_present = false;
     ApplyWindowResize();
     return;
   }
@@ -432,14 +442,9 @@ void VulkanDriver::PreDraw(const frame::FramePacket* packet) {
   return;
 }
 
-void VulkanDriver::PostDraw(const frame::FramePacket* packet) {
+void VulkanDriver::PostDraw() {
   COMET_PROFILE("VulkanDriver::PostDraw");
-
-  if (packet->is_rendering_skipped) {
-    return;
-  }
-
-  const auto result{swapchain_->QueuePresent()};
+  auto result{swapchain_->QueuePresent()};
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
     ApplyWindowResize();
@@ -449,51 +454,62 @@ void VulkanDriver::PostDraw(const frame::FramePacket* packet) {
   COMET_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
 }
 
-// TODO(m4jr0): Refactor this part to improve clarity and maintainability. The
-// current intermixing of `is_rendering_skipped` checks has made the logic
-// tangled. Separate internal (non-rendering) updates cleanly from
-// rendering-related updates. This will make the code easier to understand,
-// extend, and use correctly.
 void VulkanDriver::Draw(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::Draw");
   auto& frame_data{context_->GetFrameData()};
 
-  vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
-                  VK_TRUE, static_cast<u64>(-1));
-
-  // Reset fence if work is submitted.
-  COMET_CHECK_VK(
-      vkResetFences(device_->GetHandle(), 1, &frame_data.render_fence_handle),
-      "Unable to reset render fence!");
+  ResetRenderFence(frame_data);
 
   auto command_data{
       GenerateCommandData(*device_, frame_data.command_buffer_handle)};
 
-  RecordCommand(command_data);
+  BeginFrameCommandRecording(command_data);
+  UpdateGpuSceneState(packet);
 
-  mesh_handler_->AcquireFromTransferQueueIfNeeded();
-  mesh_handler_->Update(packet);
-  render_proxy_handler_->Update(packet);
-
-  if (!packet->is_rendering_skipped) {
-    PrepareRenderBarriers(command_data);
-    PrepareViewportAndScissor(command_data);
+  if (packet->can_present) {
+    RecordFrame(packet);
   }
 
-  view_handler_->Update(packet);
+  SubmitFrame(packet, command_data, frame_data);
+}
 
+void VulkanDriver::HandleSwapchainState(frame::FramePacket* packet) {
+  if (swapchain_->IsReloadNeeded()) {
+    ApplyWindowResize();
+    packet->can_present = false;
+  } else if (!swapchain_->IsPresentationAvailable()) {
+    packet->can_present = false;
+  }
+}
+
+void VulkanDriver::ResetRenderFence(FrameData& frame_data) {
+  // Reset fence if work is submitted.
+  COMET_CHECK_VK(
+      vkResetFences(device_->GetHandle(), 1, &frame_data.render_fence_handle),
+      "Unable to reset render fence!");
+}
+
+void VulkanDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
+  mesh_handler_->AcquireFromTransferQueueIfNeeded();
+  mesh_handler_->Update(packet);
+  lighting_handler_->Update(packet);
+  render_proxy_handler_->Update(packet);
+}
+
+void VulkanDriver::RecordFrame(frame::FramePacket* packet) {
+  view_handler_->Update(packet);
+}
+
+void VulkanDriver::SubmitFrame(const frame::FramePacket* packet,
+                               const CommandData& command_data,
+                               FrameData& frame_data) {
   VkPipelineStageFlags2 wait_stage{
       VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-  frame::FrameArray<VkSemaphore> signal_semaphores{};
-  signal_semaphores.Reserve(2);
-  signal_semaphores.PushBack(context_->GetRenderSemaphoreHandle());
-  signal_semaphores.PushBack(*context_->GetTransferSemaphoreHandle());
 
   frame::FrameArray<VkSemaphoreSubmitInfo> wait_infos{};
   wait_infos.Reserve(2);
 
-  if (!packet->is_rendering_skipped) {
+  if (packet->can_present) {
     auto& wait_present{wait_infos.EmplaceBack()};
     wait_present.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
     wait_present.semaphore = frame_data.present_semaphore_handle;
@@ -503,9 +519,9 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
   }
 
   frame::FrameArray<VkSemaphoreSubmitInfo> signal_infos{};
-  signal_infos.Reserve(0 + static_cast<ssize>(!packet->is_rendering_skipped));
+  signal_infos.Reserve(0 + static_cast<ssize>(packet->can_present));
 
-  if (!packet->is_rendering_skipped) {
+  if (packet->can_present) {
     auto& signal_render{signal_infos.EmplaceBack()};
     signal_render.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
     signal_render.semaphore = context_->GetRenderSemaphoreHandle();
@@ -518,50 +534,6 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
                  frame_data.render_fence_handle, wait_infos.GetData(),
                  static_cast<u32>(wait_infos.GetSize()), signal_infos.GetData(),
                  static_cast<u32>(signal_infos.GetSize()), VK_NULL_HANDLE);
-}
-
-void VulkanDriver::PrepareRenderBarriers(const CommandData& command_data) {
-  VkImageMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  const auto& swapchain_images{swapchain_->GetImages()};
-  barrier.image = swapchain_images[context_->GetImageIndex()].handle;
-
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
-  barrier.srcAccessMask = 0;
-  barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-  vkCmdPipelineBarrier(command_data.command_buffer_handle,
-                       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0,
-                       VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
-}
-
-void VulkanDriver::PrepareViewportAndScissor(const CommandData& command_data) {
-  const auto& extent{swapchain_->GetExtent()};
-
-  VkViewport viewport{};
-  viewport.x = 0.0f;
-  viewport.y = 0.0f;
-  viewport.width = static_cast<f32>(extent.width);
-  viewport.height = static_cast<f32>(extent.height);
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  VkRect2D scissor{};
-  scissor.offset = {0, 0};
-  scissor.extent = extent;
-
-  vkCmdSetViewport(command_data.command_buffer_handle, 0, 1, &viewport);
-  vkCmdSetScissor(command_data.command_buffer_handle, 0, 1, &scissor);
 }
 
 frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
@@ -726,7 +698,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanDebugReportMessage(
   } else if (message_flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
     COMET_LOG_RENDERING_INFO("[Debug | ", layer_prefix, "] ", message_code,
                              ": ", message);
-  } else if (message_flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
     COMET_LOG_RENDERING_WARNING("[Debug | ", layer_prefix, "] ", message_code,
                                 ": ", message);
   } else if (message_flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {

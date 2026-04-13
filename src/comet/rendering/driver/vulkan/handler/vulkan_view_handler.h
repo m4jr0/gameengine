@@ -11,11 +11,14 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
+#include "comet/rendering/light/light_common.h"
 #include "comet/rendering/rendering_common.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
@@ -23,13 +26,14 @@ namespace comet {
 namespace rendering {
 namespace vk {
 struct ViewHandlerDescr : HandlerDescr {
+  const ShadowSettings* shadow_settings{nullptr};
   ShaderHandler* shader_handler{nullptr};
+  MaterialHandler* material_handler{nullptr};
   PipelineHandler* pipeline_handler{nullptr};
   RenderPassHandler* render_pass_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
-#ifdef COMET_DEBUG
-  DebuggerDisplayerManager* debugger_displayer_manager{nullptr};
-#endif  // COMET_DEBUG
+  MeshHandler* mesh_handler{nullptr};
+  LightingHandler* lighting_handler{nullptr};
   VulkanGlfwWindow* window{nullptr};
   Array<RenderingViewDescr>* rendering_view_descrs{nullptr};
 };
@@ -62,10 +66,14 @@ class ViewHandler : public Handler {
 
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
   Array<memory::UniquePtr<View>> views_{};
+  const ShadowSettings* shadow_settings_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
+  MaterialHandler* material_handler_{nullptr};
   PipelineHandler* pipeline_handler_{nullptr};
   RenderPassHandler* render_pass_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
+  MeshHandler* mesh_handler_{nullptr};
+  LightingHandler* lighting_handler_{nullptr};
   VulkanGlfwWindow* window_{nullptr};
   Array<RenderingViewDescr>* rendering_view_descrs_{nullptr};
 };

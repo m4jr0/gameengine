@@ -15,11 +15,14 @@
 #include "comet/core/type/map.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-using PipelineHandlerDescr = HandlerDescr;
+struct PipelineHandlerDescr : HandlerDescr {
+  const RenderPassHandler* render_pass_handler{nullptr};
+};
 
 class PipelineHandler : public Handler {
  public:
@@ -63,6 +66,7 @@ class PipelineHandler : public Handler {
   Map<PipelineId, Pipeline*> pipelines_{};
   Map<PipelineLayoutId, PipelineLayout*> pipeline_layouts_{};
   const Pipeline* bound_pipeline_{nullptr};
+  const RenderPassHandler* render_pass_handler_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

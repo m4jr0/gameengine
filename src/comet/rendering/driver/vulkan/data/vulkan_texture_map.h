@@ -18,7 +18,7 @@ namespace comet {
 namespace rendering {
 namespace vk {
 using SamplerId = usize;
-constexpr auto kInvalidSamplerId = static_cast<SamplerId>(-1);
+constexpr auto kInvalidSamplerId{static_cast<SamplerId>(-1)};
 
 struct Sampler {
   SamplerId id{kInvalidSamplerId};

@@ -4,11 +4,13 @@
 
 The **Comet Game Engine** is an experimental project that I'm developing in my free time to explore and learn about game engine programming in a practical, hands-on way.
 
+At the moment, the engine includes a custom fiber-based job system, a frame-centric architecture, multiple rendering backends, skeletal animation, and a first real lighting pipeline with dynamic lights, shadow mapping, and a small environment manager for day/night debugging.
+
 ### Useful Links
 
 * [**Quick Overview**](docs/QUICK_OVERVIEW.md): Short technical presentation of **Comet**. How it works, what it does, and why I built it. _If you only read one thing, make it this one!_
-* [Development Notes](docs/DEV_NOTES.md): Code style, TODO format, and development conventions.  
-* [Asset Credits](docs/ASSET_CREDITS.md): Attributions for all third-party assets.  
+* [Development Notes](docs/DEV_NOTES.md): Code style, TODO format, and development conventions.
+* [Asset Credits](docs/ASSET_CREDITS.md): Attributions for all third-party assets.
 * [Resources & Inspirations](docs/REFERENCES.md): Talks, books, and articles that inspired **Comet** (and me) along the way. _I was kidding above: **this** is the real gold. You'll learn a lot!_
 
 ## Build the project
@@ -37,10 +39,22 @@ On Linux, open a terminal and enter the following commands:
 
 It should be pretty similar on Windows.
 
+## Current Features
+
+* Custom fiber-based job system
+* Frame-centric engine architecture
+* Archetype-based ECS
+* Vulkan and OpenGL rendering backends
+* Skeletal animation
+* Directional, spot, and point lights
+* Shadow mapping for directional and spot lights
+* Small environment manager for day/night and lighting debugging
+* Debug UI and profiling tools
+
 ## Current Goals
 
 * Animation blending
-* Skyboxes, lights & shadows
+* Skyboxes
 * Basic physics system
 * Remove GLM and STL in favor of custom math
 * UI system
@@ -49,6 +63,7 @@ It should be pretty similar on Windows.
 * Generic resource system
 * Support transparency
 * Add occlusion culling
+* Add point light shadow maps
 
 ## External Libraries
 
@@ -56,18 +71,18 @@ It should be pretty similar on Windows.
 
 ### Engine
 
-- [GLFW](https://www.glfw.org/): windowing and input abstraction  
-- [GLAD](https://github.com/Dav1dde/glad): OpenGL loader  
-- [Vulkan Memory Allocator (VMA)](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator): Vulkan memory management  
-- [GLM](https://github.com/g-truc/glm): temporary math library (planned to be replaced by custom math types)  
-- [Dear ImGui](https://github.com/ocornut/imgui): debug UI and profiling tools  
-- [lz4](https://github.com/lz4/lz4): resource compression  
+- [GLFW](https://www.glfw.org/): windowing and input abstraction
+- [GLAD](https://github.com/Dav1dde/glad): OpenGL loader
+- [Vulkan Memory Allocator (VMA)](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator): Vulkan memory management
+- [GLM](https://github.com/g-truc/glm): temporary math library (planned to be replaced by custom math types)
+- [Dear ImGui](https://github.com/ocornut/imgui): debug UI and profiling tools
+- [lz4](https://github.com/lz4/lz4): resource compression
 
 ### Editor
 
-- [Assimp](https://github.com/assimp/assimp): model importing  
-- [stb](https://github.com/nothings/stb): texture loading  
-- [JSON for Modern C++ (nlohmann)](https://github.com/nlohmann/json): configuration and metadata  
+- [Assimp](https://github.com/assimp/assimp): model importing
+- [stb](https://github.com/nothings/stb): texture loading
+- [JSON for Modern C++ (nlohmann)](https://github.com/nlohmann/json): configuration and metadata
 - [Shaderc](https://github.com/google/shaderc): shader compilation
 
 ## License

@@ -125,8 +125,7 @@ inline void ResourceHandler<T>::Initialize() {
   deleted_resources_ = HashSet<T*>{byte_allocator_, 64};
   InitializeDefaults();
 
-  const auto event_function{
-      COMET_EVENT_BIND_FUNCTION(ResourceHandler<T>::OnEvent)};
+  auto event_function{COMET_EVENT_BIND_FUNCTION(ResourceHandler<T>::OnEvent)};
   event::EventManager::Get().Register(event_function,
                                       scene::SceneUnloadedEvent::kStaticType_);
   event::EventManager::Get().Register(event_function,
@@ -176,6 +175,7 @@ inline T* ResourceHandler<T>::Load(ResourceId id, ResourceLifeSpan life_span) {
 
   resource = LoadInternal(id, life_span);
   tracker_.Finish(loading_state, resource);
+  tracker_.Release(loading_state);
   return resource;
 }
 
@@ -186,14 +186,14 @@ inline void ResourceHandler<T>::Unload(CTStringView path) {
 
 template <typename T>
 inline void ResourceHandler<T>::Unload(ResourceId id) {
+  // Case: default resources. They cannot be unloaded.
+  if (defaults_.IsDefault(id)) {
+    return;
+  }
+
   COMET_RESOURCE_HANDLER_SETUP_PROFILING("Unload", id);
   auto* resource{cache_.TryGet(id, ResourceLifeSpan::Manual)};
   COMET_ASSERT(resource != nullptr, "Tried to unload resource that is null!");
-
-  // Case: default resources. They cannot be unloaded.
-  if (defaults_.IsDefault(resource->id)) {
-    return;
-  }
 
   COMET_ASSERT(resource->ref_count > 0, "Resource with ID ",
                COMET_STRING_ID_LABEL(resource->id),
@@ -294,7 +294,7 @@ inline void ResourceHandler<T>::SetupProfiling(const schar* method_name,
   Copy(label + offset, kLabelPrefix, kLabelPrefixLen);
   offset += kLabelPrefixLen;
 
-  const auto method_len{GetLength(method_name)};
+  auto method_len{GetLength(method_name)};
   Copy(label + offset, method_name, method_len);
   offset += method_len;
 

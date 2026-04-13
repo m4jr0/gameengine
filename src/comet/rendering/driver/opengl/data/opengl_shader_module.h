@@ -10,6 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
+#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
@@ -17,10 +18,16 @@ namespace gl {
 using ShaderModuleHandle = u32;
 constexpr auto kInvalidShaderModuleHandle{0};
 
+using ShaderModuleId = resource::ResourceId;
+constexpr auto kInvalidShaderModuleId{static_cast<ShaderModuleId>(-1)};
+
 enum class ShaderBindType { Unknown = 0, Graphics, Compute };
 
 struct ShaderModule {
   u16 ref_count{0};
+  ShaderModuleId id{kInvalidShaderModuleId};
+  usize code_size{0};
+  const schar* code{nullptr};
   ShaderBindType bind_type{ShaderBindType::Unknown};
   ShaderModuleHandle handle{kInvalidShaderModuleHandle};
   GLenum type{GL_INVALID_VALUE};

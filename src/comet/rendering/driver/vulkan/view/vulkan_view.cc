@@ -15,8 +15,7 @@ namespace comet {
 namespace rendering {
 namespace vk {
 View::View(const ViewDescr& descr)
-    : is_first_{descr.is_first},
-      is_last_{descr.is_last},
+    : pass_descr_{descr.pass_descr},
       width_{descr.width},
       height_{descr.height},
       clear_color_{descr.clear_color[0], descr.clear_color[1],
@@ -49,9 +48,10 @@ void View::Destroy() {
   clear_color_[2] = kColorBlackRgb[2];
   clear_color_[3] = 1.0f;
 
-  if (render_pass_ != nullptr && render_pass_handler_->IsInitialized()) {
-    render_pass_handler_->Destroy(render_pass_);
-    render_pass_ = nullptr;
+  if (render_pass_handle_ != kInvalidRenderPassHandle &&
+      render_pass_handler_->IsInitialized()) {
+    render_pass_handler_->Destroy(render_pass_handle_);
+    render_pass_handle_ = kInvalidRenderPassHandle;
   }
 
   render_pass_handler_ = nullptr;
@@ -59,16 +59,31 @@ void View::Destroy() {
 }
 
 void View::SetSize(WindowSize width, WindowSize height) {
-  COMET_ASSERT(render_pass_ != nullptr, "Tried to set size to ", width, "x",
-               height, ", but render pass is null!");
-  render_pass_->extent.width = static_cast<u32>(width);
-  render_pass_->extent.height = static_cast<u32>(height);
-  render_pass_handler_->Refresh(render_pass_);
+  if (width_ == width && height_ == height) {
+    return;
+  }
+
+  width_ = width;
+  height_ = height;
+
+  COMET_ASSERT(render_pass_handle_ != kInvalidRenderPassHandle,
+               "Tried to set size to ", width_, "x", height_,
+               ", but render pass is invalid!");
+  render_pass_handler_->SetSize(render_pass_handle_, static_cast<u32>(width_),
+                                static_cast<u32>(height_));
 }
 
 bool View::IsInitialized() const noexcept { return is_initialized_; }
 
 RenderingViewId View::GetId() const noexcept { return id_; }
+
+bool View::IsSwapchainTarget() const noexcept {
+  return (pass_descr_.flags & kViewPassFlagBitsSwapchainTarget) != 0;
+}
+
+bool View::IsOffscreenTarget() const noexcept {
+  return (pass_descr_.flags & kViewPassFlagBitsOffscreenTarget) != 0;
+}
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

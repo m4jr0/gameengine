@@ -11,7 +11,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 
@@ -52,21 +51,30 @@ void ResizeBuffer(Buffer& buffer, const Device& device,
                   BarrierDescr* barrier_descr = nullptr,
                   const schar* debug_label = nullptr);
 void AddBufferMemoryBarrier(
-    const Buffer& buffer, frame::FrameArray<VkBufferMemoryBarrier>* barriers,
+    const Buffer& buffer, Array<VkBufferMemoryBarrier>* barriers,
     VkAccessFlags src_access_mask, VkAccessFlags dst_access_mask,
     u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 void AddBufferMemoryBarrier(
-    VkBuffer buffer_handle, frame::FrameArray<VkBufferMemoryBarrier>* barriers,
+    VkBuffer buffer_handle, Array<VkBufferMemoryBarrier>* barriers,
     VkAccessFlags src_access_mask, VkAccessFlags dst_access_mask,
     u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
-void ApplyBufferMemoryBarriers(
-    frame::FrameArray<VkBufferMemoryBarrier>** barriers_ptr,
-    VkCommandBuffer command_buffer_handle, VkPipelineStageFlags src_stage_mask,
-    VkPipelineStageFlags dst_stage_mask);
+void ApplyBufferMemoryBarriers(const Array<VkBufferMemoryBarrier>& barriers,
+                               VkCommandBuffer command_buffer_handle,
+                               VkPipelineStageFlags src_stage_mask,
+                               VkPipelineStageFlags dst_stage_mask);
+
+class ScopedMappedBuffer {
+ public:
+  explicit ScopedMappedBuffer(Buffer& buffer);
+  ~ScopedMappedBuffer();
+
+ private:
+  Buffer& buffer_;
+};
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

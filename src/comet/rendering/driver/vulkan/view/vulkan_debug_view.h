@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_DEBUG_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_shader_view.h"
 
@@ -31,7 +31,13 @@ class DebugView : public ShaderView {
   void Update(frame::FramePacket* packet) override;
 
  private:
+  void UpdateDebugShader(const frame::FramePacket* packet);
+  void RunDebugCullGeneration();
+  void DrawDebugCull();
+  void SetViewportAndScissor() const;
+
   RenderProxyHandler* render_proxy_handler_{nullptr};
+  Shader* debug_shader_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

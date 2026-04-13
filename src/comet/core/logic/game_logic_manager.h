@@ -13,6 +13,8 @@
 #include "comet/event/event_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/camera/camera_manager.h"
+#include "comet/rendering/light/light_manager.h"
+#include "comet/scene/environment/environment_manager.h"
 #include "comet/scene/scene_manager.h"
 
 namespace comet {
@@ -35,6 +37,8 @@ class GameLogicManager : public Manager {
  private:
   void PopulatePacket(frame::FramePacket* packet);
 
+  rendering::LightManager* light_manager_{nullptr};
+  scene::EnvironmentManager* environment_manager_{nullptr};
   physics::PhysicsManager* physics_manager_{nullptr};
   entity::EntityManager* entity_manager_{nullptr};
   animation::AnimationManager* animation_manager_{nullptr};

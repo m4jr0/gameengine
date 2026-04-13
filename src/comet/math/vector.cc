@@ -14,6 +14,10 @@
 
 namespace comet {
 namespace math {
+namespace internal {
+constexpr f32 kNormalizeSquaredEpsilon{1e-8f};
+}  // namespace internal
+
 f32 GetMagnitude(const Vec2& vec) { return Sqrt(Dot(vec, vec)); }
 
 f32 GetMagnitude(const Vec3& vec) { return Sqrt(Dot(vec, vec)); }
@@ -27,17 +31,38 @@ f32 GetSquaredMagnitude(const Vec3& vec) { return Dot(vec, vec); }
 f32 GetSquaredMagnitude(const Vec4& vec) { return Dot(vec, vec); }
 
 Vec2& Normalize(Vec2& vector) {
-  vector /= Sqrt(Dot(vector, vector));
+  auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec2{.0f};
+    return vector;
+  }
+
+  vector /= Sqrt(mag_sq);
   return vector;
 }
 
 Vec3& Normalize(Vec3& vector) {
-  vector /= Sqrt(Dot(vector, vector));
+  auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec3{.0f};
+    return vector;
+  }
+
+  vector /= Sqrt(mag_sq);
   return vector;
 }
 
 Vec4& Normalize(Vec4& vector) {
-  vector /= Sqrt(Dot(vector, vector));
+  auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec4{.0f};
+    return vector;
+  }
+
+  vector /= Sqrt(mag_sq);
   return vector;
 }
 
@@ -60,35 +85,56 @@ Vec4 GetNormalizedCopy(const Vec4& vector) {
 }
 
 Vec2& NormalizeFast(Vec2& vector) {
-  vector *= FastInvSqrt(Dot(vector, vector));
+  auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec2{.0f};
+    return vector;
+  }
+
+  vector *= FastInvSqrt(mag_sq);
   return vector;
 }
 
 Vec3& NormalizeFast(Vec3& vector) {
-  vector *= FastInvSqrt(Dot(vector, vector));
+  auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec3{.0f};
+    return vector;
+  }
+
+  vector *= FastInvSqrt(mag_sq);
   return vector;
 }
 
 Vec4& NormalizeFast(Vec4& vector) {
-  vector *= FastInvSqrt(Dot(vector, vector));
+  auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec4{.0f};
+    return vector;
+  }
+
+  vector *= FastInvSqrt(mag_sq);
   return vector;
 }
 
 Vec2 GetNormalizedCopyFast(const Vec2& vector) {
   auto copy{vector};
-  Normalize(copy);
+  NormalizeFast(copy);
   return copy;
 }
 
 Vec3 GetNormalizedCopyFast(const Vec3& vector) {
   auto copy{vector};
-  Normalize(copy);
+  NormalizeFast(copy);
   return copy;
 }
 
 Vec4 GetNormalizedCopyFast(const Vec4& vector) {
   auto copy{vector};
-  Normalize(copy);
+  NormalizeFast(copy);
   return copy;
 }
 
@@ -107,7 +153,7 @@ Vec3 Cross(const Vec3& a, const Vec3& b) {
 }
 
 f32 AverageComponents(const Vec3& vec) {
-  return (vec.x + vec.y + vec.z) / 3.0f;
+  return (vec.x + vec.y + vec.z) * (1.0f / 3.0f);
 }
 }  // namespace math
 }  // namespace comet

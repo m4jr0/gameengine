@@ -30,7 +30,7 @@ ResourceFile ShaderModuleResourceHandler::Pack(
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  const auto data_size{resource.data.GetSize()};
+  auto data_size{resource.data.GetSize()};
   Array<u8> data{byte_allocator_};
   data.Resize(kResourceIdSize + kResourceTypeIdSize + data_size);
   usize cursor{0};
@@ -62,7 +62,7 @@ void ShaderModuleResourceHandler::Unpack(const ResourceFile& file,
 
   constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  const auto data_size{data.GetSize() - kResourceIdSize - kResourceTypeIdSize};
+  auto data_size{data.GetSize() - kResourceIdSize - kResourceTypeIdSize};
 
   memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;

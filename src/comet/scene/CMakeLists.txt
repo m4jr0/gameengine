@@ -13,6 +13,8 @@ target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/scene/scene_event.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/scene/scene_manager.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/comet/scene/environment/environment_manager.cc"
 )
 
 # Compiling ####################################################################
