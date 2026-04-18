@@ -43,10 +43,7 @@ class EventManager : public Manager {
   EventManager(EventManager&&) = delete;
   EventManager& operator=(const EventManager&) = delete;
   EventManager& operator=(EventManager&&) = delete;
-  virtual ~EventManager() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~EventManager() override = default;
 
   EventListenerId Register(const Callback& function,
                            stringid::StringId event_type);
@@ -67,6 +64,10 @@ class EventManager : public Manager {
   void FireEvent(EventPtr event);
   void FireAllEvents();
 
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
  private:
   void Add(EventPtr event);
   void Dispatch(EventPtr event) const;
@@ -76,7 +77,7 @@ class EventManager : public Manager {
   EventListeners listeners_{};
   IdEventTypeMap id_event_type_map_{};
   EventQueue event_queue_{};
-  memory::FiberFreeListAllocator listener_allocator_;
+  memory::FiberFreeListAllocator listener_allocator_{};
 
   // Platform allocator is used because it is only allocated once, during engine
   // startup.

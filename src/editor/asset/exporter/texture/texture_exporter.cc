@@ -20,11 +20,12 @@
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture_resource.h"
 #include "editor/asset/asset.h"
+#include "editor/asset/exporter/texture/data/texture_export_keys.h"
 
 namespace comet {
 namespace editor {
@@ -61,16 +62,23 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   COMET_LOG_GLOBAL_DEBUG("Processing texture at ", texture_context.path, "...");
   resource::TextureResource texture{};
-  texture.id = resource::GenerateResourceIdFromPath<resource::TextureResource>(
-      asset_descr.asset_path);
+  const auto texture_resource_id{
+      resource::GenerateResourceIdFromPath<resource::TextureResource>(
+          asset_descr.asset_path)};
+  texture.id = texture_resource_id.GetValue();
   texture.type_id = resource::TextureResource::kResourceTypeId;
+
+  constexpr u8 kOutputChannelCount{4};
+
   texture.descr.size = static_cast<comet::u64>(texture_context.tex_width) *
-                       texture_context.tex_height * 4;
+                       texture_context.tex_height * kOutputChannelCount;
+
+  texture.descr.channel_count = kOutputChannelCount;
+  texture.descr.format = rendering::TextureFormat::Rgba8;
+
   texture.descr.resolution[0] = texture_context.tex_width;
   texture.descr.resolution[1] = texture_context.tex_height;
   texture.descr.resolution[2] = 0;
-  texture.descr.channel_count = static_cast<u8>(texture_context.tex_channels);
-  texture.descr.format = rendering::TextureFormat::Rgba8;
 
   texture.data = Array<u8>{context.allocator};
   texture.data.Resize(texture.descr.size);

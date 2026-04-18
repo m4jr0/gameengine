@@ -25,15 +25,17 @@ class AssetManager : public Manager {
   AssetManager(AssetManager&&) = delete;
   AssetManager& operator=(const AssetManager&) = delete;
   AssetManager& operator=(AssetManager&&) = delete;
-  ~AssetManager() = default;
+  ~AssetManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void RefreshLibraryMetadataFile();
   void Refresh();
 
   const TString& GetAssetsRootPath() const noexcept;
   const TString& GetResourcesRootPath() const noexcept;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   static void OnRefresh(job::IOJobParamsHandle params_handle);
@@ -41,6 +43,7 @@ class AssetManager : public Manager {
   void RefreshLibrary(job::Counter* global_counter);
   void RefreshFolder(job::Counter* global_counter, CTStringView asset_abs_path);
   void RefreshAsset(job::Counter* global_counter, CTStringView asset_abs_path);
+
   bool IsRefreshNeeded(CTStringView asset_abs_path,
                        CTStringView metadata_file_path) const;
 

@@ -27,21 +27,6 @@ EmptyDriver::EmptyDriver(const EmptyDriverDescr& descr) : Driver{descr} {
   window_ = std::make_unique<EmptyGlfwWindow>(window_descr);
 }
 
-void EmptyDriver::Initialize() {
-  Driver::Initialize();
-  COMET_LOG_RENDERING_DEBUG("Initializing Empty driver.");
-  window_->Initialize();
-  COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
-}
-
-void EmptyDriver::Shutdown() {
-  if (window_->IsInitialized()) {
-    window_->Destroy();
-  }
-
-  Driver::Shutdown();
-}
-
 void EmptyDriver::Update(frame::FramePacket*) {}
 
 DriverType EmptyDriver::GetType() const noexcept { return DriverType::Empty; }
@@ -51,6 +36,18 @@ void EmptyDriver::SetSize(WindowSize, WindowSize) {}
 Window* EmptyDriver::GetWindow() { return window_.get(); }
 
 u32 EmptyDriver::GetDrawCount() const { return 0; }
+
+void EmptyDriver::OnInitialize() {
+  COMET_LOG_RENDERING_DEBUG("Initializing Empty driver.");
+  window_->Initialize();
+  COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
+}
+
+void EmptyDriver::OnShutdown() {
+  if (window_->IsInitialized()) {
+    window_->Destroy();
+  }
+}
 }  // namespace empty
 }  // namespace rendering
 }  // namespace comet

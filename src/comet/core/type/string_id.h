@@ -30,10 +30,7 @@ class StringIdAllocator : public memory::StatefulAllocator {
   StringIdAllocator(StringIdAllocator&&) = delete;
   StringIdAllocator& operator=(const StringIdAllocator&) = delete;
   StringIdAllocator& operator=(StringIdAllocator&&) = delete;
-  ~StringIdAllocator();
-
-  void Initialize();
-  void Destroy();
+  ~StringIdAllocator() override = default;
 
   void* AllocateAligned(usize size, memory::Alignment align) override;
   void Deallocate(void*) override;
@@ -43,7 +40,9 @@ class StringIdAllocator : public memory::StatefulAllocator {
   void Clear();
   void Reset();
 
-  bool IsInitialized() const noexcept;
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   using StringIdAllocatorOffset = sptrdiff;

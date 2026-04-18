@@ -5,16 +5,16 @@
 #ifndef COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 #define COMET_COMET_ANIMATION_ANIMATION_MANAGER_H_
 
+// External. ///////////////////////////////////////////////////////////////////
 #include <optional>
+////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/animation_common.h"
 #include "comet/animation/component/animation_component.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
 #include "comet/entity/entity_id.h"
-#include "comet/resource/animation_resource.h"
 #include "comet/resource/resource.h"
 
 namespace comet {
@@ -38,29 +38,29 @@ class AnimationManager : public Manager {
   AnimationManager(AnimationManager&&) = delete;
   AnimationManager& operator=(const AnimationManager&) = delete;
   AnimationManager& operator=(AnimationManager&&) = delete;
-  virtual ~AnimationManager() = default;
+  ~AnimationManager() override = default;
 
   void Update(frame::FramePacket* packet);
 
-  void Play(entity::EntityId entity_id, const schar* name, f32 speed = 1.0f,
-            std::optional<bool> is_loop = std::nullopt);
-  void Play(entity::EntityId entity_id, const wchar* name, f32 speed = 1.0f,
-            std::optional<bool> is_loop = std::nullopt);
+  void Play(entity::EntityId entity_id, const schar* qualified_name,
+            f32 speed = 1.0f, std::optional<bool> is_loop = std::nullopt);
+  void Play(entity::EntityId entity_id, const wchar* qualified_name,
+            f32 speed = 1.0f, std::optional<bool> is_loop = std::nullopt);
   void Play(entity::EntityId entity_id, AnimationClipId id, f32 speed = 1.0f,
             std::optional<bool> is_loop = std::nullopt);
 
   AnimationComponent GenerateAnimationComponent(
-      const schar* name, f32 speed = 1.0f,
+      const schar* qualified_name, f32 speed = 1.0f,
       std::optional<bool> is_loop = std::nullopt,
       resource::ResourceLifeSpan life_span =
           resource::ResourceLifeSpan::Manual);
   AnimationComponent GenerateAnimationComponent(
-      const wchar* name, f32 speed = 1.0f,
+      const wchar* qualified_name, f32 speed = 1.0f,
       std::optional<bool> is_loop = std::nullopt,
       resource::ResourceLifeSpan life_span =
           resource::ResourceLifeSpan::Manual);
   AnimationComponent GenerateAnimationComponent(
-      AnimationClipId id = kInvalidAnimationClipId, f32 speed = 1.0f,
+      AnimationClipId id = AnimationClipId::Invalid(), f32 speed = 1.0f,
       std::optional<bool> is_loop = std::nullopt,
       resource::ResourceLifeSpan life_span =
           resource::ResourceLifeSpan::Manual);
@@ -70,8 +70,7 @@ class AnimationManager : public Manager {
  private:
   static void OnAnimationProcessing(job::JobParamsHandle params_handle);
 
-  void PlayInternal(entity::EntityId entity_id,
-                    const resource::AnimationClipResource* resource,
+  void PlayInternal(entity::EntityId entity_id, AnimationClipHandle handle,
                     f32 speed = 1.0f,
                     std::optional<bool> is_loop = std::nullopt);
 

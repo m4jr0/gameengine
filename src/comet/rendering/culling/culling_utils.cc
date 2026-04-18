@@ -22,17 +22,17 @@ void ComputeFrustumCorners(const RenderCameraData& camera_data,
   const auto& front{camera_data.front};
   const auto& up{camera_data.up};
   const auto& right{camera_data.right};
-  auto fov{camera_data.fov_y_radians};
-  auto aspect{camera_data.aspect_ratio};
+  const auto fov{camera_data.fov_y_radians};
+  const auto aspect{camera_data.aspect_ratio};
 
-  auto near_center{position + front * near_distance};
-  auto far_center{position + front * far_distance};
+  const auto near_center{position + front * near_distance};
+  const auto far_center{position + front * far_distance};
 
-  auto near_half_height{math::Tan(fov * .5f) * near_distance};
-  auto near_half_width{near_half_height * aspect};
+  const auto near_half_height{math::Tan(fov * .5f) * near_distance};
+  const auto near_half_width{near_half_height * aspect};
 
-  auto far_half_height{math::Tan(fov * .5f) * far_distance};
-  auto far_half_width{far_half_height * aspect};
+  const auto far_half_height{math::Tan(fov * .5f) * far_distance};
+  const auto far_half_width{far_half_height * aspect};
 
   out[0] = near_center + up * near_half_height - right * near_half_width;
   out[1] = near_center + up * near_half_height + right * near_half_width;

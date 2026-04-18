@@ -17,18 +17,8 @@
 namespace comet {
 namespace resource {
 namespace internal {
-void ResourceAllocator::Initialize() {
-  small_allocator_ = memory::FiberFreeListAllocator{
-      kSmallAllocatorAllocationUnitSize_,
-      kSmallAllocatorCapacity_ / kSmallAllocatorAllocationUnitSize_,
-      memory::kEngineMemoryTagResource};
-  small_allocator_.Initialize();
-}
-
-void ResourceAllocator::Destroy() { small_allocator_.Destroy(); }
-
 void* ResourceAllocator::AllocateAligned(usize size, memory::Alignment align) {
-  auto total_size{size + align + kHeaderSize_};
+  const auto total_size{size + align + kHeaderSize_};
 
   u8* raw{nullptr};
   u8 tag{0};
@@ -57,14 +47,26 @@ void ResourceAllocator::Deallocate(void* ptr) {
 
   auto* offset{static_cast<u8*>(memory::ResolveNonAligned(ptr))};
   auto* raw{offset - kHeaderSize_};
-  auto tag{static_cast<AllocatorType>(raw[0])};
+  const auto tag{static_cast<AllocatorType>(raw[0])};
 
   if (tag == AllocatorType::Small) {
     small_allocator_.Deallocate(raw);
-  } else {
+  } else if (tag == AllocatorType::Big) {
     big_allocator_.Deallocate(raw);
+  } else {
+    COMET_ASSERT(false, "Malformed tag found, can't deallocate resource!");
   }
 }
+
+void ResourceAllocator::OnInitialize() {
+  small_allocator_ = memory::FiberFreeListAllocator{
+      kSmallAllocatorAllocationUnitSize_,
+      kSmallAllocatorCapacity_ / kSmallAllocatorAllocationUnitSize_,
+      memory::kEngineMemoryTagResource};
+  small_allocator_.Initialize();
+}
+
+void ResourceAllocator::OnDestroy() { small_allocator_.Destroy(); }
 }  // namespace internal
 }  // namespace resource
 }  // namespace comet

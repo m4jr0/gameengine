@@ -30,10 +30,7 @@ class ResourceManager : public Manager {
   ResourceManager(ResourceManager&&) = delete;
   ResourceManager& operator=(const ResourceManager&) = delete;
   ResourceManager& operator=(ResourceManager&&) = delete;
-  virtual ~ResourceManager() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~ResourceManager() override = default;
 
   const TString& GetRootResourcePath();
 
@@ -46,14 +43,17 @@ class ResourceManager : public Manager {
   ShaderResourceHandler* GetShaders();
   TextureResourceHandler* GetTextures();
 
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
  private:
   void InitializeResourcesDirectory();
   void InitializeHandlers();
   void DestroyHandlers();
 
   TString root_resource_path_{};
-  // Good enough for something that will never be updated...
-  memory::PlatformAllocator handler_allocator_{
+  memory::PlatformAllocator platform_allocator_{
       memory::kEngineMemoryTagResource};
 
   memory::FiberStackAllocator global_allocator_{

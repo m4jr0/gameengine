@@ -24,6 +24,7 @@ struct Sphere {
 
 bool IsAabbInOrOnPlane(const Plane& plane, const Aabb& aabb);
 bool IsSphereInOrOnPlane(const Plane& plane, const Sphere& sphere);
+
 math::Aabb GenerateGlobalAabb(const Aabb& local_aabb, const Mat4& global);
 
 math::Aabb GenerateGlobalAabb(const Vec3& local_center,

@@ -149,9 +149,9 @@ void ReallocateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
     return;
   }
 
-  auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
-                                 vma_memory_usage, memory_property_flags,
-                                 vma_flags, sharing_mode, debug_label)};
+  const auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
+                                       vma_memory_usage, memory_property_flags,
+                                       vma_flags, sharing_mode, debug_label)};
   DestroyBuffer(buffer);
   buffer = new_buffer;
 }
@@ -176,9 +176,9 @@ void ResizeBuffer(Buffer& buffer, const Device& device,
     return;
   }
 
-  auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
-                                 vma_memory_usage, memory_property_flags,
-                                 vma_flags, sharing_mode, debug_label)};
+  const auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
+                                       vma_memory_usage, memory_property_flags,
+                                       vma_flags, sharing_mode, debug_label)};
 
   COMET_ASSERT(
       command_pool_handle != VK_NULL_HANDLE,

@@ -8,8 +8,8 @@
 #include "comet/core/essentials.h"
 #include "comet/event/event.h"
 #include "comet/math/vector.h"
+#include "comet/rendering/rendering_handle.h"
 
-// Some temporary code to move the camera in the editor.
 namespace comet {
 namespace editor {
 class CameraHandler {
@@ -19,10 +19,11 @@ class CameraHandler {
   CameraHandler(CameraHandler&&) = delete;
   CameraHandler& operator=(const CameraHandler&) = delete;
   CameraHandler& operator=(CameraHandler&&) = delete;
-  virtual ~CameraHandler();
+  ~CameraHandler();
 
   void Initialize();
   void Shutdown();
+
   void Update();
 
   bool IsInitialized() const noexcept;
@@ -36,13 +37,17 @@ class CameraHandler {
   static constexpr f32 kMouseRotationSensitivity_{.0005f};
   static constexpr f32 kMousePanSensitivity_{.01f};
   static constexpr f32 kMouseZoomSensitivity_{.05f};
+
   bool is_initialized_{false};
   bool is_orbiting_from_mouse_{false};
   bool is_rotating_from_mouse_{false};
   bool is_panning_from_mouse_{false};
   bool is_zooming_from_mouse_{false};
+
   math::Vec2 current_mouse_pos_{.0f, .0f};
   math::Vec2 last_mouse_pos_{.0f, .0f};
+
+  rendering::CameraHandle camera_{};
 };
 }  // namespace editor
 }  // namespace comet

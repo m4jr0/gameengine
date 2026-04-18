@@ -19,7 +19,7 @@ template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
 class OrderedSet {
  public:
   using Elements = Array<T>;
-  using Hashes = HashSet<u32>;
+  using Hashes = HashSet<HashValue>;
 
   COMET_POPULATE_ITERATOR(T, elements_.GetData(), elements_.GetSize())
 
@@ -67,7 +67,7 @@ class OrderedSet {
 
   template <typename V>
   void Add(V&& value) {
-    auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
+    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
 
     if (this->hashes_.IsContained(hash)) {
       return;
@@ -80,7 +80,7 @@ class OrderedSet {
   template <typename... Targs>
   T& EmplaceBack(Targs&&... args) {
     T value{std::forward<Targs>(args)...};
-    auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
+    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
 
     if (this->hashes_.IsContained(hash)) {
       return this->elements_.Get(this->elements_.GetIndex(value));
@@ -91,13 +91,13 @@ class OrderedSet {
   }
 
   bool Remove(const T& value) {
-    auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
+    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
 
     if (!this->hashes_.IsContained(hash)) {
       return false;
     }
 
-    auto index{this->elements_.GetIndex(value)};
+    const auto index{this->elements_.GetIndex(value)};
 
     if (index == kInvalidIndex) {
       return false;

@@ -8,6 +8,12 @@
 #include "comet/core/essentials.h"
 
 namespace comet {
+enum class ManagerState : u8 {
+  Uninitialized,
+  Running,
+  ShutdownPending,
+};
+
 class Manager {
  public:
   Manager() = default;
@@ -17,13 +23,22 @@ class Manager {
   Manager& operator=(Manager&&) = delete;
   virtual ~Manager();
 
-  virtual void Initialize();
-  virtual void Shutdown();
+  void Initialize();
+  void PrepareShutdown();
+  void Shutdown();
 
   bool IsInitialized() const noexcept;
+  bool IsRunning() const noexcept;
+  bool IsShutdownPending() const noexcept;
+  ManagerState GetState() const noexcept;
 
  protected:
-  bool is_initialized_{false};
+  virtual void OnInitialize();
+  virtual void OnPrepareShutdown();
+  virtual void OnShutdown();
+
+ protected:
+  ManagerState state_{ManagerState::Uninitialized};
 };
 }  // namespace comet
 

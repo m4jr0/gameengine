@@ -17,16 +17,18 @@
 namespace comet {
 namespace rendering {
 namespace vk {
-VkAttachmentLoadOp ToVkAttachmentLoadOp(ViewLoadOp op);
-VkAttachmentStoreOp ToVkAttachmentStoreOp(ViewStoreOp op);
-
 void GenerateAttachmentDescrs(const ViewPassDescr& pass_descr,
                               VkSampleCountFlagBits samples,
                               Array<AttachmentDescr>& attachment_descrs);
+
 AttachmentDescr GenerateDepthAttachmentDescr(
     ViewLoadOp load_op, ViewStoreOp store_op,
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+
 u8 GenerateClearFlags(const ViewPassDescr& pass_descr);
+
+VkAttachmentLoadOp ToVkAttachmentLoadOp(ViewLoadOp op);
+VkAttachmentStoreOp ToVkAttachmentStoreOp(ViewStoreOp op);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

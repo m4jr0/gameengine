@@ -33,10 +33,12 @@ View::~View() {
 void View::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize view, but it is already done!");
+  OnInitialize();
   is_initialized_ = true;
 }
 
 void View::Destroy() {
+  OnDestroy();
   id_ = kInvalidRenderingViewId;
   width_ = 0;
   height_ = 0;
@@ -69,6 +71,10 @@ bool View::IsSwapchainTarget() const noexcept {
 bool View::IsOffscreenTarget() const noexcept {
   return (pass_descr_.flags & kViewPassFlagBitsOffscreenTarget) != 0;
 }
+
+void View::OnInitialize() {}
+
+void View::OnDestroy() {}
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

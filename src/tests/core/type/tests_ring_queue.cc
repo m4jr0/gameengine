@@ -35,7 +35,7 @@ comet::memory::PlatformAllocator allocator{memory::kTestsMemoryTagGeneral};
 TEST_CASE("Ring queue creation with specific capacity", "[comet]") {
   const comet::usize capacity{15};
 
-  auto queue{comet::RingQueue<
+  const auto queue{comet::RingQueue<
       comet::memory::UniquePtr<comet::comettests::DummyObject>>(
       &comet::comettests::allocator, capacity)};
 

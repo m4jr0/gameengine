@@ -14,7 +14,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/date.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -62,7 +62,7 @@ f32 CpuProfilerGraph::GraphValueGetter(void* data, s32 relative_index) {
 void CpuProfilerGraph::DrawGraph(CpuProfilerDisplayerContext& context,
                                  const Controls& controls) {
   const auto& frame_contexts{*context.frame_contexts};
-  auto frame_context_count{frame_contexts.GetSize()};
+  const auto frame_context_count{frame_contexts.GetSize()};
 
   if (!context.is_frame_focused) {
     start_frame_index_ = frame_context_count > visible_frame_count_
@@ -82,13 +82,13 @@ void CpuProfilerGraph::DrawGraph(CpuProfilerDisplayerContext& context,
       ImVec2{.0f, static_cast<f32>(kGraphHeight_ + kGraphButtonsHeight_)},
       ImGuiChildFlags_AutoResizeY);
 
-  auto child_size{ImGui::GetContentRegionAvail()};
+  const auto child_size{ImGui::GetContentRegionAvail()};
 
   PlottingData plotting_data{};
   plotting_data.context = &context;
   plotting_data.offset = start_frame_index_;
 
-  auto cursor_pos{ImGui::GetCursorScreenPos()};
+  const auto cursor_pos{ImGui::GetCursorScreenPos()};
   ImGui::SetCursorScreenPos(
       ImVec2{cursor_pos.x + kYLabelMargin_, cursor_pos.y});
 
@@ -100,18 +100,19 @@ void CpuProfilerGraph::DrawGraph(CpuProfilerDisplayerContext& context,
   graph_origin_ = ImGui::GetItemRectMin();
   graph_size_ = ImGui::GetItemRectSize();
 
-  auto mouse_pos{ImGui::GetMousePos()};
+  const auto mouse_pos{ImGui::GetMousePos()};
   local_graph_mouse_pos_ =
       ImVec2{mouse_pos.x - graph_origin_.x, mouse_pos.y - graph_origin_.y};
 
   DrawLabels();
 
-  auto is_hover{ImGui::IsItemHovered()};
-  auto is_left_mouse{is_hover && ImGui::IsMouseDown(ImGuiMouseButton_Left)};
+  const auto is_hover{ImGui::IsItemHovered()};
+  const auto is_left_mouse{is_hover &&
+                           ImGui::IsMouseDown(ImGuiMouseButton_Left)};
 
   if ((is_left_mouse || is_hover) && graph_size_.x > .0f &&
       visible_frame_count_ > 0) {
-    auto mouse_frame_index{
+    const auto mouse_frame_index{
         static_cast<usize>(local_graph_mouse_pos_.x /
                            (graph_size_.x / visible_frame_count_)) +
         start_frame_index_};
@@ -144,19 +145,19 @@ void CpuProfilerGraph::DrawXLabels() {
   constexpr usize kLabelLen{63};
   schar label[kLabelLen + 1]{'\0'};
 
-  auto x_label_interval{math::Max<usize>(
+  const auto x_label_interval{math::Max<usize>(
       1, kXLabelInterval_ * visible_frame_count_ / kDefaultVisibleFrameCount_)};
 
-  auto first_frame_label{(start_frame_index_ + x_label_interval - 1) /
-                         x_label_interval * x_label_interval};
+  const auto first_frame_label{(start_frame_index_ + x_label_interval - 1) /
+                               x_label_interval * x_label_interval};
 
   auto prev_label_anchor{kF32Min};
 
   for (usize frame{first_frame_label}; frame < max_visible_frame_index_;
        frame += x_label_interval) {
-    auto t{static_cast<f32>(frame - start_frame_index_) /
-           static_cast<f32>(visible_frame_count_)};
-    auto x{graph_origin_.x + t * graph_size_.x};
+    const auto t{static_cast<f32>(frame - start_frame_index_) /
+                 static_cast<f32>(visible_frame_count_)};
+    const auto x{graph_origin_.x + t * graph_size_.x};
 
     draw_list_->AddLine(
         ImVec2{x, graph_origin_.y + graph_size_.y},
@@ -165,7 +166,7 @@ void CpuProfilerGraph::DrawXLabels() {
         kLabelMarkWidth_);
 
     ConvertToStr(frame, label, kLabelLen);
-    auto label_size{ImGui::CalcTextSize(label)};
+    const auto label_size{ImGui::CalcTextSize(label)};
 
     if (x - label_size.x * .5f <= prev_label_anchor) {
       continue;
@@ -191,8 +192,8 @@ void CpuProfilerGraph::DrawYLabels() {
 
   for (usize value{0}; value <= static_cast<usize>(max_y_value_);
        value += kYLabelInterval_) {
-    auto t{static_cast<f32>(value) / max_y_value_};
-    auto y{graph_origin_.y + graph_size_.y - t * graph_size_.y};
+    const auto t{static_cast<f32>(value) / max_y_value_};
+    const auto y{graph_origin_.y + graph_size_.y - t * graph_size_.y};
 
     draw_list_->AddLine(
         ImVec2{graph_origin_.x - kMarkLength_, y}, ImVec2{graph_origin_.x, y},
@@ -200,7 +201,7 @@ void CpuProfilerGraph::DrawYLabels() {
         kLabelMarkWidth_);
 
     ConvertToStr(value, label, kLabelLen);
-    auto label_size{ImGui::CalcTextSize(label)};
+    const auto label_size{ImGui::CalcTextSize(label)};
 
     draw_list_->AddText(
         ImVec2{graph_origin_.x - label_size.x - kLabelTotalMargin_,
@@ -241,22 +242,22 @@ void CpuProfilerGraph::DrawCursor(
 void CpuProfilerGraph::DrawNavigationButtons(
     CpuProfilerDisplayerContext& context) {
   constexpr f32 kButtonWidth{45.0f};
-  auto button_height{ImGui::GetFrameHeight()};
+  const auto button_height{ImGui::GetFrameHeight()};
   constexpr usize kButtonCount{6};
-  auto button_spacing{ImGui::GetStyle().ItemSpacing.x};
+  const auto button_spacing{ImGui::GetStyle().ItemSpacing.x};
 
-  auto total_width{kButtonCount * kButtonWidth +
-                   (kButtonCount - 1) * button_spacing};
+  const auto total_width{kButtonCount * kButtonWidth +
+                         (kButtonCount - 1) * button_spacing};
 
-  auto available_width{ImGui::GetWindowContentRegionMax().x -
-                       ImGui::GetWindowContentRegionMin().x};
-  auto start_x{(available_width - total_width) * .5f};
+  const auto available_width{ImGui::GetWindowContentRegionMax().x -
+                             ImGui::GetWindowContentRegionMin().x};
+  const auto start_x{(available_width - total_width) * .5f};
   ImGui::SetCursorPosX(start_x);
 
-  auto frame_index{context.GetFrameIndex()};
-  auto frame_count{context.frame_contexts != nullptr
-                       ? context.frame_contexts->GetSize()
-                       : 0};
+  const auto frame_index{context.GetFrameIndex()};
+  const auto frame_count{context.frame_contexts != nullptr
+                             ? context.frame_contexts->GetSize()
+                             : 0};
 
   if (ImGui::Button("<<<", ImVec2{kButtonWidth, button_height})) {
     GoToFrame(context, 0);
@@ -297,19 +298,19 @@ void CpuProfilerGraph::DrawNavigationButtons(
 
 void CpuProfilerGraph::DrawControlButtons(CpuProfilerDisplayerContext& context,
                                           const Controls& controls) {
-  auto button_height{ImGui::GetFrameHeight()};
+  const auto button_height{ImGui::GetFrameHeight()};
   constexpr f32 kButtonWidth{75.0f};  // this one is fine
 
   constexpr usize kButtonCount{3};
-  auto button_spacing{ImGui::GetStyle().ItemSpacing.x};
+  const auto button_spacing{ImGui::GetStyle().ItemSpacing.x};
 
-  auto total_width{kButtonCount * kButtonWidth +
-                   (kButtonCount - 1) * button_spacing};
+  const auto total_width{kButtonCount * kButtonWidth +
+                         (kButtonCount - 1) * button_spacing};
 
-  auto available_width{ImGui::GetWindowContentRegionMax().x -
-                       ImGui::GetWindowContentRegionMin().x};
+  const auto available_width{ImGui::GetWindowContentRegionMax().x -
+                             ImGui::GetWindowContentRegionMin().x};
 
-  auto start_x{(available_width - total_width) * .5f};
+  const auto start_x{(available_width - total_width) * .5f};
   ImGui::SetCursorPosX(start_x);
 
   if (ImGui::Button(controls.is_recording ? "Stop" : "Record",
@@ -338,23 +339,23 @@ void CpuProfilerGraph::DrawControlButtons(CpuProfilerDisplayerContext& context,
 
 void CpuProfilerGraph::HandleMouseClick(CpuProfilerDisplayerContext& context,
                                         usize mouse_frame_index) {
-  auto now{GetTimestampMilliSeconds()};
-  auto is_scroll{now - scroll_timer_ > scroll_timer_cooldown_};
+  const auto now{GetTimestampMilliSeconds()};
+  const auto is_scroll{now - scroll_timer_ > scroll_timer_cooldown_};
 
   if (is_scroll) {
     scroll_timer_ = now;
   }
 
-  auto old_start_frame_index{start_frame_index_};
+  const auto old_start_frame_index{start_frame_index_};
   GoToFrame(context, mouse_frame_index, is_scroll);
 
   if (is_scroll && context.is_frame_focused) {
-    auto sign{
+    const auto sign{
         static_cast<s8>(start_frame_index_ > old_start_frame_index ? 1 : -1)};
-    auto delta{sign >= 0 ? start_frame_index_ - old_start_frame_index
-                         : old_start_frame_index - start_frame_index_};
+    const auto delta{sign >= 0 ? start_frame_index_ - old_start_frame_index
+                               : old_start_frame_index - start_frame_index_};
 
-    auto current_index{context.GetFrameIndex()};
+    const auto current_index{context.GetFrameIndex()};
     if (current_index != kInvalidIndex) {
       context.Focus(current_index + sign * static_cast<s64>(delta));
     }
@@ -370,9 +371,9 @@ void CpuProfilerGraph::HandleScrollWheel(usize mouse_frame_index) {
 
   scroll_amount = -scroll_amount;
 
-  auto delta{
+  const auto delta{
       static_cast<usize>(math::Abs(scroll_amount) * kVisibleFrameScrollSpeed_)};
-  auto old_visible_frame_count{visible_frame_count_};
+  const auto old_visible_frame_count{visible_frame_count_};
 
   if (scroll_amount >= .0f) {
     visible_frame_count_ =
@@ -388,8 +389,9 @@ void CpuProfilerGraph::HandleScrollWheel(usize mouse_frame_index) {
 
   scroll_amount_ = math::Max<usize>(1, visible_frame_count_ / 4);
 
-  auto current_delta{static_cast<f32>(mouse_frame_index - start_frame_index_) /
-                     static_cast<f32>(old_visible_frame_count)};
+  const auto current_delta{
+      static_cast<f32>(mouse_frame_index - start_frame_index_) /
+      static_cast<f32>(old_visible_frame_count)};
 
   start_frame_index_ = static_cast<usize>(
       -current_delta * visible_frame_count_ + mouse_frame_index);
@@ -400,13 +402,13 @@ void CpuProfilerGraph::HandleScroll(CpuProfilerDisplayerContext& context) {
     return;
   }
 
-  auto frame_context_count{context.frame_contexts->GetSize()};
+  const auto frame_context_count{context.frame_contexts->GetSize()};
 
   if (frame_context_count <= visible_frame_count_) {
     return;
   }
 
-  auto frame_index{context.GetFrameIndex()};
+  const auto frame_index{context.GetFrameIndex()};
   if (frame_index == kInvalidIndex) {
     return;
   }
@@ -417,8 +419,8 @@ void CpuProfilerGraph::HandleScroll(CpuProfilerDisplayerContext& context) {
     return;
   }
 
-  auto percentage{static_cast<f32>(frame_index - start_frame_index_) /
-                  static_cast<f32>(visible_frame_count_)};
+  const auto percentage{static_cast<f32>(frame_index - start_frame_index_) /
+                        static_cast<f32>(visible_frame_count_)};
 
   if (percentage <= kLeftScrollZone_ && start_frame_index_ > 0) {
     scroll_timer_cooldown_ = math::Clamp(
@@ -450,7 +452,7 @@ void CpuProfilerGraph::GoToFrame(CpuProfilerDisplayerContext& context,
     return;
   }
 
-  auto frame_context_count{context.frame_contexts->GetSize()};
+  const auto frame_context_count{context.frame_contexts->GetSize()};
   frame_index = math::Min(frame_index, frame_context_count - 1);
 
   if (frame_context_count == 1) {
@@ -467,15 +469,15 @@ void CpuProfilerGraph::GoToFrame(CpuProfilerDisplayerContext& context,
 
 void CpuProfilerGraph::UpdateCursorPos(
     const CpuProfilerDisplayerContext& context) {
-  auto frame_index{context.GetFrameIndex()};
+  const auto frame_index{context.GetFrameIndex()};
 
   if (frame_index == kInvalidIndex || visible_frame_count_ == 0) {
     return;
   }
 
-  auto cursor_index{frame_index - start_frame_index_};
-  auto cursor_x{graph_size_.x * (static_cast<f32>(cursor_index) /
-                                 static_cast<f32>(visible_frame_count_))};
+  const auto cursor_index{frame_index - start_frame_index_};
+  const auto cursor_x{graph_size_.x * (static_cast<f32>(cursor_index) /
+                                       static_cast<f32>(visible_frame_count_))};
 
   local_graph_cursor_pos_.x = graph_origin_.x + cursor_x;
   local_graph_cursor_pos_.y = graph_origin_.y;

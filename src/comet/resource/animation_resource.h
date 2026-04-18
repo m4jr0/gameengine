@@ -5,27 +5,38 @@
 #ifndef COMET_COMET_RESOURCE_ANIMATION_RESOURCE_H_
 #define COMET_COMET_RESOURCE_ANIMATION_RESOURCE_H_
 
-#include "comet/animation/animation_common.h"
+#include "comet/animation/animation_clip.h"
 #include "comet/core/essentials.h"
-#include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/resource_type.h"
+#include "comet/resource/runtime/loaded_resource_handle.h"
 
 namespace comet {
 namespace resource {
+struct AnimationClipResourceTag {};
+
+using AnimationClipResourceId = ResourceIdT<AnimationClipResourceTag>;
+using AnimationClipResourceHandle =
+    LoadedResourceHandle<AnimationClipResourceTag>;
+
 struct AnimationClipResourceDescr {
-  // TODO(m4jr0): Add description.
   u8 empty{0};
 };
 
 struct AnimationClipResource : Resource {
-  static const ResourceTypeId kResourceTypeId;
+  using Id = AnimationClipResourceId;
+  using Handle = AnimationClipResourceHandle;
+  using TypeId = ResourceTypeId;
+  using TypeName = ResourceTypeName;
+
+  static constexpr TypeName kResourceTypeName{"animation_clip"};
+  static const TypeId kResourceTypeId;
 
   AnimationClipResourceDescr descr{};
   animation::CompressedAnimationClip clip{};
-};
 
-ResourceId GenerateAnimationClipId(CTStringView file_path,
-                                   const schar* animation_name);
+  Id GetId() const noexcept;
+};
 
 usize GetAnimationClipSize(const AnimationClipResource& resource);
 }  // namespace resource

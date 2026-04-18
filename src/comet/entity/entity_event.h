@@ -21,7 +21,7 @@ class ModelLoadedEvent : public event::Event {
   ModelLoadedEvent(ModelLoadedEvent&&) noexcept = default;
   ModelLoadedEvent& operator=(const ModelLoadedEvent&) = default;
   ModelLoadedEvent& operator=(ModelLoadedEvent&&) noexcept = default;
-  virtual ~ModelLoadedEvent() = default;
+  ~ModelLoadedEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
   EntityId GetEntityId() const noexcept;

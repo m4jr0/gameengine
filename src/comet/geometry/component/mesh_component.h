@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/entity/entity_id.h"
-#include "comet/geometry/geometry_common.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/resource/material_resource.h"
 
 namespace comet {
@@ -15,8 +15,8 @@ namespace geometry {
 struct MeshComponent {
   entity::EntityId entity_id{entity::kInvalidEntityId};
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
-  geometry::Mesh* mesh{nullptr};
-  const resource::MaterialResource* material_resource{nullptr};
+  MeshHandle mesh_handle{};
+  resource::MaterialResourceId material_resource_id{};
 };
 }  // namespace geometry
 }  // namespace comet

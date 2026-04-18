@@ -53,8 +53,29 @@ AssetManager::AssetManager() : Manager{} {
   Clean(library_meta_path_);
 }
 
-void AssetManager::Initialize() {
-  Manager::Initialize();
+void AssetManager::RefreshLibraryMetadataFile() {
+  SaveMetadata(library_meta_path_, SetAndGetMetadata(library_meta_path_));
+}
+
+void AssetManager::Refresh() {
+  job::CounterGuard guard{};
+  auto* counter{guard.GetCounter()};
+
+  const auto job{job::GenerateIOJobDescr(OnRefresh, counter, counter)};
+
+  job::Scheduler::Get().Kick(job);
+  guard.Wait();
+}
+
+const TString& AssetManager::GetAssetsRootPath() const noexcept {
+  return root_asset_path_;
+}
+
+const TString& AssetManager::GetResourcesRootPath() const noexcept {
+  return root_resource_path_;
+}
+
+void AssetManager::OnInitialize() {
   RefreshLibraryMetadataFile();
 
   root_resource_path_ = resource::ResourceManager::Get().GetRootResourcePath();
@@ -73,36 +94,13 @@ void AssetManager::Initialize() {
   }
 }
 
-void AssetManager::RefreshLibraryMetadataFile() {
-  SaveMetadata(library_meta_path_, SetAndGetMetadata(library_meta_path_));
-}
-
-void AssetManager::Shutdown() {
+void AssetManager::OnShutdown() {
   is_force_refresh_ = false;
   last_update_time_ = 0;
   root_asset_path_.Destroy();
   root_resource_path_.Destroy();
   library_meta_path_.Destroy();
   exporters_.Destroy();
-  Manager::Shutdown();
-}
-
-void AssetManager::Refresh() {
-  job::CounterGuard guard{};
-  auto* counter{guard.GetCounter()};
-
-  auto job{job::GenerateIOJobDescr(OnRefresh, counter, counter)};
-
-  job::Scheduler::Get().Kick(job);
-  guard.Wait();
-}
-
-const TString& AssetManager::GetAssetsRootPath() const noexcept {
-  return root_asset_path_;
-}
-
-const TString& AssetManager::GetResourcesRootPath() const noexcept {
-  return root_resource_path_;
 }
 
 void AssetManager::OnRefresh(job::IOJobParamsHandle params_handle) {
@@ -117,8 +115,8 @@ void AssetManager::RefreshLibrary(job::Counter* global_counter) {
 
 void AssetManager::RefreshFolder(job::Counter* global_counter,
                                  CTStringView asset_abs_path) {
-  auto parent_path{GetParentPath(asset_abs_path)};
-  auto folder_name{GetName(asset_abs_path)};
+  const auto parent_path{GetParentPath(asset_abs_path)};
+  const auto folder_name{GetName(asset_abs_path)};
 
   if (folder_name.IsEmpty()) {
     COMET_LOG_GLOBAL_ERROR(
@@ -152,7 +150,8 @@ void AssetManager::RefreshFolder(job::Counter* global_counter,
 
 void AssetManager::RefreshAsset(job::Counter* global_counter,
                                 CTStringView asset_abs_path) {
-  auto asset_metadata_file_path{GenerateAssetMetadataFilePath(asset_abs_path)};
+  const auto asset_metadata_file_path{
+      GenerateAssetMetadataFilePath(asset_abs_path)};
 
   if (!IsRefreshNeeded(asset_abs_path, asset_metadata_file_path) ||
       IsMetadataFile(asset_abs_path)) {

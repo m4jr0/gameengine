@@ -31,26 +31,26 @@ f64 GetNow() {
 }
 
 u64 GetTimestampSeconds() {
-  auto now{std::chrono::system_clock::now()};
-  auto now_s{
+  const auto now{std::chrono::system_clock::now()};
+  const auto now_s{
       std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
           .count()};
   return static_cast<u64>(now_s);
 }
 
 u64 GetTimestampMilliSeconds() {
-  auto now{std::chrono::system_clock::now()};
-  auto now_ms{std::chrono::duration_cast<std::chrono::milliseconds>(
-                  now.time_since_epoch())
-                  .count()};
+  const auto now{std::chrono::system_clock::now()};
+  const auto now_ms{std::chrono::duration_cast<std::chrono::milliseconds>(
+                        now.time_since_epoch())
+                        .count()};
   return static_cast<u64>(now_ms);
 }
 
 u64 GetTimestampNanoSeconds() {
-  auto now{std::chrono::system_clock::now()};
-  auto now_ns{std::chrono::duration_cast<std::chrono::nanoseconds>(
-                  now.time_since_epoch())
-                  .count()};
+  const auto now{std::chrono::system_clock::now()};
+  const auto now_ns{std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        now.time_since_epoch())
+                        .count()};
   return static_cast<u64>(now_ns);
 }
 }  // namespace comet

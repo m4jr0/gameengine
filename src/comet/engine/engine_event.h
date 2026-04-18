@@ -19,7 +19,7 @@ class ApplicationQuitEvent : public event::Event {
   ApplicationQuitEvent(ApplicationQuitEvent&&) noexcept = default;
   ApplicationQuitEvent& operator=(const ApplicationQuitEvent&) = default;
   ApplicationQuitEvent& operator=(ApplicationQuitEvent&&) noexcept = default;
-  virtual ~ApplicationQuitEvent() = default;
+  ~ApplicationQuitEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 };
@@ -34,7 +34,7 @@ class UnrecoverableErrorEvent : public event::Event {
   UnrecoverableErrorEvent& operator=(const UnrecoverableErrorEvent&) = default;
   UnrecoverableErrorEvent& operator=(UnrecoverableErrorEvent&&) noexcept =
       default;
-  virtual ~UnrecoverableErrorEvent() = default;
+  ~UnrecoverableErrorEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 };

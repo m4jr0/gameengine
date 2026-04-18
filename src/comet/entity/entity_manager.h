@@ -52,6 +52,7 @@ struct MovedEntities {
   MoveMap map{};
 
   void Add(Archetype* archetype, const internal::DeferredEntity& entity);
+
   bool IsEmpty() const;
 };
 
@@ -77,10 +78,7 @@ class EntityManager : public Manager {
   EntityManager(EntityManager&&) = delete;
   EntityManager& operator=(const EntityManager&) = delete;
   EntityManager& operator=(EntityManager&&) = delete;
-  virtual ~EntityManager() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~EntityManager() override = default;
 
   void DispatchComponentChanges();
   void WaitForEntityUpdates();
@@ -205,7 +203,7 @@ class EntityManager : public Manager {
 
     if (all_ids.IsEmpty()) {
       for (const auto& archetype : archetypes_) {
-        for (auto entity_id : archetype->entity_ids) {
+        for (const auto entity_id : archetype->entity_ids) {
           func(entity_id);
         }
       }
@@ -222,7 +220,7 @@ class EntityManager : public Manager {
 
       usize count{0};
 
-      for (auto component_type_id : archetype->entity_type) {
+      for (const auto component_type_id : archetype->entity_type) {
         if (component_type_id == all_ids[count]) {
           ++count;
         }
@@ -243,6 +241,10 @@ class EntityManager : public Manager {
   void EachChild(const Function& func, EntityId parent_id) {
     Each<ComponentTypes...>(func, Tag(EntityIdTag::Child, parent_id));
   }
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   inline static constexpr usize kDeferredEntityInitialCount_{128};
@@ -282,8 +284,10 @@ class EntityManager : public Manager {
   void RegisterComponentTypes(
       const Array<ComponentDescr>& component_type_descrs);
   void UnregisterComponentType(EntityId component_type_id);
+
   void ResizeArchetype(Archetype* archetype, s16 delta);
   void ReserveArchetypeCapacity(Archetype* archetype, usize capacity);
+
   bool DoesEntityTypeContain(const EntityType& entity_type,
                              EntityId component_type_id);
 
@@ -322,17 +326,23 @@ class EntityManager : public Manager {
 
   // Deferred operations.
   void ProcessDeferredOperations();
+
   void RegisterDeferredComponentTypes();
+
   internal::DeferredChanges PopulateChanges();
+
   void PrepareDeferredDestroyedEntity(internal::DeferredChanges& changes,
                                       const internal::DeferredEntity& entity);
   void PrepareDeferredEntity(internal::DeferredChanges& changes,
                              const internal::DeferredEntity& entity);
+
   void AddDeferredEntitiesToNewArchetypes(
       const internal::DeferredChanges& changes);
   void RemoveDeferredEntitiesFromOldArchetypes(
       internal::DeferredChanges& changes);
+
   void ProcessDeferredDestructions(const internal::DeferredChanges& changes);
+
   void TransferComponents(Archetype* new_archetype, usize new_entity_index,
                           Archetype* old_archetype, usize old_entity_index,
                           const frame::FrameArray<ComponentDescr>& added_cmps);
@@ -342,9 +352,12 @@ class EntityManager : public Manager {
   void CopyNewComponent(const frame::FrameArray<ComponentDescr>& added_cmps,
                         EntityId component_type_id, u8* new_cmp_elements,
                         usize new_cmp_offset, usize cmp_size);
+
   void ResizeDeferredArchetypes(const internal::DeferredChanges& changes,
                                 bool is_growth);
+
   void PrepareNewFrame();
+
   void OnEvent(const event::Event& event);
 
   using DeferredEntities = frame::FrameMap<EntityId, internal::DeferredEntity>;

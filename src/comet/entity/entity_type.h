@@ -16,10 +16,12 @@ using EntityType = Array<EntityId>;
 
 EntityType GenerateEntityType(const Array<ComponentDescr>& component_descrs);
 EntityType GenerateEntityType(Array<EntityId> component_type_ids);
+
 EntityType AddToEntityType(const EntityType& entity_type,
                            const EntityType& to_add);
 EntityType RemoveFromEntityType(const EntityType& from_entity_type,
                                 const EntityType& to_remove);
+
 EntityType& CleanEntityType(EntityType& entity_type);
 }  // namespace entity
 }  // namespace comet

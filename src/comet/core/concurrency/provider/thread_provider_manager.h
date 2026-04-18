@@ -24,9 +24,6 @@ class ThreadProviderManager : public Manager {
   ThreadProviderManager& operator=(ThreadProviderManager&&) noexcept = delete;
   ~ThreadProviderManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
-
   template <typename T>
   FiberThreadProvider<T> AllocateFiberProvider() {
     return FiberThreadProvider<T>{&allocator_};
@@ -36,6 +33,10 @@ class ThreadProviderManager : public Manager {
   IOThreadProvider<T> AllocateIOProvider() {
     return IOThreadProvider<T>{&allocator_};
   }
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   inline static constexpr memory::MemoryTag kEngineMemoryTag_{

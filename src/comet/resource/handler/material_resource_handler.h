@@ -13,17 +13,17 @@
 
 namespace comet {
 namespace resource {
-class MaterialResourceHandler : public ResourceHandler<MaterialResource> {
+class MaterialResourceHandler
+    : public ResourceHandler<MaterialResourceTag, MaterialResource> {
  public:
-  MaterialResourceHandler(const ResourceHandlerDescr& descr);
+  using Base = ResourceHandler;
+
+  explicit MaterialResourceHandler(const ResourceHandlerDescr& descr);
   MaterialResourceHandler(const MaterialResourceHandler&) = delete;
   MaterialResourceHandler(MaterialResourceHandler&&) = delete;
   MaterialResourceHandler& operator=(const MaterialResourceHandler&) = delete;
   MaterialResourceHandler& operator=(MaterialResourceHandler&&) = delete;
-  virtual ~MaterialResourceHandler() = default;
-
-  void InitializeDefaults() override;
-  void DestroyDefaults() override;
+  ~MaterialResourceHandler() override = default;
 
   ResourceFile Pack(const MaterialResource& resource,
                     CompressionMode compression_mode) override;
@@ -31,6 +31,10 @@ class MaterialResourceHandler : public ResourceHandler<MaterialResource> {
               MaterialResource* resource) override;
 
   MaterialResource* GetDefaultMaterialResource();
+
+ protected:
+  void InitializeDefaults() override;
+  void DestroyDefaults() override;
 
  private:
   memory::UniquePtr<MaterialResource> default_material_{nullptr};

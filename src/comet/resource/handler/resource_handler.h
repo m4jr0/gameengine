@@ -16,18 +16,52 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/hash_set.h"
-#include "comet/core/type/string_id.h"
 #include "comet/core/type/tstring.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/profiler/profiler.h"
 #include "comet/resource/handler/resource_handler_utils.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/resource_id.h"
+#include "comet/resource/runtime/loaded_resource_handle.h"
+#include "comet/resource/runtime/resource_slots.h"
 #include "comet/scene/scene_event.h"
 
 namespace comet {
 namespace resource {
+namespace internal {
+template <typename Handler>
+class LoadedResourceScope {
+ public:
+  using LoadedHandle = typename Handler::LoadedHandle;
+
+  LoadedResourceScope(Handler& handler, LoadedHandle handle) noexcept
+      : handler_{&handler}, handle_{handle} {}
+
+  LoadedResourceScope(const LoadedResourceScope&) = delete;
+  LoadedResourceScope(LoadedResourceScope&& other) noexcept
+      : handler_{other.handler_}, handle_{other.handle_} {
+    other.handler_ = nullptr;
+    other.handle_ = LoadedHandle::Invalid();
+  }
+
+  LoadedResourceScope& operator=(const LoadedResourceScope&) = delete;
+  LoadedResourceScope& operator=(LoadedResourceScope&&) = delete;
+
+  ~LoadedResourceScope() {
+    if (handler_ != nullptr && handle_) {
+      handler_->Unload(handle_);
+    }
+  }
+
+ private:
+  Handler* handler_{nullptr};
+  LoadedHandle handle_{};
+};
+}  // namespace internal
+
 struct ResourceHandlerDescr {
+  memory::MemoryTag memory_tag{memory::kEngineMemoryTagUntagged};
   CTStringView root_path{};
   usize initial_capacity{kInvalidSize};
   internal::LifeSpanAllocators life_span_allocators{};
@@ -35,25 +69,44 @@ struct ResourceHandlerDescr {
   memory::Allocator* byte_allocator{nullptr};
 };
 
-template <typename T>
+template <typename Tag, typename T>
 class ResourceHandler {
  public:
   static_assert(std::is_base_of_v<Resource, T>, "T must derive from Resource");
-  ResourceHandler(const ResourceHandlerDescr& descr);
+
+  using Id = ResourceIdT<Tag>;
+  using LoadedHandle = LoadedResourceHandle<Tag>;
+
+  explicit ResourceHandler(const ResourceHandlerDescr& descr);
   ResourceHandler(const ResourceHandler&) = delete;
   ResourceHandler(ResourceHandler&&) = delete;
   ResourceHandler& operator=(const ResourceHandler&) = delete;
   ResourceHandler& operator=(ResourceHandler&&) = delete;
   virtual ~ResourceHandler();
 
-  virtual void Initialize();
-  virtual void Destroy();
+  void Initialize();
+  void Destroy();
 
-  T* Load(CTStringView path,
-          ResourceLifeSpan life_span = ResourceLifeSpan::Manual);
-  T* Load(ResourceId id, ResourceLifeSpan life_span = ResourceLifeSpan::Manual);
-  void Unload(CTStringView path);
-  void Unload(ResourceId id);
+  T* Get(LoadedHandle handle);
+  const T* Get(LoadedHandle handle) const;
+
+  LoadedHandle Load(CTStringView path,
+                    ResourceLifeSpan life_span = ResourceLifeSpan::Manual);
+  LoadedHandle Load(Id id,
+                    ResourceLifeSpan life_span = ResourceLifeSpan::Manual);
+
+  void Unload(LoadedHandle handle);
+
+  template <typename Func>
+  decltype(auto) WithLoaded(LoadedHandle handle, Func&& fn);
+
+  template <typename Func>
+  decltype(auto) WithLoaded(LoadedHandle handle, Func&& fn) const;
+
+  template <typename Func>
+  inline bool WithTemporaryLoad(Id id, Func&& fn);
+
+  LoadedHandle RegisterDefaultResource(T* resource);
 
   virtual ResourceFile Pack(const T& resource,
                             CompressionMode compression_mode) = 0;
@@ -61,16 +114,26 @@ class ResourceHandler {
                       T* resource) = 0;
 
  protected:
-  inline static const usize kDefaultResourceCapacity_{128};
+  inline static constexpr usize kDefaultResourceCapacity_{128};
 
-  virtual void InitializeDefaults() {};
-  virtual void DestroyDefaults() {};
-  T* LoadInternal(ResourceId id, ResourceLifeSpan life_span);
+  virtual void OnInitialize() {}
+  virtual void OnDestroy() {}
+
+  virtual void InitializeDefaults() {}
+  virtual void DestroyDefaults() {}
+
+  void ReleaseManagedResources();
+
+  T* LoadInternal(Id id, ResourceLifeSpan life_span);
+  void QueueForDeletion(T* resource);
   void DestroyDeleted();
+
   memory::Allocator* ResolveAllocator(memory::Allocator* default_allocator,
                                       ResourceLifeSpan life_span) const;
+
 #ifdef COMET_PROFILING
-  void SetupProfiling(const schar* method_name, ResourceId resource_id) const;
+  void SetupProfiling(const schar* method_name,
+                      RawResourceId resource_id) const;
 #define COMET_RESOURCE_HANDLER_SETUP_PROFILING(method_name, resource_id) \
   SetupProfiling(method_name, resource_id)
 #else
@@ -79,162 +142,293 @@ class ResourceHandler {
 
   void OnEvent(const event::Event& event);
 
+  event::EventListenerId scene_unloaded_listener_id_{};
+  event::EventListenerId new_frame_listener_id_{};
+  bool are_listeners_registered_{false};
+
   CTStringView root_path_{};
-  internal::DefaultResources<T> defaults_{};
-  internal::ResourceCache<T> cache_{};
-  internal::LoadingTracker<T> tracker_{};
+
   memory::FiberFreeListAllocator resource_allocator_{};
   internal::LifeSpanAllocators life_span_allocators_{};
+
+  internal::DefaultResources<T> defaults_{};
+  internal::LoadingTracker<T> tracker_{};
+  ResourceSlots<Tag, T> slots_{};
   HashSet<T*> deleted_resources_{};
+
   memory::Allocator* byte_allocator_{nullptr};
 
  private:
   bool is_initialized_{false};
 };
 
-template <typename T>
-inline ResourceHandler<T>::ResourceHandler(const ResourceHandlerDescr& descr)
+template <typename Tag, typename T>
+inline ResourceHandler<Tag, T>::ResourceHandler(
+    const ResourceHandlerDescr& descr)
     : root_path_{descr.root_path},
-      defaults_{descr.ptr_allocator},
-      cache_{descr.ptr_allocator, descr.initial_capacity != kInvalidSize
-                                      ? descr.initial_capacity
-                                      : kDefaultResourceCapacity_},
-      tracker_{descr.ptr_allocator},
+
       resource_allocator_{sizeof(T),
                           descr.initial_capacity != kInvalidSize
                               ? descr.initial_capacity
                               : kDefaultResourceCapacity_,
-                          memory::kEngineMemoryTagResource},
+                          descr.memory_tag},
       life_span_allocators_{descr.life_span_allocators},
+
+      defaults_{descr.ptr_allocator},
+      tracker_{descr.ptr_allocator},
+      slots_{descr.ptr_allocator, descr.initial_capacity != kInvalidSize
+                                      ? descr.initial_capacity
+                                      : kDefaultResourceCapacity_},
+      deleted_resources_{descr.ptr_allocator, 64},
+
       byte_allocator_{descr.byte_allocator} {}
 
-template <typename T>
-inline ResourceHandler<T>::~ResourceHandler() {
+template <typename Tag, typename T>
+inline ResourceHandler<Tag, T>::~ResourceHandler() {
   COMET_ASSERT(!is_initialized_,
-               "Destructor called for resource handler, but it is "
-               "still initialized!");
+               "Destructor called for resource handler, but it is still "
+               "initialized!");
 }
 
-template <typename T>
-inline void ResourceHandler<T>::Initialize() {
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize resource handler, but it is already done!");
 
   defaults_.Initialize();
   tracker_.Initialize();
-  deleted_resources_ = HashSet<T*>{byte_allocator_, 64};
+  slots_.Initialize();
+
+  const auto event_function{
+      [this](const event::Event& event) { OnEvent(event); }};
+
+  scene_unloaded_listener_id_ = event::EventManager::Get().Register(
+      event_function, scene::SceneUnloadedEvent::kStaticType_);
+  new_frame_listener_id_ = event::EventManager::Get().Register(
+      event_function, frame::NewFrameEvent::kStaticType_);
+  are_listeners_registered_ = true;
+
+  OnInitialize();
   InitializeDefaults();
-
-  auto event_function{COMET_EVENT_BIND_FUNCTION(ResourceHandler<T>::OnEvent)};
-  event::EventManager::Get().Register(event_function,
-                                      scene::SceneUnloadedEvent::kStaticType_);
-  event::EventManager::Get().Register(event_function,
-                                      frame::NewFrameEvent::kStaticType_);
-
   is_initialized_ = true;
 }
 
-template <typename T>
-inline void ResourceHandler<T>::Destroy() {
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::Destroy() {
   COMET_ASSERT(is_initialized_,
                "Tried to destroy resource handler, but it is not initialized!");
 
+  if (are_listeners_registered_) {
+    event::EventManager::Get().Unregister(scene_unloaded_listener_id_);
+    event::EventManager::Get().Unregister(new_frame_listener_id_);
+    are_listeners_registered_ = false;
+  }
+
+  ReleaseManagedResources();
+  DestroyDeleted();
+  DestroyDefaults();
+  OnDestroy();
+
   defaults_.Destroy();
   tracker_.Destroy();
-  cache_.Destroy();
-  DestroyDefaults();
+  slots_.Destroy();
+  deleted_resources_.Destroy();
+
   is_initialized_ = false;
 }
 
-template <typename T>
-inline T* ResourceHandler<T>::Load(CTStringView path,
-                                   ResourceLifeSpan life_span) {
-  COMET_PROFILE("LoadingTracker<T>::Finish");
-  return Load(GenerateResourceIdFromPath<T>(path), life_span);
+template <typename Tag, typename T>
+inline T* ResourceHandler<Tag, T>::Get(LoadedHandle handle) {
+  return slots_.Get(handle);
 }
 
-template <typename T>
-inline T* ResourceHandler<T>::Load(ResourceId id, ResourceLifeSpan life_span) {
-  COMET_RESOURCE_HANDLER_SETUP_PROFILING("Load", id);
-  T* resource;
+template <typename Tag, typename T>
+inline const T* ResourceHandler<Tag, T>::Get(LoadedHandle handle) const {
+  return slots_.Get(handle);
+}
 
-  if ((resource = defaults_.TryGet(id)) != nullptr) {
-    return resource;
+template <typename Tag, typename T>
+inline typename ResourceHandler<Tag, T>::LoadedHandle
+ResourceHandler<Tag, T>::Load(CTStringView path, ResourceLifeSpan life_span) {
+  return Load(Id{GenerateResourceIdFromPath<T>(path)}, life_span);
+}
+
+template <typename Tag, typename T>
+inline typename ResourceHandler<Tag, T>::LoadedHandle
+ResourceHandler<Tag, T>::Load(Id id, ResourceLifeSpan life_span) {
+  COMET_RESOURCE_HANDLER_SETUP_PROFILING("Load", id.GetValue());
+
+  if (id.IsInvalid()) {
+    return LoadedHandle::Invalid();
   }
 
-  if ((resource = cache_.TryGet(id, life_span)) != nullptr) {
-    return resource;
+  if (defaults_.TryGet(id.GetValue()) != nullptr) {
+    // Default resources are pre-registered as immortal slot residents.
+    const auto handle{slots_.TryGetHandle(id, ResourceLifeSpan::Immortal)};
+    COMET_ASSERT(handle, "Default resource not registered in slots!");
+    return handle;
   }
 
-  auto is_already_loading{false};
-  auto* loading_state{tracker_.RequestLoad(id, life_span, is_already_loading)};
+  if (const auto handle{slots_.TryRetain(id, life_span)}; handle) {
+    return handle;
+  }
+
+  bool is_already_loading;
+  auto* loading_state{
+      tracker_.RequestLoad(id.GetValue(), life_span, is_already_loading)};
 
   if (is_already_loading) {
-    return tracker_.Wait(loading_state);
+    auto* resource{tracker_.Wait(loading_state)};
+
+    if (resource == nullptr) {
+      return LoadedHandle::Invalid();
+    }
+
+    const auto handle{slots_.TryRetain(Id{resource->id}, life_span)};
+
+    if (!handle) {
+      return LoadedHandle::Invalid();
+    }
+
+    return handle;
   }
 
-  resource = LoadInternal(id, life_span);
+  const auto handle{slots_.Acquire(
+      id, life_span,
+      [this](Id resource_id, ResourceLifeSpan resource_life_span) {
+        return LoadInternal(resource_id, resource_life_span);
+      },
+      [this](T* duplicate_resource) { QueueForDeletion(duplicate_resource); })};
+
+  auto* resource{slots_.Get(handle)};
   tracker_.Finish(loading_state, resource);
   tracker_.Release(loading_state);
-  return resource;
+
+  return handle;
 }
 
-template <typename T>
-inline void ResourceHandler<T>::Unload(CTStringView path) {
-  Unload(GenerateResourceIdFromPath<T>(path));
-}
-
-template <typename T>
-inline void ResourceHandler<T>::Unload(ResourceId id) {
-  // Case: default resources. They cannot be unloaded.
-  if (defaults_.IsDefault(id)) {
-    return;
-  }
-
-  COMET_RESOURCE_HANDLER_SETUP_PROFILING("Unload", id);
-  auto* resource{cache_.TryGet(id, ResourceLifeSpan::Manual)};
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::Unload(LoadedHandle handle) {
+  auto* resource{slots_.Get(handle)};
   COMET_ASSERT(resource != nullptr, "Tried to unload resource that is null!");
 
-  COMET_ASSERT(resource->ref_count > 0, "Resource with ID ",
-               COMET_STRING_ID_LABEL(resource->id),
-               ", was asked to be unloaded, but reference count is already 0!");
-
-  // Case: resource is still used somewhere.
-  if (--resource->ref_count >= 1) {
+  if (defaults_.IsDefault(resource->id)) {
     return;
   }
 
-  cache_.Unset(resource->id, ResourceLifeSpan::Manual);
-  deleted_resources_.Add(resource);
+  slots_.Release(handle, [this](T* released_resource) {
+    QueueForDeletion(released_resource);
+  });
 }
 
-template <typename T>
-inline T* ResourceHandler<T>::LoadInternal(ResourceId id,
-                                           ResourceLifeSpan life_span) {
-  COMET_RESOURCE_HANDLER_SETUP_PROFILING("LoadInternal", id);
+template <typename Tag, typename T>
+inline typename ResourceHandler<Tag, T>::LoadedHandle
+ResourceHandler<Tag, T>::RegisterDefaultResource(T* resource) {
+  COMET_ASSERT(resource != nullptr, "Default resource is null!");
+  COMET_ASSERT(resource->id != kInvalidRawResourceId,
+               "Default resource ID is invalid!");
+
+  defaults_.Set(resource);
+  return slots_.RegisterImmortal(Id{resource->id}, resource);
+}
+
+template <typename Tag, typename T>
+template <typename Func>
+inline decltype(auto) ResourceHandler<Tag, T>::WithLoaded(LoadedHandle handle,
+                                                          Func&& fn) {
+  COMET_ASSERT(handle, "Loaded resource handle is invalid!");
+
+  auto* resource{Get(handle)};
+
+  COMET_ASSERT(resource != nullptr,
+               "Loaded resource handle resolved to a null resource!");
+
+  return std::invoke(std::forward<Func>(fn), resource);
+}
+
+template <typename Tag, typename T>
+template <typename Func>
+inline decltype(auto) ResourceHandler<Tag, T>::WithLoaded(LoadedHandle handle,
+                                                          Func&& fn) const {
+  COMET_ASSERT(handle, "Loaded resource handle is invalid!");
+
+  const auto* resource{Get(handle)};
+
+  COMET_ASSERT(resource != nullptr,
+               "Loaded resource handle resolved to a null resource!");
+
+  return std::invoke(std::forward<Func>(fn), resource);
+}
+
+template <typename Tag, typename T>
+template <typename Func>
+inline bool ResourceHandler<Tag, T>::WithTemporaryLoad(Id id, Func&& fn) {
+  const auto handle{Load(id, ResourceLifeSpan::Manual)};
+
+  if (!handle) {
+    return false;
+  }
+
+  internal::LoadedResourceScope<ResourceHandler<Tag, T>> scope{*this, handle};
+  auto* resource{Get(handle)};
+  COMET_ASSERT(resource != nullptr,
+               "Loaded resource handle resolved to a null resource!");
+
+  std::invoke(std::forward<Func>(fn), resource);
+  return true;
+}
+
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::ReleaseManagedResources() {
+  slots_.ReleaseAll(ResourceLifeSpan::Manual, [this](T* released_resource) {
+    QueueForDeletion(released_resource);
+  });
+
+  slots_.ReleaseAll(ResourceLifeSpan::Scene, [this](T* released_resource) {
+    QueueForDeletion(released_resource);
+  });
+
+  slots_.ReleaseAll(ResourceLifeSpan::Global, [this](T* released_resource) {
+    QueueForDeletion(released_resource);
+  });
+}
+
+template <typename Tag, typename T>
+inline T* ResourceHandler<Tag, T>::LoadInternal(Id id,
+                                                ResourceLifeSpan life_span) {
+  COMET_RESOURCE_HANDLER_SETUP_PROFILING("LoadInternal", id.GetValue());
+
   ResourceFile file{};
   file.descr = Array<u8>{byte_allocator_};
   file.data = Array<u8>{byte_allocator_};
+
   const auto& resource_abs_path{
-      internal::GenerateTlsResourceAbsPath(root_path_, id)};
+      internal::GenerateTlsResourceAbsPath(root_path_, id.GetValue())};
+
   T* resource{nullptr};
 
   if (LoadResourceFile(resource_abs_path, file)) {
     resource = resource_allocator_.AllocateOneAndPopulate<T>();
     Unpack(file, life_span, resource);
-    resource->ref_count = 1;
-    cache_.Set(resource->id, life_span, resource);
-  } else {
-    COMET_LOG_RESOURCE_ERROR(
-        "Unable to get resource with ID: ", COMET_STRING_ID_LABEL(id), ".");
-    resource = defaults_.GetFallback();
+    return resource;
   }
 
-  return resource;
+  COMET_LOG_RESOURCE_ERROR("Unable to get resource with ID: ",
+                           COMET_STRING_ID_LABEL(id.GetValue()), ".");
+  return nullptr;
 }
 
-template <typename T>
-inline void ResourceHandler<T>::DestroyDeleted() {
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::QueueForDeletion(T* resource) {
+  if (resource == nullptr || defaults_.IsDefault(resource->id)) {
+    return;
+  }
+
+  deleted_resources_.Add(resource);
+}
+
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::DestroyDeleted() {
   for (auto* resource : deleted_resources_) {
     resource->~T();
     resource_allocator_.Deallocate(resource);
@@ -243,8 +437,8 @@ inline void ResourceHandler<T>::DestroyDeleted() {
   deleted_resources_.Clear();
 }
 
-template <typename T>
-inline memory::Allocator* ResourceHandler<T>::ResolveAllocator(
+template <typename Tag, typename T>
+inline memory::Allocator* ResourceHandler<Tag, T>::ResolveAllocator(
     memory::Allocator* default_allocator, ResourceLifeSpan life_span) const {
   switch (life_span) {
     case ResourceLifeSpan::Scene:
@@ -256,6 +450,9 @@ inline memory::Allocator* ResourceHandler<T>::ResolveAllocator(
     case ResourceLifeSpan::Manual:
       return default_allocator;
 
+    case ResourceLifeSpan::Immortal:
+      return life_span_allocators_.immortal;
+
     default:
       COMET_ASSERT(
           false, "Unknown or unsupported lock type provided: ",
@@ -265,21 +462,23 @@ inline memory::Allocator* ResourceHandler<T>::ResolveAllocator(
   }
 }
 
-template <typename T>
-inline void ResourceHandler<T>::OnEvent(const event::Event& event) {
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
   if (event_type == scene::SceneUnloadedEvent::kStaticType_) {
-    cache_.UnsetAll(ResourceLifeSpan::Scene);
+    slots_.ReleaseAll(ResourceLifeSpan::Scene, [this](T* released_resource) {
+      QueueForDeletion(released_resource);
+    });
   } else if (event_type == frame::NewFrameEvent::kStaticType_) {
     DestroyDeleted();
   }
 }
 
 #ifdef COMET_PROFILING
-template <typename T>
-inline void ResourceHandler<T>::SetupProfiling(const schar* method_name,
-                                               ResourceId resource_id) const {
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::SetupProfiling(
+    const schar* method_name, RawResourceId resource_id) const {
   schar label[profiler::kMaxProfileLabelLen + 1]{'\0'};
 
   constexpr schar kLabelPrefix[]{"ResourceHandler<T>::"};
@@ -294,7 +493,7 @@ inline void ResourceHandler<T>::SetupProfiling(const schar* method_name,
   Copy(label + offset, kLabelPrefix, kLabelPrefixLen);
   offset += kLabelPrefixLen;
 
-  auto method_len{GetLength(method_name)};
+  const auto method_len{GetLength(method_name)};
   Copy(label + offset, method_name, method_len);
   offset += method_len;
 

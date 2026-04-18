@@ -12,14 +12,130 @@
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/geometry/geometry_common.h"
-#include "comet/math/vector.h"
+#include "comet/geometry/geometry_type.h"
 
 namespace comet {
 namespace resource {
+namespace {
+template <typename MeshResourceT>
+void PackMeshResource(const MeshResourceT& mesh, u8* buffer, usize& cursor) {
+  const auto vertex_count{mesh.vertices.GetSize()};
+  const auto index_count{mesh.indices.GetSize()};
+
+  memory::CopyMemory(&buffer[cursor], &mesh.resource_id, sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&buffer[cursor], &mesh.internal_id, sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&buffer[cursor], &mesh.type, sizeof(geometry::MeshType));
+  cursor += sizeof(geometry::MeshType);
+
+  memory::CopyMemory(&buffer[cursor], &mesh.material_resource_id,
+                     sizeof(MaterialResourceId));
+  cursor += sizeof(MaterialResourceId);
+
+  memory::CopyMemory(&buffer[cursor], &mesh.transform, sizeof(math::Mat4));
+  cursor += sizeof(math::Mat4);
+
+  memory::CopyMemory(&buffer[cursor], &mesh.local_center, sizeof(math::Vec3));
+  cursor += sizeof(math::Vec3);
+
+  memory::CopyMemory(&buffer[cursor], &mesh.local_max_extents,
+                     sizeof(math::Vec3));
+  cursor += sizeof(math::Vec3);
+
+  memory::CopyMemory(&buffer[cursor], &mesh.parent_id, sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&buffer[cursor], &vertex_count, sizeof(vertex_count));
+  cursor += sizeof(vertex_count);
+
+  if (vertex_count > 0) {
+    const auto vertex_total_size{sizeof(geometry::SkinnedVertex) *
+                                 vertex_count};
+    memory::CopyMemory(&buffer[cursor], mesh.vertices.GetData(),
+                       vertex_total_size);
+    cursor += vertex_total_size;
+  }
+
+  memory::CopyMemory(&buffer[cursor], &index_count, sizeof(index_count));
+  cursor += sizeof(index_count);
+
+  if (index_count > 0) {
+    const auto index_total_size{sizeof(geometry::Index) * index_count};
+    memory::CopyMemory(&buffer[cursor], mesh.indices.GetData(),
+                       index_total_size);
+    cursor += index_total_size;
+  }
+}
+
+template <typename MeshResourceT>
+void UnpackMeshResource(const u8* buffer, usize& cursor,
+                        ResourceLifeSpan life_span,
+                        memory::Allocator* allocator, MeshResourceT& mesh) {
+  memory::CopyMemory(&mesh.resource_id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&mesh.internal_id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&mesh.type, &buffer[cursor], sizeof(geometry::MeshType));
+  cursor += sizeof(geometry::MeshType);
+
+  memory::CopyMemory(&mesh.material_resource_id, &buffer[cursor],
+                     sizeof(MaterialResourceId));
+  cursor += sizeof(MaterialResourceId);
+
+  memory::CopyMemory(&mesh.transform, &buffer[cursor], sizeof(math::Mat4));
+  cursor += sizeof(math::Mat4);
+
+  memory::CopyMemory(&mesh.local_center, &buffer[cursor], sizeof(math::Vec3));
+  cursor += sizeof(math::Vec3);
+
+  memory::CopyMemory(&mesh.local_max_extents, &buffer[cursor],
+                     sizeof(math::Vec3));
+  cursor += sizeof(math::Vec3);
+
+  memory::CopyMemory(&mesh.parent_id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  usize vertex_count{0};
+  memory::CopyMemory(&vertex_count, &buffer[cursor], sizeof(vertex_count));
+  cursor += sizeof(vertex_count);
+
+  mesh.vertices = Array<geometry::SkinnedVertex>{allocator};
+  mesh.vertices.Resize(vertex_count);
+
+  if (vertex_count > 0) {
+    const auto vertex_total_size{sizeof(geometry::SkinnedVertex) *
+                                 vertex_count};
+    memory::CopyMemory(mesh.vertices.GetData(), &buffer[cursor],
+                       vertex_total_size);
+    cursor += vertex_total_size;
+  }
+
+  usize index_count{0};
+  memory::CopyMemory(&index_count, &buffer[cursor], sizeof(index_count));
+  cursor += sizeof(index_count);
+
+  mesh.indices = Array<geometry::Index>{allocator};
+  mesh.indices.Resize(index_count);
+
+  if (index_count > 0) {
+    const auto index_total_size{sizeof(geometry::Index) * index_count};
+    memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
+                       index_total_size);
+    cursor += index_total_size;
+  }
+
+  (void)life_span;
+}
+}  // namespace
+
 StaticModelResourceHandler::StaticModelResourceHandler(
     const ResourceHandlerDescr& descr)
-    : ResourceHandler<StaticModelResource>{descr} {}
+    : Base{descr} {}
 
 ResourceFile StaticModelResourceHandler::Pack(
     const StaticModelResource& resource, CompressionMode compression_mode) {
@@ -32,80 +148,23 @@ ResourceFile StaticModelResourceHandler::Pack(
 
   Array<u8> data{byte_allocator_};
   data.Resize(GetModelSize(resource));
-  usize cursor{0};
+
   auto* buffer{data.GetData()};
+  usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-  constexpr auto kMeshCountSize{sizeof(usize)};
-  constexpr auto kMeshTypeSize{sizeof(geometry::MeshType)};
-  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
-  constexpr auto kTransformSize{sizeof(math::Mat4)};
-  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
-  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
-  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(usize)};
-  constexpr auto kIndexCountSize{sizeof(usize)};
-  constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
-  constexpr auto kIndexSize{sizeof(geometry::Index)};
+  memory::CopyMemory(&buffer[cursor], &resource.id, sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
 
-  memory::CopyMemory(&buffer[cursor], &resource.id, kResourceIdSize);
-  cursor += kResourceIdSize;
+  memory::CopyMemory(&buffer[cursor], &resource.type_id,
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
 
-  memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
-
-  auto mesh_count{resource.meshes.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &mesh_count, kMeshCountSize);
-  cursor += kMeshCountSize;
+  const auto mesh_count{resource.meshes.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &mesh_count, sizeof(mesh_count));
+  cursor += sizeof(mesh_count);
 
   for (const auto& mesh : resource.meshes) {
-    memory::CopyMemory(&buffer[cursor], &mesh.resource_id, kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.internal_id, kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.type, kMeshTypeSize);
-    cursor += kMeshTypeSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
-    cursor += kMaterialIdSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.transform, kTransformSize);
-    cursor += kTransformSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.local_center, kLocalCenterSize);
-    cursor += kLocalCenterSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.local_max_extents,
-                       kLocalMaxExtentsSize);
-    cursor += kLocalMaxExtentsSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
-    cursor += kParentMeshIdSize;
-
-    auto vertex_count{mesh.vertices.GetSize()};
-    auto index_count{mesh.indices.GetSize()};
-
-    memory::CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
-
-    cursor += kVertexCountSize;
-    auto vertex_total_size{kVertexSize * vertex_count};
-
-    memory::CopyMemory(&buffer[cursor], mesh.vertices.GetData(),
-                       vertex_total_size);
-
-    cursor += vertex_total_size;
-
-    memory::CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
-
-    cursor += kIndexCountSize;
-    auto index_total_size{kIndexSize * index_count};
-
-    memory::CopyMemory(&buffer[cursor], mesh.indices.GetData(),
-                       index_total_size);
-    cursor += index_total_size;
+    PackMeshResource(mesh, buffer, cursor);
   }
 
   PackPodResourceDescr(resource.descr, file);
@@ -120,90 +179,30 @@ void StaticModelResourceHandler::Unpack(const ResourceFile& file,
 
   Array<u8> data{byte_allocator_};
   UnpackResourceData(file, data);
+
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-  constexpr auto kMeshCountSize{sizeof(usize)};
-  constexpr auto kMeshTypeSize{sizeof(geometry::MeshType)};
-  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
-  constexpr auto kTransformSize{sizeof(math::Mat4)};
-  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
-  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
-  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(usize)};
-  constexpr auto kIndexCountSize{sizeof(usize)};
-  constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
-  constexpr auto kIndexSize{sizeof(geometry::Index)};
+  memory::CopyMemory(&resource->id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
 
-  memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
-  cursor += kResourceIdSize;
-
-  memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
+  memory::CopyMemory(&resource->type_id, &buffer[cursor],
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
 
   COMET_ASSERT(resource->type_id == StaticModelResource::kResourceTypeId,
-               "Model loaded is not static!");
+               "Unpacked resource is not a static model!");
 
-  usize mesh_count;
-  memory::CopyMemory(&mesh_count, &buffer[cursor], kMeshCountSize);
-  cursor += kMeshCountSize;
-  resource->meshes = Array<StaticMeshResource>{
-      ResolveAllocator(byte_allocator_, life_span), mesh_count};
-  auto& meshes{resource->meshes};
+  usize mesh_count{0};
+  memory::CopyMemory(&mesh_count, &buffer[cursor], sizeof(mesh_count));
+  cursor += sizeof(mesh_count);
+
+  auto* allocator{ResolveAllocator(byte_allocator_, life_span)};
+  resource->meshes = Array<StaticMeshResource>{allocator, mesh_count};
 
   for (usize i{0}; i < mesh_count; ++i) {
-    auto& mesh{meshes.EmplaceBack()};
-
-    memory::CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&mesh.internal_id, &buffer[cursor], kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&mesh.type, &buffer[cursor], kMeshTypeSize);
-    cursor += kMeshTypeSize;
-
-    memory::CopyMemory(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
-    cursor += kMaterialIdSize;
-
-    memory::CopyMemory(&mesh.transform, &buffer[cursor], kTransformSize);
-    cursor += kTransformSize;
-
-    memory::CopyMemory(&mesh.local_center, &buffer[cursor], kLocalCenterSize);
-    cursor += kLocalCenterSize;
-
-    memory::CopyMemory(&mesh.local_max_extents, &buffer[cursor],
-                       kLocalMaxExtentsSize);
-    cursor += kLocalMaxExtentsSize;
-
-    memory::CopyMemory(&mesh.parent_id, &buffer[cursor], kParentMeshIdSize);
-    cursor += kParentMeshIdSize;
-
-    usize vertex_count{0};
-    memory::CopyMemory(&vertex_count, &buffer[cursor], kVertexCountSize);
-    cursor += kVertexCountSize;
-
-    mesh.vertices = Array<geometry::SkinnedVertex>{
-        ResolveAllocator(byte_allocator_, life_span)};
-    mesh.vertices.Resize(vertex_count);
-    auto vertex_total_size{kVertexSize * vertex_count};
-    memory::CopyMemory(mesh.vertices.GetData(), &buffer[cursor],
-                       vertex_total_size);
-    cursor += vertex_total_size;
-
-    usize index_count{0};
-    memory::CopyMemory(&index_count, &buffer[cursor], kIndexCountSize);
-    cursor += kIndexCountSize;
-
-    mesh.indices =
-        Array<geometry::Index>{ResolveAllocator(byte_allocator_, life_span)};
-    mesh.indices.Resize(index_count);
-    auto index_total_size{kIndexSize * index_count};
-    memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
-                       index_total_size);
-    cursor += index_total_size;
+    auto& mesh{resource->meshes.EmplaceBack()};
+    UnpackMeshResource(buffer, cursor, life_span, allocator, mesh);
   }
 
   resource->life_span = life_span;
@@ -211,7 +210,7 @@ void StaticModelResourceHandler::Unpack(const ResourceFile& file,
 
 SkeletalModelResourceHandler::SkeletalModelResourceHandler(
     const ResourceHandlerDescr& descr)
-    : ResourceHandler<SkeletalModelResource>{descr} {}
+    : Base{descr} {}
 
 ResourceFile SkeletalModelResourceHandler::Pack(
     const SkeletalModelResource& resource, CompressionMode compression_mode) {
@@ -224,83 +223,27 @@ ResourceFile SkeletalModelResourceHandler::Pack(
 
   Array<u8> data{byte_allocator_};
   data.Resize(GetModelSize(resource));
-  usize cursor{0};
+
   auto* buffer{data.GetData()};
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-  constexpr auto kSkeletonIdSize{sizeof(geometry::SkeletonId)};
-  constexpr auto kMeshCountSize{sizeof(usize)};
-  constexpr auto kMeshTypeSize{sizeof(geometry::MeshType)};
-  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
-  constexpr auto kTransformSize{sizeof(math::Mat4)};
-  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
-  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
-  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(usize)};
-  constexpr auto kIndexCountSize{sizeof(usize)};
-  constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
-  constexpr auto kIndexSize{sizeof(geometry::Index)};
+  usize cursor{0};
 
-  memory::CopyMemory(&buffer[cursor], &resource.id, kResourceIdSize);
-  cursor += kResourceIdSize;
+  memory::CopyMemory(&buffer[cursor], &resource.id, sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
 
-  memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
+  memory::CopyMemory(&buffer[cursor], &resource.type_id,
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
 
-  memory::CopyMemory(&buffer[cursor], &resource.skeleton_id, kSkeletonIdSize);
-  cursor += kSkeletonIdSize;
+  memory::CopyMemory(&buffer[cursor], &resource.skeleton_id,
+                     sizeof(geometry::SkeletonId));
+  cursor += sizeof(geometry::SkeletonId);
 
-  auto mesh_count{resource.meshes.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &mesh_count, kMeshCountSize);
-  cursor += kMeshCountSize;
+  const auto mesh_count{resource.meshes.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &mesh_count, sizeof(mesh_count));
+  cursor += sizeof(mesh_count);
 
   for (const auto& mesh : resource.meshes) {
-    memory::CopyMemory(&buffer[cursor], &mesh.resource_id, kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.internal_id, kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.type, kMeshTypeSize);
-    cursor += kMeshTypeSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.material_id, kMaterialIdSize);
-    cursor += kMaterialIdSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.transform, kTransformSize);
-    cursor += kTransformSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.local_center, kLocalCenterSize);
-    cursor += kLocalCenterSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.local_max_extents,
-                       kLocalMaxExtentsSize);
-    cursor += kLocalMaxExtentsSize;
-
-    memory::CopyMemory(&buffer[cursor], &mesh.parent_id, kParentMeshIdSize);
-    cursor += kParentMeshIdSize;
-
-    auto vertex_count{mesh.vertices.GetSize()};
-    auto index_count{mesh.indices.GetSize()};
-
-    memory::CopyMemory(&buffer[cursor], &vertex_count, kVertexCountSize);
-
-    cursor += kVertexCountSize;
-    auto vertex_total_size{kVertexSize * vertex_count};
-
-    memory::CopyMemory(&buffer[cursor], mesh.vertices.GetData(),
-                       vertex_total_size);
-
-    cursor += vertex_total_size;
-
-    memory::CopyMemory(&buffer[cursor], &index_count, kIndexCountSize);
-
-    cursor += kIndexCountSize;
-    auto index_total_size{kIndexSize * index_count};
-
-    memory::CopyMemory(&buffer[cursor], mesh.indices.GetData(),
-                       index_total_size);
-    cursor += index_total_size;
+    PackMeshResource(mesh, buffer, cursor);
   }
 
   PackPodResourceDescr(resource.descr, file);
@@ -315,94 +258,34 @@ void SkeletalModelResourceHandler::Unpack(const ResourceFile& file,
 
   Array<u8> data{byte_allocator_};
   UnpackResourceData(file, data);
+
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-  constexpr auto kSkeletonIdSize{sizeof(geometry::SkeletonId)};
-  constexpr auto kMeshCountSize{sizeof(usize)};
-  constexpr auto kMeshTypeSize{sizeof(geometry::MeshType)};
-  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
-  constexpr auto kTransformSize{sizeof(math::Mat4)};
-  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
-  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
-  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kVertexCountSize{sizeof(usize)};
-  constexpr auto kIndexCountSize{sizeof(usize)};
-  constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
-  constexpr auto kIndexSize{sizeof(geometry::Index)};
+  memory::CopyMemory(&resource->id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
 
-  memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
-  cursor += kResourceIdSize;
+  memory::CopyMemory(&resource->type_id, &buffer[cursor],
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
 
-  memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
-
-  memory::CopyMemory(&resource->skeleton_id, &buffer[cursor], kSkeletonIdSize);
-  cursor += kSkeletonIdSize;
+  memory::CopyMemory(&resource->skeleton_id, &buffer[cursor],
+                     sizeof(geometry::SkeletonId));
+  cursor += sizeof(geometry::SkeletonId);
 
   COMET_ASSERT(resource->type_id == SkeletalModelResource::kResourceTypeId,
-               "Model loaded is not a skeleton!");
+               "Unpacked resource is not a skeletal model!");
 
-  usize mesh_count;
-  memory::CopyMemory(&mesh_count, &buffer[cursor], kMeshCountSize);
-  cursor += kMeshCountSize;
-  resource->meshes = Array<SkinnedMeshResource>{
-      ResolveAllocator(byte_allocator_, life_span), mesh_count};
-  auto& meshes{resource->meshes};
+  usize mesh_count{0};
+  memory::CopyMemory(&mesh_count, &buffer[cursor], sizeof(mesh_count));
+  cursor += sizeof(mesh_count);
+
+  auto* allocator{ResolveAllocator(byte_allocator_, life_span)};
+  resource->meshes = Array<SkinnedMeshResource>{allocator, mesh_count};
 
   for (usize i{0}; i < mesh_count; ++i) {
-    auto& mesh{meshes.EmplaceBack()};
-
-    memory::CopyMemory(&mesh.resource_id, &buffer[cursor], kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&mesh.internal_id, &buffer[cursor], kResourceIdSize);
-    cursor += kResourceIdSize;
-
-    memory::CopyMemory(&mesh.type, &buffer[cursor], kMeshTypeSize);
-    cursor += kMeshTypeSize;
-
-    memory::CopyMemory(&mesh.material_id, &buffer[cursor], kMaterialIdSize);
-    cursor += kMaterialIdSize;
-
-    memory::CopyMemory(&mesh.transform, &buffer[cursor], kTransformSize);
-    cursor += kTransformSize;
-
-    memory::CopyMemory(&mesh.local_center, &buffer[cursor], kLocalCenterSize);
-    cursor += kLocalCenterSize;
-
-    memory::CopyMemory(&mesh.local_max_extents, &buffer[cursor],
-                       kLocalMaxExtentsSize);
-    cursor += kLocalMaxExtentsSize;
-
-    memory::CopyMemory(&mesh.parent_id, &buffer[cursor], kParentMeshIdSize);
-    cursor += kParentMeshIdSize;
-
-    usize vertex_count{0};
-    memory::CopyMemory(&vertex_count, &buffer[cursor], kVertexCountSize);
-    cursor += kVertexCountSize;
-
-    mesh.vertices = Array<geometry::SkinnedVertex>{
-        ResolveAllocator(byte_allocator_, life_span)};
-    mesh.vertices.Resize(vertex_count);
-    auto vertex_total_size{kVertexSize * vertex_count};
-    memory::CopyMemory(mesh.vertices.GetData(), &buffer[cursor],
-                       vertex_total_size);
-    cursor += vertex_total_size;
-
-    usize index_count{0};
-    memory::CopyMemory(&index_count, &buffer[cursor], kIndexCountSize);
-    cursor += kIndexCountSize;
-
-    mesh.indices =
-        Array<geometry::Index>{ResolveAllocator(byte_allocator_, life_span)};
-    mesh.indices.Resize(index_count);
-    auto index_total_size{kIndexSize * index_count};
-    memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
-                       index_total_size);
-    cursor += index_total_size;
+    auto& mesh{resource->meshes.EmplaceBack()};
+    UnpackMeshResource(buffer, cursor, life_span, allocator, mesh);
   }
 
   resource->life_span = life_span;
@@ -410,55 +293,50 @@ void SkeletalModelResourceHandler::Unpack(const ResourceFile& file,
 
 SkeletonResourceHandler::SkeletonResourceHandler(
     const ResourceHandlerDescr& descr)
-    : ResourceHandler<SkeletonResource>{descr} {}
+    : Base{descr} {}
 
 ResourceFile SkeletonResourceHandler::Pack(const SkeletonResource& resource,
                                            CompressionMode compression_mode) {
   ResourceFile file{};
   file.resource_id = resource.id;
-  file.resource_type_id = SkeletalModelResource::kResourceTypeId;
+  file.resource_type_id = SkeletonResource::kResourceTypeId;
   file.compression_mode = compression_mode;
   file.descr = Array<u8>{byte_allocator_};
   file.data = Array<u8>{byte_allocator_};
 
   Array<u8> data{byte_allocator_};
   data.Resize(GetSkeletonSize(resource));
-  usize cursor{0};
+
   auto* buffer{data.GetData()};
+  usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-  constexpr auto kSkeletonIdSize{sizeof(geometry::SkeletonId)};
-  constexpr auto kJointCountSize{sizeof(usize)};
-  constexpr auto kSkeletonJointIdSize{sizeof(geometry::SkeletonJointId)};
-  constexpr auto kSkeletonJointIndexSize{sizeof(geometry::SkeletonJointIndex)};
-  constexpr auto kSkeletonJointBindPoseInvSize{sizeof(math::Mat4)};
+  memory::CopyMemory(&buffer[cursor], &resource.id, sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
 
-  memory::CopyMemory(&buffer[cursor], &resource.id, kResourceIdSize);
-  cursor += kResourceIdSize;
+  memory::CopyMemory(&buffer[cursor], &resource.type_id,
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
 
-  memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
+  memory::CopyMemory(&buffer[cursor], &resource.skeleton.id,
+                     sizeof(geometry::SkeletonId));
+  cursor += sizeof(geometry::SkeletonId);
 
-  memory::CopyMemory(&buffer[cursor], &resource.skeleton.id, kSkeletonIdSize);
-  cursor += kSkeletonIdSize;
+  const auto joint_count{resource.skeleton.joints.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &joint_count, sizeof(joint_count));
+  cursor += sizeof(joint_count);
 
-  auto& skeleton{resource.skeleton};
-  auto joint_count{skeleton.joints.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &joint_count, kJointCountSize);
-  cursor += kJointCountSize;
-
-  for (const auto& joint : skeleton.joints) {
-    memory::CopyMemory(&buffer[cursor], &joint.id, kSkeletonJointIdSize);
-    cursor += kSkeletonJointIdSize;
+  for (const auto& joint : resource.skeleton.joints) {
+    memory::CopyMemory(&buffer[cursor], &joint.id,
+                       sizeof(geometry::SkeletonJointId));
+    cursor += sizeof(geometry::SkeletonJointId);
 
     memory::CopyMemory(&buffer[cursor], &joint.parent_index,
-                       kSkeletonJointIndexSize);
-    cursor += kSkeletonJointIndexSize;
+                       sizeof(geometry::SkeletonJointIndex));
+    cursor += sizeof(geometry::SkeletonJointIndex);
 
     memory::CopyMemory(&buffer[cursor], &joint.bind_pose_inv,
-                       kSkeletonJointBindPoseInvSize);
-    cursor += kSkeletonJointBindPoseInvSize;
+                       sizeof(math::Mat4));
+    cursor += sizeof(math::Mat4);
   }
 
   PackPodResourceDescr(resource.descr, file);
@@ -473,47 +351,46 @@ void SkeletonResourceHandler::Unpack(const ResourceFile& file,
 
   Array<u8> data{byte_allocator_};
   UnpackResourceData(file, data);
+
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-  constexpr auto kSkeletonIdSize{sizeof(geometry::SkeletonId)};
-  constexpr auto kJointCountSize{sizeof(usize)};
-  constexpr auto kSkeletonJointIdSize{sizeof(geometry::SkeletonJointId)};
-  constexpr auto kSkeletonJointIndexSize{sizeof(geometry::SkeletonJointIndex)};
-  constexpr auto kSkeletonJointBindPoseInvSize{sizeof(math::Mat4)};
+  memory::CopyMemory(&resource->id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
 
-  memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
-  cursor += kResourceIdSize;
+  memory::CopyMemory(&resource->type_id, &buffer[cursor],
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
 
-  memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
+  COMET_ASSERT(resource->type_id == SkeletonResource::kResourceTypeId,
+               "Unpacked resource is not a skeleton!");
 
-  auto& skeleton{resource->skeleton};
-  memory::CopyMemory(&resource->skeleton.id, &buffer[cursor], kSkeletonIdSize);
-  cursor += kSkeletonIdSize;
+  memory::CopyMemory(&resource->skeleton.id, &buffer[cursor],
+                     sizeof(geometry::SkeletonId));
+  cursor += sizeof(geometry::SkeletonId);
 
-  usize joint_count;
-  memory::CopyMemory(&joint_count, &buffer[cursor], kJointCountSize);
-  cursor += kJointCountSize;
-  skeleton.joints = Array<geometry::SkeletonJoint>{
-      ResolveAllocator(byte_allocator_, life_span), joint_count};
-  auto& joints{skeleton.joints};
+  usize joint_count{0};
+  memory::CopyMemory(&joint_count, &buffer[cursor], sizeof(joint_count));
+  cursor += sizeof(joint_count);
+
+  auto* allocator{ResolveAllocator(byte_allocator_, life_span)};
+  resource->skeleton.joints =
+      Array<geometry::SkeletonJoint>{allocator, joint_count};
 
   for (usize i{0}; i < joint_count; ++i) {
-    auto& joint{joints.EmplaceBack()};
+    auto& joint{resource->skeleton.joints.EmplaceBack()};
 
-    memory::CopyMemory(&joint.id, &buffer[cursor], kSkeletonJointIdSize);
-    cursor += kSkeletonJointIdSize;
+    memory::CopyMemory(&joint.id, &buffer[cursor],
+                       sizeof(geometry::SkeletonJointId));
+    cursor += sizeof(geometry::SkeletonJointId);
 
     memory::CopyMemory(&joint.parent_index, &buffer[cursor],
-                       kSkeletonJointIndexSize);
-    cursor += kSkeletonJointIndexSize;
+                       sizeof(geometry::SkeletonJointIndex));
+    cursor += sizeof(geometry::SkeletonJointIndex);
 
     memory::CopyMemory(&joint.bind_pose_inv, &buffer[cursor],
-                       kSkeletonJointBindPoseInvSize);
-    cursor += kSkeletonJointBindPoseInvSize;
+                       sizeof(math::Mat4));
+    cursor += sizeof(math::Mat4);
   }
 
   resource->life_span = life_span;

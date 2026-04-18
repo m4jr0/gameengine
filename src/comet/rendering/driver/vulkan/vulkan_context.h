@@ -44,22 +44,26 @@ class Context {
   ~Context();
 
   void Initialize();
+
   void InitializeAllocator();
   void InitializeFrameData();
   void InitializeCommands();
   void InitializeSyncStructures();
+
   void BindImageData(const ImageData* image_data);
   void UnbindImageData();
+
   void Destroy();
+
   void DestroyAllocator();
   void DestroyFrameData();
   void DestroyCommands();
   void DestroySyncStructures();
+
   void HandlePreSwapchainReload();
   void HandlePostSwapchainReload();
 
   void GoToNextFrame() noexcept;
-  void UpdateTransferTimelineValue();
 
   FrameData& GetFrameData(
       FrameInFlightIndex frame = kInvalidFrameInFlightIndex);
@@ -70,22 +74,35 @@ class Context {
   u8 GetVulkanMinorVersion() const noexcept;
   u8 GetVulkanPatchVersion() const noexcept;
   u8 GetVulkanVariantVersion() const noexcept;
+
   usize GetMaxObjectCount() const noexcept;
+
   bool IsSamplerAnisotropy() const noexcept;
   bool IsSampleRateShading() const noexcept;
+
   ImageIndex GetImageIndex() const;
   ImageIndex GetImageCount() const;
+
   VkSemaphore GetRenderSemaphoreHandle() const;
+
   FrameIndex GetFrameCount() const noexcept;
+
   FrameInFlightIndex GetFrameInFlightIndex() const noexcept;
   FrameInFlightIndex GetMaxFramesInFlight() const noexcept;
+
   VkInstance GetInstanceHandle() const noexcept;
+
   const Device& GetDevice() const noexcept;
   VkPhysicalDevice GetPhysicalDeviceHandle() const noexcept;
+
   VmaAllocator GetAllocatorHandle() const noexcept;
+
   VkCommandPool GetTransferCommandPoolHandle() const;
+
   const VkSemaphore* GetTransferSemaphoreHandle() const;
+
   u64 GetTransferTimelineValue() const;
+
   bool IsInitialized() const noexcept;
 
  private:

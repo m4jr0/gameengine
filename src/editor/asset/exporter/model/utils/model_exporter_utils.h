@@ -16,13 +16,12 @@
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
-#include "comet/geometry/geometry_common.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/rendering/rendering_utils.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/resource.h"
 #include "editor/asset/exporter/model/model_export.h"
 
 namespace comet {
@@ -34,9 +33,6 @@ struct ModelVertexWeights {
       joint_indices[geometry::kMaxSkeletonJointCount]{};
   f32 weights[geometry::kMaxSkeletonJointCount]{};
 };
-
-resource::ResourceId GenerateMaterialId(const aiMaterial* raw_material,
-                                        u32 material_index);
 
 math::Mat4 GetTransform(const math::Mat4& current_transform,
                         const aiMatrix4x4& transform_to_combine);
@@ -69,13 +65,13 @@ void PopulateVertex(const aiMesh* raw_mesh, usize index, TVertex& vertex) {
   vertex.normal = normal;
 
   if (raw_mesh->mTangents != nullptr && raw_mesh->mBitangents != nullptr) {
-    auto tangent{math::Vec3{raw_mesh->mTangents[index].x,
-                            raw_mesh->mTangents[index].y,
-                            raw_mesh->mTangents[index].z}};
+    const auto tangent{math::Vec3{raw_mesh->mTangents[index].x,
+                                  raw_mesh->mTangents[index].y,
+                                  raw_mesh->mTangents[index].z}};
 
-    auto bitangent{math::Vec3{raw_mesh->mBitangents[index].x,
-                              raw_mesh->mBitangents[index].y,
-                              raw_mesh->mBitangents[index].z}};
+    const auto bitangent{math::Vec3{raw_mesh->mBitangents[index].x,
+                                    raw_mesh->mBitangents[index].y,
+                                    raw_mesh->mBitangents[index].z}};
 
     vertex.tangent =
         rendering::GenerateTangentWithSign(normal, tangent, &bitangent);
@@ -143,27 +139,30 @@ Map<usize, ModelVertexWeights> GenerateMeshWeights(
 
 void LoadModelNode(
     ModelExport& model_export, const aiNode* raw_node,
-    resource::ResourceId parent_id = resource::kInvalidResourceId,
+    resource::RawResourceId parent_id = resource::kInvalidRawResourceId,
     const math::Mat4& parent_transform = math::Mat4{1.0f});
 
-resource::ResourceId LoadMesh(
+resource::RawResourceId LoadMesh(
     StaticModelExport& model_export, const aiMesh* raw_mesh,
-    resource::ResourceId parent_id = resource::kInvalidResourceId,
+    resource::RawResourceId parent_id = resource::kInvalidRawResourceId,
     const math::Mat4& transform = math::Mat4{1.0f});
-
-resource::ResourceId LoadMesh(
+resource::RawResourceId LoadMesh(
     SkeletalModelExport& model_export, const aiMesh* raw_mesh,
-    resource::ResourceId parent_id = resource::kInvalidResourceId,
+    resource::RawResourceId parent_id = resource::kInvalidRawResourceId,
     const math::Mat4& transform = math::Mat4{1.0f});
 
 StaticModelResources LoadStaticModel(memory::Allocator* allocator,
                                      const aiScene* scene, CTStringView path);
-
 SkeletalModelResources LoadSkeletalModel(memory::Allocator* allocator,
                                          const aiScene* scene,
                                          CTStringView path);
-void InitializeDefaultTextureMap(resource::TextureMap& map,
+
+void InitializeDefaultTextureMap(resource::TextureMapResource& map,
                                  rendering::TextureType type);
+
+rendering::TextureType GetTextureType(aiTextureType raw_texture_type);
+rendering::TextureRepeatMode GetTextureRepeatMode(
+    aiTextureMapMode raw_texture_repeat_mode);
 }  // namespace asset
 }  // namespace editor
 }  // namespace comet

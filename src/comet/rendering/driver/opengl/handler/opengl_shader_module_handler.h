@@ -11,11 +11,11 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/map.h"
+#include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_handle.h"
 #include "comet/resource/shader_module_resource.h"
 
 namespace comet {
@@ -31,34 +31,38 @@ class ShaderModuleHandler : public Handler {
   ShaderModuleHandler(ShaderModuleHandler&&) = delete;
   ShaderModuleHandler& operator=(const ShaderModuleHandler&) = delete;
   ShaderModuleHandler& operator=(ShaderModuleHandler&&) = delete;
-  virtual ~ShaderModuleHandler() = default;
+  ~ShaderModuleHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
+  ShaderModuleHandle Generate(
+      resource::ShaderModuleResourceId shader_module_resource_id);
+  void Destroy(ShaderModuleHandle handle);
 
-  const ShaderModule* Generate(CTStringView shader_module_path);
-  const ShaderModule* Get(ShaderModuleId shader_module_id) const;
-  const ShaderModule* TryGet(ShaderModuleId shader_module_id) const;
-  const ShaderModule* GetOrGenerate(CTStringView path);
-  void Destroy(ShaderModuleId shader_module_id);
-  void Destroy(ShaderModule* shader_module);
+  void Attach(const Shader* shader, ShaderModuleHandle handle) const;
+  void Detach(const Shader* shader, ShaderModuleHandle handle) const;
 
-  void Attach(const Shader* shader, ShaderModuleId shader_module_id);
-  void Attach(const Shader* shader, ShaderModule* shader_module);
-  void Detach(const Shader* shader, ShaderModuleId shader_module_id);
-  void Detach(const Shader* shader, ShaderModule* shader_module);
+  GLenum GetStage(ShaderModuleHandle handle) const;
+  ShaderBindType GetBindType(ShaderModuleHandle handle) const;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
-  static GLenum GetOpenGlType(ShaderModuleType module_type);
+  ShaderModule* GenerateShaderModule(
+      const resource::ShaderModuleResource* shader_module_resource);
+  void DestroyShaderModule(ShaderModule* shader_module);
 
-  ShaderModule* Get(ShaderModuleId shader_module_id);
-  ShaderModule* TryGet(ShaderModuleId shader_module_id);
-  void Destroy(ShaderModule* shader_module, bool is_destroying_handler);
-  ShaderModule* CompileShader(const resource::ShaderModuleResource* resource);
+  ShaderModule* Get(ShaderModuleHandle handle);
+  const ShaderModule* Get(ShaderModuleHandle handle) const;
+
+  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
 
   memory::FiberFreeListAllocator allocator_{sizeof(ShaderModule), 256,
                                             memory::kEngineMemoryTagRendering};
-  Map<ShaderModuleId, ShaderModule*> shader_modules_{};
+
+  SharedInstanceRegistry<resource::ShaderModuleResourceId, ShaderModuleTag,
+                         ShaderModule>
+      shader_modules_;
 };
 }  // namespace gl
 }  // namespace rendering

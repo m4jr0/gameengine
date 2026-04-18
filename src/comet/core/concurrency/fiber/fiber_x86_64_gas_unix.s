@@ -1,15 +1,15 @@
-#  Copyright 2026 m4jr0. All Rights Reserved.
-#  Use of this source code is governed by the MIT
-#  license that can be found in the LICENSE file.
+# Copyright 2026 m4jr0. All Rights Reserved.
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE file.
 
-#  Architecture: x86_64
-#  Platform: Unix (GAS)
-#  https://wiki.osdev.org/System_V_ABI
+# Architecture: x86_64
+# Platform: Unix (GAS)
+# https://wiki.osdev.org/System_V_ABI
 
 .section .text
 .p2align 4
 
-#  struct ExecutionContext
+# struct ExecutionContext
 .equ     EXEC_CON_RBX, 0x00
 .equ     EXEC_CON_RBP, 0x08
 .equ     EXEC_CON_R12, 0x10
@@ -20,9 +20,9 @@
 .equ     EXEC_CON_RIP, 0x38
 .equ     EXEC_CON_RDI, 0x40
 
-#  Switch execution contexts.
+# Switch execution contexts.
 # void SwitchExecutionContext(ExecutionContext* src, 
-#  const ExecutionContext* dst)
+# const ExecutionContext* dst)
 .global  SwitchExecutionContext
 .type SwitchExecutionContext, @function
 SwitchExecutionContext:

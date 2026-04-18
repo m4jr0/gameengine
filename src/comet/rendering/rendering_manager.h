@@ -11,8 +11,8 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/driver.h"
-#include "comet/rendering/light/light_common.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -25,10 +25,8 @@ class RenderingManager : public Manager {
   RenderingManager(RenderingManager&&) = delete;
   RenderingManager& operator=(const RenderingManager&) = delete;
   RenderingManager& operator=(RenderingManager&&) = delete;
-  virtual ~RenderingManager() = default;
+  ~RenderingManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(frame::FramePacket* packet);
 
   const Window* GetWindow() const;
@@ -36,8 +34,14 @@ class RenderingManager : public Manager {
   FrameCount GetFrameRate() const noexcept;
   f64 GetFrameTime() const noexcept;
   u32 GetDrawCount() const noexcept;
+
   const ShadowSettings& GetShadowSettings() const noexcept;
+
   bool IsMultithreaded() const noexcept;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   void GenerateOpenGlDriver();
@@ -46,9 +50,12 @@ class RenderingManager : public Manager {
 #ifdef COMET_DEBUG
   void GenerateEmptyDriver();
 #endif  // COMET_DEBUG
+
   void FillDriverDescr(DriverDescr& descr) const;
+
   frame::FrameArray<RenderingViewDescr> GenerateRenderingViewDescrs() const;
   ShadowSettings GenerateShadowSettings() const;
+
   bool IsFpsCapReached() const;
 
   bool is_multithreaded_{false};

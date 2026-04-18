@@ -17,9 +17,10 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/light/light_common.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
 namespace comet {
@@ -29,6 +30,7 @@ struct ViewHandlerDescr : HandlerDescr {
   const ShadowSettings* shadow_settings{nullptr};
   ShaderHandler* shader_handler{nullptr};
   MaterialHandler* material_handler{nullptr};
+  TextureHandler* texture_handler{nullptr};
   PipelineHandler* pipeline_handler{nullptr};
   RenderPassHandler* render_pass_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
@@ -46,22 +48,27 @@ class ViewHandler : public Handler {
   ViewHandler(ViewHandler&&) = delete;
   ViewHandler& operator=(const ViewHandler&) = delete;
   ViewHandler& operator=(ViewHandler&&) = delete;
-  virtual ~ViewHandler() = default;
+  ~ViewHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
+  void Update(frame::FramePacket* packet);
+
+  const View* Generate(const RenderingViewDescr& descr);
   void Destroy(usize view);
   void Destroy(View* view);
-  void Update(frame::FramePacket* packet);
+
   void SetSize(WindowSize width, WindowSize height);
 
   const View* Get(usize index) const;
   const View* TryGet(usize index) const;
-  const View* Generate(const RenderingViewDescr& descr);
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   View* Get(usize index);
   View* TryGet(usize index);
+
   void Destroy(View* view, bool is_destroying_handler);
 
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
@@ -69,6 +76,7 @@ class ViewHandler : public Handler {
   const ShadowSettings* shadow_settings_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
   MaterialHandler* material_handler_{nullptr};
+  TextureHandler* texture_handler_{nullptr};
   PipelineHandler* pipeline_handler_{nullptr};
   RenderPassHandler* render_pass_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};

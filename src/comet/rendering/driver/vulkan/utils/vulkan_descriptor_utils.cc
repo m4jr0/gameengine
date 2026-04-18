@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/c_string.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
@@ -82,8 +82,8 @@ bool AllocateDescriptor(
   allocate_info.descriptorPool = descriptor_pool_handle;
   allocate_info.pNext = VK_NULL_HANDLE;
 
-  auto result{vkAllocateDescriptorSets(device_handle, &allocate_info,
-                                       descriptor_set_handles)};
+  const auto result{vkAllocateDescriptorSets(device_handle, &allocate_info,
+                                             descriptor_set_handles)};
 
   switch (result) {
     case VK_SUCCESS:
@@ -128,17 +128,15 @@ void FreeDescriptor(VkDevice device_handle,
                  "Unable to free descriptor sets!");
 
   for (u32 i{0}; i < count; ++i) {
-    descriptor_set_handles[0] = VK_NULL_HANDLE;
+    descriptor_set_handles[i] = VK_NULL_HANDLE;
   }
-
-  descriptor_pool_handle = VK_NULL_HANDLE;
 }
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
 void SetDescriptorSetLabels(const VkDescriptorSet* set_handles, u32 count,
                             const schar* prefix) {
   constexpr usize kMaxPrefixLen{32};
-  auto prefix_len{math::Min(kMaxPrefixLen, GetLength(prefix))};
+  const auto prefix_len{math::Min(kMaxPrefixLen, GetLength(prefix))};
   constexpr auto kBufferLen{kMaxPrefixLen + GetCharCount<u32>() + 1};
   schar buffer[kBufferLen]{};
   memory::CopyMemory(buffer, prefix, prefix_len);

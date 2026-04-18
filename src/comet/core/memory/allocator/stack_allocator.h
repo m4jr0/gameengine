@@ -23,15 +23,16 @@ class StackAllocator : public StatefulAllocator {
   StackAllocator& operator=(const StackAllocator&) = delete;
   StackAllocator& operator=(StackAllocator&& other) noexcept;
 
-  void Initialize() override;
-  void Destroy() override;
-
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
 
   // These functions are not thread-safe and must only be called during specific
   // synchronization points.
   void Clear();
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   using StackAllocatorMarker = u8*;
@@ -53,15 +54,16 @@ class FiberStackAllocator : public StatefulAllocator {
   FiberStackAllocator& operator=(const FiberStackAllocator&) = delete;
   FiberStackAllocator& operator=(FiberStackAllocator&&) = delete;
 
-  void Initialize() override;
-  void Destroy() override;
-
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
 
   // This function is not thread-safe and must only be called during specific
   // synchronization points.
   void Clear();
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   using FiberStackAllocatorMarker = u8*;
@@ -99,15 +101,16 @@ class IOStackAllocator : public StatefulAllocator {
   IOStackAllocator& operator=(const IOStackAllocator&) = delete;
   IOStackAllocator& operator=(IOStackAllocator&&) = delete;
 
-  void Initialize() override;
-  void Destroy() override;
-
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
 
   // This function is not thread-safe and must only be called during specific
   // synchronization points.
   void Clear();
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   using IOStackAllocatorMarker = u8*;
@@ -135,15 +138,16 @@ class LockFreeStackAllocator : public StatefulAllocator {
   LockFreeStackAllocator& operator=(const LockFreeStackAllocator&) = delete;
   LockFreeStackAllocator& operator=(LockFreeStackAllocator&&) = delete;
 
-  void Initialize() override;
-  void Destroy() override;
-
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
 
   // This function is not thread-safe and must only be called during specific
   // synchronization points.
   void Clear();
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   using LockFreeStackAllocatorOffset = sptrdiff;
@@ -170,19 +174,7 @@ class DoubleStackAllocator : public memory::StatefulAllocator {
   DoubleStackAllocator(DoubleStackAllocator&&) = delete;
   DoubleStackAllocator& operator=(const DoubleStackAllocator&) = delete;
   DoubleStackAllocator& operator=(DoubleStackAllocator&&) = delete;
-  ~DoubleStackAllocator() = default;
-
-  void Initialize() override {
-    StatefulAllocator::Initialize();
-    stacks_[0].Initialize();
-    stacks_[1].Initialize();
-  }
-
-  void Destroy() override {
-    StatefulAllocator::Destroy();
-    stacks_[0].Destroy();
-    stacks_[1].Destroy();
-  }
+  ~DoubleStackAllocator() override = default;
 
   void* AllocateAligned(usize size, memory::Alignment align) override {
     return stacks_[current_stack_].AllocateAligned(size, align);
@@ -195,6 +187,17 @@ class DoubleStackAllocator : public memory::StatefulAllocator {
   void SwapStacks() { current_stack_ = static_cast<u8>(!current_stack_); }
 
   void ClearCurrent() { stacks_[current_stack_].Clear(); }
+
+ protected:
+  void OnInitialize() override {
+    stacks_[0].Initialize();
+    stacks_[1].Initialize();
+  }
+
+  void OnDestroy() override {
+    stacks_[0].Destroy();
+    stacks_[1].Destroy();
+  }
 
  private:
   u8 current_stack_{0};
@@ -216,19 +219,7 @@ class FiberDoubleStackAllocator : public memory::StatefulAllocator {
   FiberDoubleStackAllocator& operator=(const FiberDoubleStackAllocator&) =
       delete;
   FiberDoubleStackAllocator& operator=(FiberDoubleStackAllocator&&) = delete;
-  ~FiberDoubleStackAllocator() = default;
-
-  void Initialize() override {
-    StatefulAllocator::Initialize();
-    stacks_[0].Initialize();
-    stacks_[1].Initialize();
-  }
-
-  void Destroy() override {
-    StatefulAllocator::Destroy();
-    stacks_[0].Destroy();
-    stacks_[1].Destroy();
-  }
+  ~FiberDoubleStackAllocator() override = default;
 
   void* AllocateAligned(usize size, memory::Alignment align) override {
     return stacks_[current_stack_].AllocateAligned(size, align);
@@ -241,6 +232,17 @@ class FiberDoubleStackAllocator : public memory::StatefulAllocator {
   void SwapStacks() { current_stack_ = static_cast<u8>(!current_stack_); }
 
   void ClearCurrent() { stacks_[current_stack_].Clear(); }
+
+ protected:
+  void OnInitialize() override {
+    stacks_[0].Initialize();
+    stacks_[1].Initialize();
+  }
+
+  void OnDestroy() override {
+    stacks_[0].Destroy();
+    stacks_[1].Destroy();
+  }
 
  private:
   u8 current_stack_{0};
@@ -255,7 +257,7 @@ class StaticStackAllocator : public Allocator {
   StaticStackAllocator(StaticStackAllocator&&) = delete;
   StaticStackAllocator& operator=(const StaticStackAllocator&) = delete;
   StaticStackAllocator& operator=(StaticStackAllocator&&) = delete;
-  virtual ~StaticStackAllocator() = default;
+  ~StaticStackAllocator() override = default;
 
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;

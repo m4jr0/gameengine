@@ -19,7 +19,7 @@ class PrimitiveHandler : public Handler {
   PrimitiveHandler(PrimitiveHandler&&) = delete;
   PrimitiveHandler& operator=(const PrimitiveHandler&) = delete;
   PrimitiveHandler& operator=(PrimitiveHandler&&) = delete;
-  virtual ~PrimitiveHandler() = default;
+  ~PrimitiveHandler() override = default;
 
   EntityId GenerateCube(f32 size, resource::ResourceLifeSpan life_span) const;
 };

@@ -37,18 +37,43 @@ class Engine {
 
   Engine();
 
-  virtual void PreLoad();
-  virtual void Load();
-  virtual void PostLoad();
+  virtual void OnPreLoadBefore();
+  virtual void OnPreLoadAfter();
 
-  virtual void PreUnload();
-  virtual void Unload();
-  virtual void PostUnload();
+  virtual void OnLoadBefore();
+  virtual void OnLoadAfter();
+
+  virtual void OnPostLoadBefore();
+  virtual void OnPostLoadAfter();
+
+  virtual void OnPrepareShutdownBefore();
+  virtual void OnPrepareShutdownAfter();
+
+  virtual void OnPreUnloadBefore();
+  virtual void OnPreUnloadAfter();
+
+  virtual void OnUnloadBefore();
+  virtual void OnUnloadAfter();
+
+  virtual void OnPostUnloadBefore();
+  virtual void OnPostUnloadAfter();
+
   void Exit();
+
   static Engine& Get();
+
   void OnEvent(const event::Event& event);
 
  private:
+  void PreLoad();
+  void Load();
+  void PostLoad();
+
+  void PrepareShutdown();
+  void PreUnload();
+  void Unload();
+  void PostUnload();
+
   bool is_initialized_{false};
   bool is_running_{false};
   bool is_exit_requested_{false};

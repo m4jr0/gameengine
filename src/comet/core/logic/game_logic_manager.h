@@ -27,12 +27,13 @@ class GameLogicManager : public Manager {
   GameLogicManager(GameLogicManager&&) = delete;
   GameLogicManager& operator=(const GameLogicManager&) = delete;
   GameLogicManager& operator=(GameLogicManager&&) = delete;
-  virtual ~GameLogicManager() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~GameLogicManager() override = default;
 
   void Update(frame::FramePacket* packet);
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   void PopulatePacket(frame::FramePacket* packet);

@@ -6,13 +6,13 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_DATA_VULKAN_LIGHT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/light/light_type.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
 struct LightProxy {
-  LightId id{kInvalidLightId};
+  LightHandle handle{};
   LightProperties props{};
   LightShadow shadow{};
 
@@ -21,9 +21,6 @@ struct LightProxy {
 
   bool is_dirty{false};
 };
-
-using LightProxyHandle = usize;
-constexpr auto kInvalidLightProxyHandle{static_cast<LightProxyHandle>(-1)};
 
 struct GpuLight {
   math::Vec4 position_type{};

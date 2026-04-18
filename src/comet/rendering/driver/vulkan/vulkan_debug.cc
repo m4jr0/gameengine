@@ -134,7 +134,7 @@ VkResult CreateDebugUtilsMessengerEXT(
     const VkDebugUtilsMessengerCreateInfoEXT* create_info,
     const VkAllocationCallbacks* allocator,
     VkDebugUtilsMessengerEXT* messenger) {
-  auto func{reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+  const auto func{reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
       vkGetInstanceProcAddr(instance_handle,
                             "vkCreateDebugUtilsMessengerEXT"))};
 
@@ -148,7 +148,7 @@ VkResult CreateDebugUtilsMessengerEXT(
 void DestroyDebugUtilsMessengerEXT(VkInstance instance_handle,
                                    VkDebugUtilsMessengerEXT messenger,
                                    const VkAllocationCallbacks* allocator) {
-  auto func{reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+  const auto func{reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
       vkGetInstanceProcAddr(instance_handle,
                             "vkDestroyDebugUtilsMessengerEXT"))};
 
@@ -163,7 +163,7 @@ VkResult CreateDebugReportCallback(const VkInstance instance_handle,
                                    const VkDebugReportFlagsEXT flags,
                                    const PFN_vkDebugReportCallbackEXT callback,
                                    VkDebugReportCallbackEXT& report_callback) {
-  auto func{reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
+  const auto func{reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
       vkGetInstanceProcAddr(instance_handle,
                             "vkCreateDebugReportCallbackEXT"))};
 
@@ -184,7 +184,7 @@ VkResult CreateDebugReportCallback(const VkInstance instance_handle,
 void DestroyDebugReportCallback(
     const VkInstance instance_handle,
     const VkDebugReportCallbackEXT report_callback) {
-  auto func{reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(
+  const auto func{reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(
       vkGetInstanceProcAddr(instance_handle,
                             "vkDestroyDebugReportCallbackEXT"))};
 

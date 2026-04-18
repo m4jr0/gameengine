@@ -14,22 +14,23 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/string_id.h"
 #include "comet/core/type/tstring.h"
+#include "comet/resource/resource_type.h"
 
 namespace comet {
 namespace resource {
-using ResourceId = stringid::StringId;
-constexpr auto kInvalidResourceId{static_cast<ResourceId>(-1)};
-using ResourceTypeId = stringid::StringId;
-constexpr auto kDefaultResourceId{0};
-constexpr auto kInvalidResourceTypeId{static_cast<ResourceTypeId>(-1)};
-
 enum class CompressionMode : u8 { None = 0, Lz4 };
 
-enum class ResourceLifeSpan : u8 { Unknown = 0, Manual, Scene, Global };
+enum class ResourceLifeSpan : u8 {
+  Unknown = 0,
+  Manual,
+  Scene,
+  Global,
+  Immortal
+};
 
 struct ResourceFile {
-  ResourceId resource_id{kInvalidResourceId};
-  ResourceId resource_type_id{kInvalidResourceTypeId};
+  RawResourceId resource_id{kInvalidRawResourceId};
+  ResourceTypeId resource_type_id{kInvalidResourceTypeId};
   CompressionMode compression_mode{CompressionMode::None};
   usize descr_size{0};
   usize data_size{0};
@@ -39,29 +40,29 @@ struct ResourceFile {
   Array<u8> data{};
 };
 
-using RefCount = u32;
-constexpr auto kInvalidRefCount{static_cast<RefCount>(-1)};
-
 struct Resource {
   ResourceLifeSpan life_span{ResourceLifeSpan::Unknown};
-  ResourceId id{kInvalidResourceId};
-  ResourceId type_id{kInvalidResourceTypeId};
-  RefCount ref_count{kInvalidRefCount};
+  RawResourceId id{kInvalidRawResourceId};
+  ResourceTypeId type_id{kInvalidResourceTypeId};
 
   virtual ~Resource() = default;
 };
 
 struct InternalResource {
-  ResourceId resource_id{kInvalidResourceId};
-  ResourceId internal_id{kInvalidResourceId};
+  RawResourceId resource_id{kInvalidRawResourceId};
+  RawResourceId internal_id{kInvalidRawResourceId};
 };
 
 using ResourcePtr = memory::CustomUniquePtr<Resource>;
 
 template <typename ResourceType>
-ResourceId GenerateResourceIdFromPath(CTStringView resource_path) {
-  return HashCombine(COMET_STRING_ID(resource_path),
-                     ResourceType::kResourceTypeId);
+using ResourceIdOf = typename ResourceType::Id;
+
+template <typename ResourceType>
+ResourceIdOf<ResourceType> GenerateResourceIdFromPath(
+    CTStringView resource_path) {
+  return ResourceIdOf<ResourceType>{HashCombine(COMET_STRING_ID(resource_path),
+                                                ResourceType::kResourceTypeId)};
 }
 
 void PackBytes(const u8* bytes, usize bytes_size,
@@ -81,22 +82,22 @@ void PackPodResourceDescr(const ResourceDescrType& descr, ResourceFile& file) {
 template <typename T>
 void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
                  usize packed_bytes_size, T& data) {
-  auto decompressed_size{sizeof(T)};
+  constexpr auto kDecompressedSize{sizeof(T)};
 
   switch (compression_mode) {
     case CompressionMode::Lz4: {
-      DecompressLz4(packed_bytes, packed_bytes_size, decompressed_size,
+      DecompressLz4(packed_bytes, packed_bytes_size, kDecompressedSize,
                     reinterpret_cast<u8*>(&data));
       break;
     }
     case CompressionMode::None: {
-      memory::CopyMemory(&data, packed_bytes, decompressed_size);
+      memory::CopyMemory(&data, packed_bytes, kDecompressedSize);
       break;
     }
     default: {
       throw std::runtime_error(
           "Unknown compression mode: " +
-          static_cast<std::underlying_type_t<resource::CompressionMode>>(
+          static_cast<std::underlying_type_t<CompressionMode>>(
               compression_mode));
     }
   }

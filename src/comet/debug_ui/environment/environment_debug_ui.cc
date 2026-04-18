@@ -16,16 +16,16 @@
 #include "imgui.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #include "comet/scene/environment/environment_manager.h"
 
 namespace comet {
 namespace debugui {
 namespace internal {
 static void DrawTimeLabel(f32 hours) {
-  auto wrapped{math::Wrap(hours, 24.0f)};
-  auto h{static_cast<s32>(wrapped)};
-  auto m{static_cast<s32>((wrapped - static_cast<f32>(h)) * 60.0f)};
+  const auto wrapped{math::Wrap(hours, 24.0f)};
+  const auto h{static_cast<s32>(wrapped)};
+  const auto m{static_cast<s32>((wrapped - static_cast<f32>(h)) * 60.0f)};
   ImGui::Text("Current Time: %02d:%02d", h, m);
 }
 }  // namespace internal
@@ -36,11 +36,13 @@ void EnvironmentDebugUi::Draw(scene::EnvironmentManager& environment) const {
 
   if (ImGui::CollapsingHeader("Time", ImGuiTreeNodeFlags_DefaultOpen)) {
     auto is_frozen{environment.IsTimeFrozen()};
+
     if (ImGui::Checkbox("Freeze Time", &is_frozen)) {
       environment.SetTimeFrozen(is_frozen);
     }
 
     auto time_of_day{environment.GetTimeOfDayHours()};
+
     if (ImGui::SliderFloat("Time of Day", &time_of_day, .0f, 24.0f, "%.2f h")) {
       environment.SetTimeOfDayHours(time_of_day);
     }
@@ -50,15 +52,21 @@ void EnvironmentDebugUi::Draw(scene::EnvironmentManager& environment) const {
     if (ImGui::Button("Sunrise")) {
       environment.SetTimeOfDayHours(6.0f);
     }
+
     ImGui::SameLine();
+
     if (ImGui::Button("Noon")) {
       environment.SetTimeOfDayHours(12.0f);
     }
+
     ImGui::SameLine();
+
     if (ImGui::Button("Sunset")) {
       environment.SetTimeOfDayHours(18.0f);
     }
+
     ImGui::SameLine();
+
     if (ImGui::Button("Midnight")) {
       environment.SetTimeOfDayHours(.0f);
     }
@@ -66,6 +74,7 @@ void EnvironmentDebugUi::Draw(scene::EnvironmentManager& environment) const {
     ImGui::Separator();
 
     auto effective_day_duration{environment.GetEffectiveDayDurationSeconds()};
+
     if (ImGui::DragFloat("Effective Day Duration (s)", &effective_day_duration,
                          .1f, .1f, 86400.0f, "%.2f s")) {
       environment.SetEffectiveDayDurationSeconds(effective_day_duration);
@@ -73,6 +82,7 @@ void EnvironmentDebugUi::Draw(scene::EnvironmentManager& environment) const {
 
     auto effective_acceleration{
         environment.GetEffectiveDayAccelerationFactor()};
+
     if (ImGui::DragFloat("Effective Acceleration Factor",
                          &effective_acceleration, .05f, .001f, 10000.0f,
                          "%.3fx")) {
@@ -155,6 +165,7 @@ void EnvironmentDebugUi::Draw(scene::EnvironmentManager& environment) const {
   if (ImGui::CollapsingHeader("Playback Window",
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     auto use_day_window{environment.IsUsingDayWindow()};
+
     if (ImGui::Checkbox("Use Day Window", &use_day_window)) {
       environment.SetUseDayWindow(use_day_window);
     }
@@ -176,7 +187,7 @@ void EnvironmentDebugUi::Draw(scene::EnvironmentManager& environment) const {
   }
 
   if (ImGui::CollapsingHeader("Sun / Sky", ImGuiTreeNodeFlags_DefaultOpen)) {
-    auto azimuth_offset_rad{environment.GetAzimuthOffsetRadians()};
+    const auto azimuth_offset_rad{environment.GetAzimuthOffsetRadians()};
     auto azimuth_offset_deg{math::ConvertToDegrees(azimuth_offset_rad)};
 
     if (ImGui::SliderFloat("Azimuth Offset", &azimuth_offset_deg, -180.0f,

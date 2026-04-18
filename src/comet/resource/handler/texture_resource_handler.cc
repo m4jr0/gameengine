@@ -12,53 +12,43 @@
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace resource {
 TextureResourceHandler::TextureResourceHandler(
     const ResourceHandlerDescr& descr)
-    : ResourceHandler<TextureResource>{descr} {}
-
-void TextureResourceHandler::InitializeDefaults() {
-  defaults_.Reserve(4);
-  defaults_.Set(GetDefaultTextureResource());
-  defaults_.Set(GetDefaultDiffuseTextureResource());
-  defaults_.Set(GetDefaultSpecularTextureResource());
-  defaults_.Set(GetDefaultNormalTextureResource());
-}
-
-void TextureResourceHandler::DestroyDefaults() { defaults_.Destroy(); }
+    : Base{descr} {}
 
 ResourceFile TextureResourceHandler::Pack(const TextureResource& resource,
                                           CompressionMode compression_mode) {
-  const auto& texture{static_cast<const TextureResource&>(resource)};
   ResourceFile file{};
-  file.resource_id = texture.id;
+  file.resource_id = resource.id;
   file.resource_type_id = TextureResource::kResourceTypeId;
   file.compression_mode = compression_mode;
   file.descr = Array<u8>{byte_allocator_};
   file.data = Array<u8>{byte_allocator_};
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  auto data_size{sizeof(u8) * texture.data.GetSize()};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
+  const auto data_size{resource.data.GetSize()};
 
   Array<u8> data{byte_allocator_};
-  data.Resize(kResourceIdSize + kResourceTypeIdSize + data_size);
+  data.Resize(GetTextureResourceSize(resource));
+
   usize cursor{0};
   auto* buffer{data.GetData()};
 
-  memory::CopyMemory(&buffer[cursor], &texture.id, kResourceIdSize);
+  memory::CopyMemory(&buffer[cursor], &resource.id, kResourceIdSize);
   cursor += kResourceIdSize;
 
-  memory::CopyMemory(&buffer[cursor], &texture.type_id, kResourceTypeIdSize);
+  memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  memory::CopyMemory(&buffer[cursor], texture.data.GetData(), data_size);
+  memory::CopyMemory(&buffer[cursor], resource.data.GetData(), data_size);
   cursor += data_size;
 
-  PackPodResourceDescr(texture.descr, file);
+  PackPodResourceDescr(resource.descr, file);
   PackResourceData(data, file);
   return file;
 }
@@ -66,17 +56,20 @@ ResourceFile TextureResourceHandler::Pack(const TextureResource& resource,
 void TextureResourceHandler::Unpack(const ResourceFile& file,
                                     ResourceLifeSpan life_span,
                                     TextureResource* resource) {
+  COMET_ASSERT(resource != nullptr, "Texture resource is null!");
+
   UnpackPodResourceDescr<TextureResourceDescr>(file, resource->descr);
 
   Array<u8> data{byte_allocator_};
   UnpackResourceData(file, data);
+
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  auto data_size{sizeof(u8) * data.GetSize() - kResourceIdSize -
-                 kResourceTypeIdSize};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
+  const auto payload_size{data.GetSize() - kResourceIdSize -
+                          kResourceTypeIdSize};
 
   memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
@@ -85,9 +78,10 @@ void TextureResourceHandler::Unpack(const ResourceFile& file,
   cursor += kResourceTypeIdSize;
 
   resource->data = Array<u8>{ResolveAllocator(byte_allocator_, life_span)};
-  resource->data.Resize(data_size);
-  memory::CopyMemory(resource->data.GetData(), &buffer[cursor], data_size);
-  cursor += data_size;
+  resource->data.Resize(payload_size);
+  memory::CopyMemory(resource->data.GetData(), &buffer[cursor], payload_size);
+  cursor += payload_size;
+
   resource->life_span = life_span;
 }
 
@@ -100,12 +94,11 @@ TextureResource* TextureResourceHandler::GetDefaultTextureResource() {
     constexpr u8 kColor2[]{200, 200, 200, 255};
 
     default_texture_ = std::make_unique<TextureResource>();
-    default_texture_->id = kDefaultResourceId;
+    default_texture_->id = kFallbackRawResourceId;
     default_texture_->type_id = TextureResource::kResourceTypeId;
 
     auto& descr{default_texture_->descr};
-    descr.size =
-        static_cast<comet::u64>(kDimension) * kDimension * kChannelCount;
+    descr.size = static_cast<u64>(kDimension) * kDimension * kChannelCount;
     descr.format = rendering::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
@@ -114,6 +107,7 @@ TextureResource* TextureResourceHandler::GetDefaultTextureResource() {
     default_texture_->data = Array<u8>{&resource_data_allocator_};
     auto& data{default_texture_->data};
     data.Resize(descr.size);
+
     auto is_color_1{false};
 
     for (usize col{0}; col < kDimension; ++col) {
@@ -122,8 +116,8 @@ TextureResource* TextureResourceHandler::GetDefaultTextureResource() {
       }
 
       for (usize row{0}; row < kDimension; ++row) {
-        auto row_image_index{col * kDimension + row};
-        auto data_index{kChannelCount * row_image_index};
+        const auto row_image_index{col * kDimension + row};
+        const auto data_index{kChannelCount * row_image_index};
 
         if (row_image_index % kPatternThreshold == 0) {
           is_color_1 = !is_color_1;
@@ -148,12 +142,11 @@ TextureResource* TextureResourceHandler::GetDefaultDiffuseTextureResource() {
     constexpr u8 kColor[]{150, 150, 150, 255};
 
     diffuse_texture_ = std::make_unique<TextureResource>();
-    diffuse_texture_->id = kDefaultDiffuseTextureResourceId;
+    diffuse_texture_->id = kDefaultDiffuseTextureId.GetValue();
     diffuse_texture_->type_id = TextureResource::kResourceTypeId;
 
     auto& descr{diffuse_texture_->descr};
-    descr.size =
-        static_cast<comet::u64>(kDimension) * kDimension * kChannelCount;
+    descr.size = static_cast<u64>(kDimension) * kDimension * kChannelCount;
     descr.format = rendering::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
@@ -178,12 +171,11 @@ TextureResource* TextureResourceHandler::GetDefaultSpecularTextureResource() {
     constexpr u8 kColor[]{0, 0, 0, 255};
 
     specular_texture_ = std::make_unique<TextureResource>();
-    specular_texture_->id = kDefaultSpecularTextureResourceId;
+    specular_texture_->id = kDefaultSpecularTextureId.GetValue();
     specular_texture_->type_id = TextureResource::kResourceTypeId;
 
     auto& descr{specular_texture_->descr};
-    descr.size =
-        static_cast<comet::u64>(kDimension) * kDimension * kChannelCount;
+    descr.size = static_cast<u64>(kDimension) * kDimension * kChannelCount;
     descr.format = rendering::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
@@ -208,12 +200,11 @@ TextureResource* TextureResourceHandler::GetDefaultNormalTextureResource() {
     constexpr u8 kColor[]{128, 128, 255, 255};
 
     normal_texture_ = std::make_unique<TextureResource>();
-    normal_texture_->id = kDefaultNormalTextureResourceId;
+    normal_texture_->id = kDefaultNormalTextureId.GetValue();
     normal_texture_->type_id = TextureResource::kResourceTypeId;
 
     auto& descr{normal_texture_->descr};
-    descr.size =
-        static_cast<comet::u64>(kDimension) * kDimension * kChannelCount;
+    descr.size = static_cast<u64>(kDimension) * kDimension * kChannelCount;
     descr.format = rendering::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
@@ -229,6 +220,21 @@ TextureResource* TextureResourceHandler::GetDefaultNormalTextureResource() {
   }
 
   return normal_texture_.get();
+}
+
+void TextureResourceHandler::InitializeDefaults() {
+  defaults_.Reserve(4);
+  RegisterDefaultResource(GetDefaultTextureResource());
+  RegisterDefaultResource(GetDefaultDiffuseTextureResource());
+  RegisterDefaultResource(GetDefaultSpecularTextureResource());
+  RegisterDefaultResource(GetDefaultNormalTextureResource());
+}
+
+void TextureResourceHandler::DestroyDefaults() {
+  default_texture_.reset();
+  diffuse_texture_.reset();
+  specular_texture_.reset();
+  normal_texture_.reset();
 }
 }  // namespace resource
 }  // namespace comet

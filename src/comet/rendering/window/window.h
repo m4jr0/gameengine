@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_WINDOW_WINDOW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -29,18 +29,27 @@ class Window {
   Window& operator=(Window&&) noexcept;
   virtual ~Window();
 
-  virtual void Initialize();
-  virtual void Destroy();
-  virtual void Update();
+  void Initialize();
+  void Destroy();
+
+  void Update();
+
   virtual void SetSize(WindowSize width, WindowSize height) = 0;
 
   bool IsInitialized() const noexcept;
+
+  bool IsFlat() const noexcept;
+
   virtual const schar* GetName() const noexcept;
   WindowSize GetWidth() const noexcept;
   WindowSize GetHeight() const noexcept;
-  bool IsFlat() const noexcept;
 
  protected:
+  virtual void OnInitialize();
+  virtual void OnDestroy();
+
+  virtual void OnUpdate();
+
   bool is_initialized_{false};
   WindowSize width_{0};
   WindowSize height_{0};

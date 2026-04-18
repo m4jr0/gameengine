@@ -1,3 +1,7 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 #ifndef COMET_COMET_DEBUG_UI_DEBUG_UI_MANAGER_H_
 #define COMET_COMET_DEBUG_UI_DEBUG_UI_MANAGER_H_
 
@@ -24,12 +28,18 @@ class DebugUiManager : public Manager {
   DebugUiManager(DebugUiManager&&) = delete;
   DebugUiManager& operator=(const DebugUiManager&) = delete;
   DebugUiManager& operator=(DebugUiManager&&) = delete;
-  virtual ~DebugUiManager() = default;
+  ~DebugUiManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
+  void TogglePause();
+
+  bool is_paused_{false};
+  f32 saved_time_scale_{1.0f};
+
   rendering::DebugUiRegistry::CallbackId environment_callback_id_{
       rendering::DebugUiRegistry::kInvalidCallbackId};
 

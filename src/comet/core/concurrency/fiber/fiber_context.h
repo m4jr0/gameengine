@@ -8,11 +8,6 @@
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/essentials.h"
 
-#ifdef COMET_DEBUG
-#include "comet/core/c_string.h"
-#include "comet/core/logger.h"
-#endif  // COMET_DEBUG
-
 namespace comet {
 namespace fiber {
 namespace internal {

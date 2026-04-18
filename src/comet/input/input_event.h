@@ -23,7 +23,7 @@ class KeyboardEvent : public event::Event {
   KeyboardEvent(KeyboardEvent&&) noexcept = default;
   KeyboardEvent& operator=(const KeyboardEvent&) = default;
   KeyboardEvent& operator=(KeyboardEvent&&) noexcept = default;
-  virtual ~KeyboardEvent() = default;
+  ~KeyboardEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 
@@ -48,9 +48,10 @@ class MouseMoveEvent : public event::Event {
   MouseMoveEvent(MouseMoveEvent&&) noexcept = default;
   MouseMoveEvent& operator=(const MouseMoveEvent&) = default;
   MouseMoveEvent& operator=(MouseMoveEvent&&) noexcept = default;
-  virtual ~MouseMoveEvent() = default;
+  ~MouseMoveEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
+
   const math::Vec2& GetPosition() const noexcept;
 
  private:
@@ -66,9 +67,10 @@ class MouseScrollEvent : public event::Event {
   MouseScrollEvent(MouseScrollEvent&&) noexcept = default;
   MouseScrollEvent& operator=(const MouseScrollEvent&) = default;
   MouseScrollEvent& operator=(MouseScrollEvent&&) noexcept = default;
-  virtual ~MouseScrollEvent() = default;
+  ~MouseScrollEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
+
   f64 GetXOffset() const noexcept;
   f64 GetYOffset() const noexcept;
 
@@ -86,9 +88,10 @@ class MouseClickEvent : public event::Event {
   MouseClickEvent(MouseClickEvent&&) noexcept = default;
   MouseClickEvent& operator=(const MouseClickEvent&) = default;
   MouseClickEvent& operator=(MouseClickEvent&&) noexcept = default;
-  virtual ~MouseClickEvent() = default;
+  ~MouseClickEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
+
   input::MouseButton GetButton() const noexcept;
   input::Mods GetMods() const noexcept;
 
@@ -106,9 +109,10 @@ class MouseReleaseEvent : public event::Event {
   MouseReleaseEvent(MouseReleaseEvent&&) noexcept = default;
   MouseReleaseEvent& operator=(const MouseReleaseEvent&) = default;
   MouseReleaseEvent& operator=(MouseReleaseEvent&&) noexcept = default;
-  virtual ~MouseReleaseEvent() = default;
+  ~MouseReleaseEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
+
   input::MouseButton GetButton() const noexcept;
   input::Mods GetMods() const noexcept;
 

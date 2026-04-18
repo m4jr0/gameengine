@@ -7,13 +7,13 @@
 
 #include "comet/core/essentials.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/light/light_type.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
 struct LightProxy {
-  LightId id{kInvalidLightId};
+  LightHandle handle{};
   LightProperties props{};
   LightShadow shadow{};
 
@@ -22,9 +22,6 @@ struct LightProxy {
 
   bool is_dirty{false};
 };
-
-using LightProxyHandle = usize;
-constexpr auto kInvalidLightProxyHandle{static_cast<LightProxyHandle>(-1)};
 
 struct GpuLight {
   math::Vec4 position_type{};

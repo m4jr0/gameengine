@@ -6,7 +6,7 @@
 #define COMET_COMET_MATH_NUMERIC_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace math {

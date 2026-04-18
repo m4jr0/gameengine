@@ -34,8 +34,8 @@ HashValue GenerateHash(const ResourceIdLifeSpanPair& value) {
 static thread_local TString tls_resource_abs_path_cached{};
 
 TString& GenerateTlsResourceAbsPath(CTStringView root_resource_path,
-                                    ResourceId resource_id) {
-  constexpr auto kResourceIdPathBufferLen{GetCharCount<ResourceId>() + 1};
+                                    RawResourceId resource_id) {
+  constexpr auto kResourceIdPathBufferLen{GetCharCount<RawResourceId>() + 1};
   tchar resource_id_path[kResourceIdPathBufferLen];
   usize resource_id_path_len;
   ConvertToStr(resource_id, resource_id_path, kResourceIdPathBufferLen,

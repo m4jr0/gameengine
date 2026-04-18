@@ -12,7 +12,7 @@
 #include "comet/core/essentials.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/opengl/data/opengl_framebuffer.h"
-#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/light/light_type.h"
 
 namespace comet {
 namespace rendering {
@@ -21,10 +21,9 @@ constexpr u32 kMaxShadowViewProjCount{6};
 constexpr u32 kMaxShadowCascades{4};
 
 struct ShadowResource {
-  bool is_alive{false};
+  LightHandle light_handle{};
   bool is_dirty{false};
 
-  LightId light_id{kInvalidLightId};
   ShadowType type{ShadowType::None};
 
   u32 resolution{0};
@@ -45,7 +44,7 @@ struct ShadowResource {
 };
 
 struct ShadowRenderJob {
-  LightId light_id{kInvalidLightId};
+  LightHandle light_handle{};
   ShadowType type{ShadowType::None};
 
   u32 view_proj_index{0};

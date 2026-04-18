@@ -21,7 +21,7 @@ class AllocationTrackerDisplayer {
   AllocationTrackerDisplayer& operator=(const AllocationTrackerDisplayer&) =
       delete;
   AllocationTrackerDisplayer& operator=(AllocationTrackerDisplayer&&) = delete;
-  virtual ~AllocationTrackerDisplayer() = default;
+  ~AllocationTrackerDisplayer() = default;
 
   void Draw(const profiler::ProfilerData& profiler_data) const;
 };

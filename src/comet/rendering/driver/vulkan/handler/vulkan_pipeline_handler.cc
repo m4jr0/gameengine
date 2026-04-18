@@ -12,7 +12,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -20,55 +19,50 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+
 PipelineHandler::PipelineHandler(const PipelineHandlerDescr& descr)
     : Handler{descr}, render_pass_handler_{descr.render_pass_handler} {
   COMET_ASSERT(render_pass_handler_ != nullptr, "Render pass handler is null!");
 }
 
-void PipelineHandler::Initialize() {
-  Handler::Initialize();
-  allocator_.Initialize();
-  pipelines_ = Map<PipelineId, Pipeline*>{&allocator_};
-  pipeline_layouts_ = Map<PipelineLayoutId, PipelineLayout*>{&allocator_};
-}
-
-void PipelineHandler::Shutdown() {
-  for (auto& it : pipelines_) {
-    Destroy(it.value, true);
-  }
-
-  for (auto& it : pipeline_layouts_) {
-    DestroyLayout(it.value, true);
-  }
-
-  pipelines_.Destroy();
-  pipeline_layouts_.Destroy();
-  allocator_.Destroy();
-  bound_pipeline_ = nullptr;
-  Handler::Shutdown();
-}
-
-const PipelineLayout* PipelineHandler::GenerateLayout(
+PipelineLayoutHandle PipelineHandler::GenerateLayout(
     const PipelineLayoutDescr& descr) {
-  auto* pipeline_layout{allocator_.AllocateOneAndPopulate<PipelineLayout>()};
-  pipeline_layout->id = pipeline_layout_id_counter_++;
+  const auto handle{layout_pool_.Generate()};
+  const auto index{static_cast<usize>(handle.GetIndex())};
 
-  auto pipeline_layout_create_info{
-      init::GeneratePipelineLayoutCreateInfo(descr)};
+  if (index >= layouts_.GetSize()) {
+    layouts_.Resize(index + 1);
+  }
 
-  COMET_CHECK_VK(vkCreatePipelineLayout(
-                     context_->GetDevice(), &pipeline_layout_create_info,
-                     VK_NULL_HANDLE, &pipeline_layout->handle),
-                 "Unable to create graphics pipeline layout!");
+  auto* layout{allocator_.AllocateOneAndPopulate<PipelineLayout>()};
+  layout->handle = PipelineLayoutHandle::Invalid();
 
-  return pipeline_layouts_.Emplace(pipeline_layout->id, pipeline_layout).value;
+  const auto info{init::GeneratePipelineLayoutCreateInfo(descr)};
+
+  COMET_CHECK_VK(vkCreatePipelineLayout(context_->GetDevice(), &info, nullptr,
+                                        &layout->native_handle),
+                 "Unable to create pipeline layout!");
+
+  layouts_[index] = layout;
+  layout->handle = handle;
+  return handle;
 }
 
-const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
+PipelineHandle PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
+  const auto handle{pipeline_pool_.Generate()};
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= pipelines_.GetSize()) {
+    pipelines_.Resize(index + 1);
+  }
+
   auto* pipeline{allocator_.AllocateOneAndPopulate<Pipeline>()};
-  pipeline->id = pipeline_id_counter_++;
+  pipeline->handle = PipelineHandle::Invalid();
   pipeline->type = PipelineBindType::Graphics;
+
   pipeline->layout_handle = descr.layout_handle;
+  const auto* layout{GetLayout(pipeline->layout_handle)};
+
   auto& device{context_->GetDevice()};
 
   VkPipelineViewportStateCreateInfo viewport_info{};
@@ -78,10 +72,10 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
   viewport_info.scissorCount = 1;
   viewport_info.pScissors = &descr.scissor;
 
-  auto color_blend_info{init::GeneratePipelineColorBlendStateCreateInfo(
+  const auto color_blend_info{init::GeneratePipelineColorBlendStateCreateInfo(
       &descr.color_blend_attachment_state, 1)};
 
-  constexpr StaticArray<VkDynamicState, 3> dynamic_states{
+  constexpr StaticArray<VkDynamicState, 3> kDynamicStates{
       VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
       VK_DYNAMIC_STATE_DEPTH_BIAS};
 
@@ -89,8 +83,8 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
   dynamic_state_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   dynamic_state_info.dynamicStateCount =
-      static_cast<u32>(dynamic_states.GetSize());
-  dynamic_state_info.pDynamicStates = dynamic_states.GetData();
+      static_cast<u32>(kDynamicStates.GetSize());
+  dynamic_state_info.pDynamicStates = kDynamicStates.GetData();
 
   VkPipelineVertexInputStateCreateInfo vertex_input_state_info{};
 
@@ -102,15 +96,13 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
         static_cast<u32>(descr.vertex_attributes->GetSize()));
   } else {
     vertex_input_state_info = init::GeneratePipelineVertexInputStateCreateInfo(
-        VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 0);
+        nullptr, 0, nullptr, 0);
   }
 
   VkGraphicsPipelineCreateInfo pipeline_info{};
   pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipeline_info.stageCount = static_cast<u32>(descr.shader_stages.GetSize());
   pipeline_info.pStages = descr.shader_stages.GetData();
-  pipeline_info.pNext = VK_NULL_HANDLE;
-
   pipeline_info.pVertexInputState = &vertex_input_state_info;
   pipeline_info.pInputAssemblyState = &descr.input_assembly_state;
   pipeline_info.pViewportState = &viewport_info;
@@ -119,142 +111,281 @@ const Pipeline* PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
   pipeline_info.pDepthStencilState = &descr.depth_stencil_state;
   pipeline_info.pColorBlendState = &color_blend_info;
   pipeline_info.pDynamicState = &dynamic_state_info;
-
-  pipeline_info.layout = pipeline->layout_handle;
+  pipeline_info.layout = layout->native_handle;
   pipeline_info.renderPass =
       render_pass_handler_->GetVkHandle(descr.render_pass_handle);
   pipeline_info.subpass = 0;
-
   pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
   pipeline_info.basePipelineIndex = -1;
 
   COMET_CHECK_VK(
       vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info,
-                                VK_NULL_HANDLE, &pipeline->handle),
+                                nullptr, &pipeline->native_handle),
       "Failed to create graphics pipeline!");
 
-  return pipelines_.Emplace(pipeline->id, pipeline).value;
+  pipelines_[index] = pipeline;
+  pipeline->handle = handle;
+  return handle;
 }
 
-const Pipeline* PipelineHandler::Generate(const ComputePipelineDescr& descr) {
+PipelineHandle PipelineHandler::Generate(const ComputePipelineDescr& descr) {
+  const auto handle{pipeline_pool_.Generate()};
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= pipelines_.GetSize()) {
+    pipelines_.Resize(index + 1);
+  }
+
   auto* pipeline{allocator_.AllocateOneAndPopulate<Pipeline>()};
-  pipeline->id = pipeline_id_counter_++;
+  pipeline->handle = PipelineHandle::Invalid();
   pipeline->type = PipelineBindType::Compute;
+
   pipeline->layout_handle = descr.layout_handle;
-  auto& device{context_->GetDevice()};
+  const auto* layout{GetLayout(pipeline->layout_handle)};
 
   VkComputePipelineCreateInfo pipeline_info{};
   pipeline_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
   pipeline_info.stage = descr.shader_stage;
-  pipeline_info.layout = pipeline->layout_handle;
+  pipeline_info.layout = layout->native_handle;
   pipeline_info.flags = 0;
-  pipeline_info.pNext = VK_NULL_HANDLE;
-
+  pipeline_info.pNext = nullptr;
   pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
   pipeline_info.basePipelineIndex = -1;
 
-  COMET_CHECK_VK(
-      vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipeline_info,
-                               VK_NULL_HANDLE, &pipeline->handle),
-      "Failed to create graphics pipeline!");
+  COMET_CHECK_VK(vkCreateComputePipelines(context_->GetDevice(), VK_NULL_HANDLE,
+                                          1, &pipeline_info, nullptr,
+                                          &pipeline->native_handle),
+                 "Failed to create compute pipeline!");
 
-  return pipelines_.Emplace(pipeline->id, pipeline).value;
+  pipelines_[index] = pipeline;
+  pipeline->handle = handle;
+  return handle;
 }
 
-void PipelineHandler::DestroyLayout(PipelineLayoutId pipeline_layout_id) {
-  DestroyLayout(GetLayout(pipeline_layout_id));
-}
+void PipelineHandler::DestroyLayout(PipelineLayoutHandle handle) {
+  auto* layout{TryGetLayout(handle)};
 
-void PipelineHandler::DestroyLayout(PipelineLayout* pipeline_layout) {
-  DestroyLayout(pipeline_layout, false);
-}
-
-void PipelineHandler::Destroy(PipelineId pipeline_id) {
-  Destroy(Get(pipeline_id));
-}
-
-void PipelineHandler::Destroy(Pipeline* pipeline) { Destroy(pipeline, false); }
-
-void PipelineHandler::Bind(const Pipeline* pipeline) {
-  if (pipeline == bound_pipeline_) {
+  if (layout == nullptr) {
     return;
   }
 
-  COMET_ASSERT(pipeline->handle != VK_NULL_HANDLE,
+  COMET_ASSERT(layout->handle == handle,
+               "Pipeline layout handle mismatch during destruction!");
+
+  layouts_[handle.GetIndex()] = nullptr;
+  layout_pool_.Destroy(handle);
+  COMET_ASSERT(!layout_pool_.IsAlive(handle), "Handle should be dead here!");
+  DestroyPipelineLayoutObject(layout);
+}
+
+void PipelineHandler::Destroy(PipelineHandle handle) {
+  auto* pipeline{TryGet(handle)};
+
+  if (pipeline == nullptr) {
+    return;
+  }
+
+  COMET_ASSERT(pipeline->handle == handle,
+               "Pipeline handle mismatch during destruction!");
+
+  if (bound_pipeline_ == handle) {
+    bound_pipeline_.Invalidate();
+  }
+
+  pipelines_[handle.GetIndex()] = nullptr;
+  pipeline_pool_.Destroy(handle);
+  COMET_ASSERT(!pipeline_pool_.IsAlive(handle), "Handle should be dead here!");
+  DestroyPipelineObject(pipeline);
+}
+
+void PipelineHandler::Bind(PipelineHandle handle) {
+  if (handle == bound_pipeline_) {
+    return;
+  }
+
+  const auto* pipeline{Get(handle)};
+
+  COMET_ASSERT(pipeline->native_handle != VK_NULL_HANDLE,
                "Pipeline handle is null! Unable to bind!");
 
   vkCmdBindPipeline(context_->GetFrameData().command_buffer_handle,
                     pipeline->type == PipelineBindType::Graphics
                         ? VK_PIPELINE_BIND_POINT_GRAPHICS
                         : VK_PIPELINE_BIND_POINT_COMPUTE,
-                    pipeline->handle);
+                    pipeline->native_handle);
 
-  bound_pipeline_ = pipeline;
+  bound_pipeline_ = handle;
 }
 
-void PipelineHandler::Reset() { bound_pipeline_ = nullptr; }
+void PipelineHandler::Reset() { bound_pipeline_.Invalidate(); }
 
-Pipeline* PipelineHandler::Get(PipelineId pipeline_id) {
-  auto* pipeline{TryGet(pipeline_id)};
+VkPipelineLayout PipelineHandler::GetNativeLayoutHandle(
+    PipelineHandle handle) const {
+  const auto* pipeline{Get(handle)};
+  return GetLayout(pipeline->layout_handle)->native_handle;
+}
+
+VkPipelineLayout PipelineHandler::GetNativeLayoutHandle(
+    PipelineLayoutHandle handle) const {
+  return GetLayout(handle)->native_handle;
+}
+
+VkPipeline PipelineHandler::GetNativeHandle(PipelineHandle handle) const {
+  return Get(handle)->native_handle;
+}
+
+PipelineBindType PipelineHandler::GetBindType(PipelineHandle handle) const {
+  return Get(handle)->type;
+}
+
+void PipelineHandler::OnInitialize() {
+  allocator_.Initialize();
+
+  pipelines_ = Array<Pipeline*>{&allocator_};
+  layouts_ = Array<PipelineLayout*>{&allocator_};
+
+  bound_pipeline_.Invalidate();
+}
+
+void PipelineHandler::OnShutdown() {
+  for (auto* pipeline : pipelines_) {
+    if (pipeline != nullptr) {
+      DestroyPipelineObject(pipeline);
+    }
+  }
+
+  for (auto* layout : layouts_) {
+    if (layout != nullptr) {
+      DestroyPipelineLayoutObject(layout);
+    }
+  }
+
+  pipelines_.Destroy();
+  layouts_.Destroy();
+
+  pipeline_pool_.Destroy();
+  layout_pool_.Destroy();
+
+  bound_pipeline_.Invalidate();
+
+  allocator_.Destroy();
+}
+
+Pipeline* PipelineHandler::Get(PipelineHandle handle) {
+  auto* pipeline{TryGet(handle)};
   COMET_ASSERT(pipeline != nullptr,
-               "Requested pipeline does not exist: ", pipeline_id, "!");
+               "Requested pipeline does not exist: ", handle, "!");
   return pipeline;
 }
 
-Pipeline* PipelineHandler::TryGet(PipelineId pipeline_id) {
-  auto** pipeline{pipelines_.TryGet(pipeline_id)};
+const Pipeline* PipelineHandler::Get(PipelineHandle handle) const {
+  const auto* pipeline{TryGet(handle)};
+  COMET_ASSERT(pipeline != nullptr,
+               "Requested pipeline does not exist: ", handle, "!");
+  return pipeline;
+}
 
+Pipeline* PipelineHandler::TryGet(PipelineHandle handle) {
+  if (!pipeline_pool_.IsAlive(handle)) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= pipelines_.GetSize()) {
+    return nullptr;
+  }
+
+  return pipelines_[index];
+}
+
+const Pipeline* PipelineHandler::TryGet(PipelineHandle handle) const {
+  if (!pipeline_pool_.IsAlive(handle)) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= pipelines_.GetSize()) {
+    return nullptr;
+  }
+
+  return pipelines_[index];
+}
+
+PipelineLayout* PipelineHandler::GetLayout(PipelineLayoutHandle handle) {
+  auto* layout{TryGetLayout(handle)};
+  COMET_ASSERT(layout != nullptr,
+               "Requested pipeline layout does not exist: ", handle, "!");
+  return layout;
+}
+
+const PipelineLayout* PipelineHandler::GetLayout(
+    PipelineLayoutHandle handle) const {
+  const auto* layout{TryGetLayout(handle)};
+  COMET_ASSERT(layout != nullptr,
+               "Requested pipeline layout does not exist: ", handle, "!");
+  return layout;
+}
+
+PipelineLayout* PipelineHandler::TryGetLayout(PipelineLayoutHandle handle) {
+  if (!layout_pool_.IsAlive(handle)) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= layouts_.GetSize()) {
+    return nullptr;
+  }
+
+  return layouts_[index];
+}
+
+const PipelineLayout* PipelineHandler::TryGetLayout(
+    PipelineLayoutHandle handle) const {
+  if (!layout_pool_.IsAlive(handle)) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= layouts_.GetSize()) {
+    return nullptr;
+  }
+
+  return layouts_[index];
+}
+
+void PipelineHandler::DestroyPipelineObject(Pipeline* pipeline) {
   if (pipeline == nullptr) {
-    return nullptr;
+    return;
   }
 
-  return *pipeline;
-}
-
-PipelineLayout* PipelineHandler::GetLayout(
-    PipelineLayoutId pipeline_layout_id) {
-  auto* pipeline_layout{TryGetLayout(pipeline_layout_id)};
-  COMET_ASSERT(pipeline_layout != nullptr,
-               "Requested pipeline layout does not exist: ", pipeline_layout_id,
-               "!");
-  return pipeline_layout;
-}
-
-PipelineLayout* PipelineHandler::TryGetLayout(
-    PipelineLayoutId pipeline_layout_id) {
-  auto** pipeline_layout{pipeline_layouts_.TryGet(pipeline_layout_id)};
-
-  if (pipeline_layout == nullptr) {
-    return nullptr;
+  if (pipeline->native_handle != VK_NULL_HANDLE) {
+    vkDestroyPipeline(context_->GetDevice(), pipeline->native_handle, nullptr);
+    pipeline->native_handle = VK_NULL_HANDLE;
   }
 
-  return *pipeline_layout;
-}
-
-void PipelineHandler::Destroy(Pipeline* pipeline, bool is_destroying_handler) {
-  if (pipeline->handle != VK_NULL_HANDLE) {
-    vkDestroyPipeline(context_->GetDevice(), pipeline->handle, VK_NULL_HANDLE);
-  }
-
-  if (!is_destroying_handler) {
-    pipelines_.Remove(pipeline->id);
-  }
-
+  pipeline->layout_handle.Invalidate();
+  pipeline->type = PipelineBindType::Unknown;
+  pipeline->handle.Invalidate();
   allocator_.Deallocate(pipeline);
 }
 
-void PipelineHandler::DestroyLayout(PipelineLayout* pipeline_layout,
-                                    bool is_destroying_handler) {
-  if (pipeline_layout->handle != VK_NULL_HANDLE) {
-    vkDestroyPipelineLayout(context_->GetDevice(), pipeline_layout->handle,
-                            VK_NULL_HANDLE);
+void PipelineHandler::DestroyPipelineLayoutObject(PipelineLayout* layout) {
+  if (layout == nullptr) {
+    return;
   }
 
-  if (!is_destroying_handler) {
-    pipeline_layouts_.Remove(pipeline_layout->id);
+  if (layout->native_handle != VK_NULL_HANDLE) {
+    vkDestroyPipelineLayout(context_->GetDevice(), layout->native_handle,
+                            nullptr);
+    layout->native_handle = VK_NULL_HANDLE;
   }
 
-  allocator_.Deallocate(pipeline_layout);
+  layout->handle.Invalidate();
+  allocator_.Deallocate(layout);
 }
 }  // namespace vk
 }  // namespace rendering

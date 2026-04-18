@@ -17,225 +17,218 @@
 
 #include "comet/core/generator.h"
 #include "comet/core/memory/allocator/allocator.h"
+#include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
 ShaderModuleHandler::ShaderModuleHandler(const ShaderModuleHandlerDescr& descr)
-    : Handler{descr} {}
+    : Handler{descr}, shader_modules_{&cache_allocator_, 256} {}
 
-void ShaderModuleHandler::Initialize() {
-  Handler::Initialize();
-  allocator_.Initialize();
-  shader_modules_ = Map<ShaderModuleId, ShaderModule*>{&allocator_};
+ShaderModuleHandle ShaderModuleHandler::Generate(
+    resource::ShaderModuleResourceId shader_module_resource_id) {
+  COMET_ASSERT(shader_module_resource_id.IsValid(),
+               "Shader module resource ID is invalid!");
+
+  if (const auto handle{shader_modules_.TryAcquire(shader_module_resource_id)};
+      handle) {
+    return handle;
+  }
+
+  ShaderModuleHandle generated_handle{ShaderModuleHandle::Invalid()};
+
+  auto* shader_module_resource_handler{
+      resource::ResourceManager::Get().GetShaderModules()};
+
+  const auto is_loaded{shader_module_resource_handler->WithTemporaryLoad(
+      shader_module_resource_id,
+      [this, &generated_handle](
+          const resource::ShaderModuleResource* shader_module_resource) {
+        auto* shader_module{GenerateShaderModule(shader_module_resource)};
+        COMET_ASSERT(shader_module != nullptr,
+                     "Generated shader module is null!");
+
+        generated_handle =
+            shader_modules_.Create(shader_module->id, shader_module);
+        COMET_ASSERT(generated_handle,
+                     "Failed to create instance for shader module!");
+
+        shader_module->handle = generated_handle;
+      })};
+
+  return is_loaded ? generated_handle : ShaderModuleHandle::Invalid();
 }
 
-void ShaderModuleHandler::Shutdown() {
-  for (auto& it : shader_modules_) {
-    Destroy(it.value, true);
+void ShaderModuleHandler::Destroy(ShaderModuleHandle handle) {
+  auto* shader_module{shader_modules_.Get(handle)};
+
+  if (!shader_modules_.Release(handle)) {
+    return;
+  }
+
+  DestroyShaderModule(shader_module);
+  shader_modules_.Remove(handle);
+}
+
+void ShaderModuleHandler::Attach(const Shader* shader,
+                                 ShaderModuleHandle handle) const {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+
+  const auto* shader_module{Get(handle)};
+  COMET_ASSERT(
+      shader_module->native_handle != kInvalidGlShaderModuleNativeHandle,
+      "Shader module native handle is invalid for handle: ", handle, "!");
+
+  glAttachShader(ResolveProgramHandle(shader, shader_module->bind_type),
+                 shader_module->native_handle);
+}
+
+void ShaderModuleHandler::Detach(const Shader* shader,
+                                 ShaderModuleHandle handle) const {
+  COMET_ASSERT(shader != nullptr, "Shader is null!");
+
+  const auto* shader_module{Get(handle)};
+  COMET_ASSERT(
+      shader_module->native_handle != kInvalidGlShaderModuleNativeHandle,
+      "Shader module native handle is invalid for handle: ", handle, "!");
+
+  glDetachShader(ResolveProgramHandle(shader, shader_module->bind_type),
+                 shader_module->native_handle);
+}
+
+GLenum ShaderModuleHandler::GetStage(ShaderModuleHandle handle) const {
+  return Get(handle)->stage;
+}
+
+ShaderBindType ShaderModuleHandler::GetBindType(
+    ShaderModuleHandle handle) const {
+  return Get(handle)->bind_type;
+}
+
+ShaderModule* ShaderModuleHandler::Get(ShaderModuleHandle handle) {
+  auto* shader_module{shader_modules_.TryGet(handle)};
+  COMET_ASSERT(shader_module != nullptr,
+               "Requested shader module does not exist for handle: ", handle,
+               "!");
+  return shader_module;
+}
+
+const ShaderModule* ShaderModuleHandler::Get(ShaderModuleHandle handle) const {
+  const auto* shader_module{shader_modules_.TryGet(handle)};
+  COMET_ASSERT(shader_module != nullptr,
+               "Requested shader module does not exist for handle: ", handle,
+               "!");
+  return shader_module;
+}
+
+void ShaderModuleHandler::OnInitialize() {
+  allocator_.Initialize();
+  shader_modules_.Initialize();
+}
+
+void ShaderModuleHandler::OnShutdown() {
+  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  Array<ShaderModuleHandle> handles_to_destroy{&tmp_allocator};
+
+  shader_modules_.ForEachLive(
+      [&handles_to_destroy](ShaderModuleHandle handle, const ShaderModule*) {
+        handles_to_destroy.PushBack(handle);
+      });
+
+  for (const auto handle : handles_to_destroy) {
+    const auto ref_count{shader_modules_.GetRefCount(handle)};
+
+    if (ref_count > 0) {
+      COMET_LOG_RENDERING_WARNING(
+          "Forcing destruction of shader module handle ", handle,
+          " with remaining ref count ", ref_count, ", resource ID ",
+          shader_modules_.Get(handle)->id, "!");
+    }
+
+    auto* shader_module{shader_modules_.Drain(handle)};
+
+    if (shader_module == nullptr) {
+      continue;
+    }
+
+    COMET_ASSERT(shader_module->handle == handle,
+                 "Shader module handle mismatch during shutdown destruction!");
+
+    DestroyShaderModule(shader_module);
   }
 
   shader_modules_.Destroy();
   allocator_.Destroy();
-  Handler::Shutdown();
 }
 
-const ShaderModule* ShaderModuleHandler::Generate(
-    CTStringView shader_module_path) {
-  auto* shader_module_resource{
-      resource::ResourceManager::Get().GetShaderModules()->Load(
-          shader_module_path)};
-
+ShaderModule* ShaderModuleHandler::GenerateShaderModule(
+    const resource::ShaderModuleResource* shader_module_resource) {
   COMET_ASSERT(shader_module_resource != nullptr,
                "Shader module resource is null!");
 
-  auto* shader_module{CompileShader(shader_module_resource)};
-  return shader_modules_.Emplace(shader_module->id, shader_module).value;
-}
+  auto* code{
+      reinterpret_cast<const schar*>(shader_module_resource->data.GetData())};
+  const auto code_size{
+      static_cast<s32>(shader_module_resource->data.GetSize())};
 
-const ShaderModule* ShaderModuleHandler::Get(
-    ShaderModuleId shader_module_id) const {
-  auto* shader_module{TryGet(shader_module_id)};
-  COMET_ASSERT(shader_module != nullptr,
-               "Requested shader module does not exist: ",
-               COMET_STRING_ID_LABEL(shader_module_id), "!");
-  return shader_module;
-}
-
-const ShaderModule* ShaderModuleHandler::TryGet(
-    ShaderModuleId shader_module_id) const {
-  auto shader_module_ptr{shader_modules_.TryGet(shader_module_id)};
-
-  if (shader_module_ptr == nullptr) {
-    return nullptr;
-  }
-
-  auto* shader_module{*shader_module_ptr};
-  ++shader_module->ref_count;
-  return shader_module;
-}
-
-const ShaderModule* ShaderModuleHandler::GetOrGenerate(CTStringView path) {
-  auto* shader_module{TryGet(COMET_STRING_ID(path))};
-
-  if (shader_module != nullptr) {
-    return shader_module;
-  }
-
-  return Generate(path);
-}
-
-void ShaderModuleHandler::Destroy(ShaderModuleId shader_module_id) {
-  Destroy(Get(shader_module_id), false);
-}
-
-void ShaderModuleHandler::Destroy(ShaderModule* shader_module) {
-  Destroy(shader_module, false);
-}
-
-void ShaderModuleHandler::Attach(const Shader* shader,
-                                 ShaderModuleId shader_module_id) {
-  Attach(shader, Get(shader_module_id));
-}
-
-void ShaderModuleHandler::Attach(const Shader* shader,
-                                 ShaderModule* shader_module) {
-  COMET_ASSERT(shader != nullptr, "Shader is null!");
-  COMET_ASSERT(shader_module != nullptr, "Shader module is null!");
-  COMET_ASSERT(shader_module->handle != kInvalidShaderModuleHandle,
-               "Shader module handle is invalid!");
-
-  glAttachShader(ResolveHandle(shader, shader_module->bind_type),
-                 shader_module->handle);
-  ++shader_module->ref_count;
-}
-
-void ShaderModuleHandler::Detach(const Shader* shader,
-                                 ShaderModuleId shader_module_id) {
-  Detach(shader, Get(shader_module_id));
-}
-
-void ShaderModuleHandler::Detach(const Shader* shader,
-                                 ShaderModule* shader_module) {
-  COMET_ASSERT(shader != nullptr, "Shader is null!");
-  COMET_ASSERT(shader_module != nullptr, "Shader module is null!");
-  COMET_ASSERT(shader_module->ref_count > 0,
-               "Tried to detach shader module, but ref count is already 0!");
-
-  glDetachShader(ResolveHandle(shader, shader_module->bind_type),
-                 shader_module->handle);
-  --shader_module->ref_count;
-}
-
-GLenum ShaderModuleHandler::GetOpenGlType(ShaderModuleType module_type) {
-  switch (module_type) {
-    case ShaderModuleType::Compute:
-      return GL_COMPUTE_SHADER;
-
-    case ShaderModuleType::Vertex:
-      return GL_VERTEX_SHADER;
-
-    case ShaderModuleType::Fragment:
-      return GL_FRAGMENT_SHADER;
-
-    default:
-      COMET_ASSERT(
-          false, "Unknown shader module type: ",
-          static_cast<std::underlying_type_t<ShaderModuleType>>(module_type),
-          "!");
-      return GL_INVALID_VALUE;
-  }
-}
-
-ShaderModule* ShaderModuleHandler::Get(ShaderModuleId shader_module_id) {
-  auto* shader_module{TryGet(shader_module_id)};
-  COMET_ASSERT(shader_module != nullptr,
-               "Requested shader module does not exist: ",
-               COMET_STRING_ID_LABEL(shader_module_id), "!");
-  return shader_module;
-}
-
-ShaderModule* ShaderModuleHandler::TryGet(ShaderModuleId shader_module_id) {
-  auto* shader_module_ptr{shader_modules_.TryGet(shader_module_id)};
-
-  if (shader_module_ptr == nullptr) {
-    return nullptr;
-  }
-
-  return *shader_module_ptr;
-}
-
-void ShaderModuleHandler::Destroy(ShaderModule* shader_module,
-                                  bool is_destroying_handler) {
-  COMET_ASSERT(shader_module != nullptr, "Shader module is null!");
-
-  if (!is_destroying_handler) {
-    COMET_ASSERT(shader_module->ref_count > 0,
-                 "Shader module has a reference count of 0!");
-
-    if (--shader_module->ref_count > 0) {
-      return;
-    }
-  }
-
-  if (shader_module->handle != kInvalidShaderModuleHandle) {
-    glDeleteShader(shader_module->handle);
-    shader_module->handle = kInvalidShaderModuleHandle;
-  }
-
-  if (!is_destroying_handler) {
-    shader_modules_.Remove(shader_module->id);
-  }
-
-  allocator_.Deallocate(shader_module);
-}
-
-ShaderModule* ShaderModuleHandler::CompileShader(
-    const resource::ShaderModuleResource* resource) {
-  COMET_ASSERT(resource != nullptr, "Shader module resource is null!");
-
-  auto* code{reinterpret_cast<const schar*>(resource->data.GetData())};
-  auto code_size{static_cast<s32>(resource->data.GetSize())};
-
-  COMET_ASSERT(code_size > 0, "Shader module resource #", resource->id,
-               " is empty!");
+  COMET_ASSERT(code_size > 0, "Shader module resource #",
+               shader_module_resource->id, " is empty!");
 
   auto* shader_module{allocator_.AllocateOneAndPopulate<ShaderModule>()};
-  shader_module->id = resource->id;
+  shader_module->handle = ShaderModuleHandle::Invalid();
+  shader_module->id = shader_module_resource->GetId();
   shader_module->code = code;
   shader_module->code_size = static_cast<usize>(code_size);
-  shader_module->type = GetOpenGlType(resource->descr.shader_type);
-  shader_module->bind_type = shader_module->type == GL_COMPUTE_SHADER
+  shader_module->stage = GetGlStage(shader_module_resource->descr.stage);
+  shader_module->bind_type = shader_module->stage == GL_COMPUTE_SHADER
                                  ? ShaderBindType::Compute
                                  : ShaderBindType::Graphics;
-  shader_module->ref_count = 1;
 
-  shader_module->handle = glCreateShader(shader_module->type);
-  COMET_ASSERT(shader_module->handle != kInvalidShaderModuleHandle,
-               "Failed to create OpenGL shader module!");
+  shader_module->native_handle = glCreateShader(shader_module->stage);
+  COMET_ASSERT(
+      shader_module->native_handle != kInvalidGlShaderModuleNativeHandle,
+      "Failed to create OpenGL shader module!");
 
-  glShaderSource(shader_module->handle, 1, &code, &code_size);
-  glCompileShader(shader_module->handle);
+  glShaderSource(shader_module->native_handle, 1, &code, &code_size);
+  glCompileShader(shader_module->native_handle);
 
   GLint result{GL_FALSE};
   GLint msg_len{0};
 
-  glGetShaderiv(shader_module->handle, GL_COMPILE_STATUS, &result);
-  glGetShaderiv(shader_module->handle, GL_INFO_LOG_LENGTH, &msg_len);
+  glGetShaderiv(shader_module->native_handle, GL_COMPILE_STATUS, &result);
+  glGetShaderiv(shader_module->native_handle, GL_INFO_LOG_LENGTH, &msg_len);
 
   if (msg_len > 0) {
     auto* error_message{
         GenerateForOneFrame<schar>(static_cast<usize>(msg_len + 1))};
-    glGetShaderInfoLog(shader_module->handle, msg_len, nullptr, error_message);
-    COMET_ASSERT(false, "Error while compiling shader module: ", error_message);
-  }
+    glGetShaderInfoLog(shader_module->native_handle, msg_len, nullptr,
+                       error_message);
 
-  if (result == GL_FALSE) {
-    COMET_LOG_RENDERING_ERROR("Unknown error while compiling shader module!");
+    if (result == GL_FALSE) {
+      COMET_ASSERT(false,
+                   "Error while compiling shader module: ", error_message);
+    } else {
+      COMET_LOG_RENDERING_WARNING("Warning while compiling shader module: ",
+                                  error_message);
+    }
+  } else if (result == GL_FALSE) {
+    COMET_ASSERT(false, "Unknown error while compiling shader module!");
   }
 
   return shader_module;
+}
+
+void ShaderModuleHandler::DestroyShaderModule(ShaderModule* shader_module) {
+  COMET_ASSERT(shader_module != nullptr, "Shader module is null!");
+
+  if (shader_module->native_handle != kInvalidGlShaderModuleNativeHandle) {
+    glDeleteShader(shader_module->native_handle);
+    shader_module->native_handle = kInvalidGlShaderModuleNativeHandle;
+  }
+
+  shader_module->handle.Invalidate();
+  allocator_.Deallocate(shader_module);
 }
 }  // namespace gl
 }  // namespace rendering

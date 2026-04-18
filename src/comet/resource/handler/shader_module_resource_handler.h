@@ -13,8 +13,10 @@
 namespace comet {
 namespace resource {
 class ShaderModuleResourceHandler
-    : public ResourceHandler<ShaderModuleResource> {
+    : public ResourceHandler<ShaderModuleResourceTag, ShaderModuleResource> {
  public:
+  using Base = ResourceHandler;
+
   ShaderModuleResourceHandler(const ResourceHandlerDescr& descr);
   ShaderModuleResourceHandler(const ShaderModuleResourceHandler&) = delete;
   ShaderModuleResourceHandler(ShaderModuleResourceHandler&&) = delete;
@@ -22,7 +24,7 @@ class ShaderModuleResourceHandler
       delete;
   ShaderModuleResourceHandler& operator=(ShaderModuleResourceHandler&&) =
       delete;
-  virtual ~ShaderModuleResourceHandler() = default;
+  ~ShaderModuleResourceHandler() override = default;
 
   ResourceFile Pack(const ShaderModuleResource& resource,
                     CompressionMode compression_mode) override;

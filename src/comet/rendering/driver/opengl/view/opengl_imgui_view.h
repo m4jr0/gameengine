@@ -26,11 +26,13 @@ class ImGuiView : public View {
   ImGuiView(ImGuiView&&) = delete;
   ImGuiView& operator=(const ImGuiView&) = delete;
   ImGuiView& operator=(ImGuiView&&) = delete;
-  virtual ~ImGuiView() = default;
+  ~ImGuiView() override = default;
 
-  void Initialize() override;
-  void Destroy() override;
   void Update(frame::FramePacket*) override;
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   void Draw() const;

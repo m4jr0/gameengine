@@ -11,8 +11,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/memory.h"
-#include "comet/core/type/map.h"
+#include "comet/core/type/array.h"
+#include "comet/core/type/handle.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
@@ -20,6 +20,7 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+
 struct PipelineHandlerDescr : HandlerDescr {
   const RenderPassHandler* render_pass_handler{nullptr};
 };
@@ -32,42 +33,57 @@ class PipelineHandler : public Handler {
   PipelineHandler(PipelineHandler&&) = delete;
   PipelineHandler& operator=(const PipelineHandler&) = delete;
   PipelineHandler& operator=(PipelineHandler&&) = delete;
-  virtual ~PipelineHandler() = default;
+  ~PipelineHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
+  PipelineLayoutHandle GenerateLayout(const PipelineLayoutDescr& descr);
+  PipelineHandle Generate(const GraphicsPipelineDescr& descr);
+  PipelineHandle Generate(const ComputePipelineDescr& descr);
 
-  const PipelineLayout* GenerateLayout(const PipelineLayoutDescr& descr);
-  const Pipeline* Generate(const GraphicsPipelineDescr& descr);
-  const Pipeline* Generate(const ComputePipelineDescr& descr);
-  void DestroyLayout(PipelineLayoutId pipeline_layout_id);
-  void DestroyLayout(PipelineLayout* pipeline_layout);
-  void Destroy(PipelineId pipeline_id);
-  void Destroy(Pipeline* pipeline);
-  void Bind(const Pipeline* pipeline);
+  void DestroyLayout(PipelineLayoutHandle handle);
+  void Destroy(PipelineHandle handle);
+
+  void Bind(PipelineHandle handle);
+
   void Reset();
 
- private:
-  static inline PipelineId pipeline_id_counter_{0};
-  static inline PipelineLayoutId pipeline_layout_id_counter_{0};
+  VkPipelineLayout GetNativeLayoutHandle(PipelineHandle handle) const;
+  VkPipelineLayout GetNativeLayoutHandle(PipelineLayoutHandle handle) const;
+  VkPipeline GetNativeHandle(PipelineHandle handle) const;
+  PipelineBindType GetBindType(PipelineHandle handle) const;
 
-  Pipeline* Get(PipelineId pipeline_id);
-  Pipeline* TryGet(PipelineId pipeline_id);
-  PipelineLayout* GetLayout(PipelineLayoutId pipeline_layout_id);
-  PipelineLayout* TryGetLayout(PipelineLayoutId pipeline_layout_id);
-  void Destroy(Pipeline* pipeline, bool is_destroying_handler);
-  void DestroyLayout(PipelineLayout* pipeline_layout,
-                     bool is_destroying_handler);
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
+ private:
+  Pipeline* Get(PipelineHandle handle);
+  const Pipeline* Get(PipelineHandle handle) const;
+  Pipeline* TryGet(PipelineHandle handle);
+  const Pipeline* TryGet(PipelineHandle handle) const;
+
+  PipelineLayout* GetLayout(PipelineLayoutHandle handle);
+  const PipelineLayout* GetLayout(PipelineLayoutHandle handle) const;
+  PipelineLayout* TryGetLayout(PipelineLayoutHandle handle);
+  const PipelineLayout* TryGetLayout(PipelineLayoutHandle handle) const;
+
+  void DestroyPipelineObject(Pipeline* pipeline);
+  void DestroyPipelineLayoutObject(PipelineLayout* layout);
 
   memory::FiberFreeListAllocator allocator_{
-      math::Max(sizeof(Pair<PipelineId, Pipeline>),
-                sizeof(Pair<PipelineLayoutId, PipelineLayout>)),
-      256, memory::kEngineMemoryTagRendering};
-  Map<PipelineId, Pipeline*> pipelines_{};
-  Map<PipelineLayoutId, PipelineLayout*> pipeline_layouts_{};
-  const Pipeline* bound_pipeline_{nullptr};
+      math::Max(sizeof(Pipeline), sizeof(PipelineLayout)), 256,
+      memory::kEngineMemoryTagRendering};
+
+  HandlePool<PipelineHandleTag> pipeline_pool_{};
+  HandlePool<PipelineLayoutHandleTag> layout_pool_{};
+
+  Array<Pipeline*> pipelines_{};
+  Array<PipelineLayout*> layouts_{};
+
+  PipelineHandle bound_pipeline_{};
+
   const RenderPassHandler* render_pass_handler_{nullptr};
 };
+
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

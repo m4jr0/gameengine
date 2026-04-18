@@ -13,67 +13,50 @@
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_module.h"
-#include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-using ShaderHandle = u32;
-constexpr auto kInvalidShaderHandle{static_cast<ShaderHandle>(-1)};
-
 using VertexAttributeStride = s32;
 
 struct ShaderKey {
-  resource::ResourceId shader_id{resource::kInvalidResourceId};
-  RenderPassHandle render_pass_handle{kInvalidRenderPassHandle};
+  resource::ShaderResourceId shader_resource_id{};
+  RenderPassHandle render_pass_handle{};
+
+  friend constexpr bool operator==(const ShaderKey& lhs,
+                                   const ShaderKey& rhs) noexcept = default;
 };
 
-struct ShaderKeyHashLogic : public MapHashLogic<ShaderKey, ShaderHandle> {
-  using EntryPair = typename MapHashLogic<ShaderKey, ShaderHandle>::Value;
-  using EntryKey = typename MapHashLogic<ShaderKey, ShaderHandle>::Hashable;
-
-  static const EntryKey& GetHashable(const EntryPair& pair) { return pair.key; }
-
-  static HashValue Hash(const EntryKey& key) {
-    HashValue hash{0};
-    hash = HashCombine(hash, static_cast<HashValue>(key.shader_id));
-    hash = HashCombine(hash, static_cast<HashValue>(key.render_pass_handle));
-    return hash;
-  }
-
-  static bool AreEqual(const EntryKey& a, const EntryKey& b) {
-    return a.shader_id == b.shader_id &&
-           a.render_pass_handle == b.render_pass_handle;
-  }
-};
+constexpr HashValue GenerateHash(const ShaderKey& key) noexcept {
+  auto hash{resource::GenerateHash(key.shader_resource_id)};
+  hash = HashCombine(hash, GenerateHash(key.render_pass_handle));
+  return hash;
+}
 
 struct ShaderDescr {
-  resource::ResourceId shader_id{resource::kInvalidResourceId};
-  RenderPassHandle render_pass_handle{kInvalidRenderPassHandle};
+  resource::ShaderResourceId shader_resource_id{};
+  RenderPassHandle render_pass_handle{};
 };
 
 struct Shader {
+  ShaderHandle handle{};
   RasterizerState rasterizer{};
   DepthStencilState depth_stencil{};
   PrimitiveTopology topology{PrimitiveTopology::Unknown};
   ShaderVertexLayout vertex_layout{ShaderVertexLayout::None};
 
-  resource::ResourceId id{resource::kInvalidResourceId};
-  ShaderHandle handle{kInvalidShaderHandle};
-  u32 ref_count{0};
-
+  resource::ShaderResourceId id{};
   VertexAttributeStride vertex_attribute_stride{0};
 
   sptrdiff bound_global_ubo_offset{0};
   sptrdiff bound_instance_ubo_offset{0};
 
-  RenderPassHandle render_pass_handle{kInvalidRenderPassHandle};
-  const Pipeline* graphics_pipeline{nullptr};
-  const Pipeline* compute_pipeline{nullptr};
+  RenderPassHandle render_pass_handle{};
+  PipelineHandle graphics_pipeline{};
+  PipelineHandle compute_pipeline{};
 
   VkDescriptorPool descriptor_pool_handle{VK_NULL_HANDLE};
 
@@ -85,7 +68,7 @@ struct Shader {
   Array<VkVertexInputAttributeDescription> vertex_attributes{};
   Array<ShaderBinding> bindings{};
   Array<ShaderPushConstantBlock> push_constant_blocks{};
-  Array<const ShaderModule*> modules{};
+  Array<ShaderModuleHandle> module_handles{};
   Array<VkPushConstantRange> push_constant_ranges{};
 
   ShaderDescriptorSetRuntimeData global_descriptor_data{};

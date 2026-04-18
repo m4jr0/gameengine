@@ -45,7 +45,7 @@ class FiberLifeCycleHandler {
   FiberLifeCycleHandler(FiberLifeCycleHandler&&) = delete;
   FiberLifeCycleHandler& operator=(const FiberLifeCycleHandler&) = delete;
   FiberLifeCycleHandler& operator=(FiberLifeCycleHandler&&) = delete;
-  ~FiberLifeCycleHandler();
+  ~FiberLifeCycleHandler() = default;
 
   void AttachWorkerFiber(Fiber* fiber);
   void DetachWorkerFiber();
@@ -55,14 +55,11 @@ class FiberLifeCycleHandler {
   void PutToCompleted(Fiber* fiber);
   Fiber* TryGetCompleted();
 
-  bool IsInitialized() const noexcept;
-
  private:
   // TODO(m4jr0): Use configuration.
   static constexpr usize kQueueCount_{128};
   static inline thread_local Fiber* tls_worker_fiber_{nullptr};
 
-  bool is_initialized_{false};
   // Platform allocator is used because it is only allocated once, during engine
   // startup.
   memory::PlatformAllocator queue_allocator_{memory::kEngineMemoryTagFiber};

@@ -32,20 +32,19 @@ void Camera::Move(const math::Vec3& delta) {
   Translate(translation);
 }
 
-void Camera::Rotate(const math::Vec2& delta) {
-  auto rotation{GetRotation(delta)};
-  Rotate(rotation);
-}
+void Camera::Rotate(const math::Vec2& delta) { Rotate(GetRotation(delta)); }
 
 void Camera::Rotate(const math::Quat& rotation) {
   SetRotation(rotation * rotation_);
 }
 
 void Camera::Orbit(const math::Vec2& delta) {
-  auto pivot{GetCenterPivotPoint()};
-  auto rotation(GetRotation(delta));
+  const auto pivot{GetCenterPivotPoint()};
+  const auto rotation{GetRotation(delta)};
   Rotate(rotation);
   position_ = pivot + (rotation * (position_ - pivot));
+  is_view_matrix_dirty_ = true;
+  is_frustum_dirty_ = true;
 }
 
 void Camera::Reset() {
@@ -55,6 +54,12 @@ void Camera::Reset() {
 
   SetPosition(kDefaultPosition);
   SetRotation(kDefaultRotation);
+}
+
+void Camera::SetPosition(const math::Vec3& position) {
+  position_ = position;
+  is_view_matrix_dirty_ = true;
+  is_frustum_dirty_ = true;
 }
 
 void Camera::SetRotation(const math::Quat& rotation) {
@@ -69,29 +74,23 @@ void Camera::SetRotation(const math::Quat& rotation) {
   is_frustum_dirty_ = true;
 }
 
-void Camera::SetWidth(rendering::WindowSize width) {
+void Camera::SetWidth(WindowSize width) {
   width_ = width;
   is_projection_matrix_dirty_ = true;
   is_frustum_dirty_ = true;
 }
 
-void Camera::SetHeight(rendering::WindowSize height) {
+void Camera::SetHeight(WindowSize height) {
   height_ = height;
   is_projection_matrix_dirty_ = true;
   is_frustum_dirty_ = true;
 }
 
-void Camera::SetSize(rendering::WindowSize width,
-                     rendering::WindowSize height) {
+void Camera::SetSize(WindowSize width, WindowSize height) {
   width_ = width;
   height_ = height;
   is_projection_matrix_dirty_ = true;
   is_frustum_dirty_ = true;
-}
-
-void Camera::SetPosition(const math::Vec3& position) {
-  position_ = position;
-  is_view_matrix_dirty_ = true;
 }
 
 const math::Vec3& Camera::GetPosition() const noexcept { return position_; }
@@ -104,9 +103,7 @@ const math::Vec3& Camera::GetRight() const noexcept { return right_; }
 
 f32 Camera::GetNearestPoint() const noexcept { return z_near_; }
 
-f32 comet::rendering::Camera::GetFarthestPoint() const noexcept {
-  return z_far_;
-}
+f32 Camera::GetFarthestPoint() const noexcept { return z_far_; }
 
 f32 Camera::GetFov() const noexcept { return fov_; }
 
@@ -116,11 +113,15 @@ f32 Camera::GetFovInRadians() const noexcept {
 
 f32 Camera::GetRatio() const {
   if (height_ == 0) {
-    return 0;
+    return .0f;
   }
 
   return static_cast<f32>(width_) / static_cast<f32>(height_);
 }
+
+WindowSize Camera::GetWidth() const noexcept { return width_; }
+
+WindowSize Camera::GetHeight() const noexcept { return height_; }
 
 const math::Mat4& Camera::GetProjectionMatrix() {
   if (is_projection_matrix_dirty_) {
@@ -130,10 +131,6 @@ const math::Mat4& Camera::GetProjectionMatrix() {
 
   return projection_matrix_;
 }
-
-rendering::WindowSize Camera::GetWidth() const noexcept { return width_; }
-
-rendering::WindowSize Camera::GetHeight() const noexcept { return height_; }
 
 const math::Mat4& Camera::GetViewMatrix() {
   if (is_view_matrix_dirty_) {
@@ -153,6 +150,19 @@ const Frustum& Camera::GetFrustum() {
   return frustum_;
 }
 
+void Camera::PopulateData(RenderCameraData& data) {
+  data.projection_matrix = GetProjectionMatrix();
+  data.view_matrix = GetViewMatrix();
+  data.view_position = GetPosition();
+  data.front = GetFront();
+  data.up = GetUp();
+  data.right = GetRight();
+  data.near_plane = GetNearestPoint();
+  data.far_plane = GetFarthestPoint();
+  data.fov_y_radians = GetFovInRadians();
+  data.aspect_ratio = GetRatio();
+}
+
 void Camera::UpdateViewMatrix() {
   view_matrix_ = LookAt(position_, position_ + front_, up_);
 }
@@ -164,9 +174,9 @@ void Camera::UpdateProjectionMatrix() {
 }
 
 void Camera::UpdateFrustum() {
-  auto half_vertical{z_far_ * math::Tan(GetFovInRadians() * .5f)};
-  auto half_horizontal{half_vertical * GetRatio()};
-  auto z_far_vec{z_far_ * front_};
+  const auto half_vertical{z_far_ * math::Tan(GetFovInRadians() * .5f)};
+  const auto half_horizontal{half_vertical * GetRatio()};
+  const auto z_far_vec{z_far_ * front_};
 
   frustum_.SetNear({position_ + z_near_ * front_, front_});
   frustum_.SetFar({position_ + z_far_vec, -front_});
@@ -184,16 +194,14 @@ math::Vec3 Camera::GetCenterPivotPoint() {
   const auto& ray_direction{front_};
   const auto& ray_origin{position_};
   // Find point where the ray intersects the XY plane.
-  auto t{-ray_origin.z / ray_direction.z};
-  auto intersection_point{ray_origin + ray_direction * t};
-  return intersection_point;
+  const auto t{-ray_origin.z / ray_direction.z};
+  return ray_origin + ray_direction * t;
 }
 
 math::Quat Camera::GetRotation(const math::Vec2& delta) {
-  auto yaw_rotation{math::GetQuaternionRotation(delta.x, kWorldUp_)};
-  auto pitch_rotation{math::GetQuaternionRotation(delta.y, right_)};
-  auto rotation{yaw_rotation * pitch_rotation};
-  return rotation;
+  const auto yaw_rotation{math::GetQuaternionRotation(delta.x, kWorldUp_)};
+  const auto pitch_rotation{math::GetQuaternionRotation(delta.y, right_)};
+  return yaw_rotation * pitch_rotation;
 }
 }  // namespace rendering
 }  // namespace comet

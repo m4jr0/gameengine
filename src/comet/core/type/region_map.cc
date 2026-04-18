@@ -57,7 +57,7 @@ usize RegionMap::Claim(usize size) {
       continue;
     }
 
-    auto start_index{i - counter + 1};
+    const auto start_index{i - counter + 1};
 
     for (usize j{start_index}; j <= i; ++j) {
       block_map_.Set(j);
@@ -73,12 +73,12 @@ void RegionMap::Release(usize offset, usize size) {
   COMET_ASSERT(offset % block_size_ == 0, "Offset (", offset,
                ") provided is not divisible by the block size (", block_size_,
                ")!");
-  auto index_offset{offset / block_size_};
+  const auto index_offset{offset / block_size_};
   COMET_ASSERT(size > 0, "Released size is 0!");
   size = memory::RoundUpToMultiple(size, block_size_);
   COMET_ASSERT(size % block_size_ == 0, "Claimed size (", size,
                ") is not divisible by the block size (", block_size_, ")!");
-  auto count{size / block_size_};
+  const auto count{size / block_size_};
 
   for (usize i{0}; i < count; ++i) {
     block_map_.Reset(i + index_offset);

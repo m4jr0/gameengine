@@ -13,8 +13,11 @@
 
 namespace comet {
 namespace resource {
-class ShaderResourceHandler : public ResourceHandler<ShaderResource> {
+class ShaderResourceHandler
+    : public ResourceHandler<ShaderResourceTag, ShaderResource> {
  public:
+  using Base = ResourceHandler;
+
   explicit ShaderResourceHandler(const ResourceHandlerDescr& descr);
   ShaderResourceHandler(const ShaderResourceHandler&) = delete;
   ShaderResourceHandler(ShaderResourceHandler&&) = delete;

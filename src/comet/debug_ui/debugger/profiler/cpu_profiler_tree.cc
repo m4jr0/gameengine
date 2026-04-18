@@ -41,7 +41,7 @@ void CpuProfilerTree::Draw(const CpuProfilerDisplayerContext& context) {
 
   for (const auto& pair : frame_context->thread_contexts) {
     const auto& thread_context{pair.value};
-    auto are_children{!thread_context.root_nodes.IsEmpty()};
+    const auto are_children{!thread_context.root_nodes.IsEmpty()};
 
     if (ImGui::TreeNodeEx(
             reinterpret_cast<void*>(thread_context.thread_id),
@@ -68,7 +68,7 @@ void CpuProfilerTree::DrawProfilerNode(
     return;
   }
 
-  auto are_children{!node->children.IsEmpty()};
+  const auto are_children{!node->children.IsEmpty()};
 
   if (ImGui::TreeNodeEx(node,
                         are_children ? 0

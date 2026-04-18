@@ -27,16 +27,22 @@ Handler::~Handler() {
 void Handler::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize handler, but it is already done!");
+  OnInitialize();
   is_initialized_ = true;
 }
 
 void Handler::Shutdown() {
   COMET_ASSERT(is_initialized_,
                "Tried to shutdown handler, but it is not initialized!");
+  OnShutdown();
   is_initialized_ = false;
 }
 
 bool Handler::IsInitialized() const noexcept { return is_initialized_; }
+
+void Handler::OnInitialize() {}
+
+void Handler::OnShutdown() {}
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

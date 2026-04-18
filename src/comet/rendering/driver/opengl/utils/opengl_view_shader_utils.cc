@@ -17,15 +17,16 @@ namespace comet {
 namespace rendering {
 namespace gl {
 void AddWorldGlobalFieldUpdates(
-    ShaderHandler* shader_handler, Shader* shader,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
   COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(shader_handle, "Shader is null!");
   COMET_ASSERT(packet != nullptr, "Frame packet is null!");
 
-  auto global_binding_index{shader_handler->GetBindingIndex(
-      shader, shaderconsts::kGlobalSet, sharedshaderconsts::kGlobalUboBinding)};
+  const auto global_binding_index{
+      shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
+                                      sharedshaderconsts::kGlobalUboBinding)};
 
   const auto& camera_data{packet->camera_data};
 
@@ -56,42 +57,44 @@ void AddWorldGlobalFieldUpdates(
 }
 
 void AddWorldGlobalImageBindings(
-    ShaderHandler* shader_handler, Shader* shader, const TextureMap* shadow_map,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
+    const TextureMap* shadow_map,
     frame::FrameArray<ShaderImageBindingUpdate>& image_bindings,
     frame::FrameArray<ShaderImageDescriptor>& image_descriptors) {
   COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(shader_handle, "Shader is invalid!");
 
-  if (shadow_map == nullptr || shadow_map->texture == nullptr ||
-      shadow_map->sampler == nullptr) {
+  if (shadow_map == nullptr || !shadow_map->texture_handle ||
+      !shadow_map->sampler_handle) {
     return;
   }
 
-  auto binding_index{shader_handler->GetBindingIndex(
-      shader, shaderconsts::kGlobalSet,
+  const auto binding_index{shader_handler->GetBindingIndex(
+      shader_handle, shaderconsts::kGlobalSet,
       sharedshaderconsts::kMainShadowMapBinding)};
 
   image_descriptors.Clear();
   image_descriptors.Reserve(1);
 
   auto& descriptor{image_descriptors.EmplaceBack()};
-  descriptor.texture = shadow_map->texture;
-  descriptor.sampler = shadow_map->sampler;
+  descriptor.texture_handle = shadow_map->texture_handle;
+  descriptor.sampler_handle = shadow_map->sampler_handle;
 
   AddImageBinding(image_bindings, binding_index, image_descriptors.GetData(),
                   static_cast<u32>(image_descriptors.GetSize()));
 }
 
 void AddDebugGlobalFieldUpdates(
-    ShaderHandler* shader_handler, Shader* shader,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
   COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(shader_handle, "Shader is null!");
   COMET_ASSERT(packet != nullptr, "Frame packet is null!");
 
-  auto global_binding_index{shader_handler->GetBindingIndex(
-      shader, shaderconsts::kGlobalSet, sharedshaderconsts::kGlobalUboBinding)};
+  const auto global_binding_index{
+      shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
+                                      sharedshaderconsts::kGlobalUboBinding)};
 
   const auto& camera_data{packet->camera_data};
 
@@ -106,15 +109,15 @@ void AddDebugGlobalFieldUpdates(
 }
 
 void AddWorldShadowSettingsFieldUpdates(
-    ShaderHandler* shader_handler, Shader* shader,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const ShadowSettings* shadow_settings,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
   COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader != nullptr, "Shader is null!");
+  COMET_ASSERT(shader_handle, "Shader is null!");
   COMET_ASSERT(shadow_settings != nullptr, "Shadow settings are null!");
 
-  auto binding_index{shader_handler->GetBindingIndex(
-      shader, shaderconsts::kGlobalSet,
+  const auto binding_index{shader_handler->GetBindingIndex(
+      shader_handle, shaderconsts::kGlobalSet,
       sharedshaderconsts::kShadowSettingsBinding)};
 
   auto* params0{COMET_FRAME_ALLOC_ONE_AND_POPULATE(

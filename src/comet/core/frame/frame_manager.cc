@@ -14,7 +14,6 @@
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/frame/frame_event.h"
-#include "comet/core/game_state_manager.h"
 #include "comet/event/event_manager.h"
 #include "comet/profiler/profiler_manager.h"
 
@@ -42,47 +41,9 @@ FrameManager::FrameManager()
       io_double_frame_allocator_{io_frame_allocator_capacity_,
                                  memory::kEngineMemoryTagDoubleFrame} {}
 
-void FrameManager::Initialize() {
-  Manager::Initialize();
-
-  fiber_frame_allocator_.Initialize();
-  fiber_double_frame_allocator_.Initialize();
-  io_frame_allocator_.Initialize();
-  io_double_frame_allocator_.Initialize();
-
-  frame_packets_ = memory::AllocateMany<FramePacket>(
-      kFramePacketCount_, memory::kEngineMemoryTagGid);
-
-  for (usize i{0}; i < kFramePacketCount_; ++i) {
-    auto& packet{frame_packets_[i]};
-    memory::Populate<FramePacket>(&packet);
-    packet.Reset();
-  }
-
-  UpdateInFlightFrames();
-}
-
-void FrameManager::Shutdown() {
-  Manager::Shutdown();
-
-  memory::Deallocate(frame_packets_);
-  frame_packets_ = nullptr;
-
-  fiber_frame_allocator_.Destroy();
-  fiber_double_frame_allocator_.Destroy();
-  io_frame_allocator_.Destroy();
-  io_double_frame_allocator_.Destroy();
-}
-
 void FrameManager::Update() {
   event::EventManager::Get().FireEventNow<EndFrameEvent>();
-  auto is_paused{GameStateManager::Get().IsPaused()};
-
-  if (is_paused) {
-    HandlePaused();
-  } else {
-    HandleRunning();
-  }
+  StepFrame();
 
   // Fire a new frame event now, as many frame-specific systems rely on
   // temporary allocations that must be reset or reallocated at the start of
@@ -92,7 +53,7 @@ void FrameManager::Update() {
 
 void FrameManager::WaitForNextFrame() {
   fiber::FiberUniqueLock lock{frame_mutex_};
-  auto current_frame_count{frame_count_};
+  const auto current_frame_count{frame_count_};
 
   frame_cv_.Wait(lock, [this, current_frame_count] {
     return current_frame_count < frame_count_;
@@ -141,6 +102,34 @@ memory::Allocator* FrameManager::GetDoubleFrameAllocator() {
   return nullptr;
 }
 
+void FrameManager::OnInitialize() {
+  fiber_frame_allocator_.Initialize();
+  fiber_double_frame_allocator_.Initialize();
+  io_frame_allocator_.Initialize();
+  io_double_frame_allocator_.Initialize();
+
+  frame_packets_ = memory::AllocateMany<FramePacket>(
+      kFramePacketCount_, memory::kEngineMemoryTagGid);
+
+  for (usize i{0}; i < kFramePacketCount_; ++i) {
+    auto& packet{frame_packets_[i]};
+    memory::Populate<FramePacket>(&packet);
+    packet.Reset();
+  }
+
+  UpdateInFlightFrames();
+}
+
+void FrameManager::OnShutdown() {
+  memory::Deallocate(frame_packets_);
+  frame_packets_ = nullptr;
+
+  fiber_frame_allocator_.Destroy();
+  fiber_double_frame_allocator_.Destroy();
+  io_frame_allocator_.Destroy();
+  io_double_frame_allocator_.Destroy();
+}
+
 void FrameManager::ClearAndSwapAllocators() {
   ClearAndSwapAllocator(fiber_frame_allocator_, fiber_double_frame_allocator_);
   ClearAndSwapAllocator(io_frame_allocator_, io_double_frame_allocator_);
@@ -174,13 +163,7 @@ void FrameManager::UpdateInFlightFrames() {
   in_flight_frames_.rendering_frame_packet->frame_count = frame_count_ - 1;
 }
 
-void FrameManager::HandlePaused() {
-  ClearAndSwapAllocators();
-  in_flight_frames_.logic_frame_packet->Reset();
-  in_flight_frames_.rendering_frame_packet->Reset();
-}
-
-void FrameManager::HandleRunning() {
+void FrameManager::StepFrame() {
   COMET_PROFILER_END_FRAME();
 
   {

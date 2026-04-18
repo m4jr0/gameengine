@@ -11,9 +11,10 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/map.h"
+#include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
+#include "comet/rendering/rendering_handle.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
@@ -29,52 +30,36 @@ class TextureHandler : public Handler {
   TextureHandler(TextureHandler&&) = delete;
   TextureHandler& operator=(const TextureHandler&) = delete;
   TextureHandler& operator=(TextureHandler&&) = delete;
-  virtual ~TextureHandler() = default;
+  ~TextureHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
+  TextureHandle GetOrGenerate(resource::TextureResourceId texture_resource_id);
+  TextureHandle GetOrGenerate(resource::TextureResourceId texture_resource_id,
+                              TextureType type);
+  TextureHandle Generate(const RuntimeTextureDescr& descr);
 
-  const Texture* Generate(const resource::TextureResource* resource);
-  const Texture* Generate(const resource::TextureResource* resource,
-                          TextureType type);
+  void Destroy(TextureHandle handle);
 
-  const Texture* Get(TextureId texture_id) const;
-  const Texture* Get(TextureId texture_id, TextureType type) const;
+  const Texture* Get(TextureHandle handle) const;
 
-  const Texture* TryGet(TextureId texture_id) const;
-  const Texture* TryGet(TextureId texture_id, TextureType type) const;
-
-  const Texture* GetOrGenerate(const resource::TextureResource* resource);
-  const Texture* GetOrGenerate(const resource::TextureResource* resource,
-                               TextureType type);
-
-  void Destroy(TextureId texture_id);
-  void Destroy(TextureId texture_id, TextureType type);
-  void Destroy(Texture* texture);
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
-  Texture* Get(TextureId texture_id);
-  Texture* Get(TextureId texture_id, TextureType type);
+  Texture* Get(TextureHandle handle);
 
-  Texture* TryGet(TextureId texture_id);
-  Texture* TryGet(TextureId texture_id, TextureType type);
-
-  void Destroy(Texture* texture, bool is_destroying_handler);
-
-  static u32 GetMipLevels(const resource::TextureResource* resource);
-  static bool IsSrgbTextureType(TextureType type);
-  static GLenum GetGlFormat(const resource::TextureResource* resource);
-  static GLenum GetGlInternalFormat(const resource::TextureResource* resource,
-                                    TextureType type);
-  static u8 GetResolvedChannelCount(const resource::TextureResource* resource);
-
+  Texture* GenerateTexture(const resource::TextureResource* resource,
+                           TextureType type);
+  void DestroyTexture(Texture* texture);
   void GenerateMipmaps(const Texture* texture) const;
-  Texture* GenerateInstance(const resource::TextureResource* resource,
-                            TextureType type);
 
+  RuntimeTextureId next_runtime_texture_id_{0};
+
+  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
   memory::FiberFreeListAllocator allocator_{sizeof(Texture), 256,
                                             memory::kEngineMemoryTagRendering};
-  Map<TextureKey, Texture*, TextureKeyHashLogic> textures_{};
+
+  SharedInstanceRegistry<TextureKey, TextureTag, Texture> textures_{};
 };
 }  // namespace gl
 }  // namespace rendering

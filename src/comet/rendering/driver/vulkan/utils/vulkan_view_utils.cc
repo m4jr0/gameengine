@@ -14,40 +14,14 @@
 namespace comet {
 namespace rendering {
 namespace vk {
-VkAttachmentLoadOp ToVkAttachmentLoadOp(ViewLoadOp op) {
-  switch (op) {
-    case ViewLoadOp::DontCare:
-      return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    case ViewLoadOp::Load:
-      return VK_ATTACHMENT_LOAD_OP_LOAD;
-    case ViewLoadOp::Clear:
-      return VK_ATTACHMENT_LOAD_OP_CLEAR;
-    default:
-      COMET_ASSERT(false, "Unknown view load op!");
-      return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  }
-}
-
-VkAttachmentStoreOp ToVkAttachmentStoreOp(ViewStoreOp op) {
-  switch (op) {
-    case ViewStoreOp::DontCare:
-      return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    case ViewStoreOp::Store:
-      return VK_ATTACHMENT_STORE_OP_STORE;
-    default:
-      COMET_ASSERT(false, "Unknown view store op!");
-      return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  }
-}
-
 void GenerateAttachmentDescrs(const ViewPassDescr& pass_descr,
                               VkSampleCountFlagBits samples,
                               Array<AttachmentDescr>& attachment_descrs) {
-  auto has_color{(pass_descr.flags & kViewPassFlagBitsHasColor) != 0};
-  auto has_depth{(pass_descr.flags & kViewPassFlagBitsHasDepth) != 0};
-  auto is_swapchain_target{
+  const auto has_color{(pass_descr.flags & kViewPassFlagBitsHasColor) != 0};
+  const auto has_depth{(pass_descr.flags & kViewPassFlagBitsHasDepth) != 0};
+  const auto is_swapchain_target{
       (pass_descr.flags & kViewPassFlagBitsSwapchainTarget) != 0};
-  auto is_msaa{samples != VK_SAMPLE_COUNT_1_BIT};
+  const auto is_msaa{samples != VK_SAMPLE_COUNT_1_BIT};
 
   if (has_color) {
     AttachmentDescr color_attachment_descr{};
@@ -105,6 +79,32 @@ u8 GenerateClearFlags(const ViewPassDescr& pass_descr) {
   }
 
   return clear_flags;
+}
+
+VkAttachmentLoadOp ToVkAttachmentLoadOp(ViewLoadOp op) {
+  switch (op) {
+    case ViewLoadOp::DontCare:
+      return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    case ViewLoadOp::Load:
+      return VK_ATTACHMENT_LOAD_OP_LOAD;
+    case ViewLoadOp::Clear:
+      return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    default:
+      COMET_ASSERT(false, "Unknown view load op!");
+      return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  }
+}
+
+VkAttachmentStoreOp ToVkAttachmentStoreOp(ViewStoreOp op) {
+  switch (op) {
+    case ViewStoreOp::DontCare:
+      return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    case ViewStoreOp::Store:
+      return VK_ATTACHMENT_STORE_OP_STORE;
+    default:
+      COMET_ASSERT(false, "Unknown view store op!");
+      return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  }
 }
 }  // namespace vk
 }  // namespace rendering

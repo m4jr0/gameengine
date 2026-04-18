@@ -36,15 +36,20 @@ target_sources(${EXECUTABLE_NAME}
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/asset_exporter.cc"
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/assimp_utils.cc"
     
-    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_export.h"
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/model_exporter.cc"
 
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/utils/animation_export_utils.cc"
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/model/utils/model_exporter_utils.cc"
 
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/shader_exporter.cc"
-
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/shader_module_exporter.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/data/shader_export_keys.h"
+
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/utils/shader_export_utils.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/shader/utils/shader_module_export_utils.cc"
+    
+    "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture/data/texture_export_keys.h"
 
     "${PROJECT_SOURCE_DIR}/src/editor/asset/exporter/texture/texture_exporter.cc"
 )

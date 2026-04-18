@@ -18,24 +18,30 @@ Handler::Handler(const HandlerDescr& descr) : context_{descr.context} {
   COMET_ASSERT(context_ != nullptr, "Context cannot be null for handler!");
 }
 
-Handler ::~Handler() {
+Handler::~Handler() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for handler, but it is still initialized!");
 }
 
-void Handler ::Initialize() {
+void Handler::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize handler, but it is already done!");
+  OnInitialize();
   is_initialized_ = true;
 }
 
-void Handler ::Shutdown() {
+void Handler::Shutdown() {
   COMET_ASSERT(is_initialized_,
                "Tried to shutdown handler, but it is not initialized!");
+  OnShutdown();
   is_initialized_ = false;
 }
 
 bool Handler::IsInitialized() const noexcept { return is_initialized_; }
+
+void Handler::OnInitialize() {}
+
+void Handler::OnShutdown() {}
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

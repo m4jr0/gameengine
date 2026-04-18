@@ -34,7 +34,7 @@ class CpuProfilerGraph {
   CpuProfilerGraph(CpuProfilerGraph&&) = delete;
   CpuProfilerGraph& operator=(const CpuProfilerGraph&) = delete;
   CpuProfilerGraph& operator=(CpuProfilerGraph&&) = delete;
-  virtual ~CpuProfilerGraph() = default;
+  ~CpuProfilerGraph() = default;
 
   void Draw(CpuProfilerDisplayerContext& context, const Controls& controls);
 

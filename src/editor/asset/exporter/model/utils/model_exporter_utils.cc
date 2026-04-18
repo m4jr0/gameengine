@@ -17,6 +17,7 @@
 #include "comet/core/logger.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/model_resource.h"
+#include "comet/resource/resource.h"
 #include "editor/asset/exporter/assimp_utils.h"
 #include "editor/asset/exporter/model/utils/animation_export_utils.h"
 
@@ -31,7 +32,7 @@ void PopulateIndexedVertices(TModelExport& model_export, const aiMesh* raw_mesh,
                              math::Vec3& min_extents, math::Vec3& max_extents) {
   COMET_ASSERT(raw_mesh != nullptr, "Raw mesh is null!");
 
-  auto vertex_count{static_cast<usize>(raw_mesh->mNumVertices)};
+  const auto vertex_count{static_cast<usize>(raw_mesh->mNumVertices)};
   vertices = Array<geometry::SkinnedVertex>{model_export.allocator};
   vertices.Reserve(vertex_count);
 
@@ -51,24 +52,25 @@ void PopulateIndexedVertices(TModelExport& model_export, const aiMesh* raw_mesh,
 }
 
 template <typename TModelExport>
-resource::ResourceId LoadMeshInternal(TModelExport& model_export,
-                                      const aiMesh* raw_mesh,
-                                      resource::ResourceId parent_id,
-                                      const math::Mat4& transform,
-                                      geometry::MeshType mesh_type) {
+resource::RawResourceId LoadMeshInternal(TModelExport& model_export,
+                                         const aiMesh* raw_mesh,
+                                         resource::RawResourceId parent_id,
+                                         const math::Mat4& transform,
+                                         geometry::MeshType mesh_type) {
   auto& model{model_export.resources->model};
 
   auto& mesh_resource{model.meshes.EmplaceBack()};
   mesh_resource.resource_id = model.id;
   mesh_resource.internal_id =
-      static_cast<resource::ResourceId>(model.meshes.GetSize());
+      static_cast<resource::RawResourceId>(model.meshes.GetSize());
   mesh_resource.type = mesh_type;
   mesh_resource.parent_id = parent_id;
   mesh_resource.transform = transform;
 
   auto* raw_material{model_export.scene->mMaterials[raw_mesh->mMaterialIndex]};
-  mesh_resource.material_id =
-      GenerateMaterialId(raw_material, raw_mesh->mMaterialIndex);
+  mesh_resource.material_resource_id = resource::GenerateQualifiedMaterialId(
+      model_export.path, raw_material->GetName().C_Str(),
+      raw_mesh->mMaterialIndex);
 
   math::Vec3 min_extents;
   math::Vec3 max_extents;
@@ -83,33 +85,9 @@ resource::ResourceId LoadMeshInternal(TModelExport& model_export,
 }
 }  // namespace internal
 
-resource::ResourceId GenerateMaterialId(const aiMaterial* raw_material,
-                                        u32 material_index) {
-  COMET_ASSERT(raw_material != nullptr, "Raw material is null!");
-
-  const auto* raw_name{raw_material->GetName().C_Str()};
-  if (!IsEmpty(raw_name)) {
-    return resource::GenerateMaterialId(raw_name);
-  }
-
-  constexpr auto* kDefaultMaterialPrefix{"#material_"};
-  constexpr auto kDefaultMaterialPrefixLen{GetLength(kDefaultMaterialPrefix)};
-  constexpr auto kMaterialIndexLen{GetCharCount<u32>()};
-
-  schar buffer[kDefaultMaterialPrefixLen + kMaterialIndexLen]{'\0'};
-  Copy(buffer, kDefaultMaterialPrefix, kDefaultMaterialPrefixLen);
-
-  tchar number[kMaterialIndexLen]{COMET_TCHAR('\0')};
-  usize out{0};
-  ConvertToStr(material_index, number, kMaterialIndexLen, &out);
-  Copy(buffer, number, out, kDefaultMaterialPrefixLen);
-
-  return resource::GenerateMaterialId(buffer);
-}
-
 math::Mat4 GetTransform(const math::Mat4& current_transform,
                         const aiMatrix4x4& transform_to_combine) {
-  auto converted_transform{ToMat4x4(transform_to_combine)};
+  const auto converted_transform{ToMat4x4(transform_to_combine)};
   return current_transform * converted_transform;
 }
 
@@ -143,7 +121,7 @@ void RegisterJoint(SkeletalModelExport& model_export, const aiNode* node,
   if (raw_bone != nullptr) {
     joint.bind_pose_inv = ToMat4x4(raw_bone->mOffsetMatrix);
   } else {
-    auto global_bind_transform{GenerateGlobalTransform(node)};
+    const auto global_bind_transform{GenerateGlobalTransform(node)};
     joint.bind_pose_inv = glm::inverse(ToMat4x4(global_bind_transform));
   }
 
@@ -171,7 +149,7 @@ void PopulateVertices(StaticModelExport& model_export, const aiMesh* raw_mesh,
 void PopulateVertices(SkeletalModelExport& model_export, const aiMesh* raw_mesh,
                       Array<geometry::SkinnedVertex>& vertices,
                       math::Vec3& min_extents, math::Vec3& max_extents) {
-  auto weights{GenerateMeshWeights(model_export, raw_mesh)};
+  const auto weights{GenerateMeshWeights(model_export, raw_mesh)};
   internal::PopulateIndexedVertices(model_export, raw_mesh, &weights, vertices,
                                     min_extents, max_extents);
 }
@@ -229,7 +207,7 @@ void NormalizeVertexWeights(geometry::SkinnedVertex& vertex) {
 Map<usize, ModelVertexWeights> GenerateMeshWeights(
     SkeletalModelExport& model_export, const aiMesh* raw_mesh) {
   auto& skeleton_joint_map{model_export.skeleton_joint_map};
-  auto vertex_count{raw_mesh->mNumVertices};
+  const auto vertex_count{raw_mesh->mNumVertices};
 
   Map<usize, ModelVertexWeights> weights{
       model_export.allocator, vertex_count * geometry::kMaxSkeletonJointCount};
@@ -239,9 +217,9 @@ Map<usize, ModelVertexWeights> GenerateMeshWeights(
     const auto* joint_index_ptr{
         skeleton_joint_map.TryGet(raw_bone->mName.C_Str())};
 
-    auto joint_index{joint_index_ptr != nullptr
-                         ? *joint_index_ptr
-                         : geometry::kInvalidSkeletonJointIndex};
+    const auto joint_index{joint_index_ptr != nullptr
+                               ? *joint_index_ptr
+                               : geometry::kInvalidSkeletonJointIndex};
 
     for (u32 j{0}; j < raw_bone->mNumWeights; ++j) {
       const auto& weight{raw_bone->mWeights[j]};
@@ -269,7 +247,7 @@ Map<usize, ModelVertexWeights> GenerateMeshWeights(
 }
 
 void LoadModelNode(ModelExport& model_export, const aiNode* raw_node,
-                   resource::ResourceId parent_id,
+                   resource::RawResourceId parent_id,
                    const math::Mat4& parent_transform) {
   bool is_static{false};
 
@@ -291,8 +269,9 @@ void LoadModelNode(ModelExport& model_export, const aiNode* raw_node,
       return;
   }
 
-  auto transform{GetTransform(parent_transform, raw_node->mTransformation)};
-  resource::ResourceId last_mesh_id{resource::kInvalidResourceId};
+  const auto transform{
+      GetTransform(parent_transform, raw_node->mTransformation)};
+  resource::RawResourceId last_mesh_id{resource::kInvalidRawResourceId};
 
   for (usize index{0}; index < raw_node->mNumMeshes; ++index) {
     const auto* raw_mesh{model_export.scene->mMeshes[raw_node->mMeshes[index]]};
@@ -314,18 +293,18 @@ void LoadModelNode(ModelExport& model_export, const aiNode* raw_node,
   }
 }
 
-resource::ResourceId LoadMesh(StaticModelExport& model_export,
-                              const aiMesh* raw_mesh,
-                              resource::ResourceId parent_id,
-                              const math::Mat4& transform) {
+resource::RawResourceId LoadMesh(StaticModelExport& model_export,
+                                 const aiMesh* raw_mesh,
+                                 resource::RawResourceId parent_id,
+                                 const math::Mat4& transform) {
   return internal::LoadMeshInternal<StaticModelExport>(
       model_export, raw_mesh, parent_id, transform, geometry::MeshType::Static);
 }
 
-resource::ResourceId LoadMesh(SkeletalModelExport& model_export,
-                              const aiMesh* raw_mesh,
-                              resource::ResourceId parent_id,
-                              const math::Mat4& transform) {
+resource::RawResourceId LoadMesh(SkeletalModelExport& model_export,
+                                 const aiMesh* raw_mesh,
+                                 resource::RawResourceId parent_id,
+                                 const math::Mat4& transform) {
   return internal::LoadMeshInternal<SkeletalModelExport>(
       model_export, raw_mesh, parent_id, transform,
       geometry::MeshType::Skinned);
@@ -343,7 +322,9 @@ StaticModelResources LoadStaticModel(memory::Allocator* allocator,
   model_export.resources = &resources;
 
   resources.model.id =
-      resource::GenerateResourceIdFromPath<resource::StaticModelResource>(path);
+      resource::GenerateResourceIdFromPath<resource::StaticModelResource>(path)
+          .GetValue();
+
   resources.model.type_id = resource::StaticModelResource::kResourceTypeId;
   resources.model.meshes = Array<resource::StaticMeshResource>{allocator};
 
@@ -357,7 +338,9 @@ SkeletalModelResources LoadSkeletalModel(memory::Allocator* allocator,
   SkeletalModelResources resources{};
 
   resources.skeleton.id =
-      resource::GenerateResourceIdFromPath<resource::SkeletonResource>(path);
+      resource::GenerateResourceIdFromPath<resource::SkeletonResource>(path)
+          .GetValue();
+
   resources.skeleton.type_id = resource::SkeletonResource::kResourceTypeId;
   resources.skeleton.skeleton.id = resources.skeleton.id;
   resources.skeleton.skeleton.joints =
@@ -374,7 +357,9 @@ SkeletalModelResources LoadSkeletalModel(memory::Allocator* allocator,
 
   resources.model.id =
       resource::GenerateResourceIdFromPath<resource::SkeletalModelResource>(
-          path);
+          path)
+          .GetValue();
+
   resources.model.type_id = resource::SkeletalModelResource::kResourceTypeId;
   resources.model.meshes = Array<resource::SkinnedMeshResource>{allocator};
 
@@ -386,15 +371,52 @@ SkeletalModelResources LoadSkeletalModel(memory::Allocator* allocator,
   return resources;
 }
 
-void InitializeDefaultTextureMap(resource::TextureMap& map,
+void InitializeDefaultTextureMap(resource::TextureMapResource& map,
                                  rendering::TextureType type) {
-  map.texture_id = resource::kInvalidResourceId;
+  map.texture_resource_id.Invalidate();
   map.type = type;
   map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
   map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
   map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
   map.min_filter_mode = rendering::TextureFilterMode::Linear;
   map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+}
+
+rendering::TextureType GetTextureType(aiTextureType raw_texture_type) {
+  switch (raw_texture_type) {
+    case aiTextureType_BASE_COLOR:
+    case aiTextureType_DIFFUSE:
+      return rendering::TextureType::Diffuse;
+
+    case aiTextureType_SPECULAR:
+      return rendering::TextureType::Specular;
+
+    case aiTextureType_NORMALS:
+    case aiTextureType_HEIGHT:
+      return rendering::TextureType::Normal;
+
+    case aiTextureType_AMBIENT:
+      return rendering::TextureType::Ambient;
+
+    default:
+      return rendering::TextureType::Unknown;
+  }
+}
+
+rendering::TextureRepeatMode GetTextureRepeatMode(
+    aiTextureMapMode raw_texture_repeat_mode) {
+  switch (raw_texture_repeat_mode) {
+    case aiTextureMapMode_Wrap:
+      return rendering::TextureRepeatMode::Repeat;
+    case aiTextureMapMode_Mirror:
+      return rendering::TextureRepeatMode::MirroredRepeat;
+    case aiTextureMapMode_Clamp:
+      return rendering::TextureRepeatMode::ClampToEdge;
+    case aiTextureMapMode_Decal:
+      return rendering::TextureRepeatMode::ClampToBorder;
+    default:
+      return rendering::TextureRepeatMode::Unknown;
+  }
 }
 }  // namespace asset
 }  // namespace editor

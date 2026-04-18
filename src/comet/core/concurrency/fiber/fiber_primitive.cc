@@ -50,7 +50,7 @@ FiberSpinLockGuard::~FiberSpinLockGuard() { spin_lock_.Unlock(); }
 void FiberMutex::Lock() {
   for (;;) {
     auto* fiber{GetFiber()};
-    bool is_locked{false};
+    auto is_locked{false};
 
     {
       FiberSpinLockGuard guard{spin_lock_};

@@ -24,10 +24,9 @@
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/data/opengl_material.h"
 #include "comet/rendering/driver/opengl/data/opengl_mesh.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -42,68 +41,9 @@ RenderProxyHandler::RenderProxyHandler(const RenderProxyHandlerDescr& descr)
   COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
 }
 
-void RenderProxyHandler::Initialize() {
-  Handler::Initialize();
-  proxy_local_data_allocator_.Initialize();
-  general_allocator_.Initialize();
-
-  proxy_local_datas_ = Array<GpuRenderProxyLocalData>{
-      &proxy_local_data_allocator_, kDefaultProxyCount_};
-  batch_entries_ =
-      Array<RenderBatchEntry>{&general_allocator_, kDefaultProxyCount_};
-
-  entity_id_to_proxy_id_map_ = Map<entity::EntityId, RenderProxyId>{
-      &general_allocator_, kDefaultProxyCount_};
-  model_to_proxies_map_ = Map<entity::EntityId, RenderProxyModelBindings>{
-      &general_allocator_, kDefaultProxyCount_};
-  proxy_id_to_entity_id_map_ =
-      Array<entity::EntityId>{&general_allocator_, kDefaultProxyCount_};
-
-  sparse_upload_word_count_ = 0;
-
-  InitializeBuffers();
-
-#ifdef COMET_DEBUG_RENDERING
-  InitializeDebugData();
-#endif  // COMET_DEBUG_RENDERING
-
-#ifdef COMET_DEBUG_CULLING
-  InitializeCullingDebug();
-#endif  // COMET_DEBUG_CULLING
-}
-
-void RenderProxyHandler::Shutdown() {
-#ifdef COMET_DEBUG_RENDERING
-  DestroyDebugData();
-#endif  // COMET_DEBUG_RENDERING
-
-#ifdef COMET_DEBUG_CULLING
-  DestroyCullingDebug();
-#endif  // COMET_DEBUG_CULLING
-
-  DestroyUpdateTemporaryStructures();
-  DestroyBuffers();
-
-  proxy_local_datas_.Destroy();
-  batch_entries_.Destroy();
-  proxy_id_to_entity_id_map_.Destroy();
-  model_to_proxies_map_.Destroy();
-  entity_id_to_proxy_id_map_.Destroy();
-
-  update_frame_ = kInvalidFrameCount;
-  render_proxy_count_ = 0;
-  render_proxy_visible_count_ = 0;
-  sparse_upload_word_count_ = 0;
-
-  general_allocator_.Destroy();
-  proxy_local_data_allocator_.Destroy();
-
-  Handler::Shutdown();
-}
-
 void RenderProxyHandler::Update(frame::FramePacket* packet) {
   COMET_PROFILE("RenderProxyHandler::Update");
-  auto frame_count{static_cast<FrameCount>(packet->frame_count)};
+  const auto frame_count{static_cast<FrameCount>(packet->frame_count)};
 
   if (update_frame_ == frame_count) {
     return;
@@ -181,9 +121,8 @@ u32 RenderProxyHandler::GetSparseUploadWordCount() const noexcept {
 }
 
 u32 RenderProxyHandler::GetSparseUploadGroupCount() const noexcept {
-  return static_cast<u32>(
-      (sparse_upload_word_count_ + rendering::kShaderLocalSize - 1) /
-      rendering::kShaderLocalSize);
+  return static_cast<u32>((sparse_upload_word_count_ + kShaderLocalSize - 1) /
+                          kShaderLocalSize);
 }
 
 RenderProxySparseUploadData RenderProxyHandler::GetSparseUploadGpuData()
@@ -204,9 +143,8 @@ RenderProxySparseUploadData RenderProxyHandler::GetSparseUploadGpuData()
 }
 
 u32 RenderProxyHandler::GetCullGroupCount() const noexcept {
-  return static_cast<u32>(
-      (batch_entries_.GetSize() + rendering::kShaderLocalSize - 1) /
-      rendering::kShaderLocalSize);
+  return static_cast<u32>((batch_entries_.GetSize() + kShaderLocalSize - 1) /
+                          kShaderLocalSize);
 }
 
 #ifdef COMET_DEBUG_RENDERING
@@ -227,18 +165,19 @@ const Array<RenderIndirectBatch>* RenderProxyHandler::GetIndirectBatches()
   return indirect_batches_;
 }
 
-StorageHandle RenderProxyHandler::GetIndirectBufferHandle(
+GlNativeStorageHandle RenderProxyHandler::GetIndirectBufferHandle(
     FrameInFlightIndex frame_index) const noexcept {
   return ssbo_indirect_proxies_handle_[frame_index];
 }
 
-StorageHandle RenderProxyHandler::GetShadowIndirectBufferHandle(
+GlNativeStorageHandle RenderProxyHandler::GetShadowIndirectBufferHandle(
     FrameInFlightIndex frame_index) const noexcept {
   return ssbo_shadow_indirect_proxies_handle_[frame_index];
 }
 
 #ifdef COMET_DEBUG_CULLING
-StorageHandle RenderProxyHandler::GetDebugLineBufferHandle() const noexcept {
+GlNativeStorageHandle RenderProxyHandler::GetDebugLineBufferHandle()
+    const noexcept {
   return ssbo_debug_lines_handle_;
 }
 
@@ -246,6 +185,63 @@ u32 RenderProxyHandler::GetDebugLineVertexCount() const noexcept {
   return render_proxy_count_ * 24;
 }
 #endif  // COMET_DEBUG_CULLING
+
+void RenderProxyHandler::OnInitialize() {
+  proxy_local_data_allocator_.Initialize();
+  general_allocator_.Initialize();
+
+  proxy_local_datas_ = Array<GpuRenderProxyLocalData>{
+      &proxy_local_data_allocator_, kDefaultProxyCount_};
+  batch_entries_ =
+      Array<RenderBatchEntry>{&general_allocator_, kDefaultProxyCount_};
+
+  entity_id_to_proxy_id_map_ = Map<entity::EntityId, RenderProxyId>{
+      &general_allocator_, kDefaultProxyCount_};
+  model_to_proxies_map_ = Map<entity::EntityId, RenderProxyModelBindings>{
+      &general_allocator_, kDefaultProxyCount_};
+  proxy_id_to_entity_id_map_ =
+      Array<entity::EntityId>{&general_allocator_, kDefaultProxyCount_};
+
+  sparse_upload_word_count_ = 0;
+
+  InitializeBuffers();
+
+#ifdef COMET_DEBUG_RENDERING
+  InitializeDebugData();
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  InitializeCullingDebug();
+#endif  // COMET_DEBUG_CULLING
+}
+
+void RenderProxyHandler::OnShutdown() {
+#ifdef COMET_DEBUG_RENDERING
+  DestroyDebugData();
+#endif  // COMET_DEBUG_RENDERING
+
+#ifdef COMET_DEBUG_CULLING
+  DestroyCullingDebug();
+#endif  // COMET_DEBUG_CULLING
+
+  DestroyLiveProxyMaterials();
+  DestroyUpdateTemporaryStructures();
+  DestroyBuffers();
+
+  proxy_local_datas_.Destroy();
+  batch_entries_.Destroy();
+  proxy_id_to_entity_id_map_.Destroy();
+  model_to_proxies_map_.Destroy();
+  entity_id_to_proxy_id_map_.Destroy();
+
+  update_frame_ = kInvalidFrameCount;
+  render_proxy_count_ = 0;
+  render_proxy_visible_count_ = 0;
+  sparse_upload_word_count_ = 0;
+
+  general_allocator_.Destroy();
+  proxy_local_data_allocator_.Destroy();
+}
 
 bool RenderProxyHandler::OnRenderBatchSort(const RenderBatchEntry& a,
                                            const RenderBatchEntry& b) {
@@ -257,10 +253,10 @@ bool RenderProxyHandler::OnRenderBatchSort(const RenderBatchEntry& a,
 }
 
 u64 RenderProxyHandler::GenerateRenderProxySortKey(const RenderProxy& proxy) {
-  auto shader_hash{comet::GenerateHash(proxy.mat_id)};
-  auto mesh_material_hash{HashCombine(comet::GenerateHash(proxy.mat_id),
-                                      comet::GenerateHash(proxy.mesh_handle))};
-  return static_cast<u64>(shader_hash) << 32 | mesh_material_hash;
+  const auto material_hash{GenerateHash(proxy.material_handle)};
+  const auto mesh_material_hash{
+      HashCombine(material_hash, GenerateHash(proxy.mesh_handle))};
+  return (static_cast<u64>(material_hash) << 32) | mesh_material_hash;
 }
 
 void RenderProxyHandler::GenerateUpdateTemporaryStructures(
@@ -306,11 +302,11 @@ void RenderProxyHandler::ApplyRenderProxyChanges(
     const frame::FramePacket* packet) {
   COMET_PROFILE("RenderProxyHandler::ApplyRenderProxyChanges");
 
-  auto generated_proxy_count{packet->added_geometries->GetSize()};
-  auto destroyed_proxy_count{packet->removed_geometries->GetSize()};
-  auto resize_delta{generated_proxy_count > destroyed_proxy_count
-                        ? generated_proxy_count - destroyed_proxy_count
-                        : 0};
+  const auto generated_proxy_count{packet->added_geometries->GetSize()};
+  const auto destroyed_proxy_count{packet->removed_geometries->GetSize()};
+  const auto resize_delta{generated_proxy_count > destroyed_proxy_count
+                              ? generated_proxy_count - destroyed_proxy_count
+                              : 0};
 
   if (resize_delta > 0) {
     proxy_id_to_entity_id_map_.Resize(proxy_id_to_entity_id_map_.GetSize() +
@@ -334,7 +330,7 @@ void RenderProxyHandler::GenerateRenderProxies(
     const frame::AddedGeometries* geometries) {
   COMET_PROFILE("RenderProxyHandler::GenerateRenderProxies");
 
-  auto generated_proxy_count{geometries->GetSize()};
+  const auto generated_proxy_count{geometries->GetSize()};
 
   if (generated_proxy_count == 0) {
     return;
@@ -343,6 +339,7 @@ void RenderProxyHandler::GenerateRenderProxies(
   for (usize i{0}; i < generated_proxy_count; ++i) {
     COMET_ASSERT(render_proxy_count_ != kMaxRenderProxyCount_,
                  "Max count of render proxies reached!");
+
     const auto& geometry{geometries->Get(i)};
 
     auto& local_data{proxy_local_datas_.EmplaceBack()};
@@ -350,24 +347,26 @@ void RenderProxyHandler::GenerateRenderProxies(
     local_data.local_max_extents = math::Vec4{geometry.local_max_extents, .0f};
     local_data.transform = geometry.transform;
 
-    auto& new_proxy{proxies_[render_proxy_count_++]};
-    new_proxy.id = static_cast<RenderProxyId>(render_proxy_count_ - 1);
+    auto& new_proxy{proxies_[render_proxy_count_]};
+    new_proxy.id = static_cast<RenderProxyId>(render_proxy_count_);
+    new_proxy.model_entity_id = geometry.model_entity_id;
+    new_proxy.mesh_handle = geometry.mesh_handle;
+    new_proxy.material_handle =
+        material_handler_->GetOrGenerate(geometry.material_resource_id);
 
-    auto* material{material_handler_->Generate(geometry.material_resource)};
-    new_proxy.mat_id = material->id;
-    new_proxy.mesh_handle = mesh_handler_->GetHandle(geometry.mesh_id);
-
-    COMET_ASSERT(new_proxy.mesh_handle != kInvalidMeshProxyHandle,
-                 "Invalid mesh proxy handle retrieved!");
+    COMET_ASSERT(new_proxy.mesh_handle,
+                 "Invalid geometry mesh handle retrieved!");
 
     entity_id_to_proxy_id_map_[geometry.entity_id] = new_proxy.id;
     proxy_id_to_entity_id_map_[new_proxy.id] = geometry.entity_id;
 
-    new_proxy.model_entity_id = geometry.model_entity_id;
     RegisterModelProxy(geometry.model_entity_id, new_proxy.id);
+
     pending_proxy_ids_->Add(new_proxy.id);
     pending_proxy_indices_->PushBack(new_proxy.id);
     pending_proxy_local_data_->PushBack(local_data);
+
+    ++render_proxy_count_;
   }
 }
 
@@ -376,8 +375,8 @@ void RenderProxyHandler::UpdateRenderProxies(
     const frame::DirtyTransforms* transforms) {
   COMET_PROFILE("RenderProxyHandler::UpdateRenderProxies");
 
-  auto updated_mesh_count{meshes->GetSize()};
-  auto updated_transform_count{transforms->GetSize()};
+  const auto updated_mesh_count{meshes->GetSize()};
+  const auto updated_transform_count{transforms->GetSize()};
 
   if (updated_mesh_count == 0 && updated_transform_count == 0) {
     return;
@@ -394,7 +393,7 @@ void RenderProxyHandler::UpdateRenderProxies(
                  "Tried to update non-existing mesh with entity #",
                  updated_mesh.entity_id, "!");
 
-    auto proxy_id{entity_id_to_proxy_id_map_[updated_mesh.entity_id]};
+    const auto proxy_id{entity_id_to_proxy_id_map_[updated_mesh.entity_id]};
     auto& updated_proxy{proxies_[proxy_id]};
     pending_proxy_ids_->Add(updated_proxy.id);
 
@@ -417,7 +416,8 @@ void RenderProxyHandler::UpdateRenderProxies(
       continue;
     }
 
-    auto proxy_id{entity_id_to_proxy_id_map_[updated_transform.entity_id]};
+    const auto proxy_id{
+        entity_id_to_proxy_id_map_[updated_transform.entity_id]};
     auto& updated_proxy{proxies_[proxy_id]};
     pending_proxy_ids_->Add(updated_proxy.id);
 
@@ -438,7 +438,8 @@ void RenderProxyHandler::DestroyRenderProxies(
 
   for (const auto& geometry : *geometries) {
     destroyed_entity_ids_->Add(geometry.entity_id);
-    auto proxy_id_ptr{entity_id_to_proxy_id_map_.TryGet(geometry.entity_id)};
+    const auto proxy_id_ptr{
+        entity_id_to_proxy_id_map_.TryGet(geometry.entity_id)};
 
     if (proxy_id_ptr == nullptr) {
       COMET_LOG_RENDERING_WARNING("Render proxy with entity #",
@@ -447,12 +448,12 @@ void RenderProxyHandler::DestroyRenderProxies(
       continue;
     }
 
-    auto proxy_id{*proxy_id_ptr};
+    const auto proxy_id{*proxy_id_ptr};
     COMET_ASSERT(proxy_id < render_proxy_count_,
                  "Invalid render proxy ID: ", proxy_id, " > ",
                  render_proxy_count_, "!");
 
-    material_handler_->Destroy(proxies_[proxy_id].mat_id);
+    material_handler_->Destroy(proxies_[proxy_id].material_handle);
 
     auto& destroyed_proxy{destroyed_proxies_->EmplaceBack(proxies_[proxy_id])};
 
@@ -463,7 +464,8 @@ void RenderProxyHandler::DestroyRenderProxies(
     destroyed_batch_entries_->PushBack(destroyed_batch_entry);
     UnregisterModelProxy(geometry.model_entity_id, proxy_id);
 
-    auto old_proxy_id{static_cast<RenderProxyId>(render_proxy_count_ - 1)};
+    const auto old_proxy_id{
+        static_cast<RenderProxyId>(render_proxy_count_ - 1)};
 
     if (proxy_id != old_proxy_id) {
       proxies_[proxy_id] = proxies_[old_proxy_id];
@@ -505,7 +507,7 @@ void RenderProxyHandler::UpdateSkinningMatrices(
     const frame::SkinningBindings* bindings,
     const frame::MatrixPalettes* palettes) {
   COMET_PROFILE("RenderProxyHandler::UpdateSkinningMatrices");
-  auto entity_count{bindings->GetSize()};
+  const auto entity_count{bindings->GetSize()};
   COMET_ASSERT(
       entity_count == palettes->GetSize(),
       "Skinning binding count and matrix palette count should be the same!");
@@ -514,11 +516,11 @@ void RenderProxyHandler::UpdateSkinningMatrices(
     return;
   }
 
-  auto total_joint_count{0};
+  usize total_joint_count{0};
 
   for (usize i{0}; i < entity_count; ++i) {
     auto& binding{bindings->Get(i)};
-    auto skinning_offset{total_joint_count};
+    const auto skinning_offset{static_cast<SkinningOffset>(total_joint_count)};
     total_joint_count += binding.joint_count;
 
     if (binding.entity_id == entity::kInvalidEntityId) {
@@ -543,7 +545,7 @@ void RenderProxyHandler::UpdateSkinningMatrices(
     return;
   }
 
-  auto skinning_matrix_size{
+  const auto skinning_matrix_size{
       static_cast<GLsizei>(total_joint_count * sizeof(math::Mat4))};
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_matrix_palettes_handle_);
@@ -563,13 +565,13 @@ void RenderProxyHandler::UpdateSkinningMatrices(
 
   for (usize i{0}; i < entity_count; ++i) {
     const auto& palette{palettes->Get(i)};
-    auto size{palette.skinning_matrix_count * sizeof(math::Mat4)};
+    const auto size{palette.skinning_matrix_count * sizeof(math::Mat4)};
     memory::CopyMemory(memory + cursor, palette.skinning_matrices, size);
     cursor += size;
   }
 
   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
 }
 
 void RenderProxyHandler::GenerateBatchEntries() {
@@ -579,7 +581,7 @@ void RenderProxyHandler::GenerateBatchEntries() {
     return;
   }
 
-  auto generated_proxy_count{pending_proxy_indices_->GetSize()};
+  const auto generated_proxy_count{pending_proxy_indices_->GetSize()};
 
   if (generated_proxy_count == 0) {
     return;
@@ -588,7 +590,7 @@ void RenderProxyHandler::GenerateBatchEntries() {
   new_batch_entries_ =
       Array<RenderBatchEntry>{&general_allocator_, generated_proxy_count};
 
-  for (auto i : *pending_proxy_indices_) {
+  for (const auto i : *pending_proxy_indices_) {
     auto& new_proxy{proxies_[i]};
     auto& batch{new_batch_entries_.EmplaceBack()};
     batch.sort_key = GenerateRenderProxySortKey(new_proxy);
@@ -597,8 +599,8 @@ void RenderProxyHandler::GenerateBatchEntries() {
 
   Sort(new_batch_entries_.begin(), new_batch_entries_.end(), OnRenderBatchSort);
 
-  auto batch_count{batch_entries_.GetSize()};
-  auto new_batch_count{new_batch_entries_.GetSize()};
+  const auto batch_count{batch_entries_.GetSize()};
+  const auto new_batch_count{new_batch_entries_.GetSize()};
 
   if (batch_count > 0 && new_batch_count > 0) {
     batch_entries_.PushFromRange(new_batch_entries_);
@@ -632,8 +634,10 @@ void RenderProxyHandler::GenerateIndirectBatches() {
     auto* proxy{batch.proxy};
     auto& last_batch{indirect_batches_->Get(last_batch_index)};
 
-    auto is_same_mesh{proxy->mesh_handle == last_batch.proxy->mesh_handle};
-    auto is_same_material{proxy->mat_id == last_batch.proxy->mat_id};
+    const auto is_same_mesh{proxy->mesh_handle ==
+                            last_batch.proxy->mesh_handle};
+    const auto is_same_material{proxy->material_handle ==
+                                last_batch.proxy->material_handle};
 
     if (is_same_mesh && is_same_material) {
       ++last_batch.count;
@@ -663,7 +667,7 @@ void RenderProxyHandler::GenerateBatchGroups() {
     auto& anchor_batch{indirect_batches_->Get(current_group->offset)};
     auto& batch{indirect_batches_->Get(i)};
 
-    if (anchor_batch.proxy->mat_id == batch.proxy->mat_id) {
+    if (anchor_batch.proxy->material_handle == batch.proxy->material_handle) {
       ++current_group->count;
       continue;
     }
@@ -681,10 +685,10 @@ void RenderProxyHandler::UploadRenderProxyLocalData() {
     return;
   }
 
-  auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
 
 #ifdef COMET_DEBUG_CULLING
-  auto debug_aabb_size{
+  const auto debug_aabb_size{
       static_cast<GLsizei>(render_proxy_count_ * sizeof(GpuDebugAabb))};
 
   if (debug_aabb_size > ssbo_debug_aabbs_buffer_size_) {
@@ -692,10 +696,10 @@ void RenderProxyHandler::UploadRenderProxyLocalData() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, debug_aabb_size, nullptr,
                  GL_DYNAMIC_DRAW);
     ssbo_debug_aabbs_buffer_size_ = debug_aabb_size;
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
   }
 
-  auto debug_lines_size{
+  const auto debug_lines_size{
       static_cast<GLsizei>(render_proxy_count_ * 24 * sizeof(math::Vec4))};
 
   if (debug_lines_size > ssbo_debug_lines_buffer_size_) {
@@ -703,18 +707,18 @@ void RenderProxyHandler::UploadRenderProxyLocalData() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, debug_lines_size, nullptr,
                  GL_DYNAMIC_DRAW);
     ssbo_debug_lines_buffer_size_ = debug_lines_size;
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
   }
 #endif  // COMET_DEBUG_CULLING
 
-  auto proxy_ids_size{static_cast<GLsizei>(proxy_local_datas_.GetSize() *
-                                           sizeof(RenderProxyId))};
+  const auto proxy_ids_size{static_cast<GLsizei>(proxy_local_datas_.GetSize() *
+                                                 sizeof(RenderProxyId))};
 
   if (proxy_ids_size > ssbo_proxy_ids_buffer_size_[frame_index]) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_proxy_ids_handle_[frame_index]);
     glBufferData(GL_SHADER_STORAGE_BUFFER, proxy_ids_size, nullptr,
                  GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
     ssbo_proxy_ids_buffer_size_[frame_index] = proxy_ids_size;
   }
 
@@ -729,14 +733,14 @@ void RenderProxyHandler::UploadRenderProxyLocalData() {
 void RenderProxyHandler::UploadAllRenderProxyLocalData() {
   COMET_PROFILE("RenderProxyHandler::UploadAllRenderProxyLocalData");
 
-  auto full_size{static_cast<GLsizei>(proxy_local_datas_.GetSize() *
-                                      sizeof(GpuRenderProxyLocalData))};
+  const auto full_size{static_cast<GLsizei>(proxy_local_datas_.GetSize() *
+                                            sizeof(GpuRenderProxyLocalData))};
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_proxy_local_datas_handle_);
   glBufferData(GL_SHADER_STORAGE_BUFFER, full_size, nullptr, GL_DYNAMIC_DRAW);
   glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, full_size,
                   proxy_local_datas_.GetData());
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
 
   ssbo_proxy_local_datas_buffer_size_ = full_size;
 }
@@ -744,13 +748,13 @@ void RenderProxyHandler::UploadAllRenderProxyLocalData() {
 void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   COMET_PROFILE("RenderProxyHandler::UploadPendingRenderProxyLocalData");
 
-  auto pending_count{pending_proxy_ids_->GetSize()};
-  auto full_size{static_cast<GLsizei>(proxy_local_datas_.GetSize() *
-                                      sizeof(GpuRenderProxyLocalData))};
+  const auto pending_count{pending_proxy_ids_->GetSize()};
+  const auto full_size{static_cast<GLsizei>(proxy_local_datas_.GetSize() *
+                                            sizeof(GpuRenderProxyLocalData))};
 
   if (full_size > ssbo_proxy_local_datas_buffer_size_) {
-    auto old_handle{ssbo_proxy_local_datas_handle_};
-    auto old_size{ssbo_proxy_local_datas_buffer_size_};
+    const auto old_handle{ssbo_proxy_local_datas_handle_};
+    const auto old_size{ssbo_proxy_local_datas_buffer_size_};
 
     glGenBuffers(1, &ssbo_proxy_local_datas_handle_);
     COMET_GL_SET_STORAGE_DEBUG_LABEL(ssbo_proxy_local_datas_handle_,
@@ -759,19 +763,19 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
     glBindBuffer(GL_COPY_WRITE_BUFFER, ssbo_proxy_local_datas_handle_);
     glBufferData(GL_COPY_WRITE_BUFFER, full_size, nullptr, GL_DYNAMIC_DRAW);
 
-    if (old_handle != kInvalidStorageHandle) {
+    if (old_handle != kInvalidGlNativeStorageHandle) {
       glBindBuffer(GL_COPY_READ_BUFFER, old_handle);
       glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0,
                           old_size);
       glDeleteBuffers(1, &old_handle);
     }
 
-    glBindBuffer(GL_COPY_READ_BUFFER, kInvalidStorageHandle);
-    glBindBuffer(GL_COPY_WRITE_BUFFER, kInvalidStorageHandle);
+    glBindBuffer(GL_COPY_READ_BUFFER, kInvalidGlNativeStorageHandle);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, kInvalidGlNativeStorageHandle);
     ssbo_proxy_local_datas_buffer_size_ = full_size;
   }
 
-  auto staging_size{
+  const auto staging_size{
       static_cast<GLsizei>(pending_count * sizeof(GpuRenderProxyLocalData))};
 
   COMET_ASSERT(staging_size % sizeof(ShaderWord) == 0,
@@ -793,10 +797,10 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
                      staging_size);
   glUnmapBuffer(GL_COPY_WRITE_BUFFER);
 
-  auto word_count_per_data{
+  const auto word_count_per_data{
       static_cast<u32>(sizeof(GpuRenderProxyLocalData) / sizeof(ShaderWord))};
 
-  auto word_indices_size{static_cast<GLsizei>(
+  const auto word_indices_size{static_cast<GLsizei>(
       pending_count * sizeof(ShaderWord) * word_count_per_data)};
 
   glBindBuffer(GL_COPY_WRITE_BUFFER, ssbo_word_indices_handle_);
@@ -815,8 +819,8 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   sparse_upload_word_count_ = 0;
 
   for (usize i{0}; i < pending_count; ++i) {
-    auto proxy_word_offset{static_cast<ShaderWord>(word_count_per_data *
-                                                   pending_proxy_ids_->Get(i))};
+    const auto proxy_word_offset{static_cast<ShaderWord>(
+        word_count_per_data * pending_proxy_ids_->Get(i))};
 
     for (u32 word_index{0}; word_index < word_count_per_data; ++word_index) {
       word_indices_memory[sparse_upload_word_count_] =
@@ -826,7 +830,7 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   }
 
   glUnmapBuffer(GL_COPY_WRITE_BUFFER);
-  glBindBuffer(GL_COPY_WRITE_BUFFER, kInvalidStorageHandle);
+  glBindBuffer(GL_COPY_WRITE_BUFFER, kInvalidGlNativeStorageHandle);
 }
 
 void RenderProxyHandler::PrepareRenderProxyDrawData(
@@ -844,17 +848,17 @@ void RenderProxyHandler::ReallocateRenderProxyDrawBuffers(
     return;
   }
 
-  auto indirect_size{static_cast<GLsizei>(indirect_batches_->GetSize() *
-                                          sizeof(GpuIndirectRenderProxy))};
-  auto instance_size{static_cast<GLsizei>(batch_entries_.GetSize() *
-                                          sizeof(GpuRenderProxyInstance))};
+  const auto indirect_size{static_cast<GLsizei>(
+      indirect_batches_->GetSize() * sizeof(GpuIndirectRenderProxy))};
+  const auto instance_size{static_cast<GLsizei>(
+      batch_entries_.GetSize() * sizeof(GpuRenderProxyInstance))};
 
   if (indirect_size > ssbo_indirect_proxies_buffer_size_[frame_index]) {
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER,
                  ssbo_indirect_proxies_handle_[frame_index]);
     glBufferData(GL_DRAW_INDIRECT_BUFFER, indirect_size, nullptr,
                  GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, kInvalidStorageHandle);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, kInvalidGlNativeStorageHandle);
     ssbo_indirect_proxies_buffer_size_[frame_index] = indirect_size;
   }
 
@@ -863,7 +867,7 @@ void RenderProxyHandler::ReallocateRenderProxyDrawBuffers(
                  ssbo_proxy_instances_handle_[frame_index]);
     glBufferData(GL_SHADER_STORAGE_BUFFER, instance_size, nullptr,
                  GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
     ssbo_proxy_instances_buffer_size_[frame_index] = instance_size;
   }
 
@@ -872,7 +876,7 @@ void RenderProxyHandler::ReallocateRenderProxyDrawBuffers(
                  ssbo_shadow_indirect_proxies_handle_[frame_index]);
     glBufferData(GL_DRAW_INDIRECT_BUFFER, indirect_size, nullptr,
                  GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, kInvalidStorageHandle);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, kInvalidGlNativeStorageHandle);
     ssbo_shadow_indirect_proxies_buffer_size_[frame_index] = indirect_size;
   }
 }
@@ -929,16 +933,19 @@ void RenderProxyHandler::PopulateRenderProxyDrawData(
                ssbo_proxy_instances_handle_[frame_index]);
   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, kInvalidStorageHandle);
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
-  glBindBuffer(GL_COPY_WRITE_BUFFER, kInvalidStorageHandle);
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, kInvalidGlNativeStorageHandle);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
+  glBindBuffer(GL_COPY_WRITE_BUFFER, kInvalidGlNativeStorageHandle);
 }
 
 void RenderProxyHandler::PopulateRenderIndirectProxy(
     BatchId batch_id, GpuIndirectRenderProxy* memory) {
   COMET_PROFILE("RenderProxyHandler::PopulateWorldIndirectProxy");
+
   auto& batch{indirect_batches_->Get(batch_id)};
   const auto* mesh_proxy{mesh_handler_->Get(batch.proxy->mesh_handle)};
+
+  COMET_ASSERT(mesh_proxy != nullptr, "Mesh proxy is null!");
 
   auto& indirect_proxy{memory[batch_id]};
   indirect_proxy.command.firstInstance = batch.offset;
@@ -954,6 +961,8 @@ void RenderProxyHandler::PopulateShadowRenderIndirectProxy(
     BatchId batch_id, GpuIndirectRenderProxy* memory) {
   auto& batch{indirect_batches_->Get(batch_id)};
   const auto* mesh_proxy{mesh_handler_->Get(batch.proxy->mesh_handle)};
+
+  COMET_ASSERT(mesh_proxy != nullptr, "Mesh proxy is null!");
 
   auto& indirect_proxy{memory[batch_id]};
   indirect_proxy.command.firstInstance = batch.offset;
@@ -1023,17 +1032,17 @@ void RenderProxyHandler::InitializeBuffers() {
   COMET_GL_SET_STORAGE_DEBUG_LABEL(ssbo_word_indices_handle_,
                                    "ssbo_word_indices_handle_");
 
-  auto max_frames_in_flight{frame_state_->GetMaxFramesInFlight()};
+  const auto max_frames_in_flight{frame_state_->GetMaxFramesInFlight()};
 
   ssbo_proxy_ids_handle_ =
-      Array<StorageHandle>{&general_allocator_, max_frames_in_flight};
+      Array<GlNativeStorageHandle>{&general_allocator_, max_frames_in_flight};
   ssbo_indirect_proxies_handle_ =
-      Array<StorageHandle>{&general_allocator_, max_frames_in_flight};
+      Array<GlNativeStorageHandle>{&general_allocator_, max_frames_in_flight};
   ssbo_proxy_instances_handle_ =
-      Array<StorageHandle>{&general_allocator_, max_frames_in_flight};
+      Array<GlNativeStorageHandle>{&general_allocator_, max_frames_in_flight};
 
   ssbo_shadow_indirect_proxies_handle_ =
-      Array<StorageHandle>{&general_allocator_, max_frames_in_flight};
+      Array<GlNativeStorageHandle>{&general_allocator_, max_frames_in_flight};
   ssbo_shadow_indirect_proxies_buffer_size_ =
       Array<GLsizei>{&general_allocator_, max_frames_in_flight};
 
@@ -1056,10 +1065,10 @@ void RenderProxyHandler::InitializeBuffers() {
   ssbo_shadow_indirect_proxies_buffer_size_.Resize(max_frames_in_flight);
 
   for (FrameInFlightIndex i{0}; i < max_frames_in_flight; ++i) {
-    ssbo_proxy_ids_handle_[i] = kInvalidStorageHandle;
-    ssbo_indirect_proxies_handle_[i] = kInvalidStorageHandle;
-    ssbo_proxy_instances_handle_[i] = kInvalidStorageHandle;
-    ssbo_shadow_indirect_proxies_handle_[i] = kInvalidStorageHandle;
+    ssbo_proxy_ids_handle_[i] = kInvalidGlNativeStorageHandle;
+    ssbo_indirect_proxies_handle_[i] = kInvalidGlNativeStorageHandle;
+    ssbo_proxy_instances_handle_[i] = kInvalidGlNativeStorageHandle;
+    ssbo_shadow_indirect_proxies_handle_[i] = kInvalidGlNativeStorageHandle;
 
     ssbo_proxy_ids_buffer_size_[i] = 0;
     ssbo_indirect_proxies_buffer_size_[i] = 0;
@@ -1083,52 +1092,53 @@ void RenderProxyHandler::InitializeBuffers() {
 }
 
 void RenderProxyHandler::DestroyBuffers() {
-  if (staging_ssbo_proxy_local_datas_handle_ != kInvalidStorageHandle) {
+  if (staging_ssbo_proxy_local_datas_handle_ != kInvalidGlNativeStorageHandle) {
     glDeleteBuffers(1, &staging_ssbo_proxy_local_datas_handle_);
-    staging_ssbo_proxy_local_datas_handle_ = kInvalidStorageHandle;
+    staging_ssbo_proxy_local_datas_handle_ = kInvalidGlNativeStorageHandle;
     staging_ssbo_proxy_local_datas_buffer_size_ = 0;
   }
 
-  if (ssbo_proxy_local_datas_handle_ != kInvalidStorageHandle) {
+  if (ssbo_proxy_local_datas_handle_ != kInvalidGlNativeStorageHandle) {
     glDeleteBuffers(1, &ssbo_proxy_local_datas_handle_);
-    ssbo_proxy_local_datas_handle_ = kInvalidStorageHandle;
+    ssbo_proxy_local_datas_handle_ = kInvalidGlNativeStorageHandle;
     ssbo_proxy_local_datas_buffer_size_ = 0;
   }
 
-  if (ssbo_matrix_palettes_handle_ != kInvalidStorageHandle) {
+  if (ssbo_matrix_palettes_handle_ != kInvalidGlNativeStorageHandle) {
     glDeleteBuffers(1, &ssbo_matrix_palettes_handle_);
-    ssbo_matrix_palettes_handle_ = kInvalidStorageHandle;
+    ssbo_matrix_palettes_handle_ = kInvalidGlNativeStorageHandle;
     ssbo_matrix_palettes_buffer_size_ = 0;
   }
 
-  if (ssbo_word_indices_handle_ != kInvalidStorageHandle) {
+  if (ssbo_word_indices_handle_ != kInvalidGlNativeStorageHandle) {
     glDeleteBuffers(1, &ssbo_word_indices_handle_);
-    ssbo_word_indices_handle_ = kInvalidStorageHandle;
+    ssbo_word_indices_handle_ = kInvalidGlNativeStorageHandle;
     ssbo_word_indices_buffer_size_ = 0;
   }
 
   for (usize i{0}; i < ssbo_proxy_ids_handle_.GetSize(); ++i) {
-    if (ssbo_proxy_ids_handle_[i] != kInvalidStorageHandle) {
+    if (ssbo_proxy_ids_handle_[i] != kInvalidGlNativeStorageHandle) {
       glDeleteBuffers(1, &ssbo_proxy_ids_handle_[i]);
-      ssbo_proxy_ids_handle_[i] = kInvalidStorageHandle;
+      ssbo_proxy_ids_handle_[i] = kInvalidGlNativeStorageHandle;
       ssbo_proxy_ids_buffer_size_[i] = 0;
     }
 
-    if (ssbo_indirect_proxies_handle_[i] != kInvalidStorageHandle) {
+    if (ssbo_indirect_proxies_handle_[i] != kInvalidGlNativeStorageHandle) {
       glDeleteBuffers(1, &ssbo_indirect_proxies_handle_[i]);
-      ssbo_indirect_proxies_handle_[i] = kInvalidStorageHandle;
+      ssbo_indirect_proxies_handle_[i] = kInvalidGlNativeStorageHandle;
       ssbo_indirect_proxies_buffer_size_[i] = 0;
     }
 
-    if (ssbo_shadow_indirect_proxies_handle_[i] != kInvalidStorageHandle) {
+    if (ssbo_shadow_indirect_proxies_handle_[i] !=
+        kInvalidGlNativeStorageHandle) {
       glDeleteBuffers(1, &ssbo_shadow_indirect_proxies_handle_[i]);
-      ssbo_shadow_indirect_proxies_handle_[i] = kInvalidStorageHandle;
+      ssbo_shadow_indirect_proxies_handle_[i] = kInvalidGlNativeStorageHandle;
       ssbo_shadow_indirect_proxies_buffer_size_[i] = 0;
     }
 
-    if (ssbo_proxy_instances_handle_[i] != kInvalidStorageHandle) {
+    if (ssbo_proxy_instances_handle_[i] != kInvalidGlNativeStorageHandle) {
       glDeleteBuffers(1, &ssbo_proxy_instances_handle_[i]);
-      ssbo_proxy_instances_handle_[i] = kInvalidStorageHandle;
+      ssbo_proxy_instances_handle_[i] = kInvalidGlNativeStorageHandle;
       ssbo_proxy_instances_buffer_size_[i] = 0;
     }
   }
@@ -1149,7 +1159,7 @@ void RenderProxyHandler::InitializeDebugData() {
     glGenBuffers(1, &ssbo_debug_data_handle_[i]);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_debug_data_handle_[i]);
 
-    auto size{static_cast<GLsizei>(sizeof(GpuDebugData))};
+    const auto size{static_cast<GLsizei>(sizeof(GpuDebugData))};
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, nullptr, GL_DYNAMIC_READ);
     ssbo_debug_data_buffer_size_[i] = size;
 
@@ -1161,17 +1171,17 @@ void RenderProxyHandler::InitializeDebugData() {
     debug_data_[i] = static_cast<GpuDebugData*>(debug_data);
   }
 
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
 }
 
 void RenderProxyHandler::DestroyDebugData() {
   for (u32 i{0}; i < kDebugDataBufferCount_; ++i) {
-    if (ssbo_debug_data_handle_[i] != kInvalidStorageHandle) {
+    if (ssbo_debug_data_handle_[i] != kInvalidGlNativeStorageHandle) {
       glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_debug_data_handle_[i]);
       glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
       glDeleteBuffers(1, &ssbo_debug_data_handle_[i]);
-      ssbo_debug_data_handle_[i] = kInvalidStorageHandle;
+      ssbo_debug_data_handle_[i] = kInvalidGlNativeStorageHandle;
       ssbo_debug_data_buffer_size_[i] = 0;
       debug_data_[i] = nullptr;
     }
@@ -1201,23 +1211,34 @@ void RenderProxyHandler::InitializeCullingDebug() {
   ssbo_debug_lines_buffer_size_ =
       static_cast<GLsizei>(kDefaultProxyCount_ * 24 * sizeof(math::Vec4));
 
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidStorageHandle);
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, kInvalidGlNativeStorageHandle);
 }
 
 void RenderProxyHandler::DestroyCullingDebug() {
-  if (ssbo_debug_aabbs_handle_ != kInvalidStorageHandle) {
+  if (ssbo_debug_aabbs_handle_ != kInvalidGlNativeStorageHandle) {
     glDeleteBuffers(1, &ssbo_debug_aabbs_handle_);
-    ssbo_debug_aabbs_handle_ = kInvalidStorageHandle;
+    ssbo_debug_aabbs_handle_ = kInvalidGlNativeStorageHandle;
     ssbo_debug_aabbs_buffer_size_ = 0;
   }
 
-  if (ssbo_debug_lines_handle_ != kInvalidStorageHandle) {
+  if (ssbo_debug_lines_handle_ != kInvalidGlNativeStorageHandle) {
     glDeleteBuffers(1, &ssbo_debug_lines_handle_);
-    ssbo_debug_lines_handle_ = kInvalidStorageHandle;
+    ssbo_debug_lines_handle_ = kInvalidGlNativeStorageHandle;
     ssbo_debug_lines_buffer_size_ = 0;
   }
 }
 #endif  // COMET_DEBUG_CULLING
+
+void RenderProxyHandler::DestroyLiveProxyMaterials() {
+  for (u32 i{0}; i < render_proxy_count_; ++i) {
+    auto& proxy{proxies_[i]};
+
+    if (proxy.material_handle) {
+      material_handler_->Destroy(proxy.material_handle);
+      proxy.material_handle.Invalidate();
+    }
+  }
+}
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

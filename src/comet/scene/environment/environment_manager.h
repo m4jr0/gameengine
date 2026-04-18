@@ -9,7 +9,6 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
 #include "comet/math/geometry.h"
-#include "comet/rendering/light/light_common.h"
 
 namespace comet {
 namespace scene {
@@ -17,8 +16,6 @@ class EnvironmentManager : public Manager {
  public:
   static EnvironmentManager& Get();
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(frame::FramePacket* packet);
 
   // Time controls.
@@ -69,6 +66,10 @@ class EnvironmentManager : public Manager {
   f32 GetEffectiveTimeOfDayHours() const;
   math::Vec3 ComputeAmbientColor() const;
 
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
  private:
   static inline constexpr f32 kRealDayDurationSeconds{86400.0f};
 
@@ -77,7 +78,7 @@ class EnvironmentManager : public Manager {
   bool is_time_frozen_{false};
 
   f32 time_of_day_hours_{12.0f};
-  f32 day_duration_seconds_{25 * 60};
+  f32 day_duration_seconds_{25.0f * 60.0f};  // 25 minutes by default.
   f32 day_time_scale_{1.0f};
 
   // Playback window.
@@ -89,8 +90,7 @@ class EnvironmentManager : public Manager {
   f32 azimuth_offset_{static_cast<f32>(-math::kHalfPi)};
 
  private:
-  rendering::LightId sun_light_id_{rendering::kInvalidLightId};
-
+  rendering::LightHandle sun_light_{};
   math::Vec3 GenerateSunDirection(f32 azimuth, f32 elevation) const;
 };
 }  // namespace scene

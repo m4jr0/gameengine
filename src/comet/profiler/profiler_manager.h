@@ -28,10 +28,8 @@ class ProfilerManager : public Manager {
   ProfilerManager(ProfilerManager&&) = delete;
   ProfilerManager& operator=(const ProfilerManager&) = delete;
   ProfilerManager& operator=(ProfilerManager&&) = delete;
-  virtual ~ProfilerManager() = default;
+  ~ProfilerManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update();
 
   void StartFrame(frame::FrameCount frame_count);
@@ -46,6 +44,10 @@ class ProfilerManager : public Manager {
 
   const ProfilerData& GetData() const noexcept;
   bool IsRecording() const noexcept;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   using ThreadProfilerContexts =

@@ -100,7 +100,7 @@ void* TaggedHeap::Allocate(usize size, MemoryTag tag, usize* out_size) {
 
 void* TaggedHeap::AllocateAligned(usize size, Alignment align, MemoryTag tag,
                                   usize* out_size) {
-  usize final_size{size + align};
+  auto final_size{size + align};
   usize block_count;
   auto* ptr{static_cast<u8*>(AllocateInternal(final_size, tag, block_count))};
   final_size = block_count * block_size_;
@@ -124,7 +124,7 @@ void* TaggedHeap::AllocateAligned(usize size, Alignment align, MemoryTag tag,
     aligned_ptr += align;
   }
 
-  auto shift{aligned_ptr - ptr};
+  const auto shift{aligned_ptr - ptr};
   COMET_ASSERT(shift > 0 && shift <= kMaxAlignment,
                "Invalid shift in memory allocation! Shift is ", shift,
                ", but it must be between ", 0, " and ", kMaxAlignment, ".");
@@ -210,7 +210,7 @@ void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
     auto* block_map{FindOrAddTag(tag)};
 
     for (usize i{0}; i < block_count; ++i) {
-      auto map_index{free_blocks_index + i};
+      const auto map_index{free_blocks_index + i};
       global_block_map_.Set(map_index);
       block_map->block_map.Set(map_index);
     }
@@ -241,7 +241,7 @@ usize TaggedHeap::ResolveFreeBlocks(usize block_count) const {
 }
 
 TaggedHeap::TagBlockMap* TaggedHeap::FindOrAddTag(MemoryTag tag) {
-  auto bucket_index{static_cast<usize>(tag % kBucketCount_)};
+  const auto bucket_index{static_cast<usize>(tag % kBucketCount_)};
   auto& bucket{tag_block_maps_[bucket_index]};
 
   for (auto& entry : bucket) {

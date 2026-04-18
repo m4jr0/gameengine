@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_PIPELINE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {

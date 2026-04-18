@@ -22,16 +22,20 @@ const schar* GetVersionStr() {
     return version;
   }
 
-  usize len{0};
+  usize len;
   ConvertToStr(kCometVersionMajor, version, kMaxVersionLen, &len);
+
   usize tmp{len};
+
   Copy(version, ".", 1, len++);
   ConvertToStr(kCometVersionMinor, version + len, kMaxVersionLen - len, &tmp);
   len += tmp;
+
   Copy(version, ".", 1, len++);
   ConvertToStr(kCometVersionPatch, version + len, kMaxVersionLen - len, &tmp);
   len += tmp;
   version[len] = '\0';
+
   return version;
 }
 }  // namespace version

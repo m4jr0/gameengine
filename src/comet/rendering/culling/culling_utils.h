@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {

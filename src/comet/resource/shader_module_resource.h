@@ -7,22 +7,39 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/resource_id.h"
+#include "comet/resource/runtime/loaded_resource_handle.h"
 
 namespace comet {
 namespace resource {
+struct ShaderModuleResourceTag {};
+using ShaderModuleResourceId = ResourceIdT<ShaderModuleResourceTag>;
+using ShaderModuleResourceHandle =
+    LoadedResourceHandle<ShaderModuleResourceTag>;
+
 struct ShaderModuleResourceDescr {
-  rendering::ShaderModuleType shader_type{rendering::ShaderModuleType::Unknown};
+  rendering::ShaderStage stage{rendering::ShaderStage::Unknown};
   rendering::DriverType driver_type{rendering::DriverType::Unknown};
 };
 
 struct ShaderModuleResource : Resource {
-  static const ResourceTypeId kResourceTypeId;
+  using Id = ShaderModuleResourceId;
+  using Handle = ShaderModuleResourceHandle;
+  using TypeId = ResourceTypeId;
+  using TypeName = ResourceTypeName;
+
+  static constexpr TypeName kResourceTypeName{"shader_module"};
+  static const TypeId kResourceTypeId;
 
   ShaderModuleResourceDescr descr{};
   Array<u8> data{};
+
+  Id GetId() const noexcept;
 };
+
+usize GetShaderModuleResourceSize(const ShaderModuleResource& resource);
 }  // namespace resource
 }  // namespace comet
 

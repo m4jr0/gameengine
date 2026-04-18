@@ -11,11 +11,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef COMET_TRACK_ALLOCATIONS
+// External. ///////////////////////////////////////////////////////////////////
 #include <new>
 
 #ifdef COMET_MSVC
 #include "detours/detours.h"
 #endif  // COMET_MSVC
+////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
 namespace memory {
@@ -47,7 +49,7 @@ usize TrackedAllocations::Pop(void* ptr) {
     return 0;
   }
 
-  auto to_return{*size};
+  const auto to_return{*size};
   allocations.Remove(ptr);
   return to_return;
 }
@@ -77,14 +79,14 @@ void TrackedTags::IncreasePlatform(void* ptr, usize size,
 void TrackedTags::DecreasePlatform(void* ptr) {
   std::unique_lock lock{platform_mutex};
 
-  auto alloc_info{platform_allocations.TryGet(ptr)};
+  const auto alloc_info{platform_allocations.TryGet(ptr)};
 
   if (alloc_info == nullptr) {
     return;
   }
 
-  auto size{alloc_info->size};
-  auto tag{alloc_info->tag};
+  const auto size{alloc_info->size};
+  const auto tag{alloc_info->tag};
   platform_allocations.Remove(ptr);
   platform_tags[tag] -= size;
 }
@@ -269,7 +271,7 @@ void* WINAPI VirtualAllocHooked(LPVOID lp_address, SIZE_T dw_size,
 
 BOOL WINAPI VirtualFreeHooked(LPVOID lp_address, SIZE_T dw_size,
                               DWORD dw_free_type) {
-  auto result{PlatformVirtualFree(lp_address, dw_size, dw_free_type)};
+  const auto result{PlatformVirtualFree(lp_address, dw_size, dw_free_type)};
 
   if (result && !is_tracking_in_progress) {
     internal::ScopedFlagToggle toggle{is_tracking_in_progress};
@@ -319,7 +321,7 @@ int munmapHooked(void* addr, size_t len) {
                  "Could not locate the original munmap function!");
   });
 
-  auto result{PlatformMunmap(addr, len)};
+  const auto result{PlatformMunmap(addr, len)};
 
   if (is_tracking_in_progress) {
     return result;

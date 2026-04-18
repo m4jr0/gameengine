@@ -14,17 +14,27 @@
 #include "comet/rendering/driver/opengl/data/opengl_pipeline.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
-#include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/resource/shader_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using ShaderHandle = u32;
-constexpr auto kInvalidShaderHandle{static_cast<ShaderHandle>(-1)};
+using GlNativeProgramHandle = GLuint;
+constexpr auto kInvalidGlNativeProgramHandle{
+    static_cast<GlNativeProgramHandle>(0)};
 
-using VertexAttributeHandle = GLuint;
-constexpr auto kInvalidVertexAttributeHandle{0};
+using GlNativeVertexAttributeHandle = GLuint;
+constexpr auto kInvalidGlNativeVertexAttributeHandle{0};
+
+struct ShaderKey {
+  resource::ShaderResourceId shader_resource_id{};
+  RenderPassHandle render_pass_handle{};
+
+  friend constexpr bool operator==(const ShaderKey& lhs,
+                                   const ShaderKey& rhs) noexcept = default;
+};
 
 using VertexAttributeStride = s32;
 
@@ -38,19 +48,17 @@ struct VertexAttribute {
 };
 
 struct ShaderDescr {
-  resource::ResourceId shader_id{resource::kInvalidResourceId};
+  resource::ShaderResourceId shader_resource_id{};
 };
 
 struct Shader {
+  ShaderHandle handle{};
   RasterizerState rasterizer{};
   DepthStencilState depth_stencil{};
   GLenum topology{0};
   ShaderVertexLayout vertex_layout{ShaderVertexLayout::None};
 
-  resource::ResourceId id{resource::kInvalidResourceId};
-  ShaderHandle handle{kInvalidShaderHandle};
-  u32 ref_count{0};
-
+  resource::ShaderResourceId id{};
   bool has_vertex_source_binding{false};
   u64 vertex_source_id{0};
 
@@ -59,16 +67,20 @@ struct Shader {
   sptrdiff bound_global_ubo_offset{0};
   sptrdiff bound_instance_ubo_offset{0};
 
-  ShaderHandle compute_handle{kInvalidShaderHandle};
-  ShaderHandle graphics_handle{kInvalidShaderHandle};
+  GlNativeProgramHandle compute_program_native_handle{
+      kInvalidGlNativeProgramHandle};
+  GlNativeProgramHandle graphics_program_native_handle{
+      kInvalidGlNativeProgramHandle};
 
-  VertexAttributeHandle vertex_attribute_handle{kInvalidVertexAttributeHandle};
-  UniformBufferHandle uniform_buffer_handle{kInvalidUniformBufferHandle};
+  GlNativeVertexAttributeHandle vertex_attribute_native_handle{
+      kInvalidGlNativeVertexAttributeHandle};
+  GlNativeUniformBufferHandle uniform_buffer_native_handle{
+      kInvalidGlNativeUniformBufferHandle};
 
   Array<VertexAttribute> vertex_attributes{};
   Array<ShaderBinding> bindings{};
   Array<ShaderPushConstantBlock> push_constant_blocks{};
-  Array<const ShaderModule*> modules{};
+  Array<ShaderModuleHandle> module_handles{};
 
   ShaderUniformBufferObjectData global_ubo_data{};
   ShaderUniformBufferObjectData instance_ubo_data{};
@@ -78,8 +90,6 @@ struct Shader {
 
   MaterialInstances instances{};
 };
-
-ShaderHandle ResolveHandle(const Shader* shader, ShaderBindType bind_type);
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

@@ -44,7 +44,7 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
     queue_family_indices_pointer = family_indices.GetData();
   }
 
-  auto create_info{init::GenerateImageCreateInfo(
+  const auto create_info{init::GenerateImageCreateInfo(
       width, height, mip_levels, array_layers, num_samples, format, tiling,
       usage_flags, sharing_mode, queue_family_indices_pointer,
       queue_family_index_count)};
@@ -81,7 +81,7 @@ VkImageView GenerateImageView(VkDevice device_handle, VkImage image_handle,
                               VkFormat format, VkImageAspectFlags aspect_flags,
                               u32 mip_levels, u32 base_array_layer,
                               u32 layer_count, VkImageViewType view_type) {
-  auto create_info{init::GenerateImageViewCreateInfo(
+  const auto create_info{init::GenerateImageViewCreateInfo(
       image_handle, format, aspect_flags, mip_levels, base_array_layer,
       layer_count, view_type)};
 

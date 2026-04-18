@@ -13,7 +13,7 @@
 #ifdef COMET_FIBER_DEBUG_LABEL
 #include "comet/core/c_string.h"
 #include "comet/core/concurrency/fiber/fiber.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 namespace comet {
@@ -33,7 +33,8 @@ JobDescr GenerateJobDescr(JobPriority priority, JobEntryPoint entry_point,
     debug_label = fiber::Fiber::kDefaultDebugLabel_;
   }
 
-  auto len{math::Min(GetLength(debug_label), fiber::Fiber::kDebugLabelMaxLen_)};
+  const auto len{
+      math::Min(GetLength(debug_label), fiber::Fiber::kDebugLabelMaxLen_)};
   Copy(descr.debug_label, debug_label, len);
   descr.debug_label[len + 1] = '\0';
 #endif  // COMET_FIBER_DEBUG_LABEL

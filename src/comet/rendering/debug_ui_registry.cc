@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
+#include "comet/rendering/comet_rendering_pch.h"
 #include "comet_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -19,19 +20,35 @@ DebugUiRegistry& DebugUiRegistry::Get() {
   return singleton;
 }
 
-void DebugUiRegistry::Initialize() {
-  entries_ = Array<Entry>{&allocator_};
-  entries_.Reserve(5);
+DebugUiRegistry::~DebugUiRegistry() {
+  COMET_ASSERT(!is_initialized_,
+               "Destructor called for debug UI registry, but it is still "
+               "initialized!");
 }
 
-void DebugUiRegistry::Destroy() { entries_.Destroy(); }
+void DebugUiRegistry::Initialize() {
+  COMET_ASSERT(
+      !is_initialized_,
+      "Tried to initialize debug UI registry, but it is already done!");
+  entries_ = Array<Entry>{&allocator_};
+  entries_.Reserve(5);
+  is_initialized_ = true;
+}
+
+void DebugUiRegistry::Destroy() {
+  COMET_ASSERT(
+      is_initialized_,
+      "Tried to destroy debug UI registry, but it is not initialized!");
+  entries_.Destroy();
+  is_initialized_ = false;
+}
 
 DebugUiRegistry::CallbackId DebugUiRegistry::Register(DrawCallback callback) {
   if (!callback) {
     return kInvalidCallbackId;
   }
 
-  auto id{next_callback_id_++};
+  const auto id{next_callback_id_++};
 
   auto& entry{entries_.EmplaceBack()};
   entry.id = id;

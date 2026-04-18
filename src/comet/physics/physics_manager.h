@@ -23,11 +23,10 @@ class PhysicsManager : public Manager {
   PhysicsManager(PhysicsManager&&) = delete;
   PhysicsManager& operator=(const PhysicsManager&) = delete;
   PhysicsManager& operator=(PhysicsManager&&) = delete;
-  virtual ~PhysicsManager() = default;
+  ~PhysicsManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(frame::FramePacket* packet);
+
   void UpdateTree(frame::FramePacket* packet, entity::EntityId parent_entity_id,
                   const TransformComponent* parent_transform_cmp) const;
 
@@ -44,17 +43,17 @@ class PhysicsManager : public Manager {
 
   u32 GetFrameRate() const noexcept;
   f64 GetFrameTime() const noexcept;
-  f64 GetFixedDeltaTime() const noexcept;
+
+ protected:
+  void OnShutdown() override;
 
  private:
   void UpdateEntityTransforms(frame::FramePacket* packet);
 
   u32 counter_{0};
   u32 frame_rate_{0};
-  u32 max_frame_rate_{60};  // 60 Hz refresh by default.
-  f64 current_time_{0};
-  f64 last_current_time_{0};
-  f64 fixed_delta_time_{.01666f};  // 60 Hz refresh by default.
+  f64 current_time_{.0};
+  f64 last_current_time_{.0};
   f64 lag_{.0};
   frame::FramePacket* current_frame_packet_{nullptr};
 };

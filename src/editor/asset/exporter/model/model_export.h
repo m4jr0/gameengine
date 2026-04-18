@@ -13,7 +13,7 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/geometry/geometry_common.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/resource/animation_resource.h"
 #include "comet/resource/model_resource.h"
 
@@ -38,7 +38,7 @@ struct ModelExport {
   const aiScene* scene{nullptr};
   const tchar* path{nullptr};
 
-  virtual ~ModelExport() = default;
+  ~ModelExport() = default;
 };
 
 struct StaticModelExport : ModelExport {

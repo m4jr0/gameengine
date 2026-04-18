@@ -25,117 +25,6 @@ ConfigurationManager& ConfigurationManager::Get() {
   return singleton;
 }
 
-void ConfigurationManager::Initialize() {
-  Manager::Initialize();
-  values_ = ConfValues{&allocator_};
-
-  values_.Emplace(kApplicationName, GetDefaultValue(kApplicationName));
-  values_.Emplace(kApplicationMajorVersion,
-                  GetDefaultValue(kApplicationMajorVersion));
-  values_.Emplace(kApplicationMinorVersion,
-                  GetDefaultValue(kApplicationMinorVersion));
-  values_.Emplace(kApplicationPatchVersion,
-                  GetDefaultValue(kApplicationPatchVersion));
-  values_.Emplace(kCoreMsPerUpdate, GetDefaultValue(kCoreMsPerUpdate));
-  values_.Emplace(kCoreForcedFiberWorkerCount,
-                  GetDefaultValue(kCoreForcedFiberWorkerCount));
-  values_.Emplace(kCoreForcedIOWorkerCount,
-                  GetDefaultValue(kCoreForcedIOWorkerCount));
-  values_.Emplace(kCoreLargeFiberCount, GetDefaultValue(kCoreLargeFiberCount));
-  values_.Emplace(kCoreGiganticFiberCount,
-                  GetDefaultValue(kCoreGiganticFiberCount));
-  values_.Emplace(kCoreExternalLibraryFiberCount,
-                  GetDefaultValue(kCoreExternalLibraryFiberCount));
-  values_.Emplace(kCoreJobCounterCount, GetDefaultValue(kCoreJobCounterCount));
-  values_.Emplace(kCoreJobQueueCount, GetDefaultValue(kCoreJobQueueCount));
-  values_.Emplace(kCoreIsMainThreadWorkerDisabled,
-                  GetDefaultValue(kCoreIsMainThreadWorkerDisabled));
-  values_.Emplace(kCoreTaggedHeapCapacity,
-                  GetDefaultValue(kCoreTaggedHeapCapacity));
-  values_.Emplace(kCoreFiberFrameAllocatorBaseCapacity,
-                  GetDefaultValue(kCoreFiberFrameAllocatorBaseCapacity));
-  values_.Emplace(kCoreIOFrameAllocatorBaseCapacity,
-                  GetDefaultValue(kCoreIOFrameAllocatorBaseCapacity));
-  values_.Emplace(kCoreTStringAllocatorCapacity,
-                  GetDefaultValue(kCoreTStringAllocatorCapacity));
-  values_.Emplace(kEventMaxQueueSize, GetDefaultValue(kEventMaxQueueSize));
-  values_.Emplace(kRenderingDriver, GetDefaultValue(kRenderingDriver));
-  values_.Emplace(kRenderingWindowWidth,
-                  GetDefaultValue(kRenderingWindowWidth));
-  values_.Emplace(kRenderingWindowHeight,
-                  GetDefaultValue(kRenderingWindowHeight));
-  values_.Emplace(kRenderingClearColorR,
-                  GetDefaultValue(kRenderingClearColorR));
-  values_.Emplace(kRenderingClearColorG,
-                  GetDefaultValue(kRenderingClearColorG));
-  values_.Emplace(kRenderingClearColorB,
-                  GetDefaultValue(kRenderingClearColorB));
-  values_.Emplace(kRenderingClearColorA,
-                  GetDefaultValue(kRenderingClearColorA));
-  values_.Emplace(kRenderingIsVsync, GetDefaultValue(kRenderingIsVsync));
-  values_.Emplace(kRenderingIsTripleBuffering,
-                  GetDefaultValue(kRenderingIsTripleBuffering));
-  values_.Emplace(kRenderingFpsCap, GetDefaultValue(kRenderingFpsCap));
-  values_.Emplace(kRenderingAntiAliasing,
-                  GetDefaultValue(kRenderingAntiAliasing));
-  values_.Emplace(kRenderingIsSamplerAnisotropy,
-                  GetDefaultValue(kRenderingIsSamplerAnisotropy));
-  values_.Emplace(kRenderingIsSampleRateShading,
-                  GetDefaultValue(kRenderingIsSampleRateShading));
-  values_.Emplace(kRenderingShadowResolution,
-                  GetDefaultValue(kRenderingShadowResolution));
-  values_.Emplace(kRenderingShadowDistance,
-                  GetDefaultValue(kRenderingShadowDistance));
-  values_.Emplace(kRenderingShadowCascadeCount,
-                  GetDefaultValue(kRenderingShadowCascadeCount));
-  values_.Emplace(kRenderingShadowCascadeLambda,
-                  GetDefaultValue(kRenderingShadowCascadeLambda));
-  values_.Emplace(kRenderingShadowBiasConstant,
-                  GetDefaultValue(kRenderingShadowBiasConstant));
-  values_.Emplace(kRenderingShadowBiasSlope,
-                  GetDefaultValue(kRenderingShadowBiasSlope));
-  values_.Emplace(kRenderingShadowCasterExtrusionFactor,
-                  GetDefaultValue(kRenderingShadowCasterExtrusionFactor));
-  values_.Emplace(kRenderingShadowReceiverPadXY,
-                  GetDefaultValue(kRenderingShadowReceiverPadXY));
-  values_.Emplace(kRenderingShadowReceiverPadZ,
-                  GetDefaultValue(kRenderingShadowReceiverPadZ));
-  values_.Emplace(kRenderingShadowCascadeBlendRatio,
-                  GetDefaultValue(kRenderingShadowCascadeBlendRatio));
-  values_.Emplace(kRenderingShadowPcfRadius,
-                  GetDefaultValue(kRenderingShadowPcfRadius));
-  values_.Emplace(kRenderingShadowPcfSamples,
-                  GetDefaultValue(kRenderingShadowPcfSamples));
-  values_.Emplace(kRenderingShadowDebugCascades,
-                  GetDefaultValue(kRenderingShadowDebugCascades));
-  values_.Emplace(kRenderingShadowDebugSingleCascade,
-                  GetDefaultValue(kRenderingShadowDebugSingleCascade));
-  values_.Emplace(kRenderingShadowDisableBlending,
-                  GetDefaultValue(kRenderingShadowDisableBlending));
-  values_.Emplace(kRenderingOpenGlMajorVersion,
-                  GetDefaultValue(kRenderingOpenGlMajorVersion));
-  values_.Emplace(kRenderingOpenGlMinorVersion,
-                  GetDefaultValue(kRenderingOpenGlMinorVersion));
-  values_.Emplace(kRenderingVulkanVariantVersion,
-                  GetDefaultValue(kRenderingVulkanVariantVersion));
-  values_.Emplace(kRenderingVulkanMajorVersion,
-                  GetDefaultValue(kRenderingVulkanMajorVersion));
-  values_.Emplace(kRenderingVulkanMinorVersion,
-                  GetDefaultValue(kRenderingVulkanMinorVersion));
-  values_.Emplace(kRenderingVulkanPatchVersion,
-                  GetDefaultValue(kRenderingVulkanPatchVersion));
-  values_.Emplace(kRenderingVulkanMaxFramesInFlight,
-                  GetDefaultValue(kRenderingVulkanMaxFramesInFlight));
-  values_.Emplace(kResourceRootPath, GetDefaultValue(kResourceRootPath));
-
-  ParseConfFile();
-}
-
-void ConfigurationManager::Shutdown() {
-  values_.Destroy();
-  Manager::Shutdown();
-}
-
 void ConfigurationManager::ParseConfFile() {
   std::ifstream in_file;
 
@@ -165,7 +54,7 @@ void ConfigurationManager::ParseConfFile() {
       continue;
     }
 
-    auto key_val_delimiter_pos{GetIndexOf(line, '=', line_len)};
+    const auto key_val_delimiter_pos{GetIndexOf(line, '=', line_len)};
 
     if (key_val_delimiter_pos == kInvalidIndex) {
       continue;
@@ -390,7 +279,7 @@ void ConfigurationManager::SetBool(ConfKey key, bool value) {
 void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
                                              usize key_val_delimiter_pos,
                                              schar* value, usize value_len) {
-  auto key{COMET_STRING_ID(Trim(raw_key, key_val_delimiter_pos))};
+  const auto key{COMET_STRING_ID(Trim(raw_key, key_val_delimiter_pos))};
   Trim(value, value_len);
 
   if (key == kApplicationName || key == kRenderingDriver ||
@@ -458,5 +347,112 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
     SetTStr(key, path, value_len);
   }
 }
+
+void ConfigurationManager::OnInitialize() {
+  values_ = ConfValues{&allocator_};
+
+  values_.Emplace(kApplicationName, GetDefaultValue(kApplicationName));
+  values_.Emplace(kApplicationMajorVersion,
+                  GetDefaultValue(kApplicationMajorVersion));
+  values_.Emplace(kApplicationMinorVersion,
+                  GetDefaultValue(kApplicationMinorVersion));
+  values_.Emplace(kApplicationPatchVersion,
+                  GetDefaultValue(kApplicationPatchVersion));
+  values_.Emplace(kCoreMsPerUpdate, GetDefaultValue(kCoreMsPerUpdate));
+  values_.Emplace(kCoreForcedFiberWorkerCount,
+                  GetDefaultValue(kCoreForcedFiberWorkerCount));
+  values_.Emplace(kCoreForcedIOWorkerCount,
+                  GetDefaultValue(kCoreForcedIOWorkerCount));
+  values_.Emplace(kCoreLargeFiberCount, GetDefaultValue(kCoreLargeFiberCount));
+  values_.Emplace(kCoreGiganticFiberCount,
+                  GetDefaultValue(kCoreGiganticFiberCount));
+  values_.Emplace(kCoreExternalLibraryFiberCount,
+                  GetDefaultValue(kCoreExternalLibraryFiberCount));
+  values_.Emplace(kCoreJobCounterCount, GetDefaultValue(kCoreJobCounterCount));
+  values_.Emplace(kCoreJobQueueCount, GetDefaultValue(kCoreJobQueueCount));
+  values_.Emplace(kCoreIsMainThreadWorkerDisabled,
+                  GetDefaultValue(kCoreIsMainThreadWorkerDisabled));
+  values_.Emplace(kCoreTaggedHeapCapacity,
+                  GetDefaultValue(kCoreTaggedHeapCapacity));
+  values_.Emplace(kCoreFiberFrameAllocatorBaseCapacity,
+                  GetDefaultValue(kCoreFiberFrameAllocatorBaseCapacity));
+  values_.Emplace(kCoreIOFrameAllocatorBaseCapacity,
+                  GetDefaultValue(kCoreIOFrameAllocatorBaseCapacity));
+  values_.Emplace(kCoreTStringAllocatorCapacity,
+                  GetDefaultValue(kCoreTStringAllocatorCapacity));
+  values_.Emplace(kEventMaxQueueSize, GetDefaultValue(kEventMaxQueueSize));
+  values_.Emplace(kRenderingDriver, GetDefaultValue(kRenderingDriver));
+  values_.Emplace(kRenderingWindowWidth,
+                  GetDefaultValue(kRenderingWindowWidth));
+  values_.Emplace(kRenderingWindowHeight,
+                  GetDefaultValue(kRenderingWindowHeight));
+  values_.Emplace(kRenderingClearColorR,
+                  GetDefaultValue(kRenderingClearColorR));
+  values_.Emplace(kRenderingClearColorG,
+                  GetDefaultValue(kRenderingClearColorG));
+  values_.Emplace(kRenderingClearColorB,
+                  GetDefaultValue(kRenderingClearColorB));
+  values_.Emplace(kRenderingClearColorA,
+                  GetDefaultValue(kRenderingClearColorA));
+  values_.Emplace(kRenderingIsVsync, GetDefaultValue(kRenderingIsVsync));
+  values_.Emplace(kRenderingIsTripleBuffering,
+                  GetDefaultValue(kRenderingIsTripleBuffering));
+  values_.Emplace(kRenderingFpsCap, GetDefaultValue(kRenderingFpsCap));
+  values_.Emplace(kRenderingAntiAliasing,
+                  GetDefaultValue(kRenderingAntiAliasing));
+  values_.Emplace(kRenderingIsSamplerAnisotropy,
+                  GetDefaultValue(kRenderingIsSamplerAnisotropy));
+  values_.Emplace(kRenderingIsSampleRateShading,
+                  GetDefaultValue(kRenderingIsSampleRateShading));
+  values_.Emplace(kRenderingShadowResolution,
+                  GetDefaultValue(kRenderingShadowResolution));
+  values_.Emplace(kRenderingShadowDistance,
+                  GetDefaultValue(kRenderingShadowDistance));
+  values_.Emplace(kRenderingShadowCascadeCount,
+                  GetDefaultValue(kRenderingShadowCascadeCount));
+  values_.Emplace(kRenderingShadowCascadeLambda,
+                  GetDefaultValue(kRenderingShadowCascadeLambda));
+  values_.Emplace(kRenderingShadowBiasConstant,
+                  GetDefaultValue(kRenderingShadowBiasConstant));
+  values_.Emplace(kRenderingShadowBiasSlope,
+                  GetDefaultValue(kRenderingShadowBiasSlope));
+  values_.Emplace(kRenderingShadowCasterExtrusionFactor,
+                  GetDefaultValue(kRenderingShadowCasterExtrusionFactor));
+  values_.Emplace(kRenderingShadowReceiverPadXY,
+                  GetDefaultValue(kRenderingShadowReceiverPadXY));
+  values_.Emplace(kRenderingShadowReceiverPadZ,
+                  GetDefaultValue(kRenderingShadowReceiverPadZ));
+  values_.Emplace(kRenderingShadowCascadeBlendRatio,
+                  GetDefaultValue(kRenderingShadowCascadeBlendRatio));
+  values_.Emplace(kRenderingShadowPcfRadius,
+                  GetDefaultValue(kRenderingShadowPcfRadius));
+  values_.Emplace(kRenderingShadowPcfSamples,
+                  GetDefaultValue(kRenderingShadowPcfSamples));
+  values_.Emplace(kRenderingShadowDebugCascades,
+                  GetDefaultValue(kRenderingShadowDebugCascades));
+  values_.Emplace(kRenderingShadowDebugSingleCascade,
+                  GetDefaultValue(kRenderingShadowDebugSingleCascade));
+  values_.Emplace(kRenderingShadowDisableBlending,
+                  GetDefaultValue(kRenderingShadowDisableBlending));
+  values_.Emplace(kRenderingOpenGlMajorVersion,
+                  GetDefaultValue(kRenderingOpenGlMajorVersion));
+  values_.Emplace(kRenderingOpenGlMinorVersion,
+                  GetDefaultValue(kRenderingOpenGlMinorVersion));
+  values_.Emplace(kRenderingVulkanVariantVersion,
+                  GetDefaultValue(kRenderingVulkanVariantVersion));
+  values_.Emplace(kRenderingVulkanMajorVersion,
+                  GetDefaultValue(kRenderingVulkanMajorVersion));
+  values_.Emplace(kRenderingVulkanMinorVersion,
+                  GetDefaultValue(kRenderingVulkanMinorVersion));
+  values_.Emplace(kRenderingVulkanPatchVersion,
+                  GetDefaultValue(kRenderingVulkanPatchVersion));
+  values_.Emplace(kRenderingVulkanMaxFramesInFlight,
+                  GetDefaultValue(kRenderingVulkanMaxFramesInFlight));
+  values_.Emplace(kResourceRootPath, GetDefaultValue(kResourceRootPath));
+
+  ParseConfFile();
+}
+
+void ConfigurationManager::OnShutdown() { values_.Destroy(); }
 }  // namespace conf
 }  // namespace comet

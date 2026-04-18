@@ -27,10 +27,8 @@ class FrameManager : public Manager {
   FrameManager(FrameManager&&) = delete;
   FrameManager& operator=(const FrameManager&) = delete;
   FrameManager& operator=(FrameManager&&) = delete;
-  virtual ~FrameManager() = default;
+  ~FrameManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update();
 
   void WaitForNextFrame();
@@ -42,15 +40,19 @@ class FrameManager : public Manager {
   memory::Allocator* GetFrameAllocator();
   memory::Allocator* GetDoubleFrameAllocator();
 
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
  private:
   void ClearAndSwapAllocators();
   void ClearAndSwapAllocator(FiberFrameAllocator& frame_allocator,
                              FiberDoubleFrameAllocator& double_allocator);
   void ClearAndSwapAllocator(IOFrameAllocator& frame_allocator,
                              IODoubleFrameAllocator& double_allocator);
+
   void UpdateInFlightFrames();
-  void HandlePaused();
-  void HandleRunning();
+  void StepFrame();
 
   static inline constexpr usize kInFlightFramePacketCount_{3};
   static inline constexpr usize kFramePacketCount_{16};

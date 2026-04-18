@@ -19,15 +19,17 @@ class Plane {
   void SetNormal(const Vec3& normal);
   void SetDistance(f32 distance) noexcept;
   void SetDistance(const Vec3& point);
+
   const Vec3& GetNormal() const noexcept;
   f32 GetDistance() const noexcept;
 
  private:
-  Vec3 normal_{0.0f};
-  f32 distance_{0.0f};
+  Vec3 normal_{.0f};
+  f32 distance_{.0f};
 };
 
 f32 GetSignedDistance(const Plane& plane, const Vec3& point);
+
 bool Intersect(const Plane& p1, const Plane& p2, Vec3& point, Vec3& vector);
 bool Intersect(const Plane& p1, const Plane& p2, const Plane& p3, Vec3& point);
 }  // namespace math

@@ -18,8 +18,6 @@
 #include <signal.h>
 #endif  // COMET_MSVC
 
-#include "comet/core/file_system/file_system.h"
-#include "comet/core/type/tstring.h"
 #include "editor/asset/asset_manager.h"
 #include "editor/memory/memory.h"
 
@@ -30,12 +28,11 @@ void CometEditor::Update(f64& lag) {
   camera_handler_->Update();
 }
 
-void CometEditor::PreLoad() {
-  Engine::PreLoad();
+void CometEditor::OnPreLoadAfter() {
   COMET_ATTACH_CUSTOM_MEMORY_LABEL_FUNC(memory::GetEditorMemoryTagLabel);
 }
 
-void CometEditor::Load() {
+void CometEditor::OnLoadBefore() {
 #ifdef COMET_WINDOWS
   if (!SetConsoleCtrlHandler(static_cast<PHANDLER_ROUTINE>(HandleConsole),
                              TRUE)) {
@@ -60,20 +57,20 @@ void CometEditor::Load() {
   auto& asset_manager{asset::AssetManager::Get()};
   asset_manager.Initialize();
   asset_manager.Refresh();
-  Engine::Load();
 }
 
 // TODO(m4jr0): Remove temporary code.
-void CometEditor::PostLoad() {
-  Engine::PostLoad();
+void CometEditor::OnPostLoadAfter() {
   camera_handler_ = std::make_unique<CameraHandler>();
   camera_handler_->Initialize();
 }
 
-void CometEditor::PostUnload() {
+void CometEditor::OnPostUnloadBefore() {
   camera_handler_->Shutdown();
   asset::AssetManager::Get().Shutdown();
-  Engine::PostUnload();
+}
+
+void CometEditor::OnPostUnloadAfter() {
   COMET_DETACH_CUSTOM_MEMORY_LABEL_FUNC();
 }
 

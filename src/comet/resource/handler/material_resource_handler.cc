@@ -13,21 +13,14 @@
 #include "comet/core/memory/allocator/stack_allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace resource {
 MaterialResourceHandler::MaterialResourceHandler(
     const ResourceHandlerDescr& descr)
-    : ResourceHandler<MaterialResource>{descr} {}
-
-void MaterialResourceHandler::InitializeDefaults() {
-  defaults_.Reserve(1);
-  defaults_.Set(GetDefaultMaterialResource());
-}
-
-void MaterialResourceHandler::DestroyDefaults() { defaults_.Destroy(); }
+    : Base{descr} {}
 
 ResourceFile MaterialResourceHandler::Pack(const MaterialResource& resource,
                                            CompressionMode compression_mode) {
@@ -38,11 +31,11 @@ ResourceFile MaterialResourceHandler::Pack(const MaterialResource& resource,
   file.descr = Array<u8>{byte_allocator_};
   file.data = Array<u8>{byte_allocator_};
 
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
   Array<u8> data{byte_allocator_};
-  data.Resize(kResourceIdSize + kResourceTypeIdSize);
+  data.Resize(GetMaterialResourceSize(resource));
   usize cursor{0};
   auto* buffer{data.GetData()};
 
@@ -62,7 +55,7 @@ void MaterialResourceHandler::Unpack(const ResourceFile& file,
                                      MaterialResource* resource) {
   UnpackPodResourceDescr<MaterialResourceDescr>(file, resource->descr);
 
-  constexpr auto kResourceIdSize{sizeof(ResourceId)};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
   constexpr auto kDataSize{kResourceIdSize + kResourceTypeIdSize};
   memory::StaticStackAllocator<kDataSize> tmp_allocator{};
@@ -85,15 +78,22 @@ void MaterialResourceHandler::Unpack(const ResourceFile& file,
 MaterialResource* MaterialResourceHandler::GetDefaultMaterialResource() {
   if (default_material_ == nullptr) {
     default_material_ = std::make_unique<MaterialResource>();
-    default_material_->id = kDefaultResourceId;
+    default_material_->id = kFallbackRawResourceId;
     default_material_->type_id = MaterialResource::kResourceTypeId;
 
     auto& descr{default_material_->descr};
-    descr.diffuse_map.texture_id = kDefaultDiffuseTextureResourceId;
+    descr.diffuse_map.texture_resource_id = kDefaultDiffuseTextureId;
     descr.diffuse_map.type = rendering::TextureType::Diffuse;
   }
 
   return default_material_.get();
 }
+
+void MaterialResourceHandler::InitializeDefaults() {
+  defaults_.Reserve(1);
+  RegisterDefaultResource(GetDefaultMaterialResource());
+}
+
+void MaterialResourceHandler::DestroyDefaults() { default_material_.reset(); }
 }  // namespace resource
 }  // namespace comet

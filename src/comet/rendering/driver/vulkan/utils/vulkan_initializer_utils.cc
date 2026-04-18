@@ -15,8 +15,8 @@
 #include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/vulkan/utils/vulkan_common_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
+#include "comet/rendering/driver/vulkan/utils/vulkan_sampler_utils.h"
+#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -610,7 +610,7 @@ VkSamplerCreateInfo GenerateBaseSamplerCreateInfo() {
 }
 
 VkSamplerCreateInfo GenerateSamplerCreateInfo(
-    const resource::TextureMap& texture_map, bool is_sampler_anisotropy,
+    const resource::TextureMapResource& texture_map, bool is_sampler_anisotropy,
     f32 max_sampler_anisotropy) {
   auto info{GenerateBaseSamplerCreateInfo()};
 

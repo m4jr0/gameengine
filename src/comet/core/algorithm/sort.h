@@ -5,8 +5,9 @@
 #ifndef COMET_COMET_CORE_ALGORITHM_SORT_H_
 #define COMET_COMET_CORE_ALGORITHM_SORT_H_
 
-#include "comet/core/algorithm/algorithm_common.h"
+#include "comet/core/algorithm/comparator.h"
 #include "comet/core/algorithm/inplace_merge.h"
+#include "comet/core/algorithm/iterator_utils.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

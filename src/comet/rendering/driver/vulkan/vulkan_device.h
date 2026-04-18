@@ -16,7 +16,7 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -31,7 +31,9 @@ struct QueueFamilyIndices {
 constexpr auto kIsSpecificTransferQueue{true};
 
 bool AreQueueFamilyIndicesComplete(const QueueFamilyIndices& indices);
+
 bool IsTransferFamilyInQueueFamilyIndices(const QueueFamilyIndices& indices);
+
 frame::FrameArray<u32> GetUniqueIndices(const QueueFamilyIndices& indices);
 
 QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device_handle,
@@ -64,13 +66,14 @@ class Device {
   void Destroy();
 
   void WaitIdle() const;
+
   VkFormat ChooseFormat(VkImageTiling tiling, VkFormatFeatureFlags features,
                         const Array<VkFormat>& candidates) const;
-
   VkFormat ChooseDepthFormat() const;
 
   VkDevice GetHandle() const noexcept;
   operator VkDevice() const noexcept;
+
   VkPhysicalDevice GetPhysicalDeviceHandle() const noexcept;
   const VkPhysicalDeviceProperties& GetProperties() const noexcept;
   const VkPhysicalDeviceFeatures& GetFeatures() const noexcept;
@@ -83,13 +86,16 @@ class Device {
   u32 GetPresentQueueIndex() const noexcept;
   u32 GetTransferQueueIndex() const noexcept;
   VkSampleCountFlagBits GetMsaaSamples() const noexcept;
+
   bool IsMsaa() const noexcept;
   bool IsInitialized() const noexcept;
 
  private:
   PhysicalDeviceScore GetPhysicalDeviceScore(
       VkPhysicalDevice physical_device_handle) const;
+
   void ResolvePhysicalDeviceHandle();
+
   bool AreDeviceExtensionsAvailable(
       VkPhysicalDevice physical_device_handle) const;
 

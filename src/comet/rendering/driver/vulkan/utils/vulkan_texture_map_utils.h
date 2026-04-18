@@ -5,17 +5,16 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_TEXTURE_MAP_UTILS_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_TEXTURE_MAP_UTILS_H_
 
-// External. ///////////////////////////////////////////////////////////////////
-#include "vulkan/vulkan.h"
-////////////////////////////////////////////////////////////////////////////////
-
-#include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-VkImageLayout GetDescriptorImageLayout(const TextureMap* texture_map);
+TextureMap BuildTextureMap(SamplerHandle sampler_handle,
+                           TextureHandle texture_handle,
+                           resource::TextureResourceId texture_resource_id =
+                               resource::TextureResourceId::Invalid(),
+                           TextureType type = TextureType::Unknown);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

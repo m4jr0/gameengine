@@ -12,7 +12,6 @@
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/frame/frame_manager.h"
-#include "comet/entity/entity_manager.h"
 #include "comet/time/chrono.h"
 
 namespace comet {

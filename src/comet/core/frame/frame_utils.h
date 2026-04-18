@@ -119,7 +119,7 @@ class DoubleFrameOrderedSet : public OrderedSet<T, HashLogic> {
       : OrderedSet<T, HashLogic>{&GetDoubleFrameAllocator()} {}
 
   DoubleFrameOrderedSet(usize capacity)
-      : HashSet<T, HashLogic>{&GetDoubleFrameAllocator(), capacity} {}
+      : OrderedSet<T, HashLogic>{&GetDoubleFrameAllocator(), capacity} {}
 };
 }  // namespace frame
 }  // namespace comet

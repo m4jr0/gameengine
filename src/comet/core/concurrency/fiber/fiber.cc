@@ -20,7 +20,7 @@
 
 #ifdef COMET_FIBER_DEBUG_LABEL
 #include "comet/core/c_string.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 // TODO(m4jr0): Support other architectures.
@@ -95,7 +95,7 @@ void Fiber::Attach(EntryPoint entry_point, ParamsHandle params_handle,
     debug_label = kDefaultDebugLabel_;
   }
 
-  auto len{math::Min(GetLength(debug_label), kDebugLabelMaxLen_)};
+  const auto len{math::Min(GetLength(debug_label), kDebugLabelMaxLen_)};
   Copy(debug_label_, debug_label, len);
   debug_label_[len] = '\0';
 #endif  // COMET_FIBER_DEBUG_LABEL
@@ -142,14 +142,14 @@ const void* Fiber::GetStack() const noexcept { return stack_; }
 usize Fiber::GetStackCapacity() const noexcept { return stack_capacity_; }
 
 sptrdiff Fiber::GetCurrentStackSizeLeft() const {
-  auto current_stack_size{GetCurrentStackSize()};
-  sptrdiff stack_capacity{static_cast<sptrdiff>(stack_capacity_)};
+  const auto current_stack_size{GetCurrentStackSize()};
+  const auto stack_capacity{static_cast<sptrdiff>(stack_capacity_)};
 
   return stack_capacity - current_stack_size;
 }
 
 bool Fiber::IsStackOverflow() const {
-  auto size_left{GetCurrentStackSizeLeft()};
+  const auto size_left{GetCurrentStackSizeLeft()};
 
   if (size_left < 0) {
     COMET_LOG_CORE_ERROR("Stack overflow of ", -size_left,

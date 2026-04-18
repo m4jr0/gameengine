@@ -11,6 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/animation/animation_manager.h"
+#include "comet/animation/animation_set.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/entity/entity_event.h"
@@ -20,8 +21,8 @@
 #include "comet/math/geometry.h"
 #include "comet/physics/component/transform_component.h"
 #include "comet/physics/transform.h"
-#include "comet/rendering/light/light_common.h"
 #include "comet/rendering/light/light_manager.h"
+#include "comet/rendering/light/light_type.h"
 #include "comet/resource/resource.h"
 #include "comet/scene/environment/environment_manager.h"
 #include "comet/scene/scene_event.h"
@@ -31,14 +32,6 @@ namespace scene {
 SceneManager& SceneManager::Get() {
   static SceneManager singleton{};
   return singleton;
-}
-
-void SceneManager::Initialize() {
-  Manager::Initialize();
-  event::EventManager::Get().Register(COMET_EVENT_BIND_FUNCTION(OnEvent),
-                                      SceneLoadRequestEvent::kStaticType_);
-  event::EventManager::Get().Register(COMET_EVENT_BIND_FUNCTION(OnEvent),
-                                      entity::ModelLoadedEvent::kStaticType_);
 }
 
 void SceneManager::LoadScene() {
@@ -52,6 +45,27 @@ usize SceneManager::GetExpectedEntityCount() const {
   return 10000;
 }
 
+void SceneManager::OnInitialize() {
+  const auto event_function{
+      [this](const event::Event& event) { OnEvent(event); }};
+
+  scene_load_request_listener_id_ = event::EventManager::Get().Register(
+      event_function, SceneLoadRequestEvent::kStaticType_);
+
+  model_loaded_listener_id_ = event::EventManager::Get().Register(
+      event_function, entity::ModelLoadedEvent::kStaticType_);
+
+  are_listeners_registered_ = true;
+}
+
+void SceneManager::OnShutdown() {
+  if (are_listeners_registered_) {
+    event::EventManager::Get().Unregister(scene_load_request_listener_id_);
+    event::EventManager::Get().Unregister(model_loaded_listener_id_);
+    are_listeners_registered_ = false;
+  }
+}
+
 void SceneManager::OnEvent(const event::Event& event) {
   if (event.GetType() == SceneLoadRequestEvent::kStaticType_) {
     LoadScene();
@@ -62,6 +76,12 @@ void SceneManager::OnEvent(const event::Event& event) {
 }
 
 void SceneManager::LoadTmp() {
+  models_to_load_count_ = 0;
+  loaded_model_count_tmp_ = 0;
+  character_eve_id_tmp_ = entity::kInvalidEntityId;
+  character_vampire_id_tmp_ = entity::kInvalidEntityId;
+  sponza_id_tmp_ = entity::kInvalidEntityId;
+
   EnvironmentManager::Get().SetAzimuthOffsetRadians(
       math::ConvertToRadians(-180.0f));
 
@@ -92,7 +112,6 @@ void SceneManager::LoadTmp() {
     ++models_to_load_count_;
   }
 
-  constexpr math::Vec3 kSpotLightColor{1.0f, .55f, .18f};
   constexpr usize kSpotLightCount{4};
   constexpr f32 kSpotlightHeight{1.4f};
   constexpr bool kSpotlightHasShadows{false};
@@ -141,12 +160,13 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
     return;
   }
 
-  auto job_descr{job::GenerateJobDescr(
+  const auto job_descr{job::GenerateJobDescr(
       job::JobPriority::Normal,
       [](job::JobParamsHandle) {
         auto& entity_manager{entity::EntityManager::Get()};
         auto& animation_manager{animation::AnimationManager::Get()};
         auto& scene_manager{SceneManager::Get()};
+
         entity_manager.WaitForEntityUpdates();
 
         if (entity_manager.IsEntity(scene_manager.character_eve_id_tmp_)) {
@@ -158,18 +178,28 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
             constexpr auto kCharacterEveScaleTransform{153.0f};
             physics::ScaleLocal(character_eve_transform,
                                 kCharacterEveScaleTransform);
+
             constexpr math::Vec3 kCharacterEveTranslationTransform{1.0f, .0f,
                                                                    .0f};
             physics::TranslateLocal(character_eve_transform,
                                     kCharacterEveTranslationTransform);
+
             constexpr auto kCharacterEveRotateTransform{
                 math::ConvertToRadians(40.f)};
             physics::RotateLocal(character_eve_transform,
                                  kCharacterEveRotateTransform,
                                  {.0f, 1.0f, .0f});
 
+            animation::AnimationSet eve_anims{&scene_manager.tmp_allocator_, 3};
+            eve_anims.Set("idle", animation::GenerateAnimationClipId(
+                                      "models/eve/eve.gltf|idle"));
+            eve_anims.Set("walk", animation::GenerateAnimationClipId(
+                                      "models/eve/eve.gltf|walk"));
+            eve_anims.Set("run", animation::GenerateAnimationClipId(
+                                     "models/eve/eve.gltf|run"));
+
             animation_manager.Play(scene_manager.character_eve_id_tmp_,
-                                   L"models/eve/eve.gltf|idle");
+                                   eve_anims.Get("idle"), 1.0f, true);
           }
         }
 
@@ -182,6 +212,7 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
             constexpr auto kCharacterVampireScaleTransform{102.0f};
             physics::ScaleLocal(character_vampire_transform,
                                 kCharacterVampireScaleTransform);
+
             constexpr math::Vec3 kCharacterVampireTranslationTransform{
                 -1.0f, .0f, .0f};
             physics::TranslateLocal(character_vampire_transform,
@@ -193,9 +224,15 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
                                  kCharacterVampireRotateTransform,
                                  {.0f, 1.0f, .0f});
 
-            animation_manager.Play(
-                scene_manager.character_vampire_id_tmp_,
-                "models/dancing_vampire/dancing_vampire.dae|Hips", 1.0f, true);
+            animation::AnimationSet vampire_anims{&scene_manager.tmp_allocator_,
+                                                  1};
+            vampire_anims.Set(
+                "dance",
+                animation::GenerateAnimationClipId(
+                    "models/dancing_vampire/dancing_vampire.dae|Hips"));
+
+            animation_manager.Play(scene_manager.character_vampire_id_tmp_,
+                                   vampire_anims.Get("dance"), 1.0f, true);
           }
         }
 

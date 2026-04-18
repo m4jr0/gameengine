@@ -10,42 +10,20 @@
 #include "animation_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/generator.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type/string_id.h"
 
 namespace comet {
 namespace resource {
-const ResourceTypeId AnimationClipResource::kResourceTypeId{
-    COMET_STRING_ID("animation_clip")};
+const AnimationClipResource::TypeId AnimationClipResource::kResourceTypeId{
+    COMET_STRING_ID(AnimationClipResource::kResourceTypeName.data())};
 
-ResourceId GenerateAnimationClipId(CTStringView file_path,
-                                   const schar* animation_name) {
-  auto animation_len{GetLength(animation_name)};
-
-  // Add 1 character for "|".
-  auto path_len{file_path.GetLength()};
-  usize total_len{path_len + 1 + animation_len};
-
-  constexpr auto kMaxStackBufferSize{512};
-  schar* buffer = nullptr;
-  schar stack_buffer[kMaxStackBufferSize];
-
-  if (total_len + 1 <= kMaxStackBufferSize) {
-    buffer = stack_buffer;
-  } else {
-    buffer = GenerateForOneFrame<schar>(total_len + 1);
-  }
-
-  Copy(buffer, file_path.GetCTStr(), path_len);
-  buffer[path_len] = '|';
-  Copy(buffer, animation_name, animation_len, path_len + 1);
-  buffer[total_len] = '\0';
-  return COMET_STRING_ID(buffer);
+AnimationClipResource::Id AnimationClipResource::GetId() const noexcept {
+  return Id{id};
 }
 
 usize GetAnimationClipSize(const AnimationClipResource& resource) {
-  usize size{sizeof(ResourceId) + sizeof(ResourceTypeId)};
+  auto size{sizeof(RawResourceId) + sizeof(ResourceTypeId)};
 
   size += sizeof(animation::AnimationClipId);
   size += sizeof(animation::FrameIndex);
@@ -55,12 +33,8 @@ usize GetAnimationClipSize(const AnimationClipResource& resource) {
 
   for (const auto& sample : resource.clip.samples) {
     size += sizeof(usize);
-
-    auto pose_count{sample.joint_poses.GetSize()};
-
-    for (usize i{0}; i < pose_count; ++i) {
-      size += sizeof(animation::CompressedJointPose);
-    }
+    size +=
+        sample.joint_poses.GetSize() * sizeof(animation::CompressedJointPose);
   }
 
   size += sizeof(bool);

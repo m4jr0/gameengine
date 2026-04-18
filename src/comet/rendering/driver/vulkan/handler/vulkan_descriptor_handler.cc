@@ -12,6 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type/array.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
 
 namespace comet {
@@ -19,53 +20,6 @@ namespace rendering {
 namespace vk {
 DescriptorHandler::DescriptorHandler(const DescriptorHandlerDescr& descr)
     : Handler(descr) {}
-
-void DescriptorHandler::Initialize() {
-  Handler::Initialize();
-  auto& device{context_->GetDevice()};
-
-  constexpr StaticArray<VkDescriptorPoolSize, 3> kStaticPoolSizes{
-      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                           kMaxStaticSetCount_},
-      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                           kMaxStaticSetCount_},
-      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                           kMaxStaticSetCount_}};
-
-  static_descriptor_pool_ = GenerateDescriptorPool(
-      device, kMaxStaticSetCount_, kStaticPoolSizes.GetData(),
-      static_cast<u32>(kStaticPoolSizes.GetSize()), 0);
-
-  constexpr StaticArray<VkDescriptorPoolSize, 3> kDynamicPoolSizes{
-      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                           kMaxDynamicSetCount_},
-      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                           kMaxDynamicSetCount_},
-      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                           kMaxDynamicSetCount_}};
-
-  dynamic_descriptor_pools_ = Array<VkDescriptorPool>{&allocator_};
-  dynamic_descriptor_pools_.Resize(context_->GetMaxFramesInFlight());
-
-  for (usize i{0}; i < dynamic_descriptor_pools_.GetSize(); ++i) {
-    dynamic_descriptor_pools_[i] = GenerateDescriptorPool(
-        device, kMaxDynamicSetCount_, kDynamicPoolSizes.GetData(),
-        static_cast<u32>(kDynamicPoolSizes.GetSize()),
-        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
-  }
-}
-
-void DescriptorHandler::Shutdown() {
-  auto& device{context_->GetDevice()};
-  DestroyDescriptorPool(device, static_descriptor_pool_);
-
-  for (usize i{0}; i < dynamic_descriptor_pools_.GetSize(); ++i) {
-    DestroyDescriptorPool(device, dynamic_descriptor_pools_[i]);
-  }
-
-  dynamic_descriptor_pools_.Destroy();
-  Handler::Shutdown();
-}
 
 bool DescriptorHandler::Generate(
     const VkDescriptorSetLayout* descriptor_set_layout_handles,
@@ -120,6 +74,7 @@ void DescriptorHandler::Destroy(Array<VkDescriptorSet>& descriptor_set_handles,
                 ? static_descriptor_pool_
                 : dynamic_descriptor_pools_[context_->GetFrameInFlightIndex()]};
   FreeDescriptor(device, descriptor_set_handles, pool);
+
   for (auto& set : descriptor_set_handles) {
     set = VK_NULL_HANDLE;
   }
@@ -135,12 +90,59 @@ void DescriptorHandler::Destroy(VkDescriptorSet descriptor_set_handle,
 }
 
 void DescriptorHandler::ResetDynamic() {
-  auto dynamic_descriptor_pool{
+  COMET_PROFILE("DescriptorHandler::ResetDynamic");
+
+  const auto dynamic_descriptor_pool{
       dynamic_descriptor_pools_[context_->GetFrameInFlightIndex()]};
 
   COMET_ASSERT(dynamic_descriptor_pool != VK_NULL_HANDLE,
                "Dynamic descriptor pool is null!");
   vkResetDescriptorPool(context_->GetDevice(), dynamic_descriptor_pool, 0);
+}
+
+void DescriptorHandler::OnInitialize() {
+  auto& device{context_->GetDevice()};
+
+  constexpr StaticArray<VkDescriptorPoolSize, 3> kStaticPoolSizes{
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                           kMaxStaticSetCount_},
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                           kMaxStaticSetCount_},
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                           kMaxStaticSetCount_}};
+
+  static_descriptor_pool_ = GenerateDescriptorPool(
+      device, kMaxStaticSetCount_, kStaticPoolSizes.GetData(),
+      static_cast<u32>(kStaticPoolSizes.GetSize()), 0);
+
+  constexpr StaticArray<VkDescriptorPoolSize, 3> kDynamicPoolSizes{
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                           kMaxDynamicSetCount_},
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                           kMaxDynamicSetCount_},
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                           kMaxDynamicSetCount_}};
+
+  dynamic_descriptor_pools_ = Array<VkDescriptorPool>{&allocator_};
+  dynamic_descriptor_pools_.Resize(context_->GetMaxFramesInFlight());
+
+  for (usize i{0}; i < dynamic_descriptor_pools_.GetSize(); ++i) {
+    dynamic_descriptor_pools_[i] = GenerateDescriptorPool(
+        device, kMaxDynamicSetCount_, kDynamicPoolSizes.GetData(),
+        static_cast<u32>(kDynamicPoolSizes.GetSize()),
+        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+  }
+}
+
+void DescriptorHandler::OnShutdown() {
+  auto& device{context_->GetDevice()};
+  DestroyDescriptorPool(device, static_descriptor_pool_);
+
+  for (usize i{0}; i < dynamic_descriptor_pools_.GetSize(); ++i) {
+    DestroyDescriptorPool(device, dynamic_descriptor_pools_[i]);
+  }
+
+  dynamic_descriptor_pools_.Destroy();
 }
 }  // namespace vk
 }  // namespace rendering

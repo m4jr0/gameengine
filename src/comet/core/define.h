@@ -76,7 +76,7 @@
 // #define COMET_DEBUG_VIEW
 
 // Print debug messages from VMA.
-// #define COMET_VULKAN_DEBUG_VMA
+#define COMET_VULKAN_DEBUG_VMA
 
 // Compile shaders with debug info and no optimizations.
 #define COMET_DEBUG_SHADER

@@ -19,6 +19,7 @@
 #include "comet/core/type/tstring.h"
 #include "comet/profiler/profiler.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/resource_type.h"
 
 namespace comet {
 namespace resource {
@@ -27,7 +28,6 @@ template <typename T>
 class DefaultResources {
  public:
   static_assert(std::is_base_of_v<Resource, T>, "T must derive from Resource");
-  inline static constexpr ResourceId kFallbackResourceId_{0};
 
   DefaultResources() = default;
   DefaultResources(memory::Allocator* allocator);
@@ -35,20 +35,26 @@ class DefaultResources {
   DefaultResources(DefaultResources&&) = delete;
   DefaultResources& operator=(const DefaultResources&) = delete;
   DefaultResources& operator=(DefaultResources&&) = delete;
-  virtual ~DefaultResources() = default;
+  ~DefaultResources() = default;
 
   void Initialize();
   void Destroy();
+
   void Set(T* resource);
-  T* TryGet(ResourceId id);
-  bool IsDefault(ResourceId id);
+
+  T* TryGet(RawResourceId id);
+  const T* TryGet(RawResourceId id) const;
+
+  bool IsDefault(RawResourceId id) const;
 
   void Reserve(usize capacity);
+
   T* GetFallback();
+  const T* GetFallback() const;
 
  private:
   memory::Allocator* allocator_{nullptr};
-  Map<ResourceId, T*> defaults_{};
+  Map<RawResourceId, T*> defaults_{};
 };
 
 template <typename T>
@@ -57,7 +63,7 @@ inline DefaultResources<T>::DefaultResources(memory::Allocator* allocator)
 
 template <typename T>
 inline void DefaultResources<T>::Initialize() {
-  defaults_ = Map<ResourceId, T*>{allocator_};
+  defaults_ = Map<RawResourceId, T*>{allocator_};
 }
 
 template <typename T>
@@ -67,17 +73,24 @@ inline void DefaultResources<T>::Destroy() {
 
 template <typename T>
 inline void DefaultResources<T>::Set(T* resource) {
+  COMET_ASSERT(resource != nullptr, "Default resource is null!");
   defaults_.Emplace(resource->id, resource);
 }
 
 template <typename T>
-inline T* DefaultResources<T>::TryGet(ResourceId id) {
+inline T* DefaultResources<T>::TryGet(RawResourceId id) {
   auto** resource_ptr{defaults_.TryGet(id)};
   return resource_ptr == nullptr ? nullptr : *resource_ptr;
 }
 
 template <typename T>
-inline bool DefaultResources<T>::IsDefault(ResourceId id) {
+inline const T* DefaultResources<T>::TryGet(RawResourceId id) const {
+  T* const* resource_ptr{defaults_.TryGet(id)};
+  return resource_ptr == nullptr ? nullptr : *resource_ptr;
+}
+
+template <typename T>
+inline bool DefaultResources<T>::IsDefault(RawResourceId id) const {
   return defaults_.IsContained(id);
 }
 
@@ -87,92 +100,23 @@ inline void DefaultResources<T>::Reserve(usize capacity) {
 }
 
 template <typename T>
+inline const T* DefaultResources<T>::GetFallback() const {
+  return TryGet(kFallbackRawResourceId);
+}
+
+template <typename T>
 inline T* DefaultResources<T>::GetFallback() {
-  return TryGet(kFallbackResourceId_);
+  return TryGet(kFallbackRawResourceId);
 }
 
 struct ResourceIdLifeSpanPair {
-  ResourceId id{kInvalidResourceId};
+  RawResourceId id{kInvalidRawResourceId};
   ResourceLifeSpan life_span{ResourceLifeSpan::Unknown};
 
   bool operator==(const ResourceIdLifeSpanPair& other) const;
 };
 
 HashValue GenerateHash(const ResourceIdLifeSpanPair& value);
-
-template <typename T>
-class ResourceCache {
- public:
-  static_assert(std::is_base_of_v<Resource, T>, "T must derive from Resource");
-  ResourceCache() = default;
-  ResourceCache(memory::Allocator* allocator, usize initial_capacity = 0);
-  ResourceCache(const ResourceCache&) = delete;
-  ResourceCache(ResourceCache&&) = delete;
-  ResourceCache& operator=(const ResourceCache&) = delete;
-  ResourceCache& operator=(ResourceCache&&) = delete;
-  virtual ~ResourceCache() = default;
-
-  void Destroy();
-
-  void Reserve(usize capacity);
-  T* TryGet(ResourceId id, ResourceLifeSpan life_span);
-  void Set(ResourceId id, ResourceLifeSpan life_span, T* resource);
-  void Unset(ResourceId id, ResourceLifeSpan life_span);
-  void UnsetAll(ResourceLifeSpan life_span);
-
- private:
-  fiber::FiberMutex mtx_{};
-  Map<ResourceIdLifeSpanPair, T*> resources_{};
-};
-
-template <typename T>
-inline ResourceCache<T>::ResourceCache(memory::Allocator* allocator,
-                                       usize initial_capacity)
-    : resources_{allocator, initial_capacity} {}
-
-template <typename T>
-inline void ResourceCache<T>::Destroy() {
-  resources_.Destroy();
-}
-
-template <typename T>
-inline void ResourceCache<T>::Reserve(usize capacity) {
-  resources_.Reserve(capacity);
-}
-
-template <typename T>
-inline T* ResourceCache<T>::TryGet(ResourceId id, ResourceLifeSpan life_span) {
-  fiber::FiberLockGuard lock{mtx_};
-  auto** resource_ptr{resources_.TryGet(ResourceIdLifeSpanPair{id, life_span})};
-
-  if (resource_ptr == nullptr) {
-    return nullptr;
-  }
-
-  return *resource_ptr;
-}
-
-template <typename T>
-inline void ResourceCache<T>::Set(ResourceId id, ResourceLifeSpan life_span,
-                                  T* resource) {
-  fiber::FiberLockGuard lock{mtx_};
-  resources_.Set(ResourceIdLifeSpanPair{id, life_span}, resource);
-}
-
-template <typename T>
-inline void ResourceCache<T>::Unset(ResourceId id, ResourceLifeSpan life_span) {
-  fiber::FiberLockGuard lock{mtx_};
-  resources_.Remove(ResourceIdLifeSpanPair{id, life_span});
-}
-
-template <typename T>
-inline void ResourceCache<T>::UnsetAll(ResourceLifeSpan life_span) {
-  fiber::FiberLockGuard lock{mtx_};
-
-  resources_.RemoveIf([=](const ResourceIdLifeSpanPair& key, const T*) {
-    return key.life_span == life_span;
-  });
-}
 
 template <typename T>
 struct LoadingResourceState {
@@ -193,12 +137,12 @@ class LoadingTracker {
   LoadingTracker(LoadingTracker&&) = delete;
   LoadingTracker& operator=(const LoadingTracker&) = delete;
   LoadingTracker& operator=(LoadingTracker&&) = delete;
-  virtual ~LoadingTracker() = default;
+  ~LoadingTracker() = default;
 
   void Initialize();
   void Destroy();
 
-  LoadingResourceState<T>* RequestLoad(ResourceId id,
+  LoadingResourceState<T>* RequestLoad(RawResourceId id,
                                        ResourceLifeSpan life_span,
                                        bool& is_already_loading);
   T* Wait(LoadingResourceState<T>* state);
@@ -208,7 +152,7 @@ class LoadingTracker {
  private:
   void ReleaseLoadingState(LoadingResourceState<T>* state);
 
-  fiber::FiberMutex mtx_{};
+  mutable fiber::FiberMutex mtx_{};
   Map<ResourceIdLifeSpanPair, LoadingResourceState<T>*> loading_{};
   memory::FiberFreeListAllocator state_allocator_{
       sizeof(LoadingResourceState<T>), 128, memory::kEngineMemoryTagResource};
@@ -223,16 +167,20 @@ template <typename T>
 inline void LoadingTracker<T>::Initialize() {
   loading_ =
       Map<ResourceIdLifeSpanPair, LoadingResourceState<T>*>{ptr_allocator_};
+  state_allocator_.Initialize();
 }
 
 template <typename T>
 inline void LoadingTracker<T>::Destroy() {
+  COMET_ASSERT(loading_.IsEmpty(),
+               "LoadingTracker destroyed with live states!");
   loading_.Destroy();
+  state_allocator_.Destroy();
 }
 
 template <typename T>
 inline LoadingResourceState<T>* LoadingTracker<T>::RequestLoad(
-    ResourceId id, ResourceLifeSpan life_span, bool& is_already_loading) {
+    RawResourceId id, ResourceLifeSpan life_span, bool& is_already_loading) {
   COMET_PROFILE("LoadingTracker<T>::RequestLoad");
   ResourceIdLifeSpanPair key{id, life_span};
   fiber::FiberLockGuard lock{mtx_};
@@ -300,10 +248,11 @@ inline void LoadingTracker<T>::ReleaseLoadingState(
 struct LifeSpanAllocators {
   memory::Allocator* scene{nullptr};
   memory::Allocator* global{nullptr};
+  memory::Allocator* immortal{nullptr};
 };
 
 TString& GenerateTlsResourceAbsPath(CTStringView root_resource_path,
-                                    ResourceId resource_id);
+                                    RawResourceId resource_id);
 }  // namespace internal
 }  // namespace resource
 }  // namespace comet

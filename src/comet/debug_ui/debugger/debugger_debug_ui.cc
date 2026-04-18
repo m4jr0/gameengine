@@ -16,6 +16,8 @@
 #include "imgui.h"
 #endif  // COMET_IMGUI
 
+#include "comet/rendering/rendering_utils.h"
+
 namespace comet {
 namespace debugui {
 void DebuggerDebugUi::Draw(const profiler::ProfilerData& profiler_data,

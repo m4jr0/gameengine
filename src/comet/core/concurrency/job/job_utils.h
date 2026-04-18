@@ -15,6 +15,7 @@ JobDescr GenerateJobDescr(
     JobParamsHandle params_handle = kInvalidJobParamsHandle,
     JobStackSize stack_size = JobStackSize::Normal, Counter* counter = nullptr,
     const schar* debug_label = nullptr);
+
 IOJobDescr GenerateIOJobDescr(
     IOEntryPoint entry_point,
     IOJobParamsHandle params_handle = kInvalidIOJobParamsHandle,

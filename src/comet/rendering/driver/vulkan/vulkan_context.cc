@@ -84,7 +84,7 @@ void Context::InitializeCommands() {
                                        &frame_data_[i].command_pool_handle),
                    "Failed to create frame command pool!");
 
-    auto allocate_info{init::GenerateCommandBufferAllocateInfo(
+    const auto allocate_info{init::GenerateCommandBufferAllocateInfo(
         frame_data_[i].command_pool_handle, 1)};
 
     COMET_CHECK_VK(
@@ -94,7 +94,7 @@ void Context::InitializeCommands() {
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
     constexpr auto kDebugLabelLen{31};
     schar debug_label[kDebugLabelLen + 1]{'\0'};
-    auto frame_data_len{GetLength("frame_data_")};
+    const auto frame_data_len{GetLength("frame_data_")};
     Copy(debug_label, "frame_data_", frame_data_len);
     ConvertToStr(i, debug_label + frame_data_len,
                  kDebugLabelLen - frame_data_len);
@@ -116,7 +116,7 @@ void Context::InitializeCommands() {
 }
 
 void Context::InitializeSyncStructures() {
-  auto fence_create_info{
+  const auto fence_create_info{
       init::GenerateFenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT)};
   auto semaphore_create_info{init::GenerateSemaphoreCreateInfo()};
 
@@ -234,8 +234,6 @@ void Context::GoToNextFrame() noexcept {
   ++frame_in_flight_index_ %= max_frames_in_flight_;
   ++frame_count_;
 }
-
-void Context::UpdateTransferTimelineValue() { ++transfer_timeline_value_; }
 
 FrameData& Context::GetFrameData(FrameInFlightIndex frame) {
   if (frame == kInvalidFrameInFlightIndex) {

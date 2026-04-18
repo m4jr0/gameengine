@@ -23,6 +23,7 @@ enum EntityIdTag : u32 {
 };
 
 gid::Gid GetGid(EntityId id);
+
 EntityId Tag(EntityIdTag tag, EntityId id);
 }  // namespace entity
 }  // namespace comet

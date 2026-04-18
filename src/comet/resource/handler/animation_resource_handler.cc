@@ -10,7 +10,6 @@
 #include "animation_resource_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/animation_common.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 
@@ -18,23 +17,17 @@ namespace comet {
 namespace resource {
 AnimationClipResourceHandler::AnimationClipResourceHandler(
     const ResourceHandlerDescr& descr)
-    : ResourceHandler<AnimationClipResource>{descr} {}
+    : Base{descr} {}
 
-void AnimationClipResourceHandler::Initialize() {
-  ResourceHandler::Initialize();
-
+void AnimationClipResourceHandler::OnInitialize() {
   anim_allocator_ = memory::FiberFreeListAllocator{
-      math::Max(sizeof(animation::AnimationSample),
-                sizeof(animation::JointPose)),
-      kDefaultAllocatorCapacity_, memory::kEngineMemoryTagResource};
+      kAnimAllocatorElementSize_, kDefaultAllocatorCapacity_,
+      memory::kEngineMemoryTagResourceAnimation};
 
   anim_allocator_.Initialize();
 }
 
-void AnimationClipResourceHandler::Destroy() {
-  ResourceHandler::Destroy();
-  anim_allocator_.Destroy();
-}
+void AnimationClipResourceHandler::OnDestroy() { anim_allocator_.Destroy(); }
 
 ResourceFile AnimationClipResourceHandler::Pack(
     const AnimationClipResource& resource, CompressionMode compression_mode) {
@@ -47,10 +40,12 @@ ResourceFile AnimationClipResourceHandler::Pack(
 
   Array<u8> data{byte_allocator_};
   data.Resize(GetAnimationClipSize(resource));
+
   usize cursor{0};
   auto* buffer{data.GetData()};
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
+
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
   constexpr auto kAnimationClipIdSize{sizeof(animation::AnimationClipId)};
   constexpr auto kFramesPerSecondSize{sizeof(animation::FrameIndex)};
   constexpr auto kFrameCountSize{sizeof(animation::FrameIndex)};
@@ -68,7 +63,7 @@ ResourceFile AnimationClipResourceHandler::Pack(
   constexpr auto kJointPoseTranslationYSize{sizeof(u16)};
   constexpr auto kJointPoseTranslationZSize{sizeof(u16)};
   constexpr auto kJointPoseScaleSize{sizeof(u16)};
-#endif  // !COMET_COMPRESS_ANIMATIONS
+#endif  // COMET_COMPRESS_ANIMATIONS
   constexpr auto kIsLoopSize{sizeof(bool)};
 
   const auto& clip{resource.clip};
@@ -89,12 +84,12 @@ ResourceFile AnimationClipResourceHandler::Pack(
   memory::CopyMemory(&buffer[cursor], &clip.frame_count, kFrameCountSize);
   cursor += kFrameCountSize;
 
-  auto sample_count{clip.samples.GetSize()};
+  const auto sample_count{clip.samples.GetSize()};
   memory::CopyMemory(&buffer[cursor], &sample_count, kSampleCountSize);
   cursor += kSampleCountSize;
 
   for (const auto& sample : clip.samples) {
-    auto joint_pose_count{sample.joint_poses.GetSize()};
+    const auto joint_pose_count{sample.joint_poses.GetSize()};
     memory::CopyMemory(&buffer[cursor], &joint_pose_count, kJointPoseCountSize);
     cursor += kJointPoseCountSize;
 
@@ -103,9 +98,11 @@ ResourceFile AnimationClipResourceHandler::Pack(
       memory::CopyMemory(&buffer[cursor], &pose.rotation,
                          kJointPoseRotationSize);
       cursor += kJointPoseRotationSize;
+
       memory::CopyMemory(&buffer[cursor], &pose.translation,
                          kJointPoseTranslationSize);
       cursor += kJointPoseTranslationSize;
+
       memory::CopyMemory(&buffer[cursor], &pose.scale, kJointPoseScaleSize);
       cursor += kJointPoseScaleSize;
 #else
@@ -150,6 +147,8 @@ ResourceFile AnimationClipResourceHandler::Pack(
 void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
                                           ResourceLifeSpan life_span,
                                           AnimationClipResource* resource) {
+  COMET_ASSERT(resource != nullptr, "Animation clip resource is null!");
+
   UnpackPodResourceDescr<AnimationClipResourceDescr>(file, resource->descr);
 
   Array<u8> data{byte_allocator_};
@@ -157,8 +156,8 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
   constexpr auto kAnimationClipIdSize{sizeof(animation::AnimationClipId)};
   constexpr auto kFramesPerSecondSize{sizeof(animation::FrameIndex)};
   constexpr auto kFrameCountSize{sizeof(animation::FrameIndex)};
@@ -176,7 +175,7 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
   constexpr auto kJointPoseTranslationYSize{sizeof(u16)};
   constexpr auto kJointPoseTranslationZSize{sizeof(u16)};
   constexpr auto kJointPoseScaleSize{sizeof(u16)};
-#endif  // !COMET_COMPRESS_ANIMATIONS
+#endif  // COMET_COMPRESS_ANIMATIONS
   constexpr auto kIsLoopSize{sizeof(bool)};
 
   memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
@@ -184,6 +183,8 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
 
   memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
+
+  resource->life_span = life_span;
 
   auto& clip{resource->clip};
 
@@ -199,10 +200,11 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
 
   clip.samples = Array<animation::CompressedAnimationSample>{
       ResolveAllocator(&anim_allocator_, life_span)};
-  usize sample_count;
 
+  usize sample_count{0};
   memory::CopyMemory(&sample_count, &buffer[cursor], kSampleCountSize);
   cursor += kSampleCountSize;
+
   clip.samples.Reserve(sample_count);
 
   for (usize i{0}; i < sample_count; ++i) {
@@ -210,11 +212,12 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
 
     sample.joint_poses = Array<animation::CompressedJointPose>{
         ResolveAllocator(&anim_allocator_, life_span)};
-    usize joint_pose_count;
 
+    usize joint_pose_count{0};
     memory::CopyMemory(&joint_pose_count, &buffer[cursor], kJointPoseCountSize);
     cursor += kJointPoseCountSize;
-    sample.joint_poses.Reserve(sample_count);
+
+    sample.joint_poses.Reserve(joint_pose_count);
 
     for (usize j{0}; j < joint_pose_count; ++j) {
       auto& pose{sample.joint_poses.EmplaceBack()};
@@ -257,13 +260,12 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
 
       memory::CopyMemory(&pose.scale, &buffer[cursor], kJointPoseScaleSize);
       cursor += kJointPoseScaleSize;
-#endif  // !COMET_COMPRESS_ANIMATIONS
+#endif  // COMET_COMPRESS_ANIMATIONS
     }
   }
 
   memory::CopyMemory(&clip.is_loop, &buffer[cursor], kIsLoopSize);
   cursor += kIsLoopSize;
-  resource->life_span = life_span;
 }
 }  // namespace resource
 }  // namespace comet

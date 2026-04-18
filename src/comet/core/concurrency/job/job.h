@@ -22,10 +22,10 @@ constexpr auto kInvalidCounterCount{static_cast<CounterCount>(-1)};
 class Counter {
  public:
   Counter() = default;
-  Counter(const Counter&) = default;
-  Counter(Counter&&) = default;
-  Counter& operator=(const Counter&) = default;
-  Counter& operator=(Counter&&) = default;
+  Counter(const Counter&) = delete;
+  Counter(Counter&&) = delete;
+  Counter& operator=(const Counter&) = delete;
+  Counter& operator=(Counter&&) = delete;
   ~Counter() = default;
 
   void Reset();

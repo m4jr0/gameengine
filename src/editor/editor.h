@@ -19,15 +19,17 @@ class CometEditor : public Engine {
   CometEditor(CometEditor&&) = delete;
   CometEditor& operator=(const CometEditor&) = delete;
   CometEditor& operator=(CometEditor&&) = delete;
-  virtual ~CometEditor() = default;
+  ~CometEditor() override = default;
 
   void Update(f64& lag) override;
-  void PreLoad() override;
-  void Load() override;
-  void PostLoad() override;
-  void PostUnload() override;
 
  protected:
+  void OnPreLoadAfter() override;
+  void OnLoadBefore() override;
+  void OnPostLoadAfter() override;
+  void OnPostUnloadBefore() override;
+  void OnPostUnloadAfter() override;
+
 #ifdef COMET_WINDOWS
   static BOOL WINAPI HandleConsole(DWORD window_event);
 #endif  // COMET_WINDOWS

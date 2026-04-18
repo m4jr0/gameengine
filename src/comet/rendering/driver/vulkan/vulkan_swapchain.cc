@@ -12,7 +12,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/frame/frame_utils.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
@@ -130,7 +131,7 @@ void Swapchain::Initialize() {
   images_ = Array<Image>{&allocator_};
 
   const auto& device{context_->GetDevice()};
-  auto physical_device_handle{device.GetPhysicalDeviceHandle()};
+  const auto physical_device_handle{device.GetPhysicalDeviceHandle()};
 
   SwapchainSupportDetails details{};
   details.formats = Array<VkSurfaceFormatKHR>{&allocator_};
@@ -146,9 +147,9 @@ void Swapchain::Initialize() {
     return;
   }
 
-  auto surface_format{ChooseSwapSurfaceFormat(details.formats)};
-  auto present_mode{ChooseSwapPresentMode(details.present_modes, is_vsync_,
-                                          is_triple_buffering_)};
+  const auto surface_format{ChooseSwapSurfaceFormat(details.formats)};
+  const auto present_mode{ChooseSwapPresentMode(
+      details.present_modes, is_vsync_, is_triple_buffering_)};
   format_ = surface_format.format;
 
   auto image_count{details.capabilities.minImageCount + 1};
@@ -158,10 +159,11 @@ void Swapchain::Initialize() {
     image_count = details.capabilities.maxImageCount;
   }
 
-  auto queue_family_indices{
+  const auto queue_family_indices{
       FindQueueFamilies(physical_device_handle, *window_)};
 
-  auto queue_family_unique_indices{GetUniqueIndices(queue_family_indices)};
+  const auto queue_family_unique_indices{
+      GetUniqueIndices(queue_family_indices)};
 
   auto create_info{init::GenerateSwapchainCreateInfo(
       *window_, surface_format, extent_, present_mode, details,
@@ -188,7 +190,7 @@ void Swapchain::Initialize() {
   vkGetSwapchainImagesKHR(device, handle_, &image_count,
                           image_handles.GetData());
 
-  for (auto image_handle : image_handles) {
+  for (const auto image_handle : image_handles) {
     Image image{};
     image.handle = image_handle;
     images_.PushBack(image);
@@ -267,9 +269,11 @@ bool Swapchain::Reload() {
 }
 
 VkResult Swapchain::AcquireNextImage(VkSemaphore semaphore_handle) {
-  auto result{vkAcquireNextImageKHR(context_->GetDevice(), handle_,
-                                    static_cast<u64>(-1), semaphore_handle,
-                                    VK_NULL_HANDLE, &image_data_.image_index)};
+  COMET_PROFILE("Swapchain::AcquireNextImage");
+
+  const auto result{vkAcquireNextImageKHR(
+      context_->GetDevice(), handle_, static_cast<u64>(-1), semaphore_handle,
+      VK_NULL_HANDLE, &image_data_.image_index)};
 
   if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
     image_data_.render_semaphore_handle =
@@ -283,8 +287,9 @@ VkResult Swapchain::AcquireNextImage(VkSemaphore semaphore_handle) {
 }
 
 VkResult Swapchain::QueuePresent() {
-  auto present_queue_handle{context_->GetDevice().GetPresentQueueHandle()};
-  auto semaphore_handle{image_data_.render_semaphore_handle};
+  const auto present_queue_handle{
+      context_->GetDevice().GetPresentQueueHandle()};
+  const auto semaphore_handle{image_data_.render_semaphore_handle};
   auto present_info{init::GeneratePresentInfo()};
 
   if (semaphore_handle != VK_NULL_HANDLE) {
@@ -348,10 +353,10 @@ void Swapchain::InitializeImageViews() {
 
 void Swapchain::InitializeRenderSemaphores() {
   render_semaphore_handles_ = Array<VkSemaphore>{&allocator_};
-  auto render_semaphore_count{images_.GetSize()};
+  const auto render_semaphore_count{images_.GetSize()};
   render_semaphore_handles_.Resize(render_semaphore_count);
-  auto device_handle{static_cast<VkDevice>(context_->GetDevice())};
-  auto semaphore_create_info{init::GenerateSemaphoreCreateInfo()};
+  const auto device_handle{static_cast<VkDevice>(context_->GetDevice())};
+  const auto semaphore_create_info{init::GenerateSemaphoreCreateInfo()};
 
   for (usize i{0}; i < render_semaphore_count; ++i) {
     COMET_CHECK_VK(
@@ -385,7 +390,7 @@ void Swapchain::InitializeColorResources() {
 
 void Swapchain::InitializeDepthResources() {
   auto& device{context_->GetDevice()};
-  auto depth_format{device.ChooseDepthFormat()};
+  const auto depth_format{device.ChooseDepthFormat()};
   depth_image_.allocator_handle = context_->GetAllocatorHandle();
 
   GenerateImage(depth_image_, device, extent_.width, extent_.height, 1, 1,
@@ -398,9 +403,9 @@ void Swapchain::InitializeDepthResources() {
 }
 
 void Swapchain::DestroyRenderSemaphores() {
-  auto device_handle{static_cast<VkDevice>(context_->GetDevice())};
+  const auto device_handle{static_cast<VkDevice>(context_->GetDevice())};
 
-  for (auto handle : render_semaphore_handles_) {
+  for (const auto handle : render_semaphore_handles_) {
     if (handle != VK_NULL_HANDLE) {
       vkDestroySemaphore(device_handle, handle, VK_NULL_HANDLE);
     }

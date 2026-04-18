@@ -35,10 +35,12 @@ View::~View() {
 void View::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize view, but it is already done!");
+  OnInitialize();
   is_initialized_ = true;
 }
 
 void View::Destroy() {
+  OnDestroy();
   id_ = kInvalidRenderingViewId;
   context_ = nullptr;
   width_ = 0;
@@ -48,10 +50,9 @@ void View::Destroy() {
   clear_color_[2] = kColorBlackRgb[2];
   clear_color_[3] = 1.0f;
 
-  if (render_pass_handle_ != kInvalidRenderPassHandle &&
-      render_pass_handler_->IsInitialized()) {
+  if (render_pass_handle_ && render_pass_handler_->IsInitialized()) {
     render_pass_handler_->Destroy(render_pass_handle_);
-    render_pass_handle_ = kInvalidRenderPassHandle;
+    render_pass_handle_.Invalidate();
   }
 
   render_pass_handler_ = nullptr;
@@ -66,16 +67,15 @@ void View::SetSize(WindowSize width, WindowSize height) {
   width_ = width;
   height_ = height;
 
-  COMET_ASSERT(render_pass_handle_ != kInvalidRenderPassHandle,
-               "Tried to set size to ", width_, "x", height_,
-               ", but render pass is invalid!");
+  COMET_ASSERT(render_pass_handle_, "Tried to set size to ", width_, "x",
+               height_, ", but render pass is invalid!");
   render_pass_handler_->SetSize(render_pass_handle_, static_cast<u32>(width_),
                                 static_cast<u32>(height_));
 }
 
-bool View::IsInitialized() const noexcept { return is_initialized_; }
-
 RenderingViewId View::GetId() const noexcept { return id_; }
+
+bool View::IsInitialized() const noexcept { return is_initialized_; }
 
 bool View::IsSwapchainTarget() const noexcept {
   return (pass_descr_.flags & kViewPassFlagBitsSwapchainTarget) != 0;
@@ -84,6 +84,10 @@ bool View::IsSwapchainTarget() const noexcept {
 bool View::IsOffscreenTarget() const noexcept {
   return (pass_descr_.flags & kViewPassFlagBitsOffscreenTarget) != 0;
 }
+
+void View::OnInitialize() {}
+
+void View::OnDestroy() {}
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

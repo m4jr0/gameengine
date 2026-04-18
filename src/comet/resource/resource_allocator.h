@@ -23,13 +23,14 @@ class ResourceAllocator : public memory::StatefulAllocator {
   ResourceAllocator(ResourceAllocator&& other) noexcept = delete;
   ResourceAllocator& operator=(const ResourceAllocator&) = delete;
   ResourceAllocator& operator=(ResourceAllocator&& other) noexcept = delete;
-  ~ResourceAllocator() = default;
-
-  void Initialize() override;
-  void Destroy() override;
+  ~ResourceAllocator() override = default;
 
   void* AllocateAligned(usize size, memory::Alignment align) override;
   void Deallocate(void* ptr) override;
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   inline static constexpr usize kHeaderSize_{sizeof(AllocatorType)};

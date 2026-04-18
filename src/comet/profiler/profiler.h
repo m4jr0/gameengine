@@ -17,7 +17,7 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 #ifdef COMET_PROFILING
 namespace comet {
@@ -54,7 +54,7 @@ struct ThreadProfilerContext {
   Array<ProfilerNode*> root_nodes{};
   Array<memory::UniquePtr<ProfilerNode>> nodes{};
 
-  ThreadProfilerContext(memory::Allocator* allocator = nullptr);
+  explicit ThreadProfilerContext(memory::Allocator* allocator = nullptr);
   ThreadProfilerContext(const ThreadProfilerContext&) = delete;
   ThreadProfilerContext(ThreadProfilerContext&& other) noexcept;
   ThreadProfilerContext& operator=(const ThreadProfilerContext&) = delete;

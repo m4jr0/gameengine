@@ -59,22 +59,6 @@ StackAllocator& StackAllocator::operator=(StackAllocator&& other) noexcept {
   return *this;
 }
 
-void StackAllocator::Initialize() {
-  StatefulAllocator::Initialize();
-  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
-  root_ = static_cast<u8*>(TaggedHeap::Get().AllocateAligned(
-      capacity_, alignof(u8), memory_tag_, &capacity_));
-  marker_ = root_;
-}
-
-void StackAllocator::Destroy() {
-  StatefulAllocator::Destroy();
-  TaggedHeap::Get().DeallocateAll(memory_tag_);
-  root_ = nullptr;
-  capacity_ = 0;
-  marker_ = nullptr;
-}
-
 void* StackAllocator::AllocateAligned(usize size, Alignment align) {
   COMET_ASSERT(size > 0, "Allocation size provided is 0!");
   auto* p{AlignPointer(marker_, align)};
@@ -92,6 +76,20 @@ void StackAllocator::Deallocate(void*) {
 
 void StackAllocator::Clear() { marker_ = root_; }
 
+void StackAllocator::OnInitialize() {
+  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
+  root_ = static_cast<u8*>(TaggedHeap::Get().AllocateAligned(
+      capacity_, alignof(u8), memory_tag_, &capacity_));
+  marker_ = root_;
+}
+
+void StackAllocator::OnDestroy() {
+  TaggedHeap::Get().DeallocateAll(memory_tag_);
+  root_ = nullptr;
+  capacity_ = 0;
+  marker_ = nullptr;
+}
+
 FiberStackAllocator::FiberStackAllocator(usize base_capacity,
                                          MemoryTag memory_tag,
                                          MemoryTag extended_memory_tag)
@@ -101,34 +99,6 @@ FiberStackAllocator::FiberStackAllocator(usize base_capacity,
       extended_capacity_{0},
       root_{nullptr},
       marker_{root_} {}
-
-void FiberStackAllocator::Initialize() {
-  StatefulAllocator::Initialize();
-  thread_capacity_ = TaggedHeap::Get().GetBlockSize() - 1;
-  thread_contexts_.Initialize();
-  COMET_ASSERT(base_capacity_ > 0, "Capacity is ", base_capacity_, "!");
-
-  auto size{thread_contexts_.GetSize()};
-  auto& tagged_heap{TaggedHeap::Get()};
-
-  for (usize i{0}; i < size; ++i) {
-    auto& context{thread_contexts_.GetFromIndex(i)};
-    context.root = context.marker =
-        static_cast<u8*>(tagged_heap.AllocateAligned(thread_capacity_,
-                                                     alignof(u8), memory_tag_));
-  }
-}
-
-void FiberStackAllocator::Destroy() {
-  StatefulAllocator::Destroy();
-  thread_contexts_.Destroy();
-  auto& tagged_heap{TaggedHeap::Get()};
-  tagged_heap.DeallocateAll(memory_tag_);
-  tagged_heap.DeallocateAll(extended_memory_tag_);
-  root_ = nullptr;
-  base_capacity_ = 0;
-  marker_ = nullptr;
-}
 
 void* FiberStackAllocator::AllocateAligned(usize size, Alignment align) {
   COMET_ASSERT(size > 0, "Allocation size provided is 0!");
@@ -189,6 +159,32 @@ void FiberStackAllocator::Clear() {
   marker_ = root_;
 }
 
+void FiberStackAllocator::OnInitialize() {
+  thread_capacity_ = TaggedHeap::Get().GetBlockSize() - 1;
+  thread_contexts_.Initialize();
+  COMET_ASSERT(base_capacity_ > 0, "Capacity is ", base_capacity_, "!");
+
+  const auto size{thread_contexts_.GetSize()};
+  auto& tagged_heap{TaggedHeap::Get()};
+
+  for (usize i{0}; i < size; ++i) {
+    auto& context{thread_contexts_.GetFromIndex(i)};
+    context.root = context.marker =
+        static_cast<u8*>(tagged_heap.AllocateAligned(thread_capacity_,
+                                                     alignof(u8), memory_tag_));
+  }
+}
+
+void FiberStackAllocator::OnDestroy() {
+  thread_contexts_.Destroy();
+  auto& tagged_heap{TaggedHeap::Get()};
+  tagged_heap.DeallocateAll(memory_tag_);
+  tagged_heap.DeallocateAll(extended_memory_tag_);
+  root_ = nullptr;
+  base_capacity_ = 0;
+  marker_ = nullptr;
+}
+
 void FiberStackAllocator::AllocateCommonMemory() {
   root_ = static_cast<u8*>(
       TaggedHeap::Get().Allocate(base_capacity_, memory_tag_, &base_capacity_));
@@ -205,25 +201,6 @@ void FiberStackAllocator::ExtendCommonMemory(usize capacity) {
 
 IOStackAllocator::IOStackAllocator(usize thread_capacity, MemoryTag memory_tag)
     : memory_tag_{memory_tag}, thread_capacity_{thread_capacity} {}
-
-void IOStackAllocator::Initialize() {
-  StatefulAllocator::Initialize();
-  thread_contexts_.Initialize();
-  auto size{thread_contexts_.GetSize()};
-  auto& tagged_heap{TaggedHeap::Get()};
-
-  for (usize i{0}; i < size; ++i) {
-    auto& context{thread_contexts_.GetFromIndex(i)};
-    context.root = context.marker = static_cast<u8*>(
-        tagged_heap.AllocateBlockAligned(alignof(u8), memory_tag_));
-  }
-}
-
-void IOStackAllocator::Destroy() {
-  StatefulAllocator::Destroy();
-  thread_contexts_.Destroy();
-  TaggedHeap::Get().DeallocateAll(memory_tag_);
-}
 
 void* IOStackAllocator::AllocateAligned(usize size, Alignment align) {
   COMET_ASSERT(size > 0, "Allocation size provided is 0!");
@@ -247,25 +224,29 @@ void IOStackAllocator::Clear() {
   }
 }
 
+void IOStackAllocator::OnInitialize() {
+  thread_contexts_.Initialize();
+  const auto size{thread_contexts_.GetSize()};
+  auto& tagged_heap{TaggedHeap::Get()};
+
+  for (usize i{0}; i < size; ++i) {
+    auto& context{thread_contexts_.GetFromIndex(i)};
+    context.root = context.marker = static_cast<u8*>(
+        tagged_heap.AllocateBlockAligned(alignof(u8), memory_tag_));
+  }
+}
+
+void IOStackAllocator::OnDestroy() {
+  thread_contexts_.Destroy();
+  TaggedHeap::Get().DeallocateAll(memory_tag_);
+}
+
 LockFreeStackAllocator::LockFreeStackAllocator(usize capacity,
                                                MemoryTag memory_tag)
     : memory_tag_{memory_tag},
       capacity_{capacity},
       offset_{kInvalidOffset_},
       root_{nullptr} {}
-
-void LockFreeStackAllocator::Initialize() {
-  StatefulAllocator::Initialize();
-  offset_ = 0;
-  root_ = static_cast<u8*>(Allocate(capacity_));
-}
-
-void LockFreeStackAllocator::Destroy() {
-  StatefulAllocator::Destroy();
-  Deallocate(root_);
-  offset_ = kInvalidOffset_;
-  root_ = nullptr;
-}
 
 void* LockFreeStackAllocator::AllocateAligned(usize size, Alignment align) {
   COMET_ASSERT(size > 0, "Allocation size provided is 0!");
@@ -301,6 +282,17 @@ void LockFreeStackAllocator::Deallocate(void*) {
 
 void LockFreeStackAllocator::Clear() {
   offset_.store(0, std::memory_order_release);
+}
+
+void LockFreeStackAllocator::OnInitialize() {
+  offset_ = 0;
+  root_ = static_cast<u8*>(Allocate(capacity_));
+}
+
+void LockFreeStackAllocator::OnDestroy() {
+  Deallocate(root_);
+  offset_ = kInvalidOffset_;
+  root_ = nullptr;
 }
 }  // namespace memory
 }  // namespace comet

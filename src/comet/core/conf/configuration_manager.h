@@ -25,10 +25,8 @@ class ConfigurationManager : public Manager {
   ConfigurationManager(ConfigurationManager&&) = delete;
   ConfigurationManager& operator=(const ConfigurationManager&) = delete;
   ConfigurationManager& operator=(ConfigurationManager&&) = delete;
-  virtual ~ConfigurationManager() = default;
+  ~ConfigurationManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void ParseConfFile();
 
   ConfValue& Get(ConfKey key);
@@ -75,6 +73,10 @@ class ConfigurationManager : public Manager {
   void SetBool(ConfKey key, bool value);
   void ParseKeyValuePair(schar* raw_key, usize raw_key_len, schar* value,
                          usize value_len);
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   static constexpr auto kConfigFileRelativePath_{

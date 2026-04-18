@@ -21,30 +21,6 @@ GameLogicManager& GameLogicManager::Get() {
   return singleton;
 }
 
-void GameLogicManager::Initialize() {
-  Manager::Initialize();
-  light_manager_ = &rendering::LightManager::Get();
-  environment_manager_ = &scene::EnvironmentManager::Get();
-  physics_manager_ = &physics::PhysicsManager::Get();
-  entity_manager_ = &entity::EntityManager::Get();
-  animation_manager_ = &animation::AnimationManager::Get();
-  camera_manager_ = &rendering::CameraManager::Get();
-  scene_manager_ = &scene::SceneManager::Get();
-  event_manager_ = &event::EventManager::Get();
-}
-
-void GameLogicManager::Shutdown() {
-  light_manager_ = nullptr;
-  environment_manager_ = nullptr;
-  physics_manager_ = nullptr;
-  entity_manager_ = nullptr;
-  animation_manager_ = nullptr;
-  camera_manager_ = nullptr;
-  scene_manager_ = nullptr;
-  event_manager_ = nullptr;
-  Manager::Shutdown();
-}
-
 void GameLogicManager::Update(frame::FramePacket* packet) {
   PopulatePacket(packet);
   event_manager_->FireAllEvents();
@@ -84,21 +60,32 @@ void GameLogicManager::Update(frame::FramePacket* packet) {
       job, job::JobStackSize::Large, packet->counter, "game_logic_update"));
 }
 
+void GameLogicManager::OnInitialize() {
+  light_manager_ = &rendering::LightManager::Get();
+  environment_manager_ = &scene::EnvironmentManager::Get();
+  physics_manager_ = &physics::PhysicsManager::Get();
+  entity_manager_ = &entity::EntityManager::Get();
+  animation_manager_ = &animation::AnimationManager::Get();
+  camera_manager_ = &rendering::CameraManager::Get();
+  scene_manager_ = &scene::SceneManager::Get();
+  event_manager_ = &event::EventManager::Get();
+}
+
+void GameLogicManager::OnShutdown() {
+  light_manager_ = nullptr;
+  environment_manager_ = nullptr;
+  physics_manager_ = nullptr;
+  entity_manager_ = nullptr;
+  animation_manager_ = nullptr;
+  camera_manager_ = nullptr;
+  scene_manager_ = nullptr;
+  event_manager_ = nullptr;
+}
+
 void GameLogicManager::PopulatePacket(frame::FramePacket* packet) {
-  auto* camera{camera_manager_->GetMainCamera()};
+  camera_manager_->PopulateMainRenderData(packet->camera_data);
 
-  packet->camera_data.projection_matrix = camera->GetProjectionMatrix();
-  packet->camera_data.view_matrix = camera->GetViewMatrix();
-  packet->camera_data.view_position = camera->GetPosition();
-  packet->camera_data.front = camera->GetFront();
-  packet->camera_data.up = camera->GetUp();
-  packet->camera_data.right = camera->GetRight();
-  packet->camera_data.near_plane = camera->GetNearestPoint();
-  packet->camera_data.far_plane = camera->GetFarthestPoint();
-  packet->camera_data.fov_y_radians = camera->GetFovInRadians();
-  packet->camera_data.aspect_ratio = camera->GetRatio();
-
-  auto expected_entity_count{scene_manager_->GetExpectedEntityCount()};
+  const auto expected_entity_count{scene_manager_->GetExpectedEntityCount()};
 
   packet->added_geometries->Reserve(expected_entity_count);
   packet->dirty_meshes->Reserve(expected_entity_count);

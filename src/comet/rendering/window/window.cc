@@ -35,8 +35,7 @@ Window::Window(const WindowDescr& descr)
     : width_{descr.width}, height_{descr.height} {
   Copy(name_, descr.name, descr.name_len);
   name_len_ = descr.name_len;
-  event::EventManager::Get().FireEvent<rendering::WindowInitializedEvent>(
-      width_, height_);
+  event::EventManager::Get().FireEvent<WindowInitializedEvent>(width_, height_);
 }
 
 Window::Window(Window&& other) noexcept
@@ -70,26 +69,30 @@ Window& Window::operator=(Window&& other) noexcept {
   return *this;
 }
 
-Window ::~Window() {
+Window::~Window() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for window, but it is still initialized!");
 }
 
-void Window ::Initialize() {
+void Window::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize window, but it is already done!");
+  OnInitialize();
   is_initialized_ = true;
 }
 
-void Window ::Destroy() {
+void Window::Destroy() {
   COMET_ASSERT(is_initialized_,
                "Tried to destroy window, but it is not initialized!");
+  OnDestroy();
   is_initialized_ = false;
 }
 
-void Window::Update() {}
+void Window::Update() { OnUpdate(); }
 
 bool Window::IsInitialized() const noexcept { return is_initialized_; }
+
+bool Window::IsFlat() const noexcept { return width_ == 0 || height_ == 0; }
 
 const schar* Window::GetName() const noexcept { return name_; }
 
@@ -97,6 +100,10 @@ WindowSize Window::GetWidth() const noexcept { return width_; }
 
 WindowSize Window::GetHeight() const noexcept { return height_; }
 
-bool Window::IsFlat() const noexcept { return width_ == 0 || height_ == 0; }
+void Window::OnInitialize() {}
+
+void Window::OnDestroy() {}
+
+void Window::OnUpdate() {}
 }  // namespace rendering
 }  // namespace comet

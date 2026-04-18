@@ -22,6 +22,7 @@ VkDescriptorPool GenerateDescriptorPool(VkDevice device_handle,
                                         VkDescriptorPoolCreateFlags flags);
 void DestroyDescriptorPool(VkDevice device_handle,
                            VkDescriptorPool& descriptor_pool_handle);
+
 bool AllocateDescriptor(VkDevice device_handle,
                         VkDescriptorSetLayout descriptor_set_layout_handle,
                         VkDescriptorSet& descriptor_set_handle,
@@ -36,6 +37,7 @@ bool AllocateDescriptor(
     const VkDescriptorSetLayout* descriptor_set_layout_handles,
     VkDescriptorSet* descriptor_set_handles,
     VkDescriptorPool& descriptor_pool_handle, u32 count);
+
 void FreeDescriptor(VkDevice device_handle,
                     VkDescriptorSet descriptor_set_handle,
                     VkDescriptorPool& descriptor_pool_handle);

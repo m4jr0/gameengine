@@ -17,7 +17,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/tstring.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
 #include "editor/asset/exporter/asset_exporter.h"
@@ -32,7 +32,7 @@ class ModelExporter : public AssetExporter {
   ModelExporter(ModelExporter&&) = delete;
   ModelExporter& operator=(const ModelExporter&) = delete;
   ModelExporter& operator=(ModelExporter&&) = delete;
-  virtual ~ModelExporter() = default;
+  ~ModelExporter() override = default;
 
   bool IsCompatible(CTStringView extension) const override;
 
@@ -44,6 +44,7 @@ class ModelExporter : public AssetExporter {
     job::IOJobDescr GenerateSceneLoadingJobDescr();
     job::JobDescr GenerateModelProcessingJobDescr(job::Counter* counter);
     job::JobDescr GenerateMaterialsProcessingJobDescr(job::Counter* counter);
+
     void AddResourceFile(const resource::ResourceFile& file);
 
     fiber::FiberMutex resource_mutex{};
@@ -66,9 +67,6 @@ class ModelExporter : public AssetExporter {
                             resource::MaterialResource& material,
                             aiMaterial* raw_material,
                             aiTextureType raw_texture_type) const;
-  static rendering::TextureType GetTextureType(aiTextureType raw_texture_type);
-  static rendering::TextureRepeatMode GetTextureRepeatMode(
-      aiTextureMapMode raw_texture_repeat_mode);
 
   const f32 kDefaultMaterialShininess_{8.0f};
   const aiColor3D kDefaultColor_{rendering::kColorBlackRgb[0],

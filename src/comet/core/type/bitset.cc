@@ -10,8 +10,6 @@
 #include "bitset.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/memory/memory_utils.h"
-
 namespace comet {
 usize Bitset::GetWordCountFromBitCount(usize bit_count) {
   return (bit_count + kWorkBitCount_ - 1) / kWorkBitCount_;
@@ -32,7 +30,9 @@ Bitset::Bitset(memory::Allocator* allocator, usize bit_count)
 }
 
 Bitset::Bitset(const Bitset& other)
-    : bit_count_{other.bit_count_}, allocator_{other.allocator_} {
+    : bit_count_{other.bit_count_},
+      word_count_{other.word_count_},
+      allocator_{other.allocator_} {
   if (bit_count_ == 0) {
     words_ = nullptr;
     return;
@@ -133,7 +133,7 @@ void Bitset::Resize(usize new_bit_count) {
   }
 
   COMET_ASSERT(allocator_ != nullptr, "Allocator is null!");
-  auto new_word_count{GetWordCountFromBitCount(new_bit_count)};
+  const auto new_word_count{GetWordCountFromBitCount(new_bit_count)};
   auto* new_words{static_cast<Word*>(allocator_->AllocateAligned(
       new_word_count * sizeof(Word), alignof(Word)))};
 

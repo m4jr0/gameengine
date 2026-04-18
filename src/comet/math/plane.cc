@@ -10,7 +10,7 @@
 #include "plane.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "math_common.h"
+#include "math_scalar.h"
 
 namespace comet {
 namespace math {

@@ -24,66 +24,18 @@ namespace comet {
 namespace rendering {
 namespace vk {
 ShadowView::ShadowView(const ShadowViewDescr& descr)
-    : ShaderView{descr},
+    : View{descr},
+      shader_handler_{descr.shader_handler},
+      pipeline_handler_{descr.pipeline_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       lighting_handler_{descr.lighting_handler},
       mesh_handler_{descr.mesh_handler} {
+  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
+  COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
   COMET_ASSERT(render_proxy_handler_ != nullptr,
                "Render proxy handler is null!");
   COMET_ASSERT(lighting_handler_ != nullptr, "Lighting handler is null!");
   COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
-}
-
-void ShadowView::Initialize() {
-  View::Initialize();
-
-  RenderPassDescr render_pass_descr{};
-  render_pass_descr.extent = {width_, height_};
-  render_pass_descr.offset = {0, 0};
-  render_pass_descr.clear_flags = GenerateClearFlags(pass_descr_);
-
-  render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
-  render_pass_descr.dependencies.Reserve(1);
-
-  auto& dependency{render_pass_descr.dependencies.EmplaceBack()};
-  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  dependency.dstSubpass = 0;
-  dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-  dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-  dependency.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-  dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-  render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
-  render_pass_descr.attachment_descrs.Reserve(1);
-  render_pass_descr.attachment_descrs.PushBack(GenerateDepthAttachmentDescr(
-      pass_descr_.depth_load_op, pass_descr_.depth_store_op,
-      VK_SAMPLE_COUNT_1_BIT));
-
-  render_pass_descr.options = kRenderPassOptionFlagBitsNone;
-
-  render_pass_handle_ = render_pass_handler_->GetOrGenerate(render_pass_descr);
-  lighting_handler_->SetRenderPass(render_pass_handle_);
-  ShaderDescr shader_descr{};
-
-  shader_descr.shader_id =
-      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-          COMET_TCHAR("shaders/vulkan/shadow_shader.vk.cshader"));
-  shader_descr.render_pass_handle = render_pass_handle_;
-  shadow_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-}
-
-void ShadowView::Destroy() {
-  if (shadow_shader_ != nullptr) {
-    shader_handler_->Destroy(shadow_shader_);
-    shadow_shader_ = nullptr;
-  }
-
-  mesh_handler_ = nullptr;
-  lighting_handler_ = nullptr;
-  render_proxy_handler_ = nullptr;
-  shader_handler_ = nullptr;
-  View::Destroy();
 }
 
 void ShadowView::Update(frame::FramePacket*) {
@@ -91,18 +43,17 @@ void ShadowView::Update(frame::FramePacket*) {
   const auto* render_jobs{lighting_handler_->GetRenderJobs()};
 
   if (render_jobs == nullptr || render_jobs->IsEmpty()) {
-    shader_handler_->Reset();
     pipeline_handler_->Reset();
     return;
   }
 
   if (render_proxy_handler_->GetRenderProxyCount() == 0) {
-    shader_handler_->Reset();
     pipeline_handler_->Reset();
     return;
   }
 
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  const auto command_buffer_handle{
+      context_->GetFrameData().command_buffer_handle};
 
   UpdateShadowShaderPassData();
 
@@ -135,13 +86,62 @@ void ShadowView::Update(frame::FramePacket*) {
                                    job.view_proj_index);
   }
 
-  shader_handler_->Reset();
   pipeline_handler_->Reset();
 }
 
+void ShadowView::OnInitialize() {
+  RenderPassDescr render_pass_descr{};
+  render_pass_descr.extent = {width_, height_};
+  render_pass_descr.offset = {0, 0};
+  render_pass_descr.clear_flags = GenerateClearFlags(pass_descr_);
+
+  render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
+  render_pass_descr.dependencies.Reserve(1);
+
+  auto& dependency{render_pass_descr.dependencies.EmplaceBack()};
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  dependency.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+  render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
+  render_pass_descr.attachment_descrs.Reserve(1);
+  render_pass_descr.attachment_descrs.PushBack(GenerateDepthAttachmentDescr(
+      pass_descr_.depth_load_op, pass_descr_.depth_store_op,
+      VK_SAMPLE_COUNT_1_BIT));
+
+  render_pass_descr.options = kRenderPassOptionFlagBitsNone;
+
+  render_pass_handle_ = render_pass_handler_->GetOrGenerate(render_pass_descr);
+  lighting_handler_->SetRenderPass(render_pass_handle_);
+  ShaderDescr shader_descr{};
+
+  shader_descr.shader_resource_id =
+      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+          COMET_TCHAR("shaders/vulkan/shadow_shader.vk.cshader"));
+  shader_descr.render_pass_handle = render_pass_handle_;
+  shadow_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+}
+
+void ShadowView::OnDestroy() {
+  if (shadow_shader_) {
+    shader_handler_->Destroy(shadow_shader_);
+    shadow_shader_.Invalidate();
+  }
+
+  shader_handler_ = nullptr;
+  pipeline_handler_ = nullptr;
+  render_proxy_handler_ = nullptr;
+  lighting_handler_ = nullptr;
+  mesh_handler_ = nullptr;
+}
+
 void ShadowView::UpdateShadowShaderPassData() {
-  auto frame_index{context_->GetFrameInFlightIndex()};
-  auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  const auto frame_index{context_->GetFrameInFlightIndex()};
+  const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
   static constexpr usize kShaderBufferBindingCapacity{3};
   auto& buffer_bindings{*COMET_FRAME_ARRAY(ShaderBufferBindingUpdate,
@@ -189,17 +189,19 @@ void ShadowView::PushShadowConstants(const ShadowRenderJob& job) {
 }
 
 void ShadowView::DrawShadowCasters() {
+  COMET_PROFILE("ShadowView::DrawShadowCasters");
   const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
 
   if (indirect_batches == nullptr || indirect_batches->IsEmpty()) {
     return;
   }
 
-  auto frame_index{context_->GetFrameInFlightIndex()};
+  const auto frame_index{context_->GetFrameInFlightIndex()};
   const auto& indirect_buffer{
       render_proxy_handler_->GetShadowIndirectBuffer(frame_index)};
 
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  const auto command_buffer_handle{
+      context_->GetFrameData().command_buffer_handle};
 
   mesh_handler_->Bind();
   shader_handler_->Bind(shadow_shader_, PipelineBindType::Graphics);
@@ -210,7 +212,8 @@ void ShadowView::DrawShadowCasters() {
 }
 
 void ShadowView::SetViewportAndScissor(VkExtent2D extent) const {
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
+  const auto command_buffer_handle{
+      context_->GetFrameData().command_buffer_handle};
 
   VkViewport viewport{};
   viewport.x = .0f;
@@ -262,8 +265,8 @@ void ShadowView::TransitionShadowLayer(
   COMET_ASSERT(resource.first_layer_index >= 0,
                "Shadow resource has invalid first layer index!");
 
-  auto layer_index{static_cast<u32>(resource.first_layer_index) +
-                   view_proj_index};
+  const auto layer_index{static_cast<u32>(resource.first_layer_index) +
+                         view_proj_index};
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

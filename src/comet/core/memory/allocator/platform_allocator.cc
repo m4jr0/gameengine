@@ -71,21 +71,6 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
   return *this;
 }
 
-void PlatformStackAllocator::Initialize() {
-  StatefulAllocator::Initialize();
-  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
-  root_ = memory::AllocateMany<u8>(capacity_, memory_tag_);
-  marker_ = root_;
-}
-
-void PlatformStackAllocator::Destroy() {
-  StatefulAllocator::Destroy();
-  memory::Deallocate(root_);
-  root_ = nullptr;
-  capacity_ = 0;
-  marker_ = nullptr;
-}
-
 void* PlatformStackAllocator::AllocateAligned(usize size, Alignment align) {
   COMET_ASSERT(size > 0, "Allocation size provided is 0!");
   auto* p{AlignPointer(marker_, align)};
@@ -102,5 +87,18 @@ void PlatformStackAllocator::Deallocate(void*) {
 }
 
 void PlatformStackAllocator::Clear() { marker_ = root_; }
+
+void PlatformStackAllocator::OnInitialize() {
+  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
+  root_ = memory::AllocateMany<u8>(capacity_, memory_tag_);
+  marker_ = root_;
+}
+
+void PlatformStackAllocator::OnDestroy() {
+  memory::Deallocate(root_);
+  root_ = nullptr;
+  capacity_ = 0;
+  marker_ = nullptr;
+}
 }  // namespace memory
 }  // namespace comet

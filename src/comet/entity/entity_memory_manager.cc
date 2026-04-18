@@ -31,29 +31,6 @@ EntityMemoryManager::EntityMemoryManager()
       cmp_big_block_allocator_{kCmpBigAllocatorAllocationUnit_, 512,
                                memory::kEngineMemoryTagEntity} {}
 
-void EntityMemoryManager::Initialize() {
-  Manager::Initialize();
-  small_block_allocator_.Initialize();
-  medium_block_allocator_.Initialize();
-  big_block_allocator_.Initialize();
-
-  cmp_small_block_allocator_.Initialize();
-  cmp_medium_block_allocator_.Initialize();
-  cmp_big_block_allocator_.Initialize();
-}
-
-void EntityMemoryManager::Shutdown() {
-  small_block_allocator_.Destroy();
-  medium_block_allocator_.Destroy();
-  big_block_allocator_.Destroy();
-
-  cmp_small_block_allocator_.Destroy();
-  cmp_medium_block_allocator_.Destroy();
-  cmp_big_block_allocator_.Destroy();
-
-  Manager::Shutdown();
-}
-
 memory::Allocator& EntityMemoryManager::GetRecordAllocator() noexcept {
   return small_block_allocator_;
 }
@@ -107,6 +84,26 @@ memory::Allocator& EntityMemoryManager::GetComponentArrayElementsAllocator(
   }
 
   return cmp_big_block_allocator_;
+}
+
+void EntityMemoryManager::OnInitialize() {
+  small_block_allocator_.Initialize();
+  medium_block_allocator_.Initialize();
+  big_block_allocator_.Initialize();
+
+  cmp_small_block_allocator_.Initialize();
+  cmp_medium_block_allocator_.Initialize();
+  cmp_big_block_allocator_.Initialize();
+}
+
+void EntityMemoryManager::OnShutdown() {
+  small_block_allocator_.Destroy();
+  medium_block_allocator_.Destroy();
+  big_block_allocator_.Destroy();
+
+  cmp_small_block_allocator_.Destroy();
+  cmp_medium_block_allocator_.Destroy();
+  cmp_big_block_allocator_.Destroy();
 }
 }  // namespace entity
 }  // namespace comet

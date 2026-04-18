@@ -11,7 +11,9 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/light/light_common.h"
+#include "comet/core/type/handle.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
@@ -24,39 +26,43 @@ class LightManager : public Manager {
   LightManager(LightManager&&) = delete;
   LightManager& operator=(const LightManager&) = delete;
   LightManager& operator=(LightManager&&) = delete;
-  virtual ~LightManager() = default;
+  ~LightManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(frame::FramePacket* packet);
 
-  LightId Generate(const LightDescr& descr);
-  void Destroy(LightId id);
+  LightHandle Generate(const LightDescr& descr);
+  void Destroy(LightHandle handle);
 
-  void SetProperties(LightId id, const LightProperties& props);
-  void SetShadow(LightId id, const LightShadow& shadow);
+  void SetProperties(LightHandle handle, const LightProperties& props);
+  void SetShadow(LightHandle handle, const LightShadow& shadow);
 
-  void SetColor(LightId id, const math::Vec3& color);
-  void SetIntensity(LightId id, f32 intensity);
-  void SetRange(LightId id, f32 range);
-  void SetDirection(LightId id, const math::Vec3& direction);
+  void SetColor(LightHandle handle, const math::Vec3& color);
+  void SetIntensity(LightHandle handle, f32 intensity);
+  void SetRange(LightHandle handle, f32 range);
+  void SetDirection(LightHandle handle, const math::Vec3& direction);
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
-  bool IsNew(LightId id) const noexcept;
+  bool IsNew(LightHandle handle) const noexcept;
+
   void SyncFromTransforms();
   void EmitFramePacketChanges(frame::FramePacket* packet);
 
   math::Vec3 ExtractPosition(const math::Mat4& transform) const;
   math::Vec3 ExtractForward(const math::Mat4& transform) const;
 
-  Light* Get(LightId id);
-  const Light* Get(LightId id) const;
+  Light* Get(LightHandle handle);
+  const Light* Get(LightHandle handle) const;
 
-  gid::BreedHandler light_id_handler_{};
-  memory::FiberFreeListAllocator allocator_{sizeof(u32), 256,
+  HandlePool<LightTag> light_pool_{};
+  memory::FiberFreeListAllocator allocator_{sizeof(Light), 256,
                                             memory::kEngineMemoryTagRendering};
   Array<Light> lights_{};
-  frame::DoubleFrameOrderedSet<LightId>* new_light_ids_{nullptr};
+  frame::DoubleFrameOrderedSet<LightHandle>* new_light_handles_{nullptr};
+  frame::DoubleFrameOrderedSet<LightHandle>* destroyed_light_handles_{nullptr};
 };
 }  // namespace rendering
 }  // namespace comet

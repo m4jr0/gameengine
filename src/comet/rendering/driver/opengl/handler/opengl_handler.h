@@ -25,12 +25,15 @@ class Handler {
   Handler& operator=(Handler&&) = delete;
   virtual ~Handler();
 
-  virtual void Initialize();
-  virtual void Shutdown();
+  void Initialize();
+  void Shutdown();
 
   bool IsInitialized() const noexcept;
 
  protected:
+  virtual void OnInitialize();
+  virtual void OnShutdown();
+
   bool is_initialized_{false};
   FrameState* frame_state_{nullptr};
 };

@@ -6,16 +6,25 @@
 #define COMET_COMET_RESOURCE_TEXTURE_RESOURCE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/core/type/array.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/resource_id.h"
+#include "comet/resource/runtime/loaded_resource_handle.h"
 
 namespace comet {
 namespace resource {
-constexpr ResourceId kDefaultDiffuseTextureResourceId{1};
-constexpr ResourceId kDefaultSpecularTextureResourceId{2};
-constexpr ResourceId kDefaultNormalTextureResourceId{3};
+struct TextureResourceTag {};
 
-ResourceId GetDefaultTextureFromType(rendering::TextureType texture_type);
+using TextureResourceId = ResourceIdT<TextureResourceTag>;
+using TextureResourceHandle = LoadedResourceHandle<TextureResourceTag>;
+
+inline constexpr TextureResourceId kDefaultDiffuseTextureId{1};
+inline constexpr TextureResourceId kDefaultSpecularTextureId{2};
+inline constexpr TextureResourceId kDefaultNormalTextureId{3};
+
+TextureResourceId GetDefaultTextureFromType(
+    rendering::TextureType texture_type);
 
 struct TextureResourceDescr {
   u64 size{0};
@@ -25,11 +34,21 @@ struct TextureResourceDescr {
 };
 
 struct TextureResource : Resource {
-  static const ResourceTypeId kResourceTypeId;
+  using Id = TextureResourceId;
+  using Handle = TextureResourceHandle;
+  using TypeId = ResourceTypeId;
+  using TypeName = ResourceTypeName;
+
+  static constexpr TypeName kResourceTypeName{"texture"};
+  static const TypeId kResourceTypeId;
 
   TextureResourceDescr descr{};
   Array<u8> data{};
+
+  Id GetId() const noexcept;
 };
+
+usize GetTextureResourceSize(const TextureResource& resource);
 }  // namespace resource
 }  // namespace comet
 

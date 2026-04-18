@@ -20,7 +20,7 @@ class NewFrameEvent : public event::Event {
   NewFrameEvent(NewFrameEvent&&) noexcept = default;
   NewFrameEvent& operator=(const NewFrameEvent&) = default;
   NewFrameEvent& operator=(NewFrameEvent&&) noexcept = default;
-  virtual ~NewFrameEvent() = default;
+  ~NewFrameEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 };
@@ -34,7 +34,7 @@ class EndFrameEvent : public event::Event {
   EndFrameEvent(EndFrameEvent&&) noexcept = default;
   EndFrameEvent& operator=(const EndFrameEvent&) = default;
   EndFrameEvent& operator=(EndFrameEvent&&) noexcept = default;
-  virtual ~EndFrameEvent() = default;
+  ~EndFrameEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 };

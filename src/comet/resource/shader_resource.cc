@@ -11,10 +11,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/c_string.h"
+#include "comet/core/type/string_id.h"
 
 namespace comet {
 namespace resource {
-const ResourceTypeId ShaderResource::kResourceTypeId{COMET_STRING_ID("shader")};
+const ShaderResource::TypeId ShaderResource::kResourceTypeId{
+    COMET_STRING_ID(ShaderResource::kResourceTypeName.data())};
+
+ShaderResource::Id ShaderResource::GetId() const noexcept { return Id{id}; }
 
 usize GetSizeFromDescr(const ShaderResourceDescr& descr) {
   constexpr auto kBoolSize{sizeof(bool)};
@@ -33,39 +37,42 @@ usize GetSizeFromDescr(const ShaderResourceDescr& descr) {
   constexpr auto kShaderImageBindingSemanticSize{
       sizeof(rendering::ShaderImageBindingSemantic)};
 
-  auto total_size{kBoolSize + kBoolSize + kCullModeSize + kBoolSize +
-                  kBoolSize + kCompareOpSize + kPrimitiveTopologySize +
-                  kShaderVertexLayoutSize};
+  auto total_size{
+      kBoolSize +               // rasterizer.is_wireframe
+      kBoolSize +               // rasterizer.is_depth_bias
+      kCullModeSize +           // rasterizer.cull_mode
+      kBoolSize +               // depth_stencil.is_depth_test
+      kBoolSize +               // depth_stencil.is_depth_write
+      kCompareOpSize +          // depth_stencil.compare_op
+      kPrimitiveTopologySize +  // topology
+      kShaderVertexLayoutSize   // vertex_layout
+  };
+
+  constexpr auto kShaderModuleResourceIdSize{sizeof(ShaderModuleResourceId)};
 
   total_size += kUsizeSize;
-
-  for (const auto& module_path : descr.shader_module_paths) {
-    total_size += kUsizeSize;
-    total_size += module_path.GetLengthWithNullTerminator() * sizeof(tchar);
-  }
+  total_size +=
+      descr.shader_module_resource_ids.GetSize() * kShaderModuleResourceIdSize;
 
   total_size += kUsizeSize;
-
   for (const auto& define : descr.defines) {
     total_size += kUsizeSize + define.name_len;
     total_size += kUsizeSize + define.value_len;
   }
 
   total_size += kUsizeSize;
-
   for (const auto& binding : descr.bindings) {
     total_size += kUsizeSize + binding.name_len;
     total_size += kShaderBindingTypeSize;
     total_size += kShaderBindingScopeSize;
     total_size += kShaderMemoryLayoutSize;
-    total_size += kU32Size;
-    total_size += kU32Size;
-    total_size += kU32Size;
+    total_size += kU32Size;  // set
+    total_size += kU32Size;  // binding
+    total_size += kU32Size;  // descriptor_count
     total_size += kShaderImageBindingSemanticSize;
     total_size += kShaderStageFlagsSize;
 
     total_size += kUsizeSize;
-
     for (const auto& field : binding.fields) {
       total_size += kUsizeSize + field.name_len;
       total_size += kShaderVariableTypeSize;
@@ -74,13 +81,11 @@ usize GetSizeFromDescr(const ShaderResourceDescr& descr) {
   }
 
   total_size += kUsizeSize;
-
   for (const auto& push_constant : descr.push_constants) {
     total_size += kUsizeSize + push_constant.name_len;
     total_size += kShaderStageFlagsSize;
 
     total_size += kUsizeSize;
-
     for (const auto& field : push_constant.fields) {
       total_size += kUsizeSize + field.name_len;
       total_size += kShaderVariableTypeSize;
@@ -105,7 +110,6 @@ const schar** GetActiveShaderEngineDefines(usize& count) {
       nullptr};
 
   usize actual_count{0};
-
   while (kActiveDefines[actual_count] != nullptr) {
     ++actual_count;
   }
@@ -116,7 +120,7 @@ const schar** GetActiveShaderEngineDefines(usize& count) {
 
 bool IsShaderEngineDefineSet(const schar* engine_define,
                              usize engine_define_len) {
-  usize count;
+  usize count{0};
   const auto** active_defines{GetActiveShaderEngineDefines(count)};
 
   for (usize i{0}; i < count; ++i) {
@@ -129,11 +133,6 @@ bool IsShaderEngineDefineSet(const schar* engine_define,
   }
 
   return false;
-}
-
-ResourceId GetDefaultShaderResourceId() {
-  return resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-      COMET_TCHAR("shaders/vulkan/default_shader.vk.cshader"));
 }
 }  // namespace resource
 }  // namespace comet

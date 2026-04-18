@@ -11,50 +11,50 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/compression.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace math {
 namespace internal {
 void CleanDecompressed(Vec2& vec) {
   if (Abs(vec.x) < kFloatEpsilon) {
-    vec.x = 0.0f;
+    vec.x = .0f;
   }
 
   if (Abs(vec.y) < kFloatEpsilon) {
-    vec.y = 0.0f;
+    vec.y = .0f;
   }
 }
 
 void CleanDecompressed(Vec3& vec) {
   if (Abs(vec.x) < kFloatEpsilon) {
-    vec.x = 0.0f;
+    vec.x = .0f;
   }
 
   if (Abs(vec.y) < kFloatEpsilon) {
-    vec.y = 0.0f;
+    vec.y = .0f;
   }
 
   if (Abs(vec.z) < kFloatEpsilon) {
-    vec.z = 0.0f;
+    vec.z = .0f;
   }
 }
 
 void CleanDecompressed(Vec4& vec) {
   if (Abs(vec.x) < kFloatEpsilon) {
-    vec.x = 0.0f;
+    vec.x = .0f;
   }
 
   if (Abs(vec.y) < kFloatEpsilon) {
-    vec.y = 0.0f;
+    vec.y = .0f;
   }
 
   if (Abs(vec.z) < kFloatEpsilon) {
-    vec.z = 0.0f;
+    vec.z = .0f;
   }
 
   if (Abs(vec.w) < kFloatEpsilon) {
-    vec.w = 0.0f;
+    vec.w = .0f;
   }
 }
 }  // namespace internal

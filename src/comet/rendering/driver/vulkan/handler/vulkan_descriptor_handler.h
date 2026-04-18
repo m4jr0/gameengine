@@ -29,31 +29,28 @@ class DescriptorHandler : public Handler {
   DescriptorHandler(DescriptorHandler&&) = delete;
   DescriptorHandler& operator=(const DescriptorHandler&) = delete;
   DescriptorHandler& operator=(DescriptorHandler&&) = delete;
-  virtual ~DescriptorHandler() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~DescriptorHandler() override = default;
 
   bool Generate(const VkDescriptorSetLayout* descriptor_set_layout_handles,
                 VkDescriptorSet* outDescriptorSets, u32 count,
                 DescriptorType type);
-
   bool Generate(
       const Array<VkDescriptorSetLayout>& descriptor_set_layout_handles,
       Array<VkDescriptorSet>& outDescriptorSets, DescriptorType type);
-
   bool Generate(const VkDescriptorSetLayout* descriptor_set_layout_handle,
                 VkDescriptorSet& outDescriptorSet, DescriptorType type);
 
   void Destroy(VkDescriptorSet* descriptor_set_handles, u32 count,
                DescriptorType type);
-
   void Destroy(Array<VkDescriptorSet>& descriptor_set_handles,
                DescriptorType type);
-
   void Destroy(VkDescriptorSet descriptor_set_handle, DescriptorType type);
 
   void ResetDynamic();
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   static inline constexpr u32 kMaxStaticSetCount_{256};

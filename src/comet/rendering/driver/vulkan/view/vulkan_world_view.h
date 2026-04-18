@@ -6,52 +6,67 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_WORLD_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_shader_view.h"
-#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/rendering/driver/vulkan/view/vulkan_view.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-struct WorldViewDescr : ShaderViewDescr {
+struct WorldViewDescr : ViewDescr {
   const ShadowSettings* shadow_settings{nullptr};
+  ShaderHandler* shader_handler{nullptr};
+  const TextureHandler* texture_handler{nullptr};
+  const MaterialHandler* material_handler{nullptr};
+  PipelineHandler* pipeline_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
   LightingHandler* lighting_handler{nullptr};
 };
 
-class WorldView : public ShaderView {
+class WorldView : public View {
  public:
   explicit WorldView(const WorldViewDescr& descr);
   WorldView(const WorldView&) = delete;
   WorldView(WorldView&&) = delete;
   WorldView& operator=(const WorldView&) = delete;
   WorldView& operator=(WorldView&&) = delete;
-  virtual ~WorldView() = default;
+  ~WorldView() override = default;
 
-  void Initialize() override;
-  void Destroy() override;
   void Update(frame::FramePacket* packet) override;
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   void UpdateWorldShader(frame::FramePacket* packet);
   void RunSparseUpload();
   void RunCull(frame::FramePacket* packet);
   void DrawWorld();
+
   void SetViewportAndScissor() const;
 
   const ShadowSettings* shadow_settings_{nullptr};
 
+  ShaderHandler* shader_handler_{nullptr};
+  const TextureHandler* texture_handler_{nullptr};
+  const MaterialHandler* material_handler_{nullptr};
+  PipelineHandler* pipeline_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
   LightingHandler* lighting_handler_{nullptr};
 
-  Shader* world_shader_{nullptr};
-  Shader* cull_shader_{nullptr};
-  Shader* sparse_upload_shader_{nullptr};
+  ShaderHandle world_shader_{};
+  ShaderHandle cull_shader_{};
+  ShaderHandle sparse_upload_shader_{};
 };
 }  // namespace vk
 }  // namespace rendering

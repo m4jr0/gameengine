@@ -67,7 +67,7 @@ enum class KeyCode {
   LeftBracket = GLFW_KEY_LEFT_BRACKET,
   Backslash = GLFW_KEY_BACKSLASH,
   RightBracket = GLFW_KEY_RIGHT_BRACKET,
-  GraveAcent = GLFW_KEY_GRAVE_ACCENT,
+  GraveAccent = GLFW_KEY_GRAVE_ACCENT,
   World1 = GLFW_KEY_WORLD_1,
   World2 = GLFW_KEY_WORLD_2,
   Escape = GLFW_KEY_ESCAPE,
@@ -75,7 +75,7 @@ enum class KeyCode {
   Tab = GLFW_KEY_TAB,
   Backspace = GLFW_KEY_BACKSPACE,
   Insert = GLFW_KEY_INSERT,
-  Del = GLFW_KEY_DELETE,
+  Delete = GLFW_KEY_DELETE,
   Right = GLFW_KEY_RIGHT,
   Left = GLFW_KEY_LEFT,
   Down = GLFW_KEY_DOWN,
@@ -114,7 +114,7 @@ enum class KeyCode {
   F23 = GLFW_KEY_F23,
   F24 = GLFW_KEY_F24,
   F25 = GLFW_KEY_F25,
-  KP0 = GLFW_KEY_KP_0,
+  KeyPad0 = GLFW_KEY_KP_0,
   KeyPad1 = GLFW_KEY_KP_1,
   KeyPad2 = GLFW_KEY_KP_2,
   KeyPad3 = GLFW_KEY_KP_3,
@@ -139,8 +139,7 @@ enum class KeyCode {
   RightControl = GLFW_KEY_RIGHT_CONTROL,
   RightAlt = GLFW_KEY_RIGHT_ALT,
   RightSuper = GLFW_KEY_RIGHT_SUPER,
-  Menu = GLFW_KEY_MENU,
-  Last = GLFW_KEY_LAST
+  Menu = GLFW_KEY_MENU
 };
 
 enum class MouseButton {
@@ -148,11 +147,11 @@ enum class MouseButton {
   Left = GLFW_MOUSE_BUTTON_1,
   Right = GLFW_MOUSE_BUTTON_2,
   Middle = GLFW_MOUSE_BUTTON_3,
-  Last = GLFW_MOUSE_BUTTON_8,
   Other1 = GLFW_MOUSE_BUTTON_4,
   Other2 = GLFW_MOUSE_BUTTON_5,
   Other3 = GLFW_MOUSE_BUTTON_6,
-  Other4 = GLFW_MOUSE_BUTTON_7
+  Other4 = GLFW_MOUSE_BUTTON_7,
+  Other5 = GLFW_MOUSE_BUTTON_8
 };
 
 enum class Action { Unknown = -1, Press = GLFW_PRESS, Release = GLFW_RELEASE };

@@ -23,7 +23,7 @@ class CpuProfilerDisplayer {
   CpuProfilerDisplayer(CpuProfilerDisplayer&&) = delete;
   CpuProfilerDisplayer& operator=(const CpuProfilerDisplayer&) = delete;
   CpuProfilerDisplayer& operator=(CpuProfilerDisplayer&&) = delete;
-  virtual ~CpuProfilerDisplayer() = default;
+  ~CpuProfilerDisplayer() = default;
 
   void Draw(const profiler::ProfilerData& profiler_data,
             const CpuProfilerGraph::Controls& controls);

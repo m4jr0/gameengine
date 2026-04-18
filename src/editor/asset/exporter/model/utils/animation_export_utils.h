@@ -10,7 +10,6 @@
 #include "assimp/scene.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/animation_common.h"
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
@@ -35,17 +34,23 @@ using AnimationChannelData =
 
 geometry::SkeletonJointId GenerateSkeletonJointId(const aiNode* node);
 geometry::SkeletonJointId GenerateSkeletonJointId(const aiNodeAnim* node);
+
 bool IsLoop(const schar* animation_name);
+
 u32 ResolveAnimationKeyIndex(const aiVectorKey* vector_keys,
                              u32 vector_key_count, f64 tick_time);
 u32 ResolveAnimationKeyIndex(const aiQuatKey* quat_keys, u32 quat_key_count,
                              f64 tick_time);
+
 animation::JointPose ExtractPose(const aiNodeAnim* channel, f64 tick_time);
 animation::JointPose ToJointPose(const math::Mat4& transform);
+
 void PopulateMissingAnimationChannelDataNodes(
     const aiNode* node, AnimationChannelData& channel_data);
+
 AnimationChannelData GenerateAnimationChannelData(
     ModelExport& model_export, const aiAnimation* raw_animation);
+
 void PopulateSample(ModelExport& model_export,
                     const geometry::Skeleton& skeleton,
                     const AnimationChannelData& channel_data, u32 tick_delta,
@@ -55,6 +60,7 @@ void PopulateAnimationClip(ModelExport& model_export,
                            const aiAnimation* raw_animation,
                            const geometry::Skeleton& skeleton,
                            resource::AnimationClipResource& clip_resource);
+
 Array<resource::AnimationClipResource> LoadAnimationClips(
     ModelExport& model_export, const geometry::Skeleton& skeleton);
 }  // namespace asset

@@ -206,7 +206,7 @@ bool IsContainedInsensitive(const schar* str, const schar* to_find) {
     return false;
   }
 
-  auto to_find_len{GetLength(to_find)};
+  const auto to_find_len{GetLength(to_find)};
 
   if (to_find_len == 0) {
     return true;
@@ -226,7 +226,7 @@ bool IsContainedInsensitive(const wchar* str, const wchar* to_find) {
     return false;
   }
 
-  auto to_find_len{GetLength(to_find)};
+  const auto to_find_len{GetLength(to_find)};
 
   if (to_find_len == 0) {
     return true;
@@ -353,12 +353,12 @@ void GetSubString(wchar* dst, const wchar* src, usize src_length, usize offset,
 
 void FillWith(schar* str, usize str_length, schar c, usize offset,
               usize length) {
-  internal ::FillWith(str, str_length, c, offset, length);
+  internal::FillWith(str, str_length, c, offset, length);
 }
 
 void FillWith(wchar* str, usize str_length, wchar c, usize offset,
               usize length) {
-  internal ::FillWith(str, str_length, c, offset, length);
+  internal::FillWith(str, str_length, c, offset, length);
 }
 
 schar ToUpper(schar c) { return static_cast<schar>(std::toupper(c)); }

@@ -49,10 +49,10 @@ void* CommitVirtualMemory(void* memory, usize size) {
 
 void FreeVirtualMemory(void* memory, [[maybe_unused]] usize size) {
 #ifdef COMET_WINDOWS
-  [[maybe_unused]] auto is_ok{VirtualFree(memory, 0, MEM_RELEASE)};
+  [[maybe_unused]] const auto is_ok{VirtualFree(memory, 0, MEM_RELEASE)};
   COMET_ASSERT(is_ok, "Failed to release memory! Error code: ", GetLastError());
 #else
-  [[maybe_unused]] auto result{munmap(memory, size)};
+  [[maybe_unused]] const auto result{munmap(memory, size)};
   COMET_ASSERT(result == 0, "Failed to release memory! Error code: ", errno);
 #endif  // COMET_WINDOWS
 }

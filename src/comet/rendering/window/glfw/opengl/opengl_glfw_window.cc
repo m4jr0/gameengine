@@ -75,12 +75,6 @@ OpenGlGlfwWindow& OpenGlGlfwWindow::operator=(
   return *this;
 }
 
-void OpenGlGlfwWindow::Initialize() {
-  GlfwWindow::Initialize();
-  glfwMakeContextCurrent(handle_);
-  SetVSync(is_vsync_);
-}
-
 void OpenGlGlfwWindow::SetGlfwHints() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl_major_version_);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl_minor_version_);
@@ -128,6 +122,12 @@ void OpenGlGlfwWindow::SetVSync(bool is_vsync) {
   } else {
     glfwSwapInterval(0);
   }
+}
+
+void OpenGlGlfwWindow::OnInitialize() {
+  GlfwWindow::OnInitialize();
+  glfwMakeContextCurrent(handle_);
+  SetVSync(is_vsync_);
 }
 }  // namespace gl
 }  // namespace rendering

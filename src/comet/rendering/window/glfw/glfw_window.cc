@@ -59,68 +59,6 @@ GlfwWindow& GlfwWindow::operator=(GlfwWindow&& other) noexcept {
   return *this;
 }
 
-void GlfwWindow::Initialize() {
-  Window::Initialize();
-
-  if (window_count_ == 0) {
-    COMET_LOG_RENDERING_INFO("Initializing GLFW...");
-    [[maybe_unused]] auto result{glfwInit()};
-    COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
-    DumpPlatform();
-    SetGlfwHints();
-
-    glfwSetErrorCallback([](s32 error_code, const schar* description) {
-      COMET_LOG_RENDERING_ERROR("GLFW Error (", error_code, ")", description);
-    });
-  }
-
-  handle_ = glfwCreateWindow(width_, height_, name_, nullptr, nullptr);
-  COMET_ASSERT(handle_ != nullptr,
-               "Something bad happened while creating the GLFW window!");
-  window_count_++;
-
-  glfwSetWindowUserPointer(handle_, static_cast<void*>(this));
-  glfwSetWindowAspectRatio(handle_, width_, height_);
-
-  glfwSetWindowCloseCallback(handle_, [](GLFWwindow*) {
-    event::EventManager::Get().FireEvent<rendering::WindowCloseEvent>();
-  });
-
-  glfwSetWindowSizeCallback(
-      handle_, [](GLFWwindow* window, s32 width, s32 height) {
-        auto* self{static_cast<GlfwWindow*>(glfwGetWindowUserPointer(window))};
-        self->SetSize(static_cast<WindowSize>(width),
-                      static_cast<WindowSize>(height));
-      });
-}
-
-void GlfwWindow::Destroy() {
-  if (handle_ != nullptr) {
-    glfwDestroyWindow(handle_);
-    handle_ = nullptr;
-    window_count_--;
-
-    if (window_count_ <= 0) {
-      COMET_LOG_RENDERING_INFO("Terminating GLFW...");
-      glfwTerminate();
-    }
-  }
-
-  is_resize_ = false;
-  Window::Destroy();
-}
-
-void GlfwWindow::Update() {
-  if (!is_resize_ ||
-      input::InputManager::Get().IsMousePressed(input::MouseButton::Left)) {
-    return;
-  }
-
-  event::EventManager::Get().FireEvent<rendering::WindowResizeEvent>(width_,
-                                                                     height_);
-  is_resize_ = false;
-}
-
 void GlfwWindow::SetGlfwHints() {
   // By default, a GLFW Window is API-less.
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -136,6 +74,65 @@ GLFWwindow* GlfwWindow::GetHandle() noexcept { return handle_; }
 
 GlfwWindow::operator GLFWwindow*() noexcept { return GetHandle(); }
 
+void GlfwWindow::OnInitialize() {
+  if (window_count_ == 0) {
+    COMET_LOG_RENDERING_INFO("Initializing GLFW...");
+
+    glfwSetErrorCallback([](s32 error_code, const schar* description) {
+      COMET_LOG_RENDERING_ERROR("GLFW Error (", error_code, ")", description);
+    });
+
+    [[maybe_unused]] const auto result{glfwInit()};
+    COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
+    DumpPlatform();
+    SetGlfwHints();
+  }
+
+  handle_ = glfwCreateWindow(width_, height_, name_, nullptr, nullptr);
+  COMET_ASSERT(handle_ != nullptr,
+               "Something bad happened while creating the GLFW window!");
+  window_count_++;
+
+  glfwSetWindowUserPointer(handle_, static_cast<void*>(this));
+  glfwSetWindowAspectRatio(handle_, width_, height_);
+
+  glfwSetWindowCloseCallback(handle_, [](GLFWwindow*) {
+    event::EventManager::Get().FireEvent<WindowCloseEvent>();
+  });
+
+  glfwSetWindowSizeCallback(
+      handle_, [](GLFWwindow* window, s32 width, s32 height) {
+        auto* self{static_cast<GlfwWindow*>(glfwGetWindowUserPointer(window))};
+        self->SetSize(static_cast<WindowSize>(width),
+                      static_cast<WindowSize>(height));
+      });
+}
+
+void GlfwWindow::OnDestroy() {
+  if (handle_ != nullptr) {
+    glfwDestroyWindow(handle_);
+    handle_ = nullptr;
+    window_count_--;
+
+    if (window_count_ <= 0) {
+      COMET_LOG_RENDERING_INFO("Terminating GLFW...");
+      glfwTerminate();
+    }
+  }
+
+  is_resize_ = false;
+}
+
+void GlfwWindow::OnUpdate() {
+  if (!is_resize_ ||
+      input::InputManager::Get().IsMousePressed(input::MouseButton::Left)) {
+    return;
+  }
+
+  event::EventManager::Get().FireEvent<WindowResizeEvent>(width_, height_);
+  is_resize_ = false;
+}
+
 void GlfwWindow::UpdateSize() {
   if (handle_ != nullptr) {
     glfwSetWindowSize(handle_, width_, height_);
@@ -149,8 +146,8 @@ void GlfwWindow::UpdateSize() {
 }
 
 void GlfwWindow::DumpPlatform() const {
-  auto platform{glfwGetPlatform()};
-  const char* label = "???";
+  const auto platform{glfwGetPlatform()};
+  [[maybe_unused]] const char* label = "???";
 
   switch (platform) {
     case GLFW_PLATFORM_WIN32:

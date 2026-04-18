@@ -21,14 +21,15 @@ class FiberFreeListAllocator : public StatefulAllocator {
   FiberFreeListAllocator(FiberFreeListAllocator&&) noexcept;
   FiberFreeListAllocator& operator=(const FiberFreeListAllocator&) = delete;
   FiberFreeListAllocator& operator=(FiberFreeListAllocator&&) noexcept;
-  ~FiberFreeListAllocator() = default;
-
-  void Initialize() override;
-  void Destroy() override;
+  ~FiberFreeListAllocator() override = default;
 
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void* ptr) override;
   void DeallocateAll();
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   struct Block {

@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_CORE_FRAME_PACKET_H_
 #define COMET_COMET_CORE_FRAME_PACKET_H_
 
-#include "comet/animation/animation_common.h"
+#include "comet/animation/animation_type.h"
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
@@ -13,12 +13,13 @@
 #include "comet/core/hash.h"
 #include "comet/entity/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/geometry_common.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/physics/component/transform_component.h"
-#include "comet/rendering/light/light_common.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/resource/material_resource.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -46,10 +47,14 @@ constexpr auto kInvalidFramePacketDebugId{static_cast<FramePacketDebugId>(-1)};
 struct AddedGeometry {
   entity::EntityId entity_id{entity::kInvalidEntityId};
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
-  geometry::MeshId mesh_id{geometry::kInvalidMeshId};
-  const resource::MaterialResource* material_resource{nullptr};
-  DoubleFrameArray<geometry::Index>* indices{};
-  DoubleFrameArray<geometry::SkinnedVertex>* vertices{};
+  geometry::MeshHandle mesh_handle{};
+
+  // Retained by the frame packet. Released in FramePacket::Reset().
+  resource::MaterialResourceId material_resource_id{};
+
+  DoubleFrameArray<geometry::Index>* indices{nullptr};
+  DoubleFrameArray<geometry::SkinnedVertex>* vertices{nullptr};
+
   math::Mat4 transform{1.0f};
   math::Vec3 local_center{.0f};
   math::Vec3 local_max_extents{.0f};
@@ -58,10 +63,14 @@ struct AddedGeometry {
 struct DirtyMesh {
   entity::EntityId entity_id{entity::kInvalidEntityId};
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
-  geometry::MeshId mesh_id{geometry::kInvalidMeshId};
-  const resource::MaterialResource* material_resource{nullptr};
+  geometry::MeshHandle mesh_handle{};
+
+  // Retained by the frame packet. Released in FramePacket::Reset().
+  resource::MaterialResourceId material_resource_id{};
+
   math::Vec3 local_center{.0f};
   math::Vec3 local_max_extents{.0f};
+
   DoubleFrameArray<geometry::Index>* indices{nullptr};
   DoubleFrameArray<geometry::SkinnedVertex>* vertices{nullptr};
 };
@@ -74,23 +83,23 @@ struct DirtyTransform {
 struct RemovedGeometry {
   entity::EntityId entity_id{entity::kInvalidEntityId};
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
-  geometry::MeshId mesh_id{geometry::kInvalidMeshId};
+  geometry::MeshHandle mesh_handle{};
 };
 
 struct AddedLight {
-  rendering::LightId light_id{rendering::kInvalidLightId};
+  rendering::LightHandle light_handle{};
   rendering::LightProperties props{};
   rendering::LightShadow shadow{};
 };
 
 struct DirtyLight {
-  rendering::LightId light_id{rendering::kInvalidLightId};
+  rendering::LightHandle light_handle{};
   rendering::LightProperties props{};
   rendering::LightShadow shadow{};
 };
 
 struct RemovedLight {
-  rendering::LightId light_id{rendering::kInvalidLightId};
+  rendering::LightHandle light_handle{};
 };
 
 HashValue GenerateHash(const AddedGeometry& value);
@@ -131,20 +140,21 @@ struct FramePacket {
 
   void RegisterRemovedGeometry(entity::EntityId entity_id,
                                entity::EntityId model_entity_id,
-                               geometry::MeshId mesh_id);
+                               geometry::MeshHandle mesh_handle);
 
-  void RegisterNewLight(rendering::LightId light_id,
+  void RegisterNewLight(rendering::LightHandle light_handle,
                         const rendering::LightProperties* props,
                         const rendering::LightShadow* shadow);
 
-  void RegisterDirtyLight(rendering::LightId light_id,
+  void RegisterDirtyLight(rendering::LightHandle light_handle,
                           const rendering::LightProperties* props,
                           const rendering::LightShadow* shadow);
 
-  void RegisterRemovedLight(rendering::LightId light_id);
+  void RegisterRemovedLight(rendering::LightHandle light_handle);
 
   bool IsFrameStageStarted(FrameStage stage) const;
   bool IsFrameStageFinished(FrameStage stage) const;
+
   void Reset();
 
   bool can_present{true};

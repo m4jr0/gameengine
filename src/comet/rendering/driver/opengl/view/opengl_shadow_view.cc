@@ -24,39 +24,16 @@ namespace comet {
 namespace rendering {
 namespace gl {
 ShadowView::ShadowView(const ShadowViewDescr& descr)
-    : ShaderView{descr},
+    : View{descr},
+      shader_handler_{descr.shader_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       lighting_handler_{descr.lighting_handler},
       mesh_handler_{descr.mesh_handler} {
-  COMET_ASSERT(frame_state_ != nullptr, "Frame state is null!");
+  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
   COMET_ASSERT(render_proxy_handler_ != nullptr,
                "Render proxy handler is null!");
   COMET_ASSERT(lighting_handler_ != nullptr, "Lighting handler is null!");
   COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
-}
-
-void ShadowView::Initialize() {
-  View::Initialize();
-
-  ShaderDescr shader_descr{};
-  shader_descr.shader_id =
-      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-          COMET_TCHAR("shaders/opengl/shadow_shader.gl.cshader"));
-  shadow_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-}
-
-void ShadowView::Destroy() {
-  if (shadow_shader_ != nullptr) {
-    shader_handler_->Destroy(shadow_shader_);
-    shadow_shader_ = nullptr;
-  }
-
-  mesh_handler_ = nullptr;
-  lighting_handler_ = nullptr;
-  render_proxy_handler_ = nullptr;
-  shader_handler_ = nullptr;
-  material_handler_ = nullptr;
-  View::Destroy();
 }
 
 void ShadowView::Update(frame::FramePacket*) {
@@ -119,9 +96,29 @@ void ShadowView::Update(frame::FramePacket*) {
   shader_handler_->Reset();
 }
 
+void ShadowView::OnInitialize() {
+  ShaderDescr shader_descr{};
+  shader_descr.shader_resource_id =
+      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+          COMET_TCHAR("shaders/opengl/shadow_shader.gl.cshader"));
+  shadow_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+}
+
+void ShadowView::OnDestroy() {
+  if (shadow_shader_) {
+    shader_handler_->Destroy(shadow_shader_);
+    shadow_shader_.Invalidate();
+  }
+
+  shader_handler_ = nullptr;
+  render_proxy_handler_ = nullptr;
+  mesh_handler_ = nullptr;
+  lighting_handler_ = nullptr;
+}
+
 void ShadowView::UpdateShadowShaderPassData() {
-  auto frame_index{frame_state_->GetFrameInFlightIndex()};
-  auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
   static constexpr usize kShaderBufferBindingCapacity{3};
   auto& buffer_bindings{*COMET_FRAME_ARRAY(ShaderBufferBindingUpdate,
@@ -169,23 +166,24 @@ void ShadowView::PushShadowConstants(const ShadowRenderJob& job) {
 }
 
 void ShadowView::DrawShadowCasters() {
+  COMET_PROFILE("ShadowView::DrawShadowCasters");
   const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
 
   if (indirect_batches == nullptr || indirect_batches->IsEmpty()) {
     return;
   }
 
-  auto frame_index{frame_state_->GetFrameInFlightIndex()};
-  auto indirect_buffer_handle{
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto indirect_buffer_handle{
       render_proxy_handler_->GetShadowIndirectBufferHandle(frame_index)};
 
-  COMET_ASSERT(indirect_buffer_handle != kInvalidStorageHandle,
+  COMET_ASSERT(indirect_buffer_handle != kInvalidGlNativeStorageHandle,
                "Shadow indirect buffer handle is invalid!");
 
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer_handle);
 
-  glMultiDrawElementsIndirect(shadow_shader_->topology, GL_UNSIGNED_INT,
-                              nullptr,
+  glMultiDrawElementsIndirect(shader_handler_->GetTopology(shadow_shader_),
+                              GL_UNSIGNED_INT, nullptr,
                               static_cast<GLsizei>(indirect_batches->GetSize()),
                               sizeof(GpuIndirectRenderProxy));
 

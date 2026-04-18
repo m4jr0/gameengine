@@ -10,9 +10,20 @@
 #include "shader_module_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/type/string_id.h"
+
 namespace comet {
 namespace resource {
-const ResourceTypeId ShaderModuleResource::kResourceTypeId{
-    COMET_STRING_ID("shader_module")};
+const ShaderModuleResource::TypeId ShaderModuleResource::kResourceTypeId{
+    COMET_STRING_ID(ShaderModuleResource::kResourceTypeName.data())};
+
+ShaderModuleResource::Id ShaderModuleResource::GetId() const noexcept {
+  return Id{id};
+}
+
+usize GetShaderModuleResourceSize(const ShaderModuleResource& resource) {
+  return sizeof(RawResourceId) + sizeof(ResourceTypeId) +
+         resource.data.GetSize();
+}
 }  // namespace resource
 }  // namespace comet

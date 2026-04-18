@@ -30,21 +30,27 @@ constexpr T ConvertToDegrees(T x) {
 
 Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis);
 Mat4 ToRotationMatrix(const Quat& rotation);
+
 Mat4 Translate(const Mat4& model, const Vec3& translation);
 Mat4 ToTranslateMatrix(const Vec3& translation);
+
 Mat4 Scale(const Mat4& model, f32 scale_factor);
 Mat4 Scale(const Mat4& model, const Vec3& scale_factors);
 Mat4 ToScaleMatrix(const Vec3& scale);
 Mat4 ToScaleMatrix(f32 scale_factor);
+
+Quat ToQuaternion(const glm::mat3& rotation_matrix);
+
 Vec3 ExtractTranslation(const Mat4& transform);
 Vec3 ExtractScale(const Mat4& transform);
 f32 ExtractUniformScale(const Mat4& transform);
 Mat3 ExtractRotationMatrix(const Mat4& transform);
-Quat ToQuaternion(const glm::mat3& rotation_matrix);
 Quat ExtractRotation(const Mat4& transform);
+
 Mat4 ComposeTransform(const Vec3& translation, const Quat& rotation,
                       const Vec3& scale);
 Mat4 ComposeTransform(const Vec3& translation, const Quat& rotation, f32 scale);
+
 void DecomposeTransform(const Mat4& transform, Vec3& translation_out,
                         Quat& rotation_out, Vec3& scale_out);
 void DecomposeTransform(const Mat4& transform, Vec3& translation_out,

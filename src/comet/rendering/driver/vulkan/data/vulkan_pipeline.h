@@ -11,8 +11,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
@@ -29,16 +29,12 @@ struct DepthStencilState {
   CompareOp compare_op{CompareOp::Less};
 };
 
-using PipelineLayoutId = u32;
-constexpr auto kInvalidPipelineLayoutId{static_cast<PipelineLayoutId>(-1)};
 struct PipelineLayout {
-  PipelineLayoutId id{kInvalidPipelineLayoutId};
-  VkPipelineLayout handle{VK_NULL_HANDLE};
+  VkPipelineLayout native_handle{VK_NULL_HANDLE};
+  PipelineLayoutHandle handle{};
 };
 
 enum class PipelineBindType { Unknown = 0, Graphics, Compute };
-using PipelineId = u32;
-constexpr auto kInvalidPipelineId{static_cast<PipelineId>(-1)};
 
 struct PipelineLayoutDescr {
   u32 descriptor_set_layout_count{0};
@@ -49,32 +45,32 @@ struct PipelineLayoutDescr {
 
 struct ComputePipelineDescr {
   VkPipelineShaderStageCreateInfo shader_stage{};
-  VkPipelineLayout layout_handle{VK_NULL_HANDLE};
+  PipelineLayoutHandle layout_handle{};
 };
 
 struct GraphicsPipelineDescr {
-  RenderPassHandle render_pass_handle{kInvalidRenderPassHandle};
+  RenderPassHandle render_pass_handle{};
 
-  VkViewport viewport;
-  VkRect2D scissor;
-  Array<VkPipelineShaderStageCreateInfo> shader_stages;
-  VkVertexInputBindingDescription vertex_input_binding_description;
+  VkViewport viewport{};
+  VkRect2D scissor{};
+  Array<VkPipelineShaderStageCreateInfo> shader_stages{};
+  VkVertexInputBindingDescription vertex_input_binding_description{};
   Array<VkVertexInputAttributeDescription>* vertex_attributes{nullptr};
 
-  VkPipelineInputAssemblyStateCreateInfo input_assembly_state;
-  VkPipelineRasterizationStateCreateInfo rasterization_state;
-  VkPipelineColorBlendAttachmentState color_blend_attachment_state;
-  VkPipelineMultisampleStateCreateInfo multisample_state;
-  VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
+  VkPipelineInputAssemblyStateCreateInfo input_assembly_state{};
+  VkPipelineRasterizationStateCreateInfo rasterization_state{};
+  VkPipelineColorBlendAttachmentState color_blend_attachment_state{};
+  VkPipelineMultisampleStateCreateInfo multisample_state{};
+  VkPipelineDepthStencilStateCreateInfo depth_stencil_state{};
 
-  VkPipelineLayout layout_handle{VK_NULL_HANDLE};
+  PipelineLayoutHandle layout_handle{};
 };
 
 struct Pipeline {
-  PipelineId id{kInvalidPipelineId};
   PipelineBindType type{PipelineBindType::Unknown};
-  VkPipelineLayout layout_handle{VK_NULL_HANDLE};
-  VkPipeline handle{VK_NULL_HANDLE};
+  VkPipeline native_handle{VK_NULL_HANDLE};
+  PipelineLayoutHandle layout_handle{};
+  PipelineHandle handle{};
 };
 }  // namespace vk
 }  // namespace rendering

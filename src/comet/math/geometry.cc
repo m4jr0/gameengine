@@ -10,24 +10,24 @@
 #include "geometry.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace math {
 Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis) {
-  auto cos_angle{Cos(angle)};
-  auto sin_angle{Sin(angle)};
+  const auto cos_angle{Cos(angle)};
+  const auto sin_angle{Sin(angle)};
 
-  auto tmp_cos_x{axis.x * (1 - cos_angle)};
-  auto tmp_cos_y{axis.y * (1 - cos_angle)};
-  auto tmp_cos_z{axis.z * (1 - cos_angle)};
+  const auto tmp_cos_x{axis.x * (1 - cos_angle)};
+  const auto tmp_cos_y{axis.y * (1 - cos_angle)};
+  const auto tmp_cos_z{axis.z * (1 - cos_angle)};
 
-  auto tmp_sin_x{axis.x * sin_angle};
-  auto tmp_sin_y{axis.y * sin_angle};
-  auto tmp_sin_z{axis.z * sin_angle};
+  const auto tmp_sin_x{axis.x * sin_angle};
+  const auto tmp_sin_y{axis.y * sin_angle};
+  const auto tmp_sin_z{axis.z * sin_angle};
 
   // Compute rotation matrix from axis and angle.
-  Mat4 rotation{0.0f};
+  Mat4 rotation{.0f};
   rotation[0][0] = cos_angle + axis.x * tmp_cos_x;
   rotation[0][1] = axis.y * tmp_cos_x + tmp_sin_z;
   rotation[0][2] = axis.z * tmp_cos_x - tmp_sin_y;
@@ -38,7 +38,7 @@ Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis) {
   rotation[2][1] = axis.y * tmp_cos_z - tmp_sin_x;
   rotation[2][2] = cos_angle + axis.z * tmp_cos_z;
 
-  Mat4 result{0.0f};
+  Mat4 result{.0f};
   result[0][0] = model[0][0] * rotation[0][0] + model[1][0] * rotation[0][1] +
                  model[2][0] * rotation[0][2];
   result[0][1] = model[0][1] * rotation[0][0] + model[1][1] * rotation[0][1] +
@@ -72,20 +72,20 @@ Mat4 Rotate(const Mat4& model, f32 angle, const Vec3& axis) {
 Mat4 ToRotationMatrix(const Quat& rotation) {
   Mat4 result{1.0f};
 
-  auto x{rotation.x};
-  auto y{rotation.y};
-  auto z{rotation.z};
-  auto w{rotation.w};
+  const auto x{rotation.x};
+  const auto y{rotation.y};
+  const auto z{rotation.z};
+  const auto w{rotation.w};
 
-  auto xx{x * x};
-  auto yy{y * y};
-  auto zz{z * z};
-  auto xy{x * y};
-  auto xz{x * z};
-  auto yz{y * z};
-  auto wx{w * x};
-  auto wy{w * y};
-  auto wz{w * z};
+  const auto xx{x * x};
+  const auto yy{y * y};
+  const auto zz{z * z};
+  const auto xy{x * y};
+  const auto xz{x * z};
+  const auto yz{y * z};
+  const auto wx{w * x};
+  const auto wy{w * y};
+  const auto wz{w * z};
 
   result[0][0] = 1.0f - 2.0f * (yy + zz);
   result[0][1] = 2.0f * (xy + wz);
@@ -103,7 +103,7 @@ Mat4 ToRotationMatrix(const Quat& rotation) {
 }
 
 Mat4 Translate(const Mat4& model, const Vec3& translation) {
-  auto translation_mat{ToTranslateMatrix(translation)};
+  const auto translation_mat{ToTranslateMatrix(translation)};
   return model * translation_mat;
 }
 
@@ -124,7 +124,7 @@ Mat4 Scale(const Mat4& model, f32 scale_factor) {
 }
 
 Mat4 Scale(const Mat4& model, const Vec3& scale_factors) {
-  auto scale_mat{ToScaleMatrix(scale_factors)};
+  const auto scale_mat{ToScaleMatrix(scale_factors)};
   return model * scale_mat;
 }
 
@@ -144,6 +144,53 @@ Mat4 ToScaleMatrix(f32 scale_factor) {
   return result;
 }
 
+Quat ToQuaternion(const glm::mat3& rotation_matrix) {
+  // https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+  Quat quaternion{};
+
+  const auto trace{rotation_matrix[0][0] + rotation_matrix[1][1] +
+                   rotation_matrix[2][2]};
+
+  // Case: the scalar part (w) is the largest.
+  if (trace > .0f) {
+    const auto s{Sqrt(trace + 1.0f) * 2.0f};
+    quaternion.w = .25f * s;
+    quaternion.x = (rotation_matrix[2][1] - rotation_matrix[1][2]) / s;
+    quaternion.y = (rotation_matrix[0][2] - rotation_matrix[2][0]) / s;
+    quaternion.z = (rotation_matrix[1][0] - rotation_matrix[0][1]) / s;
+  }
+
+  // Other cases: either x, y or z is dominant.
+  else if (rotation_matrix[0][0] > rotation_matrix[1][1] &&
+           rotation_matrix[0][0] > rotation_matrix[2][2]) {
+    const auto s{Sqrt(1.0f + rotation_matrix[0][0] - rotation_matrix[1][1] -
+                      rotation_matrix[2][2]) *
+                 2.0f};
+    quaternion.w = (rotation_matrix[2][1] - rotation_matrix[1][2]) / s;
+    quaternion.x = .25f * s;
+    quaternion.y = (rotation_matrix[0][1] + rotation_matrix[1][0]) / s;
+    quaternion.z = (rotation_matrix[0][2] + rotation_matrix[2][0]) / s;
+  } else if (rotation_matrix[1][1] > rotation_matrix[2][2]) {
+    const auto s{Sqrt(1.0f + rotation_matrix[1][1] - rotation_matrix[0][0] -
+                      rotation_matrix[2][2]) *
+                 2.0f};
+    quaternion.w = (rotation_matrix[0][2] - rotation_matrix[2][0]) / s;
+    quaternion.x = (rotation_matrix[0][1] + rotation_matrix[1][0]) / s;
+    quaternion.y = .25f * s;
+    quaternion.z = (rotation_matrix[1][2] + rotation_matrix[2][1]) / s;
+  } else {
+    const auto s{Sqrt(1.0f + rotation_matrix[2][2] - rotation_matrix[0][0] -
+                      rotation_matrix[1][1]) *
+                 2.0f};
+    quaternion.w = (rotation_matrix[1][0] - rotation_matrix[0][1]) / s;
+    quaternion.x = (rotation_matrix[0][2] + rotation_matrix[2][0]) / s;
+    quaternion.y = (rotation_matrix[1][2] + rotation_matrix[2][1]) / s;
+    quaternion.z = .25f * s;
+  }
+
+  return quaternion;
+}
+
 Vec3 ExtractTranslation(const Mat4& transform) {
   return Vec3{transform[3][0], transform[3][1], transform[3][2]};
 }
@@ -160,7 +207,7 @@ Vec3 ExtractScale(const Mat4& transform) {
 }
 
 f32 ExtractUniformScale(const Mat4& transform) {
-  auto scale{ExtractScale(transform)};
+  const auto scale{ExtractScale(transform)};
   return AverageComponents(scale);
 }
 
@@ -171,58 +218,11 @@ Mat3 ExtractRotationMatrix(const Mat4& transform) {
   scale.z = GetMagnitude(Vec3(transform[2]));
 
   Mat3 rotation{};
-  rotation[0] = Vec3(transform[0]) / (scale.x != 0.0f ? scale.x : 1.0f);
-  rotation[1] = Vec3(transform[1]) / (scale.y != 0.0f ? scale.y : 1.0f);
-  rotation[2] = Vec3(transform[2]) / (scale.z != 0.0f ? scale.z : 1.0f);
+  rotation[0] = Vec3(transform[0]) / (scale.x != .0f ? scale.x : 1.0f);
+  rotation[1] = Vec3(transform[1]) / (scale.y != .0f ? scale.y : 1.0f);
+  rotation[2] = Vec3(transform[2]) / (scale.z != .0f ? scale.z : 1.0f);
 
   return rotation;
-}
-
-Quat ToQuaternion(const glm::mat3& rotation_matrix) {
-  // https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
-  Quat quaternion{};
-
-  auto trace{rotation_matrix[0][0] + rotation_matrix[1][1] +
-             rotation_matrix[2][2]};
-
-  // Case: the scalar part (w) is the largest.
-  if (trace > 0.0f) {
-    auto s{Sqrt(trace + 1.0f) * 2.0f};
-    quaternion.w = 0.25f * s;
-    quaternion.x = (rotation_matrix[2][1] - rotation_matrix[1][2]) / s;
-    quaternion.y = (rotation_matrix[0][2] - rotation_matrix[2][0]) / s;
-    quaternion.z = (rotation_matrix[1][0] - rotation_matrix[0][1]) / s;
-  }
-
-  // Other cases: either x, y or z is dominant.
-  else if (rotation_matrix[0][0] > rotation_matrix[1][1] &&
-           rotation_matrix[0][0] > rotation_matrix[2][2]) {
-    auto s{Sqrt(1.0f + rotation_matrix[0][0] - rotation_matrix[1][1] -
-                rotation_matrix[2][2]) *
-           2.0f};
-    quaternion.w = (rotation_matrix[2][1] - rotation_matrix[1][2]) / s;
-    quaternion.x = 0.25f * s;
-    quaternion.y = (rotation_matrix[0][1] + rotation_matrix[1][0]) / s;
-    quaternion.z = (rotation_matrix[0][2] + rotation_matrix[2][0]) / s;
-  } else if (rotation_matrix[1][1] > rotation_matrix[2][2]) {
-    auto s{Sqrt(1.0f + rotation_matrix[1][1] - rotation_matrix[0][0] -
-                rotation_matrix[2][2]) *
-           2.0f};
-    quaternion.w = (rotation_matrix[0][2] - rotation_matrix[2][0]) / s;
-    quaternion.x = (rotation_matrix[0][1] + rotation_matrix[1][0]) / s;
-    quaternion.y = 0.25f * s;
-    quaternion.z = (rotation_matrix[1][2] + rotation_matrix[2][1]) / s;
-  } else {
-    auto s{Sqrt(1.0f + rotation_matrix[2][2] - rotation_matrix[0][0] -
-                rotation_matrix[1][1]) *
-           2.0f};
-    quaternion.w = (rotation_matrix[1][0] - rotation_matrix[0][1]) / s;
-    quaternion.x = (rotation_matrix[0][2] + rotation_matrix[2][0]) / s;
-    quaternion.y = (rotation_matrix[1][2] + rotation_matrix[2][1]) / s;
-    quaternion.z = 0.25f * s;
-  }
-
-  return quaternion;
 }
 
 Quat ExtractRotation(const Mat4& transform) {

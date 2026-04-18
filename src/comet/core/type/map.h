@@ -157,8 +157,8 @@ class Map {
     }
 
     Clear();
-    this->pairs_ = other.pairs_;
-    this->allocator_ = other.allocator_;
+    pairs_ = other.pairs_;
+    allocator_ = other.allocator_;
     return *this;
   }
 
@@ -168,8 +168,8 @@ class Map {
     }
 
     Clear();
-    this->pairs_ = std::move(other.pairs_);
-    this->allocator_ = other.allocator_;
+    pairs_ = std::move(other.pairs_);
+    allocator_ = other.allocator_;
 
     other.allocator_ = nullptr;
     return *this;
@@ -177,13 +177,11 @@ class Map {
 
   ~Map() { Destroy(); }
 
-  void Destroy() { this->pairs_.Destroy(); }
+  void Destroy() { pairs_.Destroy(); }
 
   Value& operator[](const Key& key) { return Get(key); }
 
-  bool operator==(const Map& other) const {
-    return this->pairs_ == other.pairs_;
-  }
+  bool operator==(const Map& other) const { return pairs_ == other.pairs_; }
 
   bool operator!=(const Map& other) const { return !(*this == other); }
 
@@ -195,11 +193,10 @@ class Map {
     }
 
     if constexpr (std::is_constructible_v<Value, memory::Allocator*>) {
-      auto& new_pair{
-          this->pairs_.Emplace(KVPair{key, Value(this->allocator_)})};
+      auto& new_pair{pairs_.Emplace(KVPair{key, Value(allocator_)})};
       return new_pair.value;
     } else if constexpr (std::is_default_constructible_v<Value>) {
-      auto& new_pair{this->pairs_.Emplace(KVPair{key, Value{}})};
+      auto& new_pair{pairs_.Emplace(KVPair{key, Value{}})};
       return new_pair.value;
     } else {
       COMET_ASSERT(false,
@@ -216,58 +213,55 @@ class Map {
   }
 
   Value* TryGet(const Key& key) {
-    auto* pair{this->pairs_.Find(key)};
+    auto* pair{pairs_.Find(key)};
     return pair ? &pair->value : nullptr;
   }
 
   const Value* TryGet(const Key& key) const {
-    const auto* pair{this->pairs_.Find(key)};
+    const auto* pair{pairs_.Find(key)};
     return pair ? &pair->value : nullptr;
   }
 
   template <typename K, typename V>
   void Set(K&& key, V&& value) {
-    this->pairs_.Set(KVPair{std::forward<K>(key), std::forward<V>(value)});
+    pairs_.Set(KVPair{std::forward<K>(key), std::forward<V>(value)});
   }
 
   template <typename P>
   void Set(P&& pair) {
-    this->pairs_.Set(std::forward<P>(pair));
+    pairs_.Set(std::forward<P>(pair));
   }
 
   template <typename K, typename... Targs>
   KVPair& Emplace(K&& key, Targs&&... args) {
-    return this->pairs_.Emplace(
+    return pairs_.Emplace(
         KVPair{std::forward<K>(key), Value{std::forward<Targs>(args)...}});
   }
 
-  bool Remove(const Key& key) { return this->pairs_.Remove(key); }
+  bool Remove(const Key& key) { return pairs_.Remove(key); }
 
   template <typename Predicate>
   usize RemoveIf(Predicate&& predicate) {
-    return pairs_.RemoveIf(predicate);
+    return pairs_.RemoveIf(
+        [&](const KVPair& pair) { return predicate(pair.key, pair.value); });
   }
 
   Value Pop(const Key& key) {
-    auto pair{this->pairs_.Pop(key)};
+    const auto pair{pairs_.Pop(key)};
     return pair.value;
   }
 
-  void Clear() { this->pairs_.Clear(); }
+  void Clear() { pairs_.Clear(); }
 
-  bool IsContained(const Key& key) const {
-    return this->pairs_.IsContained(key);
-  }
+  bool IsContained(const Key& key) const { return pairs_.IsContained(key); }
 
-  void Reserve(usize capacity) { this->pairs_.Reserve(capacity); }
+  void Reserve(usize capacity) { pairs_.Reserve(capacity); }
 
-  usize GetEntryCount() const noexcept { return this->pairs_.GetEntryCount(); }
+  usize GetEntryCount() const noexcept { return pairs_.GetEntryCount(); }
 
-  usize GetBucketCount() const noexcept {
-    return this->pairs_.GetBucketCount();
-  }
+  usize GetBucketCount() const noexcept { return pairs_.GetBucketCount(); }
 
-  bool IsEmpty() const noexcept { return this->pairs_.IsEmpty(); }
+  bool IsEmpty() const noexcept { return pairs_.IsEmpty(); }
 
  private:
   Pairs pairs_{};

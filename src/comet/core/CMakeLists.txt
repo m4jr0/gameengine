@@ -20,9 +20,10 @@ endif()
 
 # Source files #################################################################
 set(COMET_LIBRARY_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/algorithm_common.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/back_insert_iterator.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/comparator.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/inplace_merge.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/iterator_utils.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/set_difference.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/algorithm/sort.h"
 
@@ -36,7 +37,6 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/essentials.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/file_system/file_system.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/file_system/slash_helper.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/game_state_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/generator.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/hash.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/logger.cc"
@@ -88,8 +88,10 @@ set(COMET_LIBRARY_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/array.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/bitset.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/buffer_formatter.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/exception.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/handle.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/hash_set.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/iterator.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/map.h"
@@ -97,6 +99,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/primitive.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/region_map.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/ring_queue.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/type/shared_instance_registry.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/string_id.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/traits.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/tstring.cc"

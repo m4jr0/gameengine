@@ -13,12 +13,12 @@ namespace comet {
 namespace geometry {
 struct StaticModelComponent {
   entity::EntityId entity_id{entity::kInvalidEntityId};
-  const resource::StaticModelResource* resource{nullptr};
+  resource::StaticModelResourceHandle resource_handle{};
 };
 
 struct SkeletalModelComponent {
   entity::EntityId entity_id{entity::kInvalidEntityId};
-  const resource::SkeletalModelResource* resource{nullptr};
+  resource::SkeletalModelResourceHandle resource_handle{};
 };
 }  // namespace geometry
 }  // namespace comet

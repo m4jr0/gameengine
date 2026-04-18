@@ -51,6 +51,7 @@ class AssetExporter {
   virtual ~AssetExporter() = default;
 
   virtual bool IsCompatible(CTStringView extension) const = 0;
+
   void Process(const AssetExportDescr& descr);
 
   template <typename ResourcePath>
@@ -80,6 +81,7 @@ class AssetExporter {
 
  private:
   void OnAssetProcessed(AssetExport* asset_export);
+
   AssetExport* GenerateAssetExport();
   void DestroyAssetExport(AssetExport* asset_export);
 

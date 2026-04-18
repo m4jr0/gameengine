@@ -20,6 +20,7 @@ struct CpuProfilerDisplayerContext {
 
   void Focus(usize index);
   void UnFocus();
+
   usize GetFrameIndex() const;
   const profiler::FrameProfilerContext* GetFrameContext() const;
   const profiler::FrameProfilerContext* GetFrameContext(usize index) const;

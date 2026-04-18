@@ -7,21 +7,24 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/map.h"
-#include "comet/math/math_common.h"
+#include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/opengl/data/opengl_material.h"
+#include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
+#include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
+#include "comet/rendering/rendering_handle.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using MaterialDestroyCallback = void (*)(Material* material, void* user_data);
+using MaterialDestroyCallback = void (*)(const Material* material,
+                                         void* user_data);
 
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
+  SamplerHandler* sampler_handler{nullptr};
 };
 
 class MaterialHandler : public Handler {
@@ -32,48 +35,43 @@ class MaterialHandler : public Handler {
   MaterialHandler(MaterialHandler&&) = delete;
   MaterialHandler& operator=(const MaterialHandler&) = delete;
   MaterialHandler& operator=(MaterialHandler&&) = delete;
-  virtual ~MaterialHandler() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~MaterialHandler() override = default;
 
   void SetDestroyCallback(MaterialDestroyCallback callback, void* user_data);
 
-  Material* Generate(const MaterialDescr& descr);
-  Material* Generate(const resource::MaterialResource* resource);
-  Material* Get(MaterialId material_id);
-  Material* TryGet(MaterialId material_id);
-  void Destroy(MaterialId material_id);
-  void Destroy(Material* material);
+  MaterialHandle GetOrGenerate(const MaterialDescr& descr);
+  MaterialHandle GetOrGenerate(
+      resource::MaterialResourceId material_resource_id);
+
+  void Destroy(MaterialHandle handle);
+
+  const Material* Get(MaterialHandle handle) const;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
-  TextureMap GenerateTextureMap(const resource::TextureMap* map,
-                                resource::ResourceLifeSpan life_span =
-                                    resource::ResourceLifeSpan::Manual);
-  void Destroy(Material* material, bool is_destroying_handler);
+  TextureMap GenerateTextureMap(const resource::TextureMapResource* map);
+  void DestroyMaterial(Material* material);
 
-  Sampler* GenerateSampler(SamplerId sampler_id, GLenum wrap_s, GLenum wrap_t,
-                           GLenum min_filter, GLenum mag_filter);
-  Sampler* GetSampler(SamplerId sampler_id);
-  Sampler* TryGetSampler(SamplerId sampler_id);
-  Sampler* GetOrGenerateSampler(const resource::TextureMap* texture_map);
-  void Destroy(Sampler* sampler);
+  SamplerHandle GetOrGenerateSampler(const resource::TextureMapResource* map);
 
-  static GLenum GetWrapMode(TextureRepeatMode repeat_mode);
-  static GLenum GetFilterMode(TextureFilterMode filter_mode);
+  Material* Get(MaterialHandle handle);
 
-  memory::FiberFreeListAllocator allocator_{
-      math::Max(sizeof(Pair<MaterialId, Material>),
-                sizeof(Pair<SamplerId, Sampler>)),
-      256, memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+
+  memory::FiberFreeListAllocator allocator_{sizeof(Material), 256,
+                                            memory::kEngineMemoryTagRendering};
+
+  SharedInstanceRegistry<resource::MaterialResourceId, MaterialTag, Material>
+      materials_;
 
   MaterialDestroyCallback destroy_callback_{nullptr};
   void* destroy_callback_user_data_{nullptr};
 
-  Map<MaterialId, Material*> materials_{};
-  Map<SamplerId, Sampler*> samplers_{};
-
   TextureHandler* texture_handler_{nullptr};
+  SamplerHandler* sampler_handler_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

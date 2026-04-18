@@ -23,7 +23,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -132,8 +132,9 @@ VkSampleCountFlagBits GetMaxUsableSampleCount(
   vkGetPhysicalDeviceProperties(physical_device_handle,
                                 &physical_device_properties);
 
-  auto counts{physical_device_properties.limits.framebufferColorSampleCounts &
-              physical_device_properties.limits.framebufferDepthSampleCounts};
+  const auto counts{
+      physical_device_properties.limits.framebufferColorSampleCounts &
+      physical_device_properties.limits.framebufferDepthSampleCounts};
 
   if (counts & VK_SAMPLE_COUNT_64_BIT) return VK_SAMPLE_COUNT_64_BIT;
   if (counts & VK_SAMPLE_COUNT_32_BIT) return VK_SAMPLE_COUNT_32_BIT;
@@ -171,7 +172,7 @@ void Device::Initialize() {
   vkGetPhysicalDeviceFeatures(physical_device_handle_, &features_);
   vkGetPhysicalDeviceMemoryProperties(physical_device_handle_,
                                       &memory_properties_);
-  auto max_samples{GetMaxUsableSampleCount(physical_device_handle_)};
+  const auto max_samples{GetMaxUsableSampleCount(physical_device_handle_)};
 
   switch (anti_aliasing_type_) {
     case AntiAliasingType::None:
@@ -208,7 +209,7 @@ void Device::Initialize() {
       break;
   }
 
-  auto max_samples_cast{static_cast<u32>(max_samples)};
+  const auto max_samples_cast{static_cast<u32>(max_samples)};
 
   if (static_cast<u32>(msaa_samples_) > max_samples_cast) {
     COMET_LOG_RENDERING_ERROR(
@@ -246,12 +247,13 @@ void Device::Initialize() {
   queue_family_indices_ =
       FindQueueFamilies(physical_device_handle_, surface_handle_);
 
-  auto unique_queue_family_indices{GetUniqueIndices(queue_family_indices_)};
+  const auto unique_queue_family_indices{
+      GetUniqueIndices(queue_family_indices_)};
   frame::FrameArray<VkDeviceQueueCreateInfo> queue_create_info{};
   queue_create_info.Reserve(unique_queue_family_indices.GetSize());
-  auto queue_priority{1.0f};
+  const auto queue_priority{1.0f};
 
-  for (auto queue_family_index : unique_queue_family_indices) {
+  for (const auto queue_family_index : unique_queue_family_indices) {
     queue_create_info.PushBack(init::GenerateDeviceQueueCreateInfo(
         queue_family_index, queue_priority));
   }
@@ -276,7 +278,7 @@ void Device::Initialize() {
   timeline_semaphore_features.timelineSemaphore = VK_TRUE;
   timeline_semaphore_features.pNext = &synchronization2_features;
 
-  auto create_info{init::GenerateDeviceCreateInfo(
+  const auto create_info{init::GenerateDeviceCreateInfo(
       queue_create_info, physical_device_features,
       kRequiredExtensions_.GetData(),
       static_cast<u32>(kRequiredExtensions_.GetSize()),
@@ -345,7 +347,7 @@ void Device::WaitIdle() const {
 VkFormat Device::ChooseFormat(VkImageTiling tiling,
                               VkFormatFeatureFlags features,
                               const Array<VkFormat>& candidates) const {
-  for (auto format : candidates) {
+  for (const auto format : candidates) {
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(physical_device_handle_, format,
                                         &properties);
@@ -470,7 +472,8 @@ PhysicalDeviceScore Device::GetPhysicalDeviceScore(
     return score;
   }
 
-  auto indices{FindQueueFamilies(physical_device_handle, surface_handle_)};
+  const auto indices{
+      FindQueueFamilies(physical_device_handle, surface_handle_)};
 
   if (!AreQueueFamilyIndicesComplete(indices)) {
     return score;
@@ -493,7 +496,7 @@ PhysicalDeviceScore Device::GetPhysicalDeviceScore(
     score += 1000;
   }
 
-  auto msaa_samples{GetMaxUsableSampleCount(physical_device_handle)};
+  const auto msaa_samples{GetMaxUsableSampleCount(physical_device_handle)};
   score += 5 * msaa_samples;
   score += properties.limits.maxImageDimension2D;
 
@@ -565,7 +568,7 @@ void Device::ResolvePhysicalDeviceHandle() {
   PhysicalDeviceScore best_score{0};
 
   for (const auto& physical_device_handle : physical_device_handles) {
-    auto score{GetPhysicalDeviceScore(physical_device_handle)};
+    const auto score{GetPhysicalDeviceScore(physical_device_handle)};
 
     if (score > best_score || physical_device_handle_ == VK_NULL_HANDLE) {
       physical_device_handle_ = physical_device_handle;

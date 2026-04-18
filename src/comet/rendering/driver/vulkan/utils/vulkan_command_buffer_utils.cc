@@ -38,7 +38,7 @@ void AllocateCommandData(CommandData& command_data,
                          [[maybe_unused]] const schar* debug_label) {
   COMET_ASSERT(!command_data.is_allocated,
                "Tried to allocate command data, but it is already allocated!");
-  auto alloc_info{init::GenerateCommandBufferAllocateInfo(
+  const auto alloc_info{init::GenerateCommandBufferAllocateInfo(
       command_data.command_pool_handle, 1, VK_COMMAND_BUFFER_LEVEL_PRIMARY)};
   COMET_CHECK_VK(
       vkAllocateCommandBuffers(command_data.device_handle, &alloc_info,
@@ -83,7 +83,7 @@ void SubmitCommand(VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
                    const void* next) {
   COMET_CHECK_VK(vkEndCommandBuffer(command_buffer_handle),
                  "Could not end command buffer!");
-  auto submit_info{init::GenerateSubmitInfo(
+  const auto submit_info{init::GenerateSubmitInfo(
       &command_buffer_handle, wait_semaphores, wait_semaphore_count,
       signal_semaphores, signal_semaphore_count, wait_dst_stage_mask, next)};
   COMET_CHECK_VK(vkQueueSubmit(queue_handle, 1, &submit_info, fence_handle),
@@ -116,7 +116,7 @@ void SubmitCommand2(u32 command_buffer_info_count,
                    "Could not end command buffer!");
   }
 
-  auto submit_info{init::GenerateSubmitInfo2(
+  const auto submit_info{init::GenerateSubmitInfo2(
       command_buffer_info_count, command_buffer_infos, wait_semaphore_infos,
       wait_semaphore_info_count, signal_semaphore_infos,
       signal_semaphore_info_count, next)};
@@ -164,7 +164,7 @@ void SubmitOneTimeCommand(
   auto used_fence_handle{fence_handle};
 
   if (used_fence_handle == VK_NULL_HANDLE) {
-    auto fence_info{init::GenerateFenceCreateInfo()};
+    const auto fence_info{init::GenerateFenceCreateInfo()};
     vkCreateFence(device_handle, &fence_info, VK_NULL_HANDLE,
                   &used_fence_handle);
   }

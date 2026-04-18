@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/math/geometry.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #include "comet/math/quaternion.h"
 
 namespace comet {
@@ -21,16 +21,16 @@ inline T1 Lerp(T1 a, T1 b, T2 t) {
 template <typename T>
 Quat Slerp(const Quat& quat_a, const Quat& quat_b, T t) {
 #ifdef COMET_USE_LERP_FOR_SLERP
-  auto result{Lerp(quat_a, quat_b, t)};
+  const auto result{Lerp(quat_a, quat_b, t)};
   return Normalize(result);
 #else
   auto a{1.0 - t};
   auto b{t};
-  auto d{quat_a.x * quat_b.x + quat_a.y * quat_b.y + quat_a.z * quat_b.z +
-         quat_a.w * quat_b.w};
+  const auto d{quat_a.x * quat_b.x + quat_a.y * quat_b.y + quat_a.z * quat_b.z +
+               quat_a.w * quat_b.w};
   auto c{Abs(d)};
 
-  if (c < 0.999) {
+  if (c < .999) {
     c = Acos(c);
     b = 1 / Sin(c);
     a = Sin(a * c) * b;

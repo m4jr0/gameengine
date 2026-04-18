@@ -7,9 +7,15 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
-#include "comet/core/memory/memory.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/type/array.h"
+#include "comet/core/type/handle.h"
 #include "comet/event/event.h"
+#include "comet/math/quaternion.h"
+#include "comet/math/vector.h"
 #include "comet/rendering/camera/camera.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -22,17 +28,48 @@ class CameraManager : public Manager {
   CameraManager(CameraManager&&) = delete;
   CameraManager& operator=(const CameraManager&) = delete;
   CameraManager& operator=(CameraManager&&) = delete;
-  virtual ~CameraManager() = default;
+  ~CameraManager() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
-  Camera* GetMainCamera();
+  CameraHandle GetMainCamera() const noexcept;
+  bool IsAlive(CameraHandle handle) const noexcept;
+
+  void Reset(CameraHandle handle);
+  void Translate(CameraHandle handle, const math::Vec3& translation);
+  void Move(CameraHandle handle, const math::Vec3& delta);
+  void Rotate(CameraHandle handle, const math::Vec2& delta);
+  void Rotate(CameraHandle handle, const math::Quat& rotation);
+  void Orbit(CameraHandle handle, const math::Vec2& delta);
+
+  void SetPosition(CameraHandle handle, const math::Vec3& position);
+  void SetRotation(CameraHandle handle, const math::Quat& rotation);
+  void SetWidth(CameraHandle handle, WindowSize width);
+  void SetHeight(CameraHandle handle, WindowSize height);
+  void SetSize(CameraHandle handle, WindowSize width, WindowSize height);
+
+  WindowSize GetWidth(CameraHandle handle) const;
+  WindowSize GetHeight(CameraHandle handle) const;
+
+  void PopulateRenderData(CameraHandle handle, RenderCameraData& data);
+  void PopulateMainRenderData(RenderCameraData& data);
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   void OnEvent(const event::Event& event);
-  void GenerateMainCamera();
+  CameraHandle GenerateMainCamera();
 
-  memory::UniquePtr<Camera> main_camera_{nullptr};
+  Camera* GetCamera(CameraHandle handle);
+  const Camera* GetCamera(CameraHandle handle) const;
+
+  memory::FiberFreeListAllocator allocator_{sizeof(Camera), 16,
+                                            memory::kEngineMemoryTagRendering};
+
+  HandlePool<CameraTag> camera_pool_{};
+  Array<Camera> cameras_{};
+
+  CameraHandle main_camera_{};
 };
 }  // namespace rendering
 }  // namespace comet

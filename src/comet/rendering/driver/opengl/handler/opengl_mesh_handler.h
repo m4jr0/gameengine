@@ -14,8 +14,7 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/geometry/geometry_common.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/rendering/driver/opengl/data/opengl_mesh.h"
 #include "comet/rendering/driver/opengl/data/opengl_region_gpu_buffer.h"
 #include "comet/rendering/driver/opengl/data/opengl_storage.h"
@@ -53,21 +52,22 @@ class MeshHandler : public Handler {
   MeshHandler(MeshHandler&&) = delete;
   MeshHandler& operator=(const MeshHandler&) = delete;
   MeshHandler& operator=(MeshHandler&&) = delete;
-  virtual ~MeshHandler() = default;
+  ~MeshHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(const frame::FramePacket* packet);
 
-  MeshProxyHandle GetHandle(geometry::MeshId mesh_id) const;
-  const MeshProxy* Get(MeshProxyHandle handle) const;
+  const MeshProxy* Get(geometry::MeshHandle handle) const;
+  const MeshProxy* TryGet(geometry::MeshHandle handle) const;
 
-  StorageHandle GetVertexBufferHandle() const;
-  StorageHandle GetIndexBufferHandle() const;
+  GlNativeStorageHandle GetVertexBufferHandle() const;
+  GlNativeStorageHandle GetIndexBufferHandle() const;
   ShaderVertexSource GetVertexSource() const;
 
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
  private:
-  // Note: these are just wild guesses for now.
   static inline constexpr usize kVertexCountPerBlock_{1024};
   static inline constexpr usize kIndexCountPerBlock_{3 * kVertexCountPerBlock_};
   static inline constexpr usize kDefaultVertexCount_{
@@ -80,21 +80,20 @@ class MeshHandler : public Handler {
 
   internal::UpdateContext PrepareUpdate(const frame::FramePacket* packet);
   void FinishUpdate(internal::UpdateContext& update_context);
+
   void AddMeshProxies(const frame::AddedGeometries* geometry,
                       internal::UpdateContext& update_context);
   void UpdateMeshProxies(const frame::DirtyMeshes* meshes,
                          internal::UpdateContext& update_context);
   void DestroyMeshProxies(const frame::RemovedGeometries* geometry);
+
   void UploadMeshProxies(const internal::UpdateContext& update_context);
 
-  constexpr static usize kDefaultProxyCount_{4096};
-  constexpr static usize kDefaultReleaseBarrierCount_{2};
-  constexpr static usize kDefaultAcquireBarrierCount_{2};
+  static constexpr usize kDefaultProxyCount_{4096};
 
   memory::FiberFreeListAllocator allocator_{
       sizeof(u32), sizeof(u32) * kDefaultProxyCount_ * 64,
       memory::kEngineMemoryTagRendering};
-  Map<geometry::MeshId, usize> mesh_to_proxy_map_{};
   Array<MeshProxy> proxies_{};
   VertexGpuBuffer vertex_buffer_{};
   IndexGpuBuffer index_buffer_{};

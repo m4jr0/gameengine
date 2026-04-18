@@ -24,6 +24,7 @@ class Chrono {
 
   void Start(u32 duration_ms);
   void Restart();
+
   bool IsFinished();
 
  private:

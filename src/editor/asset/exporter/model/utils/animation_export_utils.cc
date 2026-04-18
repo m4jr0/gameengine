@@ -10,8 +10,10 @@
 #include "animation_export_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/animation/animation_id.h"
+#include "comet/animation/animation_utils.h"
 #include "comet/core/logger.h"
-#include "comet/geometry/geometry_common.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/math/geometry.h"
 #include "comet/math/vector.h"
 #include "comet/resource/resource.h"
@@ -67,21 +69,21 @@ animation::JointPose ExtractPose(const aiNodeAnim* channel, f64 tick_time) {
   animation::JointPose pose{};
 
   if (channel->mNumPositionKeys > 0) {
-    auto pos_key_index{ResolveAnimationKeyIndex(
+    const auto pos_key_index{ResolveAnimationKeyIndex(
         channel->mPositionKeys, channel->mNumPositionKeys, tick_time)};
     const auto& pos_key{channel->mPositionKeys[pos_key_index].mValue};
     pose.translation = ToVec3(pos_key);
   }
 
   if (channel->mNumRotationKeys > 0) {
-    auto rot_key_index{ResolveAnimationKeyIndex(
+    const auto rot_key_index{ResolveAnimationKeyIndex(
         channel->mRotationKeys, channel->mNumRotationKeys, tick_time)};
     const auto& rot_key{channel->mRotationKeys[rot_key_index].mValue};
     pose.rotation = ToQuat(rot_key);
   }
 
   if (channel->mNumScalingKeys > 0) {
-    auto scale_key_index{ResolveAnimationKeyIndex(
+    const auto scale_key_index{ResolveAnimationKeyIndex(
         channel->mScalingKeys, channel->mNumScalingKeys, tick_time)};
     const auto& scale_key{channel->mScalingKeys[scale_key_index].mValue};
     pose.scale = math::AverageComponents(ToVec3(scale_key));
@@ -101,7 +103,7 @@ animation::JointPose ToJointPose(const math::Mat4& transform) {
 
 void PopulateMissingAnimationChannelDataNodes(
     const aiNode* node, AnimationChannelData& channel_data) {
-  auto joint_id{GenerateSkeletonJointId(node)};
+  const auto joint_id{GenerateSkeletonJointId(node)};
 
   if (!channel_data.IsContained(joint_id)) {
     channel_data.Emplace(joint_id,
@@ -121,7 +123,7 @@ AnimationChannelData GenerateAnimationChannelData(
 
   for (u32 c{0}; c < raw_animation->mNumChannels; ++c) {
     const auto* channel{raw_animation->mChannels[c]};
-    auto joint_id{COMET_STRING_ID(channel->mNodeName.C_Str())};
+    const auto joint_id{COMET_STRING_ID(channel->mNodeName.C_Str())};
     channel_data.Emplace(joint_id,
                          AnimationChannelDataNode{channel, {1.0f}, true});
   }
@@ -140,7 +142,7 @@ void PopulateSample(ModelExport& model_export,
   sample.joint_poses =
       Array<animation::CompressedJointPose>(model_export.allocator);
   sample.joint_poses.Resize(skeleton_joint_count);
-  auto tick_time{frame * tick_delta};
+  const auto tick_time{frame * tick_delta};
 
   for (u32 joint_index{0}; joint_index < skeleton_joint_count; ++joint_index) {
     const auto& joint{skeleton.joints[joint_index]};
@@ -169,19 +171,20 @@ void PopulateAnimationClip(ModelExport& model_export,
                            resource::AnimationClipResource& clip_resource) {
   const auto* animation_name{raw_animation->mName.C_Str()};
   COMET_LOG_GLOBAL_DEBUG("Processing ", animation_name, " animation...");
-  clip_resource.id =
-      resource::GenerateAnimationClipId(model_export.path, animation_name);
+  const auto animation_id{animation::GenerateQualifiedAnimationClipId(
+      model_export.path, animation_name)};
+  clip_resource.id = animation_id.GetValue();
   clip_resource.type_id = resource::AnimationClipResource::kResourceTypeId;
 
   auto& clip{clip_resource.clip};
-  clip.id = static_cast<animation::AnimationClipId>(clip_resource.id);
+  clip.id = animation_id;
   clip.frames_per_second = kDefaultAnimationFrameRate;
 
-  auto ticks_per_second{static_cast<u32>(raw_animation->mTicksPerSecond != 0
-                                             ? raw_animation->mTicksPerSecond
-                                             : kDefaultTicksPerSecond)};
+  const auto ticks_per_second{static_cast<u32>(
+      raw_animation->mTicksPerSecond != 0 ? raw_animation->mTicksPerSecond
+                                          : kDefaultTicksPerSecond)};
 
-  auto duration_seconds{raw_animation->mDuration / ticks_per_second};
+  const auto duration_seconds{raw_animation->mDuration / ticks_per_second};
 
   clip.frame_count =
       static_cast<u32>(duration_seconds * clip.frames_per_second);
@@ -190,8 +193,9 @@ void PopulateAnimationClip(ModelExport& model_export,
   clip.samples = Array<animation::CompressedAnimationSample>(allocator);
   clip.samples.Reserve(clip.frame_count);
 
-  auto channel_data{GenerateAnimationChannelData(model_export, raw_animation)};
-  auto tick_delta{ticks_per_second / clip.frames_per_second};
+  const auto channel_data{
+      GenerateAnimationChannelData(model_export, raw_animation)};
+  const auto tick_delta{ticks_per_second / clip.frames_per_second};
 
   for (u32 frame{0}; frame < clip.frame_count; ++frame) {
     auto& sample{clip.samples.EmplaceBack()};

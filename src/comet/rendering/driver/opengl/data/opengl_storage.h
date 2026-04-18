@@ -10,8 +10,8 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-using StorageHandle = u32;
-constexpr auto kInvalidStorageHandle{0};
+using GlNativeStorageHandle = u32;
+constexpr auto kInvalidGlNativeStorageHandle{0};
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

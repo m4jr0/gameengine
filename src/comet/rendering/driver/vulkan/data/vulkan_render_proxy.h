@@ -7,9 +7,9 @@
 
 #include "comet/core/essentials.h"
 #include "comet/entity/entity_id.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/math/matrix.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
@@ -23,8 +23,8 @@ constexpr auto kInvalidBatchId{static_cast<BatchId>(-1)};
 struct RenderProxy {
   RenderProxyId id{kInvalidRenderProxyId};
   entity::EntityId model_entity_id{entity::kInvalidEntityId};
-  MeshProxyHandle mesh_handle{kInvalidMeshProxyHandle};
-  MaterialId mat_id{kInvalidMaterialId};
+  geometry::MeshHandle mesh_handle{};
+  MaterialHandle material_handle{};
 };
 
 struct RenderProxyModelBindings {

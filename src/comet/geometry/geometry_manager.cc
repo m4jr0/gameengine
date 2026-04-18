@@ -14,6 +14,7 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/geometry/geometry_utils.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -23,6 +24,7 @@ static MeshId GetDebugUnitCubeMeshId() noexcept {
   return static_cast<MeshId>(COMET_STRING_ID("debug_unit_cube_mesh"));
 }
 }  // namespace internal
+
 GeometryManager& GeometryManager::Get() {
   static GeometryManager singleton{};
   return singleton;
@@ -30,76 +32,90 @@ GeometryManager& GeometryManager::Get() {
 
 GeometryManager::GeometryManager()
     : mesh_allocator_{sizeof(Mesh), 1024, memory::kEngineMemoryTagGeometry},
-      mesh_pair_allocator_{sizeof(Pair<MeshId, Mesh*>), 1024,
-                           memory::kEngineMemoryTagGeometry},
-      vertex_allocator_{sizeof(Vertex), 1024, memory::kEngineMemoryTagGeometry},
+      mesh_array_allocator_{sizeof(Mesh*), 1024,
+                            memory::kEngineMemoryTagGeometry},
+      mesh_map_allocator_{sizeof(Pair<MeshId, MeshHandle>), 1024,
+                          memory::kEngineMemoryTagGeometry},
+      vertex_allocator_{sizeof(SkinnedVertex), 1024,
+                        memory::kEngineMemoryTagGeometry},
       index_allocator_{sizeof(Index), 1024, memory::kEngineMemoryTagGeometry} {}
 
-void GeometryManager::Initialize() {
-  Manager::Initialize();
-  mesh_allocator_.Initialize();
-  mesh_pair_allocator_.Initialize();
-  vertex_allocator_.Initialize();
-  index_allocator_.Initialize();
+MeshHandle GeometryManager::GetOrGenerate(
+    const resource::MeshResource& resource) {
+  fiber::FiberLockGuard lock{mutex_};
 
-  meshes_ = Map<MeshId, Mesh*>{&mesh_pair_allocator_};
-}
+  const auto mesh_id{GenerateMeshId(resource)};
+  auto* existing_handle{mesh_handles_by_id_.TryGet(mesh_id)};
 
-void GeometryManager::Shutdown() {
-  for (auto& it : meshes_) {
-    Destroy(it.value, true);
+  if (existing_handle != nullptr && mesh_pool_.IsAlive(*existing_handle)) {
+    const auto index{static_cast<usize>(existing_handle->GetIndex())};
+    auto* mesh{meshes_[index]};
+    COMET_ASSERT(mesh != nullptr, "Cached mesh pointer is null!");
+    ++mesh->ref_count;
+    return *existing_handle;
   }
 
-  meshes_.Destroy();
+  const auto handle{mesh_pool_.Generate()};
+  const auto index{static_cast<usize>(handle.GetIndex())};
 
-  index_allocator_.Destroy();
-  vertex_allocator_.Destroy();
-  mesh_pair_allocator_.Destroy();
-  mesh_allocator_.Destroy();
-  Manager::Shutdown();
-}
-
-Mesh* GeometryManager::Generate(const resource::StaticMeshResource* resource) {
-  auto* mesh{GenerateInternal(resource)};
-  mesh->vertices = Array<geometry::SkinnedVertex>{&vertex_allocator_};
-  mesh->vertices.PushFromRange(resource->vertices);
-  return mesh;
-}
-
-Mesh* GeometryManager::Generate(const resource::SkinnedMeshResource* resource) {
-  auto* mesh{GenerateInternal(resource)};
-  mesh->vertices = Array<geometry::SkinnedVertex>{&vertex_allocator_};
-  mesh->vertices.Reserve(resource->vertices.GetSize());
-
-  for (const auto& skinned_vertex : resource->vertices) {
-    auto& vertex{mesh->vertices.EmplaceBack()};
-    vertex.position = skinned_vertex.position;
-    vertex.normal = skinned_vertex.normal;
-    vertex.tangent = skinned_vertex.tangent;
-    vertex.uv = skinned_vertex.uv;
-    vertex.color = skinned_vertex.color;
-    memory::CopyMemory(vertex.joint_indices, skinned_vertex.joint_indices,
-                       sizeof(SkeletonJointIndex) * kMaxSkeletonJointCount);
-    memory::CopyMemory(vertex.joint_weights, skinned_vertex.joint_weights,
-                       sizeof(JointWeight) * kMaxSkeletonJointCount);
+  if (index >= meshes_.GetSize()) {
+    meshes_.Resize(index + 1);
   }
 
-  return mesh;
+  auto* mesh{CreateMeshObject(resource, handle)};
+  meshes_[index] = mesh;
+  mesh_handles_by_id_.Set(mesh->id, handle);
+
+  return handle;
 }
 
-Mesh* GeometryManager::GenerateCube(f32 size) {
+MeshHandle GeometryManager::GetOrGenerate(MeshId mesh_id, MeshType type,
+                                          const Array<SkinnedVertex>& vertices,
+                                          const Array<Index>& indices,
+                                          const math::Vec3& local_center,
+                                          const math::Vec3& local_max_extents) {
+  fiber::FiberLockGuard lock{mutex_};
+
+  auto* existing_handle{mesh_handles_by_id_.TryGet(mesh_id)};
+
+  if (existing_handle != nullptr && mesh_pool_.IsAlive(*existing_handle)) {
+    const auto index{static_cast<usize>(existing_handle->GetIndex())};
+    auto* mesh{meshes_[index]};
+    COMET_ASSERT(mesh != nullptr, "Cached procedural mesh pointer is null!");
+    ++mesh->ref_count;
+    return *existing_handle;
+  }
+
+  const auto handle{mesh_pool_.Generate()};
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= meshes_.GetSize()) {
+    meshes_.Resize(index + 1);
+  }
+
+  auto* mesh{CreateProceduralMeshObject(mesh_id, type, vertices, indices,
+                                        local_center, local_max_extents,
+                                        handle)};
+  meshes_[index] = mesh;
+  mesh_handles_by_id_.Set(mesh->id, handle);
+
+  return handle;
+}
+
+MeshHandle GeometryManager::GenerateCube(f32 size) {
   COMET_ASSERT(size > .0f, "Debug cube size must be > 0!");
 
   const f32 h{size * .5f};
 
-  Array<geometry::SkinnedVertex> vertices{&vertex_allocator_};
-  Array<geometry::Index> indices{&index_allocator_};
+  Array<SkinnedVertex> vertices{&vertex_allocator_};
+  Array<Index> indices{&index_allocator_};
 
   vertices.Reserve(24);
   indices.Reserve(36);
 
-  auto push_vertex{[&](const math::Vec3& position, const math::Vec3& normal,
-                       const math::Vec4& tangent, const math::Vec2& uv) {
+  const auto push_vertex{[&](const math::Vec3& position,
+                             const math::Vec3& normal,
+                             const math::Vec4& tangent, const math::Vec2& uv) {
     auto& vertex{vertices.EmplaceBack()};
     vertex.position = position;
     vertex.normal = normal;
@@ -107,24 +123,23 @@ Mesh* GeometryManager::GenerateCube(f32 size) {
     vertex.uv = uv;
     vertex.color = math::Vec4{1.0f};
 
-    for (u32 i{0}; i < geometry::kMaxSkeletonJointCount; ++i) {
-      vertex.joint_indices[i] = geometry::kInvalidSkeletonJointIndex;
+    for (u32 i{0}; i < kMaxSkeletonJointCount; ++i) {
+      vertex.joint_indices[i] = kInvalidSkeletonJointIndex;
       vertex.joint_weights[i] = .0f;
     }
   }};
 
-  auto push_face{[&](const math::Vec3& p0, const math::Vec3& p1,
-                     const math::Vec3& p2, const math::Vec3& p3,
-                     const math::Vec3& normal, const math::Vec4& tangent) {
-    auto base_index{static_cast<geometry::Index>(vertices.GetSize())};
+  const auto push_face{[&](const math::Vec3& p0, const math::Vec3& p1,
+                           const math::Vec3& p2, const math::Vec3& p3,
+                           const math::Vec3& normal,
+                           const math::Vec4& tangent) {
+    const auto base_index{static_cast<Index>(vertices.GetSize())};
 
-    // Quad vertices in UV order.
     push_vertex(p0, normal, tangent, math::Vec2{.0f, .0f});
     push_vertex(p1, normal, tangent, math::Vec2{1.0f, .0f});
     push_vertex(p2, normal, tangent, math::Vec2{1.0f, 1.0f});
     push_vertex(p3, normal, tangent, math::Vec2{.0f, 1.0f});
 
-    // Two triangles: (0, 1, 2) and (0, 2, 3).
     indices.PushBack(base_index + 0);
     indices.PushBack(base_index + 1);
     indices.PushBack(base_index + 2);
@@ -134,97 +149,129 @@ Mesh* GeometryManager::GenerateCube(f32 size) {
     indices.PushBack(base_index + 3);
   }};
 
-  // +X face.
   push_face(math::Vec3{h, -h, -h}, math::Vec3{h, -h, h}, math::Vec3{h, h, h},
             math::Vec3{h, h, -h}, math::Vec3{1.0f, .0f, .0f},
             math::Vec4{.0f, .0f, 1.0f, 1.0f});
 
-  // -X face.
   push_face(math::Vec3{-h, -h, h}, math::Vec3{-h, -h, -h},
             math::Vec3{-h, h, -h}, math::Vec3{-h, h, h},
             math::Vec3{-1.0f, .0f, .0f}, math::Vec4{.0f, .0f, -1.0f, 1.0f});
 
-  // +Y face.
   push_face(math::Vec3{-h, h, -h}, math::Vec3{h, h, -h}, math::Vec3{h, h, h},
             math::Vec3{-h, h, h}, math::Vec3{.0f, 1.0f, .0f},
             math::Vec4{1.0f, .0f, .0f, 1.0f});
 
-  // -Y face.
   push_face(math::Vec3{-h, -h, h}, math::Vec3{h, -h, h}, math::Vec3{h, -h, -h},
             math::Vec3{-h, -h, -h}, math::Vec3{.0f, -1.0f, .0f},
             math::Vec4{1.0f, .0f, .0f, 1.0f});
 
-  // +Z face.
   push_face(math::Vec3{-h, -h, h}, math::Vec3{-h, h, h}, math::Vec3{h, h, h},
             math::Vec3{h, -h, h}, math::Vec3{.0f, .0f, 1.0f},
             math::Vec4{1.0f, .0f, .0f, 1.0f});
 
-  // -Z face.
   push_face(math::Vec3{h, -h, -h}, math::Vec3{h, h, -h}, math::Vec3{-h, h, -h},
             math::Vec3{-h, -h, -h}, math::Vec3{.0f, .0f, -1.0f},
             math::Vec4{-1.0f, .0f, .0f, 1.0f});
 
-  return GenerateProceduralMesh(internal::GetDebugUnitCubeMeshId(),
-                                MeshType::Static, vertices, indices,
-                                math::Vec3{.0f}, math::Vec3{h, h, h});
+  return GetOrGenerate(internal::GetDebugUnitCubeMeshId(), MeshType::Static,
+                       vertices, indices, math::Vec3{.0f}, math::Vec3{h, h, h});
 }
 
-Mesh* GeometryManager::Get(MeshId mesh_id) {
-  auto* mesh{TryGet(mesh_id)};
-  COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", mesh_id,
-               "!");
+void GeometryManager::Destroy(MeshHandle handle) { Destroy(handle, false); }
+
+void GeometryManager::Destroy(MeshId mesh_id) {
+  const auto handle{ResolveHandle(mesh_id)};
+  Destroy(handle);
+}
+
+const Mesh* GeometryManager::Get(MeshHandle handle) const {
+  const auto* mesh{TryGet(handle)};
+  COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", handle, "!");
   return mesh;
 }
 
-Mesh* GeometryManager::Get(const resource::MeshResource* resource) {
-  return Get(GenerateMeshId(resource));
-}
+const Mesh* GeometryManager::TryGet(MeshHandle handle) const {
+  fiber::FiberLockGuard lock{mutex_};
 
-Mesh* GeometryManager::TryGet(MeshId mesh_id) {
-  Mesh** result;
-
-  {
-    fiber::FiberLockGuard lock{mutex_};
-    result = meshes_.TryGet(mesh_id);
+  if (!mesh_pool_.IsAlive(handle)) {
+    return nullptr;
   }
 
-  return result != nullptr ? *result : nullptr;
-}
+  const auto index{static_cast<usize>(handle.GetIndex())};
 
-Mesh* GeometryManager::TryGet(const resource::MeshResource* resource) {
-  return TryGet(GenerateMeshId(resource));
-}
-
-Mesh* GeometryManager::GetOrGenerate(const resource::MeshResource* resource) {
-  auto* mesh{TryGet(resource)};
-
-  if (mesh != nullptr) {
-    ++mesh->ref_count;
-    return mesh;
+  if (index >= meshes_.GetSize()) {
+    return nullptr;
   }
 
-  switch (resource->type) {
-    case MeshType::Static:
-      return Generate(
-          static_cast<const resource::StaticMeshResource*>(resource));
-    case MeshType::Skinned:
-      return Generate(
-          static_cast<const resource::SkinnedMeshResource*>(resource));
-    default:
-      COMET_ASSERT(false, "Unknown or unsupported mesh type: ",
-                   GetMeshTypeLabel(resource->type), "!");
-      return nullptr;
-  }
+  return meshes_[index];
 }
 
-void GeometryManager::Destroy(MeshId mesh_id) { Destroy(Get(mesh_id)); }
+MeshHandle GeometryManager::ResolveHandle(MeshId mesh_id) const {
+  const auto handle{TryResolveHandle(mesh_id)};
+  COMET_ASSERT(handle, "Requested mesh does not exist: ", mesh_id, "!");
+  return handle;
+}
 
-void GeometryManager::Destroy(Mesh* mesh) { Destroy(mesh, false); }
+MeshHandle GeometryManager::ResolveHandle(
+    const resource::MeshResource& resource) const {
+  return ResolveHandle(GenerateMeshId(resource));
+}
+
+MeshHandle GeometryManager::TryResolveHandle(MeshId mesh_id) const {
+  fiber::FiberLockGuard lock{mutex_};
+
+  const auto* handle_ptr{mesh_handles_by_id_.TryGet(mesh_id)};
+
+  if (handle_ptr == nullptr) {
+    return MeshHandle::Invalid();
+  }
+
+  if (!mesh_pool_.IsAlive(*handle_ptr)) {
+    return MeshHandle::Invalid();
+  }
+
+  return *handle_ptr;
+}
+
+MeshHandle GeometryManager::TryResolveHandle(
+    const resource::MeshResource& resource) const {
+  return TryResolveHandle(GenerateMeshId(resource));
+}
 
 MeshId GeometryManager::GenerateMeshId(
-    const resource::MeshResource* resource) const {
-  return static_cast<u64>(resource->internal_id) |
-         static_cast<u64>(resource->resource_id) << 32;
+    const resource::MeshResource& resource) const {
+  return static_cast<u64>(resource.internal_id) |
+         (static_cast<u64>(resource.resource_id) << 32);
+}
+
+void GeometryManager::PopulateGeometryData(MeshHandle handle,
+                                           frame::AddedGeometry& out) const {
+  const auto* mesh{Get(handle)};
+
+  out.mesh_handle = mesh->handle;
+  out.local_center = mesh->local_center;
+  out.local_max_extents = mesh->local_max_extents;
+
+  COMET_ASSERT(out.vertices != nullptr, "Added geometry vertices are null!");
+  COMET_ASSERT(out.indices != nullptr, "Added geometry indices are null!");
+
+  out.vertices->PushFromRange(mesh->vertices);
+  out.indices->PushFromRange(mesh->indices);
+}
+
+void GeometryManager::PopulateGeometryData(MeshHandle handle,
+                                           frame::DirtyMesh& out) const {
+  const auto* mesh{Get(handle)};
+
+  out.mesh_handle = mesh->handle;
+  out.local_center = mesh->local_center;
+  out.local_max_extents = mesh->local_max_extents;
+
+  COMET_ASSERT(out.vertices != nullptr, "Dirty mesh vertices are null!");
+  COMET_ASSERT(out.indices != nullptr, "Dirty mesh indices are null!");
+
+  out.vertices->PushFromRange(mesh->vertices);
+  out.indices->PushFromRange(mesh->indices);
 }
 
 StaticModelComponent GeometryManager::GenerateStaticModelComponent(
@@ -232,8 +279,9 @@ StaticModelComponent GeometryManager::GenerateStaticModelComponent(
     resource::ResourceLifeSpan life_span) const {
   StaticModelComponent model_cmp{};
   model_cmp.entity_id = entity_id;
-  model_cmp.resource = resource::ResourceManager::Get().GetStaticModels()->Load(
-      model_path, life_span);
+  model_cmp.resource_handle =
+      resource::ResourceManager::Get().GetStaticModels()->Load(model_path,
+                                                               life_span);
   return model_cmp;
 }
 
@@ -242,211 +290,263 @@ SkeletalModelComponent GeometryManager::GenerateSkeletalModelComponent(
     resource::ResourceLifeSpan life_span) const {
   SkeletalModelComponent model_cmp{};
   model_cmp.entity_id = entity_id;
-  model_cmp.resource =
+  model_cmp.resource_handle =
       resource::ResourceManager::Get().GetSkeletalModels()->Load(model_path,
                                                                  life_span);
   return model_cmp;
 }
 
 MeshComponent GeometryManager::GenerateStaticMeshComponent(
-    const resource::StaticMeshResource* resource, entity::EntityId entity_id,
-    entity::EntityId model_entity_id, resource::ResourceLifeSpan life_span) {
+    const resource::StaticMeshResource& resource, entity::EntityId entity_id,
+    entity::EntityId model_entity_id) {
   MeshComponent mesh_cmp{};
   mesh_cmp.entity_id = entity_id;
   mesh_cmp.model_entity_id = model_entity_id;
-  mesh_cmp.mesh = GetOrGenerate(resource);
-  mesh_cmp.material_resource =
-      resource::ResourceManager::Get().GetMaterials()->Load(
-          resource->material_id, life_span);
-
+  mesh_cmp.mesh_handle = GetOrGenerate(resource);
+  mesh_cmp.material_resource_id = resource.material_resource_id;
   return mesh_cmp;
 }
 
 MeshComponent GeometryManager::GenerateSkinnedMeshComponent(
-    const resource::SkinnedMeshResource* resource, entity::EntityId entity_id,
-    entity::EntityId model_entity_id, resource::ResourceLifeSpan life_span) {
+    const resource::SkinnedMeshResource& resource, entity::EntityId entity_id,
+    entity::EntityId model_entity_id) {
   MeshComponent mesh_cmp{};
   mesh_cmp.entity_id = entity_id;
   mesh_cmp.model_entity_id = model_entity_id;
-  mesh_cmp.mesh = GetOrGenerate(resource);
-  mesh_cmp.material_resource =
-      resource::ResourceManager::Get().GetMaterials()->Load(
-          resource->material_id, life_span);
+  mesh_cmp.mesh_handle = GetOrGenerate(resource);
+  mesh_cmp.material_resource_id = resource.material_resource_id;
   return mesh_cmp;
 }
 
 SkeletonComponent GeometryManager::GenerateSkeletonComponent(
     CTStringView model_path, resource::ResourceLifeSpan life_span) const {
   SkeletonComponent skeleton_cmp{};
-  skeleton_cmp.resource = resource::ResourceManager::Get().GetSkeletons()->Load(
-      model_path, life_span);
+  skeleton_cmp.resource_handle =
+      resource::ResourceManager::Get().GetSkeletons()->Load(model_path,
+                                                            life_span);
   return skeleton_cmp;
 }
 
 void GeometryManager::DestroyStaticModelComponent(
     StaticModelComponent* model_cmp) const {
+  COMET_ASSERT(model_cmp != nullptr, "Static model component is null!");
+
   model_cmp->entity_id = entity::kInvalidEntityId;
 
-  if (model_cmp->resource != nullptr) {
+  if (model_cmp->resource_handle) {
     resource::ResourceManager::Get().GetStaticModels()->Unload(
-        model_cmp->resource->id);
-    model_cmp->resource = nullptr;
+        model_cmp->resource_handle);
+    model_cmp->resource_handle.Invalidate();
   }
 }
 
 void GeometryManager::DestroySkeletalModelComponent(
     SkeletalModelComponent* model_cmp) const {
+  COMET_ASSERT(model_cmp != nullptr, "Skeletal model component is null!");
+
   model_cmp->entity_id = entity::kInvalidEntityId;
 
-  if (model_cmp->resource != nullptr) {
+  if (model_cmp->resource_handle) {
     resource::ResourceManager::Get().GetSkeletalModels()->Unload(
-        model_cmp->resource->id);
-    model_cmp->resource = nullptr;
+        model_cmp->resource_handle);
+    model_cmp->resource_handle.Invalidate();
   }
 }
 
 void GeometryManager::DestroyStaticMeshComponent(MeshComponent* mesh_cmp) {
+  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
+
   mesh_cmp->entity_id = entity::kInvalidEntityId;
   mesh_cmp->model_entity_id = entity::kInvalidEntityId;
 
-  if (mesh_cmp->mesh != nullptr) {
-    Destroy(mesh_cmp->mesh);
-    mesh_cmp->mesh = nullptr;
+  if (mesh_cmp->mesh_handle) {
+    Destroy(mesh_cmp->mesh_handle);
+    mesh_cmp->mesh_handle.Invalidate();
   }
 
-  if (mesh_cmp->material_resource != nullptr) {
-    resource::ResourceManager::Get().GetMaterials()->Unload(
-        mesh_cmp->material_resource->id);
-  }
-
-  mesh_cmp->material_resource = nullptr;
+  mesh_cmp->material_resource_id.Invalidate();
 }
 
 void GeometryManager::DestroySkinnedMeshComponent(MeshComponent* mesh_cmp) {
+  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
+
   mesh_cmp->entity_id = entity::kInvalidEntityId;
   mesh_cmp->model_entity_id = entity::kInvalidEntityId;
 
-  if (mesh_cmp->mesh != nullptr) {
-    Destroy(mesh_cmp->mesh);
-    mesh_cmp->mesh = nullptr;
+  if (mesh_cmp->mesh_handle) {
+    Destroy(mesh_cmp->mesh_handle);
+    mesh_cmp->mesh_handle.Invalidate();
   }
 
-  if (mesh_cmp->material_resource != nullptr) {
-    resource::ResourceManager::Get().GetMaterials()->Unload(
-        mesh_cmp->material_resource->id);
-  }
-
-  mesh_cmp->material_resource = nullptr;
+  mesh_cmp->material_resource_id.Invalidate();
 }
 
 void GeometryManager::DestroySkeletonComponent(
-    SkeletonComponent* skeleton_cmp) {
-  if (skeleton_cmp->resource != nullptr) {
+    SkeletonComponent* skeleton_cmp) const {
+  COMET_ASSERT(skeleton_cmp != nullptr, "Skeleton component is null!");
+
+  if (skeleton_cmp->resource_handle) {
     resource::ResourceManager::Get().GetSkeletons()->Unload(
-        skeleton_cmp->resource->id);
+        skeleton_cmp->resource_handle);
+    skeleton_cmp->resource_handle.Invalidate();
   }
-
-  skeleton_cmp->resource = nullptr;
 }
 
-Mesh* GeometryManager::GenerateInternal(
-    const resource::MeshResource* resource) {
+void GeometryManager::OnInitialize() {
+  mesh_allocator_.Initialize();
+  mesh_map_allocator_.Initialize();
+  vertex_allocator_.Initialize();
+  index_allocator_.Initialize();
+
+  meshes_ = Array<Mesh*>{&mesh_array_allocator_};
+  mesh_handles_by_id_ = Map<MeshId, MeshHandle>{&mesh_map_allocator_};
+}
+
+void GeometryManager::OnShutdown() {
+  fiber::FiberLockGuard lock{mutex_};
+
+  for (auto* mesh : meshes_) {
+    if (mesh != nullptr) {
+      DestroyMeshObject(mesh);
+    }
+  }
+
+  meshes_.Destroy();
+  mesh_handles_by_id_.Destroy();
+  mesh_pool_.Destroy();
+
+  index_allocator_.Destroy();
+  vertex_allocator_.Destroy();
+  mesh_map_allocator_.Destroy();
+  mesh_allocator_.Destroy();
+}
+
+Mesh* GeometryManager::Get(MeshHandle handle) {
+  auto* mesh{TryGet(handle)};
+  COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", handle, "!");
+  return mesh;
+}
+
+Mesh* GeometryManager::TryGet(MeshHandle handle) {
+  fiber::FiberLockGuard lock{mutex_};
+
+  if (!mesh_pool_.IsAlive(handle)) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= meshes_.GetSize()) {
+    return nullptr;
+  }
+
+  return meshes_[index];
+}
+
+Mesh* GeometryManager::CreateMeshObject(const resource::MeshResource& resource,
+                                        MeshHandle handle) {
   auto* mesh{mesh_allocator_.AllocateOneAndPopulate<Mesh>()};
 
+  mesh->handle = handle;
   mesh->id = GenerateMeshId(resource);
-  mesh->type = resource->type;
-  mesh->transform = resource->transform;
-  mesh->local_center = resource->local_center;
-  mesh->local_max_extents = resource->local_max_extents;
+  mesh->type = resource.type;
+  mesh->transform = resource.transform;
+  mesh->local_center = resource.local_center;
+  mesh->local_max_extents = resource.local_max_extents;
+  mesh->ref_count = 1;
 
-  mesh->indices = Array<geometry::Index>{&index_allocator_};
-  mesh->indices.PushFromRange(resource->indices);
+  mesh->indices = Array<Index>{&index_allocator_};
+  mesh->indices.PushFromRange(resource.indices);
 
-#ifdef COMET_DEBUG
-  auto mesh_id{mesh->id};
-#endif  // COMET_DEBUG
+  mesh->vertices = Array<SkinnedVertex>{&vertex_allocator_};
 
-  Mesh* to_return;
+  switch (resource.type) {
+    case MeshType::Static: {
+      const auto& static_mesh{
+          static_cast<const resource::StaticMeshResource&>(resource)};
+      mesh->vertices.PushFromRange(static_mesh.vertices);
+      break;
+    }
 
-  {
-    fiber::FiberLockGuard lock{mutex_};
-    auto& insert_pair{meshes_.Emplace(mesh->id, std::move(mesh))};
-    to_return = insert_pair.value;
+    case MeshType::Skinned: {
+      const auto& skinned_mesh{
+          static_cast<const resource::SkinnedMeshResource&>(resource)};
+      mesh->vertices.PushFromRange(skinned_mesh.vertices);
+      break;
+    }
+
+    case MeshType::Unknown:
+    default:
+      COMET_ASSERT(false, "Unknown or unsupported mesh type: ",
+                   GetMeshTypeLabel(resource.type), "!");
+      break;
   }
 
-  if (to_return == nullptr) {
-    COMET_ASSERT(false, "Could not insert mesh #", mesh_id, "!");
-  }
-
-  to_return->ref_count = 1;
-  return to_return;
+  return mesh;
 }
 
-Mesh* GeometryManager::GenerateProceduralMesh(
-    MeshId mesh_id, MeshType type,
-    const Array<geometry::SkinnedVertex>& vertices,
-    const Array<geometry::Index>& indices, const math::Vec3& local_center,
-    const math::Vec3& local_max_extents) {
-  if (auto* existing{TryGet(mesh_id)}; existing != nullptr) {
-    ++existing->ref_count;
-    return existing;
-  }
-
+Mesh* GeometryManager::CreateProceduralMeshObject(
+    MeshId mesh_id, MeshType type, const Array<SkinnedVertex>& vertices,
+    const Array<Index>& indices, const math::Vec3& local_center,
+    const math::Vec3& local_max_extents, MeshHandle handle) {
   auto* mesh{mesh_allocator_.AllocateOneAndPopulate<Mesh>()};
 
+  mesh->handle = handle;
   mesh->id = mesh_id;
   mesh->type = type;
   mesh->transform = math::Mat4{1.0f};
   mesh->local_center = local_center;
   mesh->local_max_extents = local_max_extents;
+  mesh->ref_count = 1;
 
-  mesh->vertices = Array<geometry::SkinnedVertex>{&vertex_allocator_};
+  mesh->vertices = Array<SkinnedVertex>{&vertex_allocator_};
   mesh->vertices.PushFromRange(vertices);
 
-  mesh->indices = Array<geometry::Index>{&index_allocator_};
+  mesh->indices = Array<Index>{&index_allocator_};
   mesh->indices.PushFromRange(indices);
 
-#ifdef COMET_DEBUG
-  auto generated_mesh_id{mesh->id};
-#endif  // COMET_DEBUG
-
-  Mesh* to_return{nullptr};
-
-  {
-    fiber::FiberLockGuard lock{mutex_};
-    auto& insert_pair{meshes_.Emplace(mesh->id, std::move(mesh))};
-    to_return = insert_pair.value;
-  }
-
-  if (to_return == nullptr) {
-    COMET_ASSERT(false, "Could not insert procedural mesh #", generated_mesh_id,
-                 "!");
-  }
-
-  to_return->ref_count = 1;
-  return to_return;
+  return mesh;
 }
 
-void GeometryManager::Destroy(Mesh* mesh, bool is_destroying_handler) {
-  COMET_ASSERT(mesh != nullptr, "Mesh provided is null!");
-  COMET_ASSERT(mesh->ref_count > 0, "Mesh has a reference count of 0!");
-
-  if (is_destroying_handler) {
+void GeometryManager::DestroyMeshObject(Mesh* mesh) {
+  if (mesh == nullptr) {
     return;
   }
 
-  auto ref_count{mesh->ref_count.fetch_sub(1) - 1};
-
-  if (ref_count > 0) {
-    return;
-  }
-
-  {
-    fiber::FiberLockGuard lock{mutex_};
-    meshes_.Remove(mesh->id);
-  }
-
+  mesh->vertices.Destroy();
+  mesh->indices.Destroy();
   mesh_allocator_.Deallocate(mesh);
 }
+
+void GeometryManager::Destroy(MeshHandle handle, bool is_shutdown) {
+  fiber::FiberLockGuard lock{mutex_};
+
+  if (!mesh_pool_.IsAlive(handle)) {
+    return;
+  }
+
+  const auto index{static_cast<usize>(handle.GetIndex())};
+  COMET_ASSERT(index < meshes_.GetSize(), "Mesh handle index out of bounds!");
+
+  auto* mesh{meshes_[index]};
+  COMET_ASSERT(mesh != nullptr, "Mesh pointer is null for handle: ", handle,
+               "!");
+
+  if (!is_shutdown) {
+    COMET_ASSERT(mesh->ref_count > 0, "Mesh has a reference count of 0!");
+
+    const auto ref_count{mesh->ref_count.fetch_sub(1) - 1};
+
+    if (ref_count > 0) {
+      return;
+    }
+  }
+
+  meshes_[index] = nullptr;
+  mesh_handles_by_id_.Remove(mesh->id);
+  mesh_pool_.Destroy(handle);
+  DestroyMeshObject(mesh);
+}
+
 }  // namespace geometry
 }  // namespace comet

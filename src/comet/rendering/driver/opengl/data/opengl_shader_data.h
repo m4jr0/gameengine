@@ -13,9 +13,9 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/rendering/driver/opengl/data/opengl_material.h"
-#include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/resource/material_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -33,8 +33,8 @@ constexpr u32 kPassSetOffset{20};
 constexpr u32 kPushConstantBindingOffset{50};
 }  // namespace shaderconsts
 
-using UniformBufferHandle = GLuint;
-constexpr auto kInvalidUniformBufferHandle{0};
+using GlNativeUniformBufferHandle = GLuint;
+constexpr auto kInvalidGlNativeUniformBufferHandle{0};
 
 using StorageBufferHandle = GLuint;
 constexpr auto kInvalidStorageBufferHandle{0};
@@ -125,8 +125,8 @@ struct DescriptorSetLayoutBindings {
 };
 
 struct ShaderImageDescriptor {
-  const Texture* texture{nullptr};
-  const Sampler* sampler{nullptr};
+  TextureHandle texture_handle{};
+  SamplerHandle sampler_handle{};
 };
 
 struct ShaderBindingImageRuntimeData {
@@ -157,7 +157,7 @@ struct ShaderDescriptorSetRuntimeData {
 constexpr auto kMaxMaterialInstances{1024};
 
 struct MaterialInstance {
-  MaterialId material_id{kInvalidMaterialId};
+  resource::MaterialResourceId material_resource_id{};
   sptrdiff offset{0};
   ShaderDescriptorSetRuntimeData descriptor_data{};
   ShaderBindingRuntimeData binding_data{};
@@ -165,7 +165,7 @@ struct MaterialInstance {
 
 struct MaterialInstances {
   Array<MaterialInstance> list{};
-  Map<MaterialId, u32> indices{};
+  Map<resource::MaterialResourceId, u32> indices{};
 };
 
 struct ShaderBufferFieldUpdate {

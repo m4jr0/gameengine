@@ -22,7 +22,7 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -41,8 +41,35 @@ VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
   window_ = std::make_unique<VulkanGlfwWindow>(window_descr);
 }
 
-void VulkanDriver::Initialize() {
-  Driver::Initialize();
+void VulkanDriver::Update(frame::FramePacket* packet) {
+  // Axis is inverted in Vulkan.
+  packet->camera_data.projection_matrix[1][1] *= -1;
+  window_->Update();
+
+  HandleSwapchainState(packet);
+  PreDraw(packet);
+  Draw(packet);
+
+  if (packet->can_present) {
+    PostDraw();
+  }
+
+  context_->GoToNextFrame();
+}
+
+DriverType VulkanDriver::GetType() const noexcept { return DriverType::Vulkan; }
+
+void VulkanDriver::SetSize(WindowSize width, WindowSize height) {
+  window_->SetSize(width, height);
+}
+
+Window* VulkanDriver::GetWindow() { return window_.get(); }
+
+u32 VulkanDriver::GetDrawCount() const {
+  return render_proxy_handler_->GetVisibleCount();
+}
+
+void VulkanDriver::OnInitialize() {
   COMET_LOG_RENDERING_DEBUG("Initializing Vulkan driver.");
   window_->Initialize();
   COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
@@ -94,7 +121,7 @@ void VulkanDriver::Initialize() {
   InitializeHandlers();
 }
 
-void VulkanDriver::Shutdown() {
+void VulkanDriver::OnShutdown() {
   device_->WaitIdle();
   DestroyHandlers();
   swapchain_->Destroy();
@@ -121,35 +148,6 @@ void VulkanDriver::Shutdown() {
   vulkan_variant_version_ = 0;
   max_frames_in_flight_ = 2;
   instance_handle_ = VK_NULL_HANDLE;
-  Driver::Shutdown();
-}
-
-void VulkanDriver::Update(frame::FramePacket* packet) {
-  // Axis is inverted in Vulkan.
-  packet->camera_data.projection_matrix[1][1] *= -1;
-  window_->Update();
-
-  HandleSwapchainState(packet);
-  PreDraw(packet);
-  Draw(packet);
-
-  if (packet->can_present) {
-    PostDraw();
-  }
-
-  context_->GoToNextFrame();
-}
-
-DriverType VulkanDriver::GetType() const noexcept { return DriverType::Vulkan; }
-
-void VulkanDriver::SetSize(WindowSize width, WindowSize height) {
-  window_->SetSize(width, height);
-}
-
-Window* VulkanDriver::GetWindow() { return window_.get(); }
-
-u32 VulkanDriver::GetDrawCount() const {
-  return render_proxy_handler_->GetVisibleCount();
 }
 
 void VulkanDriver::InitializeVulkanInstance() {
@@ -224,8 +222,8 @@ void VulkanDriver::InitializeVulkanInstance() {
 
   COMET_ASSERT(glfwVulkanSupported(), "GLFW reports Vulkan not supported!");
 
-  auto required_extensions{GetRequiredExtensions()};
-  auto required_extension_count{
+  const auto required_extensions{GetRequiredExtensions()};
+  const auto required_extension_count{
       static_cast<u32>(required_extensions.GetSize())};
 
   COMET_LOG_RENDERING_DEBUG("Required extensions:");
@@ -281,6 +279,10 @@ void VulkanDriver::InitializeHandlers() {
   descriptor_handler_ =
       std::make_unique<DescriptorHandler>(descriptor_handler_descr);
 
+  SamplerHandlerDescr sampler_handler_descr{};
+  sampler_handler_descr.context = context_.get();
+  sampler_handler_ = std::make_unique<SamplerHandler>(sampler_handler_descr);
+
   TextureHandlerDescr texture_handler_descr{};
   texture_handler_descr.context = context_.get();
   texture_handler_ = std::make_unique<TextureHandler>(texture_handler_descr);
@@ -304,6 +306,7 @@ void VulkanDriver::InitializeHandlers() {
   MaterialHandlerDescr material_handler_descr{};
   material_handler_descr.context = context_.get();
   material_handler_descr.texture_handler = texture_handler_.get();
+  material_handler_descr.sampler_handler = sampler_handler_.get();
   material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
 
   ShaderHandlerDescr shader_handler_descr{};
@@ -312,6 +315,7 @@ void VulkanDriver::InitializeHandlers() {
   shader_handler_descr.pipeline_handler = pipeline_handler_.get();
   shader_handler_descr.material_handler = material_handler_.get();
   shader_handler_descr.texture_handler = texture_handler_.get();
+  shader_handler_descr.sampler_handler = sampler_handler_.get();
   shader_handler_descr.descriptor_handler = descriptor_handler_.get();
   shader_handler_descr.render_pass_handler = render_pass_handler_.get();
   shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
@@ -331,6 +335,8 @@ void VulkanDriver::InitializeHandlers() {
   LightingHandlerDescr lighting_handler_descr{};
   lighting_handler_descr.context = context_.get();
   lighting_handler_descr.shadow_settings = shadow_settings_;
+  lighting_handler_descr.texture_handler = texture_handler_.get();
+  lighting_handler_descr.sampler_handler = sampler_handler_.get();
   lighting_handler_descr.render_pass_handler = render_pass_handler_.get();
   lighting_handler_ = std::make_unique<LightingHandler>(lighting_handler_descr);
 
@@ -339,6 +345,7 @@ void VulkanDriver::InitializeHandlers() {
   view_handler_descr.shadow_settings = shadow_settings_;
   view_handler_descr.shader_handler = shader_handler_.get();
   view_handler_descr.material_handler = material_handler_.get();
+  view_handler_descr.texture_handler = texture_handler_.get();
   view_handler_descr.pipeline_handler = pipeline_handler_.get();
   view_handler_descr.render_pass_handler = render_pass_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
@@ -355,6 +362,7 @@ void VulkanDriver::InitializeHandlers() {
   material_handler_->Initialize();
   mesh_handler_->Initialize();
   render_pass_handler_->Initialize();
+  sampler_handler_->Initialize();
   shader_handler_->Initialize();
   lighting_handler_->Initialize();
   render_proxy_handler_->Initialize();
@@ -362,28 +370,65 @@ void VulkanDriver::InitializeHandlers() {
 }
 
 void VulkanDriver::DestroyHandlers() {
-  view_handler_->Shutdown();
-  lighting_handler_->Shutdown();
-  render_proxy_handler_->Shutdown();
-  mesh_handler_->Shutdown();
-  shader_handler_->Shutdown();
-  material_handler_->Shutdown();
-  texture_handler_->Shutdown();
-  shader_module_handler_->Shutdown();
-  pipeline_handler_->Shutdown();
-  render_pass_handler_->Shutdown();
-  descriptor_handler_->Shutdown();
+  if (view_handler_ != nullptr) {
+    view_handler_->Shutdown();
+    view_handler_ = nullptr;
+  }
 
-  lighting_handler_ = nullptr;
-  shader_module_handler_ = nullptr;
-  shader_handler_ = nullptr;
-  texture_handler_ = nullptr;
-  material_handler_ = nullptr;
-  mesh_handler_ = nullptr;
-  pipeline_handler_ = nullptr;
-  render_pass_handler_ = nullptr;
-  render_proxy_handler_ = nullptr;
-  view_handler_ = nullptr;
+  if (lighting_handler_ != nullptr) {
+    lighting_handler_->Shutdown();
+    lighting_handler_ = nullptr;
+  }
+
+  if (render_proxy_handler_ != nullptr) {
+    render_proxy_handler_->Shutdown();
+    render_proxy_handler_ = nullptr;
+  }
+
+  if (material_handler_ != nullptr) {
+    material_handler_->Shutdown();
+    material_handler_ = nullptr;
+  }
+
+  if (mesh_handler_ != nullptr) {
+    mesh_handler_->Shutdown();
+    mesh_handler_ = nullptr;
+  }
+
+  if (sampler_handler_ != nullptr) {
+    sampler_handler_->Shutdown();
+    sampler_handler_ = nullptr;
+  }
+
+  if (shader_handler_ != nullptr) {
+    shader_handler_->Shutdown();
+    shader_handler_ = nullptr;
+  }
+
+  if (texture_handler_ != nullptr) {
+    texture_handler_->Shutdown();
+    texture_handler_ = nullptr;
+  }
+
+  if (shader_module_handler_ != nullptr) {
+    shader_module_handler_->Shutdown();
+    shader_module_handler_ = nullptr;
+  }
+
+  if (pipeline_handler_ != nullptr) {
+    pipeline_handler_->Shutdown();
+    pipeline_handler_ = nullptr;
+  }
+
+  if (render_pass_handler_ != nullptr) {
+    render_pass_handler_->Shutdown();
+    render_pass_handler_ = nullptr;
+  }
+
+  if (descriptor_handler_ != nullptr) {
+    descriptor_handler_->Shutdown();
+    descriptor_handler_ = nullptr;
+  }
 }
 
 void VulkanDriver::DestroyInstance() {
@@ -414,20 +459,16 @@ void VulkanDriver::ApplyWindowResize() {
 
 void VulkanDriver::PreDraw(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::PreDraw");
-  auto& frame_data{context_->GetFrameData()};
-
-  COMET_CHECK_VK(
-      vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
-                      VK_TRUE, static_cast<u64>(-1)),
-      "Something wrong happened while waiting for render fence!");
-
+  WaitForFences();
   descriptor_handler_->ResetDynamic();
 
   if (!packet->can_present) {
     return;
   }
 
-  auto result{
+  auto& frame_data{context_->GetFrameData()};
+
+  const auto result{
       swapchain_->AcquireNextImage(frame_data.present_semaphore_handle)};
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -444,7 +485,7 @@ void VulkanDriver::PreDraw(frame::FramePacket* packet) {
 
 void VulkanDriver::PostDraw() {
   COMET_PROFILE("VulkanDriver::PostDraw");
-  auto result{swapchain_->QueuePresent()};
+  const auto result{swapchain_->QueuePresent()};
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
     ApplyWindowResize();
@@ -460,7 +501,7 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
 
   ResetRenderFence(frame_data);
 
-  auto command_data{
+  const auto command_data{
       GenerateCommandData(*device_, frame_data.command_buffer_handle)};
 
   BeginFrameCommandRecording(command_data);
@@ -473,6 +514,16 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
   SubmitFrame(packet, command_data, frame_data);
 }
 
+void VulkanDriver::WaitForFences() {
+  COMET_PROFILE("VulkanDriver::WaitForFences");
+  auto& frame_data{context_->GetFrameData()};
+
+  COMET_CHECK_VK(
+      vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
+                      VK_TRUE, static_cast<u64>(-1)),
+      "Something wrong happened while waiting for render fence!");
+}
+
 void VulkanDriver::HandleSwapchainState(frame::FramePacket* packet) {
   if (swapchain_->IsReloadNeeded()) {
     ApplyWindowResize();
@@ -483,6 +534,7 @@ void VulkanDriver::HandleSwapchainState(frame::FramePacket* packet) {
 }
 
 void VulkanDriver::ResetRenderFence(FrameData& frame_data) {
+  COMET_PROFILE("VulkanDriver::ResetRenderFence");
   // Reset fence if work is submitted.
   COMET_CHECK_VK(
       vkResetFences(device_->GetHandle(), 1, &frame_data.render_fence_handle),
@@ -490,6 +542,7 @@ void VulkanDriver::ResetRenderFence(FrameData& frame_data) {
 }
 
 void VulkanDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
+  COMET_PROFILE("VulkanDriver::UpdateGpuSceneState");
   mesh_handler_->AcquireFromTransferQueueIfNeeded();
   mesh_handler_->Update(packet);
   lighting_handler_->Update(packet);
@@ -497,12 +550,14 @@ void VulkanDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
 }
 
 void VulkanDriver::RecordFrame(frame::FramePacket* packet) {
+  COMET_PROFILE("VulkanDriver::RecordFrame");
   view_handler_->Update(packet);
 }
 
 void VulkanDriver::SubmitFrame(const frame::FramePacket* packet,
                                const CommandData& command_data,
                                FrameData& frame_data) {
+  COMET_PROFILE("VulkanDriver::SubmitFrame");
   VkPipelineStageFlags2 wait_stage{
       VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT};
 
@@ -544,7 +599,7 @@ frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
 
   if (glfw_extensions == nullptr || glfw_extension_count == 0) {
     const char* desc;
-    auto code{glfwGetError(&desc)};
+    const auto code{glfwGetError(&desc)};
     COMET_LOG_RENDERING_ERROR(
         "glfwGetRequiredInstanceExtensions returned 0. GLFW error ", code, ": ",
         desc ? desc : "(null)");
@@ -569,7 +624,7 @@ frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
 
 #ifdef COMET_DEBUG_RENDERING
 void VulkanDriver::InitializeDebugMessenger() {
-  auto create_info{init::GenerateDebugUtilsMessengerCreateInfo(
+  const auto create_info{init::GenerateDebugUtilsMessengerCreateInfo(
       VulkanDriver::LogVulkanValidationMessage)};
 
   COMET_CHECK_VK(debug::CreateDebugUtilsMessengerEXT(

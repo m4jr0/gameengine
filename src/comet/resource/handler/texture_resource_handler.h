@@ -14,17 +14,17 @@
 
 namespace comet {
 namespace resource {
-class TextureResourceHandler : public ResourceHandler<TextureResource> {
+class TextureResourceHandler
+    : public ResourceHandler<TextureResourceTag, TextureResource> {
  public:
-  TextureResourceHandler(const ResourceHandlerDescr& descr);
+  using Base = ResourceHandler;
+
+  explicit TextureResourceHandler(const ResourceHandlerDescr& descr);
   TextureResourceHandler(const TextureResourceHandler&) = delete;
   TextureResourceHandler(TextureResourceHandler&&) = delete;
   TextureResourceHandler& operator=(const TextureResourceHandler&) = delete;
   TextureResourceHandler& operator=(TextureResourceHandler&&) = delete;
-  virtual ~TextureResourceHandler() = default;
-
-  void InitializeDefaults() override;
-  void DestroyDefaults() override;
+  ~TextureResourceHandler() override = default;
 
   ResourceFile Pack(const TextureResource& resource,
                     CompressionMode compression_mode) override;
@@ -36,10 +36,13 @@ class TextureResourceHandler : public ResourceHandler<TextureResource> {
   TextureResource* GetDefaultSpecularTextureResource();
   TextureResource* GetDefaultNormalTextureResource();
 
+ protected:
+  void InitializeDefaults() override;
+  void DestroyDefaults() override;
+
  private:
-  // TODO(m4jr0): Use another allocator;
   memory::PlatformAllocator resource_data_allocator_{
-      memory::kEngineMemoryTagResource};
+      memory::kEngineMemoryTagResourceTexture};
   memory::UniquePtr<TextureResource> default_texture_{nullptr};
   memory::UniquePtr<TextureResource> diffuse_texture_{nullptr};
   memory::UniquePtr<TextureResource> normal_texture_{nullptr};

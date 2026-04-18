@@ -2,9 +2,11 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "slash_helper.h"
-
+// Precompiled. ////////////////////////////////////////////////////////////////
 #include "comet_pch.h"
+////////////////////////////////////////////////////////////////////////////////
+
+#include "slash_helper.h"
 
 namespace comet {
 bool IsSlash(tchar c) {

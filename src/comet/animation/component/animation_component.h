@@ -5,14 +5,14 @@
 #ifndef COMET_COMET_ANIMATION_COMPONENT_ANIMATION_COMPONENT_H_
 #define COMET_COMET_ANIMATION_COMPONENT_ANIMATION_COMPONENT_H_
 
-#include "comet/animation/animation_common.h"
+#include "comet/animation/animation_id.h"
+#include "comet/animation/animation_type.h"
 #include "comet/core/essentials.h"
-#include "comet/resource/animation_resource.h"
 
 namespace comet {
 namespace animation {
 struct AnimationComponent {
-  const resource::AnimationClipResource* clip_resource{nullptr};
+  AnimationClipHandle clip_handle{};
   f64 start_time{.0f};
   FrameIndex frame{0};
   f32 speed{1.0f};

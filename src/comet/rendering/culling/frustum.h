@@ -25,12 +25,14 @@ class Frustum {
 
   bool IsAabbContained(const math::Aabb& aabb) const;
   bool IsSphereContained(const math::Sphere& sphere) const;
+
   const math::Plane& GetTop() const noexcept;
   const math::Plane& GetBottom() const noexcept;
   const math::Plane& GetLeft() const noexcept;
   const math::Plane& GetRight() const noexcept;
   const math::Plane& GetFar() const noexcept;
   const math::Plane& GetNear() const noexcept;
+
   void SetTop(const math::Plane& plane) noexcept;
   void SetBottom(const math::Plane& plane) noexcept;
   void SetLeft(const math::Plane& plane) noexcept;

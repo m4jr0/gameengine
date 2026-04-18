@@ -14,9 +14,6 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/string_id.h"
 
-#define COMET_EVENT_BIND_FUNCTION(function) \
-  [this](const comet::event::Event& event) { return this->function(event); }
-
 namespace comet {
 namespace event {
 // Base event class to inherit from when adding a new event.
@@ -30,7 +27,7 @@ namespace event {
 //     ExplosionEvent(ExplosionEvent&&) noexcept = default;
 //     ExplosionEvent& operator=(const ExplosionEvent&) = default;
 //     ExplosionEvent& operator=(ExplosionEvent&&) noexcept = default;
-//     ~ExplosionEvent() = default;
+//     ~ExplosionEvent() override = default;
 //
 //     const stringid::StringId& GetType() const noexcept;
 //     u32 GetRadius() const noexcept;

@@ -150,12 +150,17 @@ class Scheduler {
   void Work(Worker* worker, WorkFunc work_func);
   void WorkOnFibers();
   void WorkOnIO();
+
   internal::FiberPool* ResolveFiberPool(const JobDescr& job_descr);
   void CleanCompletedAndTryResumeNext();
+
   static void OnFiberEnd(fiber::Fiber* fiber, void* data);
+
   void SubmitJob(const JobDescr& job_descr);
   void SubmitJob(const IOJobDescr& job_descr);
+
   void PromoteJobs();
+
   bool TryAcquireRunnableJobFromQueue(LockFreeMPMCRingQueue<JobDescr>& queue,
                                       JobDescr& job_descr,
                                       fiber::Fiber*& fiber);

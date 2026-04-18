@@ -13,19 +13,22 @@
 #include "comet/core/logger.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/resource.h"
+#include "comet/resource/resource_type.h"
 
 namespace comet {
 namespace editor {
 namespace asset {
 TString GenerateAssetMetadataFilePath(CTStringView asset_file_path);
+
 void SaveMetadata(CTStringView metadata_file_path,
                   const nlohmann::json& metadata);
 nlohmann::json GetMetadata(CTStringView metadata_file_path);
 nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path);
+
 bool IsMetadataFile(CTStringView file_path);
+
 TString GenerateResourcePath(CTStringView folder_path,
-                             resource::ResourceId resource_id);
+                             resource::RawResourceId resource_id);
 
 namespace internal {
 schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,

@@ -25,16 +25,20 @@ class EmptyDriver : public Driver {
   EmptyDriver(EmptyDriver&&) = delete;
   EmptyDriver& operator=(const EmptyDriver&) = delete;
   EmptyDriver& operator=(EmptyDriver&&) = delete;
-  virtual ~EmptyDriver() = default;
+  ~EmptyDriver() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(frame::FramePacket*) override;
+
   DriverType GetType() const noexcept override;
 
   void SetSize(WindowSize width, WindowSize height);
+
   Window* GetWindow() override;
   u32 GetDrawCount() const override;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   memory::UniquePtr<EmptyGlfwWindow> window_{nullptr};

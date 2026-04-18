@@ -20,7 +20,7 @@ class CpuProfilerTree {
   CpuProfilerTree(CpuProfilerTree&&) = delete;
   CpuProfilerTree& operator=(const CpuProfilerTree&) = delete;
   CpuProfilerTree& operator=(CpuProfilerTree&&) = delete;
-  virtual ~CpuProfilerTree() = default;
+  ~CpuProfilerTree() = default;
 
   void Draw(const CpuProfilerDisplayerContext& context);
 

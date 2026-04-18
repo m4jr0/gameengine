@@ -17,8 +17,8 @@
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/light/light_common.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {
@@ -45,22 +45,25 @@ class ViewHandler : public Handler {
   ViewHandler& operator=(ViewHandler&&) = delete;
   ~ViewHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
+  void Update(frame::FramePacket* packet);
 
+  const View* Generate(const RenderingViewDescr& descr);
   void Destroy(usize index);
   void Destroy(View* view);
 
-  void Update(frame::FramePacket* packet);
   void SetSize(WindowSize width, WindowSize height);
 
   const View* Get(usize index) const;
   const View* TryGet(usize index) const;
-  const View* Generate(const RenderingViewDescr& descr);
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   View* Get(usize index);
   View* TryGet(usize index);
+
   void Destroy(View* view, bool is_destroying_handler);
 
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};

@@ -37,8 +37,42 @@ OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr) : Driver(descr) {
   }
 }
 
-void OpenGlDriver::Initialize() {
-  Driver::Initialize();
+void OpenGlDriver::Update(frame::FramePacket* packet) {
+  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+
+  window_->Update();
+  HandlePresentationState(packet);
+  PreDraw(packet);
+  Draw(packet);
+  PostDraw(packet);
+  frame_state_->GoToNextFrame();
+}
+
+DriverType OpenGlDriver::GetType() const noexcept { return DriverType::OpenGl; }
+
+void OpenGlDriver::SetSize(WindowSize, WindowSize) {
+  // OpenGL mutations stay deferred to the main update path.
+  is_resize_ = true;
+}
+
+void OpenGlDriver::OnEvent(const event::Event& event) {
+  if (event.GetType() != WindowResizeEvent::kStaticType_) {
+    return;
+  }
+
+  const auto& resize_event{static_cast<const WindowResizeEvent&>(event)};
+  SetSize(resize_event.GetWidth(), resize_event.GetHeight());
+}
+
+Window* OpenGlDriver::GetWindow() { return window_.get(); }
+
+u32 OpenGlDriver::GetDrawCount() const {
+  return render_proxy_handler_ != nullptr
+             ? render_proxy_handler_->GetVisibleCount()
+             : 0;
+}
+
+void OpenGlDriver::OnInitialize() {
   COMET_LOG_RENDERING_DEBUG("Initializing OpenGL driver.");
 
   window_->Initialize();
@@ -46,10 +80,10 @@ void OpenGlDriver::Initialize() {
                "Window could not be initialized!");
 
   event::EventManager::Get().Register(
-      COMET_EVENT_BIND_FUNCTION(OpenGlDriver::OnEvent),
+      [this](const event::Event& event) { OnEvent(event); },
       WindowResizeEvent::kStaticType_);
 
-  [[maybe_unused]] auto result{
+  [[maybe_unused]] const auto result{
       gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
   COMET_ASSERT(result, "Could not load GL loader!");
 
@@ -88,7 +122,7 @@ void OpenGlDriver::Initialize() {
   ApplyWindowResize();
 }
 
-void OpenGlDriver::Shutdown() {
+void OpenGlDriver::OnShutdown() {
   DestroyHandlers();
 
   if (window_ != nullptr && window_->IsInitialized()) {
@@ -98,45 +132,13 @@ void OpenGlDriver::Shutdown() {
   frame_state_->Destroy();
   frame_state_ = nullptr;
   is_resize_ = false;
-  Driver::Shutdown();
-}
-
-void OpenGlDriver::Update(frame::FramePacket* packet) {
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
-
-  window_->Update();
-  HandlePresentationState(packet);
-  PreDraw(packet);
-  Draw(packet);
-  PostDraw(packet);
-  frame_state_->GoToNextFrame();
-}
-
-DriverType OpenGlDriver::GetType() const noexcept { return DriverType::OpenGl; }
-
-void OpenGlDriver::SetSize(WindowSize, WindowSize) {
-  // OpenGL mutations stay deferred to the main update path.
-  is_resize_ = true;
-}
-
-void OpenGlDriver::OnEvent(const event::Event& event) {
-  if (event.GetType() != WindowResizeEvent::kStaticType_) {
-    return;
-  }
-
-  const auto& resize_event{static_cast<const WindowResizeEvent&>(event)};
-  SetSize(resize_event.GetWidth(), resize_event.GetHeight());
-}
-
-Window* OpenGlDriver::GetWindow() { return window_.get(); }
-
-u32 OpenGlDriver::GetDrawCount() const {
-  return render_proxy_handler_ != nullptr
-             ? render_proxy_handler_->GetVisibleCount()
-             : 0;
 }
 
 void OpenGlDriver::InitializeHandlers() {
+  SamplerHandlerDescr sampler_handler_descr{};
+  sampler_handler_descr.frame_state = frame_state_.get();
+  sampler_handler_ = std::make_unique<SamplerHandler>(sampler_handler_descr);
+
   TextureHandlerDescr texture_handler_descr{};
   texture_handler_descr.frame_state = frame_state_.get();
   texture_handler_ = std::make_unique<TextureHandler>(texture_handler_descr);
@@ -149,6 +151,7 @@ void OpenGlDriver::InitializeHandlers() {
   MaterialHandlerDescr material_handler_descr{};
   material_handler_descr.frame_state = frame_state_.get();
   material_handler_descr.texture_handler = texture_handler_.get();
+  material_handler_descr.sampler_handler = sampler_handler_.get();
   material_handler_ = std::make_unique<MaterialHandler>(material_handler_descr);
 
   MeshHandlerDescr mesh_handler_descr{};
@@ -160,11 +163,14 @@ void OpenGlDriver::InitializeHandlers() {
   shader_handler_descr.shader_module_handler = shader_module_handler_.get();
   shader_handler_descr.material_handler = material_handler_.get();
   shader_handler_descr.texture_handler = texture_handler_.get();
+  shader_handler_descr.sampler_handler = sampler_handler_.get();
   shader_handler_ = std::make_unique<ShaderHandler>(shader_handler_descr);
 
   LightingHandlerDescr lighting_handler_descr{};
   lighting_handler_descr.frame_state = frame_state_.get();
   lighting_handler_descr.shadow_settings = shadow_settings_;
+  lighting_handler_descr.texture_handler = texture_handler_.get();
+  lighting_handler_descr.sampler_handler = sampler_handler_.get();
   lighting_handler_ = std::make_unique<LightingHandler>(lighting_handler_descr);
 
   RenderProxyHandlerDescr render_proxy_handler_descr{};
@@ -191,6 +197,7 @@ void OpenGlDriver::InitializeHandlers() {
   shader_module_handler_->Initialize();
   material_handler_->Initialize();
   mesh_handler_->Initialize();
+  sampler_handler_->Initialize();
   shader_handler_->Initialize();
   lighting_handler_->Initialize();
   render_proxy_handler_->Initialize();
@@ -200,44 +207,48 @@ void OpenGlDriver::InitializeHandlers() {
 void OpenGlDriver::DestroyHandlers() {
   if (view_handler_ != nullptr) {
     view_handler_->Shutdown();
-  }
-
-  if (render_proxy_handler_ != nullptr) {
-    render_proxy_handler_->Shutdown();
+    view_handler_ = nullptr;
   }
 
   if (lighting_handler_ != nullptr) {
     lighting_handler_->Shutdown();
+    lighting_handler_ = nullptr;
   }
 
-  if (shader_handler_ != nullptr) {
-    shader_handler_->Shutdown();
-  }
-
-  if (mesh_handler_ != nullptr) {
-    mesh_handler_->Shutdown();
+  if (render_proxy_handler_ != nullptr) {
+    render_proxy_handler_->Shutdown();
+    render_proxy_handler_ = nullptr;
   }
 
   if (material_handler_ != nullptr) {
     material_handler_->Shutdown();
+    material_handler_ = nullptr;
   }
 
-  if (shader_module_handler_ != nullptr) {
-    shader_module_handler_->Shutdown();
+  if (mesh_handler_ != nullptr) {
+    mesh_handler_->Shutdown();
+    mesh_handler_ = nullptr;
+  }
+
+  if (sampler_handler_ != nullptr) {
+    sampler_handler_->Shutdown();
+    sampler_handler_ = nullptr;
+  }
+
+  if (shader_handler_ != nullptr) {
+    shader_handler_->Shutdown();
+    shader_handler_ = nullptr;
   }
 
   if (texture_handler_ != nullptr) {
     texture_handler_->Shutdown();
+    texture_handler_ = nullptr;
   }
 
-  view_handler_ = nullptr;
-  render_proxy_handler_ = nullptr;
-  lighting_handler_ = nullptr;
-  shader_handler_ = nullptr;
-  mesh_handler_ = nullptr;
-  material_handler_ = nullptr;
-  shader_module_handler_ = nullptr;
-  texture_handler_ = nullptr;
+  if (shader_module_handler_ != nullptr) {
+    shader_module_handler_->Shutdown();
+    shader_module_handler_ = nullptr;
+  }
 }
 
 void OpenGlDriver::ApplyWindowResize() {
@@ -245,8 +256,8 @@ void OpenGlDriver::ApplyWindowResize() {
     return;
   }
 
-  auto width{window_->GetWidth()};
-  auto height{window_->GetHeight()};
+  const auto width{window_->GetWidth()};
+  const auto height{window_->GetHeight()};
 
   glViewport(0, 0, width, height);
 
@@ -303,6 +314,7 @@ void OpenGlDriver::HandlePresentationState(frame::FramePacket* packet) {
 }
 
 void OpenGlDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
+  COMET_PROFILE("OpenGlDriver::UpdateGpuSceneState");
   COMET_ASSERT(packet != nullptr, "Frame packet is null!");
 
   mesh_handler_->Update(packet);
@@ -311,6 +323,7 @@ void OpenGlDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
 }
 
 void OpenGlDriver::RecordFrame(frame::FramePacket* packet) {
+  COMET_PROFILE("OpenGlDriver::RecordFrame");
   COMET_ASSERT(packet != nullptr, "Frame packet is null!");
   view_handler_->Update(packet);
 }

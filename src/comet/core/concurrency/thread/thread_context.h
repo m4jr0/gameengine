@@ -28,14 +28,17 @@ void AttachThread(Thread* thread);
 void DetachThread();
 }  // namespace internal
 
+bool IsMainThread();
 bool IsThreadAttached();
+
 ThreadId GetThreadId();
 Thread* GetThread();
+
 void Yield();
+
 usize GetMaxConcurrentThreadCount();
 usize GetConcurrentThreadCountLeft();
 usize GetCurrentThreadCount();
-bool IsMainThread();
 }  // namespace thread
 }  // namespace comet
 

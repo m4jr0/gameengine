@@ -17,6 +17,7 @@ namespace rendering {
 namespace vk {
 namespace debug {
 const schar* GetVkResultString(VkResult result);
+
 const schar* GenerateTmpVkResultString(VkResult result);
 
 #define COMET_VULKAN_ABORT_ON_ERROR
@@ -35,7 +36,7 @@ const schar* GenerateTmpVkResultString(VkResult result);
   do {                                                                      \
     constexpr auto kMessageLength{255};                                     \
     char message[kMessageLength]{'\0'};                                     \
-    auto len{                                                               \
+    const auto len{                                                         \
         std::snprintf(message, kMessageLength - 1, format, ##__VA_ARGS__)}; \
     message[len] = '\0';                                                    \
     COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                           \
@@ -51,6 +52,7 @@ VkResult CreateDebugUtilsMessengerEXT(
 void DestroyDebugUtilsMessengerEXT(VkInstance instance_handle,
                                    VkDebugUtilsMessengerEXT messenger,
                                    const VkAllocationCallbacks* allocator);
+
 VkResult CreateDebugReportCallback(const VkInstance instance_handle,
                                    const VkDebugReportFlagsEXT flags,
                                    const PFN_vkDebugReportCallbackEXT callback,
@@ -60,6 +62,7 @@ void DestroyDebugReportCallback(const VkInstance instance_handle,
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
 void InitializeDebugLabels(VkInstance instance_handle, VkDevice device_handle);
+
 void SetDebugLabel(VkObjectType object_type, u64 object_handle,
                    const schar* label);
 void SetDebugLabel(VkCommandBuffer command_buffer_handle, const schar* label);

@@ -52,7 +52,7 @@ void FiberPool::Initialize() {
 
 void FiberPool::Destroy() {
   for (;;) {
-    auto fiber_box{fibers_.TryPop()};
+    const auto fiber_box{fibers_.TryPop()};
 
     if (!fiber_box.has_value()) {
       break;
@@ -66,7 +66,7 @@ void FiberPool::Destroy() {
 }
 
 fiber::Fiber* FiberPool::TryPop() {
-  auto fiber_box{fibers_.TryPop()};
+  const auto fiber_box{fibers_.TryPop()};
   fiber::Fiber* fiber{fiber_box.value_or(nullptr)};
 
   if (fiber != nullptr) {
@@ -93,7 +93,7 @@ void CounterPool::Initialize() {
       &queue_allocator_,
       static_cast<usize>(COMET_CONF_U16(conf::kCoreJobCounterCount))};
 
-  auto capacity{counters_.GetCapacity()};
+  const auto capacity{counters_.GetCapacity()};
   counter_allocator_ = memory::PlatformStackAllocator{
       sizeof(Counter) * capacity + alignof(Counter),
       memory::kEngineMemoryTagFiber};
@@ -112,7 +112,7 @@ void CounterPool::Destroy() {
 }
 
 Counter* CounterPool::TryGet() {
-  auto counter_box{counters_.TryPop()};
+  const auto counter_box{counters_.TryPop()};
   return counter_box.value_or(nullptr);
 }
 
@@ -155,7 +155,7 @@ void Scheduler::Initialize() {
   counters_.Initialize();
   is_shutdown_required_.store(false, std::memory_order_release);
 
-  auto concurrent_thread_count{thread::GetConcurrentThreadCountLeft()};
+  const auto concurrent_thread_count{thread::GetConcurrentThreadCountLeft()};
   fiber_worker_count_ = COMET_CONF_U8(conf::kCoreForcedFiberWorkerCount);
   io_worker_count_ = COMET_CONF_U8(conf::kCoreForcedIOWorkerCount);
 
@@ -164,7 +164,7 @@ void Scheduler::Initialize() {
   }
 
   if (fiber_worker_count_ == 0) {
-    auto thread_count{concurrent_thread_count};
+    const auto thread_count{concurrent_thread_count};
 
     if (thread_count > io_worker_count_) {
       fiber_worker_count_ = thread_count - io_worker_count_;
@@ -223,7 +223,7 @@ void Scheduler::Run(const JobDescr& callback_descr,
     io_worker.Run(&Scheduler::Work, this, &io_worker, &Scheduler::WorkOnIO);
   }
 
-  auto worker_count{fiber_worker_count_ + io_worker_count_};
+  const auto worker_count{fiber_worker_count_ + io_worker_count_};
 
   // Subtract one because of main thread's worker.
   while (GetCurrentWorkerCount() < worker_count - 1) {
@@ -414,7 +414,7 @@ void Scheduler::WorkOnIO() {
     }
 
     for (;;) {
-      auto job_box{io_queue_.TryPop()};
+      const auto job_box{io_queue_.TryPop()};
 
       if (!job_box.has_value()) {
         break;
@@ -558,7 +558,7 @@ void Scheduler::PromoteJobs() {
 bool Scheduler::TryAcquireRunnableJobFromQueue(
     LockFreeMPMCRingQueue<JobDescr>& queue, JobDescr& job_descr,
     fiber::Fiber*& fiber) {
-  auto job_box{queue.TryPop()};
+  const auto job_box{queue.TryPop()};
 
   if (!job_box.has_value()) {
     return false;
@@ -626,7 +626,7 @@ void Scheduler::WorkFromMainThread() {
       &allocator, kMaxMainThreadJobCount};
 
   while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
-    auto job_box{main_thread_queue.TryPop()};
+    const auto job_box{main_thread_queue.TryPop()};
 
     if (!job_box.has_value()) {
       continue;

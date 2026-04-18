@@ -16,7 +16,7 @@
 #include "comet/core/hash.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace internal {
@@ -41,6 +41,53 @@ void TStringAllocator::Deallocate(void* p) {
   // TODO(m4jr0): Implement specific TString allocator.
   memory::Deallocate(p);
 }
+
+const tchar* CharToStrInPlace(tchar c) noexcept {
+  thread_local tchar tmp[2];
+  tmp[0] = c;
+  tmp[1] = COMET_TCHAR('\0');
+  return tmp;
+}
+
+static s32 CompareStrings(const tchar* lhs, usize lhs_length, const tchar* rhs,
+                          usize rhs_length) {
+  const auto min_length{math::Min(lhs_length, rhs_length)};
+  const auto cmp{static_cast<s32>(Compare(lhs, rhs, min_length))};
+
+  if (cmp != 0) {
+    return cmp;
+  }
+
+  if (lhs_length < rhs_length) {
+    return -1;
+  }
+
+  if (lhs_length > rhs_length) {
+    return 1;
+  }
+
+  return 0;
+}
+
+static s32 CompareStrings(const TString& lhs, const TString& rhs) {
+  return CompareStrings(lhs.GetCTStr(), lhs.GetLength(), rhs.GetCTStr(),
+                        rhs.GetLength());
+}
+
+static s32 CompareStrings(const TString& lhs, const CTStringView& rhs) {
+  return CompareStrings(lhs.GetCTStr(), lhs.GetLength(), rhs.GetCTStr(),
+                        rhs.GetLength());
+}
+
+static s32 CompareStrings(const CTStringView& lhs, const TString& rhs) {
+  return CompareStrings(lhs.GetCTStr(), lhs.GetLength(), rhs.GetCTStr(),
+                        rhs.GetLength());
+}
+
+static s32 CompareStrings(const CTStringView& lhs, const CTStringView& rhs) {
+  return CompareStrings(lhs.GetCTStr(), lhs.GetLength(), rhs.GetCTStr(),
+                        rhs.GetLength());
+}
 }  // namespace internal
 
 void AttachTStringAllocator(memory::Allocator* handle) {
@@ -56,14 +103,14 @@ void DetachTStringAllocator() {
 
 #ifdef COMET_WIDE_TCHAR
 TString::TString(std::string_view str) {
-  length_ = comet::GetLength(str.data());
+  length_ = str.size();
   Allocate(length_);
   Copy(GetTStr(), str.data(), length_);
   GetTStr()[length_] = COMET_TCHAR('\0');
 }
 #else
 TString::TString(std::wstring_view str) {
-  length_ = comet::GetLength(str.data());
+  length_ = str.size();
   Allocate(length_);
   Copy(GetTStr(), str.data(), length_);
   GetTStr()[length_] = COMET_TCHAR('\0');
@@ -158,21 +205,26 @@ TString& TString::Append(const TString& str) {
 }
 
 TString& TString::Append(const TString& str, usize offset, usize length) {
-  auto effective_length{str.GetLength()};
+  COMET_ASSERT(offset <= str.GetLength(), "Offset is out of bounds!");
 
-  if (length != kInvalidIndex) {
-    effective_length -= length;
-  }
+  const auto remaining{str.GetLength() - offset};
+  const auto append_length{
+      length == kInvalidIndex ? remaining : math::Min(length, remaining)};
 
-  return Append(str.GetCTStr() + offset, length);
+  return Append(str.GetCTStr() + offset, append_length);
 }
 
 TString TString::GenerateSubString(usize offset, usize count) const {
+  COMET_ASSERT(offset <= length_, "Offset is out of bounds!");
+
+  const auto sub_length{count == kInvalidIndex
+                            ? length_ - offset
+                            : math::Min(count, length_ - offset)};
+
   TString new_str{};
-  auto length{count == kInvalidIndex ? length_ - offset : count};
-  new_str.Reserve(length);
-  new_str.length_ = length;
-  GetSubString(new_str.GetTStr(), GetCTStr(), length_, offset, count);
+  new_str.Reserve(sub_length);
+  new_str.length_ = sub_length;
+  GetSubString(new_str.GetTStr(), GetCTStr(), length_, offset, sub_length);
   return new_str;
 }
 
@@ -202,7 +254,8 @@ bool TString::IsContained(const TString& str) const {
 }
 
 bool TString::IsContainedInsensitive(tchar c) const {
-  return comet::IsContainedInsensitive(GetCTStr(), &c);
+  return comet::IsContainedInsensitive(GetCTStr(),
+                                       internal::CharToStrInPlace(c));
 }
 
 bool TString::IsContainedInsensitive(const tchar* str) const {
@@ -341,10 +394,15 @@ void TString::Deallocate() {
 }
 
 TString CTStringView::GenerateSubString(usize offset, usize count) const {
+  COMET_ASSERT(offset <= length_, "Offset is out of bounds!");
+
+  const auto sub_length{count == kInvalidIndex
+                            ? length_ - offset
+                            : math::Min(count, length_ - offset)};
+
   TString new_str{};
-  auto length{count == kInvalidIndex ? length_ - offset : count - offset};
-  new_str.Resize(length);
-  GetSubString(new_str.GetTStr(), str_, length_, offset, length);
+  new_str.Resize(sub_length);
+  GetSubString(new_str.GetTStr(), str_, length_, offset, sub_length);
   return new_str;
 }
 
@@ -400,20 +458,20 @@ bool operator==(const tchar* str1, const CTStringView& str2) {
   return operator==(CTStringView{str1}, str2);
 }
 
-bool operator==(const TString& str, tchar c) { return operator==(str, &c); }
+bool operator==(const TString& str, tchar c) {
+  return operator==(str, internal::CharToStrInPlace(c));
+}
 
-bool operator==(tchar c, const TString& str) { return operator==(&c, str); }
+bool operator==(tchar c, const TString& str) {
+  return operator==(internal::CharToStrInPlace(c), str);
+}
 
 bool operator==(const CTStringView& str, tchar c) {
-  tchar tmp[2]{'\0'};
-  tmp[0] = c;
-  return operator==(str, tmp);
+  return operator==(str, internal::CharToStrInPlace(c));
 }
 
 bool operator==(tchar c, const CTStringView& str) {
-  tchar tmp[2]{'\0'};
-  tmp[0] = c;
-  return operator==(tmp, str);
+  return operator==(internal::CharToStrInPlace(c), str);
 }
 
 bool operator!=(const TString& str1, const TString& str2) {
@@ -448,36 +506,36 @@ bool operator!=(const tchar* str1, const CTStringView& str2) {
   return operator!=(CTStringView{str1}, str2);
 }
 
-bool operator!=(const TString& str, tchar c) { return operator!=(str, &c); }
+bool operator!=(const TString& str, tchar c) {
+  return operator!=(str, internal::CharToStrInPlace(c));
+}
 
-bool operator!=(tchar c, const TString& str) { return operator!=(&c, str); }
+bool operator!=(tchar c, const TString& str) {
+  return operator!=(internal::CharToStrInPlace(c), str);
+}
 
 bool operator!=(const CTStringView& str, tchar c) {
-  return operator!=(str, &c);
+  return operator!=(str, internal::CharToStrInPlace(c));
 }
 
 bool operator!=(tchar c, const CTStringView& str) {
-  return operator!=(&c, str);
+  return operator!=(internal::CharToStrInPlace(c), str);
 }
 
 bool operator<(const TString& str1, const TString& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) < 0;
+  return internal::CompareStrings(str1, str2) < 0;
 }
 
 bool operator<(const TString& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2,
-                 math::Min(str1.GetLength(), str2.GetLength())) < 0;
+  return internal::CompareStrings(str1, str2) < 0;
 }
 
 bool operator<(const CTStringView& str1, const TString& str2) {
-  return Compare(str1, str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) < 0;
+  return internal::CompareStrings(str1, str2) < 0;
 }
 
 bool operator<(const CTStringView& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) < 0;
+  return internal::CompareStrings(str1, str2) < 0;
 }
 
 bool operator<(const TString& str1, const tchar* str2) {
@@ -496,32 +554,36 @@ bool operator<(const tchar* str1, const CTStringView& str2) {
   return operator<(CTStringView{str1}, str2);
 }
 
-bool operator<(const TString& str, tchar c) { return operator<(str, &c); }
+bool operator<(const TString& str, tchar c) {
+  return operator<(str, internal::CharToStrInPlace(c));
+}
 
-bool operator<(tchar c, const TString& str) { return operator<(&c, str); }
+bool operator<(tchar c, const TString& str) {
+  return operator<(internal::CharToStrInPlace(c), str);
+}
 
-bool operator<(const CTStringView& str, tchar c) { return operator<(str, &c); }
+bool operator<(const CTStringView& str, tchar c) {
+  return operator<(str, internal::CharToStrInPlace(c));
+}
 
-bool operator<(tchar c, const CTStringView& str) { return operator<(&c, str); }
+bool operator<(tchar c, const CTStringView& str) {
+  return operator<(internal::CharToStrInPlace(c), str);
+}
 
 bool operator<=(const TString& str1, const TString& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) <= 0;
+  return internal::CompareStrings(str1, str2) <= 0;
 }
 
 bool operator<=(const TString& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2,
-                 math::Min(str1.GetLength(), str2.GetLength())) <= 0;
+  return internal::CompareStrings(str1, str2) <= 0;
 }
 
 bool operator<=(const CTStringView& str1, const TString& str2) {
-  return Compare(str1, str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) <= 0;
+  return internal::CompareStrings(str1, str2) <= 0;
 }
 
 bool operator<=(const CTStringView& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) <= 0;
+  return internal::CompareStrings(str1, str2) <= 0;
 }
 
 bool operator<=(const TString& str1, const tchar* str2) {
@@ -540,36 +602,36 @@ bool operator<=(const tchar* str1, const CTStringView& str2) {
   return operator<=(CTStringView{str1}, str2);
 }
 
-bool operator<=(const TString& str, tchar c) { return operator<=(str, &c); }
+bool operator<=(const TString& str, tchar c) {
+  return operator<=(str, internal::CharToStrInPlace(c));
+}
 
-bool operator<=(tchar c, const TString& str) { return operator<=(&c, str); }
+bool operator<=(tchar c, const TString& str) {
+  return operator<=(internal::CharToStrInPlace(c), str);
+}
 
 bool operator<=(const CTStringView& str, tchar c) {
-  return operator<=(str, &c);
+  return operator<=(str, internal::CharToStrInPlace(c));
 }
 
 bool operator<=(tchar c, const CTStringView& str) {
-  return operator<=(&c, str);
+  return operator<=(internal::CharToStrInPlace(c), str);
 }
 
 bool operator>(const TString& str1, const TString& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) > 0;
+  return internal::CompareStrings(str1, str2) > 0;
 }
 
 bool operator>(const TString& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2,
-                 math::Min(str1.GetLength(), str2.GetLength())) > 0;
+  return internal::CompareStrings(str1, str2) > 0;
 }
 
 bool operator>(const CTStringView& str1, const TString& str2) {
-  return Compare(str1, str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) > 0;
+  return internal::CompareStrings(str1, str2) > 0;
 }
 
 bool operator>(const CTStringView& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) > 0;
+  return internal::CompareStrings(str1, str2) > 0;
 }
 
 bool operator>(const TString& str1, const tchar* str2) {
@@ -588,32 +650,36 @@ bool operator>(const tchar* str1, const CTStringView& str2) {
   return operator>(CTStringView{str1}, str2);
 }
 
-bool operator>(const TString& str, tchar c) { return operator>(str, &c); }
+bool operator>(const TString& str, tchar c) {
+  return operator>(str, internal::CharToStrInPlace(c));
+}
 
-bool operator>(tchar c, const TString& str) { return operator>(&c, str); }
+bool operator>(tchar c, const TString& str) {
+  return operator>(internal::CharToStrInPlace(c), str);
+}
 
-bool operator>(const CTStringView& str, tchar c) { return operator>(str, &c); }
+bool operator>(const CTStringView& str, tchar c) {
+  return operator>(str, internal::CharToStrInPlace(c));
+}
 
-bool operator>(tchar c, const CTStringView& str) { return operator>(&c, str); }
+bool operator>(tchar c, const CTStringView& str) {
+  return operator>(internal::CharToStrInPlace(c), str);
+}
 
 bool operator>=(const TString& str1, const TString& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) >= 0;
+  return internal::CompareStrings(str1, str2) >= 0;
 }
 
 bool operator>=(const TString& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2,
-                 math::Min(str1.GetLength(), str2.GetLength())) >= 0;
+  return internal::CompareStrings(str1, str2) >= 0;
 }
 
 bool operator>=(const CTStringView& str1, const TString& str2) {
-  return Compare(str1, str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) >= 0;
+  return internal::CompareStrings(str1, str2) >= 0;
 }
 
 bool operator>=(const CTStringView& str1, const CTStringView& str2) {
-  return Compare(str1.GetCTStr(), str2.GetCTStr(),
-                 math::Min(str1.GetLength(), str2.GetLength())) >= 0;
+  return internal::CompareStrings(str1, str2) >= 0;
 }
 
 bool operator>=(const TString& str1, const tchar* str2) {
@@ -632,16 +698,20 @@ bool operator>=(const tchar* str1, const CTStringView& str2) {
   return operator>=(CTStringView{str1}, str2);
 }
 
-bool operator>=(const TString& str, tchar c) { return operator>=(str, &c); }
+bool operator>=(const TString& str, tchar c) {
+  return operator>=(str, internal::CharToStrInPlace(c));
+}
 
-bool operator>=(tchar c, const TString& str) { return operator>=(&c, str); }
+bool operator>=(tchar c, const TString& str) {
+  return operator>=(internal::CharToStrInPlace(c), str);
+}
 
 bool operator>=(const CTStringView& str, tchar c) {
-  return operator>=(str, &c);
+  return operator>=(str, internal::CharToStrInPlace(c));
 }
 
 bool operator>=(tchar c, const CTStringView& str) {
-  return operator>=(&c, str);
+  return operator>=(internal::CharToStrInPlace(c), str);
 }
 
 TString operator+(const TString& str1, const TString& str2) {
@@ -671,8 +741,8 @@ TString operator+(const CTStringView& str1, const TString& str2) {
 TString operator+(const CTStringView& str1, const CTStringView& str2) {
   TString str{};
   str.Reserve(str1.GetLength() + str2.GetLength());
-  str.Append(str1.GetCTStr());
-  str.Append(str2.GetCTStr());
+  str.Append(str1.GetCTStr(), str1.GetLength());
+  str.Append(str2.GetCTStr(), str2.GetLength());
   return str;
 }
 
@@ -692,12 +762,16 @@ TString operator+(const tchar* str1, const CTStringView& str2) {
   return operator+(CTStringView{str1}, str2);
 }
 
-TString operator+(const TString& str, tchar c) { return operator+(str, &c); }
+TString operator+(const TString& str, tchar c) {
+  return operator+(str, internal::CharToStrInPlace(c));
+}
 
-TString operator+(tchar c, const TString& str) { return operator+(&c, str); }
+TString operator+(tchar c, const TString& str) {
+  return operator+(internal::CharToStrInPlace(c), str);
+}
 
 TString& operator+=(TString& str1, const TString& str2) {
-  str1.Append(str2, str2.GetLength());
+  str1.Append(str2);
   return str1;
 }
 
@@ -747,9 +821,13 @@ TString operator/(const tchar* str1, const CTStringView& str2) {
   return operator/(CTStringView{str1}, str2);
 }
 
-TString operator/(const TString& str, tchar c) { return operator/(str, &c); }
+TString operator/(const TString& str, tchar c) {
+  return operator/(str, internal::CharToStrInPlace(c));
+}
 
-TString operator/(tchar c, const TString& str) { return operator/(&c, str); }
+TString operator/(tchar c, const TString& str) {
+  return operator/(internal::CharToStrInPlace(c), str);
+}
 
 TString& operator/=(TString& str1, const TString& str2) {
   // Worst case: adding 1 character to an extra slash.
@@ -773,13 +851,15 @@ TString& operator/=(TString& str1, const tchar* str2) {
   return operator/=(str1, CTStringView{str2});
 }
 
-TString& operator/=(TString& str, tchar c) { return operator/=(str, &c); }
+TString& operator/=(TString& str, tchar c) {
+  return operator/=(str, internal::CharToStrInPlace(c));
+}
 
 HashValue GenerateHash(const TString& value) {
-  return GenerateHash(value.GetCTStr());
+  return GenerateHash(value.GetCTStr(), value.GetLength());
 }
 
 HashValue GenerateHash(const CTStringView& value) {
-  return GenerateHash(value.GetCTStr());
+  return GenerateHash(value.GetCTStr(), value.GetLength());
 }
 }  // namespace comet

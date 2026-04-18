@@ -47,7 +47,8 @@ struct RegionGpuBuffer {
       debug_label = "";
     }
 
-    auto debug_label_len{math::Min(GetLength(debug_label), kMaxDebugLabelLen_)};
+    const auto debug_label_len{
+        math::Min(GetLength(debug_label), kMaxDebugLabelLen_)};
     Copy(debug_label_, debug_label, debug_label_len);
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
   }
@@ -77,11 +78,11 @@ struct RegionGpuBuffer {
         "Tried to destroy region GPU buffer, but it is not initialized!");
     region_map_.Destroy();
 
-    if (storage_handle_ != kInvalidStorageHandle) {
-      glBindBuffer(bind_target_, storage_handle_);
+    if (storage_native_handle_ != kInvalidGlNativeStorageHandle) {
+      glBindBuffer(bind_target_, storage_native_handle_);
       glUnmapBuffer(bind_target_);
-      glDeleteBuffers(1, &storage_handle_);
-      storage_handle_ = kInvalidStorageHandle;
+      glDeleteBuffers(1, &storage_native_handle_);
+      storage_native_handle_ = kInvalidGlNativeStorageHandle;
       mapped_memory_ = nullptr;
     }
 
@@ -90,11 +91,11 @@ struct RegionGpuBuffer {
 
   GLint Claim(usize claimed_count) {
     COMET_PROFILE("RegionGpuBuffer<T>::Claim");
-    auto claimed_size{claimed_count * sizeof(T)};
+    const auto claimed_size{claimed_count * sizeof(T)};
     auto block_offset{region_map_.Claim(claimed_size)};
 
     if (block_offset == kInvalidSize) {
-      auto new_element_count{
+      const auto new_element_count{
           math::Max(element_count_ + claimed_count, element_count_ * 2)};
       COMET_LOG_RENDERING_WARNING(
           "Region GPU buffer has to be resized from ",
@@ -125,12 +126,12 @@ struct RegionGpuBuffer {
   }
 
   void Bind() {
-    COMET_ASSERT(storage_handle_ != kInvalidStorageHandle,
+    COMET_ASSERT(storage_native_handle_ != kInvalidGlNativeStorageHandle,
                  "Cannot bind region GPU buffer: storage handle is invalid!");
-    glBindBuffer(bind_target_, storage_handle_);
+    glBindBuffer(bind_target_, storage_native_handle_);
   }
 
-  void Unbind() { glBindBuffer(bind_target_, kInvalidStorageHandle); }
+  void Unbind() { glBindBuffer(bind_target_, kInvalidGlNativeStorageHandle); }
 
   bool Upload(const void* uploaded_data,
               const Array<GpuBufferCopyRegion>& copy_regions) {
@@ -161,28 +162,29 @@ struct RegionGpuBuffer {
       return;
     }
 
-    auto old_storage_size{element_count_ * sizeof(T)};
-    auto old_storage_handle{storage_handle_};
+    const auto old_storage_size{element_count_ * sizeof(T)};
+    const auto old_storage_handle{storage_native_handle_};
 
     element_count_ = new_element_count;
 
-    if (old_storage_handle != kInvalidStorageHandle &&
+    if (old_storage_handle != kInvalidGlNativeStorageHandle &&
         mapped_memory_ != nullptr) {
       Bind();
       glUnmapBuffer(bind_target_);
       Unbind();
     }
 
-    glGenBuffers(1, &storage_handle_);
-    glBindBuffer(bind_target_, storage_handle_);
+    glGenBuffers(1, &storage_native_handle_);
+    glBindBuffer(bind_target_, storage_native_handle_);
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
     if (!IsEmpty(debug_label_)) {
-      COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(storage_handle_, debug_label_);
+      COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(storage_native_handle_,
+                                              debug_label_);
     }
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
-    auto storage_size{element_count_ * sizeof(T)};
+    const auto storage_size{element_count_ * sizeof(T)};
     glBufferStorage(bind_target_, static_cast<GLsizei>(storage_size), nullptr,
                     storage_flags_);
 
@@ -190,24 +192,26 @@ struct RegionGpuBuffer {
         bind_target_, 0, static_cast<GLsizei>(storage_size), storage_flags_);
     COMET_ASSERT(mapped_memory_ != nullptr, "Region GPU buffer mapping failed");
 
-    if (old_storage_handle != kInvalidStorageHandle) {
+    if (old_storage_handle != kInvalidGlNativeStorageHandle) {
       glBindBuffer(GL_COPY_READ_BUFFER, old_storage_handle);
-      glBindBuffer(GL_COPY_WRITE_BUFFER, storage_handle_);
+      glBindBuffer(GL_COPY_WRITE_BUFFER, storage_native_handle_);
       glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0,
                           old_storage_size);
       glDeleteBuffers(1, &old_storage_handle);
     }
 
-    glBindBuffer(bind_target_, kInvalidStorageHandle);
+    glBindBuffer(bind_target_, kInvalidGlNativeStorageHandle);
     region_map_.Resize(storage_size);
   }
 
-  StorageHandle GetHandle() const noexcept { return storage_handle_; }
+  GlNativeStorageHandle GetHandle() const noexcept {
+    return storage_native_handle_;
+  }
 
  private:
   bool is_initialized_{false};
   GLenum bind_target_{0};
-  StorageHandle storage_handle_{kInvalidStorageHandle};
+  GlNativeStorageHandle storage_native_handle_{kInvalidGlNativeStorageHandle};
   GLbitfield storage_flags_{0};
   usize element_block_count_{0};
   usize element_count_{0};

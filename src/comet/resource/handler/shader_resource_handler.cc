@@ -13,7 +13,8 @@
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/rendering_utils.h"
 
 namespace comet {
 namespace resource {
@@ -39,7 +40,7 @@ usize GetTStringByteSize(const TString& str) {
 }  // namespace internal
 
 ShaderResourceHandler::ShaderResourceHandler(const ResourceHandlerDescr& descr)
-    : ResourceHandler<ShaderResource>{descr} {}
+    : Base{descr} {}
 
 ResourceFile ShaderResourceHandler::Pack(const ShaderResource& resource,
                                          CompressionMode compression_mode) {
@@ -50,8 +51,8 @@ ResourceFile ShaderResourceHandler::Pack(const ShaderResource& resource,
   file.descr = Array<u8>{byte_allocator_};
   file.data = Array<u8>{byte_allocator_};
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
   Array<u8> data{byte_allocator_};
   data.Resize(kResourceIdSize + kResourceTypeIdSize);
@@ -65,7 +66,7 @@ ResourceFile ShaderResourceHandler::Pack(const ShaderResource& resource,
   memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
   cursor += kResourceTypeIdSize;
 
-  auto dumped_descr{DumpDescr(resource.descr)};
+  const auto dumped_descr{DumpDescr(resource.descr)};
   file.descr_size = dumped_descr.GetSize();
 
   PackBytes(dumped_descr, file.compression_mode, &file.descr,
@@ -78,6 +79,8 @@ ResourceFile ShaderResourceHandler::Pack(const ShaderResource& resource,
 void ShaderResourceHandler::Unpack(const ResourceFile& file,
                                    ResourceLifeSpan life_span,
                                    ShaderResource* resource) {
+  COMET_ASSERT(resource != nullptr, "Shader resource is null!");
+
   Array<u8> dumped_descr{byte_allocator_};
   UnpackBytes(file.compression_mode, file.descr, file.descr_size, dumped_descr);
   ParseDescr(dumped_descr, resource->descr);
@@ -88,8 +91,8 @@ void ShaderResourceHandler::Unpack(const ResourceFile& file,
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
 
   memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;
@@ -101,7 +104,7 @@ void ShaderResourceHandler::Unpack(const ResourceFile& file,
 }
 
 Array<u8> ShaderResourceHandler::DumpDescr(const ShaderResourceDescr& descr) {
-  auto data_size{GetSizeFromDescr(descr)};
+  const auto data_size{GetSizeFromDescr(descr)};
 
   Array<u8> dumped_descr{byte_allocator_};
   dumped_descr.Resize(data_size);
@@ -151,30 +154,27 @@ Array<u8> ShaderResourceHandler::DumpDescr(const ShaderResourceDescr& descr) {
 
 void ShaderResourceHandler::DumpShaderModules(const ShaderResourceDescr& descr,
                                               u8* buffer, usize& cursor) {
-  auto module_path_count{descr.shader_module_paths.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &module_path_count, internal::kUsizeSize);
+  const auto module_count{descr.shader_module_resource_ids.GetSize()};
+  memory::CopyMemory(&buffer[cursor], &module_count, internal::kUsizeSize);
   cursor += internal::kUsizeSize;
 
-  for (const auto& module_path : descr.shader_module_paths) {
-    auto module_path_size{internal::GetTStringByteSize(module_path)};
-    memory::CopyMemory(&buffer[cursor], &module_path_size,
-                       internal::kUsizeSize);
-    cursor += internal::kUsizeSize;
+  constexpr auto kShaderModuleResourceIdSize{sizeof(ShaderModuleResourceId)};
 
-    memory::CopyMemory(&buffer[cursor], module_path.GetCTStr(),
-                       module_path_size);
-    cursor += module_path_size;
+  for (const auto& module_resource_id : descr.shader_module_resource_ids) {
+    memory::CopyMemory(&buffer[cursor], &module_resource_id,
+                       kShaderModuleResourceIdSize);
+    cursor += kShaderModuleResourceIdSize;
   }
 }
 
 void ShaderResourceHandler::DumpShaderDefines(const ShaderResourceDescr& descr,
                                               u8* buffer, usize& cursor) {
-  auto define_count{descr.defines.GetSize()};
+  const auto define_count{descr.defines.GetSize()};
   memory::CopyMemory(&buffer[cursor], &define_count, internal::kUsizeSize);
   cursor += internal::kUsizeSize;
 
   for (const auto& define : descr.defines) {
-    auto define_name_len{define.name_len};
+    const auto define_name_len{define.name_len};
     memory::CopyMemory(&buffer[cursor], &define_name_len, internal::kUsizeSize);
     cursor += internal::kUsizeSize;
 
@@ -183,7 +183,7 @@ void ShaderResourceHandler::DumpShaderDefines(const ShaderResourceDescr& descr,
       cursor += define_name_len;
     }
 
-    auto define_value_len{define.value_len};
+    const auto define_value_len{define.value_len};
     memory::CopyMemory(&buffer[cursor], &define_value_len,
                        internal::kUsizeSize);
     cursor += internal::kUsizeSize;
@@ -197,12 +197,12 @@ void ShaderResourceHandler::DumpShaderDefines(const ShaderResourceDescr& descr,
 
 void ShaderResourceHandler::DumpBindings(const ShaderResourceDescr& descr,
                                          u8* buffer, usize& cursor) {
-  auto binding_count{descr.bindings.GetSize()};
+  const auto binding_count{descr.bindings.GetSize()};
   memory::CopyMemory(&buffer[cursor], &binding_count, internal::kUsizeSize);
   cursor += internal::kUsizeSize;
 
   for (const auto& binding : descr.bindings) {
-    auto binding_name_len{binding.name_len};
+    const auto binding_name_len{binding.name_len};
     memory::CopyMemory(&buffer[cursor], &binding_name_len,
                        internal::kUsizeSize);
     cursor += internal::kUsizeSize;
@@ -242,12 +242,12 @@ void ShaderResourceHandler::DumpBindings(const ShaderResourceDescr& descr,
                        internal::kShaderStageFlagsSize);
     cursor += internal::kShaderStageFlagsSize;
 
-    auto field_count{binding.fields.GetSize()};
+    const auto field_count{binding.fields.GetSize()};
     memory::CopyMemory(&buffer[cursor], &field_count, internal::kUsizeSize);
     cursor += internal::kUsizeSize;
 
     for (const auto& field : binding.fields) {
-      auto field_name_len{field.name_len};
+      const auto field_name_len{field.name_len};
       memory::CopyMemory(&buffer[cursor], &field_name_len,
                          internal::kUsizeSize);
       cursor += internal::kUsizeSize;
@@ -270,13 +270,13 @@ void ShaderResourceHandler::DumpBindings(const ShaderResourceDescr& descr,
 
 void ShaderResourceHandler::DumpPushConstants(const ShaderResourceDescr& descr,
                                               u8* buffer, usize& cursor) {
-  auto push_constant_count{descr.push_constants.GetSize()};
+  const auto push_constant_count{descr.push_constants.GetSize()};
   memory::CopyMemory(&buffer[cursor], &push_constant_count,
                      internal::kUsizeSize);
   cursor += internal::kUsizeSize;
 
   for (const auto& push_constant : descr.push_constants) {
-    auto push_constant_name_len{push_constant.name_len};
+    const auto push_constant_name_len{push_constant.name_len};
     memory::CopyMemory(&buffer[cursor], &push_constant_name_len,
                        internal::kUsizeSize);
     cursor += internal::kUsizeSize;
@@ -291,12 +291,12 @@ void ShaderResourceHandler::DumpPushConstants(const ShaderResourceDescr& descr,
                        internal::kShaderStageFlagsSize);
     cursor += internal::kShaderStageFlagsSize;
 
-    auto field_count{push_constant.fields.GetSize()};
+    const auto field_count{push_constant.fields.GetSize()};
     memory::CopyMemory(&buffer[cursor], &field_count, internal::kUsizeSize);
     cursor += internal::kUsizeSize;
 
     for (const auto& field : push_constant.fields) {
-      auto field_name_len{field.name_len};
+      const auto field_name_len{field.name_len};
       memory::CopyMemory(&buffer[cursor], &field_name_len,
                          internal::kUsizeSize);
       cursor += internal::kUsizeSize;
@@ -319,7 +319,8 @@ void ShaderResourceHandler::DumpPushConstants(const ShaderResourceDescr& descr,
 
 void ShaderResourceHandler::ParseDescr(const Array<u8>& dumped_descr,
                                        ShaderResourceDescr& descr) {
-  descr.shader_module_paths = Array<TString>{byte_allocator_};
+  descr.shader_module_resource_ids =
+      Array<ShaderModuleResourceId>{byte_allocator_};
   descr.defines = Array<rendering::ShaderDefineDescr>{byte_allocator_};
   descr.bindings = Array<rendering::ShaderBindingDescr>{byte_allocator_};
   descr.push_constants =
@@ -369,25 +370,19 @@ void ShaderResourceHandler::ParseDescr(const Array<u8>& dumped_descr,
 void ShaderResourceHandler::ParseShaderModules(const u8* buffer,
                                                ShaderResourceDescr& descr,
                                                usize& cursor) {
-  usize module_path_count{0};
-  memory::CopyMemory(&module_path_count, &buffer[cursor], internal::kUsizeSize);
+  usize module_count{0};
+  memory::CopyMemory(&module_count, &buffer[cursor], internal::kUsizeSize);
   cursor += internal::kUsizeSize;
 
-  descr.shader_module_paths.Reserve(module_path_count);
+  descr.shader_module_resource_ids.Reserve(module_count);
 
-  for (usize i{0}; i < module_path_count; ++i) {
-    usize module_path_size{0};
-    memory::CopyMemory(&module_path_size, &buffer[cursor],
-                       internal::kUsizeSize);
-    cursor += internal::kUsizeSize;
+  constexpr auto kShaderModuleResourceIdSize{sizeof(ShaderModuleResourceId)};
 
-    const auto* str{reinterpret_cast<const tchar*>(&buffer[cursor])};
-    auto char_count{module_path_size / sizeof(tchar)};
-
-    TString module_path{str, str + char_count - 1};
-    cursor += module_path_size;
-
-    descr.shader_module_paths.PushBack(std::move(module_path));
+  for (usize i{0}; i < module_count; ++i) {
+    auto& module_resource_id{descr.shader_module_resource_ids.EmplaceBack()};
+    memory::CopyMemory(&module_resource_id, &buffer[cursor],
+                       kShaderModuleResourceIdSize);
+    cursor += kShaderModuleResourceIdSize;
   }
 }
 

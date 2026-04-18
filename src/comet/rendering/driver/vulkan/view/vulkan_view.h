@@ -11,10 +11,10 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -70,17 +70,23 @@ class View {
   View& operator=(View&&) = delete;
   virtual ~View();
 
-  virtual void Initialize();
-  virtual void Destroy();
+  void Initialize();
+  void Destroy();
+
   virtual void Update(frame::FramePacket*) = 0;
+
   virtual void SetSize(WindowSize width, WindowSize height);
 
-  bool IsInitialized() const noexcept;
   RenderingViewId GetId() const noexcept;
+
+  bool IsInitialized() const noexcept;
   bool IsSwapchainTarget() const noexcept;
   bool IsOffscreenTarget() const noexcept;
 
  protected:
+  virtual void OnInitialize();
+  virtual void OnDestroy();
+
   bool is_initialized_{false};
   ViewPassDescr pass_descr_{};
   WindowSize width_{0};
@@ -89,7 +95,7 @@ class View {
                       1.0f};
   RenderingViewId id_{kInvalidRenderingViewId};
   const Context* context_{nullptr};
-  RenderPassHandle render_pass_handle_{kInvalidRenderPassHandle};
+  RenderPassHandle render_pass_handle_{};
   RenderPassHandler* render_pass_handler_{nullptr};
 };
 }  // namespace vk

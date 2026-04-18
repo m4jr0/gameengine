@@ -14,33 +14,29 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/type/array.h"
 #include "comet/core/type/ordered_set.h"
+#include "comet/geometry/geometry_manager.h"
 
 namespace comet {
 namespace frame {
 void FramePacket::RegisterNewGeometry(
     entity::EntityId entity_id, const geometry::MeshComponent* mesh_cmp,
     const physics::TransformComponent* transform_cmp) {
-  auto* from_mesh{mesh_cmp->mesh};
-  COMET_ASSERT(from_mesh != nullptr, "Mesh from mesh component is null!");
+  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
+  COMET_ASSERT(transform_cmp != nullptr, "Transform component is null!");
+  COMET_ASSERT(mesh_cmp->mesh_handle, "Mesh handle is invalid!");
 
   AddedGeometry geometry{
       .entity_id = entity_id,
       .model_entity_id = mesh_cmp->model_entity_id,
-      .mesh_id = from_mesh->id,
-      .material_resource = mesh_cmp->material_resource,
-
+      .material_resource_id = mesh_cmp->material_resource_id,
       .indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index),
       .vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex),
-
       .transform = transform_cmp->global,
-      .local_center = from_mesh->local_center,
-      .local_max_extents = from_mesh->local_max_extents,
   };
 
-  geometry.vertices->PushFromRange(from_mesh->vertices);
-  geometry.indices->PushFromRange(from_mesh->indices);
+  geometry::GeometryManager::Get().PopulateGeometryData(mesh_cmp->mesh_handle,
+                                                        geometry);
 
   fiber::FiberLockGuard lock{added_geometries_mtx};
   added_geometries->Add(std::move(geometry));
@@ -49,24 +45,18 @@ void FramePacket::RegisterNewGeometry(
 void FramePacket::RegisterDirtyMesh(entity::EntityId entity_id,
                                     const geometry::MeshComponent* mesh_cmp) {
   COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
-  auto* from_mesh{mesh_cmp->mesh};
-  COMET_ASSERT(from_mesh != nullptr, "Mesh from mesh component is null!");
+  COMET_ASSERT(mesh_cmp->mesh_handle, "Mesh handle is invalid!");
 
   DirtyMesh mesh{
       .entity_id = entity_id,
       .model_entity_id = mesh_cmp->model_entity_id,
-      .mesh_id = from_mesh->id,
-      .material_resource = mesh_cmp->material_resource,
-
-      .local_center = from_mesh->local_center,
-      .local_max_extents = from_mesh->local_max_extents,
-
+      .material_resource_id = mesh_cmp->material_resource_id,
       .indices = COMET_DOUBLE_FRAME_ARRAY(geometry::Index),
       .vertices = COMET_DOUBLE_FRAME_ARRAY(geometry::SkinnedVertex),
   };
 
-  mesh.vertices->PushFromRange(from_mesh->vertices);
-  mesh.indices->PushFromRange(from_mesh->indices);
+  geometry::GeometryManager::Get().PopulateGeometryData(mesh_cmp->mesh_handle,
+                                                        mesh);
 
   fiber::FiberLockGuard lock{dirty_meshes_mtx};
   dirty_meshes->Add(std::move(mesh));
@@ -88,22 +78,25 @@ void FramePacket::RegisterDirtyTransform(
 
 void FramePacket::RegisterRemovedGeometry(entity::EntityId entity_id,
                                           entity::EntityId model_entity_id,
-                                          geometry::MeshId mesh_id) {
+                                          geometry::MeshHandle mesh_handle) {
   RemovedGeometry geometry{
       .entity_id = entity_id,
       .model_entity_id = model_entity_id,
-      .mesh_id = mesh_id,
+      .mesh_handle = mesh_handle,
   };
 
   fiber::FiberLockGuard lock{removed_geometries_mtx};
   removed_geometries->Add(std::move(geometry));
 }
 
-void FramePacket::RegisterNewLight(rendering::LightId light_id,
+void FramePacket::RegisterNewLight(rendering::LightHandle light_handle,
                                    const rendering::LightProperties* props,
                                    const rendering::LightShadow* shadow) {
+  COMET_ASSERT(props != nullptr, "Light properties are null!");
+  COMET_ASSERT(shadow != nullptr, "Light shadow is null!");
+
   AddedLight light{
-      .light_id = light_id,
+      .light_handle = light_handle,
       .props = *props,
       .shadow = *shadow,
   };
@@ -112,11 +105,14 @@ void FramePacket::RegisterNewLight(rendering::LightId light_id,
   added_lights->Add(std::move(light));
 }
 
-void FramePacket::RegisterDirtyLight(rendering::LightId light_id,
+void FramePacket::RegisterDirtyLight(rendering::LightHandle light_handle,
                                      const rendering::LightProperties* props,
                                      const rendering::LightShadow* shadow) {
+  COMET_ASSERT(props != nullptr, "Light properties are null!");
+  COMET_ASSERT(shadow != nullptr, "Light shadow is null!");
+
   DirtyLight light{
-      .light_id = light_id,
+      .light_handle = light_handle,
       .props = *props,
       .shadow = *shadow,
   };
@@ -125,9 +121,9 @@ void FramePacket::RegisterDirtyLight(rendering::LightId light_id,
   dirty_lights->Add(std::move(light));
 }
 
-void FramePacket::RegisterRemovedLight(rendering::LightId light_id) {
+void FramePacket::RegisterRemovedLight(rendering::LightHandle light_handle) {
   RemovedLight light{
-      .light_id = light_id,
+      .light_handle = light_handle,
   };
 
   fiber::FiberLockGuard lock{removed_lights_mtx};
@@ -146,10 +142,9 @@ bool FramePacket::IsFrameStageFinished(FrameStage stage) const {
   return stage_times[stage].end > 0;
 }
 
-void FramePacket::FramePacket::Reset() {
+void FramePacket::Reset() {
   // No locking required. This function is designed for single-threaded
   // execution.
-
   can_present = true;
   frame_count = 0;
   lag = .0f;
@@ -196,15 +191,15 @@ HashValue GenerateHash(const RemovedGeometry& value) {
 }
 
 HashValue GenerateHash(const AddedLight& value) {
-  return comet::GenerateHash(value.light_id);
+  return comet::GenerateHash(value.light_handle);
 }
 
 HashValue GenerateHash(const DirtyLight& value) {
-  return comet::GenerateHash(value.light_id);
+  return comet::GenerateHash(value.light_handle);
 }
 
 HashValue GenerateHash(const RemovedLight& value) {
-  return comet::GenerateHash(value.light_id);
+  return comet::GenerateHash(value.light_handle);
 }
 }  // namespace frame
 }  // namespace comet

@@ -9,7 +9,7 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
-#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/light/light_type.h"
 
 namespace comet {
 namespace rendering {
@@ -70,22 +70,23 @@ constexpr ShaderFieldIndex kShadowLightViewProjFieldIndex{0};
 }  // namespace shadowshaderconsts
 
 void AddWorldGlobalFieldUpdates(
-    ShaderHandler* shader_handler, Shader* shader,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates);
 
 void AddWorldGlobalImageBindings(
-    ShaderHandler* shader_handler, Shader* shader, const TextureMap* shadow_map,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
+    const TextureMap* shadow_map,
     frame::FrameArray<ShaderImageBindingUpdate>& image_bindings,
     frame::FrameArray<ShaderImageDescriptor>& image_descriptors);
 
 void AddDebugGlobalFieldUpdates(
-    ShaderHandler* shader_handler, Shader* shader,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates);
 
 void AddWorldShadowSettingsFieldUpdates(
-    ShaderHandler* shader_handler, Shader* shader,
+    ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const ShadowSettings* shadow_settings,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates);
 }  // namespace gl

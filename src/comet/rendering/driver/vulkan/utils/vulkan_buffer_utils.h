@@ -24,22 +24,27 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
                       VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
                       const schar* debug_label = nullptr);
 void DestroyBuffer(Buffer& buffer);
+
 void MapBuffer(Buffer& buffer);
 void CopyToBuffer(Buffer& buffer, void const* data, usize length,
                   sptrdiff offset = 0);
 void UnmapBuffer(Buffer& buffer);
+
 bool IsBufferInitialized(Buffer& buffer) noexcept;
+
 void CopyBufferImmediate(const Device& device,
                          VkCommandPool command_pool_handle, Buffer src_buffer,
                          Buffer dst_buffer, VkDeviceSize size,
                          VkQueue queue_handle,
                          BarrierDescr* barrier_descr = nullptr);
+
 void ReallocateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
                       VkDeviceSize new_size, VkBufferUsageFlags usage,
                       VmaMemoryUsage vma_memory_usage,
                       VkMemoryPropertyFlags memory_property_flags,
                       VmaAllocationCreateFlags vma_flags,
                       VkSharingMode sharing_mode, const schar* debug_label);
+
 void ResizeBuffer(Buffer& buffer, const Device& device,
                   VkCommandPool command_pool_handle,
                   VmaAllocator allocator_handle, VkDeviceSize new_size,
@@ -50,6 +55,7 @@ void ResizeBuffer(Buffer& buffer, const Device& device,
                   VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
                   BarrierDescr* barrier_descr = nullptr,
                   const schar* debug_label = nullptr);
+
 void AddBufferMemoryBarrier(
     const Buffer& buffer, Array<VkBufferMemoryBarrier>* barriers,
     VkAccessFlags src_access_mask, VkAccessFlags dst_access_mask,

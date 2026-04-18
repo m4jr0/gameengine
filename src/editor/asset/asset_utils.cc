@@ -13,7 +13,7 @@
 #include "comet/core/c_string.h"
 #include "comet/core/date.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #include "editor/asset/asset.h"
 
 namespace comet {
@@ -25,8 +25,8 @@ TString GenerateAssetMetadataFilePath(CTStringView asset_file_path) {
   }
 
   // + 1 to add the dot.
-  auto total_len{asset_file_path.GetLength() +
-                 kCometEditorAssetMetadataFileExtension.GetLength() + 1};
+  const auto total_len{asset_file_path.GetLength() +
+                       kCometEditorAssetMetadataFileExtension.GetLength() + 1};
   TString path{};
   path.Resize(total_len);
   COMET_DISALLOW_STR_ALLOC(path);
@@ -48,7 +48,7 @@ TString GenerateAssetMetadataFilePath(CTStringView asset_file_path) {
 
 void SaveMetadata(CTStringView metadata_file_path,
                   const nlohmann::json& metadata) {
-  auto str_dump{metadata.dump(kCometEditorAssetMetadataIndent)};
+  const auto str_dump{metadata.dump(kCometEditorAssetMetadataIndent)};
   WriteStrToFile(metadata_file_path, str_dump.c_str());
 }
 
@@ -113,9 +113,9 @@ bool IsMetadataFile(CTStringView file_path) {
 }
 
 TString GenerateResourcePath(CTStringView folder_path,
-                             resource::ResourceId resource_id) {
+                             resource::RawResourceId resource_id) {
   constexpr auto kResourceIdPathBufferSize{
-      GetCharCount<resource::ResourceId>() + 1};
+      GetCharCount<resource::RawResourceId>() + 1};
   tchar resource_id_path[kResourceIdPathBufferSize];
   usize resource_id_path_len;
   ConvertToStr(resource_id, resource_id_path, kResourceIdPathBufferSize,
@@ -126,8 +126,8 @@ TString GenerateResourcePath(CTStringView folder_path,
 namespace internal {
 schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,
                                        usize buffer_len) {
-  auto name{GetName(path)};
-  auto len{math::Min(buffer_len, name.GetLength())};
+  const auto name{GetName(path)};
+  const auto len{math::Min(buffer_len, name.GetLength())};
   Copy(buffer, name.GetCTStr(), len);
   buffer[len] = '\0';
   return buffer;

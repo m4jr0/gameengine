@@ -56,21 +56,23 @@ class InputManager : public Manager {
   InputManager(InputManager&&) = delete;
   InputManager& operator=(const InputManager&) = delete;
   InputManager& operator=(InputManager&&) = delete;
-  virtual ~InputManager() = default;
+  ~InputManager() override = default;
 
-  void Initialize() override;
-  virtual void Shutdown() override;
   virtual void Update();
+
   virtual bool IsKeyPressed(KeyCode) const;
   virtual bool IsKeyUp(KeyCode) const;
   virtual bool IsKeyDown(KeyCode) const;
   virtual bool IsMousePressed(MouseButton key_code) const;
   virtual bool IsMouseDown(MouseButton key_code) const;
   virtual bool IsMouseUp(MouseButton key_code) const;
+
   virtual math::Vec2 GetMousePosition() const;
   virtual void SetMousePosition(f32, f32);
+
   virtual void EnableUnconstrainedMouseCursor();
   virtual void DisableUnconstrainedMouseCursor();
+
   void AttachGlfwWindow(GLFWwindow* window_handle_);
 
 #ifdef COMET_IMGUI
@@ -79,6 +81,10 @@ class InputManager : public Manager {
 
   bool IsAltPressed() const;
   bool IsShiftPressed() const;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   void ReadInputs();
@@ -93,32 +99,6 @@ class InputManager : public Manager {
 #ifdef COMET_IMGUI
   static inline bool is_imgui_{false};
 #endif  // COMET_IMGUI
-};
-
-class NullInputManager : public InputManager {
- public:
-  NullInputManager() = default;
-  NullInputManager(const NullInputManager&) = delete;
-  NullInputManager(NullInputManager&&) = delete;
-  NullInputManager& operator=(const NullInputManager&) = delete;
-  NullInputManager& operator=(NullInputManager&&) = delete;
-  virtual ~NullInputManager() = default;
-
-  virtual bool IsKeyPressed(KeyCode) const override { return false; };
-
-  virtual bool IsKeyUp(KeyCode) const override { return false; };
-  virtual bool IsKeyDown(KeyCode) const override { return false; };
-  virtual bool IsMousePressed(MouseButton) const override { return false; };
-  virtual bool IsMouseDown(MouseButton) const override { return false; };
-  virtual bool IsMouseUp(MouseButton) const override { return false; };
-
-  virtual math::Vec2 GetMousePosition() const override {
-    return math::Vec2{.0f, .0f};
-  };
-
-  virtual void SetMousePosition(f32, f32) override{};
-  virtual void EnableUnconstrainedMouseCursor() override {};
-  virtual void DisableUnconstrainedMouseCursor() override {};
 };
 }  // namespace input
 }  // namespace comet

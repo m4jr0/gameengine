@@ -16,6 +16,15 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+
+#ifndef COMET_MSVC
+#include <sys/sysinfo.h>
+#include <unistd.h>
+#endif  // !COMET_MSVC
+
+#ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
+#include <atomic>
+#endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/allocation_tracking.h"
@@ -23,17 +32,10 @@
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"
-#else
-#include <sys/sysinfo.h>
-#include <unistd.h>
 #endif  // COMET_MSVC
 
 #include "comet/core/c_string.h"
 #include "comet/core/processor.h"
-
-#ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
-#include <atomic>
-#endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
 
 namespace comet {
 namespace memory {
@@ -95,6 +97,28 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "resource_scene";
     case kEngineMemoryTagResourceSceneExtended:
       return "resource_scene_extended";
+    case kEngineMemoryTagResourceAnimationHandler:
+      return "resource_animation_handler";
+    case kEngineMemoryTagResourceMaterialHandler:
+      return "resource_material_handler";
+    case kEngineMemoryTagResourceStaticModelHandler:
+      return "resource_static_model_handler";
+    case kEngineMemoryTagResourceSkeletalModelHandler:
+      return "resource_skeletal_model_handler";
+    case kEngineMemoryTagResourceSkeletonHandler:
+      return "resource_skeleton_handler";
+    case kEngineMemoryTagResourceAnimationClipHandler:
+      return "resource_animation_clip_handler";
+    case kEngineMemoryTagResourceShaderModuleHandler:
+      return "resource_shader_module_handler";
+    case kEngineMemoryTagResourceShaderHandler:
+      return "resource_shader_handler";
+    case kEngineMemoryTagResourceTextureHandler:
+      return "resource_texture_handler";
+    case kEngineMemoryTagResourceAnimation:
+      return "resource_animation";
+    case kEngineMemoryTagResourceTexture:
+      return "resource_texture";
     case kEngineMemoryTagTString:
       return "tstring";
     case kEngineMemoryTagEntity:
@@ -169,7 +193,7 @@ void* StoreShiftAndReturnAligned(void* ptr, [[maybe_unused]] usize data_size,
                                  Alignment align) {
   COMET_ASSERT(allocation_size > data_size,
                "Cannot save shift, allocation size is too small!");
-  auto cast_ptr{static_cast<u8*>(ptr)};
+  const auto cast_ptr{static_cast<u8*>(ptr)};
   auto* aligned_ptr{AlignPointer(cast_ptr, align)};
 
   // Case: pointer is already aligned. We have a minimal shift of 1 byte, so
@@ -178,7 +202,7 @@ void* StoreShiftAndReturnAligned(void* ptr, [[maybe_unused]] usize data_size,
     aligned_ptr += align;
   }
 
-  auto shift{aligned_ptr - cast_ptr};
+  const auto shift{aligned_ptr - cast_ptr};
   COMET_ASSERT(shift > 0 && shift <= kMaxAlignment,
                "Invalid shift in memory allocation! Shift is ", shift,
                ", but it must be between ", 0, " and ", kMaxAlignment, ".");
@@ -259,7 +283,7 @@ void Poison(void* ptr, usize size) {
                 "std::atomic<u64> needs to be always lock-free. Unsupported "
                 "architecture");
   static std::atomic<u64> allocation_id_counter{0};
-  auto allocation_id{
+  const auto allocation_id{
       allocation_id_counter.fetch_add(1, std::memory_order_acq_rel)};
   constexpr auto kAllocationIdSize{sizeof(allocation_id)};
 #endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
@@ -297,7 +321,7 @@ MemoryDescr GetMemoryDescr() {
 
   ULONGLONG total_memory_in_kilobytes{0};
 
-  [[maybe_unused]] auto is_ok{
+  [[maybe_unused]] const auto is_ok{
       GetPhysicallyInstalledSystemMemory(&total_memory_in_kilobytes)};
   COMET_ASSERT(is_ok, "Could not retrieve the total memory from the system!");
 

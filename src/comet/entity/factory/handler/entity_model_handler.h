@@ -23,11 +23,12 @@ class ModelHandler : public Handler {
   ModelHandler(ModelHandler&&) = delete;
   ModelHandler& operator=(const ModelHandler&) = delete;
   ModelHandler& operator=(ModelHandler&&) = delete;
-  virtual ~ModelHandler() = default;
+  ~ModelHandler() override = default;
 
   EntityId GenerateStatic(CTStringView model_path,
                           resource::ResourceLifeSpan life_span =
                               resource::ResourceLifeSpan::Manual) const;
+
   EntityId GenerateSkeletal(CTStringView model_path,
                             resource::ResourceLifeSpan life_span =
                                 resource::ResourceLifeSpan::Manual) const;
@@ -46,7 +47,7 @@ class ModelHandler : public Handler {
 };
 
 namespace internal {
-using ParentEntityIds = Map<resource::ResourceId, EntityId>;
+using ParentEntityIds = Map<resource::RawResourceId, EntityId>;
 
 struct StaticGenerationJobParams {
   resource::ResourceLifeSpan life_span{resource::ResourceLifeSpan::Manual};

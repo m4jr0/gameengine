@@ -19,7 +19,7 @@ class EmptyGlfwWindow : public GlfwWindow {
   EmptyGlfwWindow(EmptyGlfwWindow&&) noexcept;
   EmptyGlfwWindow& operator=(const EmptyGlfwWindow&);
   EmptyGlfwWindow& operator=(EmptyGlfwWindow&&) noexcept;
-  virtual ~EmptyGlfwWindow() = default;
+  ~EmptyGlfwWindow() override = default;
 };
 }  // namespace empty
 }  // namespace rendering

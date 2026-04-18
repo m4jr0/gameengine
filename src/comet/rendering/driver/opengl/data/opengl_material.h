@@ -8,18 +8,17 @@
 #include "comet/core/essentials.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
-#include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/resource/material_resource.h"
+#include "comet/resource/shader_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using MaterialId = stringid::StringId;
-constexpr auto kInvalidMaterialId{static_cast<MaterialId>(-1)};
-
 struct MaterialDescr {
-  MaterialId id{kInvalidMaterialId};
-  resource::ResourceId shader_id{resource::kInvalidResourceId};
+  resource::MaterialResourceId id{};
+  resource::ShaderResourceId shader_resource_id{};
   math::Vec4 diffuse_color{kColorWhiteRgba};
   TextureMap diffuse_map{};
   TextureMap specular_map{};
@@ -30,8 +29,9 @@ struct MaterialDescr {
 struct Material {
   u16 ref_count{0};
   f32 shininess{.0f};
-  MaterialId id{kInvalidMaterialId};
-  resource::ResourceId shader_id{resource::kInvalidResourceId};
+  resource::MaterialResourceId id{};
+  resource::ShaderResourceId shader_resource_id{};
+  MaterialHandle handle{};
   math::Vec4 diffuse_color{kColorWhiteRgba};
   TextureMap diffuse_map{};
   TextureMap specular_map{};

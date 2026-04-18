@@ -22,6 +22,7 @@ namespace asset {
 math::Vec3 ToVec3(const aiVector3D& assimp_vec);
 math::Quat ToQuat(const aiQuaternion& assimp_quat);
 math::Mat4x4 ToMat4x4(const aiMatrix4x4& assimp_mat);
+
 aiMatrix4x4 GenerateGlobalTransform(const aiNode* node);
 }  // namespace asset
 }  // namespace editor

@@ -11,8 +11,14 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/comet/animation/animation_common.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/animation_clip.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/animation_id.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/animation/animation_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/animation_set.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/animation_type.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/animation_utils.cc"
+    
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/component/animation_component.h"
 )
 
 # Compiling ####################################################################

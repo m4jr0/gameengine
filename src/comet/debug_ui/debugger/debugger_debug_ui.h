@@ -22,7 +22,7 @@ class DebuggerDebugUi {
   DebuggerDebugUi(DebuggerDebugUi&&) = delete;
   DebuggerDebugUi& operator=(const DebuggerDebugUi&) = delete;
   DebuggerDebugUi& operator=(DebuggerDebugUi&&) = delete;
-  virtual ~DebuggerDebugUi() = default;
+  ~DebuggerDebugUi() = default;
 
   void Draw(const profiler::ProfilerData& profiler_data,
             const CpuProfilerGraph::Controls& controls);

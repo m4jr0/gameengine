@@ -16,31 +16,32 @@
 #include "comet/geometry/geometry_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace entity {
-EntityId PrimitiveHandler::GenerateCube(
-    f32 size, resource::ResourceLifeSpan life_span) const {
+EntityId PrimitiveHandler::GenerateCube(f32 size,
+                                        resource::ResourceLifeSpan) const {
   auto& entity_manager{EntityManager::Get()};
   auto& geometry_manager{geometry::GeometryManager::Get()};
   auto& physics_manager{physics::PhysicsManager::Get()};
-  auto entity_id{entity_manager.Generate()};
-  auto* mesh{geometry_manager.GenerateCube(size)};
+
+  const auto entity_id{entity_manager.Generate()};
+  const auto mesh_handle{geometry_manager.GenerateCube(size)};
 
   geometry::MeshComponent mesh_cmp{};
   mesh_cmp.entity_id = entity_id;
   mesh_cmp.model_entity_id = entity_id;
-  mesh_cmp.mesh = mesh;
-  mesh_cmp.material_resource =
-      resource::ResourceManager::Get().GetMaterials()->Load(
-          resource::kDefaultResourceId, life_span);
+  mesh_cmp.mesh_handle = mesh_handle;
+  mesh_cmp.material_resource_id = resource::GetDefaultMaterialId();
 
-  auto transform_root_cmp{physics_manager.GenerateTransformRootComponent()};
-  auto transform_cmp{physics_manager.GenerateTransformComponent(entity_id)};
+  const auto transform_root_cmp{
+      physics_manager.GenerateTransformRootComponent()};
+  const auto transform_cmp{
+      physics_manager.GenerateTransformComponent(entity_id)};
 
   entity_manager.AddComponents(entity_id, mesh_cmp, transform_cmp,
                                transform_root_cmp);
+
   frame::FrameManager::Get().GetLogicFramePacket()->RegisterNewGeometry(
       entity_id, &mesh_cmp, &transform_cmp);
 

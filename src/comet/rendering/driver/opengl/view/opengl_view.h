@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/opengl_frame_state.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -63,8 +63,9 @@ class View {
   View& operator=(View&&) = delete;
   virtual ~View();
 
-  virtual void Initialize();
-  virtual void Destroy();
+  void Initialize();
+  void Destroy();
+
   virtual void Update(frame::FramePacket*) = 0;
   virtual void SetSize(WindowSize width, WindowSize height);
 
@@ -74,6 +75,9 @@ class View {
   bool IsOffscreenTarget() const noexcept;
 
  protected:
+  virtual void OnInitialize();
+  virtual void OnDestroy();
+
   bool is_initialized_{false};
   ViewPassDescr pass_descr_{};
   WindowSize width_{0};

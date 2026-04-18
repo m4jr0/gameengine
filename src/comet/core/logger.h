@@ -13,6 +13,7 @@
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type/buffer_formatter.h"
 #include "comet/core/type/tstring.h"
 #include "comet/time/chrono.h"
 
@@ -80,6 +81,17 @@ class Logger final {
   void AddToBuffer(schar* buffer, usize len, usize& offset, CTStringView arg);
   void AddToBuffer(schar* buffer, usize len, usize& offset,
                    std::string_view arg);
+
+  template <typename T>
+    requires(HasBufferFormatter<T>)
+  void AddToBuffer(schar* buffer, usize buffer_len, usize& offset,
+                   const T& arg) {
+    constexpr usize kTmpSize{128};
+    schar tmp[kTmpSize]{'\0'};
+    const auto written{BufferFormatter<T>::Format(arg, tmp, kTmpSize)};
+    AddToBuffer(buffer, buffer_len, offset, std::string_view{tmp, written});
+  }
+
   void Send(const schar* buffer, usize buffer_len);
 
  public:

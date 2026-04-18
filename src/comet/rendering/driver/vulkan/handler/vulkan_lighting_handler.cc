@@ -15,8 +15,10 @@
 #include "comet/rendering/culling/culling_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
+#include "comet/rendering/driver/vulkan/utils/vulkan_texture_map_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/rendering/light/light_utils.h"
 #include "comet/rendering/rendering_utils.h"
 
 namespace comet {
@@ -25,22 +27,138 @@ namespace vk {
 LightingHandler::LightingHandler(const LightingHandlerDescr& descr)
     : Handler{descr},
       shadow_settings_{descr.shadow_settings},
+      texture_handler_{descr.texture_handler},
+      sampler_handler_{descr.sampler_handler},
       render_pass_handler_{descr.render_pass_handler} {
   COMET_ASSERT(shadow_settings_ != nullptr, "Shadow settings are null!");
+  COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
+  COMET_ASSERT(sampler_handler_ != nullptr, "Sampler handler is null!");
   COMET_ASSERT(render_pass_handler_ != nullptr, "Render pass handler is null!");
 }
 
-void LightingHandler::Initialize() {
-  Handler::Initialize();
+void LightingHandler::Update(const frame::FramePacket* packet) {
+  COMET_PROFILE("LightingHandler::Update");
+  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+
+  if (!packet->added_lights->IsEmpty()) {
+    AddLights(packet->added_lights);
+  }
+
+  if (!packet->dirty_lights->IsEmpty()) {
+    UpdateLights(packet->dirty_lights);
+  }
+
+  if (!packet->removed_lights->IsEmpty()) {
+    RemoveLights(packet->removed_lights);
+  }
+
+  const auto frame_index{context_->GetFrameInFlightIndex()};
+  RebuildRenderJobs(packet);
+  UploadGpuShadowData(frame_index);
+  UploadGpuLights(frame_index);
+}
+
+const LightProxy* LightingHandler::Get(LightHandle handle) const {
+  const auto* proxy{TryGetLight(handle)};
+  COMET_ASSERT(proxy != nullptr, "Light proxy does not exist: ", handle, "!");
+  return proxy;
+}
+
+const LightProxy* LightingHandler::TryGetLight(
+    LightHandle handle) const noexcept {
+  if (!handle) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= proxies_.GetSize()) {
+    return nullptr;
+  }
+
+  const auto& proxy{proxies_[index]};
+
+  if (!proxy.handle || proxy.handle != handle) {
+    return nullptr;
+  }
+
+  return &proxy;
+}
+
+u32 LightingHandler::GetLightCount() const noexcept {
+  u32 count{0};
+
+  for (usize i{0}; i < proxies_.GetSize(); ++i) {
+    if (IsLightSlotAlive(i)) {
+      ++count;
+    }
+  }
+
+  return count;
+}
+
+LightGpuData LightingHandler::GetLightGpuData(
+    FrameInFlightIndex frame_index) const noexcept {
+  const auto& buffer{ssbo_lights_[frame_index]};
+
+  return {
+      .ssbo_lights_handle = buffer.handle,
+      .ssbo_lights_size = buffer.size,
+  };
+}
+
+ShadowGpuData LightingHandler::GetShadowGpuData(
+    FrameInFlightIndex frame_index) const noexcept {
+  const auto& buffer{ssbo_shadow_data_[frame_index]};
+
+  return {
+      .ssbo_shadow_data_handle = buffer.handle,
+      .ssbo_shadow_data_size = buffer.size,
+  };
+}
+
+const frame::FrameArray<ShadowRenderJob>* LightingHandler::GetRenderJobs()
+    const noexcept {
+  return render_jobs_;
+}
+
+const TextureMap* LightingHandler::GetShadowArrayTextureMap() const noexcept {
+  return shadow_array_texture_map_.texture_handle ? &shadow_array_texture_map_
+                                                  : nullptr;
+}
+
+VkImage LightingHandler::GetShadowArrayImageHandle() const noexcept {
+  if (!shadow_array_texture_map_.texture_handle) {
+    return VK_NULL_HANDLE;
+  }
+
+  const auto* texture{
+      GetTextureHandler()->Get(shadow_array_texture_map_.texture_handle)};
+  return texture != nullptr ? texture->image.handle : VK_NULL_HANDLE;
+}
+
+VkFormat LightingHandler::GetShadowArrayFormat() const noexcept {
+  if (!shadow_array_texture_map_.texture_handle) {
+    return VK_FORMAT_UNDEFINED;
+  }
+
+  const auto* texture{
+      GetTextureHandler()->Get(shadow_array_texture_map_.texture_handle)};
+  return texture != nullptr ? texture->format : VK_FORMAT_UNDEFINED;
+}
+
+void LightingHandler::SetRenderPass(
+    RenderPassHandle render_pass_handle) noexcept {
+  render_pass_handle_ = render_pass_handle;
+}
+
+void LightingHandler::OnInitialize() {
   allocator_.Initialize();
 
-  light_to_proxy_map_ = Map<LightId, usize>{&allocator_, kDefaultLightCount_};
   proxies_ = Array<LightProxy>{&allocator_, kDefaultLightCount_};
-
-  light_to_shadow_map_ = Map<LightId, usize>{&allocator_, kDefaultLightCount_};
   shadow_resources_ = Array<ShadowResource>{&allocator_, kDefaultLightCount_};
 
-  auto frame_count{context_->GetMaxFramesInFlight()};
+  const auto frame_count{context_->GetMaxFramesInFlight()};
 
   ssbo_lights_ = Array<Buffer>{&platform_allocator_};
   ssbo_lights_.Resize(frame_count);
@@ -75,13 +193,12 @@ void LightingHandler::Initialize() {
   InitializeShadowArrayResources();
 }
 
-void LightingHandler::Shutdown() {
+void LightingHandler::OnShutdown() {
   for (auto& resource : shadow_resources_) {
     DestroyShadowResource(resource);
   }
 
   shadow_resources_.Destroy();
-  light_to_shadow_map_.Destroy();
 
   DestroyShadowArrayResources();
 
@@ -103,105 +220,28 @@ void LightingHandler::Shutdown() {
 
   shadow_layer_usage_.Destroy();
   proxies_.Destroy();
-  light_to_proxy_map_.Destroy();
 
   allocator_.Destroy();
   render_jobs_ = nullptr;
-  render_pass_handle_ = kInvalidRenderPassHandle;
-
-  Handler::Shutdown();
-}
-
-void LightingHandler::Update(const frame::FramePacket* packet) {
-  COMET_PROFILE("LightingHandler::Update");
-
-  if (!packet->added_lights->IsEmpty()) {
-    AddLights(packet->added_lights);
-  }
-
-  if (!packet->dirty_lights->IsEmpty()) {
-    UpdateLights(packet->dirty_lights);
-  }
-
-  if (!packet->removed_lights->IsEmpty()) {
-    RemoveLights(packet->removed_lights);
-  }
-
-  auto frame_index{context_->GetFrameInFlightIndex()};
-  RebuildRenderJobs(packet);
-  UploadGpuShadowData(frame_index);
-  UploadGpuLights(frame_index);
-}
-
-const LightProxy* LightingHandler::Get(LightProxyHandle handle) const {
-  return TryGetLight(static_cast<LightId>(handle));
-}
-
-const LightProxy* LightingHandler::TryGetLight(
-    LightId light_id) const noexcept {
-  const auto* index{light_to_proxy_map_.TryGet(light_id)};
-  return index != nullptr ? &proxies_[*index] : nullptr;
-}
-
-u32 LightingHandler::GetLightCount() const noexcept {
-  return static_cast<u32>(proxies_.GetSize());
-}
-
-LightGpuData LightingHandler::GetLightGpuData(
-    FrameInFlightIndex frame_index) const noexcept {
-  const auto& buffer{ssbo_lights_[frame_index]};
-
-  return {
-      .ssbo_lights_handle = buffer.handle,
-      .ssbo_lights_size = buffer.size,
-  };
-}
-
-ShadowGpuData LightingHandler::GetShadowGpuData(
-    FrameInFlightIndex frame_index) const noexcept {
-  const auto& buffer{ssbo_shadow_data_[frame_index]};
-
-  return {
-      .ssbo_shadow_data_handle = buffer.handle,
-      .ssbo_shadow_data_size = buffer.size,
-  };
-}
-
-const frame::FrameArray<ShadowRenderJob>* LightingHandler::GetRenderJobs()
-    const noexcept {
-  return render_jobs_;
-}
-
-const TextureMap* LightingHandler::GetShadowArrayTextureMap() const noexcept {
-  return shadow_array_texture_map_.texture != nullptr
-             ? &shadow_array_texture_map_
-             : nullptr;
-}
-
-VkImage LightingHandler::GetShadowArrayImageHandle() const noexcept {
-  return shadow_array_image_.handle;
-}
-
-VkFormat LightingHandler::GetShadowArrayFormat() const noexcept {
-  return shadow_array_texture_.format;
-}
-
-void LightingHandler::SetRenderPass(
-    RenderPassHandle render_pass_handle) noexcept {
-  render_pass_handle_ = render_pass_handle;
+  render_pass_handle_.Invalidate();
 }
 
 void LightingHandler::AddLights(const frame::AddedLights* lights) {
   for (const auto& payload : *lights) {
-    if (light_to_proxy_map_.IsContained(payload.light_id)) {
+    const auto handle{payload.light_handle};
+
+    if (!handle) {
       continue;
     }
 
-    auto proxy_index{proxies_.GetSize()};
-    light_to_proxy_map_[payload.light_id] = proxy_index;
+    const auto index{static_cast<usize>(handle.GetIndex())};
 
-    auto& proxy{proxies_.EmplaceBack()};
-    proxy.id = payload.light_id;
+    if (index >= proxies_.GetSize()) {
+      proxies_.Resize(index + 1);
+    }
+
+    auto& proxy{proxies_[index]};
+    proxy.handle = handle;
     proxy.props = payload.props;
     proxy.shadow = payload.shadow;
     proxy.gpu_shadow_index = -1;
@@ -214,13 +254,19 @@ void LightingHandler::AddLights(const frame::AddedLights* lights) {
 
 void LightingHandler::UpdateLights(const frame::DirtyLights* lights) {
   for (const auto& payload : *lights) {
-    auto* proxy_index{light_to_proxy_map_.TryGet(payload.light_id)};
+    const auto handle{payload.light_handle};
+    const auto index{static_cast<usize>(handle.GetIndex())};
 
-    if (proxy_index == nullptr) {
+    if (index >= proxies_.GetSize()) {
       continue;
     }
 
-    auto& proxy{proxies_[*proxy_index]};
+    auto& proxy{proxies_[index]};
+
+    if (!proxy.handle || proxy.handle != handle) {
+      continue;
+    }
+
     proxy.props = payload.props;
     proxy.shadow = payload.shadow;
     proxy.is_dirty = true;
@@ -231,28 +277,28 @@ void LightingHandler::UpdateLights(const frame::DirtyLights* lights) {
 
 void LightingHandler::RemoveLights(const frame::RemovedLights* lights) {
   for (const auto& payload : *lights) {
-    RemoveShadowForLight(payload.light_id);
+    const auto handle{payload.light_handle};
 
-    auto* proxy_index{light_to_proxy_map_.TryGet(payload.light_id)};
-    if (proxy_index == nullptr) {
+    RemoveShadowForLight(handle);
+
+    const auto index{static_cast<usize>(handle.GetIndex())};
+
+    if (index >= proxies_.GetSize()) {
       continue;
     }
 
-    auto index{*proxy_index};
-    auto last_index{proxies_.GetSize() - 1};
+    auto& proxy{proxies_[index]};
 
-    if (index != last_index) {
-      proxies_[index] = proxies_[last_index];
-      light_to_proxy_map_[proxies_[index].id] = index;
+    if (!proxy.handle || proxy.handle != handle) {
+      continue;
     }
 
-    proxies_.PopBack();
-    light_to_proxy_map_.Remove(payload.light_id);
+    proxy = {};
   }
 }
 
 void LightingHandler::AddShadowForLight(const LightProxy& light) {
-  auto shadow_type{ResolveShadowType(light.props, light.shadow)};
+  const auto shadow_type{ResolveShadowType(light.props, light.shadow)};
 
   if (shadow_type == ShadowType::None) {
     return;
@@ -263,28 +309,34 @@ void LightingHandler::AddShadowForLight(const LightProxy& light) {
       COMET_LOG_RENDERING_WARNING(
           "Point cubemap shadows are not implemented yet. Ignoring shadow "
           "setup for light ",
-          light.id, ".");
+          light.handle, ".");
     }
     return;
   }
 
-  if (light_to_shadow_map_.IsContained(light.id)) {
+  const auto index{static_cast<usize>(light.handle.GetIndex())};
+
+  if (index >= shadow_resources_.GetSize()) {
+    shadow_resources_.Resize(index + 1);
+  }
+
+  auto& resource{shadow_resources_[index]};
+
+  if (resource.light_handle == light.handle) {
     return;
   }
 
-  auto& resource{shadow_resources_.EmplaceBack()};
-  InitializeShadowResource(light.id, light, resource);
-  light_to_shadow_map_[light.id] = shadow_resources_.GetSize() - 1;
+  InitializeShadowResource(light.handle, light, resource);
 }
 
 void LightingHandler::UpdateShadowForLight(const LightProxy& light) {
-  auto shadow_type{ResolveShadowType(light.props, light.shadow)};
-  auto is_supported{IsShadowSupportedForLight(light.props, light.shadow)};
-  auto* existing{TryGetShadowResource(light.id)};
+  const auto shadow_type{ResolveShadowType(light.props, light.shadow)};
+  const auto is_supported{IsShadowSupportedForLight(light.props, light.shadow)};
+  auto* existing{TryGetShadowResource(light.handle)};
 
   if (shadow_type == ShadowType::None || !is_supported) {
     if (existing != nullptr) {
-      RemoveShadowForLight(light.id);
+      RemoveShadowForLight(light.handle);
     }
     return;
   }
@@ -301,61 +353,66 @@ void LightingHandler::UpdateShadowForLight(const LightProxy& light) {
   existing->is_dirty = true;
 }
 
-void LightingHandler::RemoveShadowForLight(LightId light_id) {
-  auto* proxy_index{light_to_shadow_map_.TryGet(light_id)};
-  if (proxy_index == nullptr) {
+void LightingHandler::RemoveShadowForLight(LightHandle light_handle) {
+  auto* resource{TryGetShadowResource(light_handle)};
+
+  if (resource == nullptr) {
     return;
   }
 
-  auto index{*proxy_index};
-  auto last_index{shadow_resources_.GetSize() - 1};
-
-  DestroyShadowResource(shadow_resources_[index]);
-
-  if (index != last_index) {
-    shadow_resources_[index] = shadow_resources_[last_index];
-    light_to_shadow_map_[shadow_resources_[index].light_id] = index;
-  }
-
-  shadow_resources_.PopBack();
-  light_to_shadow_map_.Remove(light_id);
+  DestroyShadowResource(*resource);
 }
 
 void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
   COMET_PROFILE("LightingHandler::RebuildRenderJobs");
 
-  render_jobs_ = COMET_FRAME_ARRAY(
-      ShadowRenderJob, shadow_resources_.GetSize() * kMaxShadowCascades_);
+  usize live_shadow_count{0};
 
-  for (auto& proxy : proxies_) {
-    proxy.gpu_shadow_index = -1;
-    proxy.shadow_entry_count = 0;
+  for (usize i{0}; i < shadow_resources_.GetSize(); ++i) {
+    if (IsShadowSlotAlive(i)) {
+      ++live_shadow_count;
+    }
+  }
+
+  render_jobs_ = COMET_FRAME_ARRAY(ShadowRenderJob,
+                                   live_shadow_count * kMaxShadowCascades_);
+
+  for (usize i{0}; i < proxies_.GetSize(); ++i) {
+    if (!IsLightSlotAlive(i)) {
+      continue;
+    }
+
+    proxies_[i].gpu_shadow_index = -1;
+    proxies_[i].shadow_entry_count = 0;
   }
 
   const auto& camera_data{packet->camera_data};
 
   for (usize i{0}; i < shadow_resources_.GetSize(); ++i) {
+    if (!IsShadowSlotAlive(i)) {
+      continue;
+    }
+
     auto& resource{shadow_resources_[i]};
-    const auto* light{TryGetLight(resource.light_id)};
+    const auto* light{TryGetLight(resource.light_handle)};
 
     if (light == nullptr) {
       continue;
     }
 
-    auto first_shadow_index{static_cast<s32>(render_jobs_->GetSize())};
+    const auto first_shadow_index{static_cast<s32>(render_jobs_->GetSize())};
     resource.gpu_shadow_index = first_shadow_index;
 
-    if (auto* proxy_index{light_to_proxy_map_.TryGet(resource.light_id)};
-        proxy_index != nullptr) {
-      proxies_[*proxy_index].gpu_shadow_index = first_shadow_index;
-      proxies_[*proxy_index].shadow_entry_count = resource.view_proj_count;
-      proxies_[*proxy_index].is_dirty = true;
-    }
+    const auto light_index{
+        static_cast<usize>(resource.light_handle.GetIndex())};
+    proxies_[light_index].gpu_shadow_index = first_shadow_index;
+    proxies_[light_index].shadow_entry_count = resource.view_proj_count;
+    proxies_[light_index].is_dirty = true;
 
     if (light->props.type == LightType::Directional &&
         resource.type == ShadowType::DirectionalOrtho) {
       PopulateCascadeSplits(
-          packet->camera_data, resource.max_distance, resource.view_proj_count,
+          camera_data, resource.max_distance, resource.view_proj_count,
           light->shadow.cascade_lambda, resource.cascade_splits);
 
       f32 cascade_near{camera_data.near_plane};
@@ -367,7 +424,7 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
             camera_data, light->props.direction, cascade_near, cascade_far);
 
         ShadowRenderJob job{};
-        job.light_id = resource.light_id;
+        job.light_handle = resource.light_handle;
         job.type = resource.type;
         job.extent = resource.extent;
         job.bias_constant = resource.bias_constant;
@@ -387,7 +444,7 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
           ComputeSpotLightViewProj(light->props, resource.max_distance);
 
       ShadowRenderJob job{};
-      job.light_id = resource.light_id;
+      job.light_handle = resource.light_handle;
       job.type = resource.type;
       job.extent = resource.extent;
       job.bias_constant = resource.bias_constant;
@@ -402,15 +459,22 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
 }
 
 void LightingHandler::UploadGpuLights(FrameInFlightIndex frame_index) {
-  auto light_count{proxies_.GetSize()};
+  usize live_light_count{0};
 
-  if (light_count == 0) {
+  for (usize i{0}; i < proxies_.GetSize(); ++i) {
+    if (IsLightSlotAlive(i)) {
+      ++live_light_count;
+    }
+  }
+
+  if (live_light_count == 0) {
     return;
   }
 
   auto& ssbo_lights{ssbo_lights_[frame_index]};
 
-  auto required_size{light_count * sizeof(GpuLight)};
+  const auto required_size{
+      static_cast<VkDeviceSize>(live_light_count * sizeof(GpuLight))};
 
   if (required_size > ssbo_lights.size) {
     ResizeBuffer(
@@ -428,14 +492,21 @@ void LightingHandler::UploadGpuLights(FrameInFlightIndex frame_index) {
   ScopedMappedBuffer mapped{ssbo_lights};
   auto* gpu_lights{static_cast<GpuLight*>(ssbo_lights.mapped_memory)};
 
-  for (usize i{0}; i < light_count; ++i) {
-    gpu_lights[i] = GenerateGpuLight(proxies_[i]);
+  usize gpu_index{0};
+
+  for (usize i{0}; i < proxies_.GetSize(); ++i) {
+    if (!IsLightSlotAlive(i)) {
+      continue;
+    }
+
+    gpu_lights[gpu_index++] = GenerateGpuLight(proxies_[i]);
     proxies_[i].is_dirty = false;
   }
 }
 
 void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
-  auto shadow_count{render_jobs_ != nullptr ? render_jobs_->GetSize() : 0};
+  const auto shadow_count{render_jobs_ != nullptr ? render_jobs_->GetSize()
+                                                  : 0};
 
   if (shadow_count == 0) {
     return;
@@ -443,7 +514,8 @@ void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
 
   auto& ssbo_shadow_data{ssbo_shadow_data_[frame_index]};
 
-  auto required_size{shadow_count * sizeof(GpuShadowData)};
+  const auto required_size{
+      static_cast<VkDeviceSize>(shadow_count * sizeof(GpuShadowData))};
 
   if (required_size > ssbo_shadow_data.size) {
     ResizeBuffer(
@@ -468,14 +540,15 @@ void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
 
     gpu_data[i].view_proj = job.view_proj;
 
-    auto split_near{(resource->type == ShadowType::DirectionalOrtho &&
-                     job.view_proj_index > 0)
-                        ? resource->cascade_splits[job.view_proj_index - 1]
-                        : .0f};
+    const auto split_near{
+        (resource->type == ShadowType::DirectionalOrtho &&
+         job.view_proj_index > 0)
+            ? resource->cascade_splits[job.view_proj_index - 1]
+            : .0f};
 
-    auto split_far{(resource->type == ShadowType::DirectionalOrtho)
-                       ? resource->cascade_splits[job.view_proj_index]
-                       : resource->max_distance};
+    const auto split_far{(resource->type == ShadowType::DirectionalOrtho)
+                             ? resource->cascade_splits[job.view_proj_index]
+                             : resource->max_distance};
 
     gpu_data[i].cascade_data =
         math::Vec4{split_near, split_far,
@@ -489,127 +562,85 @@ void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
 }
 
 GpuLight LightingHandler::GenerateGpuLight(const LightProxy& light) const {
-  auto shadow_type{ResolveShadowType(light.props, light.shadow)};
+  const auto shadow_type{ResolveShadowType(light.props, light.shadow)};
 
   return {
       .position_type =
           math::Vec4{light.props.position.x, light.props.position.y,
                      light.props.position.z,
                      static_cast<f32>(light.props.type)},
-
       .direction_intensity =
           math::Vec4{light.props.direction.x, light.props.direction.y,
                      light.props.direction.z, light.props.intensity},
-
       .color_range = math::Vec4{light.props.color.x, light.props.color.y,
                                 light.props.color.z, light.props.range},
-
       .shadow_header =
           math::Vec4{static_cast<f32>(shadow_type),
                      static_cast<f32>(light.gpu_shadow_index),
                      static_cast<f32>(light.shadow_entry_count), .0f},
-
       .spot_data = math::Vec4{light.props.inner_angle, light.props.outer_angle,
                               .0f, .0f},
   };
 }
 
 void LightingHandler::InitializeShadowArrayResources() {
-  auto& device{context_->GetDevice()};
-  auto depth_format{device.ChooseDepthFormat()};
-  auto kShadowResolution{shadow_settings_->resolution};
+  const auto depth_format{context_->GetDevice().ChooseDepthFormat()};
+  const auto shadow_resolution{shadow_settings_->resolution};
 
-  shadow_array_image_ = {};
-  shadow_array_image_.allocator_handle = context_->GetAllocatorHandle();
+  RuntimeTextureDescr texture_descr{};
+  texture_descr.type = TextureType::Unknown;
+  texture_descr.width = shadow_resolution;
+  texture_descr.height = shadow_resolution;
+  texture_descr.depth = 1;
+  texture_descr.mip_levels = 1;
+  texture_descr.channel_count = 1;
+  texture_descr.format = depth_format;
+  texture_descr.usage =
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  texture_descr.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  texture_descr.view_type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+  texture_descr.layer_count = kShadowLayerCapacity_;
+  texture_descr.sample_count = VK_SAMPLE_COUNT_1_BIT;
+  texture_descr.final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+  texture_descr.debug_label = "shadow_array_depth_image";
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
-  GenerateImage(
-      shadow_array_image_, device, kShadowResolution, kShadowResolution, 1,
-      kShadowLayerCapacity_, VK_SAMPLE_COUNT_1_BIT, depth_format,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-      0, "shadow_array_depth_image");
+  const auto texture_handle{texture_handler_->Generate(texture_descr)};
+  COMET_ASSERT(texture_handle, "Failed to generate shadow array texture!");
 
-  shadow_array_image_view_ =
-      GenerateImageView(device, shadow_array_image_.handle, depth_format,
-                        VK_IMAGE_ASPECT_DEPTH_BIT, 1, 0, kShadowLayerCapacity_,
-                        VK_IMAGE_VIEW_TYPE_2D_ARRAY);
+  SamplerDescr sampler_descr{};
+  sampler_descr.min_filter = VK_FILTER_LINEAR;
+  sampler_descr.mag_filter = VK_FILTER_LINEAR;
+  sampler_descr.mipmap_mode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  sampler_descr.address_mode_u = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+  sampler_descr.address_mode_v = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+  sampler_descr.address_mode_w = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+  sampler_descr.compare_enable = true;
+  sampler_descr.compare_op = VK_COMPARE_OP_LESS_OR_EQUAL;
+  sampler_descr.min_lod = .0f;
+  sampler_descr.max_lod = 1.0f;
+  sampler_descr.border_color = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+  sampler_descr.unnormalized_coordinates = false;
 
-  shadow_array_image_.image_view_handle = shadow_array_image_view_;
+  const auto sampler_handle{sampler_handler_->GetOrGenerate(sampler_descr)};
+  COMET_ASSERT(sampler_handle, "Failed to generate shadow array sampler!");
 
-  TransitionImageLayout(*context_, shadow_array_image_.handle, depth_format,
-                        VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, 1,
-                        kShadowLayerCapacity_);
-
-  VkSamplerCreateInfo sampler_info{};
-  sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  sampler_info.magFilter = VK_FILTER_LINEAR;
-  sampler_info.minFilter = VK_FILTER_LINEAR;
-  sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-  sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-  sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-  sampler_info.compareEnable = VK_TRUE;
-  sampler_info.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-  sampler_info.minLod = .0f;
-  sampler_info.maxLod = 1.0f;
-  sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-  sampler_info.unnormalizedCoordinates = VK_FALSE;
-
-  COMET_CHECK_VK(
-      vkCreateSampler(device, &sampler_info,
-                      MemoryCallbacks::Get().GetAllocCallbacksHandle(),
-                      &shadow_array_sampler_),
-      "Failed to create shadow array sampler!");
-
-  shadow_array_sampler_wrapper_ = {};
-  shadow_array_sampler_wrapper_.id = kInvalidSamplerId;
-  shadow_array_sampler_wrapper_.ref_count = 1;
-  shadow_array_sampler_wrapper_.handle = shadow_array_sampler_;
-
-  shadow_array_texture_ = {};
-  shadow_array_texture_.id = kInvalidTextureId;
-  shadow_array_texture_.ref_count = 1;
-  shadow_array_texture_.format = depth_format;
-  shadow_array_texture_.width = kShadowResolution;
-  shadow_array_texture_.height = kShadowResolution;
-  shadow_array_texture_.depth = 1;
-  shadow_array_texture_.mip_levels = 1;
-  shadow_array_texture_.channel_count = 1;
-  shadow_array_texture_.image = shadow_array_image_;
-  shadow_array_texture_.image.image_view_handle = shadow_array_image_view_;
-
-  shadow_array_texture_map_ = {};
-  shadow_array_texture_map_.texture = &shadow_array_texture_;
-  shadow_array_texture_map_.sampler = &shadow_array_sampler_wrapper_;
-  shadow_array_texture_map_.texture_resource_id = resource::kInvalidResourceId;
-  shadow_array_texture_map_.type = TextureType::Unknown;
+  shadow_array_texture_map_ = BuildTextureMap(
+      sampler_handle, texture_handle, resource::TextureResourceId::Invalid(),
+      TextureType::Unknown);
 }
 
 void LightingHandler::DestroyShadowArrayResources() {
-  const auto& device{context_->GetDevice()};
+  if (shadow_array_texture_map_.sampler_handle) {
+    sampler_handler_->Destroy(shadow_array_texture_map_.sampler_handle);
+  }
+
+  if (shadow_array_texture_map_.texture_handle) {
+    texture_handler_->Destroy(shadow_array_texture_map_.texture_handle);
+  }
 
   shadow_array_texture_map_ = {};
-  shadow_array_texture_ = {};
-  shadow_array_sampler_wrapper_ = {};
-
-  if (shadow_array_sampler_ != VK_NULL_HANDLE) {
-    vkDestroySampler(device, shadow_array_sampler_,
-                     MemoryCallbacks::Get().GetAllocCallbacksHandle());
-    shadow_array_sampler_ = VK_NULL_HANDLE;
-  }
-
-  if (shadow_array_image_view_ != VK_NULL_HANDLE) {
-    vkDestroyImageView(device, shadow_array_image_view_,
-                       MemoryCallbacks::Get().GetAllocCallbacksHandle());
-    shadow_array_image_view_ = VK_NULL_HANDLE;
-  }
-
-  if (IsImageInitialized(shadow_array_image_)) {
-    DestroyImage(shadow_array_image_);
-  }
-
-  shadow_array_image_ = {};
 }
 
 s32 LightingHandler::AllocateShadowLayers(u32 layer_count) {
@@ -652,20 +683,23 @@ void LightingHandler::FreeShadowLayers(s32 first_layer, u32 layer_count) {
   }
 }
 
-void LightingHandler::InitializeShadowResource(LightId light_id,
+void LightingHandler::InitializeShadowResource(LightHandle light_handle,
                                                const LightProxy& light,
                                                ShadowResource& resource) {
-  COMET_ASSERT(render_pass_handle_ != kInvalidRenderPassHandle,
+  COMET_ASSERT(render_pass_handle_,
                "Shadow render pass must be set before creating shadow "
                "resources!");
 
+  const auto* shadow_texture{
+      GetTextureHandler()->Get(shadow_array_texture_map_.texture_handle)};
+  COMET_ASSERT(shadow_texture != nullptr, "Shadow array texture is null!");
+
   auto& device{context_->GetDevice()};
-  auto depth_format{device.ChooseDepthFormat()};
+  const auto depth_format{device.ChooseDepthFormat()};
 
   resource = {};
-  resource.is_alive = true;
   resource.is_dirty = true;
-  resource.light_id = light_id;
+  resource.light_handle = light_handle;
   resource.type = ResolveShadowType(light.props, light.shadow);
   resource.resolution = shadow_settings_->resolution;
   resource.extent = {shadow_settings_->resolution,
@@ -688,7 +722,7 @@ void LightingHandler::InitializeShadowResource(LightId light_id,
 
   for (u32 i{0}; i < resource.view_proj_count; ++i) {
     resource.layer_image_views[i] =
-        GenerateImageView(device, shadow_array_image_.handle, depth_format,
+        GenerateImageView(device, shadow_texture->image.handle, depth_format,
                           VK_IMAGE_ASPECT_DEPTH_BIT, 1,
                           static_cast<u32>(resource.first_layer_index) + i, 1,
                           VK_IMAGE_VIEW_TYPE_2D);
@@ -736,7 +770,7 @@ void LightingHandler::RecreateShadowResourceIfNeeded(ShadowResource& resource,
                                                      const LightProxy& light) {
   bool is_resolution_changed{resource.resolution !=
                              shadow_settings_->resolution};
-  auto resolved_type{ResolveShadowType(light.props, light.shadow)};
+  const auto resolved_type{ResolveShadowType(light.props, light.shadow)};
   bool is_type_changed{resource.type != resolved_type};
   u32 desired_count{1};
 
@@ -751,21 +785,69 @@ void LightingHandler::RecreateShadowResourceIfNeeded(ShadowResource& resource,
     return;
   }
 
-  auto light_id{resource.light_id};
+  const auto light_handle{resource.light_handle};
   DestroyShadowResource(resource);
-  InitializeShadowResource(light_id, light, resource);
+  InitializeShadowResource(light_handle, light, resource);
 }
 
 ShadowResource* LightingHandler::TryGetShadowResource(
-    LightId light_id) noexcept {
-  auto* index{light_to_shadow_map_.TryGet(light_id)};
-  return index != nullptr ? &shadow_resources_[*index] : nullptr;
+    LightHandle light_handle) noexcept {
+  if (!light_handle) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(light_handle.GetIndex())};
+
+  if (index >= shadow_resources_.GetSize()) {
+    return nullptr;
+  }
+
+  auto& resource{shadow_resources_[index]};
+
+  if (!resource.light_handle || resource.light_handle != light_handle) {
+    return nullptr;
+  }
+
+  return &resource;
 }
 
 const ShadowResource* LightingHandler::TryGetShadowResource(
-    LightId light_id) const noexcept {
-  auto* index{light_to_shadow_map_.TryGet(light_id)};
-  return index != nullptr ? &shadow_resources_[*index] : nullptr;
+    LightHandle light_handle) const noexcept {
+  if (!light_handle) {
+    return nullptr;
+  }
+
+  const auto index{static_cast<usize>(light_handle.GetIndex())};
+
+  if (index >= shadow_resources_.GetSize()) {
+    return nullptr;
+  }
+
+  const auto& resource{shadow_resources_[index]};
+
+  if (!resource.light_handle || resource.light_handle != light_handle) {
+    return nullptr;
+  }
+
+  return &resource;
+}
+
+bool LightingHandler::IsLightSlotAlive(usize index) const noexcept {
+  if (index >= proxies_.GetSize()) {
+    return false;
+  }
+
+  const auto& proxy{proxies_[index]};
+  return proxy.handle.IsValid();
+}
+
+bool LightingHandler::IsShadowSlotAlive(usize index) const noexcept {
+  if (index >= shadow_resources_.GetSize()) {
+    return false;
+  }
+
+  const auto& resource{shadow_resources_[index]};
+  return resource.light_handle.IsValid();
 }
 
 void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
@@ -773,14 +855,14 @@ void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
                                             f32 lambda, f32* out_splits) const {
   COMET_ASSERT(out_splits != nullptr, "Cascade split output is null!");
 
-  auto near_plane{camera_data.near_plane};
-  auto far_plane{max_distance};
-  auto ratio{far_plane / near_plane};
+  const auto near_plane{camera_data.near_plane};
+  const auto far_plane{max_distance};
+  const auto ratio{far_plane / near_plane};
 
   for (u32 i{0}; i < cascade_count; ++i) {
-    auto p{static_cast<f32>(i + 1) / static_cast<f32>(cascade_count)};
-    auto log_split{near_plane * math::Pow(ratio, p)};
-    auto uni_split{near_plane + (far_plane - near_plane) * p};
+    const auto p{static_cast<f32>(i + 1) / static_cast<f32>(cascade_count)};
+    const auto log_split{near_plane * math::Pow(ratio, p)};
+    const auto uni_split{near_plane + (far_plane - near_plane) * p};
     out_splits[i] = lambda * log_split + (1.0f - lambda) * uni_split;
   }
 }
@@ -799,15 +881,15 @@ math::Mat4 LightingHandler::ComputeDirectionalCascadeViewProj(
 
   center /= corners.GetSize();
   math::Vec3 dir{math::GetNormalizedCopy(light_dir)};
-  auto light_up{ComputeStableUpVector(dir)};
+  const auto light_up{ComputeStableUpVector(dir)};
 
-  auto cascade_depth{cascade_far - cascade_near};
-  auto caster_extrusion{cascade_depth *
-                        shadow_settings_->caster_extrusion_factor};
+  const auto cascade_depth{cascade_far - cascade_near};
+  const auto caster_extrusion{cascade_depth *
+                              shadow_settings_->caster_extrusion_factor};
 
-  auto light_distance{cascade_far + caster_extrusion};
-  auto light_position{center - dir * light_distance};
-  auto light_view{LookAt(light_position, center, light_up)};
+  const auto light_distance{cascade_far + caster_extrusion};
+  const auto light_position{center - dir * light_distance};
+  const auto light_view{LookAt(light_position, center, light_up)};
 
   auto min_x{kF32Max};
   auto max_x{-kF32Max};
@@ -816,8 +898,8 @@ math::Mat4 LightingHandler::ComputeDirectionalCascadeViewProj(
   auto min_z{kF32Max};
   auto max_z{-kF32Max};
 
-  auto accumulate_ls_point{[&](const math::Vec3& world_p) {
-    auto ls4{light_view * math::Vec4{world_p, 1.0f}};
+  const auto accumulate_ls_point{[&](const math::Vec3& world_p) {
+    const auto ls4{light_view * math::Vec4{world_p, 1.0f}};
 
     min_x = math::Min(min_x, ls4.x);
     max_x = math::Max(max_x, ls4.x);
@@ -846,18 +928,22 @@ math::Mat4 LightingHandler::ComputeDirectionalCascadeViewProj(
 
 math::Mat4 LightingHandler::ComputeSpotLightViewProj(
     const LightProperties& props, f32 max_distance) const {
-  auto dir{math::GetNormalizedCopy(props.direction)};
-  auto up{ComputeStableUpVector(dir)};
-  auto view{LookAt(props.position, props.position + dir, up)};
+  const auto dir{math::GetNormalizedCopy(props.direction)};
+  const auto up{ComputeStableUpVector(dir)};
+  const auto view{LookAt(props.position, props.position + dir, up)};
 
-  auto fov_y{props.outer_angle * 2.0f};
-  auto aspect{1.0f};
-  auto near_plane{.1f};
+  const auto fov_y{props.outer_angle * 2.0f};
+  const auto aspect{1.0f};
+  const auto near_plane{.1f};
 
-  auto proj{GeneratePerspectiveMatrix(fov_y, aspect, near_plane, max_distance,
-                                      ClipSpaceDepthRange::ZeroToOne)};
+  const auto proj{GeneratePerspectiveMatrix(
+      fov_y, aspect, near_plane, max_distance, ClipSpaceDepthRange::ZeroToOne)};
 
   return proj * view;
+}
+
+const TextureHandler* LightingHandler::GetTextureHandler() const {
+  return texture_handler_;
 }
 }  // namespace vk
 }  // namespace rendering

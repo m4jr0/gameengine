@@ -22,91 +22,119 @@ LightManager& LightManager::Get() {
   return singleton;
 }
 
-void LightManager::Initialize() {
-  Manager::Initialize();
-  allocator_.Initialize();
-  lights_ = Array<Light>{&allocator_};
-  new_light_ids_ = COMET_DOUBLE_FRAME_ORDERED_SET(LightId);
-}
-
-void LightManager::Shutdown() {
-  lights_.Destroy();
-  light_id_handler_.Shutdown();
-  allocator_.Destroy();
-  Manager::Shutdown();
-}
-
 void LightManager::Update(frame::FramePacket* packet) {
   COMET_PROFILE("LightManager::Update");
   SyncFromTransforms();
   EmitFramePacketChanges(packet);
-  constexpr usize kNewLightCapacity{16};
-  new_light_ids_ = COMET_DOUBLE_FRAME_ORDERED_SET(LightId);
-  new_light_ids_->Reserve(kNewLightCapacity);
+
+  constexpr usize kCapacity{16};
+  new_light_handles_ = COMET_DOUBLE_FRAME_ORDERED_SET(LightHandle);
+  new_light_handles_->Reserve(kCapacity);
+  destroyed_light_handles_ = COMET_DOUBLE_FRAME_ORDERED_SET(LightHandle);
+  destroyed_light_handles_->Reserve(kCapacity);
 }
 
-LightId LightManager::Generate(const LightDescr& descr) {
-  auto id{static_cast<LightId>(light_id_handler_.Generate())};
-  auto index{gid::GetIndex(id)};
-  lights_.Resize(index + 1);
+LightHandle LightManager::Generate(const LightDescr& descr) {
+  const auto handle{light_pool_.Generate()};
+  const auto index{static_cast<usize>(handle.GetIndex())};
+
+  if (index >= lights_.GetSize()) {
+    lights_.Resize(index + 1);
+  }
 
   lights_[index] = {
-      .is_alive = true,
       .is_dirty = true,
       .entity_id = descr.entity_id,
-      .id = id,
+      .handle = handle,
       .props = descr.props,
       .shadow = descr.shadow,
   };
 
-  new_light_ids_->Add(id);
-  return id;
+  new_light_handles_->Add(handle);
+  return handle;
 }
 
-void LightManager::Destroy(LightId id) {
-  auto* light{Get(id)};
-  light->is_alive = false;
-  light->is_dirty = true;
+void LightManager::Destroy(LightHandle handle) {
+  if (IsShutdownPending()) {
+    const auto index{static_cast<usize>(handle.GetIndex())};
+    COMET_ASSERT(index < lights_.GetSize(),
+                 "Light handle index out of bounds!");
+
+    lights_[index] = {};
+    light_pool_.Destroy(handle);
+    return;
+  }
+
+  auto* light{Get(handle)};
+  light->is_dirty = false;
+
+  COMET_ASSERT(destroyed_light_handles_ != nullptr,
+               "Destroyed light handle set is null!");
+  COMET_ASSERT(new_light_handles_ != nullptr, "New light handle set is null!");
+
+  destroyed_light_handles_->Add(handle);
+  new_light_handles_->Remove(handle);
 }
 
-void LightManager::SetProperties(LightId id, const LightProperties& props) {
-  auto* light{Get(id)};
+void LightManager::SetProperties(LightHandle handle,
+                                 const LightProperties& props) {
+  auto* light{Get(handle)};
   light->props = props;
   light->is_dirty = true;
 }
 
-void LightManager::SetShadow(LightId id, const LightShadow& shadow) {
-  auto* light{Get(id)};
+void LightManager::SetShadow(LightHandle handle, const LightShadow& shadow) {
+  auto* light{Get(handle)};
   light->shadow = shadow;
   light->is_dirty = true;
 }
 
-void LightManager::SetColor(LightId id, const math::Vec3& color) {
-  auto* light{Get(id)};
+void LightManager::SetColor(LightHandle handle, const math::Vec3& color) {
+  auto* light{Get(handle)};
   light->props.color = color;
   light->is_dirty = true;
 }
 
-void LightManager::SetIntensity(LightId id, f32 intensity) {
-  auto* light{Get(id)};
+void LightManager::SetIntensity(LightHandle handle, f32 intensity) {
+  auto* light{Get(handle)};
   light->props.intensity = intensity;
   light->is_dirty = true;
 }
 
-void LightManager::SetRange(LightId id, f32 range) {
-  auto* light{Get(id)};
+void LightManager::SetRange(LightHandle handle, f32 range) {
+  auto* light{Get(handle)};
   light->props.range = range;
   light->is_dirty = true;
 }
 
-void LightManager::SetDirection(LightId id, const math::Vec3& direction) {
-  auto* light{Get(id)};
+void LightManager::SetDirection(LightHandle handle,
+                                const math::Vec3& direction) {
+  auto* light{Get(handle)};
   light->props.direction = direction;
   light->is_dirty = true;
 }
 
-bool LightManager::IsNew(LightId id) const noexcept {
-  return new_light_ids_ != nullptr && new_light_ids_->IsContained(id);
+void LightManager::OnInitialize() {
+  allocator_.Initialize();
+  lights_ = Array<Light>{&allocator_};
+
+  new_light_handles_ = COMET_DOUBLE_FRAME_ORDERED_SET(LightHandle);
+  destroyed_light_handles_ = COMET_DOUBLE_FRAME_ORDERED_SET(LightHandle);
+
+  constexpr usize kCapacity{16};
+  new_light_handles_->Reserve(kCapacity);
+  destroyed_light_handles_->Reserve(kCapacity);
+}
+
+void LightManager::OnShutdown() {
+  lights_.Destroy();
+  light_pool_.Destroy();
+  allocator_.Destroy();
+}
+
+bool LightManager::IsNew(LightHandle handle) const noexcept {
+  return new_light_handles_ != nullptr &&
+         new_light_handles_->IsContained(handle);
 }
 
 void LightManager::SyncFromTransforms() {
@@ -114,7 +142,13 @@ void LightManager::SyncFromTransforms() {
   auto& entity_manager{entity::EntityManager::Get()};
 
   for (auto& light : lights_) {
-    if (!light.is_alive || light.entity_id == entity::kInvalidEntityId) {
+    if (!light.handle || !light_pool_.IsAlive(light.handle) ||
+        light.entity_id == entity::kInvalidEntityId) {
+      continue;
+    }
+
+    if (destroyed_light_handles_ != nullptr &&
+        destroyed_light_handles_->IsContained(light.handle)) {
       continue;
     }
 
@@ -125,10 +159,10 @@ void LightManager::SyncFromTransforms() {
       continue;
     }
 
-    auto new_pos{ExtractPosition(transform->global)};
-    auto new_dir{ExtractForward(transform->global)};
+    const auto new_pos{ExtractPosition(transform->global)};
+    const auto new_dir{ExtractForward(transform->global)};
 
-    // replace with epsilon compare later
+    // Replace with epsilon compare later.
     if (new_pos != light.props.position || new_dir != light.props.direction) {
       light.props.position = new_pos;
       light.props.direction = new_dir;
@@ -139,30 +173,41 @@ void LightManager::SyncFromTransforms() {
 
 void LightManager::EmitFramePacketChanges(frame::FramePacket* packet) {
   COMET_PROFILE("LightManager::EmitFramePacketChanges");
-  frame::FrameArray<LightId> dead_ids{};
 
   for (auto& light : lights_) {
-    if (!light.is_alive) {
-      dead_ids.PushBack(light.id);
+    if (!light.handle || !light_pool_.IsAlive(light.handle)) {
+      continue;
+    }
+
+    if (destroyed_light_handles_ != nullptr &&
+        destroyed_light_handles_->IsContained(light.handle)) {
       continue;
     }
 
     if (light.is_dirty) {
-      if (IsNew(light.id)) {
-        packet->RegisterNewLight(light.id, &light.props, &light.shadow);
+      if (IsNew(light.handle)) {
+        packet->RegisterNewLight(light.handle, &light.props, &light.shadow);
       } else {
-        packet->RegisterDirtyLight(light.id, &light.props, &light.shadow);
+        packet->RegisterDirtyLight(light.handle, &light.props, &light.shadow);
       }
 
       light.is_dirty = false;
     }
   }
 
-  for (auto id : dead_ids) {
-    auto index{gid::GetIndex(id)};
-    packet->RegisterRemovedLight(id);
+  if (destroyed_light_handles_ == nullptr) {
+    return;
+  }
+
+  for (const auto handle : *destroyed_light_handles_) {
+    if (!light_pool_.IsAlive(handle)) {
+      continue;
+    }
+
+    const auto index{static_cast<usize>(handle.GetIndex())};
+    packet->RegisterRemovedLight(handle);
     lights_[index] = {};
-    light_id_handler_.Destroy(id);
+    light_pool_.Destroy(handle);
   }
 }
 
@@ -177,16 +222,18 @@ math::Vec3 LightManager::ExtractForward(const math::Mat4& transform) const {
   return forward;
 }
 
-Light* LightManager::Get(LightId id) {
-  COMET_ASSERT(light_id_handler_.IsAlive(id), "Light #", id, " is not alive!");
-  auto& light{lights_[gid::GetIndex(id)]};
-  return &light;
+Light* LightManager::Get(LightHandle handle) {
+  COMET_ASSERT(light_pool_.IsAlive(handle), "Light ", handle, " is not alive!");
+  const auto index{static_cast<usize>(handle.GetIndex())};
+  COMET_ASSERT(index < lights_.GetSize(), "Light handle index out of bounds!");
+  return &lights_[index];
 }
 
-const Light* LightManager::Get(LightId id) const {
-  COMET_ASSERT(light_id_handler_.IsAlive(id), "Light #", id, " is not alive!");
-  auto& light{lights_[gid::GetIndex(id)]};
-  return &light;
+const Light* LightManager::Get(LightHandle handle) const {
+  COMET_ASSERT(light_pool_.IsAlive(handle), "Light ", handle, " is not alive!");
+  const auto index{static_cast<usize>(handle.GetIndex())};
+  COMET_ASSERT(index < lights_.GetSize(), "Light handle index out of bounds!");
+  return &lights_[index];
 }
 }  // namespace rendering
 }  // namespace comet

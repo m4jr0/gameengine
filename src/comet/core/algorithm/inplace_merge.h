@@ -10,10 +10,10 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/algorithm/algorithm_common.h"
+#include "comet/core/algorithm/comparator.h"
+#include "comet/core/algorithm/iterator_utils.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_utils.h"
-#include "comet/core/type/array.h"
 
 namespace comet {
 template <typename Iterator, typename Comparer = Less>

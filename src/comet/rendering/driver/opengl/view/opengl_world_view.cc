@@ -17,6 +17,7 @@
 #include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
+#include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/shader_resource.h"
 
@@ -24,68 +25,20 @@ namespace comet {
 namespace rendering {
 namespace gl {
 WorldView::WorldView(const WorldViewDescr& descr)
-    : ShaderView{descr},
+    : View{descr},
       shadow_settings_{descr.shadow_settings},
+      shader_handler_{descr.shader_handler},
+      material_handler_{descr.material_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       mesh_handler_{descr.mesh_handler},
       lighting_handler_{descr.lighting_handler} {
   COMET_ASSERT(shadow_settings_ != nullptr, "Shadow settings are null!");
+  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
+  COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
   COMET_ASSERT(render_proxy_handler_ != nullptr,
                "Render proxy handler is null!");
   COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
   COMET_ASSERT(lighting_handler_ != nullptr, "Lighting handler is null!");
-}
-
-void WorldView::Initialize() {
-  View::Initialize();
-
-  {
-    ShaderDescr shader_descr{};
-    shader_descr.shader_id =
-        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-            COMET_TCHAR("shaders/opengl/forward_shader.gl.cshader"));
-    world_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-  }
-
-  {
-    ShaderDescr shader_descr{};
-    shader_descr.shader_id =
-        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-            COMET_TCHAR("shaders/opengl/forward_cull_shader.gl.cshader"));
-    cull_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-  }
-
-  {
-    ShaderDescr shader_descr{};
-    shader_descr.shader_id =
-        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-            COMET_TCHAR("shaders/opengl/sparse_upload.gl.cshader"));
-    sparse_upload_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-  }
-}
-
-void WorldView::Destroy() {
-  if (world_shader_ != nullptr) {
-    shader_handler_->Destroy(world_shader_);
-    world_shader_ = nullptr;
-  }
-
-  if (cull_shader_ != nullptr) {
-    shader_handler_->Destroy(cull_shader_);
-    cull_shader_ = nullptr;
-  }
-
-  if (sparse_upload_shader_ != nullptr) {
-    shader_handler_->Destroy(sparse_upload_shader_);
-    sparse_upload_shader_ = nullptr;
-  }
-
-  render_proxy_handler_ = nullptr;
-  mesh_handler_ = nullptr;
-  lighting_handler_ = nullptr;
-  shader_handler_ = nullptr;
-  material_handler_ = nullptr;
-  View::Destroy();
 }
 
 void WorldView::Update(frame::FramePacket* packet) {
@@ -124,6 +77,55 @@ void WorldView::Update(frame::FramePacket* packet) {
   shader_handler_->Reset();
 }
 
+void WorldView::OnInitialize() {
+  {
+    ShaderDescr shader_descr{};
+    shader_descr.shader_resource_id =
+        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+            COMET_TCHAR("shaders/opengl/forward_shader.gl.cshader"));
+    world_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+  }
+
+  {
+    ShaderDescr shader_descr{};
+    shader_descr.shader_resource_id =
+        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+            COMET_TCHAR("shaders/opengl/forward_cull_shader.gl.cshader"));
+    cull_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+  }
+
+  {
+    ShaderDescr shader_descr{};
+    shader_descr.shader_resource_id =
+        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+            COMET_TCHAR("shaders/opengl/sparse_upload.gl.cshader"));
+    sparse_upload_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+  }
+}
+
+void WorldView::OnDestroy() {
+  if (world_shader_) {
+    shader_handler_->Destroy(world_shader_);
+    world_shader_.Invalidate();
+  }
+
+  if (cull_shader_) {
+    shader_handler_->Destroy(cull_shader_);
+    cull_shader_.Invalidate();
+  }
+
+  if (sparse_upload_shader_) {
+    shader_handler_->Destroy(sparse_upload_shader_);
+    sparse_upload_shader_.Invalidate();
+  }
+
+  shader_handler_ = nullptr;
+  material_handler_ = nullptr;
+  render_proxy_handler_ = nullptr;
+  mesh_handler_ = nullptr;
+  lighting_handler_ = nullptr;
+}
+
 void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
   COMET_ASSERT(packet != nullptr, "Frame packet is null!");
 
@@ -156,10 +158,10 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
     shader_handler_->UpdateGlobals(world_shader_, global_update);
   }
 
-  auto frame_index{frame_state_->GetFrameInFlightIndex()};
-  auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
-  auto light_gpu_data{lighting_handler_->GetLightGpuData(frame_index)};
-  auto shadow_gpu_data{lighting_handler_->GetShadowGpuData(frame_index)};
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  const auto light_gpu_data{lighting_handler_->GetLightGpuData(frame_index)};
+  const auto shadow_gpu_data{lighting_handler_->GetShadowGpuData(frame_index)};
 
   auto& buffer_bindings{
       *COMET_FRAME_ARRAY(ShaderBufferBindingUpdate, static_cast<usize>(5))};
@@ -188,13 +190,14 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
       buffer_bindings,
       shader_handler_->GetBindingIndex(world_shader_, shaderconsts::kPassSet,
                                        sharedshaderconsts::kLightsBinding),
-      light_gpu_data.ssbo_lights_handle, light_gpu_data.ssbo_lights_size);
+      light_gpu_data.ssbo_lights_native_handle,
+      light_gpu_data.ssbo_lights_size);
 
   AddBufferBinding(
       buffer_bindings,
       shader_handler_->GetBindingIndex(world_shader_, shaderconsts::kPassSet,
                                        sharedshaderconsts::kShadowsBinding),
-      shadow_gpu_data.ssbo_shadow_data_handle,
+      shadow_gpu_data.ssbo_shadow_data_native_handle,
       shadow_gpu_data.ssbo_shadow_data_size);
 
   ShaderPassUpdate pass_update{};
@@ -203,11 +206,13 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
 }
 
 void WorldView::RunSparseUpload() {
+  COMET_PROFILE("WorldView::RunSparseUpload");
+
   if (!render_proxy_handler_->HasPendingSparseUpload()) {
     return;
   }
 
-  auto gpu_data{render_proxy_handler_->GetSparseUploadGpuData()};
+  const auto gpu_data{render_proxy_handler_->GetSparseUploadGpuData()};
 
   auto& buffer_bindings{
       *COMET_FRAME_ARRAY(ShaderBufferBindingUpdate, static_cast<usize>(3))};
@@ -259,14 +264,17 @@ void WorldView::RunSparseUpload() {
 }
 
 void WorldView::RunCull(frame::FramePacket* packet) {
-  auto frame_index{frame_state_->GetFrameInFlightIndex()};
-  auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  COMET_PROFILE("WorldView::RunCull");
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
-  COMET_ASSERT(gpu_data.ssbo_indirect_proxies_handle != kInvalidStorageHandle,
-               "Cull indirect buffer handle is invalid!");
-  COMET_ASSERT(gpu_data.ssbo_proxy_instances_handle != kInvalidStorageHandle,
-               "Cull proxy instances buffer handle is invalid!");
-  COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != kInvalidStorageHandle,
+  COMET_ASSERT(
+      gpu_data.ssbo_indirect_proxies_handle != kInvalidGlNativeStorageHandle,
+      "Cull indirect buffer handle is invalid!");
+  COMET_ASSERT(
+      gpu_data.ssbo_proxy_instances_handle != kInvalidGlNativeStorageHandle,
+      "Cull proxy instances buffer handle is invalid!");
+  COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != kInvalidGlNativeStorageHandle,
                "Cull proxy IDs buffer handle is invalid!");
 
 #ifdef COMET_DEBUG_RENDERING
@@ -318,7 +326,7 @@ void WorldView::RunCull(frame::FramePacket* packet) {
                    gpu_data.ssbo_indirect_proxies_size);
 
 #ifdef COMET_DEBUG_RENDERING
-  if (gpu_data.ssbo_debug_data_handle != kInvalidStorageHandle) {
+  if (gpu_data.ssbo_debug_data_handle != kInvalidGlNativeStorageHandle) {
     AddBufferBinding(
         buffer_bindings,
         shader_handler_->GetBindingIndex(cull_shader_, shaderconsts::kPassSet,
@@ -328,7 +336,7 @@ void WorldView::RunCull(frame::FramePacket* packet) {
 #endif  // COMET_DEBUG_RENDERING
 
 #ifdef COMET_DEBUG_CULLING
-  if (gpu_data.ssbo_debug_aabbs_handle != kInvalidStorageHandle) {
+  if (gpu_data.ssbo_debug_aabbs_handle != kInvalidGlNativeStorageHandle) {
     AddBufferBinding(buffer_bindings,
                      shader_handler_->GetBindingIndex(
                          cull_shader_, shaderconsts::kPassSet,
@@ -343,7 +351,7 @@ void WorldView::RunCull(frame::FramePacket* packet) {
   shader_handler_->UpdatePass(cull_shader_, pass_update);
 
   {
-    auto draw_count{static_cast<u32>(packet->draw_count)};
+    const auto draw_count{static_cast<u32>(packet->draw_count)};
 
     auto& blocks{*COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate,
                                     static_cast<usize>(1))};
@@ -367,18 +375,20 @@ void WorldView::RunCull(frame::FramePacket* packet) {
 }
 
 void WorldView::DrawWorld() {
+  COMET_PROFILE("WorldView::DrawWorld");
   const auto* batch_groups{render_proxy_handler_->GetBatchGroups()};
 
   if (batch_groups == nullptr || batch_groups->IsEmpty()) {
     return;
   }
 
-  auto frame_index{frame_state_->GetFrameInFlightIndex()};
-  auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
-  COMET_ASSERT(gpu_data.ssbo_indirect_proxies_handle != kInvalidStorageHandle,
-               "Draw indirect buffer handle is invalid!");
-  COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != kInvalidStorageHandle,
+  COMET_ASSERT(
+      gpu_data.ssbo_indirect_proxies_handle != kInvalidGlNativeStorageHandle,
+      "Draw indirect buffer handle is invalid!");
+  COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != kInvalidGlNativeStorageHandle,
                "Draw proxy IDs buffer handle is invalid!");
 
   const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
@@ -387,7 +397,7 @@ void WorldView::DrawWorld() {
   shader_handler_->BindVertexSource(world_shader_,
                                     mesh_handler_->GetVertexSource());
 
-  auto light_count{lighting_handler_->GetLightCount()};
+  const auto light_count{lighting_handler_->GetLightCount()};
 
   auto& blocks{
       *COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate, static_cast<usize>(1))};
@@ -403,25 +413,24 @@ void WorldView::DrawWorld() {
 
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, gpu_data.ssbo_indirect_proxies_handle);
 
-  auto last_mat_id{kInvalidMaterialId};
+  MaterialHandle last_material_handle{};
 
   for (const auto& group : *batch_groups) {
     const auto& batch{indirect_batches->Get(group.offset)};
     const auto* proxy{batch.proxy};
 
-    if (proxy->mat_id != last_mat_id) {
-      auto* material{material_handler_->Get(proxy->mat_id)};
-
-      if (!shader_handler_->HasMaterial(world_shader_, material)) {
-        shader_handler_->BindMaterial(world_shader_, material);
+    if (proxy->material_handle != last_material_handle) {
+      if (!shader_handler_->HasMaterial(world_shader_,
+                                        proxy->material_handle)) {
+        shader_handler_->BindMaterial(world_shader_, proxy->material_handle);
       }
 
-      shader_handler_->BindInstance(world_shader_, material);
-      last_mat_id = proxy->mat_id;
+      shader_handler_->BindInstance(world_shader_, proxy->material_handle);
+      last_material_handle = proxy->material_handle;
     }
 
     glMultiDrawElementsIndirect(
-        world_shader_->topology, GL_UNSIGNED_INT,
+        shader_handler_->GetTopology(world_shader_), GL_UNSIGNED_INT,
         reinterpret_cast<const void*>(group.offset *
                                       sizeof(GpuIndirectRenderProxy)),
         static_cast<GLsizei>(group.count), sizeof(GpuIndirectRenderProxy));

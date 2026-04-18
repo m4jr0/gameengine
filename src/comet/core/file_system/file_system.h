@@ -60,34 +60,48 @@ bool OpenFileToWriteTo(CTStringView path, std::ofstream& out_file,
                        bool is_append = false, bool is_binary = false);
 bool OpenFileToReadFrom(CTStringView path, std::ifstream& in_file,
                         bool is_at_end = false, bool is_binary = false);
+
 void CloseFile(std::ofstream& file);
+
 bool WriteBinaryToFile(CTStringView path, const u8* buff, usize buff_len,
                        bool is_append = false);
 bool WriteBinaryToFile(CTStringView path, const u8* buff, usize buff_len,
                        bool is_append);
+
 bool ReadBinaryFromFile(CTStringView path, Array<u8>& buff);
+
 void CloseFile(std::ifstream& file);
+
 bool WriteStrToFile(CTStringView path, const schar* buff,
                     bool is_append = false);
+
 bool ReadStrFromFile(CTStringView path, schar* buff, usize buff_len,
                      usize* out_len = nullptr);
+
 bool GetLine(std::istream& stream, schar* buff, usize buff_len,
              usize* out_len = nullptr);
+
 bool CreateFile(CTStringView path, bool is_recursive = false);
 bool CreateDirectory(CTStringView path, bool is_recursive = false);
+
 bool Move(CTStringView previous_name, CTStringView new_name);
+
 bool Remove(CTStringView path, bool is_recursive = false);
+
 TString GetCurrentDirectory();
 TString GetDirectoryPath(CTStringView path);
 TString GetName(CTStringView path);
+
 TString GetExtension(CTStringView path, bool is_force_lowercase = true);
 void ReplaceExtension(CTStringView extension, TString& path,
                       bool is_force_lowercase = true);
+
 TString GetNormalizedPath(CTStringView path);
 TString GetAbsolutePath(CTStringView relative_path);
 TString GetRelativePath(CTStringView from, CTStringView to);
 TString GetRelativePath(CTStringView absolute_path);
 TString GetParentPath(CTStringView current_path);
+
 bool IsDirectory(CTStringView path);
 bool IsFile(CTStringView path);
 
@@ -102,17 +116,21 @@ enum class RootType {
 
 const schar* GetRootTypeLabel(RootType root_type);
 RootType GetRootType(CTStringView path);
+
 bool IsAbsolute(CTStringView path);
 bool IsRelative(CTStringView path);
 bool Exists(CTStringView path);
 bool IsPathEmpty(CTStringView path);
+
 void AppendTo(CTStringView to_append, tchar* buff, usize buff_len,
               usize* out_len);
 void Append(CTStringView path_a, CTStringView path_b, tchar* buff,
             usize buff_len, usize* out_len = nullptr);
 TString Append(CTStringView path_a, CTStringView path_b);
+
 void RemoveTrailingSlashes(TString& path);
 f64 GetLastModificationTime(CTStringView path);
+
 void GetChecksum(CTStringView path, schar* checksum, usize checksum_len);
 
 template <typename DirectoryCallback>
@@ -122,7 +140,7 @@ void ForEachDirectory(CTStringView path, DirectoryCallback callback) {
   Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
   MSVC_WIN32_FIND_DATA find_data;
-  auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
+  const auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
 
   if (handle == INVALID_HANDLE_VALUE) {
     return;
@@ -133,7 +151,7 @@ void ForEachDirectory(CTStringView path, DirectoryCallback callback) {
       continue;
     }
 
-    auto file_name_len{GetLength(find_data.cFileName)};
+    const auto file_name_len{GetLength(find_data.cFileName)};
 
     if (AreStringsEqual(find_data.cFileName, file_name_len,
                         kDotFolderName.GetCTStr(),
@@ -189,7 +207,7 @@ void ForEachFile(CTStringView path, FileCallback callback) {
   Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
   MSVC_WIN32_FIND_DATA find_data;
-  auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
+  const auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
 
   if (handle == INVALID_HANDLE_VALUE) {
     return;
@@ -239,7 +257,7 @@ void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
   Append(path, COMET_TCHAR("\\*"), buff, kMaxPathLength);
 
   MSVC_WIN32_FIND_DATA find_data;
-  auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
+  const auto handle{MSVC_FIND_FIRST_FILE(buff, &find_data)};
 
   if (handle == INVALID_HANDLE_VALUE) {
     return;
@@ -247,7 +265,7 @@ void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
 
   do {
     if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-      auto file_name_len{GetLength(find_data.cFileName)};
+      const auto file_name_len{GetLength(find_data.cFileName)};
 
       if (AreStringsEqual(find_data.cFileName, file_name_len,
                           kDotFolderName.GetCTStr(),
@@ -290,16 +308,20 @@ void ForEachFileAndDirectory(CTStringView path, FileCallback callback) {
 void NormalizeSlashes(tchar* str, usize len);
 void NormalizeSlashes(tchar* str);
 void NormalizeSlashes(TString& str);
+
 void MakeNative(tchar* str, usize len);
 void MakeNative(tchar* str);
 void MakeNative(TString& str);
+
 void Clean(tchar* str, usize len);
 void Clean(tchar* str);
 void Clean(TString& str);
+
 const tchar* GetTmpTChar(const schar* str, usize len);
 const tchar* GetTmpTChar(const schar* str);
 const tchar* GetTmpTChar(const wchar* str, usize len);
 const tchar* GetTmpTChar(const wchar* str);
+
 usize GetSize(CTStringView path);
 }  // namespace comet
 

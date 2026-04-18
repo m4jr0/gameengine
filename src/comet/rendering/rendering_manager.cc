@@ -23,6 +23,7 @@
 #include "comet/rendering/driver/empty/empty_driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
+#include "comet/rendering/rendering_utils.h"
 #include "comet/time/time_manager.h"
 
 #ifdef COMET_HAS_DEBUG_UI
@@ -36,100 +37,14 @@ RenderingManager& RenderingManager::Get() {
   return singleton;
 }
 
-void RenderingManager::Initialize() {
-  Manager::Initialize();
-  auto fps_cap{COMET_CONF_U16(conf::kRenderingFpsCap)};
-
-  if (fps_cap > 0) {
-    frame_time_threshold_ =
-        1.0f / static_cast<f64>(COMET_CONF_U16(conf::kRenderingFpsCap));
-  } else {
-    frame_time_threshold_ = 0;
-  }
-
-  shadow_settings_ = GenerateShadowSettings();
-
-  const auto* driver_label{COMET_CONF_STR(conf::kRenderingDriver)};
-  COMET_LOG_RENDERING_INFO("Graphics backend: ", driver_label, ".");
-  auto driver_type{GetDriverTypeFromStr(driver_label)};
-  COMET_ASSERT(driver_type != DriverType::Unknown,
-               "Unknown rendering driver type!");
-
-  if (driver_type == DriverType::OpenGl) {
-    GenerateOpenGlDriver();
-  } else if (driver_type == DriverType::Vulkan) {
-    GenerateVulkanDriver();
-  } else if (driver_type == DriverType::Direct3d12) {
-    GenerateDirect3D12Driver();
-  }
-#ifdef COMET_DEBUG
-  else if (driver_type == DriverType::Empty) {
-    GenerateEmptyDriver();
-  }
-#endif  // COMET_DEBUG
-
-  COMET_ASSERT(driver_ != nullptr, "Rendering driver is null!");
-  is_multithreaded_ = IsMultithreading(driver_type);
-
-  // Driver can't be initialized in another thread, as it would not be
-  // thread-safe with GLFW.
-  if (is_multithreaded_) {
-    driver_->Initialize();
-  } else {
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-    job::CounterGuard guard{};
-
-    job::Scheduler::Get().KickOnMainThread(job::GenerateMainThreadJobDescr(
-        [](job::MainThreadParamsHandle params_handle) {
-          auto* rendering_manager{
-              reinterpret_cast<RenderingManager*>(params_handle)};
-          rendering_manager->driver_->Initialize();
-        },
-        this, guard.GetCounter()));
-
-    guard.Wait();
-#else
-    COMET_ASSERT(false,
-                 "Multithreading is not enabled with rendering manager, but "
-                 "main thread is not available!");
-#endif  //  COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-  }
-
-  input::InputManager::Get().AttachGlfwWindow(
-      static_cast<GlfwWindow*>(driver_->GetWindow())->GetHandle());
-
-#ifdef COMET_IMGUI
-  if (driver_type != DriverType::Empty) {
-    input::InputManager::EnableImGui();
-  }
-#endif  // COMET_IMGUI
-
-#ifdef COMET_HAS_DEBUG_UI
-  DebugUiRegistry::Get().Initialize();
-#endif  // COMET_HAS_DEBUG_UI
-}
-
-void RenderingManager::Shutdown() {
-#ifdef COMET_HAS_DEBUG_UI
-  DebugUiRegistry::Get().Destroy();
-#endif  // COMET_HAS_DEBUG_UI
-
-  driver_->Shutdown();
-  driver_ = nullptr;
-  frame_rate_ = 0;
-  counter_ = 0;
-  frame_time_threshold_ = 0;
-  current_time_ = 0;
-  Manager::Shutdown();
-}
-
 void RenderingManager::Update(frame::FramePacket* packet) {
   COMET_PROFILE("RenderingManager::Update");
-  current_time_ += time::TimeManager::Get().GetDeltaTime();
 
-  if (current_time_ > 1.0f) {
+  current_time_ += time::TimeManager::Get().GetUnscaledDeltaTime();
+
+  if (current_time_ > 1.0) {
     frame_rate_ = counter_;
-    current_time_ = 0;
+    current_time_ = .0;
     counter_ = 0;
   }
 
@@ -199,6 +114,91 @@ const ShadowSettings& RenderingManager::GetShadowSettings() const noexcept {
 
 bool RenderingManager::IsMultithreaded() const noexcept {
   return is_multithreaded_;
+}
+
+void RenderingManager::OnInitialize() {
+  const auto fps_cap{COMET_CONF_U16(conf::kRenderingFpsCap)};
+
+  if (fps_cap > 0) {
+    frame_time_threshold_ =
+        1.0f / static_cast<f64>(COMET_CONF_U16(conf::kRenderingFpsCap));
+  } else {
+    frame_time_threshold_ = 0;
+  }
+
+  shadow_settings_ = GenerateShadowSettings();
+
+  const auto* driver_label{COMET_CONF_STR(conf::kRenderingDriver)};
+  COMET_LOG_RENDERING_INFO("Graphics backend: ", driver_label, ".");
+  const auto driver_type{GetDriverTypeFromStr(driver_label)};
+  COMET_ASSERT(driver_type != DriverType::Unknown,
+               "Unknown rendering driver type!");
+
+  if (driver_type == DriverType::OpenGl) {
+    GenerateOpenGlDriver();
+  } else if (driver_type == DriverType::Vulkan) {
+    GenerateVulkanDriver();
+  } else if (driver_type == DriverType::Direct3d12) {
+    GenerateDirect3D12Driver();
+  }
+#ifdef COMET_DEBUG
+  else if (driver_type == DriverType::Empty) {
+    GenerateEmptyDriver();
+  }
+#endif  // COMET_DEBUG
+
+  COMET_ASSERT(driver_ != nullptr, "Rendering driver is null!");
+  is_multithreaded_ = IsMultithreading(driver_type);
+
+  // Driver can't be initialized in another thread, as it would not be
+  // thread-safe with GLFW.
+  if (is_multithreaded_) {
+    driver_->Initialize();
+  } else {
+#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+    job::CounterGuard guard{};
+
+    job::Scheduler::Get().KickOnMainThread(job::GenerateMainThreadJobDescr(
+        [](job::MainThreadParamsHandle params_handle) {
+          auto* rendering_manager{
+              reinterpret_cast<RenderingManager*>(params_handle)};
+          rendering_manager->driver_->Initialize();
+        },
+        this, guard.GetCounter()));
+
+    guard.Wait();
+#else
+    COMET_ASSERT(false,
+                 "Multithreading is not enabled with rendering manager, but "
+                 "main thread is not available!");
+#endif  //  COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+  }
+
+  input::InputManager::Get().AttachGlfwWindow(
+      static_cast<GlfwWindow*>(driver_->GetWindow())->GetHandle());
+
+#ifdef COMET_IMGUI
+  if (driver_type != DriverType::Empty) {
+    input::InputManager::EnableImGui();
+  }
+#endif  // COMET_IMGUI
+
+#ifdef COMET_HAS_DEBUG_UI
+  DebugUiRegistry::Get().Initialize();
+#endif  // COMET_HAS_DEBUG_UI
+}
+
+void RenderingManager::OnShutdown() {
+#ifdef COMET_HAS_DEBUG_UI
+  DebugUiRegistry::Get().Destroy();
+#endif  // COMET_HAS_DEBUG_UI
+
+  driver_->Shutdown();
+  driver_ = nullptr;
+  frame_rate_ = 0;
+  counter_ = 0;
+  frame_time_threshold_ = 0;
+  current_time_ = 0;
 }
 
 void RenderingManager::GenerateOpenGlDriver() {
@@ -301,11 +301,11 @@ RenderingManager::GenerateRenderingViewDescrs() const {
   clear_color[2] = COMET_CONF_F32(conf::kRenderingClearColorB);
   clear_color[3] = COMET_CONF_F32(conf::kRenderingClearColorA);
 
-  auto window_width{
+  const auto window_width{
       static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth)),
   };
 
-  auto window_height{
+  const auto window_height{
       static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight)),
   };
 

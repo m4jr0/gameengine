@@ -226,7 +226,7 @@ bool GetLine(std::istream& stream, schar* buff, usize buff_len,
 
   schar c;
   usize i{0};
-  usize max_line_len{buff_len - 1};
+  const auto max_line_len{buff_len - 1};
 
   while (i < max_line_len && stream.good() && stream.get(c) && c != '\n') {
     buff[i++] = c;
@@ -269,8 +269,8 @@ bool CreateFile(CTStringView path, bool is_recursive) {
 
 bool CreateDirectory(CTStringView path, bool is_recursive) {
 #ifdef COMET_MSVC
-  auto is_created{MSVC_CREATE_DIRECTORY(path, nullptr) ||
-                  GetLastError() == ERROR_ALREADY_EXISTS};
+  const auto is_created{MSVC_CREATE_DIRECTORY(path, nullptr) ||
+                        GetLastError() == ERROR_ALREADY_EXISTS};
 
   if (!is_recursive || is_created) {
     return is_created;
@@ -325,12 +325,13 @@ bool Remove(CTStringView path, bool is_recursive) {
 
 #ifdef COMET_MSVC
   MSVC_WIN32_FIND_DATA find_data;
-  // Add 1 character for *, and 1 for an extra-slash (which could be needed).
-  const auto full_path_capacity{path.GetLength() + 2};
+  // Add 1 character for *, 1 for an extra-slash (which could be needed) and 1
+  // for the null terminator.
+  const auto full_path_capacity{path.GetLength() + 3};
   auto* full_path{GenerateForOneFrame<tchar>(full_path_capacity)};
   usize full_path_len{0};
   Append(path, COMET_TCHAR("*"), full_path, full_path_capacity, &full_path_len);
-  auto file_handle{MSVC_FIND_FIRST_FILE(full_path, &find_data)};
+  const auto file_handle{MSVC_FIND_FIRST_FILE(full_path, &find_data)};
 
   if (file_handle == INVALID_HANDLE_VALUE) {
     return false;
@@ -350,7 +351,7 @@ bool Remove(CTStringView path, bool is_recursive) {
       continue;
     }
 
-    auto sub_path_len{full_path_len + path_len};
+    const auto sub_path_len{full_path_len + path_len + 2};
     auto* sub_path{GenerateForOneFrame<tchar>(sub_path_len)};
     Append(full_path, find_data.cFileName, sub_path, sub_path_len);
 
@@ -566,7 +567,7 @@ TString GetNormalizedPath(CTStringView path) {
     start_anchor = pre_i - 1;
 
     while (!is_non_dot_dot && pre_i < path.GetLength()) {
-      auto c{path[pre_i++]};
+      const auto c{path[pre_i++]};
 
       if (IsSlash(c)) {
         start_anchor = pre_i - 1;
@@ -601,7 +602,7 @@ TString GetNormalizedPath(CTStringView path) {
     auto is_non_dot_dot{false};
 
     while (!is_non_dot_dot && pre_i < path.GetLength()) {
-      auto c{path[pre_i++]};
+      const auto c{path[pre_i++]};
 
       if (IsSlash(c)) {
         // Case: we had a dot-dot folder previously.
@@ -736,7 +737,7 @@ TString GetNormalizedPath(CTStringView path) {
 
 TString GetAbsolutePath(CTStringView relative_path) {
   tchar path_str[kMaxPathLength]{COMET_TCHAR('\0')};
-  bool is_ok{false};
+  auto is_ok{false};
 
 #ifdef COMET_MSVC
   is_ok = MSVC_GET_FULL_PATH_NAME(relative_path.GetCTStr(), kMaxPathLength,
@@ -770,8 +771,15 @@ TString GetAbsolutePath(CTStringView relative_path) {
     }
 
     if (is_ok) {
-      Append("", relative_path.GetCTStr() + len, path_str + len - 1,
-             kMaxPathLength - len);
+      const usize abs_len{GetLength(path_str)};
+
+      if (abs_len > 0 && path_str[abs_len - 1] != kNativeSlash) {
+        path_str[abs_len] = kNativeSlash;
+        path_str[abs_len + 1] = COMET_TCHAR('\0');
+      }
+
+      Append(path_str, relative_path.GetCTStr() + len, path_str,
+             kMaxPathLength);
     }
   }
 
@@ -885,7 +893,7 @@ TString GetRelativePath(CTStringView to, CTStringView from) {
     }
   }
 
-  auto relative_path_len{from_end - from_cursor + to_end - to_cursor};
+  const auto relative_path_len{from_end - from_cursor + to_end - to_cursor};
 
   if (relative_path_len == 0) {
     return TString{kDotFolderName.GetCTStr(), kDotFolderName.GetLength()};
@@ -988,7 +996,7 @@ TString GetParentPath(CTStringView current_path) {
     return TString{};
   }
 
-  usize cursor{current_path.GetLength() - 1};
+  auto cursor{current_path.GetLength() - 1};
 
   if (cursor > 0 && IsSlash(current_path[cursor])) {
     --cursor;
@@ -1015,7 +1023,7 @@ bool IsDirectory(CTStringView path) {
   }
 
 #ifdef COMET_MSVC
-  auto attributes{MSVC_GET_FILE_ATTRIBUTES(path)};
+  const auto attributes{MSVC_GET_FILE_ATTRIBUTES(path)};
   return attributes != 0xFFFFFFFF && attributes & FILE_ATTRIBUTE_DIRECTORY;
 #else
   struct stat status;
@@ -1029,7 +1037,7 @@ bool IsFile(CTStringView path) {
   }
 
 #ifdef COMET_MSVC
-  auto attributes{MSVC_GET_FILE_ATTRIBUTES(path)};
+  const auto attributes{MSVC_GET_FILE_ATTRIBUTES(path)};
   return attributes != 0xFFFFFFFF &&
          (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 #else
@@ -1134,12 +1142,13 @@ bool IsPathEmpty(CTStringView path) {
 
 #ifdef COMET_MSVC
   MSVC_WIN32_FIND_DATA find_data;
-  // Add 1 character for *, and 1 for an extra-slash (which could be needed).
-  const auto full_path_capacity{path.GetLength() + 2};
+  // Add 1 character for *, 1 for an extra-slash (which could be needed) and 1
+  // for the null terminator.
+  const auto full_path_capacity{path.GetLength() + 3};
   auto* full_path{GenerateForOneFrame<tchar>(full_path_capacity)};
   usize full_path_len{0};
   Append(path, COMET_TCHAR("*"), full_path, full_path_capacity, &full_path_len);
-  auto file_handle{MSVC_FIND_FIRST_FILE(full_path, &find_data)};
+  const auto file_handle{MSVC_FIND_FIRST_FILE(full_path, &find_data)};
 
   if (file_handle == INVALID_HANDLE_VALUE) {
     return true;
@@ -1198,33 +1207,35 @@ bool IsPathEmpty(CTStringView path) {
 #endif  // COMET_MSVC
 }
 
-void AppendTo(CTStringView to_append, tchar* buff, usize buff_len,
-              usize* out_len) {
+void AppendTo(CTStringView to_append, tchar* buff,
+              [[maybe_unused]] usize buff_len, usize* out_len) {
   COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
   COMET_ASSERT(buff_len > 0, "Length of buffer provided is 0!");
 
+  const usize current_len{GetLength(buff)};
+
   if (to_append.IsEmpty()) {
     if (out_len != nullptr) {
-      *out_len = buff_len;
+      *out_len = current_len;
     }
-
     return;
   }
 
-  auto buff_offset{GetLength(buff)};
+  usize buff_offset{current_len};
 
   if (buff_offset > 0) {
     if (!IsSlash(buff[buff_offset - 1]) && !IsSlash(to_append[0])) {
       buff[buff_offset++] = kNativeSlash;
-    } else if (IsSlash(buff[buff_offset]) && IsSlash(to_append[0])) {
+    } else if (IsSlash(buff[buff_offset - 1]) && IsSlash(to_append[0])) {
       --buff_offset;
     }
   }
 
-  const auto new_len{buff_offset + to_append.GetLength()};
-  COMET_ASSERT(buff_len >= new_len,
-               "Length of buffer provided is too small: ", buff_len, " < ",
-               new_len, "!");
+  const usize new_len{buff_offset + to_append.GetLength()};
+  COMET_ASSERT(buff_len > new_len,
+               "Length of buffer provided is too small: ", buff_len,
+               " <= ", new_len, "!");
+
   Copy(buff, to_append, to_append.GetLength(), buff_offset);
   buff[new_len] = COMET_TCHAR('\0');
 

@@ -15,7 +15,7 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/iterator.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace internal {
@@ -308,7 +308,7 @@ class Array : public internal::BaseArray<T> {
 
   T TakeBack() {
     COMET_ASSERT(this->size_ > 0, "Array is empty!");
-    auto value{std::move(this->data_[this->size_ - 1])};
+    const auto value{std::move(this->data_[this->size_ - 1])};
     --this->size_;
 
     if constexpr (!std::is_trivially_destructible_v<T>) {
@@ -366,7 +366,7 @@ class Array : public internal::BaseArray<T> {
       dst_offset = this->size_;
     }
 
-    auto new_size{math::Max(this->size_, dst_offset + count)};
+    const auto new_size{math::Max(this->size_, dst_offset + count)};
     Reserve(new_size);
     comet::Copy(this->data_, this->capacity_, src, src_size, count, dst_offset,
                 src_offset);

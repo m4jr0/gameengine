@@ -6,13 +6,13 @@
 #define COMET_COMET_CORE_TYPE_TSTRING_H_
 
 // External. ///////////////////////////////////////////////////////////////////
+#include <ostream>
 #include <string_view>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/c_array.h"
 #include "comet/core/c_string.h"
 #include "comet/core/hash.h"
-#include "comet/core/memory/allocator/stateful_allocator.h"
 
 namespace comet {
 namespace internal {
@@ -31,6 +31,8 @@ class TStringAllocator : public memory::Allocator {
   void* AllocateAligned(usize size, memory::Alignment align) override;
   void Deallocate(void* ptr) override;
 };
+
+const tchar* CharToStrInPlace(tchar c) noexcept;
 }  // namespace internal
 
 void AttachTStringAllocator(memory::Allocator* allocator);
@@ -60,7 +62,11 @@ class TString {
   template <typename TChar>
   TString(usize length, TChar c) : length_{length} {
     Allocate(length_);
-    Copy(GetTStr(), &c, length_);
+
+    for (usize i = 0; i < length_; ++i) {
+      GetTStr()[i] = static_cast<tchar>(c);
+    }
+
     GetTStr()[length_] = COMET_TCHAR('\0');
   }
 
@@ -96,14 +102,13 @@ class TString {
 
   template <typename TChar>
   TString& Append(usize length, TChar c) {
-    auto new_length{length + length_};
+    const usize new_length{length_ + length};
 
-    // Use >= to take the null terminator into account.
-    if (new_length >= capacity_) {
+    if (new_length > capacity_) {
       Reserve(new_length);
     }
 
-    auto offset{length_ - 1};
+    usize offset{length_};
 
     for (usize i{0}; i < length; ++i) {
       GetTStr()[offset++] = c;
@@ -120,7 +125,7 @@ class TString {
 
   template <typename TChar>
   TString& Append(const TChar* str, usize length) {
-    auto new_length{length_ + length};
+    const auto new_length{length_ + length};
 
     if (new_length > capacity_) {
       Reserve(new_length);
@@ -148,25 +153,34 @@ class TString {
   bool IsContained(const tchar* str) const;
   bool IsContained(const tchar* str, usize len) const;
   bool IsContained(const TString& str) const;
+
   bool IsContainedInsensitive(tchar c) const;
   bool IsContainedInsensitive(const tchar* str) const;
   bool IsContainedInsensitive(const tchar* str, usize len) const;
   bool IsContainedInsensitive(const TString& str) const;
+
   usize GetIndex(tchar c) const;
   usize GetLastIndexOf(tchar c, usize offset = kInvalidIndex) const noexcept;
   usize GetNthToLastIndexOf(tchar c, usize count = 0,
                             usize offset = kInvalidIndex) const noexcept;
+
   friend void Swap(TString& str1, TString& str2);
+
   tchar& operator[](usize index);
   const tchar& operator[](usize index) const;
+
   const tchar* GetCTStr() const noexcept;
   tchar* GetTStr() noexcept;
+
   usize GetLength() const noexcept;
   usize GetLengthWithNullTerminator() const noexcept;
   usize GetCapacity() const noexcept;
+
   bool IsEmpty() const noexcept;
+
   const tchar& GetFirst() const noexcept;
   const tchar& GetLast() const noexcept;
+
   operator const tchar*() const noexcept;
 
 #ifdef COMET_DEBUG
@@ -198,6 +212,7 @@ class TString {
 class CTStringView {
  public:
   CTStringView() noexcept : CTStringView{COMET_TCHAR(""), 0} {};
+
   CTStringView(const TString& str) noexcept : CTStringView{str.GetCTStr()} {}
 
   constexpr CTStringView(const tchar* str) noexcept
@@ -245,7 +260,7 @@ class CTStringView {
   }
 
   bool IsContainedInsensitive(tchar c) const {
-    return comet::IsContainedInsensitive(str_, &c);
+    return comet::IsContainedInsensitive(str_, internal::CharToStrInPlace(c));
   }
 
   bool IsContainedInsensitive(const tchar* str) const {

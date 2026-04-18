@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/c_string.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #include "comet/profiler/profiler_manager.h"
 
 #ifdef COMET_PROFILING

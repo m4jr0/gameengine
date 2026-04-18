@@ -12,7 +12,7 @@
 
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_utils.h"
 
 namespace comet {
 namespace job {

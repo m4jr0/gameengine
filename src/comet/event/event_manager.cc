@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace event {
@@ -32,25 +32,6 @@ EventManager::EventManager()
                         sizeof(Pair<EventListenerId, stringid::StringId>))),
           4096, memory::kEngineMemoryTagEvent} {}
 
-void EventManager::Initialize() {
-  Manager::Initialize();
-  COMET_ASSERT(max_event_count_ > 0,
-               "Max event count is invalid: ", max_event_count_, ".");
-  listener_allocator_.Initialize();
-
-  listeners_ = EventListeners{&listener_allocator_};
-  id_event_type_map_ = IdEventTypeMap{&listener_allocator_};
-  event_queue_ = EventQueue{&event_queue_allocator_, max_event_count_};
-}
-
-void EventManager::Shutdown() {
-  listeners_ = {};
-  id_event_type_map_ = {};
-  event_queue_ = {};
-  listener_allocator_.Destroy();
-  Manager::Shutdown();
-}
-
 EventListenerId EventManager::Register(const Callback& function,
                                        stringid::StringId event_type) {
   auto& listeners{listeners_[event_type]};
@@ -64,7 +45,7 @@ void EventManager::Unregister(EventListenerId id) {
   COMET_ASSERT(id_event_type_map_.IsContained(id),
                "Unable to find event type from ID ", id, "!");
   auto& listeners{listeners_[id_event_type_map_.Get(id)]};
-  usize found_index{kInvalidIndex};
+  auto found_index{kInvalidIndex};
 
   for (usize i{0}; i < listeners.GetSize(); ++i) {
     if (listeners[i].id == id) {
@@ -91,6 +72,23 @@ void EventManager::FireAllEvents() {
   while (event_queue_.TryPop(event)) {
     Dispatch(std::move(event));
   }
+}
+
+void EventManager::OnInitialize() {
+  COMET_ASSERT(max_event_count_ > 0,
+               "Max event count is invalid: ", max_event_count_, ".");
+  listener_allocator_.Initialize();
+
+  listeners_ = EventListeners{&listener_allocator_};
+  id_event_type_map_ = IdEventTypeMap{&listener_allocator_};
+  event_queue_ = EventQueue{&event_queue_allocator_, max_event_count_};
+}
+
+void EventManager::OnShutdown() {
+  listeners_ = {};
+  id_event_type_map_ = {};
+  event_queue_ = {};
+  listener_allocator_.Destroy();
 }
 
 void EventManager::Add(EventPtr event) { event_queue_.Push(std::move(event)); }

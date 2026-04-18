@@ -31,14 +31,17 @@ class OpenGlGlfwWindow : public GlfwWindow {
   OpenGlGlfwWindow(OpenGlGlfwWindow&&) noexcept;
   OpenGlGlfwWindow& operator=(const OpenGlGlfwWindow&);
   OpenGlGlfwWindow& operator=(OpenGlGlfwWindow&&) noexcept;
-  virtual ~OpenGlGlfwWindow() = default;
+  ~OpenGlGlfwWindow() override = default;
 
-  void Initialize() override;
   void SetGlfwHints() override;
+
   void SwapBuffers() const;
 
   bool IsVSync() const noexcept;
   void SetVSync(bool is_vsync);
+
+ protected:
+  void OnInitialize() override;
 
  private:
   bool is_vsync_{true};

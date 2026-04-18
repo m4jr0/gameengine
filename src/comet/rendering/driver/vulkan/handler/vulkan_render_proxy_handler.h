@@ -18,7 +18,6 @@
 #include "comet/core/type/array.h"
 #include "comet/entity/entity_id.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_render_proxy.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
@@ -80,10 +79,7 @@ class RenderProxyHandler : public Handler {
   RenderProxyHandler(RenderProxyHandler&&) = delete;
   RenderProxyHandler& operator=(const RenderProxyHandler&) = delete;
   RenderProxyHandler& operator=(RenderProxyHandler&&) = delete;
-  virtual ~RenderProxyHandler() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~RenderProxyHandler() override = default;
 
   void Update(frame::FramePacket* packet);
   void Reset();
@@ -120,6 +116,10 @@ class RenderProxyHandler : public Handler {
   u32 GetDebugLineVertexCount() const noexcept;
 #endif  // COMET_DEBUG_CULLING
 
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
  private:
   static inline constexpr usize kMaxRenderProxyCount_{100000};
   static inline constexpr usize kDefaultRenderIndirectBatchCount_{128};
@@ -141,23 +141,31 @@ class RenderProxyHandler : public Handler {
 
   void GenerateUpdateTemporaryStructures(const frame::FramePacket* packet);
   void DestroyUpdateTemporaryStructures();
+
   void ApplyRenderProxyChanges(const frame::FramePacket* packet);
+
   void ProcessBatches();
+
   void GenerateRenderProxies(const frame::AddedGeometries* geometries);
   void UpdateRenderProxies(const frame::DirtyMeshes* meshes,
                            const frame::DirtyTransforms* transforms);
   void DestroyRenderProxies(const frame::RemovedGeometries* geometries);
+
   void UpdateSkinningMatrices(const frame::SkinningBindings* bindings,
                               const frame::MatrixPalettes* palettes);
+
   void GenerateBatchEntries();
   void GenerateIndirectBatches();
   void GenerateBatchGroups();
+
   void UploadRenderProxyLocalData();
   void UploadAllRenderProxyLocalData();
   void UploadPendingRenderProxyLocalData();
+
   void PrepareRenderProxyDrawData(FrameInFlightIndex frame_index);
   void ReallocateRenderProxyDrawBuffers(FrameInFlightIndex frame_index);
   void PopulateRenderProxyDrawData(FrameInFlightIndex frame_index);
+
   void UploadRenderDrawData(FrameInFlightIndex frame_index);
   void PopulateRenderIndirectProxy(BatchId batch_id,
                                    GpuIndirectRenderProxy* memory);
@@ -170,16 +178,21 @@ class RenderProxyHandler : public Handler {
                           RenderProxyId proxy_id);
   void UnregisterModelProxy(entity::EntityId model_entity_id,
                             RenderProxyId proxy_id);
+
   void InitializeBuffers();
   void DestroyBuffers();
+
 #ifdef COMET_DEBUG_RENDERING
   void InitializeDebugData();
   void DestroyDebugData();
 #endif  // COMET_DEBUG_RENDERING
+
 #ifdef COMET_DEBUG_CULLING
   void InitializeCullingDebug();
   void DestroyCullingDebug();
 #endif  // COMET_DEBUG_CULLING
+
+  void DestroyLiveProxyMaterials();
 
   FrameIndex update_frame_{kInvalidFrameIndex};
   u32 render_proxy_count_{0};

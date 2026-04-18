@@ -12,14 +12,18 @@ namespace comet {
 namespace memory {
 class StatefulAllocator : public Allocator {
  public:
-  virtual ~StatefulAllocator();
+  ~StatefulAllocator() override;
 
-  virtual void Initialize();
-  virtual void Destroy();
+  void Initialize();
+  void Destroy();
 
   bool IsInitialized() const noexcept;
 
  protected:
+  virtual void OnInitialize();
+  virtual void OnDestroy();
+
+ private:
   bool is_initialized_{false};
 };
 }  // namespace memory

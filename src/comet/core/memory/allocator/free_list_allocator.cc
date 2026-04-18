@@ -68,26 +68,10 @@ FiberFreeListAllocator& FiberFreeListAllocator::operator=(
   return *this;
 }
 
-void FiberFreeListAllocator::Initialize() {
-  StatefulAllocator::Initialize();
-  fiber::FiberLockGuard lock{mutex_};
-  auto min_block_count{block_count_};
-  block_count_ = 0;
-  head_ = Grow(block_size_ * min_block_count);
-}
-
-void FiberFreeListAllocator::Destroy() {
-  StatefulAllocator::Destroy();
-  DeallocateAll();
-  memory_tag_ = kEngineMemoryTagUntagged;
-  block_size_ = 0;
-  block_count_ = 0;
-}
-
 void* FiberFreeListAllocator::AllocateAligned(usize size, Alignment align) {
   COMET_ASSERT(size > 0, "Allocation size provided is 0!");
   // Add alignment storage + header of first block.
-  usize allocation_size{size + align + sizeof(Block)};
+  auto allocation_size{size + align + sizeof(Block)};
   Block* head_block{nullptr};
 
   fiber::FiberLockGuard lock{mutex_};
@@ -163,6 +147,20 @@ void FiberFreeListAllocator::DeallocateAll() {
   block_count_ = 0;
 }
 
+void FiberFreeListAllocator::OnInitialize() {
+  fiber::FiberLockGuard lock{mutex_};
+  const auto min_block_count{block_count_};
+  block_count_ = 0;
+  head_ = Grow(block_size_ * min_block_count);
+}
+
+void FiberFreeListAllocator::OnDestroy() {
+  DeallocateAll();
+  memory_tag_ = kEngineMemoryTagUntagged;
+  block_size_ = 0;
+  block_count_ = 0;
+}
+
 FiberFreeListAllocator::Block* FiberFreeListAllocator::Grow(usize size) {
   size = memory::RoundUpToMultiple(size, block_size_);
 
@@ -175,7 +173,7 @@ FiberFreeListAllocator::Block* FiberFreeListAllocator::Grow(usize size) {
   }
 
   auto* cursor{head_block};
-  auto block_count{static_cast<usize>(size / block_size_)};
+  const auto block_count{static_cast<usize>(size / block_size_)};
 
   for (usize i{0}; i < block_count; ++i) {
     cursor->is_free = true;

@@ -20,30 +20,6 @@ ResourceManager& ResourceManager::Get() {
   return singleton;
 }
 
-void ResourceManager::Initialize() {
-  Manager::Initialize();
-  global_allocator_.Initialize();
-  scene_allocator_.Initialize();
-  byte_allocator_.Initialize();
-
-  root_resource_path_.Reserve(conf::kMaxStrValueLength);
-  root_resource_path_ = COMET_CONF_TSTR(conf::kResourceRootPath);
-  COMET_DISALLOW_STR_ALLOC(root_resource_path_);
-  Clean(root_resource_path_);
-
-  InitializeResourcesDirectory();
-  InitializeHandlers();
-}
-
-void ResourceManager::Shutdown() {
-  root_resource_path_.Destroy();
-  DestroyHandlers();
-  byte_allocator_.Destroy();
-  scene_allocator_.Destroy();
-  global_allocator_.Destroy();
-  Manager::Shutdown();
-}
-
 const TString& ResourceManager::GetRootResourcePath() {
   return root_resource_path_;
 }
@@ -78,6 +54,28 @@ TextureResourceHandler* ResourceManager::GetTextures() {
   return textures_.get();
 }
 
+void ResourceManager::OnInitialize() {
+  global_allocator_.Initialize();
+  scene_allocator_.Initialize();
+  byte_allocator_.Initialize();
+
+  root_resource_path_.Reserve(conf::kMaxStrValueLength);
+  root_resource_path_ = COMET_CONF_TSTR(conf::kResourceRootPath);
+  COMET_DISALLOW_STR_ALLOC(root_resource_path_);
+  Clean(root_resource_path_);
+
+  InitializeResourcesDirectory();
+  InitializeHandlers();
+}
+
+void ResourceManager::OnShutdown() {
+  root_resource_path_.Destroy();
+  DestroyHandlers();
+  byte_allocator_.Destroy();
+  scene_allocator_.Destroy();
+  global_allocator_.Destroy();
+}
+
 void ResourceManager::InitializeResourcesDirectory() {
   if (!Exists(root_resource_path_)) {
     CreateDirectory(root_resource_path_, true);
@@ -89,31 +87,39 @@ void ResourceManager::InitializeHandlers() {
   descr.root_path = root_resource_path_;
   descr.life_span_allocators.global = &global_allocator_;
   descr.life_span_allocators.scene = &scene_allocator_;
+  descr.life_span_allocators.immortal = &platform_allocator_;
   descr.ptr_allocator = &ptr_allocator_;
   descr.byte_allocator = &byte_allocator_;
 
   // TODO(m4jr0): Those are wild guesses. Not sure if it should be
   // updated/configurable.
-  descr.initial_capacity = 256;
-  materials_ = std::make_unique<MaterialResourceHandler>(descr);
-
   descr.initial_capacity = 1024;
-  static_models_ = std::make_unique<StaticModelResourceHandler>(descr);
-
-  descr.initial_capacity = 128;
-  skeletal_models_ = std::make_unique<SkeletalModelResourceHandler>(descr);
-  skeletons_ = std::make_unique<SkeletonResourceHandler>(descr);
-
-  descr.initial_capacity = 1024;
+  descr.memory_tag = memory::kEngineMemoryTagResourceAnimationHandler;
   animation_clips_ = std::make_unique<AnimationClipResourceHandler>(descr);
 
   descr.initial_capacity = 256;
+  descr.memory_tag = memory::kEngineMemoryTagResourceMaterialHandler;
+  materials_ = std::make_unique<MaterialResourceHandler>(descr);
+
+  descr.initial_capacity = 1024;
+  descr.memory_tag = memory::kEngineMemoryTagResourceStaticModelHandler;
+  static_models_ = std::make_unique<StaticModelResourceHandler>(descr);
+
+  descr.initial_capacity = 128;
+  descr.memory_tag = memory::kEngineMemoryTagResourceSkeletalModelHandler;
+  skeletal_models_ = std::make_unique<SkeletalModelResourceHandler>(descr);
+  skeletons_ = std::make_unique<SkeletonResourceHandler>(descr);
+
+  descr.initial_capacity = 256;
+  descr.memory_tag = memory::kEngineMemoryTagResourceShaderModuleHandler;
   shader_modules_ = std::make_unique<ShaderModuleResourceHandler>(descr);
 
   descr.initial_capacity = 128;
+  descr.memory_tag = memory::kEngineMemoryTagResourceShaderHandler;
   shaders_ = std::make_unique<ShaderResourceHandler>(descr);
 
   descr.initial_capacity = 2048;
+  descr.memory_tag = memory::kEngineMemoryTagResourceTextureHandler;
   textures_ = std::make_unique<TextureResourceHandler>(descr);
 
   materials_->Initialize();

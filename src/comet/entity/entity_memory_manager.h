@@ -22,10 +22,7 @@ class EntityMemoryManager : public Manager {
   EntityMemoryManager(EntityMemoryManager&&) = delete;
   EntityMemoryManager& operator=(const EntityMemoryManager&) = delete;
   EntityMemoryManager& operator=(EntityMemoryManager&&) = delete;
-  virtual ~EntityMemoryManager() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~EntityMemoryManager() override = default;
 
   memory::Allocator& GetRecordAllocator() noexcept;
   memory::Allocator& GetComponentArrayAllocator() noexcept;
@@ -39,6 +36,10 @@ class EntityMemoryManager : public Manager {
   memory::Allocator& GetArchetypeAllocator() noexcept;
 
   memory::Allocator& GetComponentArrayElementsAllocator(usize size) noexcept;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   static inline constexpr usize kSmallAllocatorAllocationUnit_{16};

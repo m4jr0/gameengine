@@ -28,6 +28,7 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_module_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
@@ -53,16 +54,20 @@ class VulkanDriver : public Driver {
   VulkanDriver(VulkanDriver&&) = delete;
   VulkanDriver& operator=(const VulkanDriver&) = delete;
   VulkanDriver& operator=(VulkanDriver&&) = delete;
-  virtual ~VulkanDriver() = default;
+  ~VulkanDriver() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(frame::FramePacket* packet) override;
+
   DriverType GetType() const noexcept override;
 
   void SetSize(WindowSize width, WindowSize height);
+
   Window* GetWindow() override;
   u32 GetDrawCount() const override;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   void InitializeVulkanInstance();
@@ -77,9 +82,11 @@ class VulkanDriver : public Driver {
   void PostDraw();
   void Draw(frame::FramePacket* packet);
 
+  void WaitForFences();
   void HandleSwapchainState(frame::FramePacket* packet);
   void ResetRenderFence(FrameData& frame_data);
   void UpdateGpuSceneState(frame::FramePacket* packet);
+
   void RecordFrame(frame::FramePacket* packet);
   void SubmitFrame(const frame::FramePacket* packet,
                    const CommandData& command_data, FrameData& frame_data);
@@ -106,6 +113,7 @@ class VulkanDriver : public Driver {
   memory::UniquePtr<PipelineHandler> pipeline_handler_{nullptr};
   memory::UniquePtr<RenderPassHandler> render_pass_handler_{nullptr};
   memory::UniquePtr<RenderProxyHandler> render_proxy_handler_{nullptr};
+  memory::UniquePtr<SamplerHandler> sampler_handler_{nullptr};
   memory::UniquePtr<ShaderHandler> shader_handler_{nullptr};
   memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
   memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
@@ -115,8 +123,10 @@ class VulkanDriver : public Driver {
 #ifdef COMET_DEBUG_RENDERING
   void InitializeDebugMessenger();
   void DestroyDebugMessenger();
+
   void InitializeDebugReportCallback();
   void DestroyDebugReportCallback();
+
   bool AreValidationLayersSupported();
   static VKAPI_ATTR VkBool32 VKAPI_CALL LogVulkanValidationMessage(
       VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,

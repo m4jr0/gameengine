@@ -50,6 +50,7 @@ void GenerateStackTrace(schar *buffer, usize buffer_len);
 #ifndef COMET_DEBUG
 #define COMET_CASSERT(assertion, message)
 #define COMET_ASSERT(assertion, ...)
+#define COMET_FASSERT(expr, ...) ((void)(expr))
 #else
 #define COMET_CASSERT(assertion, message) assert(assertion &&message)
 #define COMET_ASSERT(assertion, ...)                    \
@@ -65,6 +66,8 @@ void GenerateStackTrace(schar *buffer, usize buffer_len);
                                                         \
     COMET_CASSERT(isOk, "Critical failure!");           \
   } while (false)
+
+#define COMET_FASSERT(expr, ...) COMET_ASSERT((expr), __VA_ARGS__)
 #endif  // !COMET_DEBUG
 
 #endif  // COMET_COMET_CORE_DEBUG_H_

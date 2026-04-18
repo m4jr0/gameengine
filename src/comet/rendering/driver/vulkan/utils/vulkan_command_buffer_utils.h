@@ -19,11 +19,14 @@ CommandData GenerateCommandData(VkDevice device_handle,
                                 VkCommandPool command_pool_handle);
 CommandData GenerateCommandData(VkDevice device_handle,
                                 VkCommandBuffer command_buffer_handle);
+
 void AllocateCommandData(CommandData& command_data,
                          const schar* debug_label = nullptr);
 void DestroyCommandData(CommandData& command_data);
+
 void RecordCommand(VkCommandBuffer command_buffer_handle);
 void BeginFrameCommandRecording(const CommandData& command_data);
+
 void SubmitCommand(
     VkCommandBuffer command_buffer_handle, VkQueue queue_handle,
     VkFence fence_handle = VK_NULL_HANDLE,
@@ -33,6 +36,7 @@ void SubmitCommand(
     u32 signal_semaphore_count = 0,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
     const void* next = VK_NULL_HANDLE);
+
 void SubmitCommand(
     const CommandData& command_data, VkQueue queue_handle,
     VkFence fence_handle = VK_NULL_HANDLE,
@@ -42,6 +46,7 @@ void SubmitCommand(
     u32 signal_semaphore_count = 0,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
     const void* next = VK_NULL_HANDLE);
+
 void SubmitCommand2(
     u32 command_buffer_info_count,
     const VkCommandBufferSubmitInfo* command_buffer_infos, VkQueue queue_handle,
@@ -50,6 +55,7 @@ void SubmitCommand2(
     u32 wait_semaphore_info_count = 0,
     const VkSemaphoreSubmitInfo* signal_semaphore_infos = VK_NULL_HANDLE,
     u32 signal_semaphore_info_count = 0, const void* next = VK_NULL_HANDLE);
+
 void SubmitCommand2(
     const CommandData& command_data, VkQueue queue_handle,
     VkFence fence_handle = VK_NULL_HANDLE,
@@ -57,8 +63,10 @@ void SubmitCommand2(
     u32 wait_semaphore_info_count = 0,
     const VkSemaphoreSubmitInfo* signal_semaphore_infos = VK_NULL_HANDLE,
     u32 signal_semaphore_info_count = 0, const void* next = VK_NULL_HANDLE);
+
 VkCommandBuffer GenerateOneTimeCommand(VkDevice device_handle,
                                        VkCommandPool command_pool_handle);
+
 void SubmitOneTimeCommand(
     VkCommandBuffer& command_buffer_handle, VkCommandPool command_pool_handle,
     VkDevice device_handle, VkQueue queue_handle,
@@ -74,6 +82,7 @@ void SubmitOneTimeCommandAsync(
     const VkSemaphore* signal_semaphore = VK_NULL_HANDLE,
     const VkPipelineStageFlags* wait_dst_stage_mask = VK_NULL_HANDLE,
     const void* next = VK_NULL_HANDLE);
+
 void WaitAndRecycleOneTimeCommand(VkDevice device_handle,
                                   VkCommandPool command_pool_handle,
                                   VkCommandBuffer& command_buffer_handle,

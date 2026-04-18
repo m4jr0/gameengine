@@ -60,11 +60,11 @@ void Thread::TryJoin() {
   }
 }
 
+ThreadId Thread::GetId() const noexcept { return thread_id_; }
+
 bool Thread::IsAttached() const noexcept {
   return thread_id_ != kInvalidThreadId;
 }
-
-ThreadId Thread::GetId() const noexcept { return thread_id_; }
 
 bool Thread::IsMain() const noexcept {
   return thread_id_ == main_thread_.thread_id_;

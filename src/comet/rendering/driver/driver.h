@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/rendering/window/window.h"
 
 namespace comet {
@@ -42,16 +42,22 @@ class Driver {
   Driver& operator=(Driver&&) = delete;
   virtual ~Driver();
 
-  virtual void Initialize();
-  virtual void Shutdown();
+  void Initialize();
+  void Shutdown();
+
   virtual void Update(frame::FramePacket* packet) = 0;
+
   virtual DriverType GetType() const noexcept = 0;
 
   bool IsInitialized() const noexcept;
+
   virtual Window* GetWindow() = 0;
   virtual u32 GetDrawCount() const = 0;
 
  protected:
+  virtual void OnInitialize();
+  virtual void OnShutdown();
+
   bool is_initialized_{false};
   bool is_vsync_{false};
   bool is_triple_buffering_{false};

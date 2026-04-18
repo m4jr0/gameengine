@@ -20,8 +20,10 @@ inline static std::atomic<usize> active_io_worker_count{0};
 
 void AttachWorker(Worker* worker);
 void DetachWorker();
+
 void AttachFiberWorker(FiberWorker*);
 void DetachFiberWorker();
+
 void AttachIOWorker(IOWorker*);
 void DetachIOWorker();
 }  // namespace internal
@@ -29,13 +31,16 @@ void DetachIOWorker();
 bool IsWorkerAttached();
 bool IsFiberWorker();
 bool IsIOWorker();
+
 WorkerId GetWorkerId();
 WorkerId GetWorkerTypeIndex();
 WorkerTag GetWorkerTag();
 Worker& GetWorker();
+
 usize GetCurrentWorkerCount();
 usize GetCurrentFiberWorkerCount();
 usize GetCurrentIOWorkerCount();
+
 bool IsMainThreadWorkerDisabled();
 }  // namespace job
 }  // namespace comet

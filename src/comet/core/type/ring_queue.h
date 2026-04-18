@@ -314,8 +314,8 @@ inline void LockFreeMPSCRingQueue<T>::Push(T&& element) {
   for (;;) {
     pos = reserve_.load(std::memory_order_relaxed);
     auto& slot{elements_[pos % capacity_]};
-    auto seq{slot.sequence.load(std::memory_order_acquire)};
-    auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+    const auto seq{slot.sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
       if (reserve_.compare_exchange_weak(pos, pos + 1,
@@ -340,8 +340,8 @@ inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
   for (;;) {
     pos = reserve_.load(std::memory_order_relaxed);
     auto& slot{elements_[pos % capacity_]};
-    auto seq{slot.sequence.load(std::memory_order_acquire)};
-    auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+    const auto seq{slot.sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
       if (reserve_.compare_exchange_weak(pos, pos + 1,
@@ -361,10 +361,10 @@ inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
 
 template <class T>
 inline bool LockFreeMPSCRingQueue<T>::TryPop(T& element) {
-  auto pos{head_.load(std::memory_order_relaxed)};
+  const auto pos{head_.load(std::memory_order_relaxed)};
   auto& slot{elements_[pos % capacity_]};
-  auto seq{slot.sequence.load(std::memory_order_acquire)};
-  auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos + 1)};
+  const auto seq{slot.sequence.load(std::memory_order_acquire)};
+  const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos + 1)};
 
   if (delta < 0) {
     return false;
@@ -539,8 +539,8 @@ inline void LockFreeMPMCRingQueue<T>::Push(const T& element) {
 
   for (;;) {
     node = &elements_[pos & mask_];
-    auto seq{node->sequence.load(std::memory_order_acquire)};
-    auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+    const auto seq{node->sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
       if (head_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed,
@@ -565,8 +565,8 @@ inline void LockFreeMPMCRingQueue<T>::Push(T&& element) {
 
   for (;;) {
     node = &elements_[pos & mask_];
-    auto seq{node->sequence.load(std::memory_order_acquire)};
-    auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+    const auto seq{node->sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
       if (head_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed,
@@ -591,8 +591,9 @@ inline std::optional<T> LockFreeMPMCRingQueue<T>::TryPop() {
 
   for (;;) {
     node = &elements_[pos & mask_];
-    auto seq{node->sequence.load(std::memory_order_acquire)};
-    auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos + 1)};
+    const auto seq{node->sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) -
+                     static_cast<sptrdiff>(pos + 1)};
 
     if (delta == 0) {
       if (tail_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed,
@@ -606,7 +607,7 @@ inline std::optional<T> LockFreeMPMCRingQueue<T>::TryPop() {
     }
   }
 
-  auto element{std::move(node->element)};
+  const auto element{std::move(node->element)};
   node->sequence.store(pos + mask_ + 1, std::memory_order_release);
   return element;
 }

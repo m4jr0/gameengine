@@ -46,7 +46,7 @@ class ContiguousIteratorImpl {
   }
 
   constexpr ContiguousIteratorImpl operator++(int) noexcept {
-    auto tmp{*this};
+    const auto tmp{*this};
     ++(*this);
     return tmp;
   }
@@ -57,7 +57,7 @@ class ContiguousIteratorImpl {
   }
 
   constexpr ContiguousIteratorImpl operator--(int) noexcept {
-    auto tmp{*this};
+    const auto tmp{*this};
     --(*this);
     return tmp;
   }

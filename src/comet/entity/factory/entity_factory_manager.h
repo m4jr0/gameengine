@@ -22,13 +22,14 @@ class EntityFactoryManager : public Manager {
   EntityFactoryManager(EntityFactoryManager&&) = delete;
   EntityFactoryManager& operator=(const EntityFactoryManager&) = delete;
   EntityFactoryManager& operator=(EntityFactoryManager&&) = delete;
-  virtual ~EntityFactoryManager() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~EntityFactoryManager() override = default;
 
   const ModelHandler* GetModel() const;
   const PrimitiveHandler* GetPrimitive() const;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   memory::UniquePtr<ModelHandler> model_handler_{nullptr};

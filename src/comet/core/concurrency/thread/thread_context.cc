@@ -34,6 +34,8 @@ void DetachThread() {
 }
 }  // namespace internal
 
+bool IsMainThread() { return tls_current_thread->IsMain(); }
+
 bool IsThreadAttached() { return tls_current_thread != nullptr; }
 
 ThreadId GetThreadId() {
@@ -46,7 +48,7 @@ Thread* GetThread() { return tls_current_thread; }
 void Yield() { std::this_thread::yield(); }
 
 usize GetMaxConcurrentThreadCount() {
-  auto max_thread_count{std::thread::hardware_concurrency()};
+  const auto max_thread_count{std::thread::hardware_concurrency()};
   COMET_CASSERT(max_thread_count > internal::kReservedThreadCount,
                 "No thread available!");
   return max_thread_count - internal::kReservedThreadCount;
@@ -60,7 +62,5 @@ usize GetConcurrentThreadCountLeft() {
 usize GetCurrentThreadCount() {
   return internal::active_thread_count.load(std::memory_order_acquire);
 }
-
-bool IsMainThread() { return tls_current_thread->IsMain(); }
 }  // namespace thread
 }  // namespace comet

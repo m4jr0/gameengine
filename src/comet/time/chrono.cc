@@ -28,7 +28,7 @@ bool Chrono::IsFinished() {
     return true;
   }
 
-  auto now = GetNow();
+  const auto now{GetNow()};
 
   if (now - start_time_ >= duration_ms_) {
     is_finished_ = true;

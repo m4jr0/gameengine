@@ -28,8 +28,8 @@ Quat GetNormalizedCopy(const Quat& quaternion) {
 }
 
 Quat GetQuaternionRotation(f32 angle, const Vec3& axis) {
-  auto theta{angle / 2};
-  auto sin_theta{Sin(theta)};
+  const auto theta{angle / 2};
+  const auto sin_theta{Sin(theta)};
 
   Quat quaternion{Cos(theta), axis.x * sin_theta, axis.y * sin_theta,
                   axis.z * sin_theta};

@@ -13,9 +13,9 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/resource/material_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -112,8 +112,8 @@ struct DescriptorSetLayoutBindings {
 };
 
 struct ShaderImageDescriptor {
-  const Texture* texture{nullptr};
-  const Sampler* sampler{nullptr};
+  TextureHandle texture_handle{};
+  SamplerHandle sampler_handle{};
   VkImageLayout image_layout{VK_IMAGE_LAYOUT_UNDEFINED};
 };
 
@@ -142,7 +142,7 @@ struct ShaderDescriptorSetRuntimeData {
 constexpr auto kMaxMaterialInstances{1024};
 
 struct MaterialInstance {
-  MaterialId material_id{kInvalidMaterialId};
+  resource::MaterialResourceId material_resource_id{};
   sptrdiff offset{0};
   ShaderDescriptorSetRuntimeData descriptor_data{};
   ShaderBindingRuntimeData binding_data{};
@@ -150,7 +150,7 @@ struct MaterialInstance {
 
 struct MaterialInstances {
   Array<MaterialInstance> list{};
-  Map<MaterialId, u32> indices{};
+  Map<resource::MaterialResourceId, u32> indices{};
 };
 
 struct ShaderBufferFieldUpdate {

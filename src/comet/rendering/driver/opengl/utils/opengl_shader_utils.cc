@@ -8,14 +8,24 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "opengl_common_utils.h"
+#include "opengl_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
+#include "comet/rendering/rendering_utils.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
+bool IsGraphicsStage(ShaderStageFlags flags) {
+  return (flags &
+          (kShaderStageFlagBitsVertex | kShaderStageFlagBitsFragment)) != 0;
+}
+
+bool IsComputeStage(ShaderStageFlags flags) {
+  return (flags & kShaderStageFlagBitsCompute) != 0;
+}
+
 u32 ResolveBinding(u32 set, u32 binding) {
   switch (set) {
     case shaderconsts::kGlobalSet:
@@ -59,6 +69,149 @@ void AddFieldUpdate(frame::FrameArray<ShaderBufferFieldUpdate>& updates,
   update.field_index = field_index;
   update.data = data;
   update.size = size;
+}
+
+GLenum GetGlImageAccess(ShaderBindingType type) {
+  switch (type) {
+    case ShaderBindingType::StorageImage:
+      return GL_READ_WRITE;
+    default:
+      return GL_READ_ONLY;
+  }
+}
+
+Alignment GetBindingFieldAlignment(ShaderMemoryLayout layout,
+                                   ShaderVariableType type) {
+  switch (layout) {
+    case ShaderMemoryLayout::Std140:
+      return GetStd140Alignment(type);
+    case ShaderMemoryLayout::Std430:
+      return GetStd430Alignment(type);
+    case ShaderMemoryLayout::Packed:
+      return GetScalarAlignment(type);
+    default:
+      COMET_ASSERT(false, "Unknown shader memory layout!");
+      return kInvalidAlignment;
+  }
+}
+
+ShaderOffset AlignOffset(ShaderOffset offset, Alignment alignment) {
+  return static_cast<ShaderOffset>(
+      memory::AlignSize(offset, static_cast<memory::Alignment>(alignment)));
+}
+
+ShaderFieldLayoutInfo GetFieldLayoutInfo(ShaderMemoryLayout layout,
+                                         ShaderVariableType type,
+                                         u32 array_count) {
+  ShaderFieldLayoutInfo info{};
+
+  info.element_size = GetShaderVariableTypeSize(type);
+  COMET_ASSERT(info.element_size != kInvalidShaderVariableSize,
+               "Invalid shader variable type size!");
+
+  info.alignment = GetBindingFieldAlignment(layout, type);
+  info.aligned_size = static_cast<ShaderVariableSize>(memory::AlignSize(
+      info.element_size, static_cast<memory::Alignment>(info.alignment)));
+  info.stride = info.aligned_size;
+  info.total_size =
+      array_count > 1
+          ? static_cast<ShaderVariableSize>(info.stride * array_count)
+          : info.aligned_size;
+
+  return info;
+}
+
+GlNativeProgramHandle ResolveProgramHandle(const Shader* shader,
+                                           ShaderBindType bind_type) {
+  COMET_ASSERT(shader != nullptr, "Shader provided is null!");
+
+  switch (bind_type) {
+    case ShaderBindType::Graphics:
+      return shader->graphics_program_native_handle;
+
+    case ShaderBindType::Compute:
+      return shader->compute_program_native_handle;
+
+    default:
+      return kInvalidGlNativeProgramHandle;
+  }
+}
+
+GLenum GetGlCullMode(CullMode cull_mode) {
+  switch (cull_mode) {
+    case CullMode::None:
+      return GL_NONE;
+    case CullMode::Front:
+      return GL_FRONT;
+    case CullMode::Back:
+      return GL_BACK;
+    case CullMode::FrontAndBack:
+      return GL_FRONT_AND_BACK;
+    default:
+      COMET_ASSERT(false, "Unsupported cull mode!");
+      return 0;
+  }
+}
+
+GLenum GetGlPrimitiveTopology(PrimitiveTopology topology) {
+  switch (topology) {
+    case PrimitiveTopology::Points:
+      return GL_POINTS;
+    case PrimitiveTopology::Lines:
+      return GL_LINES;
+    case PrimitiveTopology::LineStrip:
+      return GL_LINE_STRIP;
+    case PrimitiveTopology::Triangles:
+      return GL_TRIANGLES;
+    case PrimitiveTopology::TriangleStrip:
+      return GL_TRIANGLE_STRIP;
+    default:
+      COMET_ASSERT(false, "Unsupported primitive topology!");
+      return 0;
+  }
+}
+
+GLenum GetGlCompareOp(CompareOp compare_op) {
+  switch (compare_op) {
+    case CompareOp::Never:
+      return GL_NEVER;
+    case CompareOp::Less:
+      return GL_LESS;
+    case CompareOp::Equal:
+      return GL_EQUAL;
+    case CompareOp::LessOrEqual:
+      return GL_LEQUAL;
+    case CompareOp::Greater:
+      return GL_GREATER;
+    case CompareOp::NotEqual:
+      return GL_NOTEQUAL;
+    case CompareOp::GreaterOrEqual:
+      return GL_GEQUAL;
+    case CompareOp::Always:
+      return GL_ALWAYS;
+    default:
+      COMET_ASSERT(false, "Unsupported compare op!");
+      return 0;
+  }
+}
+
+GLenum GetGlStage(ShaderStage stage) {
+  switch (stage) {
+    case ShaderStage::Compute:
+      return GL_COMPUTE_SHADER;
+
+    case ShaderStage::Vertex:
+      return GL_VERTEX_SHADER;
+
+    case ShaderStage::Fragment:
+      return GL_FRAGMENT_SHADER;
+
+    default:
+      COMET_ASSERT(false, "Unknown shader stage: ",
+                   static_cast<std::underlying_type_t<ShaderStage>>(stage),
+                   "!");
+      return GL_INVALID_VALUE;
+  }
 }
 }  // namespace gl
 }  // namespace rendering

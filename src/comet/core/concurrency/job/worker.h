@@ -26,7 +26,7 @@ constexpr auto kInvalidWorkerTag{static_cast<WorkerTag>(-1)};
 
 class Worker {
  public:
-  ~Worker() = default;
+  virtual ~Worker() = default;
 
   virtual void Attach();
   virtual void Detach();
@@ -65,7 +65,7 @@ class FiberWorker : public Worker {
   FiberWorker(FiberWorker&& other) noexcept;
   FiberWorker& operator=(const FiberWorker&) = delete;
   FiberWorker& operator=(FiberWorker&& other) noexcept;
-  ~FiberWorker() = default;
+  ~FiberWorker() override = default;
 
   void Attach() override;
   void Detach() override;
@@ -91,7 +91,7 @@ class IOWorker : public Worker {
   IOWorker(IOWorker&& other) noexcept;
   IOWorker& operator=(const IOWorker&) = delete;
   IOWorker& operator=(IOWorker&& other) noexcept;
-  ~IOWorker() = default;
+  ~IOWorker() override = default;
 
   void Attach() override;
   void Detach() override;

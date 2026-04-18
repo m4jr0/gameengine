@@ -14,12 +14,13 @@
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
+#include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_module_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_view_handler.h"
 #include "comet/rendering/driver/opengl/opengl_frame_state.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {
@@ -39,9 +40,8 @@ class OpenGlDriver : public Driver {
   OpenGlDriver& operator=(OpenGlDriver&&) = delete;
   ~OpenGlDriver() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(frame::FramePacket* packet) override;
+
   DriverType GetType() const noexcept override;
 
   void SetSize(WindowSize width, WindowSize height);
@@ -49,6 +49,10 @@ class OpenGlDriver : public Driver {
 
   Window* GetWindow() override;
   u32 GetDrawCount() const override;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   void InitializeHandlers();
@@ -79,6 +83,7 @@ class OpenGlDriver : public Driver {
   memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
   memory::UniquePtr<MaterialHandler> material_handler_{nullptr};
   memory::UniquePtr<MeshHandler> mesh_handler_{nullptr};
+  memory::UniquePtr<SamplerHandler> sampler_handler_{nullptr};
   memory::UniquePtr<ShaderHandler> shader_handler_{nullptr};
   memory::UniquePtr<LightingHandler> lighting_handler_{nullptr};
   memory::UniquePtr<RenderProxyHandler> render_proxy_handler_{nullptr};

@@ -5,6 +5,11 @@
 #ifndef COMET_COMET_CORE_MEMORY_MEMORY_UTILS_H_
 #define COMET_COMET_CORE_MEMORY_MEMORY_UTILS_H_
 
+// External. ///////////////////////////////////////////////////////////////////
+#include <type_traits>
+#include <utility>
+////////////////////////////////////////////////////////////////////////////////
+
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
 
@@ -22,7 +27,9 @@ void DetachGetCustomMemoryTagLabelFunc();
 #endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
 
 const schar* GetMemoryTagLabel(MemoryTag tag);
+
 void* CopyMemory(void* dst, const void* src, usize size);
+
 void Memset(void* ptr, u8 value, usize size);
 void AVXMemset(void* ptr, u8 value, usize size);
 void FastMemset(void* ptr, u8 value, usize size);
@@ -57,23 +64,25 @@ inline T* AlignPointer(T* ptr, Alignment align) {
   return reinterpret_cast<T*>(AlignAddress(reinterpret_cast<uptr>(ptr), align));
 }
 
+class Allocator;
+
 template <typename T, typename... Targs>
 T* Populate(void* memory, Targs&&... args) {
   COMET_ASSERT(memory != nullptr, "Memory provided is null!");
-  return new (memory) T{std::forward<Targs>(args)...};
+  return new (memory) T(std::forward<Targs>(args)...);
 }
 
-template <typename T, typename Allocator, typename... Targs>
-T* Populate(void* memory, Allocator* allocator, Targs&&... args) {
+template <typename T, typename... Targs>
+T* Populate(void* memory, memory::Allocator* allocator, Targs&&... args) {
   COMET_ASSERT(memory != nullptr, "Memory provided is null!");
 
-  if constexpr (std::is_constructible_v<T, Allocator*, Targs...>) {
-    return new (memory) T(allocator, std::forward<Targs>(args)...);
-  } else if constexpr (sizeof...(Targs) == 0 &&
-                       std::is_constructible_v<T, Allocator*> &&
-                       !std::is_aggregate_v<T>) {
+  if constexpr (!std::is_aggregate_v<T> && sizeof...(Targs) == 0 &&
+                std::is_constructible_v<T, memory::Allocator*>) {
     return new (memory) T(allocator);
-
+  } else if constexpr (!std::is_aggregate_v<T> &&
+                       std::is_constructible_v<T, memory::Allocator*,
+                                               Targs...>) {
+    return new (memory) T(allocator, std::forward<Targs>(args)...);
   } else {
     return new (memory) T(std::forward<Targs>(args)...);
   }
@@ -86,7 +95,7 @@ void* ResolveNonAligned(void* ptr);
 
 template <typename T>
 inline bool IsAligned(T* ptr, usize align) noexcept {
-  auto tmp{reinterpret_cast<uptr>(ptr)};
+  const auto tmp{reinterpret_cast<uptr>(ptr)};
   return tmp % align == 0;
 }
 
@@ -100,8 +109,10 @@ void Poison(void* ptr, usize size);
 MemoryDescr GetMemoryDescr();
 
 constexpr auto kHexAddressLength{18};  // "0x" + 16 hex digits.
+
 void ConvertAddressToHex(uptr address, schar* buffer, usize buffer_len);
 void ConvertAddressToHex(void* address, schar* buffer, usize buffer_len);
+
 void* Allocate(usize size, MemoryTag tag = kEngineMemoryTagUntagged);
 void* AllocateAligned(usize size, Alignment align, MemoryTag tag);
 
@@ -116,7 +127,7 @@ T* AllocateOne(MemoryTag tag) {
 }
 
 template <typename T, typename... Targs>
-T* AllocateOneAndPopulate(MemoryTag tag, Targs... args) {
+T* AllocateOneAndPopulate(MemoryTag tag, Targs&&... args) {
   auto* ptr{AllocateOne<T>(tag)};
   return Populate<T>(ptr, std::forward<Targs>(args)...);
 }

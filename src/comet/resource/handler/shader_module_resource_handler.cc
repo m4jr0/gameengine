@@ -17,7 +17,7 @@ namespace comet {
 namespace resource {
 ShaderModuleResourceHandler::ShaderModuleResourceHandler(
     const ResourceHandlerDescr& descr)
-    : ResourceHandler<ShaderModuleResource>{descr} {}
+    : Base{descr} {}
 
 ResourceFile ShaderModuleResourceHandler::Pack(
     const ShaderModuleResource& resource, CompressionMode compression_mode) {
@@ -28,11 +28,11 @@ ResourceFile ShaderModuleResourceHandler::Pack(
   file.descr = Array<u8>{byte_allocator_};
   file.data = Array<u8>{byte_allocator_};
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  auto data_size{resource.data.GetSize()};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
+  const auto data_size{resource.data.GetSize()};
   Array<u8> data{byte_allocator_};
-  data.Resize(kResourceIdSize + kResourceTypeIdSize + data_size);
+  data.Resize(GetShaderModuleResourceSize(resource));
   usize cursor{0};
   auto* buffer{data.GetData()};
 
@@ -53,6 +53,7 @@ ResourceFile ShaderModuleResourceHandler::Pack(
 void ShaderModuleResourceHandler::Unpack(const ResourceFile& file,
                                          ResourceLifeSpan life_span,
                                          ShaderModuleResource* resource) {
+  COMET_ASSERT(resource != nullptr, "Shader module resource is null!");
   UnpackPodResourceDescr<ShaderModuleResourceDescr>(file, resource->descr);
 
   Array<u8> data{byte_allocator_};
@@ -60,9 +61,9 @@ void ShaderModuleResourceHandler::Unpack(const ResourceFile& file,
   const auto* buffer{data.GetData()};
   usize cursor{0};
 
-  constexpr auto kResourceIdSize{sizeof(resource::ResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(resource::ResourceTypeId)};
-  auto data_size{data.GetSize() - kResourceIdSize - kResourceTypeIdSize};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
+  const auto data_size{data.GetSize() - kResourceIdSize - kResourceTypeIdSize};
 
   memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
   cursor += kResourceIdSize;

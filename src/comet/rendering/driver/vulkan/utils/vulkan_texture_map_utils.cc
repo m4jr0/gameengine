@@ -11,20 +11,19 @@
 #include "vulkan_texture_map_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/vulkan/utils/vulkan_common_utils.h"
-
 namespace comet {
 namespace rendering {
 namespace vk {
-VkImageLayout GetDescriptorImageLayout(const TextureMap* texture_map) {
-  COMET_ASSERT(texture_map != nullptr, "Texture map is null!");
-  COMET_ASSERT(texture_map->texture != nullptr, "Texture is null!");
-
-  if (IsDepthFormat(texture_map->texture->format)) {
-    return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-  }
-
-  return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+TextureMap BuildTextureMap(SamplerHandle sampler_handle,
+                           TextureHandle texture_handle,
+                           resource::TextureResourceId texture_resource_id,
+                           TextureType type) {
+  TextureMap map{};
+  map.sampler_handle = sampler_handle;
+  map.texture_handle = texture_handle;
+  map.texture_resource_id = texture_resource_id;
+  map.type = type;
+  return map;
 }
 }  // namespace vk
 }  // namespace rendering

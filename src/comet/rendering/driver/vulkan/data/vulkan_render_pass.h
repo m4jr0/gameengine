@@ -11,7 +11,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/gid.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
@@ -47,10 +47,6 @@ enum RenderPassClearFlagBits : RenderPassClearFlags {
   kRenderPassClearFlagBitsStencilBuffer = 0x4
 };
 
-using RenderPassHandle = gid::Gid;
-constexpr auto kInvalidRenderPassHandle{
-    static_cast<RenderPassHandle>(gid::kInvalidId)};
-
 using RenderPassCacheKey = u64;
 constexpr auto kInvalidRenderPassCacheKey{static_cast<RenderPassCacheKey>(0)};
 
@@ -62,18 +58,10 @@ enum RenderPassOptionFlagBits {
 
 using RenderPassOptionFlags = u8;
 
-inline bool IsMultisampled(RenderPassOptionFlags flags) {
-  return (flags & kRenderPassOptionFlagBitsMultisampled) != 0;
-}
-
-inline bool IsSwapchainTarget(RenderPassOptionFlags flags) {
-  return (flags & kRenderPassOptionFlagBitsSwapchainTarget) != 0;
-}
-
 struct RenderPassDescr {
   RenderPassClearFlags clear_flags{kRenderPassClearFlagBitsNone};
   RenderPassOptionFlags options{kRenderPassOptionFlagBitsNone};
-  RenderPassHandle handle{kInvalidRenderPassHandle};
+  RenderPassHandle handle{};
   VkExtent2D extent{};
   VkOffset2D offset{};
   Array<VkSubpassDependency> dependencies{};
@@ -86,7 +74,7 @@ struct RenderPass {
   VkSampleCountFlagBits samples{VK_SAMPLE_COUNT_1_BIT};
   VkExtent2D extent{};
   VkOffset2D offset{};
-  RenderPassHandle handle{kInvalidRenderPassHandle};
+  RenderPassHandle handle{};
   VkRenderPass vk_handle{VK_NULL_HANDLE};
   u32 ref_count{0};
   RenderPassCacheKey cache_key{kInvalidRenderPassCacheKey};

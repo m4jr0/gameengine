@@ -22,7 +22,7 @@
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace resource {
@@ -44,7 +44,7 @@ void PackBytes(const u8* bytes, usize bytes_size,
     default: {
       throw std::runtime_error(
           "Unknown compression mode: " +
-          static_cast<std::underlying_type_t<resource::CompressionMode>>(
+          static_cast<std::underlying_type_t<CompressionMode>>(
               compression_mode));
     }
   }
@@ -77,7 +77,7 @@ void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
     default: {
       throw std::runtime_error(
           "Unknown compression mode: " +
-          static_cast<std::underlying_type_t<resource::CompressionMode>>(
+          static_cast<std::underlying_type_t<CompressionMode>>(
               compression_mode));
     }
   }
@@ -92,9 +92,9 @@ void UnpackBytes(CompressionMode compression_mode,
 
 void UnpackResourceData(const ResourceFile& file, Array<u8>& data,
                         usize max_data_size) {
-  auto data_size{max_data_size != kInvalidSize
-                     ? math::Min(max_data_size, file.data_size)
-                     : file.data_size};
+  const auto data_size{max_data_size != kInvalidSize
+                           ? math::Min(max_data_size, file.data_size)
+                           : file.data_size};
 
   UnpackBytes(file.compression_mode, file.data, data_size, data);
 }
@@ -164,7 +164,7 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
 
         in_file.seekg(0);
         in_file.read(reinterpret_cast<schar*>(&file->resource_type_id),
-                     sizeof(ResourceId));
+                     sizeof(ResourceTypeId));
 
         in_file.read(reinterpret_cast<schar*>(&file->compression_mode),
                      sizeof(file->compression_mode));
@@ -190,9 +190,9 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
 
 #ifdef COMET_FIBER_DEBUG_LABEL
         schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1];
-        auto prefix_len{GetLength("rfile_alloc_")};
+        const auto prefix_len{GetLength("rfile_alloc_")};
         Copy(debug_label, "rfile_alloc_", prefix_len);
-        auto name{GetName(path)};
+        const auto name{GetName(path)};
 
         Copy(debug_label + prefix_len, name.GetCTStr(),
              math::Min(fiber::Fiber::kDebugLabelMaxLen_ - prefix_len,

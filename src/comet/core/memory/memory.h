@@ -27,7 +27,7 @@ static_assert((kStackAlignment & (kStackAlignment - 1)) == 0,
               "kStackAlignment must be a power of 2!");
 
 struct MemoryDescr {
-  usize total_memory_size;
+  usize total_memory_size{0};
   usize page_size{0};
   usize large_page_size{0};
 };
@@ -55,6 +55,17 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagResourceGlobalExtended,
   kEngineMemoryTagResourceScene,
   kEngineMemoryTagResourceSceneExtended,
+  kEngineMemoryTagResourceAnimationHandler,
+  kEngineMemoryTagResourceMaterialHandler,
+  kEngineMemoryTagResourceStaticModelHandler,
+  kEngineMemoryTagResourceSkeletalModelHandler,
+  kEngineMemoryTagResourceSkeletonHandler,
+  kEngineMemoryTagResourceAnimationClipHandler,
+  kEngineMemoryTagResourceShaderModuleHandler,
+  kEngineMemoryTagResourceShaderHandler,
+  kEngineMemoryTagResourceTextureHandler,
+  kEngineMemoryTagResourceAnimation,
+  kEngineMemoryTagResourceTexture,
   kEngineMemoryTagTString,
   kEngineMemoryTagEntity,
   kEngineMemoryTagFiber,

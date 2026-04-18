@@ -12,16 +12,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-////////////////////////////////////////////////////////////////////////////////
-
-#include "comet/core/compiler.h"
-#include "comet/core/define.h"
-#include "comet/core/os.h"
 
 #ifdef COMET_ARCH_X86
 #include <emmintrin.h>
 #include <xmmintrin.h>
 #endif  // COMET_ARCH_X86
+////////////////////////////////////////////////////////////////////////////////
+
+#include "comet/core/compiler.h"
+#include "comet/core/define.h"
+#include "comet/core/os.h"
 
 namespace comet {
 constexpr auto kCharBit{CHAR_BIT};

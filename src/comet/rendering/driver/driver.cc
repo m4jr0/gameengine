@@ -40,23 +40,29 @@ Driver::Driver(const DriverDescr& descr)
                      sizeof(descr.clear_color));
 }
 
-Driver ::~Driver() {
+Driver::~Driver() {
   COMET_ASSERT(!is_initialized_,
                "Destructor called for driver, but it is still initialized!");
 }
 
-void Driver ::Initialize() {
+void Driver::Initialize() {
   COMET_ASSERT(!is_initialized_,
                "Tried to initialize driver, but it is already done!");
+  OnInitialize();
   is_initialized_ = true;
 }
 
-void Driver ::Shutdown() {
+void Driver::Shutdown() {
   COMET_ASSERT(is_initialized_,
                "Tried to shutdown driver, but it is not initialized!");
+  OnShutdown();
   is_initialized_ = false;
 }
 
 bool Driver::IsInitialized() const noexcept { return is_initialized_; }
+
+void Driver::OnInitialize() {}
+
+void Driver::OnShutdown() {}
 }  // namespace rendering
 }  // namespace comet

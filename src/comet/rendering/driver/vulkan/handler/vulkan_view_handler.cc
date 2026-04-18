@@ -36,6 +36,7 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
       shadow_settings_{descr.shadow_settings},
       shader_handler_{descr.shader_handler},
       material_handler_{descr.material_handler},
+      texture_handler_{descr.texture_handler},
       pipeline_handler_{descr.pipeline_handler},
       render_pass_handler_{descr.render_pass_handler},
       render_proxy_handler_{descr.render_proxy_handler},
@@ -47,6 +48,8 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
                "Shader handler cannot be null for view handler!");
   COMET_ASSERT(material_handler_ != nullptr,
                "Material handler cannot be null for view handler!");
+  COMET_ASSERT(texture_handler_ != nullptr,
+               "Texture handler cannot be null for view handler!");
   COMET_ASSERT(pipeline_handler_ != nullptr,
                "Pipeline handler cannot be null for view handler!");
   COMET_ASSERT(render_pass_handler_ != nullptr,
@@ -62,57 +65,12 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
                "Render view descriptions cannot be null for view handler!");
 }
 
-void ViewHandler::Initialize() {
-  Handler::Initialize();
-  views_ = Array<memory::UniquePtr<View>>{&allocator_};
-
-  for (const auto& view_descr : *rendering_view_descrs_) {
-    Generate(view_descr);
-  }
-}
-
-void ViewHandler::Shutdown() {
-  for (auto& view : views_) {
-    Destroy(view.get(), true);
-  }
-
-  views_.Destroy();
-  Handler::Shutdown();
-}
-
-void ViewHandler::Destroy(usize index) { Destroy(Get(index)); }
-
-void ViewHandler::Destroy(View* view) { Destroy(view, false); }
-
 void ViewHandler::Update(frame::FramePacket* packet) {
   COMET_PROFILE("ViewHandler::Update");
 
   for (const auto& view : views_) {
     view->Update(packet);
   }
-}
-
-void ViewHandler::SetSize(WindowSize width, WindowSize height) {
-  for (auto& view : views_) {
-    if (!view->IsSwapchainTarget()) {
-      continue;
-    }
-
-    view->SetSize(width, height);
-  }
-}
-
-const View* ViewHandler::Get(usize index) const {
-  auto* view{TryGet(index)};
-  COMET_ASSERT(view != nullptr,
-               "Requested view with index does not exist: ", index, "!");
-  return view;
-}
-
-const View* ViewHandler::TryGet(usize index) const {
-  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
-               ", but view count is ", views_.GetSize(), "!");
-  return views_[index].get();
 }
 
 const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
@@ -140,6 +98,7 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.context = context_;
       view_descr.shadow_settings = shadow_settings_;
       view_descr.shader_handler = shader_handler_;
+      view_descr.texture_handler = texture_handler_;
       view_descr.material_handler = material_handler_;
       view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
@@ -166,7 +125,6 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
-      view_descr.material_handler = material_handler_;
       view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
@@ -197,7 +155,6 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
-      view_descr.material_handler = material_handler_;
       view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
@@ -246,6 +203,49 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
   return views_.GetLast().get();
 }
 
+void ViewHandler::Destroy(usize index) { Destroy(Get(index)); }
+
+void ViewHandler::Destroy(View* view) { Destroy(view, false); }
+
+void ViewHandler::SetSize(WindowSize width, WindowSize height) {
+  for (auto& view : views_) {
+    if (!view->IsSwapchainTarget()) {
+      continue;
+    }
+
+    view->SetSize(width, height);
+  }
+}
+
+const View* ViewHandler::Get(usize index) const {
+  auto* view{TryGet(index)};
+  COMET_ASSERT(view != nullptr,
+               "Requested view with index does not exist: ", index, "!");
+  return view;
+}
+
+const View* ViewHandler::TryGet(usize index) const {
+  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
+               ", but view count is ", views_.GetSize(), "!");
+  return views_[index].get();
+}
+
+void ViewHandler::OnInitialize() {
+  views_ = Array<memory::UniquePtr<View>>{&allocator_};
+
+  for (const auto& view_descr : *rendering_view_descrs_) {
+    Generate(view_descr);
+  }
+}
+
+void ViewHandler::OnShutdown() {
+  for (auto& view : views_) {
+    Destroy(view.get(), true);
+  }
+
+  views_.Destroy();
+}
+
 View* ViewHandler::Get(usize index) {
   auto* view{TryGet(index)};
   COMET_ASSERT(view != nullptr,
@@ -265,7 +265,7 @@ void ViewHandler::Destroy(View* view, bool is_destroying_handler) {
     return;
   }
 
-  auto view_id{view->GetId()};
+  const auto view_id{view->GetId()};
   auto view_index{kInvalidIndex};
 
   for (u32 i{0}; i < views_.GetSize(); ++i) {

@@ -25,7 +25,7 @@ class VulkanGlfwWindow : public GlfwWindow {
   VulkanGlfwWindow(VulkanGlfwWindow&&) noexcept;
   VulkanGlfwWindow& operator=(const VulkanGlfwWindow&);
   VulkanGlfwWindow& operator=(VulkanGlfwWindow&&) noexcept;
-  virtual ~VulkanGlfwWindow() = default;
+  ~VulkanGlfwWindow() override = default;
 
   void AttachSurface(VkInstance instance_handle);
   void DetachSurface(VkInstance instance_handle);

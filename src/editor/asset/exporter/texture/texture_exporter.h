@@ -10,18 +10,9 @@
 #include "comet/core/type/tstring.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
-using namespace std::literals;
-
 namespace comet {
 namespace editor {
 namespace asset {
-static constexpr auto kCometEditorTextureMetadataKeyFormat{"format"sv};
-static constexpr auto kCometEditorTextureMetadataKeyWidth{"width"sv};
-static constexpr auto kCometEditorTextureMetadataKeyHeight{"height"sv};
-static constexpr auto kCometEditorTextureMetadataKeySize{"size"sv};
-
-static constexpr auto kCometEditorTextureFormatRgba8{"rgba8"sv};
-
 class TextureExporter : public AssetExporter {
  public:
   TextureExporter() = default;
@@ -29,7 +20,7 @@ class TextureExporter : public AssetExporter {
   TextureExporter(TextureExporter&&) = delete;
   TextureExporter& operator=(const TextureExporter&) = delete;
   TextureExporter& operator=(TextureExporter&&) = delete;
-  virtual ~TextureExporter() = default;
+  ~TextureExporter() override = default;
 
   bool IsCompatible(CTStringView extension) const override;
 

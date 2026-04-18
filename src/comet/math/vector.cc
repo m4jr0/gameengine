@@ -10,7 +10,7 @@
 #include "vector.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace math {
@@ -31,7 +31,7 @@ f32 GetSquaredMagnitude(const Vec3& vec) { return Dot(vec, vec); }
 f32 GetSquaredMagnitude(const Vec4& vec) { return Dot(vec, vec); }
 
 Vec2& Normalize(Vec2& vector) {
-  auto mag_sq{Dot(vector, vector)};
+  const auto mag_sq{Dot(vector, vector)};
 
   if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
     vector = Vec2{.0f};
@@ -43,7 +43,7 @@ Vec2& Normalize(Vec2& vector) {
 }
 
 Vec3& Normalize(Vec3& vector) {
-  auto mag_sq{Dot(vector, vector)};
+  const auto mag_sq{Dot(vector, vector)};
 
   if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
     vector = Vec3{.0f};
@@ -55,7 +55,7 @@ Vec3& Normalize(Vec3& vector) {
 }
 
 Vec4& Normalize(Vec4& vector) {
-  auto mag_sq{Dot(vector, vector)};
+  const auto mag_sq{Dot(vector, vector)};
 
   if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
     vector = Vec4{.0f};
@@ -85,7 +85,7 @@ Vec4 GetNormalizedCopy(const Vec4& vector) {
 }
 
 Vec2& NormalizeFast(Vec2& vector) {
-  auto mag_sq{Dot(vector, vector)};
+  const auto mag_sq{Dot(vector, vector)};
 
   if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
     vector = Vec2{.0f};
@@ -97,7 +97,7 @@ Vec2& NormalizeFast(Vec2& vector) {
 }
 
 Vec3& NormalizeFast(Vec3& vector) {
-  auto mag_sq{Dot(vector, vector)};
+  const auto mag_sq{Dot(vector, vector)};
 
   if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
     vector = Vec3{.0f};
@@ -109,7 +109,7 @@ Vec3& NormalizeFast(Vec3& vector) {
 }
 
 Vec4& NormalizeFast(Vec4& vector) {
-  auto mag_sq{Dot(vector, vector)};
+  const auto mag_sq{Dot(vector, vector)};
 
   if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
     vector = Vec4{.0f};

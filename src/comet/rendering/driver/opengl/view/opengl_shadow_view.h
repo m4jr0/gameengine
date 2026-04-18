@@ -9,20 +9,24 @@
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/data/opengl_shadow.h"
 #include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
+#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
-#include "comet/rendering/driver/opengl/view/opengl_shader_view.h"
+#include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/rendering/driver/opengl/view/opengl_view.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-struct ShadowViewDescr : ShaderViewDescr {
+struct ShadowViewDescr : ViewDescr {
+  ShaderHandler* shader_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   LightingHandler* lighting_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
 };
 
-class ShadowView : public ShaderView {
+class ShadowView : public View {
  public:
   ShadowView() = delete;
   explicit ShadowView(const ShadowViewDescr& descr);
@@ -32,9 +36,11 @@ class ShadowView : public ShaderView {
   ShadowView& operator=(ShadowView&&) = delete;
   ~ShadowView() override = default;
 
-  void Initialize() override;
-  void Destroy() override;
   void Update(frame::FramePacket*) override;
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   void UpdateShadowShaderPassData();
@@ -42,11 +48,12 @@ class ShadowView : public ShaderView {
   void DrawShadowCasters();
   void SetViewport(u32 resolution) const;
 
+  ShaderHandler* shader_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   LightingHandler* lighting_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
 
-  Shader* shadow_shader_{nullptr};
+  ShaderHandle shadow_shader_{};
 };
 }  // namespace gl
 }  // namespace rendering

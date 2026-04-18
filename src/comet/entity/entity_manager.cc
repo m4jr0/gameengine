@@ -18,7 +18,7 @@
 #include "comet/entity/entity_memory_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
 #include "comet/event/event_manager.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 #include "comet/profiler/profiler.h"
 
 namespace comet {
@@ -69,61 +69,6 @@ EntityManager& EntityManager::Get() {
   return singleton;
 }
 
-void EntityManager::Initialize() {
-  Manager::Initialize();
-  auto& memory_manager{EntityMemoryManager::Get()};
-  memory_manager.Initialize();
-
-  records_ = Records{&memory_manager.GetRecordAllocator()};
-
-  registered_component_types_ = RegisteredComponentTypeMap{
-      &memory_manager.GetRegisteredComponentTypeMapAllocator()};
-
-  // TODO(m4jr0): Use configuration?
-  // Tags: configuration entity memory
-  archetypes_ =
-      Array<ArchetypePtr>{&memory_manager.GetArchetypePointerAllocator()};
-
-  root_archetype_ = GetArchetype(EntityType{});
-  deferred_entities_ = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
-      DeferredEntities, kDeferredEntityInitialCount_);
-  EntityFactoryManager::Get().Initialize();
-
-  auto on_event{COMET_EVENT_BIND_FUNCTION(OnEvent)};
-
-  event::EventManager::Get().Register(on_event,
-                                      frame::NewFrameEvent::kStaticType_);
-  event::EventManager::Get().Register(on_event,
-                                      frame::EndFrameEvent::kStaticType_);
-}
-
-void EntityManager::Shutdown() {
-  EntityFactoryManager::Get().Shutdown();
-  auto& memory_manager{EntityMemoryManager::Get()};
-
-  for (auto& archetype : archetypes_) {
-    for (auto& cmp_array : archetype->components) {
-      if (cmp_array.size == 0) {
-        continue;
-      }
-
-      memory_manager.GetComponentArrayElementsAllocator(cmp_array.size)
-          .Deallocate(cmp_array.elements);
-      cmp_array.elements = nullptr;
-    }
-  }
-
-  archetypes_.Destroy();
-  component_id_handler_.Shutdown();
-  root_archetype_ = nullptr;
-  entity_id_handler_.Shutdown();
-  records_.Destroy();
-  registered_component_types_.Destroy();
-  deferred_entities_ = nullptr;
-  memory_manager.Shutdown();
-  Manager::Shutdown();
-}
-
 void EntityManager::DispatchComponentChanges() {
   COMET_PROFILE("EntityManager::DispatchComponentChanges");
   ProcessDeferredOperations();
@@ -145,7 +90,7 @@ void EntityManager::WaitForEntityUpdates() {
 }
 
 EntityId EntityManager::Generate() {
-  auto new_entity_id{entity_id_handler_.Generate()};
+  const auto new_entity_id{entity_id_handler_.Generate()};
   fiber::FiberLockGuard lock{deferred_mutex_};
   COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
   deferred_entities_->Emplace(new_entity_id,
@@ -244,8 +189,8 @@ void EntityManager::AddParent(EntityId entity_id, EntityId parent_id) {
 bool EntityManager::HasParent(EntityId entity_id, EntityId parent_id) {
   COMET_ASSERT(IsEntity(entity_id), "Trying to check if a dead entity #",
                entity_id, " has a parent entity #", parent_id, "!");
-  COMET_ASSERT(IsEntity(entity_id), "Trying to check if an  entity #",
-               entity_id, " has a dead parent entity #", parent_id, "!");
+  COMET_ASSERT(IsEntity(parent_id), "Trying to check if entity #", entity_id,
+               " has a dead parent entity #", parent_id, "!");
 
   const auto& record{records_[entity_id]};
   const auto& entity_type{record.archetype->entity_type};
@@ -258,6 +203,59 @@ bool EntityManager::HasParent(EntityId entity_id, EntityId parent_id) {
   }
 
   return false;
+}
+
+void EntityManager::OnInitialize() {
+  auto& memory_manager{EntityMemoryManager::Get()};
+  memory_manager.Initialize();
+
+  records_ = Records{&memory_manager.GetRecordAllocator()};
+
+  registered_component_types_ = RegisteredComponentTypeMap{
+      &memory_manager.GetRegisteredComponentTypeMapAllocator()};
+
+  // TODO(m4jr0): Use configuration?
+  // Tags: configuration entity memory
+  archetypes_ =
+      Array<ArchetypePtr>{&memory_manager.GetArchetypePointerAllocator()};
+
+  root_archetype_ = GetArchetype(EntityType{});
+  deferred_entities_ = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
+      DeferredEntities, kDeferredEntityInitialCount_);
+  EntityFactoryManager::Get().Initialize();
+
+  const auto on_event{[this](const event::Event& event) { OnEvent(event); }};
+
+  event::EventManager::Get().Register(on_event,
+                                      frame::NewFrameEvent::kStaticType_);
+  event::EventManager::Get().Register(on_event,
+                                      frame::EndFrameEvent::kStaticType_);
+}
+
+void EntityManager::OnShutdown() {
+  EntityFactoryManager::Get().Shutdown();
+  auto& memory_manager{EntityMemoryManager::Get()};
+
+  for (auto& archetype : archetypes_) {
+    for (auto& cmp_array : archetype->components) {
+      if (cmp_array.size == 0) {
+        continue;
+      }
+
+      memory_manager.GetComponentArrayElementsAllocator(cmp_array.size)
+          .Deallocate(cmp_array.elements);
+      cmp_array.elements = nullptr;
+    }
+  }
+
+  archetypes_.Destroy();
+  component_id_handler_.Shutdown();
+  root_archetype_ = nullptr;
+  entity_id_handler_.Shutdown();
+  records_.Destroy();
+  registered_component_types_.Destroy();
+  deferred_entities_ = nullptr;
+  memory_manager.Shutdown();
 }
 
 void EntityManager::RegisterComponentType(
@@ -313,14 +311,14 @@ void EntityManager::ReserveArchetypeCapacity(Archetype* archetype,
     capacity = kMinCapacity;
   }
 
-  auto current_capacity{archetype->capacity};
+  const auto current_capacity{archetype->capacity};
 
   if (capacity > current_capacity) {
     if (capacity >= current_capacity * (1 - kGrowthThreshold)) {
       capacity = math::Max(current_capacity * 2, capacity);
     }
   } else if (capacity < current_capacity) {
-    auto usage{static_cast<f32>(capacity) / current_capacity};
+    const auto usage{static_cast<f32>(capacity) / current_capacity};
 
     if (usage < kShrinkThreshold && current_capacity > kMinCapacity) {
       capacity = math::Max(current_capacity / 2, kMinCapacity);
@@ -331,8 +329,8 @@ void EntityManager::ReserveArchetypeCapacity(Archetype* archetype,
     return;
   }
 
-  auto delta{static_cast<ssize>(capacity) -
-             static_cast<ssize>(current_capacity)};
+  const auto delta{static_cast<ssize>(capacity) -
+                   static_cast<ssize>(current_capacity)};
 
   archetype->entity_ids.Resize(math::Max(usize{0}, capacity));
   archetype->capacity = capacity;
@@ -350,15 +348,15 @@ void EntityManager::ReserveArchetypeCapacity(Archetype* archetype,
     const auto cmp_type_id{archetype->entity_type[i]};
     const auto& old_cmp_array{archetype->components[i]};
     auto* old_cmp_elements{old_cmp_array.elements};
-    auto old_cmp_size{old_cmp_array.size};
+    const auto old_cmp_size{old_cmp_array.size};
     const auto& cmp_type_descr{
         registered_component_types_[cmp_type_id].type_descr};
     const auto cmp_size{cmp_type_descr.size};
     const auto cmp_align{cmp_type_descr.align};
 
     usize new_size{0};
-    auto tmp{static_cast<s32>(old_cmp_size) +
-             static_cast<s32>(cmp_size) * delta};
+    const auto tmp{static_cast<s32>(old_cmp_size) +
+                   static_cast<s32>(cmp_size) * delta};
 
     if (tmp > 0) {
       new_size = tmp;
@@ -550,7 +548,7 @@ void EntityManager::AddDeferredEntitiesToNewArchetypes(
     new_archetype->size += entities.GetSize();
 
     for (const auto* entity : entities) {
-      auto new_entity_index{base_index++};
+      const auto new_entity_index{base_index++};
 
       auto* params{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
           JobParams, new_entity_index, entity, new_archetype)};
@@ -561,14 +559,14 @@ void EntityManager::AddDeferredEntitiesToNewArchetypes(
             auto* params{reinterpret_cast<const JobParams*>(params_handle)};
             auto* entity{params->entity};
             auto* new_archetype{params->new_archetype};
-            auto new_entity_index{params->new_entity_index};
+            const auto new_entity_index{params->new_entity_index};
             auto& entity_manager{EntityManager::Get()};
 
             auto& record{entity_manager.records_[entity->id]};
             auto* old_archetype{record.archetype};
             new_archetype->entity_ids[new_entity_index] = entity->id;
             record.archetype = new_archetype;
-            auto old_entity_index{record.row};
+            const auto old_entity_index{record.row};
             record.row = new_entity_index;
 
             entity_manager.TransferComponents(new_archetype, new_entity_index,
@@ -606,8 +604,8 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
 
     for (const auto* entity : entities) {
       auto& record{records_[entity->id]};
-      auto old_entity_index{record.row};
-      auto swap_index{old_archetype->size - 1 - offset++};
+      const auto old_entity_index{record.row};
+      const auto swap_index{old_archetype->size - 1 - offset++};
 
       if (old_entity_index == swap_index) {
         continue;
@@ -621,8 +619,8 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
           [](job::JobParamsHandle params_handle) {
             auto* params{reinterpret_cast<const JobParams*>(params_handle)};
             auto* old_archetype{params->old_archetype};
-            auto old_entity_index{params->old_entity_index};
-            auto swap_index{params->swap_index};
+            const auto old_entity_index{params->old_entity_index};
+            const auto swap_index{params->swap_index};
             auto& entity_manager{EntityManager::Get()};
 
             auto& last_entity_record{
@@ -630,9 +628,9 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
 
             for (usize i{0}; i < old_archetype->entity_type.GetSize(); ++i) {
               auto& cmp_array{old_archetype->components[i]};
-              auto component_type_id{old_archetype->entity_type[i]};
+              const auto component_type_id{old_archetype->entity_type[i]};
 
-              auto cmp_size{
+              const auto cmp_size{
                   entity_manager.registered_component_types_[component_type_id]
                       .type_descr.size};
 
@@ -660,7 +658,7 @@ void EntityManager::RemoveDeferredEntitiesFromOldArchetypes(
 
 void EntityManager::ProcessDeferredDestructions(
     const internal::DeferredChanges& changes) {
-  for (auto entity_id : changes.destroyed_ids) {
+  for (const auto entity_id : changes.destroyed_ids) {
     records_.Remove(entity_id);
     entity_id_handler_.Destroy(GetGid(entity_id));
   }
@@ -672,15 +670,15 @@ void EntityManager::TransferComponents(
     const frame::FrameArray<ComponentDescr>& added_cmps) {
   for (usize i{0}; i < new_archetype->entity_type.GetSize(); ++i) {
     auto& new_cmp_array{new_archetype->components[i]};
-    auto component_type_id{new_archetype->entity_type[i]};
-    auto cmp_size{
+    const auto component_type_id{new_archetype->entity_type[i]};
+    const auto cmp_size{
         registered_component_types_[component_type_id].type_descr.size};
 
     if (cmp_size > 0) {
       auto* new_cmp_elements{new_cmp_array.elements};
-      auto new_cmp_offset{cmp_size * new_entity_index};
+      const auto new_cmp_offset{cmp_size * new_entity_index};
 
-      auto old_cmp_index{
+      const auto old_cmp_index{
           old_archetype != nullptr
               ? old_archetype->entity_type.GetIndex(component_type_id)
               : kInvalidIndex};
@@ -701,7 +699,7 @@ void EntityManager::CopyExistingComponent(
     u8* new_cmp_elements, usize new_cmp_offset, usize cmp_size) {
   auto& old_cmp_array{old_archetype->components[old_cmp_index]};
   auto* old_cmp_elements{old_cmp_array.elements};
-  auto old_cmp_offset{cmp_size * old_entity_index};
+  const auto old_cmp_offset{cmp_size * old_entity_index};
 
   memory::CopyMemory(new_cmp_elements + new_cmp_offset,
                      old_cmp_elements + old_cmp_offset, cmp_size);

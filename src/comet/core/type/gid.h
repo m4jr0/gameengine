@@ -19,9 +19,9 @@ namespace gid {
 using Gid = u32;
 
 constexpr u32 kGenerationBits{8};
-constexpr u32 kIndexBit{sizeof(Gid) * 8 - kGenerationBits};
-constexpr Gid kGenerationMask{((Gid{1} << kGenerationBits) - 1) << kIndexBit};
-constexpr Gid kIndexMask{(Gid{1} << kIndexBit) - 1};
+constexpr u32 kIndexBits{sizeof(Gid) * 8 - kGenerationBits};
+constexpr Gid kGenerationMask{((Gid{1} << kGenerationBits) - 1) << kIndexBits};
+constexpr Gid kIndexMask{(Gid{1} << kIndexBits) - 1};
 constexpr Gid kIdMask{Gid{static_cast<u32>(-1)}};  // Set all the bits to 1.
 constexpr auto kInvalidId{kIdMask};
 constexpr u32 kMinFreeIndices{1024};
@@ -34,8 +34,13 @@ static_assert(sizeof(IdGeneration) * 8 >= kGenerationBits);
 static_assert(sizeof(Gid) - sizeof(IdGeneration) > 0);
 
 constexpr bool IsValid(Gid id) noexcept { return id != kIdMask; }
-constexpr Gid GetIndex(Gid id) noexcept { return id & kIdMask; }
-constexpr Gid GetGeneration(Gid id) noexcept { return id & kGenerationMask; }
+
+constexpr Gid GetIndex(Gid id) noexcept { return id & kIndexMask; }
+
+constexpr Gid GetGeneration(Gid id) noexcept {
+  return (id & kGenerationMask) >> kIndexBits;
+}
+
 Gid GenerateNewGeneration(Gid id) noexcept;
 
 namespace internal {
@@ -49,13 +54,14 @@ class IdGenerationAllocator : public memory::StatefulAllocator {
   IdGenerationAllocator(IdGenerationAllocator&& other) noexcept;
   IdGenerationAllocator& operator=(const IdGenerationAllocator&) = delete;
   IdGenerationAllocator& operator=(IdGenerationAllocator&& other) noexcept;
-  ~IdGenerationAllocator() = default;
-
-  void Initialize() override;
-  void Destroy() override;
+  ~IdGenerationAllocator() override = default;
 
   void* AllocateAligned(usize size, memory::Alignment align) override;
   void Deallocate(void* ptr) override;
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   memory::FiberFreeListAllocator allocator_{};
@@ -77,8 +83,9 @@ class BreedHandler {
   void Shutdown();
 
   Gid Generate();
-  bool IsAlive(Gid breed_id) const;
   void Destroy(Gid breed_id);
+
+  bool IsAlive(Gid breed_id) const;
 
  private:
   Array<gid::IdGeneration> generations_{};

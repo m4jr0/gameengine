@@ -12,15 +12,18 @@
 
 namespace comet {
 namespace resource {
-class StaticModelResourceHandler : public ResourceHandler<StaticModelResource> {
+class StaticModelResourceHandler
+    : public ResourceHandler<StaticModelResourceTag, StaticModelResource> {
  public:
-  StaticModelResourceHandler(const ResourceHandlerDescr& descr);
+  using Base = ResourceHandler;
+
+  explicit StaticModelResourceHandler(const ResourceHandlerDescr& descr);
   StaticModelResourceHandler(const StaticModelResourceHandler&) = delete;
   StaticModelResourceHandler(StaticModelResourceHandler&&) = delete;
   StaticModelResourceHandler& operator=(const StaticModelResourceHandler&) =
       delete;
   StaticModelResourceHandler& operator=(StaticModelResourceHandler&&) = delete;
-  virtual ~StaticModelResourceHandler() = default;
+  ~StaticModelResourceHandler() override = default;
 
   ResourceFile Pack(const StaticModelResource& resource,
                     CompressionMode compression_mode) override;
@@ -29,16 +32,18 @@ class StaticModelResourceHandler : public ResourceHandler<StaticModelResource> {
 };
 
 class SkeletalModelResourceHandler
-    : public ResourceHandler<SkeletalModelResource> {
+    : public ResourceHandler<SkeletalModelResourceTag, SkeletalModelResource> {
  public:
-  SkeletalModelResourceHandler(const ResourceHandlerDescr& descr);
+  using Base = ResourceHandler;
+
+  explicit SkeletalModelResourceHandler(const ResourceHandlerDescr& descr);
   SkeletalModelResourceHandler(const SkeletalModelResourceHandler&) = delete;
   SkeletalModelResourceHandler(SkeletalModelResourceHandler&&) = delete;
   SkeletalModelResourceHandler& operator=(const SkeletalModelResourceHandler&) =
       delete;
   SkeletalModelResourceHandler& operator=(SkeletalModelResourceHandler&&) =
       delete;
-  virtual ~SkeletalModelResourceHandler() = default;
+  ~SkeletalModelResourceHandler() override = default;
 
   ResourceFile Pack(const SkeletalModelResource& resource,
                     CompressionMode compression_mode) override;
@@ -46,14 +51,17 @@ class SkeletalModelResourceHandler
               SkeletalModelResource* resource) override;
 };
 
-class SkeletonResourceHandler : public ResourceHandler<SkeletonResource> {
+class SkeletonResourceHandler
+    : public ResourceHandler<SkeletonResourceTag, SkeletonResource> {
  public:
-  SkeletonResourceHandler(const ResourceHandlerDescr& descr);
+  using Base = ResourceHandler;
+
+  explicit SkeletonResourceHandler(const ResourceHandlerDescr& descr);
   SkeletonResourceHandler(const SkeletonResourceHandler&) = delete;
   SkeletonResourceHandler(SkeletonResourceHandler&&) = delete;
   SkeletonResourceHandler& operator=(const SkeletonResourceHandler&) = delete;
   SkeletonResourceHandler& operator=(SkeletonResourceHandler&&) = delete;
-  virtual ~SkeletonResourceHandler() = default;
+  ~SkeletonResourceHandler() override = default;
 
   ResourceFile Pack(const SkeletonResource& resource,
                     CompressionMode compression_mode) override;

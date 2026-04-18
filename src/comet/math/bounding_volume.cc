@@ -10,7 +10,7 @@
 #include "bounding_volume.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace math {
@@ -32,15 +32,15 @@ math::Aabb GenerateGlobalAabb(const Aabb& local_aabb, const Mat4& global) {
 
 math::Aabb GenerateGlobalAabb(const Vec3& local_center,
                               const Vec3& local_extents, const Mat4& global) {
-  auto local_max_extents{local_center + local_extents};
-  auto local_min_extents{local_center - local_extents};
+  const auto local_max_extents{local_center + local_extents};
+  const auto local_min_extents{local_center - local_extents};
   math::Vec3 global_min_extents{.0f};
   math::Vec3 global_max_extents{.0f};
 
   for (u8 i{0}; i < 3; ++i) {
     for (u8 j{0}; j < 3; ++j) {
-      auto from_min{global[j][i] * local_min_extents[j]};
-      auto from_max{global[j][i] * local_max_extents[j]};
+      const auto from_min{global[j][i] * local_min_extents[j]};
+      const auto from_max{global[j][i] * local_max_extents[j]};
 
       if (from_min < from_max) {
         global_min_extents[i] += from_min;

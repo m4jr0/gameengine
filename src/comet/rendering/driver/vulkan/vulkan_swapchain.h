@@ -16,7 +16,7 @@
 #include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
 namespace comet {
@@ -31,6 +31,7 @@ struct SwapchainSupportDetails {
 void QuerySwapchainSupportDetails(VkPhysicalDevice physical_device_handle,
                                   VkSurfaceKHR surface_handle,
                                   SwapchainSupportDetails& details);
+
 VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
     const Array<VkSurfaceFormatKHR>& formats);
 VkPresentModeKHR ChooseSwapPresentMode(
@@ -61,16 +62,24 @@ class Swapchain {
   void Destroy();
 
   bool Reload();
+
   VkResult AcquireNextImage(VkSemaphore semaphore_handle);
+
   VkResult QueuePresent();
+
   void HandlePreSwapchainReload();
   void HandlePostSwapchainReload();
+
   bool IsPresentationAvailable() const noexcept;
 
   bool IsInitialized() const noexcept;
+
   VkSwapchainKHR GetHandle() const noexcept;
+
   operator VkSwapchainKHR() const noexcept;
+
   bool IsReloadNeeded() const noexcept;
+
   VkFormat GetFormat() const noexcept;
   const VkExtent2D& GetExtent() const noexcept;
   u32 GetImageCount() const;
@@ -83,6 +92,7 @@ class Swapchain {
   void InitializeRenderSemaphores();
   void InitializeColorResources();
   void InitializeDepthResources();
+
   void DestroyRenderSemaphores();
   void DestroyImageViews();
   void DestroyDepthResources();

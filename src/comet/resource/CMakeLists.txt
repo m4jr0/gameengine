@@ -16,7 +16,9 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/resource/model_resource.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_allocator.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_id.h"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/resource_type.h"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/shader_module_resource.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/shader_resource.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/resource.cc"
@@ -30,6 +32,10 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/resource/handler/shader_module_resource_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/handler/shader_resource_handler.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/resource/handler/texture_resource_handler.cc"
+
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/runtime/loaded_resource_handle.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/runtime/resource_slot.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/runtime/resource_slots.h"
 )
 
 # Compiling ####################################################################

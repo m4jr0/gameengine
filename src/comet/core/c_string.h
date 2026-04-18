@@ -6,7 +6,7 @@
 #define COMET_COMET_CORE_C_STRING_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/math_common.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 constexpr auto kU8MaxCharCountDigits10{3};
@@ -332,7 +332,7 @@ Char* TrimLeft(Char* str, usize length, usize* new_length = nullptr) {
   auto cursor{0};
 
   while (anchor < length) {
-    auto c{str[anchor]};
+    const auto c{str[anchor]};
     str[cursor] = c;
     ++cursor;
     ++anchor;
@@ -355,7 +355,7 @@ Char* TrimRight(Char* str, usize length, usize* new_length = nullptr) {
     return str;
   }
 
-  usize i{length - 1};
+  auto i{length - 1};
 
   while (i != kInvalidIndex && (IsSpace(str[i]) || str[i] == '\0')) {
     --i;
@@ -390,7 +390,7 @@ Char* Trim(Char* str, usize length, usize* new_length = nullptr) {
   auto last_index{cursor};
 
   while (anchor <= length) {
-    auto c{str[anchor]};
+    const auto c{str[anchor]};
     str[cursor] = c;
 
     if (c == '\0') {
@@ -460,7 +460,7 @@ void FillWith(Char* str, usize str_length, Char c, usize offset, usize length) {
     length = str_length - offset;
   }
 
-  auto max{offset + length};
+  const auto max{offset + length};
 
   for (usize i{offset}; i < max; ++i) {
     str[i] = c;

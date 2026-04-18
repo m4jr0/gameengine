@@ -18,9 +18,11 @@
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/type/array.h"
+#include "comet/rendering/rendering_utils.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
-#include "editor/asset/asset_utils.h"
+#include "editor/asset/exporter/shader/data/shader_export_keys.h"
+#include "editor/asset/exporter/shader/utils/shader_export_utils.h"
 
 namespace comet {
 namespace editor {
@@ -33,11 +35,14 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
   resource::ShaderResource shader{};
   auto& asset_descr{context.asset_descr};
 
-  shader.id = resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-      asset_descr.asset_path);
+  const auto shader_resource_id{
+      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+          asset_descr.asset_path)};
+  shader.id = shader_resource_id.GetValue();
   shader.type_id = resource::ShaderResource::kResourceTypeId;
 
-  shader.descr.shader_module_paths = Array<TString>{context.allocator};
+  shader.descr.shader_module_resource_ids =
+      Array<resource::ShaderModuleResourceId>{context.allocator};
   shader.descr.defines = Array<rendering::ShaderDefineDescr>{context.allocator};
   shader.descr.bindings =
       Array<rendering::ShaderBindingDescr>{context.allocator};
@@ -80,11 +85,9 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
     // Every time we get an object, we must use assignment to prevent a bug
     // with
     // GCC where the generated type is an array (which is wrong).
-    auto shader_file = nlohmann::json::parse(shader_context.file);
-
+    const auto shader_file = nlohmann::json::parse(shader_context.file);
     resource_files.Reserve(1);
 
-    shader.descr.rasterizer = GetRasterizerDescr(shader_file);
     shader.descr.rasterizer = GetRasterizerDescr(shader_file);
     shader.descr.depth_stencil = GetDepthStencilDescr(shader_file);
 
@@ -117,16 +120,30 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
 
 void ShaderExporter::DumpShaderModules(const nlohmann::json& shader_file,
                                        resource::ShaderResource& shader) {
+  if (!shader_file.contains(kCometEditorShaderKeyShaderModulePaths)) {
+    COMET_LOG_GLOBAL_ERROR("Shader has no shader modules defined!");
+    return;
+  }
+
   const auto& raw_module_paths{
       shader_file[kCometEditorShaderKeyShaderModulePaths]};
 
-  shader.descr.shader_module_paths.Reserve(raw_module_paths.size());
+  if (!raw_module_paths.is_array()) {
+    COMET_LOG_GLOBAL_ERROR("shader_module_paths must be an array!");
+    return;
+  }
+
+  shader.descr.shader_module_resource_ids.Reserve(raw_module_paths.size());
 
   for (const auto& raw_module_path : raw_module_paths) {
     const auto& raw_module_path_str{
         raw_module_path.get_ref<const nlohmann::json::string_t&>()};
-    shader.descr.shader_module_paths.PushBack(
-        TString{GetTmpTChar(raw_module_path_str.c_str())});
+
+    const auto module_resource_id{
+        resource::GenerateResourceIdFromPath<resource::ShaderModuleResource>(
+            GetTmpTChar(raw_module_path_str.c_str()))};
+
+    shader.descr.shader_module_resource_ids.PushBack(module_resource_id);
   }
 }
 
@@ -149,7 +166,7 @@ void ShaderExporter::DumpDefines(const nlohmann::json& shader_file,
     const auto& raw_define_name_json{raw_define[kCometEditorShaderKeyName]};
     const auto& raw_define_name{
         raw_define_name_json.get_ref<const nlohmann::json::string_t&>()};
-    auto raw_define_name_len{raw_define_name.size()};
+    const auto raw_define_name_len{raw_define_name.size()};
     SetName(define, raw_define_name.c_str(), raw_define_name_len);
 
     if (!raw_define.contains(kCometEditorShaderKeyValue)) {
@@ -159,7 +176,7 @@ void ShaderExporter::DumpDefines(const nlohmann::json& shader_file,
     const auto& raw_define_value_json{raw_define[kCometEditorShaderKeyValue]};
     const auto& raw_define_value{
         raw_define_value_json.get_ref<const nlohmann::json::string_t&>()};
-    auto raw_define_value_len{raw_define_value.size()};
+    const auto raw_define_value_len{raw_define_value.size()};
     SetValue(define, raw_define_value.c_str(), raw_define_value_len);
   }
 }
@@ -184,7 +201,7 @@ void ShaderExporter::DumpBindings(const nlohmann::json& shader_file,
     const auto& raw_name_json{raw_binding[kCometEditorShaderKeyName]};
     const auto& raw_name{
         raw_name_json.get_ref<const nlohmann::json::string_t&>()};
-    auto raw_name_len{raw_name.size()};
+    const auto raw_name_len{raw_name.size()};
     SetName(binding_descr, raw_name.c_str(), raw_name_len);
 
 #ifdef COMET_GCC
@@ -252,7 +269,7 @@ void ShaderExporter::DumpBindings(const nlohmann::json& shader_file,
       const auto& raw_field_name_json{raw_field[kCometEditorShaderKeyName]};
       const auto& raw_field_name{
           raw_field_name_json.get_ref<const nlohmann::json::string_t&>()};
-      auto raw_field_name_len{raw_field_name.size()};
+      const auto raw_field_name_len{raw_field_name.size()};
       SetName(field_descr, raw_field_name.c_str(), raw_field_name_len);
 
 #ifdef COMET_GCC
@@ -289,7 +306,7 @@ void ShaderExporter::DumpPushConstants(const nlohmann::json& shader_file,
     const auto& raw_name_json{raw_push_constant[kCometEditorShaderKeyName]};
     const auto& raw_name{
         raw_name_json.get_ref<const nlohmann::json::string_t&>()};
-    auto raw_name_len{raw_name.size()};
+    const auto raw_name_len{raw_name.size()};
     SetName(push_constant_descr, raw_name.c_str(), raw_name_len);
 
     push_constant_descr.stages = GetShaderStageFlags(
@@ -311,7 +328,7 @@ void ShaderExporter::DumpPushConstants(const nlohmann::json& shader_file,
       const auto& raw_field_name_json{raw_field[kCometEditorShaderKeyName]};
       const auto& raw_field_name{
           raw_field_name_json.get_ref<const nlohmann::json::string_t&>()};
-      auto raw_field_name_len{raw_field_name.size()};
+      const auto raw_field_name_len{raw_field_name.size()};
       SetName(field_descr, raw_field_name.c_str(), raw_field_name_len);
 
 #ifdef COMET_GCC
@@ -328,465 +345,6 @@ void ShaderExporter::DumpPushConstants(const nlohmann::json& shader_file,
           raw_field.value(kCometEditorShaderKeyArrayCount, 1u);
     }
   }
-}
-
-rendering::CullMode ShaderExporter::GetCullMode(
-    std::string_view raw_cull_mode) {
-  if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeNone) {
-    return rendering::CullMode::None;
-  }
-
-  if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeFront) {
-    return rendering::CullMode::Front;
-  }
-
-  if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeBack) {
-    return rendering::CullMode::Back;
-  }
-
-  if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeFrontAndBack) {
-    return rendering::CullMode::FrontAndBack;
-  }
-
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported culling mode: ", raw_cull_mode,
-                         "! Setting \"unknown\" mode instead.");
-  return rendering::CullMode::Unknown;
-}
-
-rendering::RasterizerDescr ShaderExporter::GetRasterizerDescr(
-    const nlohmann::json& shader_file) {
-  rendering::RasterizerDescr rasterizer{};
-
-  if (!shader_file.contains(kCometEditorShaderKeyRasterizer)) {
-    rasterizer.is_wireframe = false;
-    rasterizer.is_depth_bias = false;
-    rasterizer.cull_mode = rendering::CullMode::Back;
-    return rasterizer;
-  }
-
-  const auto& raw_rasterizer{shader_file[kCometEditorShaderKeyRasterizer]};
-
-  if (!raw_rasterizer.is_object()) {
-    COMET_LOG_GLOBAL_ERROR(
-        "Wrong type found for rasterizer object: ", raw_rasterizer.type_name(),
-        "! Using default rasterizer settings instead.");
-    rasterizer.is_wireframe = false;
-    rasterizer.is_depth_bias = false;
-    rasterizer.cull_mode = rendering::CullMode::Back;
-    return rasterizer;
-  }
-
-  rasterizer.is_wireframe =
-      raw_rasterizer.value(kCometEditorShaderKeyRasterizerIsWireframe, false);
-
-  rasterizer.is_depth_bias =
-      raw_rasterizer.value(kCometEditorShaderKeyRasterizerIsDepthBias, false);
-
-  rasterizer.cull_mode = GetCullMode(
-      raw_rasterizer.value(kCometEditorShaderKeyRasterizerCullMode,
-                           kCometEditorShaderKeyRasterizerCullModeBack));
-
-  return rasterizer;
-}
-
-rendering::CompareOp ShaderExporter::GetCompareOp(
-    std::string_view raw_compare_op) {
-  if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpNever) {
-    return rendering::CompareOp::Never;
-  }
-  if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpLess) {
-    return rendering::CompareOp::Less;
-  }
-  if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpEqual) {
-    return rendering::CompareOp::Equal;
-  }
-  if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpLessOrEqual) {
-    return rendering::CompareOp::LessOrEqual;
-  }
-  if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpGreater) {
-    return rendering::CompareOp::Greater;
-  }
-  if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpNotEqual) {
-    return rendering::CompareOp::NotEqual;
-  }
-  if (raw_compare_op ==
-      kCometEditorShaderKeyDepthStencilCompareOpGreaterOrEqual) {
-    return rendering::CompareOp::GreaterOrEqual;
-  }
-  if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpAlways) {
-    return rendering::CompareOp::Always;
-  }
-
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported compare op: ", raw_compare_op,
-                         "! Setting \"less\" compare op instead.");
-  return rendering::CompareOp::Less;
-}
-
-rendering::DepthStencilDescr ShaderExporter::GetDepthStencilDescr(
-    const nlohmann::json& shader_file) {
-  rendering::DepthStencilDescr depth_stencil{};
-
-  if (!shader_file.contains(kCometEditorShaderKeyDepthStencil)) {
-    depth_stencil.is_depth_test = true;
-    depth_stencil.is_depth_write = true;
-    depth_stencil.compare_op = rendering::CompareOp::Less;
-    return depth_stencil;
-  }
-
-  const auto& raw_depth_stencil{shader_file[kCometEditorShaderKeyDepthStencil]};
-
-  if (!raw_depth_stencil.is_object()) {
-    COMET_LOG_GLOBAL_ERROR("Wrong type found for depth_stencil object: ",
-                           raw_depth_stencil.type_name(),
-                           "! Using default depth-stencil settings instead.");
-    depth_stencil.is_depth_test = true;
-    depth_stencil.is_depth_write = true;
-    depth_stencil.compare_op = rendering::CompareOp::Less;
-    return depth_stencil;
-  }
-
-  depth_stencil.is_depth_test = raw_depth_stencil.value(
-      kCometEditorShaderKeyDepthStencilIsDepthTest, true);
-
-  depth_stencil.is_depth_write = raw_depth_stencil.value(
-      kCometEditorShaderKeyDepthStencilIsDepthWrite, true);
-
-  depth_stencil.compare_op = GetCompareOp(
-      raw_depth_stencil.value(kCometEditorShaderKeyDepthStencilCompareOp,
-                              kCometEditorShaderKeyDepthStencilCompareOpLess));
-
-  return depth_stencil;
-}
-
-rendering::PrimitiveTopology ShaderExporter::GetPrimitiveTopology(
-    std::string_view raw_topology) {
-  if (raw_topology == kCometEditorShaderKeyTopologyPoints) {
-    return rendering::PrimitiveTopology::Points;
-  }
-
-  if (raw_topology == kCometEditorShaderKeyTopologyLines) {
-    return rendering::PrimitiveTopology::Lines;
-  }
-
-  if (raw_topology == kCometEditorShaderKeyTopologyLineStrip) {
-    return rendering::PrimitiveTopology::LineStrip;
-  }
-
-  if (raw_topology == kCometEditorShaderKeyTopologyTriangles) {
-    return rendering::PrimitiveTopology::Triangles;
-  }
-
-  if (raw_topology == kCometEditorShaderKeyTopologyTriangleStrip) {
-    return rendering::PrimitiveTopology::TriangleStrip;
-  }
-
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported topology: ", raw_topology,
-                         "! Setting \"unknown\" mode instead.");
-  return rendering::PrimitiveTopology::Unknown;
-}
-
-rendering::ShaderVertexLayout ShaderExporter::GetShaderVertexLayout(
-    std::string_view raw_vertex_layout) {
-  if (raw_vertex_layout == kCometEditorShaderKeyVertexLayoutNone) {
-    return rendering::ShaderVertexLayout::None;
-  }
-
-  if (raw_vertex_layout == kCometEditorShaderKeyVertexLayoutSkinnedVertex) {
-    return rendering::ShaderVertexLayout::SkinnedVertex;
-  }
-
-  if (raw_vertex_layout == kCometEditorShaderKeyVertexLayoutDebugLine) {
-    return rendering::ShaderVertexLayout::DebugLine;
-  }
-
-  COMET_LOG_GLOBAL_ERROR(
-      "Unknown or unsupported vertex layout: ", raw_vertex_layout,
-      "! Setting \"none\" layout instead.");
-  return rendering::ShaderVertexLayout::None;
-}
-
-rendering::ShaderVariableType ShaderExporter::GetShaderVariableType(
-    std::string_view raw_data_type) {
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeB32) {
-    return rendering::ShaderVariableType::B32;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeS32) {
-    return rendering::ShaderVariableType::S32;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeU32) {
-    return rendering::ShaderVariableType::U32;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeF32) {
-    return rendering::ShaderVariableType::F32;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeF64) {
-    return rendering::ShaderVariableType::F64;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeB32Vec2) {
-    return rendering::ShaderVariableType::B32Vec2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeB32Vec3) {
-    return rendering::ShaderVariableType::B32Vec3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeB32Vec4) {
-    return rendering::ShaderVariableType::B32Vec4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeS32Vec2) {
-    return rendering::ShaderVariableType::S32Vec2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeS32Vec3) {
-    return rendering::ShaderVariableType::S32Vec3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeS32Vec4) {
-    return rendering::ShaderVariableType::S32Vec4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeU32Vec2) {
-    return rendering::ShaderVariableType::U32Vec2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeU32Vec3) {
-    return rendering::ShaderVariableType::U32Vec3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeU32Vec4) {
-    return rendering::ShaderVariableType::U32Vec4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeVec2) {
-    return rendering::ShaderVariableType::Vec2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeVec3) {
-    return rendering::ShaderVariableType::Vec3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeVec4) {
-    return rendering::ShaderVariableType::Vec4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeSVec2) {
-    return rendering::ShaderVariableType::S32Vec2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeSVec3) {
-    return rendering::ShaderVariableType::S32Vec3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeSVec4) {
-    return rendering::ShaderVariableType::S32Vec4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeF64Vec2) {
-    return rendering::ShaderVariableType::F64Vec2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeF64Vec3) {
-    return rendering::ShaderVariableType::F64Vec3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeF64Vec4) {
-    return rendering::ShaderVariableType::F64Vec4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat2 ||
-      raw_data_type == kCometEditorShaderKeyVariableTypeMat2x2) {
-    return rendering::ShaderVariableType::Mat2x2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat2x3) {
-    return rendering::ShaderVariableType::Mat2x3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat2x4) {
-    return rendering::ShaderVariableType::Mat2x4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat3x2) {
-    return rendering::ShaderVariableType::Mat3x2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat3 ||
-      raw_data_type == kCometEditorShaderKeyVariableTypeMat3x3) {
-    return rendering::ShaderVariableType::Mat3x3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat3x4) {
-    return rendering::ShaderVariableType::Mat3x4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat4x2) {
-    return rendering::ShaderVariableType::Mat4x2;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat4x3) {
-    return rendering::ShaderVariableType::Mat4x3;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeMat4 ||
-      raw_data_type == kCometEditorShaderKeyVariableTypeMat4x4) {
-    return rendering::ShaderVariableType::Mat4x4;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeSampler) {
-    return rendering::ShaderVariableType::Sampler;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeImage) {
-    return rendering::ShaderVariableType::Image;
-  }
-
-  if (raw_data_type == kCometEditorShaderKeyVariableTypeAtomic) {
-    return rendering::ShaderVariableType::Atomic;
-  }
-
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported shader field type: ",
-                         raw_data_type, "! Setting \"unknown\" mode instead.");
-  return rendering::ShaderVariableType::Unknown;
-}
-
-rendering::ShaderBindingType ShaderExporter::GetShaderBindingType(
-    std::string_view raw_binding_type) {
-  if (raw_binding_type == kCometEditorShaderKeyBindingTypeUniformBuffer) {
-    return rendering::ShaderBindingType::UniformBuffer;
-  }
-
-  if (raw_binding_type == kCometEditorShaderKeyBindingTypeStorageBuffer) {
-    return rendering::ShaderBindingType::StorageBuffer;
-  }
-
-  if (raw_binding_type ==
-      kCometEditorShaderKeyBindingTypeCombinedImageSampler) {
-    return rendering::ShaderBindingType::CombinedImageSampler;
-  }
-
-  if (raw_binding_type == kCometEditorShaderKeyBindingTypeSampledImage) {
-    return rendering::ShaderBindingType::SampledImage;
-  }
-
-  if (raw_binding_type == kCometEditorShaderKeyBindingTypeSampler) {
-    return rendering::ShaderBindingType::Sampler;
-  }
-
-  if (raw_binding_type == kCometEditorShaderKeyBindingTypeStorageImage) {
-    return rendering::ShaderBindingType::StorageImage;
-  }
-
-  COMET_LOG_GLOBAL_ERROR(
-      "Unknown or unsupported shader binding type: ", raw_binding_type,
-      "! Setting \"unknown\" type instead.");
-  return rendering::ShaderBindingType::Unknown;
-}
-
-rendering::ShaderBindingScope ShaderExporter::GetShaderBindingScope(
-    std::string_view raw_binding_scope) {
-  if (raw_binding_scope == kCometEditorShaderKeyBindingScopeGlobal) {
-    return rendering::ShaderBindingScope::Global;
-  }
-
-  if (raw_binding_scope == kCometEditorShaderKeyBindingScopeMaterial) {
-    return rendering::ShaderBindingScope::Material;
-  }
-
-  if (raw_binding_scope == kCometEditorShaderKeyBindingScopePass) {
-    return rendering::ShaderBindingScope::Pass;
-  }
-
-  if (raw_binding_scope == kCometEditorShaderKeyBindingScopeDraw) {
-    return rendering::ShaderBindingScope::Draw;
-  }
-
-  COMET_LOG_GLOBAL_ERROR(
-      "Unknown or unsupported binding scope: ", raw_binding_scope,
-      "! Setting \"unknown\" scope instead.");
-  return rendering::ShaderBindingScope::Unknown;
-}
-
-rendering::ShaderMemoryLayout ShaderExporter::GetShaderMemoryLayout(
-    std::string_view raw_layout) {
-  if (raw_layout == kCometEditorShaderKeyMemoryLayoutStd140) {
-    return rendering::ShaderMemoryLayout::Std140;
-  }
-
-  if (raw_layout == kCometEditorShaderKeyMemoryLayoutStd430) {
-    return rendering::ShaderMemoryLayout::Std430;
-  }
-
-  if (raw_layout == kCometEditorShaderKeyMemoryLayoutPacked) {
-    return rendering::ShaderMemoryLayout::Packed;
-  }
-
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported memory layout: ", raw_layout,
-                         "! Setting \"unknown\" layout instead.");
-  return rendering::ShaderMemoryLayout::Unknown;
-}
-
-rendering::ShaderStageFlags ShaderExporter::GetShaderStageFlags(
-    const nlohmann::json& raw_stages, memory::Allocator* allocator) {
-  rendering::ShaderStageFlags stages{rendering::kShaderStageFlagBitsNone};
-
-  if (!raw_stages.is_array()) {
-    COMET_LOG_GLOBAL_ERROR("Wrong type found for stages array: ",
-                           raw_stages.type_name(), "! Ignoring.");
-    return stages;
-  }
-
-  auto raw_stages_list{
-      nlohmann::json_to_array<std::string>(raw_stages, allocator)};
-
-  for (const auto& raw_stage : raw_stages_list) {
-    if (raw_stage == kCometEditorShaderKeyStageCompute) {
-      stages |= rendering::kShaderStageFlagBitsCompute;
-    } else if (raw_stage == kCometEditorShaderKeyStageVertex) {
-      stages |= rendering::kShaderStageFlagBitsVertex;
-    } else if (raw_stage == kCometEditorShaderKeyStageFragment) {
-      stages |= rendering::kShaderStageFlagBitsFragment;
-    } else {
-      COMET_LOG_GLOBAL_ERROR(
-          "Unknown or unsupported stage provided: ", raw_stage, "! Ignoring.");
-    }
-  }
-
-  return stages;
-}
-
-rendering::ShaderImageBindingSemantic
-ShaderExporter::GetShaderImageBindingSemantic(std::string_view raw_semantic) {
-  if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialDiffuse) {
-    return rendering::ShaderImageBindingSemantic::MaterialDiffuse;
-  }
-
-  if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialSpecular) {
-    return rendering::ShaderImageBindingSemantic::MaterialSpecular;
-  }
-
-  if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialNormal) {
-    return rendering::ShaderImageBindingSemantic::MaterialNormal;
-  }
-
-  if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialTextures) {
-    return rendering::ShaderImageBindingSemantic::MaterialTextures;
-  }
-
-  if (raw_semantic == kCometEditorShaderKeyImageSemanticMainShadowMap) {
-    return rendering::ShaderImageBindingSemantic::MainShadowMap;
-  }
-
-  if (raw_semantic == kCometEditorShaderKeyImageSemanticShadowMaps) {
-    return rendering::ShaderImageBindingSemantic::ShadowMaps;
-  }
-
-  return rendering::ShaderImageBindingSemantic::Unknown;
 }
 
 void ShaderExporter::OnShaderSizeRequest(job::IOJobParamsHandle params_handle) {

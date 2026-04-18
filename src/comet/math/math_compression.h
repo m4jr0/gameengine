@@ -28,6 +28,7 @@ void CompressVec4Rl(const Vec4& vec, u32 bit_count, u32& out_x, u32& out_y,
                     u32& out_z, u32& out_w);
 void CompressVec4Rl(const Vec4& vec, f32 min, f32 max, u32 bit_count,
                     u32& out_x, u32& out_y, u32& out_z, u32& out_w);
+
 Vec2 DecompressVec2Rl(u16 x, u16 y, u32 bit_count);
 Vec2 DecompressVec2Rl(u16 x, u16 y, f32 min, f32 max, u32 bit_count);
 Vec3 DecompressVec3Rl(u16 x, u16 y, u16 z, u32 bit_count);

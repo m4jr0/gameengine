@@ -11,19 +11,18 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_light.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_shadow.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_texture.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
-#include "comet/rendering/light/light_common.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
@@ -40,6 +39,8 @@ struct ShadowGpuData {
 
 struct LightingHandlerDescr : HandlerDescr {
   const ShadowSettings* shadow_settings{nullptr};
+  TextureHandler* texture_handler{nullptr};
+  SamplerHandler* sampler_handler{nullptr};
   RenderPassHandler* render_pass_handler{nullptr};
 };
 
@@ -53,12 +54,10 @@ class LightingHandler : public Handler {
   LightingHandler& operator=(LightingHandler&&) = delete;
   ~LightingHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(const frame::FramePacket* packet);
 
-  const LightProxy* Get(LightProxyHandle handle) const;
-  const LightProxy* TryGetLight(LightId light_id) const noexcept;
+  const LightProxy* Get(LightHandle handle) const;
+  const LightProxy* TryGetLight(LightHandle handle) const noexcept;
 
   u32 GetLightCount() const noexcept;
   LightGpuData GetLightGpuData(FrameInFlightIndex frame_index) const noexcept;
@@ -71,6 +70,10 @@ class LightingHandler : public Handler {
 
   void SetRenderPass(RenderPassHandle render_pass_handle) noexcept;
 
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
+
  private:
   static inline constexpr usize kDefaultLightCount_{128};
   static inline constexpr u32 kShadowLayerCapacity_{128};
@@ -82,7 +85,7 @@ class LightingHandler : public Handler {
 
   void AddShadowForLight(const LightProxy& light);
   void UpdateShadowForLight(const LightProxy& light);
-  void RemoveShadowForLight(LightId light_id);
+  void RemoveShadowForLight(LightHandle light_handle);
 
   void RebuildRenderJobs(const frame::FramePacket* packet);
   void UploadGpuLights(FrameInFlightIndex frame_index);
@@ -96,14 +99,19 @@ class LightingHandler : public Handler {
   s32 AllocateShadowLayers(u32 layer_count);
   void FreeShadowLayers(s32 first_layer, u32 layer_count);
 
-  void InitializeShadowResource(LightId light_id, const LightProxy& light,
+  void InitializeShadowResource(LightHandle light_handle,
+                                const LightProxy& light,
                                 ShadowResource& resource);
   void DestroyShadowResource(ShadowResource& resource);
   void RecreateShadowResourceIfNeeded(ShadowResource& resource,
                                       const LightProxy& light);
 
-  ShadowResource* TryGetShadowResource(LightId light_id) noexcept;
-  const ShadowResource* TryGetShadowResource(LightId light_id) const noexcept;
+  ShadowResource* TryGetShadowResource(LightHandle light_handle) noexcept;
+  const ShadowResource* TryGetShadowResource(
+      LightHandle light_handle) const noexcept;
+
+  bool IsLightSlotAlive(usize index) const noexcept;
+  bool IsShadowSlotAlive(usize index) const noexcept;
 
   void PopulateCascadeSplits(const RenderCameraData& camera_data,
                              f32 max_distance, u32 cascade_count, f32 lambda,
@@ -116,33 +124,29 @@ class LightingHandler : public Handler {
   math::Mat4 ComputeSpotLightViewProj(const LightProperties& props,
                                       f32 max_distance) const;
 
+  const TextureHandler* GetTextureHandler() const;
+
   memory::PlatformAllocator platform_allocator_{
       memory::kEngineMemoryTagRendering};
   memory::FiberFreeListAllocator allocator_{sizeof(u32), 1024 * 64,
                                             memory::kEngineMemoryTagRendering};
 
-  Map<LightId, usize> light_to_proxy_map_{};
   Array<LightProxy> proxies_{};
-
-  Map<LightId, usize> light_to_shadow_map_{};
   Array<ShadowResource> shadow_resources_{};
 
   Array<Buffer> ssbo_lights_{};
   Array<Buffer> ssbo_shadow_data_{};
 
-  Image shadow_array_image_{};
-  VkImageView shadow_array_image_view_{VK_NULL_HANDLE};
-  VkSampler shadow_array_sampler_{VK_NULL_HANDLE};
-  Sampler shadow_array_sampler_wrapper_{};
-  Texture shadow_array_texture_{};
   TextureMap shadow_array_texture_map_{};
 
   Array<bool> shadow_layer_usage_{};
 
-  RenderPassHandle render_pass_handle_{kInvalidRenderPassHandle};
+  RenderPassHandle render_pass_handle_{};
   const ShadowSettings* shadow_settings_{nullptr};
   frame::FrameArray<ShadowRenderJob>* render_jobs_{nullptr};
 
+  TextureHandler* texture_handler_{nullptr};
+  SamplerHandler* sampler_handler_{nullptr};
   RenderPassHandler* render_pass_handler_{nullptr};
 };
 }  // namespace vk

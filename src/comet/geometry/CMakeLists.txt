@@ -11,8 +11,9 @@
 # Source files #################################################################
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/comet/geometry/geometry_common.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/geometry_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/geometry_type.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/geometry_utils.cc"
 
     # Components.
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/mesh_component.h"

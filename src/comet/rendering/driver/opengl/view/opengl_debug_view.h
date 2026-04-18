@@ -7,28 +7,34 @@
 
 #include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
+#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
-#include "comet/rendering/driver/opengl/view/opengl_shader_view.h"
+#include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/rendering/driver/opengl/view/opengl_view.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-struct DebugViewDescr : ShaderViewDescr {
+struct DebugViewDescr : ViewDescr {
+  ShaderHandler* shader_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
 };
 
-class DebugView : public ShaderView {
+class DebugView : public View {
  public:
   explicit DebugView(const DebugViewDescr& descr);
   DebugView(const DebugView&) = delete;
   DebugView(DebugView&&) = delete;
   DebugView& operator=(const DebugView&) = delete;
   DebugView& operator=(DebugView&&) = delete;
-  virtual ~DebugView() = default;
+  ~DebugView() override = default;
 
-  void Initialize() override;
-  void Destroy() override;
   void Update(frame::FramePacket* packet) override;
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   void UpdateDebugShader(const frame::FramePacket* packet);
@@ -36,8 +42,9 @@ class DebugView : public ShaderView {
   void DrawDebugCull();
   void SetViewport() const;
 
+  ShaderHandler* shader_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
-  Shader* debug_shader_{nullptr};
+  ShaderHandle debug_shader_{};
 };
 }  // namespace gl
 }  // namespace rendering

@@ -30,6 +30,7 @@ class Bitset {
   void Reset(usize index);
   bool Test(usize index) const;
   void ResetAll();
+
   void Resize(usize new_bit_count);
   void Clear();
 

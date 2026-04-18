@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_CORE_ALGORITHM_SET_DIFFERENCE_H_
 #define COMET_COMET_CORE_ALGORITHM_SET_DIFFERENCE_H_
 
+#include "comet/core/algorithm/comparator.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

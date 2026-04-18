@@ -26,30 +26,29 @@ void SetDebugLabel(GLenum identifier, GLuint name, const schar* label) {
 }
 }  // namespace internal
 
-void SetStorageDebugLabel(StorageHandle handle, const schar* label) {
-  internal::SetDebugLabel(GL_BUFFER, handle, label);
+void SetStorageDebugLabel(GlNativeStorageHandle native_handle,
+                          const schar* label) {
+  internal::SetDebugLabel(GL_BUFFER, native_handle, label);
 }
 
-void SetUniformBufferDebugLabel(UniformBufferHandle handle,
+void SetUniformBufferDebugLabel(GlNativeUniformBufferHandle native_handle,
                                 const schar* label) {
-  internal::SetDebugLabel(GL_BUFFER, handle, label);
+  internal::SetDebugLabel(GL_BUFFER, native_handle, label);
 }
 
-void SetTextureDebugLabel(TextureHandle handle, const schar* label) {
-  internal::SetDebugLabel(GL_TEXTURE, handle, label);
+void SetTextureDebugLabel(GlNativeTextureHandle native_handle,
+                          const schar* label) {
+  internal::SetDebugLabel(GL_TEXTURE, native_handle, label);
 }
 
-void SetVertexAttributeDebugLabel(VertexAttributeHandle handle,
+void SetVertexAttributeDebugLabel(GlNativeVertexAttributeHandle native_handle,
                                   const schar* label) {
-  internal::SetDebugLabel(GL_VERTEX_ARRAY, handle, label);
+  internal::SetDebugLabel(GL_VERTEX_ARRAY, native_handle, label);
 }
 
-void SetShaderModuleDebugLabel(ShaderModuleHandle handle, const schar* label) {
-  internal::SetDebugLabel(GL_SHADER, handle, label);
-}
-
-void SetShaderDebugLabel(ShaderHandle handle, const schar* label) {
-  internal::SetDebugLabel(GL_PROGRAM, handle, label);
+void SetProgramDebugLabel(GlNativeProgramHandle native_handle,
+                          const schar* label) {
+  internal::SetDebugLabel(GL_PROGRAM, native_handle, label);
 }
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug

@@ -11,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-constexpr static u32 kCrc32Table[] = {
+static constexpr u32 kCrc32Table[] = {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
     0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
     0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
@@ -56,9 +56,9 @@ constexpr static u32 kCrc32Table[] = {
     0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
     0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d};
 
-u32 HashCrC32(const void* data, usize length) {
+HashValue32 HashCrC32(const void* data, usize length) {
   const auto* cast_data{reinterpret_cast<const u8*>(data)};
-  auto crc{static_cast<u32>(-1)};
+  auto crc{static_cast<HashValue32>(-1)};
 
   while (length--) {
     crc = kCrc32Table[(crc ^ *cast_data++) & 0xff] ^ (crc >> 8);
@@ -74,41 +74,43 @@ void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len) {
   picosha2::hash256(stream, buffer, buffer + buffer_len);
 }
 
-HashValue GenerateHash(bool value) {
-  return static_cast<u32>(value) * kFnvPrime32;
+HashValue32 GenerateHash32(bool value) {
+  return static_cast<HashValue32>(value) * kFnvPrime32;
 }
 
-HashValue GenerateHash(s8 value) {
-  return GenerateHash(static_cast<u32>(value));
+HashValue32 GenerateHash32(s8 value) {
+  return GenerateHash32(static_cast<u32>(static_cast<u8>(value)));
 }
 
-HashValue GenerateHash(u8 value) {
-  return GenerateHash(static_cast<u32>(value));
+HashValue32 GenerateHash32(u8 value) {
+  return GenerateHash32(static_cast<HashValue32>(value));
 }
 
-HashValue GenerateHash(s16 value) {
-  return GenerateHash(static_cast<u32>(value));
+HashValue32 GenerateHash32(s16 value) {
+  return GenerateHash32(static_cast<u32>(static_cast<u16>(value)));
 }
 
-HashValue GenerateHash(u16 value) {
-  return GenerateHash(static_cast<u32>(value));
+HashValue32 GenerateHash32(u16 value) {
+  return GenerateHash32(static_cast<HashValue32>(value));
 }
 
-HashValue GenerateHash(s32 value) {
-  return GenerateHash(static_cast<u32>(value));
+HashValue32 GenerateHash32(s32 value) {
+  return GenerateHash32(static_cast<u32>(value));
 }
 
-HashValue GenerateHash(u32 value) { return value * kFnvPrime32; }
+HashValue32 GenerateHash32(u32 value) { return value * kFnvPrime32; }
 
-HashValue GenerateHash(s64 value) {
-  return static_cast<u32>(value) ^ static_cast<u32>(value >> 32);
+HashValue32 GenerateHash32(s64 value) {
+  return static_cast<HashValue32>(value) ^
+         static_cast<HashValue32>(value >> 32);
 }
 
-HashValue GenerateHash(u64 value) {
-  return static_cast<u32>(value) ^ static_cast<u32>(value >> 32);
+HashValue32 GenerateHash32(u64 value) {
+  return static_cast<HashValue32>(value) ^
+         static_cast<HashValue32>(value >> 32);
 }
 
-HashValue GenerateHash(f32 value) {
+HashValue32 GenerateHash32(f32 value) {
   union Tmp {
     f32 f;
     u32 u;
@@ -118,33 +120,33 @@ HashValue GenerateHash(f32 value) {
   return bits.u * kFnvPrime32;
 }
 
-HashValue GenerateHash(f64 value) {
+HashValue32 GenerateHash32(f64 value) {
   union Tmp {
     f64 f;
     u64 u;
   };
 
   Tmp bits{value};
-  return static_cast<u32>(bits.u * kFnvPrime64);
+  return NarrowHash(bits.u * kFnvPrime64);
 }
 
-HashValue GenerateHash(schar value) {
-  return GenerateHash(static_cast<u32>(value));
+HashValue32 GenerateHash32(schar value) {
+  return GenerateHash32(static_cast<u8>(value));
 }
 
-HashValue GenerateHash(wchar value) {
-  return GenerateHash(static_cast<u32>(value));
+HashValue32 GenerateHash32(wchar value) {
+  return GenerateHash32(static_cast<HashValue32>(value));
 }
 
-HashValue GenerateHash(const schar* value) {
+HashValue32 GenerateHash32(const schar* value) {
   if (value == nullptr) {
     return 0;
   }
 
-  u32 hash{kFnvOffsetBasis32};
+  HashValue32 hash{kFnvOffsetBasis32};
 
   while (*value != '\0') {
-    hash ^= static_cast<u32>(*value);
+    hash ^= static_cast<HashValue32>(static_cast<u8>(*value));
     hash *= kFnvPrime32;
     ++value;
   }
@@ -152,15 +154,15 @@ HashValue GenerateHash(const schar* value) {
   return hash;
 }
 
-HashValue GenerateHash(const wchar* value) {
+HashValue32 GenerateHash32(const wchar* value) {
   if (value == nullptr) {
     return 0;
   }
 
-  u32 hash{kFnvOffsetBasis32};
+  HashValue32 hash{kFnvOffsetBasis32};
 
   while (*value != L'\0') {
-    hash ^= static_cast<u32>(*value);
+    hash ^= static_cast<HashValue32>(*value);
     hash *= kFnvPrime32;
     ++value;
   }
@@ -168,12 +170,174 @@ HashValue GenerateHash(const wchar* value) {
   return hash;
 }
 
-HashValue GenerateHash(const void* value) {
+HashValue32 GenerateHash32(const void* value) {
   if (value == nullptr) {
     return 0;
   }
 
-  auto cast{reinterpret_cast<uptr>(value)};
-  return static_cast<u32>(cast) ^ static_cast<u32>(cast >> 32);
+  const auto cast{reinterpret_cast<uptr>(value)};
+  return static_cast<HashValue32>(cast) ^ static_cast<HashValue32>(cast >> 32);
 }
+
+HashValue64 GenerateHash64(bool value) {
+  return static_cast<HashValue64>(value) * kFnvPrime64;
+}
+
+HashValue64 GenerateHash64(s8 value) {
+  return GenerateHash64(static_cast<HashValue64>(static_cast<u8>(value)));
+}
+
+HashValue64 GenerateHash64(u8 value) {
+  return GenerateHash64(static_cast<HashValue64>(value));
+}
+
+HashValue64 GenerateHash64(s16 value) {
+  return GenerateHash64(static_cast<HashValue64>(static_cast<u16>(value)));
+}
+
+HashValue64 GenerateHash64(u16 value) {
+  return GenerateHash64(static_cast<HashValue64>(value));
+}
+
+HashValue64 GenerateHash64(s32 value) {
+  return GenerateHash64(static_cast<u32>(value));
+}
+
+HashValue64 GenerateHash64(u32 value) {
+  return static_cast<HashValue64>(value) * kFnvPrime64;
+}
+
+HashValue64 GenerateHash64(s64 value) {
+  return GenerateHash64(static_cast<HashValue64>(value));
+}
+
+HashValue64 GenerateHash64(u64 value) { return value * kFnvPrime64; }
+
+HashValue64 GenerateHash64(f32 value) {
+  union Tmp {
+    f32 f;
+    u32 u;
+  };
+
+  Tmp bits{value};
+  return GenerateHash64(bits.u);
+}
+
+HashValue64 GenerateHash64(f64 value) {
+  union Tmp {
+    f64 f;
+    u64 u;
+  };
+
+  Tmp bits{value};
+  return GenerateHash64(bits.u);
+}
+
+HashValue64 GenerateHash64(schar value) {
+  return GenerateHash64(static_cast<HashValue64>(static_cast<u8>(value)));
+}
+
+HashValue64 GenerateHash64(wchar value) {
+  return GenerateHash64(static_cast<HashValue64>(value));
+}
+
+HashValue64 GenerateHash64(const schar* value) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  HashValue64 hash{kFnvOffsetBasis64};
+
+  while (*value != '\0') {
+    hash ^= static_cast<HashValue64>(static_cast<u8>(*value));
+    hash *= kFnvPrime64;
+    ++value;
+  }
+
+  return hash;
+}
+
+HashValue GenerateHash(const schar* value, usize length) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  HashValue64 hash{kFnvOffsetBasis64};
+
+  for (usize i{0}; i < length; ++i) {
+    hash ^= static_cast<HashValue64>(static_cast<u8>(value[i]));
+    hash *= kFnvPrime64;
+  }
+
+  return hash;
+}
+
+HashValue64 GenerateHash64(const wchar* value) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  HashValue64 hash{kFnvOffsetBasis64};
+
+  while (*value != L'\0') {
+    hash ^= static_cast<HashValue64>(*value);
+    hash *= kFnvPrime64;
+    ++value;
+  }
+
+  return hash;
+}
+
+HashValue GenerateHash(const wchar* value, usize length) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  HashValue64 hash{kFnvOffsetBasis64};
+
+  for (usize i{0}; i < length; ++i) {
+    hash ^= static_cast<HashValue64>(value[i]);
+    hash *= kFnvPrime64;
+  }
+
+  return hash;
+}
+
+HashValue64 GenerateHash64(const void* value) {
+  if (value == nullptr) {
+    return 0;
+  }
+
+  return GenerateHash64(static_cast<u64>(reinterpret_cast<uptr>(value)));
+}
+
+HashValue GenerateHash(bool value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(s8 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(u8 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(s16 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(u16 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(s32 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(u32 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(s64 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(u64 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(f32 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(f64 value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(schar value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(wchar value) { return GenerateHash64(value); }
+
+HashValue GenerateHash(const schar* value) { return GenerateHash64(value); }
+HashValue GenerateHash(const wchar* value) { return GenerateHash64(value); }
+HashValue GenerateHash(const void* value) { return GenerateHash64(value); }
 }  // namespace comet

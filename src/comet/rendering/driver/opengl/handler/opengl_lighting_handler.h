@@ -15,7 +15,6 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
 #include "comet/math/matrix.h"
 #include "comet/rendering/driver/opengl/data/opengl_frame.h"
 #include "comet/rendering/driver/opengl/data/opengl_light.h"
@@ -24,24 +23,30 @@
 #include "comet/rendering/driver/opengl/data/opengl_texture.h"
 #include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/light/light_common.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
+#include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_type.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
 struct LightGpuData {
-  StorageHandle ssbo_lights_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_lights_native_handle{
+      kInvalidGlNativeStorageHandle};
   GLsizeiptr ssbo_lights_size{0};
 };
 
 struct ShadowGpuData {
-  StorageHandle ssbo_shadow_data_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_shadow_data_native_handle{
+      kInvalidGlNativeStorageHandle};
   GLsizeiptr ssbo_shadow_data_size{0};
 };
 
 struct LightingHandlerDescr : HandlerDescr {
   const ShadowSettings* shadow_settings{nullptr};
+  TextureHandler* texture_handler{nullptr};
+  SamplerHandler* sampler_handler{nullptr};
 };
 
 class LightingHandler : public Handler {
@@ -54,12 +59,10 @@ class LightingHandler : public Handler {
   LightingHandler& operator=(LightingHandler&&) = delete;
   ~LightingHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
   void Update(const frame::FramePacket* packet);
 
-  const LightProxy* Get(LightProxyHandle handle) const;
-  const LightProxy* TryGetLight(LightId light_id) const noexcept;
+  const LightProxy* Get(LightHandle handle) const;
+  const LightProxy* TryGetLight(LightHandle handle) const noexcept;
 
   u32 GetLightCount() const noexcept;
   LightGpuData GetLightGpuData(FrameInFlightIndex frame_index) const noexcept;
@@ -67,8 +70,12 @@ class LightingHandler : public Handler {
 
   const frame::FrameArray<ShadowRenderJob>* GetRenderJobs() const noexcept;
   const TextureMap* GetShadowArrayTextureMap() const noexcept;
-  TextureHandle GetShadowArrayTextureHandle() const noexcept;
+  GlNativeTextureHandle GetShadowArrayTextureHandle() const noexcept;
   GLenum GetShadowArrayFormat() const noexcept;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   static inline constexpr usize kDefaultLightCount_{128};
@@ -81,7 +88,7 @@ class LightingHandler : public Handler {
 
   void AddShadowForLight(const LightProxy& light);
   void UpdateShadowForLight(const LightProxy& light);
-  void RemoveShadowForLight(LightId light_id);
+  void RemoveShadowForLight(LightHandle light_handle);
 
   void RebuildRenderJobs(const frame::FramePacket* packet);
   void UploadGpuLights(FrameInFlightIndex frame_index);
@@ -95,14 +102,19 @@ class LightingHandler : public Handler {
   s32 AllocateShadowLayers(u32 layer_count);
   void FreeShadowLayers(s32 first_layer, u32 layer_count);
 
-  void InitializeShadowResource(LightId light_id, const LightProxy& light,
+  void InitializeShadowResource(LightHandle light_handle,
+                                const LightProxy& light,
                                 ShadowResource& resource);
   void DestroyShadowResource(ShadowResource& resource);
   void RecreateShadowResourceIfNeeded(ShadowResource& resource,
                                       const LightProxy& light);
 
-  ShadowResource* TryGetShadowResource(LightId light_id) noexcept;
-  const ShadowResource* TryGetShadowResource(LightId light_id) const noexcept;
+  ShadowResource* TryGetShadowResource(LightHandle light_handle) noexcept;
+  const ShadowResource* TryGetShadowResource(
+      LightHandle light_handle) const noexcept;
+
+  bool IsLightSlotAlive(usize index) const noexcept;
+  bool IsShadowSlotAlive(usize index) const noexcept;
 
   void PopulateCascadeSplits(const RenderCameraData& camera_data,
                              f32 max_distance, u32 cascade_count, f32 lambda,
@@ -115,35 +127,35 @@ class LightingHandler : public Handler {
   math::Mat4 ComputeSpotLightViewProj(const LightProperties& props,
                                       f32 max_distance) const;
 
-  void EnsureStorageBufferCapacity(StorageHandle& handle, GLsizeiptr& capacity,
+  void EnsureStorageBufferCapacity(GlNativeStorageHandle& handle,
+                                   GLsizeiptr& capacity,
                                    GLsizeiptr required_size);
+
+  const TextureHandler* GetTextureHandler() const;
 
   memory::PlatformAllocator platform_allocator_{
       memory::kEngineMemoryTagRendering};
   memory::FiberFreeListAllocator allocator_{sizeof(u32), 1024 * 64,
                                             memory::kEngineMemoryTagRendering};
 
-  Map<LightId, usize> light_to_proxy_map_{};
   Array<LightProxy> proxies_{};
-
-  Map<LightId, usize> light_to_shadow_map_{};
   Array<ShadowResource> shadow_resources_{};
 
-  Array<StorageHandle> ssbo_lights_{};
-  Array<StorageHandle> ssbo_shadow_data_{};
+  Array<GlNativeStorageHandle> ssbo_lights_{};
+  Array<GlNativeStorageHandle> ssbo_shadow_data_{};
 
   Array<GLsizeiptr> ssbo_lights_size_{};
   Array<GLsizeiptr> ssbo_shadow_data_size_{};
 
-  TextureHandle shadow_array_texture_handle_{kInvalidTextureHandle};
-  Sampler shadow_array_sampler_wrapper_{};
-  Texture shadow_array_texture_{};
   TextureMap shadow_array_texture_map_{};
 
   Array<bool> shadow_layer_usage_{};
 
   const ShadowSettings* shadow_settings_{nullptr};
   frame::FrameArray<ShadowRenderJob>* render_jobs_{nullptr};
+
+  TextureHandler* texture_handler_{nullptr};
+  SamplerHandler* sampler_handler_{nullptr};
 };
 }  // namespace gl
 }  // namespace rendering

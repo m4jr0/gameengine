@@ -11,7 +11,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/thread/thread_context.h"
-#include "comet/core/game_state_manager.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/event/event_manager.h"
 #include "comet/input/input_event.h"
@@ -27,8 +26,83 @@ InputManager& InputManager::Get() {
   return singleton;
 }
 
-void InputManager::Initialize() {
-  Manager::Initialize();
+void InputManager::Update() {
+  COMET_ASSERT(thread_id_ == thread::GetThreadId(),
+               "Input Manager was initialized on thread #", thread_id_,
+               ", but GLFW is not thread-safe. The Update method MUST be "
+               "called from the "
+               "same thread.");
+
+  ReadInputs();
+  ApplyUserUpdates();
+}
+
+bool InputManager::IsKeyPressed(KeyCode key_code) const {
+  return cached_input_state_.keys_pressed.Test(static_cast<usize>(key_code) -
+                                               internal::kKeyBaseOffset);
+}
+
+bool InputManager::IsKeyUp(KeyCode key_code) const {
+  return cached_input_state_.keys_up.Test(static_cast<usize>(key_code) -
+                                          internal::kKeyBaseOffset);
+}
+
+bool InputManager::IsKeyDown(KeyCode key_code) const {
+  return cached_input_state_.keys_down.Test(static_cast<usize>(key_code) -
+                                            internal::kKeyBaseOffset);
+}
+
+bool InputManager::IsMousePressed(MouseButton key_code) const {
+  return cached_input_state_.mouse_buttons_pressed.Test(
+      static_cast<usize>(key_code));
+}
+
+bool InputManager::IsMouseDown(MouseButton key_code) const {
+  return cached_input_state_.mouse_buttons_down.Test(
+      static_cast<usize>(key_code));
+}
+
+bool InputManager::IsMouseUp(MouseButton key_code) const {
+  return cached_input_state_.mouse_buttons_up.Test(
+      static_cast<usize>(key_code));
+}
+
+math::Vec2 InputManager::GetMousePosition() const {
+  return cached_input_state_.mouse_position;
+}
+
+void InputManager::SetMousePosition(f32 x, f32 y) {
+  fiber::FiberLockGuard lock{updated_input_state_.mtx};
+  updated_input_state_.new_position = math::Vec2{x, y};
+}
+
+void InputManager::EnableUnconstrainedMouseCursor() {
+  fiber::FiberLockGuard lock{updated_input_state_.mtx};
+  updated_input_state_.cursor_mode = MouseCursorMode::Disabled;
+}
+
+void InputManager::DisableUnconstrainedMouseCursor() {
+  fiber::FiberLockGuard lock{updated_input_state_.mtx};
+  updated_input_state_.cursor_mode = MouseCursorMode::Normal;
+}
+
+void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
+  window_handle_ = window_handle;
+}
+
+#ifdef COMET_IMGUI
+void InputManager::EnableImGui() { is_imgui_ = true; }
+#endif  // COMET_IMGUI
+
+bool InputManager::IsAltPressed() const {
+  return IsKeyPressed(KeyCode::LeftAlt) || IsKeyPressed(KeyCode::RightAlt);
+}
+
+bool InputManager::IsShiftPressed() const {
+  return IsKeyPressed(KeyCode::LeftShift) || IsKeyPressed(KeyCode::RightShift);
+}
+
+void InputManager::OnInitialize() {
   thread_id_ = thread::GetThreadId();
 
   cached_input_state_.keys_pressed =
@@ -57,10 +131,6 @@ void InputManager::Initialize() {
     }
 #endif  // COMET_IMGUI
 
-    if (GameStateManager::Get().IsPaused()) {
-      return;
-    }
-
     event::EventManager::Get().FireEvent<MouseScrollEvent>(x_offset, y_offset);
   });
 
@@ -72,10 +142,6 @@ void InputManager::Initialize() {
           ImGui_ImplGlfw_CursorPosCallback(handle, x_pos, y_pos);
         }
 #endif  // COMET_IMGUI
-
-        if (GameStateManager::Get().IsPaused()) {
-          return;
-        }
 
         event::EventManager::Get().FireEvent<MouseMoveEvent>(
             math::Vec2{x_pos, y_pos});
@@ -93,10 +159,6 @@ void InputManager::Initialize() {
           }
         }
 #endif  // COMET_IMGUI
-
-        if (GameStateManager::Get().IsPaused()) {
-          return;
-        }
 
         event::EventManager::Get().FireEvent<KeyboardEvent>(
             static_cast<input::KeyCode>(key),
@@ -118,11 +180,7 @@ void InputManager::Initialize() {
         }
 #endif  // COMET_IMGUI
 
-        if (GameStateManager::Get().IsPaused()) {
-          return;
-        }
-
-        auto action{static_cast<Action>(raw_action)};
+        const auto action{static_cast<Action>(raw_action)};
 
         if (action == Action::Press) {
           event::EventManager::Get().FireEvent<MouseClickEvent>(
@@ -174,7 +232,7 @@ void InputManager::Initialize() {
       });
 }
 
-void InputManager::Shutdown() {
+void InputManager::OnShutdown() {
   glfwSetScrollCallback(window_handle_, nullptr);
   glfwSetCursorPosCallback(window_handle_, nullptr);
   glfwSetKeyCallback(window_handle_, nullptr);
@@ -194,123 +252,14 @@ void InputManager::Shutdown() {
   cached_input_state_.mouse_buttons_up.Destroy();
 
   thread_id_ = thread::kInvalidThreadId;
-  Manager::Shutdown();
-}
-
-void InputManager::Update() {
-  COMET_ASSERT(thread_id_ == thread::GetThreadId(),
-               "Input Manager was initialized on thread #", thread_id_,
-               ", but GLFW is not thread-safe. The Update method MUST be "
-               "called from the "
-               "same thread.");
-
-  ReadInputs();
-  ApplyUserUpdates();
-}
-
-bool InputManager::IsKeyPressed(KeyCode key_code) const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return cached_input_state_.keys_pressed.Test(static_cast<usize>(key_code) -
-                                               internal::kKeyBaseOffset);
-}
-
-bool InputManager::IsKeyUp(KeyCode key_code) const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return cached_input_state_.keys_up.Test(static_cast<usize>(key_code) -
-                                          internal::kKeyBaseOffset);
-}
-
-bool InputManager::IsKeyDown(KeyCode key_code) const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return cached_input_state_.keys_down.Test(static_cast<usize>(key_code) -
-                                            internal::kKeyBaseOffset);
-}
-
-bool InputManager::IsMousePressed(MouseButton key_code) const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return cached_input_state_.mouse_buttons_pressed.Test(
-      static_cast<usize>(key_code));
-}
-
-bool InputManager::IsMouseDown(MouseButton key_code) const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return cached_input_state_.mouse_buttons_down.Test(
-      static_cast<usize>(key_code));
-}
-
-bool InputManager::IsMouseUp(MouseButton key_code) const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return cached_input_state_.mouse_buttons_up.Test(
-      static_cast<usize>(key_code));
-}
-
-math::Vec2 InputManager::GetMousePosition() const {
-  return cached_input_state_.mouse_position;
-}
-
-void InputManager::SetMousePosition(f32 x, f32 y) {
-  fiber::FiberLockGuard lock{updated_input_state_.mtx};
-  updated_input_state_.new_position = math::Vec2{x, y};
-}
-
-void InputManager::EnableUnconstrainedMouseCursor() {
-  fiber::FiberLockGuard lock{updated_input_state_.mtx};
-  updated_input_state_.cursor_mode = MouseCursorMode::Disabled;
-}
-
-void InputManager::DisableUnconstrainedMouseCursor() {
-  fiber::FiberLockGuard lock{updated_input_state_.mtx};
-  updated_input_state_.cursor_mode = MouseCursorMode::Normal;
-}
-
-void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
-  window_handle_ = window_handle;
-}
-
-#ifdef COMET_IMGUI
-void InputManager::EnableImGui() { is_imgui_ = true; }
-#endif  // COMET_IMGUI
-
-bool InputManager::IsAltPressed() const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return IsKeyPressed(KeyCode::LeftAlt) || IsKeyPressed(KeyCode::RightAlt);
-}
-
-bool InputManager::IsShiftPressed() const {
-  if (GameStateManager::Get().IsPaused()) {
-    return false;
-  }
-
-  return IsKeyPressed(KeyCode::LeftShift) || IsKeyPressed(KeyCode::RightShift);
 }
 
 void InputManager::ReadInputs() {
   glfwPollEvents();
 
   for (usize i{0}; i < internal::kKeyCount; ++i) {
-    auto glfw_key{glfwGetKey(window_handle_,
-                             static_cast<s32>(i) + internal::kKeyBaseOffset)};
+    const auto glfw_key{glfwGetKey(
+        window_handle_, static_cast<s32>(i) + internal::kKeyBaseOffset)};
 
     if (glfw_key == GLFW_PRESS) {
       cached_input_state_.keys_pressed.Set(i);
@@ -328,7 +277,7 @@ void InputManager::ReadInputs() {
   }
 
   for (usize i{0}; i < internal::kMouseButtonCount; ++i) {
-    auto glfw_mouse_button{
+    const auto glfw_mouse_button{
         glfwGetMouseButton(window_handle_, static_cast<s32>(i))};
 
     if (glfw_mouse_button == GLFW_PRESS) {

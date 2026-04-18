@@ -5,28 +5,24 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_TEXTURE_MAP_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_DATA_OPENGL_TEXTURE_MAP_H_
 
+// External. ///////////////////////////////////////////////////////////////////
+#include "glad/glad.h"
+////////////////////////////////////////////////////////////////////////////////
+
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/data/opengl_texture.h"
-#include "comet/rendering/rendering_common.h"
-#include "comet/resource/resource.h"
+#include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using SamplerId = usize;
-constexpr auto kInvalidSamplerId{static_cast<SamplerId>(-1)};
-
-struct Sampler {
-  SamplerId id{kInvalidSamplerId};
-  usize ref_count{0};
-  GLuint handle{0};
-};
 
 struct TextureMap {
-  Sampler* sampler{nullptr};
-  const Texture* texture{nullptr};
-  resource::ResourceId texture_resource_id{resource::kInvalidResourceId};
-  rendering::TextureType type{rendering::TextureType::Unknown};
+  SamplerHandle sampler_handle{};
+  TextureHandle texture_handle{};
+  resource::TextureResourceId texture_resource_id{};
+  TextureType type{TextureType::Unknown};
 };
 }  // namespace gl
 }  // namespace rendering

@@ -20,7 +20,7 @@ class SceneLoadRequestEvent : public event::Event {
   SceneLoadRequestEvent(SceneLoadRequestEvent&&) noexcept = default;
   SceneLoadRequestEvent& operator=(const SceneLoadRequestEvent&) = default;
   SceneLoadRequestEvent& operator=(SceneLoadRequestEvent&&) noexcept = default;
-  virtual ~SceneLoadRequestEvent() = default;
+  ~SceneLoadRequestEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 };
@@ -34,7 +34,7 @@ class SceneLoadedEvent : public event::Event {
   SceneLoadedEvent(SceneLoadedEvent&&) noexcept = default;
   SceneLoadedEvent& operator=(const SceneLoadedEvent&) = default;
   SceneLoadedEvent& operator=(SceneLoadedEvent&&) noexcept = default;
-  virtual ~SceneLoadedEvent() = default;
+  ~SceneLoadedEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 };
@@ -48,7 +48,7 @@ class SceneUnloadedEvent : public event::Event {
   SceneUnloadedEvent(SceneUnloadedEvent&&) noexcept = default;
   SceneUnloadedEvent& operator=(const SceneUnloadedEvent&) = default;
   SceneUnloadedEvent& operator=(SceneUnloadedEvent&&) noexcept = default;
-  virtual ~SceneUnloadedEvent() = default;
+  ~SceneUnloadedEvent() override = default;
 
   stringid::StringId GetType() const noexcept override;
 };

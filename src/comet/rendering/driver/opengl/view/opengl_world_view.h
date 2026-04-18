@@ -8,33 +8,40 @@
 #include "comet/core/essentials.h"
 #include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
+#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
-#include "comet/rendering/driver/opengl/view/opengl_shader_view.h"
-#include "comet/rendering/light/light_common.h"
+#include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/rendering/driver/opengl/view/opengl_view.h"
+#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/rendering_handle.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-struct WorldViewDescr : ShaderViewDescr {
+struct WorldViewDescr : ViewDescr {
   const ShadowSettings* shadow_settings{nullptr};
+  ShaderHandler* shader_handler{nullptr};
+  const MaterialHandler* material_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
   LightingHandler* lighting_handler{nullptr};
 };
 
-class WorldView : public ShaderView {
+class WorldView : public View {
  public:
   explicit WorldView(const WorldViewDescr& descr);
   WorldView(const WorldView&) = delete;
   WorldView(WorldView&&) = delete;
   WorldView& operator=(const WorldView&) = delete;
   WorldView& operator=(WorldView&&) = delete;
-  virtual ~WorldView() = default;
+  ~WorldView() override = default;
 
-  void Initialize() override;
-  void Destroy() override;
   void Update(frame::FramePacket* packet) override;
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   void UpdateWorldShader(frame::FramePacket* packet);
@@ -45,13 +52,15 @@ class WorldView : public ShaderView {
 
   const ShadowSettings* shadow_settings_{nullptr};
 
+  ShaderHandler* shader_handler_{nullptr};
+  const MaterialHandler* material_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
   LightingHandler* lighting_handler_{nullptr};
 
-  Shader* world_shader_{nullptr};
-  Shader* cull_shader_{nullptr};
-  Shader* sparse_upload_shader_{nullptr};
+  ShaderHandle world_shader_{};
+  ShaderHandle cull_shader_{};
+  ShaderHandle sparse_upload_shader_{};
 };
 }  // namespace gl
 }  // namespace rendering

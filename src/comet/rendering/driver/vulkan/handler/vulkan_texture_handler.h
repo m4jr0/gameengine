@@ -7,10 +7,10 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/memory.h"
-#include "comet/core/type/map.h"
+#include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_texture.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/rendering/rendering_handle.h"
 #include "comet/resource/texture_resource.h"
 
 namespace comet {
@@ -26,76 +26,37 @@ class TextureHandler : public Handler {
   TextureHandler(TextureHandler&&) = delete;
   TextureHandler& operator=(const TextureHandler&) = delete;
   TextureHandler& operator=(TextureHandler&&) = delete;
-  virtual ~TextureHandler() = default;
+  ~TextureHandler() override = default;
 
-  void Initialize() override;
-  void Shutdown() override;
+  TextureHandle GetOrGenerate(resource::TextureResourceId texture_resource_id);
+  TextureHandle GetOrGenerate(resource::TextureResourceId texture_resource_id,
+                              TextureType type);
+  TextureHandle Generate(const RuntimeTextureDescr& descr);
 
-  const Texture* Generate(const resource::TextureResource* resource);
-  const Texture* Generate(const resource::TextureResource* resource,
-                          TextureType type);
+  void Destroy(TextureHandle handle);
 
-  const Texture* Get(TextureId texture_id) const;
-  const Texture* Get(TextureId texture_id, TextureType type) const;
+  const Texture* Get(TextureHandle handle) const;
 
-  const Texture* TryGet(TextureId texture_id) const;
-  const Texture* TryGet(TextureId texture_id, TextureType type) const;
-
-  const Texture* GetOrGenerate(const resource::TextureResource* resource);
-  const Texture* GetOrGenerate(const resource::TextureResource* resource,
-                               TextureType type);
-
-  void Destroy(TextureId texture_id);
-  void Destroy(TextureId texture_id, TextureType type);
-  void Destroy(Texture* texture);
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
-  struct TextureKey {
-    TextureId id{kInvalidTextureId};
-    TextureType type{TextureType::Unknown};
-  };
+  Texture* Get(TextureHandle handle);
 
-  struct TextureKeyHashLogic : public MapHashLogic<TextureKey, Texture*> {
-    using EntryPair = typename MapHashLogic<TextureKey, Texture*>::Value;
-    using EntryKey = typename MapHashLogic<TextureKey, Texture*>::Hashable;
+  Texture* GenerateTexture(const resource::TextureResource* resource,
+                           TextureType type);
+  void DestroyTexture(Texture* texture);
+  void GenerateMipmaps(Texture* texture) const;
 
-    static const EntryKey& GetHashable(const EntryPair& pair) {
-      return pair.key;
-    }
+  RuntimeTextureId next_runtime_texture_id_{0};
 
-    static HashValue Hash(const EntryKey& key) {
-      HashValue hash{0};
-      hash = HashCombine(hash, static_cast<HashValue>(key.id));
-      hash = HashCombine(hash, static_cast<u32>(key.type));
-      return hash;
-    }
-
-    static bool AreEqual(const EntryKey& a, const EntryKey& b) {
-      return a.id == b.id && a.type == b.type;
-    }
-  };
-
-  Texture* Get(TextureId texture_id);
-  Texture* Get(TextureId texture_id, TextureType type);
-
-  Texture* TryGet(TextureId texture_id);
-  Texture* TryGet(TextureId texture_id, TextureType type);
-
-  void Destroy(Texture* texture, bool is_destroying_handler);
-
-  static u32 GetMipLevels(const resource::TextureResource* resource);
-  static bool IsSrgbTextureType(TextureType type);
-  static VkFormat GetVkFormat(const resource::TextureResource* resource,
-                              TextureType type);
-  static u8 GetResolvedChannelCount(const resource::TextureResource* resource);
-
-  void GenerateMipmaps(const Texture* texture) const;
-  Texture* GenerateInstance(const resource::TextureResource* resource,
-                            TextureType type);
+  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
 
   memory::FiberFreeListAllocator allocator_{sizeof(Texture), 256,
                                             memory::kEngineMemoryTagRendering};
-  Map<TextureKey, Texture*, TextureKeyHashLogic> textures_{};
+
+  SharedInstanceRegistry<TextureKey, TextureTag, Texture> textures_{};
 };
 }  // namespace vk
 }  // namespace rendering

@@ -24,31 +24,12 @@ namespace comet {
 namespace rendering {
 namespace gl {
 DebugView::DebugView(const DebugViewDescr& descr)
-    : ShaderView{descr}, render_proxy_handler_{descr.render_proxy_handler} {
+    : View{descr},
+      shader_handler_{descr.shader_handler},
+      render_proxy_handler_{descr.render_proxy_handler} {
+  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
   COMET_ASSERT(render_proxy_handler_ != nullptr,
                "Render proxy handler is null!");
-}
-
-void DebugView::Initialize() {
-  View::Initialize();
-
-  ShaderDescr shader_descr{};
-  shader_descr.shader_id =
-      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-          COMET_TCHAR("shaders/opengl/forward_debug_shader.gl.cshader"));
-
-  debug_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-}
-
-void DebugView::Destroy() {
-  if (debug_shader_ != nullptr) {
-    shader_handler_->Destroy(debug_shader_);
-    debug_shader_ = nullptr;
-  }
-
-  render_proxy_handler_ = nullptr;
-  shader_handler_ = nullptr;
-  View::Destroy();
 }
 
 void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
@@ -69,6 +50,25 @@ void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
 #endif  // COMET_DEBUG_CULLING
 }
 
+void DebugView::OnInitialize() {
+  ShaderDescr shader_descr{};
+  shader_descr.shader_resource_id =
+      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+          COMET_TCHAR("shaders/opengl/forward_debug_shader.gl.cshader"));
+
+  debug_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+}
+
+void DebugView::OnDestroy() {
+  if (debug_shader_) {
+    shader_handler_->Destroy(debug_shader_);
+    debug_shader_.Invalidate();
+  }
+
+  shader_handler_ = nullptr;
+  render_proxy_handler_ = nullptr;
+}
+
 void DebugView::UpdateDebugShader(
     [[maybe_unused]] const frame::FramePacket* packet) {
 #ifdef COMET_DEBUG_CULLING
@@ -84,8 +84,8 @@ void DebugView::UpdateDebugShader(
     shader_handler_->UpdateGlobals(debug_shader_, global_update);
   }
 
-  auto frame_index{frame_state_->GetFrameInFlightIndex()};
-  auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
   auto& buffer_bindings{
       *COMET_FRAME_ARRAY(ShaderBufferBindingUpdate, static_cast<usize>(2))};
@@ -112,7 +112,7 @@ void DebugView::UpdateDebugShader(
 
 void DebugView::RunDebugCullGeneration() {
 #ifdef COMET_DEBUG_CULLING
-  auto proxy_count{render_proxy_handler_->GetRenderProxyCount()};
+  const auto proxy_count{render_proxy_handler_->GetRenderProxyCount()};
 
   if (proxy_count == 0) {
     return;
@@ -132,8 +132,8 @@ void DebugView::RunDebugCullGeneration() {
   shader_handler_->Bind(debug_shader_, ShaderBindType::Compute);
   shader_handler_->PushConstants(debug_shader_, push_constants);
 
-  auto group_count{static_cast<u32>((proxy_count + kShaderLocalSize - 1) /
-                                    kShaderLocalSize)};
+  const auto group_count{static_cast<u32>((proxy_count + kShaderLocalSize - 1) /
+                                          kShaderLocalSize)};
 
   glDispatchCompute(group_count, 1, 1);
 
@@ -144,28 +144,30 @@ void DebugView::RunDebugCullGeneration() {
 
 void DebugView::DrawDebugCull() {
 #ifdef COMET_DEBUG_CULLING
-  auto vertex_count{render_proxy_handler_->GetDebugLineVertexCount()};
+  const auto vertex_count{render_proxy_handler_->GetDebugLineVertexCount()};
 
   if (vertex_count == 0) {
     return;
   }
 
-  auto vertex_buffer_handle{render_proxy_handler_->GetDebugLineBufferHandle()};
+  const auto vertex_buffer_handle{
+      render_proxy_handler_->GetDebugLineBufferHandle()};
 
-  COMET_ASSERT(vertex_buffer_handle != kInvalidStorageHandle,
+  COMET_ASSERT(vertex_buffer_handle != kInvalidGlNativeStorageHandle,
                "Debug line buffer handle is invalid!");
 
   ShaderVertexSource source{};
-  source.vertex_buffer_handle =
+  source.vertex_buffer_native_handle =
       render_proxy_handler_->GetDebugLineBufferHandle();
   source.has_index_buffer = false;
-  source.vertex_source_id = source.vertex_buffer_handle;
+  source.vertex_source_id = source.vertex_buffer_native_handle;
 
   shader_handler_->Bind(debug_shader_, ShaderBindType::Graphics);
   shader_handler_->BindVertexSource(debug_shader_, source);
 
-  glDrawArrays(debug_shader_->topology, 0, static_cast<GLsizei>(vertex_count));
-#endif
+  glDrawArrays(shader_handler_->GetTopology(debug_shader_), 0,
+               static_cast<GLsizei>(vertex_count));
+#endif  // COMET_DEBUG_CULLING
 }
 
 void DebugView::SetViewport() const {

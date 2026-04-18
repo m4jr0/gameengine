@@ -23,6 +23,7 @@ memory::Allocator& GetDoubleFrameAllocator();
 
 void AttachFrameAllocator(memory::Allocator* allocator);
 void AttachDoubleFrameAllocator(memory::Allocator* allocator);
+
 void DetachFrameAllocator();
 void DetachDoubleFrameAllocator();
 }  // namespace frame

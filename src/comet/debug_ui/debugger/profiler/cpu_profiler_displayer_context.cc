@@ -38,7 +38,7 @@ usize CpuProfilerDisplayerContext::GetFrameIndex() const {
 
 const profiler::FrameProfilerContext*
 CpuProfilerDisplayerContext::GetFrameContext() const {
-  auto index{GetFrameIndex()};
+  const auto index{GetFrameIndex()};
 
   if (index == kInvalidIndex) {
     return nullptr;

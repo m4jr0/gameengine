@@ -61,33 +61,6 @@ struct DebugData {
 StringIdAllocator::StringIdAllocator(usize capacity)
     : capacity_{capacity}, offset_{kInvalidOffset_}, root_{nullptr} {}
 
-StringIdAllocator::~StringIdAllocator() {
-  COMET_ASSERT(
-      !is_initialized_,
-      "Destructor called for aligned allocator, but it is still initialized!");
-}
-
-void StringIdAllocator::Initialize() {
-  COMET_ASSERT(
-      !is_initialized_,
-      "Tried to initialize aligned allocator, but it is already done!");
-  offset_ = 0;
-  root_ = static_cast<u8*>(
-      memory::AllocateAligned(sizeof(schar) * capacity_, alignof(schar),
-                              memory::kEngineMemoryTagStringId));
-  is_initialized_ = true;
-}
-
-void StringIdAllocator::Destroy() {
-  COMET_ASSERT(
-      is_initialized_,
-      "Tried to shutdown aligned allocator, but it is not initialized!");
-  memory::Deallocate(root_);
-  offset_ = kInvalidOffset_;
-  root_ = nullptr;
-  is_initialized_ = false;
-}
-
 void* StringIdAllocator::AllocateAligned(usize size, memory::Alignment align) {
   COMET_ASSERT(size > 0, "Allocation size provided is 0!");
   auto current_offset{offset_.load(std::memory_order_relaxed)};
@@ -124,8 +97,17 @@ void StringIdAllocator::Clear() { offset_.store(0, std::memory_order_release); }
 
 void StringIdAllocator::Reset() {}
 
-bool StringIdAllocator::IsInitialized() const noexcept {
-  return is_initialized_;
+void StringIdAllocator::OnInitialize() {
+  offset_ = 0;
+  root_ = static_cast<u8*>(
+      memory::AllocateAligned(sizeof(schar) * capacity_, alignof(schar),
+                              memory::kEngineMemoryTagStringId));
+}
+
+void StringIdAllocator::OnDestroy() {
+  memory::Deallocate(root_);
+  offset_ = kInvalidOffset_;
+  root_ = nullptr;
 }
 
 static DebugData& GetDebugData() {

@@ -11,67 +11,65 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/memory.h"
-#include "comet/core/type/map.h"
-#include "comet/math/math_common.h"
+#include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/vulkan/data/vulkan_material.h"
+#include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/rendering/rendering_handle.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-using MaterialDestroyCallback = void (*)(Material* material, void* user_data);
+using MaterialDestroyCallback = void (*)(const Material*, void*);
 
 struct MaterialHandlerDescr : HandlerDescr {
   TextureHandler* texture_handler{nullptr};
+  SamplerHandler* sampler_handler{nullptr};
 };
 
 class MaterialHandler : public Handler {
  public:
   MaterialHandler() = delete;
   explicit MaterialHandler(const MaterialHandlerDescr& descr);
-  MaterialHandler(const MaterialHandler&) = delete;
-  MaterialHandler(MaterialHandler&&) = delete;
-  MaterialHandler& operator=(const MaterialHandler&) = delete;
-  MaterialHandler& operator=(MaterialHandler&&) = delete;
-  virtual ~MaterialHandler() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~MaterialHandler() override = default;
 
   void SetDestroyCallback(MaterialDestroyCallback callback, void* user_data);
 
-  Material* Generate(const MaterialDescr& descr);
-  Material* Generate(const resource::MaterialResource* resource);
-  Material* Get(MaterialId material_id);
-  Material* TryGet(MaterialId material_id);
-  void Destroy(MaterialId material_id);
-  void Destroy(Material* material);
+  MaterialHandle GetOrGenerate(const MaterialDescr& descr);
+  MaterialHandle GetOrGenerate(
+      resource::MaterialResourceId material_resource_id);
+
+  void Destroy(MaterialHandle handle);
+
+  const Material* Get(MaterialHandle handle) const;
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
-  TextureMap GenerateTextureMap(const resource::TextureMap* map,
-                                resource::ResourceLifeSpan life_span =
-                                    resource::ResourceLifeSpan::Manual);
-  void Destroy(Material* material, bool is_destroying_handler);
-  Sampler* GenerateSampler(SamplerId sampler_id,
-                           const VkSamplerCreateInfo& info);
-  Sampler* GetSampler(SamplerId sampler_id);
-  Sampler* TryGetSampler(SamplerId sampler_id);
-  Sampler* GetOrGenerateSampler(const resource::TextureMap* texture_map);
-  void Destroy(Sampler* sampler);
+  TextureMap GenerateTextureMap(const resource::TextureMapResource* map);
+  void DestroyMaterial(Material* material);
 
-  memory::FiberFreeListAllocator allocator_{
-      math::Max(sizeof(Pair<MaterialId, Material>),
-                sizeof(Pair<SamplerId, Sampler>)),
-      256, memory::kEngineMemoryTagRendering};
+  SamplerHandle GetOrGenerateSampler(const resource::TextureMapResource* map);
+
+  Material* Get(MaterialHandle handle);
+
+  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+
+  memory::FiberFreeListAllocator allocator_{sizeof(Material), 256,
+                                            memory::kEngineMemoryTagRendering};
+
+  SharedInstanceRegistry<resource::MaterialResourceId, MaterialTag, Material>
+      materials_;
 
   MaterialDestroyCallback destroy_callback_{nullptr};
   void* destroy_callback_user_data_{nullptr};
-  Map<MaterialId, Material*> materials_{};
-  Map<SamplerId, Sampler*> samplers_{};
+
   TextureHandler* texture_handler_{nullptr};
+  SamplerHandler* sampler_handler_{nullptr};
 };
 }  // namespace vk
 }  // namespace rendering

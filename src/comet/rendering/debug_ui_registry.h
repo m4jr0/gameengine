@@ -1,3 +1,7 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
 #ifndef COMET_COMET_RENDERING_DEBUG_UI_REGISTRY_H_
 #define COMET_COMET_RENDERING_DEBUG_UI_REGISTRY_H_
 
@@ -14,7 +18,7 @@
 
 namespace comet {
 namespace rendering {
-class DebugUiRegistry : public Manager {
+class DebugUiRegistry {
  public:
   using DrawCallback = std::function<void()>;
   using CallbackId = u64;
@@ -23,12 +27,16 @@ class DebugUiRegistry : public Manager {
 
   static DebugUiRegistry& Get();
 
+  ~DebugUiRegistry();
+
   void Initialize();
   void Destroy();
 
   CallbackId Register(DrawCallback callback);
   bool Unregister(CallbackId id);
+
   void Clear();
+
   void Draw() const;
 
  private:
@@ -37,6 +45,7 @@ class DebugUiRegistry : public Manager {
     DrawCallback callback{};
   };
 
+  bool is_initialized_{false};
   CallbackId next_callback_id_{1};
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagDebug};
   Array<Entry> entries_{};

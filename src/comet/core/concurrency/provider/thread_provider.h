@@ -28,17 +28,19 @@ class ThreadProvider {
                  "initialized!");
   }
 
-  virtual void Initialize() {
+  void Initialize() {
     COMET_ASSERT(
         !is_initialized_,
         "Tried to initialize thread provider, but it is already done!");
+    OnInitialize();
     is_initialized_ = true;
   }
 
-  virtual void Destroy() {
+  void Destroy() {
     COMET_ASSERT(
         is_initialized_,
         "Tried to destroy thread provider, but it is not initialized!");
+    OnDestroy();
     array_.Destroy();
     is_initialized_ = false;
   }
@@ -87,8 +89,13 @@ class ThreadProvider {
     return *this;
   }
 
-  bool is_initialized_ = false;
   Array<T> array_{};
+
+  virtual void OnInitialize() {}
+  virtual void OnDestroy() {}
+
+ private:
+  bool is_initialized_{false};
 };  // namespace thread
 
 template <typename T>
@@ -132,19 +139,19 @@ class FiberThreadProvider : public ThreadProvider<T> {
 
   ~FiberThreadProvider() override = default;
 
-  void Initialize() override {
-    ThreadProvider<T>::Initialize();
-    this->array_ = Array<T>{allocator_};
-    this->array_.Resize(job::GetCurrentFiberWorkerCount());
-  }
-
   T& Get() override {
     COMET_ASSERT(job::GetWorkerTag() == job::FiberWorker::kTag_,
                  "Tried to provide outside a fiber worker!");
-    auto type_index{job::GetWorkerTypeIndex()};
+    const auto type_index{job::GetWorkerTypeIndex()};
     COMET_ASSERT(type_index != job::kInvalidWorkerTypeIndex,
                  "Invalid worker type index retrieved!");
     return this->array_[type_index];
+  }
+
+ protected:
+  void OnInitialize() override {
+    this->array_ = Array<T>{allocator_};
+    this->array_.Resize(job::GetCurrentFiberWorkerCount());
   }
 
  private:
@@ -192,19 +199,19 @@ class IOThreadProvider : public ThreadProvider<T> {
 
   ~IOThreadProvider() override = default;
 
-  void Initialize() override {
-    ThreadProvider<T>::Initialize();
-    this->array_ = Array<T>{allocator_};
-    this->array_.Resize(job::GetCurrentIOWorkerCount());
-  }
-
   T& Get() override {
     COMET_ASSERT(job::GetWorkerTag() == job::IOWorker::kTag_,
                  "Tried to provide outside an I/O worker!");
-    auto type_index{job::GetWorkerTypeIndex()};
+    const auto type_index{job::GetWorkerTypeIndex()};
     COMET_ASSERT(type_index != job::kInvalidWorkerTypeIndex,
                  "Invalid worker type index retrieved!");
     return this->array_[type_index];
+  }
+
+ protected:
+  void OnInitialize() override {
+    this->array_ = Array<T>{allocator_};
+    this->array_.Resize(job::GetCurrentIOWorkerCount());
   }
 
  private:

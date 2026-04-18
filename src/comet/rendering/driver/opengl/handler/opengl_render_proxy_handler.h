@@ -26,30 +26,35 @@ namespace comet {
 namespace rendering {
 namespace gl {
 struct RenderProxySparseUploadData {
-  StorageHandle ssbo_word_indices_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_word_indices_handle{kInvalidGlNativeStorageHandle};
   GLsizei ssbo_word_indices_size{0};
 
-  StorageHandle ssbo_source_words_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_source_words_handle{kInvalidGlNativeStorageHandle};
   GLsizei ssbo_source_words_size{0};
 
-  StorageHandle ssbo_destination_words_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_destination_words_handle{
+      kInvalidGlNativeStorageHandle};
   GLsizei ssbo_destination_words_size{0};
 
   u32 word_count{0};
 };
 
 struct RenderProxyGpuData {
-  StorageHandle ssbo_proxy_local_datas_handle{kInvalidStorageHandle};
-  StorageHandle ssbo_proxy_ids_handle{kInvalidStorageHandle};
-  StorageHandle ssbo_proxy_instances_handle{kInvalidStorageHandle};
-  StorageHandle ssbo_indirect_proxies_handle{kInvalidStorageHandle};
-  StorageHandle ssbo_matrix_palettes_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_proxy_local_datas_handle{
+      kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_proxy_ids_handle{kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_proxy_instances_handle{
+      kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_indirect_proxies_handle{
+      kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_matrix_palettes_handle{
+      kInvalidGlNativeStorageHandle};
 #ifdef COMET_DEBUG_RENDERING
-  StorageHandle ssbo_debug_data_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_debug_data_handle{kInvalidGlNativeStorageHandle};
 #endif  // COMET_DEBUG_RENDERING
 #ifdef COMET_DEBUG_CULLING
-  StorageHandle ssbo_debug_aabbs_handle{kInvalidStorageHandle};
-  StorageHandle ssbo_debug_lines_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_debug_aabbs_handle{kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_debug_lines_handle{kInvalidGlNativeStorageHandle};
 #endif  // COMET_DEBUG_CULLING
 
   GLsizei ssbo_proxy_local_datas_size{0};
@@ -80,10 +85,7 @@ class RenderProxyHandler : public Handler {
   RenderProxyHandler(RenderProxyHandler&&) = delete;
   RenderProxyHandler& operator=(const RenderProxyHandler&) = delete;
   RenderProxyHandler& operator=(RenderProxyHandler&&) = delete;
-  virtual ~RenderProxyHandler() = default;
-
-  void Initialize() override;
-  void Shutdown() override;
+  ~RenderProxyHandler() override = default;
 
   void Update(frame::FramePacket* packet);
   void Reset();
@@ -105,16 +107,20 @@ class RenderProxyHandler : public Handler {
 
   const Array<RenderBatchGroup>* GetBatchGroups() const noexcept;
   const Array<RenderIndirectBatch>* GetIndirectBatches() const noexcept;
-  StorageHandle GetIndirectBufferHandle(
+  GlNativeStorageHandle GetIndirectBufferHandle(
       FrameInFlightIndex frame_index) const noexcept;
 
-  StorageHandle GetShadowIndirectBufferHandle(
+  GlNativeStorageHandle GetShadowIndirectBufferHandle(
       FrameInFlightIndex frame_index) const noexcept;
 
 #ifdef COMET_DEBUG_CULLING
-  StorageHandle GetDebugLineBufferHandle() const noexcept;
+  GlNativeStorageHandle GetDebugLineBufferHandle() const noexcept;
   u32 GetDebugLineVertexCount() const noexcept;
 #endif  // COMET_DEBUG_CULLING
+
+ protected:
+  void OnInitialize() override;
+  void OnShutdown() override;
 
  private:
   static inline constexpr usize kMaxRenderProxyCount_{100000};
@@ -133,14 +139,19 @@ class RenderProxyHandler : public Handler {
 
   void GenerateUpdateTemporaryStructures(const frame::FramePacket* packet);
   void DestroyUpdateTemporaryStructures();
+
   void ApplyRenderProxyChanges(const frame::FramePacket* packet);
+
   void ProcessBatches();
+
   void GenerateRenderProxies(const frame::AddedGeometries* geometries);
   void UpdateRenderProxies(const frame::DirtyMeshes* meshes,
                            const frame::DirtyTransforms* transforms);
   void DestroyRenderProxies(const frame::RemovedGeometries* geometries);
+
   void UpdateSkinningMatrices(const frame::SkinningBindings* bindings,
                               const frame::MatrixPalettes* palettes);
+
   void GenerateBatchEntries();
   void GenerateIndirectBatches();
   void GenerateBatchGroups();
@@ -178,6 +189,8 @@ class RenderProxyHandler : public Handler {
   void DestroyCullingDebug();
 #endif  // COMET_DEBUG_CULLING
 
+  void DestroyLiveProxyMaterials();
+
   FrameCount update_frame_{kInvalidFrameCount};
   u32 render_proxy_count_{0};
   u32 render_proxy_visible_count_{0};
@@ -201,29 +214,33 @@ class RenderProxyHandler : public Handler {
   Array<RenderBatchEntry> new_batch_entries_{};
   Array<RenderBatchEntry> batch_entries_{};
 
-  Array<StorageHandle> ssbo_proxy_ids_handle_{};
-  Array<StorageHandle> ssbo_indirect_proxies_handle_{};
-  Array<StorageHandle> ssbo_proxy_instances_handle_{};
+  Array<GlNativeStorageHandle> ssbo_proxy_ids_handle_{};
+  Array<GlNativeStorageHandle> ssbo_indirect_proxies_handle_{};
+  Array<GlNativeStorageHandle> ssbo_proxy_instances_handle_{};
 
-  Array<StorageHandle> ssbo_shadow_indirect_proxies_handle_{};
+  Array<GlNativeStorageHandle> ssbo_shadow_indirect_proxies_handle_{};
   Array<GLsizei> ssbo_shadow_indirect_proxies_buffer_size_{};
 
   Array<GLsizei> ssbo_proxy_ids_buffer_size_{};
   Array<GLsizei> ssbo_indirect_proxies_buffer_size_{};
   Array<GLsizei> ssbo_proxy_instances_buffer_size_{};
 
-  StorageHandle staging_ssbo_proxy_local_datas_handle_{kInvalidStorageHandle};
-  StorageHandle ssbo_proxy_local_datas_handle_{kInvalidStorageHandle};
-  StorageHandle ssbo_matrix_palettes_handle_{kInvalidStorageHandle};
-  StorageHandle ssbo_word_indices_handle_{kInvalidStorageHandle};
+  GlNativeStorageHandle staging_ssbo_proxy_local_datas_handle_{
+      kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_proxy_local_datas_handle_{
+      kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_matrix_palettes_handle_{
+      kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_word_indices_handle_{
+      kInvalidGlNativeStorageHandle};
 
 #ifdef COMET_DEBUG_RENDERING
-  StorageHandle ssbo_debug_data_handle_[kDebugDataBufferCount_]{};
+  GlNativeStorageHandle ssbo_debug_data_handle_[kDebugDataBufferCount_]{};
 #endif  // COMET_DEBUG_RENDERING
 
 #ifdef COMET_DEBUG_CULLING
-  StorageHandle ssbo_debug_aabbs_handle_{kInvalidStorageHandle};
-  StorageHandle ssbo_debug_lines_handle_{kInvalidStorageHandle};
+  GlNativeStorageHandle ssbo_debug_aabbs_handle_{kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle ssbo_debug_lines_handle_{kInvalidGlNativeStorageHandle};
 #endif  // COMET_DEBUG_CULLING
 
   GLsizei staging_ssbo_proxy_local_datas_buffer_size_{0};

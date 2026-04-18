@@ -112,7 +112,7 @@ void AssetExporter::OnResourceFilesProcess(job::JobParamsHandle params_handle) {
   // GCC where the generated type is an array which... contains an array (which
   // is wrong).
   auto resource_files = nlohmann::json::array();
-  constexpr auto kBufferSize{GetCharCount<resource::ResourceId>() + 1};
+  constexpr auto kBufferSize{GetCharCount<resource::RawResourceId>() + 1};
   schar buffer[kBufferSize]{'\0'};
   usize out_len{0};
 

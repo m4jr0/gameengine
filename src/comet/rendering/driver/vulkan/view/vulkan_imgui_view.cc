@@ -36,9 +36,29 @@ ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
   COMET_ASSERT(window_ != nullptr, "Window is null!");
 }
 
-void ImGuiView::Initialize() {
-  View::Initialize();
+void ImGuiView::Update(frame::FramePacket*) {
+  COMET_PROFILE("ImGuiView::Update");
+  ImGui_ImplVulkan_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+  Draw();
+  ImGui::Render();
 
+  VkClearValue clear_values[2]{};
+  memory::CopyMemory(&clear_values[0].color, clear_color_,
+                     sizeof(clear_values[0].color.float32[0]) * 4);
+  clear_values[1].depthStencil.depth = 1.0f;
+  clear_values[1].depthStencil.stencil = 0;
+
+  const auto command_buffer_handle{
+      context_->GetFrameData().command_buffer_handle};
+  render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
+                                  context_->GetImageIndex(), clear_values, 2);
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_handle);
+  render_pass_handler_->EndPass(command_buffer_handle);
+}
+
+void ImGuiView::OnInitialize() {
   RenderPassDescr render_pass_descr{};
 
   VkExtent2D extent{};
@@ -61,7 +81,7 @@ void ImGuiView::Initialize() {
   dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
   auto& device{context_->GetDevice()};
-  auto is_msaa{device.IsMsaa()};
+  const auto is_msaa{device.IsMsaa()};
 
   render_pass_descr.clear_flags = GenerateClearFlags(pass_descr_);
   render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
@@ -104,7 +124,7 @@ void ImGuiView::Initialize() {
 #endif  // COMET_DEBUG
   ImGui::CreateContext();
   ImGui_ImplGlfw_InitForVulkan(window_->GetHandle(), false);
-  auto image_count{context_->GetImageCount()};
+  const auto image_count{context_->GetImageCount()};
 
   ImGui_ImplVulkan_InitInfo imgui_info{};
   imgui_info.Instance = context_->GetInstanceHandle();
@@ -126,7 +146,7 @@ void ImGuiView::Initialize() {
   ImGui::StyleColorsDark();
 }
 
-void ImGuiView::Destroy() {
+void ImGuiView::OnDestroy() {
   ImGui_ImplGlfw_Shutdown();
   ImGui_ImplVulkan_Shutdown();
 
@@ -137,28 +157,6 @@ void ImGuiView::Destroy() {
   }
 
   ImGui::DestroyContext();
-  View::Destroy();
-}
-
-void ImGuiView::Update(frame::FramePacket*) {
-  COMET_PROFILE("ImGuiView::Update");
-  ImGui_ImplVulkan_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
-  Draw();
-  ImGui::Render();
-
-  VkClearValue clear_values[2]{};
-  memory::CopyMemory(&clear_values[0].color, clear_color_,
-                     sizeof(clear_values[0].color.float32[0]) * 4);
-  clear_values[1].depthStencil.depth = 1.0f;
-  clear_values[1].depthStencil.stencil = 0;
-
-  auto command_buffer_handle{context_->GetFrameData().command_buffer_handle};
-  render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
-                                  context_->GetImageIndex(), clear_values, 2);
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_handle);
-  render_pass_handler_->EndPass(command_buffer_handle);
 }
 
 void vk::ImGuiView::Draw() const {

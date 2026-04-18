@@ -84,8 +84,8 @@ void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
   // TODO(m4jr0): Use buffer from allocator.
   constexpr auto kSize{512};
   schar tmp[kSize]{'\0'};
-  auto arg_len{GetLength(arg) + 1};
-  auto tmp_len{kSize < arg_len ? kSize : arg_len};
+  const auto arg_len{GetLength(arg) + 1};
+  const auto tmp_len{kSize < arg_len ? kSize : arg_len};
   Copy(tmp, arg, tmp_len - 1);
   tmp[tmp_len - 1] = '\0';
   AddToBuffer(buffer, len, offset, std::string_view{tmp});
@@ -115,7 +115,7 @@ void Logger::AddToBuffer(schar* buffer, usize len, usize& offset,
 
 void Logger::Send(const schar* str, usize len) {
   for (;;) {
-    auto current_buffer_index{
+    const auto current_buffer_index{
         current_buffer_index_.load(std::memory_order_acquire)};
 
     auto& buffer{buffers_[current_buffer_index]};
@@ -127,7 +127,7 @@ void Logger::Send(const schar* str, usize len) {
       continue;
     }
 
-    auto old_current_len{
+    const auto old_current_len{
         buffer.write_index.fetch_add(len, std::memory_order_acq_rel)};
 
     // Take \0 into account.
@@ -155,7 +155,7 @@ void Logger::ListenToFlushRequests() {
 
     // current_buffer_index_ will always be synchronized by the flush thread
     // (only this thread modifies this value).
-    auto current_buffer_index{
+    const auto current_buffer_index{
         current_buffer_index_.load(std::memory_order_relaxed)};
 
     if (flush_chrono_.IsFinished() ||
@@ -171,7 +171,7 @@ void Logger::Flush() {
 
   // current_buffer_index_ will always be synchronized by the flush thread (only
   // this thread modifies this value).
-  auto current_buffer_index{
+  const auto current_buffer_index{
       current_buffer_index_.load(std::memory_order_relaxed)};
   current_buffer_index_.exchange((current_buffer_index + 1) % kBufferCount_,
                                  std::memory_order_release);
@@ -182,7 +182,7 @@ void Logger::Flush() {
     thread::Yield();
   }
 
-  auto len{buffers_[current_buffer_index].write_index.load(
+  const auto len{buffers_[current_buffer_index].write_index.load(
       std::memory_order_acquire)};
 
   if (len == 0) {
@@ -200,7 +200,7 @@ void Logger::Flush() {
 void Logger::PopulateFiberPrefix(schar* buffer, usize buffer_len) {
   // This code doesn't check for buffer overflows.
   // That's fine for now, as it's only used for debugging.
-  auto thread_id{thread::GetThreadId()};
+  const auto thread_id{thread::GetThreadId()};
 
   buffer[0] = '[';
   ++buffer;
@@ -214,12 +214,12 @@ void Logger::PopulateFiberPrefix(schar* buffer, usize buffer_len) {
 
   if (fiber::IsFiber()) {
     const auto* fiber{fiber::GetFiber()};
-    auto fiber_id{fiber->GetId()};
+    const auto fiber_id{fiber->GetId()};
     ConvertToStr(fiber_id, buffer, buffer_len, &cur_len);
     buffer += cur_len;
 #ifdef COMET_FIBER_DEBUG_LABEL
     const auto* fiber_label{fiber->GetDebugLabel()};
-    auto fiber_label_len{GetLength(fiber_label)};
+    const auto fiber_label_len{GetLength(fiber_label)};
     buffer[0] = '#';
     ++buffer;
     Copy(buffer, fiber_label, fiber_label_len);

@@ -19,7 +19,7 @@ class PlatformAllocator : public Allocator {
   PlatformAllocator(PlatformAllocator&&) = default;
   PlatformAllocator& operator=(const PlatformAllocator&) = default;
   PlatformAllocator& operator=(PlatformAllocator&&) = default;
-  ~PlatformAllocator() = default;
+  ~PlatformAllocator() override = default;
 
   virtual void* AllocateAligned(usize size, Alignment align) override;
   virtual void Deallocate(void* ptr) override;
@@ -37,15 +37,16 @@ class PlatformStackAllocator : public StatefulAllocator {
   PlatformStackAllocator& operator=(const PlatformStackAllocator&) = delete;
   PlatformStackAllocator& operator=(PlatformStackAllocator&& other) noexcept;
 
-  void Initialize() override;
-  void Destroy() override;
-
   void* AllocateAligned(usize size, Alignment align) override;
   void Deallocate(void*) override;
 
   // These functions are not thread-safe and must only be called during specific
   // synchronization points.
   void Clear();
+
+ protected:
+  void OnInitialize() override;
+  void OnDestroy() override;
 
  private:
   using PlatformStackAllocatorMarker = u8*;

@@ -29,26 +29,6 @@ ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
   COMET_ASSERT(window_ != nullptr, "Window is null!");
 }
 
-void ImGuiView::Initialize() {
-  View::Initialize();
-
-#ifdef COMET_DEBUG
-  IMGUI_CHECKVERSION();
-#endif  // COMET_DEBUG
-
-  ImGui::CreateContext();
-  ImGui_ImplGlfw_InitForOpenGL(window_->GetHandle(), false);
-  ImGui_ImplOpenGL3_Init();
-  ImGui::StyleColorsDark();
-}
-
-void ImGuiView::Destroy() {
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-  View::Destroy();
-}
-
 void ImGuiView::Update(frame::FramePacket*) {
   COMET_PROFILE("ImGuiView::Update");
   ImGui_ImplOpenGL3_NewFrame();
@@ -59,6 +39,23 @@ void ImGuiView::Update(frame::FramePacket*) {
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void ImGuiView::OnInitialize() {
+#ifdef COMET_DEBUG
+  IMGUI_CHECKVERSION();
+#endif  // COMET_DEBUG
+
+  ImGui::CreateContext();
+  ImGui_ImplGlfw_InitForOpenGL(window_->GetHandle(), false);
+  ImGui_ImplOpenGL3_Init();
+  ImGui::StyleColorsDark();
+}
+
+void ImGuiView::OnDestroy() {
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 }
 
 void ImGuiView::Draw() const {

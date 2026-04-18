@@ -10,15 +10,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
+#include "comet/geometry/geometry_type.h"
 #include "comet/rendering/driver/opengl/data/opengl_storage.h"
 
 namespace comet {
 namespace rendering {
 namespace gl {
-using MeshProxyHandle = usize;
-constexpr auto kInvalidMeshProxyHandle{static_cast<MeshProxyHandle>(-1)};
-
 struct MeshProxy {
+  bool is_alive{false};
+  geometry::MeshHandle mesh_handle{};
+
   GLsizei vertex_count{0};
   GLsizei index_count{0};
   GLint vertex_offset{0};
@@ -30,8 +31,10 @@ constexpr auto kInvalidVertexSourceId{0};
 
 struct ShaderVertexSource {
   bool has_index_buffer{false};
-  StorageHandle vertex_buffer_handle{kInvalidStorageHandle};
-  StorageHandle index_buffer_handle{kInvalidStorageHandle};
+  GlNativeStorageHandle vertex_buffer_native_handle{
+      kInvalidGlNativeStorageHandle};
+  GlNativeStorageHandle index_buffer_native_handle{
+      kInvalidGlNativeStorageHandle};
   VertexSourceId vertex_source_id{0};
 };
 }  // namespace gl

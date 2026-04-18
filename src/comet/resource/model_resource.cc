@@ -10,45 +10,49 @@
 #include "model_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/type/array.h"
+#include "comet/core/type/string_id.h"
 
 namespace comet {
 namespace resource {
-const ResourceTypeId StaticModelResource::kResourceTypeId{
-    COMET_STRING_ID("static_model")};
+const StaticModelResource::TypeId StaticModelResource::kResourceTypeId{
+    COMET_STRING_ID(StaticModelResource::kResourceTypeName.data())};
 
-const ResourceTypeId SkeletalModelResource::kResourceTypeId{
-    COMET_STRING_ID("skeletal_model")};
+const SkeletalModelResource::TypeId SkeletalModelResource::kResourceTypeId{
+    COMET_STRING_ID(SkeletalModelResource::kResourceTypeName.data())};
 
-const ResourceTypeId SkeletonResource::kResourceTypeId{
-    COMET_STRING_ID("skeleton")};
+const SkeletonResource::TypeId SkeletonResource::kResourceTypeId{
+    COMET_STRING_ID(SkeletonResource::kResourceTypeName.data())};
+
+StaticModelResource::Id StaticModelResource::GetId() const noexcept {
+  return Id{id};
+}
+
+SkeletalModelResource::Id SkeletalModelResource::GetId() const noexcept {
+  return Id{id};
+}
+
+SkeletonResource::Id SkeletonResource::GetId() const noexcept { return Id{id}; }
 
 usize GetMeshSize(const StaticMeshResource& resource) {
-  constexpr auto kModelIdSize{sizeof(ResourceId)};
-  constexpr auto kMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kMeshType{sizeof(geometry::MeshType)};
-  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
-  constexpr auto kTransformSize{sizeof(math::Mat4)};
-  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
-  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
-  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  const auto kVertexCount{resource.vertices.GetSize()};
-  const auto kIndexCount{resource.indices.GetSize()};
+  const auto vertex_count{resource.vertices.GetSize()};
+  const auto index_count{resource.indices.GetSize()};
 
-  const auto kVertexCountSize{sizeof(kVertexCount)};
-  const auto kIndexCountSize{sizeof(kIndexCount)};
-
-  constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
-  constexpr auto kIndexSize{sizeof(geometry::Index)};
-
-  return kModelIdSize + kMeshIdSize + kMeshType + kMaterialIdSize +
-         kTransformSize + kLocalCenterSize + kLocalMaxExtentsSize +
-         kParentMeshIdSize + kVertexCountSize + kVertexCount * kVertexSize +
-         kIndexCountSize + kIndexCount * kIndexSize;
+  return sizeof(RawResourceId) +       // resource_id
+         sizeof(RawResourceId) +       // internal_id
+         sizeof(geometry::MeshType) +  // type
+         sizeof(MaterialResourceId) +  // material_resource_id
+         sizeof(math::Mat4) +          // transform
+         sizeof(math::Vec3) +          // local_center
+         sizeof(math::Vec3) +          // local_max_extents
+         sizeof(RawResourceId) +       // parent_id
+         sizeof(vertex_count) +        // vertex_count
+         vertex_count * sizeof(geometry::SkinnedVertex) +
+         sizeof(index_count) +  // index_count
+         index_count * sizeof(geometry::Index);
 }
 
 usize GetModelSize(const StaticModelResource& resource) {
-  usize size{sizeof(ResourceId) + sizeof(ResourceTypeId) + sizeof(usize)};
+  auto size{sizeof(RawResourceId) + sizeof(ResourceTypeId) + sizeof(usize)};
 
   for (const auto& mesh : resource.meshes) {
     size += GetMeshSize(mesh);
@@ -58,32 +62,26 @@ usize GetModelSize(const StaticModelResource& resource) {
 }
 
 usize GetMeshSize(const SkinnedMeshResource& resource) {
-  constexpr auto kModelIdSize{sizeof(ResourceId)};
-  constexpr auto kMeshIdSize{sizeof(ResourceId)};
-  constexpr auto kMeshType{sizeof(geometry::MeshType)};
-  constexpr auto kMaterialIdSize{sizeof(ResourceId)};
-  constexpr auto kTransformSize{sizeof(math::Mat4)};
-  constexpr auto kLocalCenterSize{sizeof(math::Vec3)};
-  constexpr auto kLocalMaxExtentsSize{sizeof(math::Vec3)};
-  constexpr auto kParentMeshIdSize{sizeof(ResourceId)};
-  const auto kVertexCount{resource.vertices.GetSize()};
-  const auto kIndexCount{resource.indices.GetSize()};
+  const auto vertex_count{resource.vertices.GetSize()};
+  const auto index_count{resource.indices.GetSize()};
 
-  const auto kVertexCountSize{sizeof(kVertexCount)};
-  const auto kIndexCountSize{sizeof(kIndexCount)};
-
-  constexpr auto kVertexSize{sizeof(geometry::SkinnedVertex)};
-  constexpr auto kIndexSize{sizeof(geometry::Index)};
-
-  return kModelIdSize + kMeshIdSize + kMeshType + kMaterialIdSize +
-         kTransformSize + kLocalCenterSize + kLocalMaxExtentsSize +
-         kParentMeshIdSize + kVertexCountSize + kVertexCount * kVertexSize +
-         kIndexCountSize + kIndexCount * kIndexSize;
+  return sizeof(RawResourceId) +       // resource_id
+         sizeof(RawResourceId) +       // internal_id
+         sizeof(geometry::MeshType) +  // type
+         sizeof(MaterialResourceId) +  // material_resource_id
+         sizeof(math::Mat4) +          // transform
+         sizeof(math::Vec3) +          // local_center
+         sizeof(math::Vec3) +          // local_max_extents
+         sizeof(RawResourceId) +       // parent_id
+         sizeof(vertex_count) +        // vertex_count
+         vertex_count * sizeof(geometry::SkinnedVertex) +
+         sizeof(index_count) +  // index_count
+         index_count * sizeof(geometry::Index);
 }
 
 usize GetModelSize(const SkeletalModelResource& resource) {
-  usize size{sizeof(ResourceId) + sizeof(ResourceTypeId) +
-             sizeof(geometry::SkeletonId) + sizeof(usize)};
+  auto size{sizeof(RawResourceId) + sizeof(ResourceTypeId) +
+            sizeof(geometry::SkeletonId) + sizeof(usize)};
 
   for (const auto& mesh : resource.meshes) {
     size += GetMeshSize(mesh);
@@ -93,21 +91,14 @@ usize GetModelSize(const SkeletalModelResource& resource) {
 }
 
 usize GetSkeletonJointSize() {
-  return sizeof(geometry::SkeletonJointId) + sizeof(math::Mat4) +
-         sizeof(geometry::SkeletonJointIndex);
+  return sizeof(geometry::SkeletonJointId) +
+         sizeof(geometry::SkeletonJointIndex) + sizeof(math::Mat4);
 }
 
 usize GetSkeletonSize(const SkeletonResource& resource) {
-  usize size{sizeof(ResourceId) + sizeof(ResourceTypeId) +
-             sizeof(geometry::SkeletonId) + sizeof(usize)};
-
-  auto joint_count{resource.skeleton.joints.GetSize()};
-
-  for (usize i{0}; i < joint_count; ++i) {
-    size += GetSkeletonJointSize();
-  }
-
-  return size;
+  return sizeof(RawResourceId) + sizeof(ResourceTypeId) +
+         sizeof(geometry::SkeletonId) + sizeof(usize) +
+         resource.skeleton.joints.GetSize() * GetSkeletonJointSize();
 }
 }  // namespace resource
 }  // namespace comet

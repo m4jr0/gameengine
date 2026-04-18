@@ -20,7 +20,8 @@
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_common.h"
+#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/rendering_utils.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader_resource.h"
 #include "comet/resource/texture_resource.h"
@@ -52,7 +53,7 @@ void ModelExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   auto& scheduler{job::Scheduler::Get()};
 
-  auto io_job_descr{scene_context.GenerateSceneLoadingJobDescr()};
+  const auto io_job_descr{scene_context.GenerateSceneLoadingJobDescr()};
   scheduler.KickAndWait(io_job_descr);
   scheduler.DestroyCounter(io_job_descr.counter);
 
@@ -77,13 +78,13 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
                                          aiMaterial* raw_material,
                                          aiTextureType raw_texture_type) const {
   COMET_ASSERT(raw_material != nullptr, "Raw material is null!");
-  auto texture_count{raw_material->GetTextureCount(raw_texture_type)};
+  const auto texture_count{raw_material->GetTextureCount(raw_texture_type)};
 
   if (texture_count == 0) {
     return;
   }
 
-  auto texture_type{GetTextureType(raw_texture_type)};
+  const auto texture_type{GetTextureType(raw_texture_type)};
 
   if (texture_count > 1) {
     COMET_LOG_GLOBAL_WARNING(
@@ -93,7 +94,7 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
         "textures.");
   }
 
-  resource::TextureMap* map{nullptr};
+  resource::TextureMapResource* map{nullptr};
 
   switch (texture_type) {
     case rendering::TextureType::Diffuse:
@@ -134,7 +135,7 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
       GetTextureTypeLabel(texture_type), "\" from Assimp slot ",
       static_cast<int>(raw_texture_type), " at path ", path);
 
-  map->texture_id =
+  map->texture_resource_id =
       resource::GenerateResourceIdFromPath<resource::TextureResource>(path);
   map->type = texture_type;
 
@@ -184,7 +185,7 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
   auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
 
 #ifdef COMET_WIDE_TCHAR
-  auto length{GetLength(scene_context->asset_abs_path)};
+  const auto length{GetLength(scene_context->asset_abs_path)};
   auto* scene_path{scene_context->allocator->AllocateMany<schar>(length + 1)};
   Copy(scene_path, scene_context->asset_abs_path, length);
   scene_path[length] = COMET_TCHAR('\0');
@@ -238,8 +239,8 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
                          "...");
 
   if (scene->HasAnimations()) {
-    auto resources{LoadSkeletalModel(scene_context->allocator, scene,
-                                     scene_context->asset_path)};
+    const auto resources{LoadSkeletalModel(scene_context->allocator, scene,
+                                           scene_context->asset_path)};
 
     scene_context->AddResourceFile(
         resource::ResourceManager::Get().GetSkeletons()->Pack(
@@ -256,8 +257,8 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
     }
 
   } else {
-    auto resources{LoadStaticModel(scene_context->allocator, scene,
-                                   scene_context->asset_path)};
+    const auto resources{LoadStaticModel(scene_context->allocator, scene,
+                                         scene_context->asset_path)};
 
     scene_context->AddResourceFile(
         resource::ResourceManager::Get().GetStaticModels()->Pack(
@@ -279,14 +280,14 @@ void ModelExporter::OnMaterialsProcessing(job::JobParamsHandle params_handle) {
 
 void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
   auto* scene{scene_context->scene};
-  auto directory_path{GetDirectoryPath(scene_context->asset_abs_path)};
-  auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
+  const auto directory_path{GetDirectoryPath(scene_context->asset_abs_path)};
+  const auto resource_path{GetRelativePath(directory_path, root_asset_path_)};
 
   for (usize i{0}; i < scene->mNumMaterials; ++i) {
     auto* raw_material{scene->mMaterials[i]};
 
     resource::MaterialResource material{};
-    material.descr.shader_id = resource::GetDefaultShaderResourceId();
+    material.descr.shader_resource_id = resource::ShaderResourceId::Invalid();
 
     InitializeDefaultTextureMap(material.descr.diffuse_map,
                                 rendering::TextureType::Diffuse);
@@ -318,7 +319,7 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
 
     LoadMaterialTextures(resource_path, material, raw_material,
                          aiTextureType_BASE_COLOR);
-    if (material.descr.diffuse_map.texture_id == resource::kInvalidResourceId) {
+    if (!material.descr.diffuse_map.texture_resource_id) {
       LoadMaterialTextures(resource_path, material, raw_material,
                            aiTextureType_DIFFUSE);
     }
@@ -328,55 +329,21 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
     LoadMaterialTextures(resource_path, material, raw_material,
                          aiTextureType_NORMALS);
 
-    if (material.descr.normal_map.texture_id == resource::kInvalidResourceId) {
+    if (!material.descr.normal_map.texture_resource_id) {
       LoadMaterialTextures(resource_path, material, raw_material,
                            aiTextureType_HEIGHT);
     }
 
-    material.id = GenerateMaterialId(raw_material, static_cast<u32>(i));
+    const auto material_resource_id{resource::GenerateQualifiedMaterialId(
+        scene_context->asset_path, raw_material->GetName().C_Str(),
+        static_cast<u32>(i))};
+
+    material.id = material_resource_id.GetValue();
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
     scene_context->AddResourceFile(
         resource::ResourceManager::Get().GetMaterials()->Pack(
             material, compression_mode_));
-  }
-}
-
-rendering::TextureType ModelExporter::GetTextureType(
-    aiTextureType raw_texture_type) {
-  switch (raw_texture_type) {
-    case aiTextureType_BASE_COLOR:
-    case aiTextureType_DIFFUSE:
-      return rendering::TextureType::Diffuse;
-
-    case aiTextureType_SPECULAR:
-      return rendering::TextureType::Specular;
-
-    case aiTextureType_NORMALS:
-    case aiTextureType_HEIGHT:
-      return rendering::TextureType::Normal;
-
-    case aiTextureType_AMBIENT:
-      return rendering::TextureType::Ambient;
-
-    default:
-      return rendering::TextureType::Unknown;
-  }
-}
-
-rendering::TextureRepeatMode ModelExporter::GetTextureRepeatMode(
-    aiTextureMapMode raw_texture_repeat_mode) {
-  switch (raw_texture_repeat_mode) {
-    case aiTextureMapMode_Wrap:
-      return rendering::TextureRepeatMode::Repeat;
-    case aiTextureMapMode_Mirror:
-      return rendering::TextureRepeatMode::MirroredRepeat;
-    case aiTextureMapMode_Clamp:
-      return rendering::TextureRepeatMode::ClampToEdge;
-    case aiTextureMapMode_Decal:
-      return rendering::TextureRepeatMode::ClampToBorder;
-    default:
-      return rendering::TextureRepeatMode::Unknown;
   }
 }
 

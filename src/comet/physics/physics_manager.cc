@@ -21,35 +21,21 @@ PhysicsManager& PhysicsManager::Get() {
   return singleton;
 }
 
-void PhysicsManager::Initialize() {
-  Manager::Initialize();
-  fixed_delta_time_ = time::TimeManager::Get().GetFixedDeltaTime();
-  max_frame_rate_ = static_cast<u32>((1.0 / fixed_delta_time_));
-};
-
-void PhysicsManager::Shutdown() {
-  frame_rate_ = 0;
-  max_frame_rate_ = 60;
-  current_time_ = 0;
-  fixed_delta_time_ = .01666f;
-  lag_ = 0;
-  current_frame_packet_ = nullptr;
-  Manager::Shutdown();
-};
-
 void PhysicsManager::Update(frame::FramePacket* packet) {
   current_frame_packet_ = packet;
+  auto& time_manager{time::TimeManager::Get()};
+  const auto delta_time{time_manager.GetDeltaTime()};
+  const auto fixed_delta_time{time_manager.GetFixedDeltaTime()};
 
-  const auto delta_time{time::TimeManager::Get().GetDeltaTime()};
   lag_ += delta_time;
 
   constexpr u32 kMaxSteps{5};
   u32 step_count{0};
 
-  while (lag_ >= fixed_delta_time_ && step_count < kMaxSteps) {
+  while (lag_ >= fixed_delta_time && step_count < kMaxSteps) {
     UpdateEntityTransforms(packet);
-    lag_ -= fixed_delta_time_;
-    current_time_ += fixed_delta_time_;
+    lag_ -= fixed_delta_time;
+    current_time_ += fixed_delta_time;
     ++step_count;
   }
 
@@ -57,12 +43,12 @@ void PhysicsManager::Update(frame::FramePacket* packet) {
   packet->time = current_time_;
   packet->lag = lag_;
 
-  auto now{time::TimeManager::Get().GetCurrentTime()};
+  const auto real_now{time_manager.GetRealTime()};
 
-  if (now - last_current_time_ >= 1.0f) {
+  if (real_now - last_current_time_ >= 1.0) {
     frame_rate_ = counter_;
     counter_ = 0;
-    last_current_time_ = now;
+    last_current_time_ = real_now;
   }
 }
 
@@ -120,12 +106,15 @@ void PhysicsManager::DestroyTransformComponent(
 u32 PhysicsManager::GetFrameRate() const noexcept { return frame_rate_; }
 
 f64 PhysicsManager::GetFrameTime() const noexcept {
-  return frame_rate_ == 0 ? 0.0 : (1.0 / static_cast<f64>(frame_rate_));
+  return frame_rate_ == 0 ? .0 : (1.0 / static_cast<f64>(frame_rate_));
 }
 
-f64 PhysicsManager::GetFixedDeltaTime() const noexcept {
-  return fixed_delta_time_;
-}
+void PhysicsManager::OnShutdown() {
+  frame_rate_ = 0;
+  current_time_ = 0;
+  lag_ = 0;
+  current_frame_packet_ = nullptr;
+};
 
 void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {
   auto& entity_manager{entity::EntityManager::Get()};

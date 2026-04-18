@@ -13,16 +13,17 @@
 // cases.
 
 #ifdef COMET_TRACK_ALLOCATIONS
+// External. ///////////////////////////////////////////////////////////////////
 #include <atomic>
 #include <mutex>
 #include <shared_mutex>
+////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/map.h"
-#include "comet/math/math_common.h"
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"

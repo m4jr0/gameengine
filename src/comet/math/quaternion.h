@@ -19,6 +19,7 @@ namespace math {
 using Quat = glm::quat;
 
 Quat& Normalize(Quat& quaternion);
+
 Quat GetNormalizedCopy(const Quat& quaternion);
 Quat GetQuaternionRotation(f32 angle, const Vec3& axis);
 }  // namespace math

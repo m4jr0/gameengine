@@ -14,8 +14,6 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_context.h"
-
 namespace comet {
 namespace fiber {
 namespace internal {
@@ -61,11 +59,6 @@ FiberLifeCycleHandler& FiberLifeCycleHandler::Get() {
   return tls_singleton;
 }
 
-FiberLifeCycleHandler::~FiberLifeCycleHandler() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for handler, but it is still initialized!");
-}
-
 void FiberLifeCycleHandler::AttachWorkerFiber(Fiber* fiber) {
   tls_worker_fiber_ = fiber;
 }
@@ -86,10 +79,6 @@ void FiberLifeCycleHandler::PutToCompleted(Fiber* fiber) {
 
 Fiber* FiberLifeCycleHandler::TryGetCompleted() {
   return completed_fibers_.TryPop();
-}
-
-bool FiberLifeCycleHandler::IsInitialized() const noexcept {
-  return is_initialized_;
 }
 }  // namespace fiber
 }  // namespace comet

@@ -20,14 +20,19 @@ void SetLocalTransform(TransformComponent* cmp,
                        const comet::math::Mat4& new_local);
 void SetGlobalTransform(TransformComponent* cmp,
                         const comet::math::Mat4& new_global);
+
 void TranslateLocal(TransformComponent* cmp,
                     const comet::math::Vec3& translation);
+
 void RotateLocal(TransformComponent* cmp, f32 rotation_angle,
                  const comet::math::Vec3& rotation_axis);
+
 void ScaleLocal(TransformComponent* cmp, f32 scale_factor);
 void ScaleLocal(TransformComponent* cmp,
                 const comet::math::Vec3& scale_factors);
+
 void ResetLocalTransform(TransformComponent* cmp);
+
 void SetParentEntity(TransformComponent* cmp, entity::EntityId new_parent);
 void SetRootEntity(TransformComponent* cmp, entity::EntityId new_root);
 }  // namespace physics

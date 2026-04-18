@@ -15,7 +15,6 @@
 #include "comet/scene/environment/environment_manager.h"
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
-#include "comet/core/game_state_manager.h"
 #include "comet/profiler/profiler_manager.h"
 #endif  // COMET_HAS_PROFILER_DEBUG_UI
 
@@ -26,9 +25,7 @@ DebugUiManager& DebugUiManager::Get() {
   return singleton;
 }
 
-void DebugUiManager::Initialize() {
-  Manager::Initialize();
-
+void DebugUiManager::OnInitialize() {
   auto& registry{rendering::DebugUiRegistry::Get()};
 
   environment_callback_id_ = registry.Register([this]() {
@@ -41,18 +38,18 @@ void DebugUiManager::Initialize() {
 
     CpuProfilerGraph::Controls controls{};
     controls.is_recording = profiler_manager.IsRecording();
-    controls.is_paused = GameStateManager::Get().IsPaused();
+    controls.is_paused = is_paused_;
     controls.toggle_recording = [&profiler_manager]() {
       profiler_manager.ToggleRecording();
     };
-    controls.toggle_pause = []() { GameStateManager::Get().TogglePause(); };
+    controls.toggle_pause = [this]() { TogglePause(); };
 
     debugger_debug_ui_.Draw(profiler_manager.GetData(), controls);
   });
 #endif  // COMET_HAS_PROFILER_DEBUG_UI
 }
 
-void DebugUiManager::Shutdown() {
+void DebugUiManager::OnShutdown() {
   auto& registry{rendering::DebugUiRegistry::Get()};
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
@@ -62,8 +59,19 @@ void DebugUiManager::Shutdown() {
 
   registry.Unregister(environment_callback_id_);
   environment_callback_id_ = rendering::DebugUiRegistry::kInvalidCallbackId;
+}
 
-  Manager::Shutdown();
+void DebugUiManager::TogglePause() {
+  is_paused_ = !is_paused_;
+  auto& time_manager{time::TimeManager::Get()};
+
+  if (is_paused_) {
+    saved_time_scale_ = time_manager.GetTimeScale();
+    time_manager.SetTimeScale(.0f);
+  } else {
+    time_manager.SetTimeScale(saved_time_scale_);
+    saved_time_scale_ = 1.0f;
+  }
 }
 }  // namespace debugui
 }  // namespace comet

@@ -11,7 +11,7 @@
 namespace comet {
 namespace geometry {
 struct SkeletonComponent {
-  const resource::SkeletonResource* resource{nullptr};
+  resource::SkeletonResourceHandle resource_handle{};
 };
 }  // namespace geometry
 }  // namespace comet

@@ -11,47 +11,23 @@
 #include "vulkan_material_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/file_system/file_system.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_material_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/rendering/driver/vulkan/utils/vulkan_texture_map_utils.h"
+#include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
 #include "comet/resource/material_resource.h"
-#include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
-#include "comet/resource/texture_resource.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
 MaterialHandler::MaterialHandler(const MaterialHandlerDescr& descr)
-    : Handler{descr}, texture_handler_{descr.texture_handler} {
+    : Handler{descr},
+      materials_{&cache_allocator_, 256},
+      texture_handler_{descr.texture_handler},
+      sampler_handler_{descr.sampler_handler} {
   COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
-}
-
-void MaterialHandler::Initialize() {
-  Handler::Initialize();
-  allocator_.Initialize();
-  materials_ = Map<MaterialId, Material*>{&allocator_};
-  samplers_ = Map<SamplerId, Sampler*>{&allocator_};
-}
-
-void MaterialHandler::Shutdown() {
-  for (auto& it : materials_) {
-    Destroy(it.value, true);
-  }
-
-  COMET_ASSERT(samplers_.IsEmpty(), "Sampler cache is not empty on shutdown!");
-  materials_.Destroy();
-  samplers_.Destroy();
-  allocator_.Destroy();
-  destroy_callback_ = nullptr;
-  destroy_callback_user_data_ = nullptr;
-  Handler::Shutdown();
+  COMET_ASSERT(sampler_handler_ != nullptr, "Sampler handler is null!");
 }
 
 void MaterialHandler::SetDestroyCallback(MaterialDestroyCallback callback,
@@ -60,186 +36,192 @@ void MaterialHandler::SetDestroyCallback(MaterialDestroyCallback callback,
   destroy_callback_user_data_ = user_data;
 }
 
-Material* MaterialHandler::Generate(const MaterialDescr& descr) {
-  COMET_PROFILE("MaterialHandler::Generate");
-
-  if (auto* material{TryGet(descr.id)}; material != nullptr) {
-    ++material->ref_count;
-    return material;
+MaterialHandle MaterialHandler::GetOrGenerate(const MaterialDescr& descr) {
+  if (const auto handle{materials_.TryAcquire(descr.id)}; handle) {
+    return handle;
   }
 
   auto* material{allocator_.AllocateOneAndPopulate<Material>()};
+  material->handle = MaterialHandle::Invalid();
   material->id = descr.id;
-  material->shader_id = descr.shader_id;
+  material->shader_resource_id = descr.shader_resource_id;
   material->diffuse_color = descr.diffuse_color;
   material->shininess = descr.shininess;
   material->diffuse_map = descr.diffuse_map;
   material->specular_map = descr.specular_map;
   material->normal_map = descr.normal_map;
-  material->ref_count = 1;
 
-  return materials_.Emplace(material->id, material).value;
+  const auto handle{materials_.Create(material->id, material)};
+  COMET_ASSERT(handle, "Failed to create instance for material!");
+  material->handle = handle;
+  return handle;
 }
 
-Material* MaterialHandler::Generate(
-    const resource::MaterialResource* resource) {
-  if (auto* material{TryGet(resource->id)}; material != nullptr) {
-    ++material->ref_count;
-    return material;
+MaterialHandle MaterialHandler::GetOrGenerate(
+    resource::MaterialResourceId material_resource_id) {
+  if (const auto handle{materials_.TryAcquire(material_resource_id)}; handle) {
+    return handle;
   }
 
-  MaterialDescr descr{};
-  constexpr auto kLifeSpan{resource::ResourceLifeSpan::Manual};
+  MaterialHandle generated_handle{};
+  auto* material_resource_handler{
+      resource::ResourceManager::Get().GetMaterials()};
 
-  descr.id = resource->id;
-  descr.shader_id = resource->descr.shader_id;
-  descr.diffuse_color = resource->descr.diffuse_color;
-  descr.shininess = resource->descr.shininess;
-  descr.diffuse_map =
-      GenerateTextureMap(&resource->descr.diffuse_map, kLifeSpan);
-  descr.specular_map =
-      GenerateTextureMap(&resource->descr.specular_map, kLifeSpan);
-  descr.normal_map = GenerateTextureMap(&resource->descr.normal_map, kLifeSpan);
+  material_resource_handler->WithTemporaryLoad(
+      material_resource_id,
+      [this,
+       &generated_handle](const resource::MaterialResource* material_resource) {
+        MaterialDescr descr{};
+        descr.id = material_resource->GetId();
+        descr.shader_resource_id = material_resource->descr.shader_resource_id;
+        descr.diffuse_color = material_resource->descr.diffuse_color;
+        descr.shininess = material_resource->descr.shininess;
+        descr.diffuse_map =
+            GenerateTextureMap(&material_resource->descr.diffuse_map);
+        descr.specular_map =
+            GenerateTextureMap(&material_resource->descr.specular_map);
+        descr.normal_map =
+            GenerateTextureMap(&material_resource->descr.normal_map);
 
-  return Generate(descr);
+        generated_handle = GetOrGenerate(descr);
+      });
+
+  return generated_handle;
 }
 
-Material* MaterialHandler::TryGet(MaterialId material_id) {
-  auto material_ptr{materials_.TryGet(material_id)};
-  return material_ptr == nullptr ? nullptr : *material_ptr;
+void MaterialHandler::Destroy(MaterialHandle handle) {
+  auto* material{materials_.Get(handle)};
+
+  if (!materials_.Release(handle)) {
+    return;
+  }
+
+  COMET_ASSERT(material->handle == handle,
+               "Material handle mismatch during destruction!");
+  DestroyMaterial(material);
+  materials_.Remove(handle);
 }
 
-Material* MaterialHandler::Get(MaterialId material_id) {
-  auto* material{TryGet(material_id)};
+const Material* MaterialHandler::Get(MaterialHandle handle) const {
+  const auto* material{materials_.TryGet(handle)};
   COMET_ASSERT(material != nullptr,
-               "Requested material does not exist: ", material_id, "!");
+               "Requested material does not exist: ", handle, "!");
   return material;
 }
 
-void MaterialHandler::Destroy(MaterialId material_id) {
-  return Destroy(Get(material_id));
+void MaterialHandler::OnInitialize() {
+  allocator_.Initialize();
+  materials_.Initialize();
 }
 
-void MaterialHandler::Destroy(Material* material) {
-  return Destroy(material, false);
+void MaterialHandler::OnShutdown() {
+  destroy_callback_ = nullptr;
+  destroy_callback_user_data_ = nullptr;
+
+  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  Array<MaterialHandle> material_handles{&tmp_allocator};
+
+  materials_.ForEachLive([&](MaterialHandle handle, const Material*) {
+    material_handles.PushBack(handle);
+  });
+
+  for (const auto handle : material_handles) {
+    const auto ref_count{materials_.GetRefCount(handle)};
+
+    if (ref_count > 1) {
+      COMET_LOG_RENDERING_WARNING("Forcing destruction of material handle ",
+                                  handle, " with remaining ref count ",
+                                  ref_count, "!");
+    }
+
+    auto* material{materials_.Drain(handle)};
+
+    if (material == nullptr) {
+      continue;
+    }
+
+    COMET_ASSERT(material->handle == handle,
+                 "Material handle mismatch during shutdown destruction!");
+
+    DestroyMaterial(material);
+  }
+
+  materials_.Destroy();
+  allocator_.Destroy();
 }
 
 TextureMap MaterialHandler::GenerateTextureMap(
-    const resource::TextureMap* map, resource::ResourceLifeSpan life_span) {
+    const resource::TextureMapResource* map) {
   COMET_ASSERT(map != nullptr, "Texture map is null!");
 
-  auto resource_id{map->texture_id != resource::kInvalidResourceId
-                       ? map->texture_id
-                       : resource::GetDefaultTextureFromType(map->type)};
+  const auto texture_resource_id{
+      map->texture_resource_id.IsValid()
+          ? map->texture_resource_id
+          : resource::GetDefaultTextureFromType(map->type)};
 
-  const auto* resource{resource::ResourceManager::Get().GetTextures()->Load(
-      resource_id, life_span)};
-  COMET_ASSERT(resource != nullptr, "Texture resource is null!");
+  const auto sampler_handle{GetOrGenerateSampler(map)};
+  const auto texture_handle{
+      texture_handler_->GetOrGenerate(texture_resource_id, map->type)};
 
-  return TextureMap{GetOrGenerateSampler(map),
-                    texture_handler_->GetOrGenerate(resource, map->type),
-                    resource_id, map->type};
+  COMET_ASSERT(texture_handle, "Texture could not be loaded!");
+
+  return BuildTextureMap(sampler_handle, texture_handle, texture_resource_id,
+                         map->type);
 }
 
-void MaterialHandler::Destroy(Material* material, bool is_destroying_handler) {
-  COMET_PROFILE("MaterialHandler::Destroy");
+void MaterialHandler::DestroyMaterial(Material* material) {
+  COMET_PROFILE("MaterialHandler::DestroyMaterial");
   COMET_ASSERT(material != nullptr, "Material is null!");
-
-  if (!is_destroying_handler) {
-    COMET_ASSERT(material->ref_count > 0,
-                 "Material has a reference count of 0!");
-
-    if (--material->ref_count > 0) {
-      return;
-    }
-  }
 
   if (destroy_callback_ != nullptr) {
     destroy_callback_(material, destroy_callback_user_data_);
   }
 
-  StaticArray<TextureMap*, 3> texture_maps = {
+  StaticArray<TextureMap*, 3> maps{
       &material->diffuse_map, &material->specular_map, &material->normal_map};
 
-  auto* texture_resource_handler{
-      resource::ResourceManager::Get().GetTextures()};
+  for (auto* map : maps) {
+    if (map->sampler_handle) {
+      sampler_handler_->Destroy(map->sampler_handle);
+    }
 
-  for (auto* texture_map : texture_maps) {
-    texture_resource_handler->Unload(texture_map->texture_resource_id);
-    Destroy(texture_map->sampler);
-    *texture_map = {};
+    if (map->texture_handle) {
+      texture_handler_->Destroy(map->texture_handle);
+    }
+
+    *map = {};
   }
 
-  if (!is_destroying_handler) {
-    materials_.Remove(material->id);
-  }
-
+  material->handle.Invalidate();
   allocator_.Deallocate(material);
 }
 
-Sampler* MaterialHandler::GenerateSampler(SamplerId sampler_id,
-                                          const VkSamplerCreateInfo& info) {
-  auto* sampler{allocator_.AllocateOneAndPopulate<Sampler>()};
-  sampler->id = sampler_id;
-  sampler->ref_count = 1;
+SamplerHandle MaterialHandler::GetOrGenerateSampler(
+    const resource::TextureMapResource* map) {
+  COMET_ASSERT(map != nullptr, "Texture map is null!");
 
-  COMET_CHECK_VK(vkCreateSampler(context_->GetDevice(), &info, VK_NULL_HANDLE,
-                                 &sampler->handle),
-                 "Failed to create texture sampler!");
+  SamplerDescr descr{};
+  descr.min_filter = GetVkFilterMode(map->min_filter_mode);
+  descr.mag_filter = GetVkFilterMode(map->mag_filter_mode);
+  descr.mipmap_mode = GetVkMipmapMode(map->min_filter_mode);
+  descr.address_mode_u = GetVkAddressMode(map->u_repeat_mode);
+  descr.address_mode_v = GetVkAddressMode(map->v_repeat_mode);
+  descr.address_mode_w = GetVkAddressMode(map->w_repeat_mode);
+  descr.compare_enable = false;
+  descr.compare_op = VK_COMPARE_OP_ALWAYS;
+  descr.min_lod = .0f;
+  descr.max_lod = VK_LOD_CLAMP_NONE;
+  descr.border_color = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  descr.unnormalized_coordinates = false;
 
-  return samplers_.Emplace(sampler->id, sampler).value;
+  return sampler_handler_->GetOrGenerate(descr);
 }
 
-Sampler* MaterialHandler::GetSampler(SamplerId sampler_id) {
-  auto* sampler{TryGetSampler(sampler_id)};
-  COMET_ASSERT(sampler != nullptr,
-               "Requested sampler does not exist: ", sampler_id, "!");
-  return sampler;
-}
-
-Sampler* MaterialHandler::TryGetSampler(SamplerId sampler_id) {
-  auto** sampler{samplers_.TryGet(sampler_id)};
-
-  if (sampler == nullptr) {
-    return nullptr;
-  }
-
-  return *sampler;
-}
-
-Sampler* MaterialHandler::GetOrGenerateSampler(
-    const resource::TextureMap* texture_map) {
-  auto sampler_info{init::GenerateSamplerCreateInfo(
-      *texture_map, context_->IsSamplerAnisotropy(),
-      context_->GetDevice().GetProperties().limits.maxSamplerAnisotropy)};
-
-  auto sampler_id{std::hash<VkSamplerCreateInfo>()(sampler_info)};
-  auto* sampler{TryGetSampler(sampler_id)};
-
-  if (sampler != nullptr) {
-    ++sampler->ref_count;
-    return sampler;
-  }
-
-  return GenerateSampler(sampler_id, sampler_info);
-}
-
-void MaterialHandler::Destroy(Sampler* sampler) {
-  if (sampler == nullptr) {
-    return;
-  }
-
-  if (sampler->ref_count > 1) {
-    --sampler->ref_count;
-    return;
-  }
-
-  if (sampler->handle != VK_NULL_HANDLE) {
-    vkDestroySampler(context_->GetDevice(), sampler->handle, VK_NULL_HANDLE);
-  }
-
-  samplers_.Remove(sampler->id);
-  allocator_.Deallocate(sampler);
+Material* MaterialHandler::Get(MaterialHandle handle) {
+  auto* material{materials_.TryGet(handle)};
+  COMET_ASSERT(material != nullptr,
+               "Requested material does not exist: ", handle, "!");
+  return material;
 }
 }  // namespace vk
 }  // namespace rendering

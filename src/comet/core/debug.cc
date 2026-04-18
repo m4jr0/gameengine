@@ -12,22 +12,26 @@
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <iostream>
-////////////////////////////////////////////////////////////////////////////////
-
-#include "comet/core/c_string.h"
-#include "comet/core/compiler.h"
 
 #ifdef COMET_MSVC
 #include <cstdio>
-
-#include "comet/core/windows.h"
 #else
 #include <cxxabi.h>
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <link.h>
 
+#include <chrono>
 #include <cstdlib>
+#include <thread>
+#endif  // COMET_MSVC
+////////////////////////////////////////////////////////////////////////////////
+
+#include "comet/core/c_string.h"
+#include "comet/core/compiler.h"
+
+#ifdef COMET_MSVC
+#include "comet/core/windows.h"
 #endif  // COMET_MSVC
 
 #include "comet/core/memory/memory_utils.h"
@@ -43,6 +47,9 @@ namespace comet {
 namespace debug {
 // TODO(m4jr0): Handle critical error properly.
 void HandleCriticalError() {
+  // Let async logs flush if needed.
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
   std::cerr
       << "A critical error has occurred. The application must now terminate.\n";
 
@@ -73,8 +80,9 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
 #else
   constexpr auto max_frame_count{128};
   void* frames[max_frame_count]{nullptr};
-  auto frame_count{CaptureStackBackTrace(0, max_frame_count, frames, nullptr)};
-  auto process_handle{GetCurrentProcess()};
+  const auto frame_count{
+      CaptureStackBackTrace(0, max_frame_count, frames, nullptr)};
+  const auto process_handle{GetCurrentProcess()};
   SymInitialize(process_handle, nullptr, true);
   constexpr usize kHexAddressLen{memory::kHexAddressLength};
   constexpr usize kHexAddressBufferLen{kHexAddressLen + 1};
@@ -85,7 +93,7 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
 
   // Start from index 1 to avoid printing current function.
   for (u16 i{1}; i < frame_count; ++i) {
-    auto address{reinterpret_cast<u64>(frames[i])};
+    const auto address{reinterpret_cast<u64>(frames[i])};
     schar symbol_buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)]{
         '\0'};
 
@@ -101,7 +109,7 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
                                 kHexAddressBufferLen);
     ConvertToStr(i - 1, depth, kDepthBufferLen, &depth_len);
 
-    auto required_len{7 + symbol->NameLen + kHexAddressLen + depth_len};
+    const auto required_len{7 + symbol->NameLen + kHexAddressLen + depth_len};
 
     if (buffer_len <= required_len) {
       break;
@@ -125,7 +133,8 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
 #else
   constexpr auto max_frame_count{128};
   void* frames[max_frame_count]{nullptr};
-  auto frame_count{static_cast<usize>(backtrace(frames, max_frame_count))};
+  const auto frame_count{
+      static_cast<usize>(backtrace(frames, max_frame_count))};
   char** symbols{backtrace_symbols(frames, frame_count)};
   if (symbols == nullptr) {
     buffer[0] = '\0';
@@ -150,9 +159,9 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
       auto* demangled{
           abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status)};
       const auto* function_name{(status == 0) ? demangled : info.dli_sname};
-      auto function_name_len{GetLength(function_name)};
-      auto function_address{reinterpret_cast<uptr>(info.dli_saddr)};
-      auto module_address{reinterpret_cast<uptr>(info.dli_fbase)};
+      const auto function_name_len{GetLength(function_name)};
+      const auto function_address{reinterpret_cast<uptr>(info.dli_saddr)};
+      const auto module_address{reinterpret_cast<uptr>(info.dli_fbase)};
 
       memory::ConvertAddressToHex(function_address, hex_address,
                                   kHexAddressBufferLen);
@@ -160,7 +169,8 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
                                   kHexAddressBufferLen);
       ConvertToStr(i - 1, depth, kDepthBufferLen, &depth_len);
 
-      auto required_len{9 + function_name_len + kHexAddressLen * 2 + depth_len};
+      const auto required_len{9 + function_name_len + kHexAddressLen * 2 +
+                              depth_len};
 
       if (buffer_len <= required_len) {
         break;
@@ -182,9 +192,9 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
 
       free(demangled);
     } else {
-      auto symbol_len{GetLength(symbols[i])};
+      const auto symbol_len{GetLength(symbols[i])};
       ConvertToStr(i - 1, depth, kDepthBufferLen, &depth_len);
-      auto required_len{4 + symbol_len + depth_len};
+      const auto required_len{4 + symbol_len + depth_len};
 
       if (buffer_len <= required_len) {
         break;
