@@ -250,23 +250,25 @@ bool IsAlpha(schar c) { return std::isalpha(c); }
 bool IsAlpha(wchar c) { return std::iswalpha(c); }
 
 bool IsEmpty(const schar* str, usize str_len) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(str != nullptr, "c_string::IsEmpty", "string is null");
   return str_len == 0 || str[0] == '\0';
 }
 
 bool IsEmpty(const wchar* str, usize str_len) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(str != nullptr, "c_string::IsEmpty", "string is null");
   return str_len == 0 || str[0] == L'\0';
 }
 
 schar* Copy(schar* dst, const schar* src, usize length, usize dst_offset,
             usize src_offset) {
-  COMET_ASSERT(src != nullptr, "Source string provided is null!");
-  COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+  COMET_ASSERT(src != nullptr, "c_string::Copy", "source string is null");
+  COMET_ASSERT(dst != nullptr, "c_string::Copy", "destination string is null");
+
 #ifdef COMET_MSVC
   [[maybe_unused]] auto result{
       strncpy_s(dst + dst_offset, length + 1, src + src_offset, length)};
-  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+
+  COMET_ASSERT(result == 0, "c_string::Copy", "string copy failed");
 #else
   return std::strncpy(dst + dst_offset, src + src_offset, length);
 #endif  // COMET_MSVC
@@ -275,13 +277,15 @@ schar* Copy(schar* dst, const schar* src, usize length, usize dst_offset,
 
 wchar* Copy(wchar* dst, const schar* src, usize length, usize dst_offset,
             usize src_offset) {
-  COMET_ASSERT(src != nullptr, "Source string provided is null!");
-  COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+  COMET_ASSERT(src != nullptr, "c_string::Copy", "source string is null");
+  COMET_ASSERT(dst != nullptr, "c_string::Copy", "destination string is null");
+
 #ifdef COMET_MSVC
   [[maybe_unused]] usize out_count;
   [[maybe_unused]] auto result{mbstowcs_s(
       &out_count, dst + dst_offset, length + 1, src + src_offset, length)};
-  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+
+  COMET_ASSERT(result == 0, "c_string::Copy", "string copy failed");
 #else
   std::mbstowcs(dst + dst_offset, src + src_offset, length);
 #endif  // COMET_MSVC
@@ -290,13 +294,15 @@ wchar* Copy(wchar* dst, const schar* src, usize length, usize dst_offset,
 
 schar* Copy(schar* dst, const wchar* src, usize length, usize dst_offset,
             usize src_offset) {
-  COMET_ASSERT(src != nullptr, "Source string provided is null!");
-  COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+  COMET_ASSERT(src != nullptr, "c_string::Copy", "source string is null");
+  COMET_ASSERT(dst != nullptr, "c_string::Copy", "destination string is null");
+
 #ifdef COMET_MSVC
   [[maybe_unused]] usize out_count;
   [[maybe_unused]] auto result{wcstombs_s(
       &out_count, dst + dst_offset, length + 1, src + src_offset, length)};
-  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+
+  COMET_ASSERT(result == 0, "c_string::Copy", "string copy failed");
 #else
   std::wcstombs(dst + dst_offset, src + src_offset, length);
 #endif  // COMET_MSVC
@@ -305,12 +311,14 @@ schar* Copy(schar* dst, const wchar* src, usize length, usize dst_offset,
 
 wchar* Copy(wchar* dst, const wchar* src, usize length, usize dst_offset,
             usize src_offset) {
-  COMET_ASSERT(src != nullptr, "Source string provided is null!");
-  COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+  COMET_ASSERT(src != nullptr, "c_string::Copy", "source string is null");
+  COMET_ASSERT(dst != nullptr, "c_string::Copy", "destination string is null");
+
 #ifdef COMET_MSVC
   [[maybe_unused]] auto result{
       wcsncpy_s(dst + dst_offset, length + 1, src + src_offset, length)};
-  COMET_ASSERT(result == 0, "An error occurred while copying a string");
+
+  COMET_ASSERT(result == 0, "c_string::Copy", "string copy failed");
 #else
   std::wcsncpy(dst + dst_offset, src + src_offset, length);
 #endif  // COMET_MSVC

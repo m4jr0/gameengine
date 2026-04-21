@@ -15,6 +15,7 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 #include "comet/profiler/profiler.h"
 
 namespace comet {
@@ -55,11 +56,17 @@ class ProfilerManager : public Manager {
 
   static void OnEvent(const event::Event& event);
 
+  void RegisterEvents();
+  void UnregisterEvents();
+
   void RecordFrame();
 
   ThreadProfilerContexts thread_contexts_{
       thread::ThreadProviderManager::Get()
           .AllocateFiberProvider<ThreadProfilerContext>()};
+
+  event::EventListenerId application_quit_listener_id_{
+      event::kInvalidEventListenerId};
 
   bool is_recording_{false};
   bool is_frame_recording_{false};

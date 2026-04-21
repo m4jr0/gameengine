@@ -27,13 +27,30 @@ static thread_local bool is_tracking_in_progress{false};
 TrackedAllocations::TrackedAllocations(memory::Allocator* allocator)
     : allocator{allocator} {}
 
+TrackedAllocations::~TrackedAllocations() {
+  COMET_ASSERT(!is_initialized, "TrackedAllocations::~TrackedAllocations",
+               "tracked allocations are still initialized");
+}
+
 void TrackedAllocations::Initialize() {
+  COMET_ASSERT(!is_initialized, "TrackedAllocations::Initialize",
+               "tracked allocations are already initialized");
+  COMET_ASSERT(allocator != nullptr, "TrackedAllocations::Initialize",
+               "allocator is null");
+
   allocations = Map<void*, usize>{allocator};
+
+  is_initialized = true;
 }
 
 void TrackedAllocations::Destroy() {
+  COMET_ASSERT(is_initialized, "TrackedAllocations::Destroy",
+               "tracked allocations are not initialized");
+
   allocations.Destroy();
   allocator = nullptr;
+
+  is_initialized = false;
 }
 
 void TrackedAllocations::Push(void* ptr, usize size) {
@@ -56,17 +73,34 @@ usize TrackedAllocations::Pop(void* ptr) {
 
 TrackedTags::TrackedTags(memory::Allocator* allocator) : allocator{allocator} {}
 
+TrackedTags::~TrackedTags() {
+  COMET_ASSERT(!is_initialized, "TrackedTags::~TrackedTags",
+               "tracked tags are still initialized");
+}
+
 void TrackedTags::Initialize() {
+  COMET_ASSERT(!is_initialized, "TrackedTags::Initialize",
+               "tracked tags are already initialized");
+  COMET_ASSERT(allocator != nullptr, "TrackedTags::Initialize",
+               "allocator is null");
+
   platform_allocations = Map<void*, AllocationInfo>{allocator};
   platform_tags = Map<MemoryTag, usize>{allocator};
   tagged_heap_tags = Map<MemoryTag, usize>{allocator};
+
+  is_initialized = true;
 }
 
 void TrackedTags::Destroy() {
+  COMET_ASSERT(is_initialized, "TrackedTags::Destroy",
+               "tracked tags are not initialized");
+
   platform_allocations.Destroy();
   platform_tags.Destroy();
   tagged_heap_tags.Destroy();
   allocator = nullptr;
+
+  is_initialized = false;
 }
 
 void TrackedTags::IncreasePlatform(void* ptr, usize size,
@@ -155,8 +189,8 @@ void* MallocHooked(std::size_t size) {
   std::call_once(malloc_init_flag, []() {
     PlatformMalloc =
         reinterpret_cast<decltype(PlatformMalloc)>(dlsym(RTLD_NEXT, "malloc"));
-    COMET_ASSERT(PlatformMalloc != nullptr,
-                 "Could not locate the original malloc function!");
+    COMET_ASSERT(PlatformMalloc != nullptr, "memory::internal::MallocHooked",
+                 "original malloc function could not be resolved");
   });
 #endif  // !COMET_MSVC
 
@@ -179,8 +213,8 @@ void* ReallocHooked(void* ptr, std::size_t size) {
   std::call_once(realloc_init_flag, []() {
     PlatformRealloc = reinterpret_cast<decltype(PlatformRealloc)>(
         dlsym(RTLD_NEXT, "realloc"));
-    COMET_ASSERT(PlatformRealloc != nullptr,
-                 "Could not locate the original realloc function!");
+    COMET_ASSERT(PlatformRealloc != nullptr, "memory::internal::ReallocHooked",
+                 "original realloc function could not be resolved");
   });
 #endif  // !COMET_MSVC
 
@@ -209,8 +243,8 @@ void* CallocHooked(std::size_t count, std::size_t size) {
   std::call_once(calloc_init_flag, []() {
     PlatformCalloc =
         reinterpret_cast<decltype(PlatformCalloc)>(dlsym(RTLD_NEXT, "calloc"));
-    COMET_ASSERT(PlatformCalloc != nullptr,
-                 "Could not locate the original calloc function!");
+    COMET_ASSERT(PlatformCalloc != nullptr, "memory::internal::CallocHooked",
+                 "original calloc function could not be resolved");
   });
 #endif  // !COMET_MSVC
 
@@ -246,8 +280,8 @@ void FreeHooked(void* ptr) {
   std::call_once(free_init_flag, []() {
     PlatformFree =
         reinterpret_cast<decltype(PlatformFree)>(dlsym(RTLD_NEXT, "free"));
-    COMET_ASSERT(PlatformFree != nullptr,
-                 "Could not locate the original free function!");
+    COMET_ASSERT(PlatformFree != nullptr, "memory::internal::FreeHooked",
+                 "original free function could not be resolved");
   });
 #endif  // !COMET_MSVC
   PlatformFree(ptr);
@@ -291,8 +325,8 @@ void* MmapHooked(void* addr, size_t len, int prot, int flags, int fd,
   std::call_once(mmap_init_flag, []() {
     PlatformMmap =
         reinterpret_cast<decltype(PlatformMmap)>(dlsym(RTLD_NEXT, "mmap"));
-    COMET_ASSERT(PlatformMmap != nullptr,
-                 "Could not locate the original mmap function!");
+    COMET_ASSERT(PlatformMmap != nullptr, "memory::internal::MmapHooked",
+                 "original mmap function could not be resolved");
   });
 
   auto* ptr{PlatformMmap(addr, len, prot, flags, fd, offset)};
@@ -317,8 +351,8 @@ int munmapHooked(void* addr, size_t len) {
   std::call_once(munmap_init_flag, []() {
     PlatformMunmap =
         reinterpret_cast<decltype(PlatformMunmap)>(dlsym(RTLD_NEXT, "munmap"));
-    COMET_ASSERT(PlatformMunmap != nullptr,
-                 "Could not locate the original munmap function!");
+    COMET_ASSERT(PlatformMunmap != nullptr, "memory::internal::munmapHooked",
+                 "original munmap function could not be resolved");
   });
 
   const auto result{PlatformMunmap(addr, len)};
@@ -348,14 +382,29 @@ MemoryUse& MemoryUse::Get() {
   return *singleton;
 }
 
+MemoryUse::~MemoryUse() {
+  COMET_ASSERT(!is_initialized, "MemoryUse::~MemoryUse",
+               "memory use tracking is still initialized");
+}
+
 void MemoryUse::Initialize() {
+  COMET_ASSERT(!is_initialized, "MemoryUse::Initialize",
+               "memory use tracking is already initialized");
+
   allocations.Initialize();
   tags.Initialize();
+
+  is_initialized = true;
 }
 
 void MemoryUse::Destroy() {
+  COMET_ASSERT(is_initialized, "MemoryUse::Destroy",
+               "memory use tracking is not initialized");
+
   allocations.Destroy();
   tags.Destroy();
+
+  is_initialized = false;
 }
 
 ScopedFlagToggle::ScopedFlagToggle(bool& flag)
@@ -525,7 +574,10 @@ usize GetTotalFreedMemory() { return internal::MemoryUse::Get().total_freed; }
 usize GetMemoryUse() {
   COMET_ASSERT(internal::MemoryUse::Get().total_allocated >=
                    internal::MemoryUse::Get().total_freed,
-               "Something wrong happened while allocating memory!");
+               "memory::GetMemoryUse", "freed memory exceeds allocated memory",
+               "total_allocated",
+               internal::MemoryUse::Get().total_allocated.load(), "total_freed",
+               internal::MemoryUse::Get().total_freed.load());
   return internal::MemoryUse::Get().total_allocated -
          internal::MemoryUse::Get().total_freed;
 }

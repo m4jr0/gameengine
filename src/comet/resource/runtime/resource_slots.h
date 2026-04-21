@@ -16,11 +16,14 @@
 #include "comet/core/type/array.h"
 #include "comet/core/type/handle.h"
 #include "comet/core/type/map.h"
+#include "comet/core/type_trait.h"
 #include "comet/resource/handler/resource_handler_utils.h"
+#include "comet/resource/label/resource_common_label.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_id.h"
 #include "comet/resource/runtime/loaded_resource_handle.h"
 #include "comet/resource/runtime/resource_slot.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace resource {
@@ -47,25 +50,25 @@ class ResourceSlots {
   ResourceSlots& operator=(ResourceSlots&&) noexcept = default;
 
   ~ResourceSlots() {
-    COMET_ASSERT(!is_initialized_,
-                 "Destructor called for resource slots, but it is still "
-                 "initialized!");
+    COMET_ASSERT(!is_initialized_, "ResourceSlots::~ResourceSlots",
+                 "resource slots still initialized");
   }
 
   void Initialize() {
     fiber::FiberLockGuard lock{mtx_};
-    COMET_ASSERT(!is_initialized_,
-                 "Tried to initialize resource slots, but it is already "
-                 "done!");
+
+    COMET_ASSERT(!is_initialized_, "ResourceSlots::Initialize",
+                 "resource slots already initialized");
     is_initialized_ = true;
   }
 
   void Destroy() noexcept {
     fiber::FiberLockGuard lock{mtx_};
-    COMET_ASSERT(is_initialized_,
-                 "Tried to destroy resource slots, but it is not "
-                 "initialized!");
+
+    COMET_ASSERT(is_initialized_, "ResourceSlots::Destroy",
+                 "resource slots not initialized");
     is_initialized_ = false;
+
     slots_.Destroy();
     handles_.Destroy();
     pool_.Destroy();
@@ -74,9 +77,8 @@ class ResourceSlots {
   LoadedHandle TryRetain(Id id, ResourceLifeSpan life_span) {
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(is_initialized_,
-                 "Tried to retain from resource slots, but it is not "
-                 "initialized!");
+    COMET_ASSERT(is_initialized_, "ResourceSlots::TryRetain",
+                 "resource slots not initialized");
 
     if (id.IsInvalid()) {
       return LoadedHandle::Invalid();
@@ -96,12 +98,16 @@ class ResourceSlots {
     }
 
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Loaded resource handle index is out of bounds!");
+    COMET_ASSERT(index < slots_.GetSize(), "ResourceSlots::TryRetain",
+                 "slot index out of bounds", "index", index, "slot_count",
+                 slots_.GetSize(), "handle", handle, "id", id);
 
     auto& slot{slots_[index]};
-    COMET_ASSERT(slot.resource != nullptr,
-                 "Loaded resource slot contains a null resource!");
+    COMET_ASSERT(slot.resource != nullptr, "ResourceSlots::TryRetain",
+                 "slot resource is null", "handle", handle, "id", id,
+                 "life_span", GetResourceLifeSpanLabel(life_span),
+                 "life_span_value", ToUnderlying(life_span));
+
     ++slot.ref_count;
     return handle;
   }
@@ -109,31 +115,44 @@ class ResourceSlots {
   template <typename Loader, typename Releaser>
   LoadedHandle Acquire(Id id, ResourceLifeSpan life_span, Loader&& loader,
                        Releaser&& releaser) {
-    COMET_ASSERT(id.IsValid(), "Tried to acquire an invalid resource ID!");
+    COMET_ASSERT(id.IsValid(), "ResourceSlots::Acquire",
+                 "resource id is invalid");
 
     const internal::ResourceIdLifeSpanPair key{id.GetValue(), life_span};
 
     {
       fiber::FiberLockGuard lock{mtx_};
 
-      COMET_ASSERT(is_initialized_,
-                   "Tried to acquire from resource slots, but it is not "
-                   "initialized!");
+      COMET_ASSERT(is_initialized_, "ResourceSlots::Acquire",
+                   "resource slots not initialized");
 
       if (auto* handle_ptr{handles_.TryGet(key)}; handle_ptr != nullptr) {
         const auto handle{*handle_ptr};
-        COMET_ASSERT(pool_.IsAlive(handle),
-                     "Resource handle cache contains a dead loaded handle!");
+        COMET_ASSERT(pool_.IsAlive(handle), "ResourceSlots::Acquire",
+                     "cached handle is not alive", "handle", handle, "id", id,
+                     "life_span", GetResourceLifeSpanLabel(life_span),
+                     "life_span_value", ToUnderlying(life_span));
+        COMET_ASSERT(handle.GetIndex() < slots_.GetSize(),
+                     "ResourceSlots::Acquire", "slot index out of bounds",
+                     "handle", handle, "index", handle.GetIndex(), "slot_count",
+                     slots_.GetSize());
 
         auto& slot{slots_[handle.GetIndex()]};
-        COMET_ASSERT(slot.resource != nullptr,
-                     "Loaded resource slot contains a null resource!");
+        COMET_ASSERT(slot.resource != nullptr, "ResourceSlots::Acquire",
+                     "slot resource is null", "handle", handle, "id", id,
+                     "life_span", GetResourceLifeSpanLabel(life_span),
+                     "life_span_value", ToUnderlying(life_span));
+
         ++slot.ref_count;
         return handle;
       }
     }
 
     auto* resource{loader(id, life_span)};
+    COMET_ASSERT(resource != nullptr, "ResourceSlots::Acquire",
+                 "loader returned null resource", "id", id, "life_span",
+                 GetResourceLifeSpanLabel(life_span), "life_span_value",
+                 ToUnderlying(life_span));
 
     if (resource == nullptr) {
       return LoadedHandle::Invalid();
@@ -145,18 +164,26 @@ class ResourceSlots {
     {
       fiber::FiberLockGuard lock{mtx_};
 
-      COMET_ASSERT(is_initialized_,
-                   "Tried to acquire from resource slots, but it is not "
-                   "initialized!");
+      COMET_ASSERT(is_initialized_, "ResourceSlots::Acquire",
+                   "resource slots not initialized");
 
       if (auto* handle_ptr{handles_.TryGet(key)}; handle_ptr != nullptr) {
         handle = *handle_ptr;
-        COMET_ASSERT(pool_.IsAlive(handle),
-                     "Resource handle cache contains a dead loaded handle!");
+        COMET_ASSERT(pool_.IsAlive(handle), "ResourceSlots::Acquire",
+                     "cached handle is not alive", "handle", handle, "id", id,
+                     "life_span", GetResourceLifeSpanLabel(life_span),
+                     "life_span_value", ToUnderlying(life_span));
+        COMET_ASSERT(handle.GetIndex() < slots_.GetSize(),
+                     "ResourceSlots::Acquire", "slot index out of bounds",
+                     "handle", handle, "index", handle.GetIndex(), "slot_count",
+                     slots_.GetSize());
 
         auto& slot{slots_[handle.GetIndex()]};
-        COMET_ASSERT(slot.resource != nullptr,
-                     "Loaded resource slot contains a null resource!");
+        COMET_ASSERT(slot.resource != nullptr, "ResourceSlots::Acquire",
+                     "slot resource is null", "handle", handle, "id", id,
+                     "life_span", GetResourceLifeSpanLabel(life_span),
+                     "life_span_value", ToUnderlying(life_span));
+
         ++slot.ref_count;
         is_duplicate = true;
       } else {
@@ -191,21 +218,23 @@ class ResourceSlots {
     {
       fiber::FiberLockGuard lock{mtx_};
 
-      COMET_ASSERT(is_initialized_,
-                   "Tried to release from resource slots, but it is not "
-                   "initialized!");
+      COMET_ASSERT(is_initialized_, "ResourceSlots::Release",
+                   "resource slots not initialized");
 
       if (!pool_.IsAlive(handle)) {
         return;
       }
 
       const auto index{handle.GetIndex()};
-      COMET_ASSERT(index < slots_.GetSize(),
-                   "Loaded resource handle index is out of bounds!");
+      COMET_ASSERT(index < slots_.GetSize(), "ResourceSlots::Release",
+                   "slot index out of bounds", "handle", handle, "index", index,
+                   "slot_count", slots_.GetSize());
 
       auto& slot{slots_[index]};
-      COMET_ASSERT(slot.ref_count > 0,
-                   "Tried to release a resource slot with ref count <= 0!");
+      COMET_ASSERT(slot.ref_count > 0, "ResourceSlots::Release",
+                   "slot ref count is zero", "handle", handle, "id", slot.id,
+                   "life_span", GetResourceLifeSpanLabel(slot.life_span),
+                   "life_span_value", ToUnderlying(slot.life_span));
 
       if (--slot.ref_count > 0) {
         return;
@@ -235,9 +264,8 @@ class ResourceSlots {
     {
       fiber::FiberLockGuard lock{mtx_};
 
-      COMET_ASSERT(is_initialized_,
-                   "Tried to release all from resource slots, but it is not "
-                   "initialized!");
+      COMET_ASSERT(is_initialized_, "ResourceSlots::ReleaseAll",
+                   "resource slots not initialized");
 
       for (const auto& pair : handles_) {
         if (pair.key.life_span == life_span) {
@@ -254,34 +282,36 @@ class ResourceSlots {
   T* Get(LoadedHandle handle) {
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(is_initialized_,
-                 "Tried to get from resource slots, but it is not "
-                 "initialized!");
+    COMET_ASSERT(is_initialized_, "ResourceSlots::Get",
+                 "resource slots not initialized");
 
     if (!pool_.IsAlive(handle)) {
       return nullptr;
     }
 
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Loaded resource handle index is out of bounds!");
+    COMET_ASSERT(index < slots_.GetSize(), "ResourceSlots::Get",
+                 "slot index out of bounds", "handle", handle, "index", index,
+                 "slot_count", slots_.GetSize());
+
     return slots_[index].resource;
   }
 
   const T* Get(LoadedHandle handle) const {
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(is_initialized_,
-                 "Tried to get from resource slots, but it is not "
-                 "initialized!");
+    COMET_ASSERT(is_initialized_, "ResourceSlots::Get",
+                 "resource slots not initialized");
 
     if (!pool_.IsAlive(handle)) {
       return nullptr;
     }
 
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Loaded resource handle index is out of bounds!");
+    COMET_ASSERT(index < slots_.GetSize(), "ResourceSlots::Get",
+                 "slot index out of bounds", "handle", handle, "index", index,
+                 "slot_count", slots_.GetSize());
+
     return slots_[index].resource;
   }
 
@@ -308,9 +338,8 @@ class ResourceSlots {
   LoadedHandle TryGetHandle(Id id, ResourceLifeSpan life_span) const {
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(is_initialized_,
-                 "Tried to get handle from resource slots, but it is not "
-                 "initialized!");
+    COMET_ASSERT(is_initialized_, "ResourceSlots::TryGetHandle",
+                 "resource slots not initialized");
 
     if (id.IsInvalid()) {
       return LoadedHandle::Invalid();
@@ -333,25 +362,27 @@ class ResourceSlots {
   }
 
   LoadedHandle RegisterImmortal(Id id, T* resource) {
-    COMET_ASSERT(id.IsValid(),
-                 "Tried to register an invalid immortal resource!");
-    COMET_ASSERT(resource != nullptr, "Immortal resource is null!");
+    COMET_ASSERT(id.IsValid(), "ResourceSlots::RegisterImmortal",
+                 "resource id is invalid");
+    COMET_ASSERT(resource != nullptr, "ResourceSlots::RegisterImmortal",
+                 "resource is null");
 
     const internal::ResourceIdLifeSpanPair key{id.GetValue(),
                                                ResourceLifeSpan::Immortal};
 
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(is_initialized_,
-                 "Tried to register immortal resource into resource slots, "
-                 "but it is not initialized!");
+    COMET_ASSERT(is_initialized_, "ResourceSlots::RegisterImmortal",
+                 "resource slots not initialized");
 
     if (auto* handle_ptr{handles_.TryGet(key)}; handle_ptr != nullptr) {
       const auto handle{*handle_ptr};
 
       if (pool_.IsAlive(handle)) {
         COMET_ASSERT(slots_[handle.GetIndex()].resource != nullptr,
-                     "Immortal resource slot contains a null resource!");
+                     "ResourceSlots::RegisterImmortal", "slot resource is null",
+                     "handle", handle, "id", id);
+
         return handle;
       }
 
@@ -378,9 +409,8 @@ class ResourceSlots {
   bool IsAlive(LoadedHandle handle) const noexcept {
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(is_initialized_,
-                 "Tried to query liveness from resource slots, but it is not "
-                 "initialized!");
+    COMET_ASSERT(is_initialized_, "ResourceSlots::IsAlive",
+                 "resource slots not initialized");
 
     return pool_.IsAlive(handle);
   }

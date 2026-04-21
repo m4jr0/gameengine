@@ -12,13 +12,18 @@
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/geometry_manager.cc"
-    "${PROJECT_SOURCE_DIR}/src/comet/geometry/geometry_type.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/geometry/geometry_utils.cc"
 
-    # Components.
+    # Component.
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/mesh_component.h"
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/model_component.h"
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/skeleton_component.h"
+
+    # Label.
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/label/geometry_mesh_label.cc"
+
+    # Type.
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/type/geometry_mesh_type.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/type/geometry_skeleton_type.h"
 )
 
 # Compiling ####################################################################

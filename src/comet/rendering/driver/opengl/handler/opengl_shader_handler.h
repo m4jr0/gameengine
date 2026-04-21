@@ -13,17 +13,17 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/data/opengl_material.h"
-#include "comet/rendering/driver/opengl/data/opengl_mesh.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_module_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
+#include "comet/rendering/driver/opengl/type/opengl_material_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_mesh_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/rendering_type.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/rendering/type/rendering_shader_type.h"
+#include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
 namespace rendering {

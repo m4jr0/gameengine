@@ -11,7 +11,9 @@
 namespace comet {
 template <typename TChar>
 TChar* GenerateForOneFrame(usize length) {
-  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  COMET_ASSERT(length > 0, "generator::GenerateForOneFrame",
+               "length must be greater than zero");
+
   // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<TChar*>(
       COMET_FRAME_ALLOC_ALIGNED(sizeof(TChar) * (length + 1), alignof(TChar)))};
@@ -21,8 +23,11 @@ TChar* GenerateForOneFrame(usize length) {
 
 template <typename ReturnedTChar, typename TCharParam>
 ReturnedTChar* GenerateForOneFrame(const TCharParam* str, usize length) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
-  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  COMET_ASSERT(str != nullptr, "generator::GenerateForOneFrame",
+               "source string is null");
+  COMET_ASSERT(length > 0, "generator::GenerateForOneFrame",
+               "length must be greater than zero");
+
   // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<ReturnedTChar*>(COMET_FRAME_ALLOC_ALIGNED(
       sizeof(ReturnedTChar) * (length + 1), alignof(ReturnedTChar)))};
@@ -33,7 +38,9 @@ ReturnedTChar* GenerateForOneFrame(const TCharParam* str, usize length) {
 
 template <typename TChar>
 TChar* GenerateForTwoFrames(usize length) {
-  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  COMET_ASSERT(length > 0, "generator::GenerateForTwoFrames",
+               "length must be greater than zero");
+
   // Add 1 for null terminator.
   auto* new_str{reinterpret_cast<TChar*>(COMET_DOUBLE_FRAME_ALLOC_ALIGNED(
       sizeof(TChar) * (length + 1), alignof(TChar)))};
@@ -43,8 +50,11 @@ TChar* GenerateForTwoFrames(usize length) {
 
 template <typename ReturnedTChar, typename TCharParam>
 ReturnedTChar* GenerateForTwoFrames(const TCharParam* str, usize length) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
-  COMET_ASSERT(length > 0, "Cannot allocate temporary string of length 0!");
+  COMET_ASSERT(str != nullptr, "generator::GenerateForTwoFrames",
+               "source string is null");
+  COMET_ASSERT(length > 0, "generator::GenerateForTwoFrames",
+               "length must be greater than zero");
+
   // Add 1 for null terminator.
   auto* new_str{
       reinterpret_cast<ReturnedTChar*>(COMET_DOUBLE_FRAME_ALLOC_ALIGNED(

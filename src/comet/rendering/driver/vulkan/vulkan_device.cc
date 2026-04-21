@@ -11,19 +11,17 @@
 #include "vulkan_device.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
 #include "comet/core/c_string.h"
 #include "comet/core/frame/frame_utils.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/ordered_set.h"
+#include "comet/core/type_trait.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/label/rendering_common_label.h"
+#include "comet/rendering/type/rendering_common_type.h"
 
 namespace comet {
 namespace rendering {
@@ -45,7 +43,8 @@ bool IsTransferFamilyInQueueFamilyIndices(const QueueFamilyIndices& indices) {
 
 frame::FrameArray<u32> GetUniqueIndices(const QueueFamilyIndices& indices) {
   COMET_ASSERT(AreQueueFamilyIndicesComplete(indices),
-               "Queue family indices are not complete");
+               "vulkan_device::GetUniqueIndices",
+               "queue family indices are incomplete");
 
   frame::FrameOrderedSet<u32> set{};
   set.Reserve(3);
@@ -65,6 +64,12 @@ frame::FrameArray<u32> GetUniqueIndices(const QueueFamilyIndices& indices) {
 
 QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device_handle,
                                      VkSurfaceKHR surface_handle) {
+  COMET_ASSERT(physical_device_handle != VK_NULL_HANDLE,
+               "vulkan_device::FindQueueFamilies",
+               "physical device handle is invalid");
+  COMET_ASSERT(surface_handle != VK_NULL_HANDLE,
+               "vulkan_device::FindQueueFamilies", "surface handle is invalid");
+
   QueueFamilyIndices indices{};
 
   u32 queue_family_count{0};
@@ -84,10 +89,13 @@ QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device_handle,
 
   for (const auto& queue_family : queue_families) {
     VkBool32 is_present_support;
+
     COMET_CHECK_VK(vkGetPhysicalDeviceSurfaceSupportKHR(
                        physical_device_handle, queue_index, surface_handle,
                        &is_present_support),
-                   "Unable to get physical device surface support!");
+                   "vulkan_device::FindQueueFamilies",
+                   "physical device surface support query failed");
+
     // At first, we explicitly try to find a queue family specialized for
     // transfer operations.
     if (kIsSpecificTransferQueue && !indices.transfer_family.has_value() &&
@@ -152,21 +160,20 @@ Device::Device(const DeviceDescr& descr)
       anti_aliasing_type_{descr.anti_aliasing_type},
       instance_handle_{descr.instance_handle},
       surface_handle_{descr.surface_handle} {
-  COMET_ASSERT(instance_handle_ != VK_NULL_HANDLE,
-               "Instance handle provided is null!");
-
-  COMET_ASSERT(surface_handle_ != VK_NULL_HANDLE,
-               "Surface handle provided is null!");
+  COMET_ASSERT(instance_handle_ != VK_NULL_HANDLE, "Device::Device",
+               "instance handle is invalid");
+  COMET_ASSERT(surface_handle_ != VK_NULL_HANDLE, "Device::Device",
+               "surface handle is invalid");
 }
 
 Device::~Device() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for device, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Device::~Device",
+               "device is still initialized");
 }
 
 void Device::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize device, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "Device::Initialize",
+               "device is already initialized");
   ResolvePhysicalDeviceHandle();
   vkGetPhysicalDeviceProperties(physical_device_handle_, &properties_);
   vkGetPhysicalDeviceFeatures(physical_device_handle_, &features_);
@@ -200,11 +207,10 @@ void Device::Initialize() {
       msaa_samples_ = VK_SAMPLE_COUNT_64_BIT;
       break;
     default:
-      COMET_LOG_RENDERING_ERROR(
-          "Unsupported anti-aliasing type: ",
-          static_cast<std::underlying_type_t<AntiAliasingType>>(
-              anti_aliasing_type_),
-          ". Setting it to none.");
+      COMET_ASSERT(
+          false, "Device::Initialize", "anti-aliasing type is unsupported",
+          "anti_aliasing_type", GetAntiAliasingTypeLabel(anti_aliasing_type_),
+          "anti_aliasing_type_value", ToUnderlying(anti_aliasing_type_));
       msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
       break;
   }
@@ -212,24 +218,26 @@ void Device::Initialize() {
   const auto max_samples_cast{static_cast<u32>(max_samples)};
 
   if (static_cast<u32>(msaa_samples_) > max_samples_cast) {
-    COMET_LOG_RENDERING_ERROR(
-        "Choosen MSAA (x",
-        static_cast<std::underlying_type_t<AntiAliasingType>>(
-            anti_aliasing_type_),
-        ") is too high for current GPU. Setting it to x", max_samples_cast,
-        ".");
+    COMET_LOG_WARNING(LoggerType::Rendering, "Device::Initialize",
+                      "requested msaa exceeds gpu support", "requested_msaa",
+                      GetAntiAliasingTypeLabel(anti_aliasing_type_),
+                      "requested_msaa_value", ToUnderlying(anti_aliasing_type_),
+                      "max_samples", max_samples_cast);
 
     msaa_samples_ = max_samples;
   }
 
-  COMET_LOG_RENDERING_DEBUG("Selected GPU: ", properties_.deviceName, ".");
-  COMET_LOG_RENDERING_DEBUG("\t- Minimum alignment: ",
-                            properties_.limits.minUniformBufferOffsetAlignment);
+  COMET_LOG_DEBUG(LoggerType::Rendering, "Device::Initialize", "selected gpu",
+                  "device_name", properties_.deviceName);
+  COMET_LOG_DEBUG(LoggerType::Rendering, "Device::Initialize",
+                  "minimum alignment", "min_uniform_buffer_offset_alignment",
+                  properties_.limits.minUniformBufferOffsetAlignment);
 
   u32 queue_family_count;
   vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle_,
                                            &queue_family_count, VK_NULL_HANDLE);
-  COMET_ASSERT(queue_family_count > 0, "No queue family found!");
+  COMET_ASSERT(queue_family_count > 0, "Device::Initialize",
+               "queue family count is zero");
 
   queue_family_properties_ = Array<VkQueueFamilyProperties>{&allocator_};
   queue_family_properties_.Resize(queue_family_count);
@@ -242,7 +250,8 @@ void Device::Initialize() {
 #endif  // COMET_DEBUG
 
   COMET_ASSERT(AreDeviceExtensionsAvailable(physical_device_handle_),
-               "At least one required extension is not supported!");
+               "Device::Initialize",
+               "required device extensions are unavailable");
 
   queue_family_indices_ =
       FindQueueFamilies(physical_device_handle_, surface_handle_);
@@ -288,13 +297,17 @@ void Device::Initialize() {
       vkCreateDevice(physical_device_handle_, &create_info,
                      MemoryCallbacks::Get().GetAllocCallbacksHandle(),
                      &handle_),
-      "Failed to create logical device!");
+      "Device::Initialize", "logical device creation failed");
 
   vkGetDeviceQueue(handle_, queue_family_indices_.graphics_family.value(), 0,
                    &graphics_queue_handle_);
+  COMET_ASSERT(graphics_queue_handle_ != VK_NULL_HANDLE, "Device::Initialize",
+               "graphics queue handle is invalid");
 
   vkGetDeviceQueue(handle_, queue_family_indices_.present_family.value(), 0,
                    &present_queue_handle_);
+  COMET_ASSERT(present_queue_handle_ != VK_NULL_HANDLE, "Device::Initialize",
+               "present queue handle is invalid");
 
   if (!IsTransferFamilyInQueueFamilyIndices(queue_family_indices_)) {
     is_initialized_ = true;
@@ -303,14 +316,15 @@ void Device::Initialize() {
 
   vkGetDeviceQueue(handle_, queue_family_indices_.transfer_family.value(), 0,
                    &transfer_queue_handle_);
-  COMET_ASSERT(transfer_queue_handle_ != VK_NULL_HANDLE,
-               "Could not get transfer queue handle!");
+  COMET_ASSERT(transfer_queue_handle_ != VK_NULL_HANDLE, "Device::Initialize",
+               "transfer queue handle is invalid");
+
   is_initialized_ = true;
 }
 
 void Device::Destroy() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to destroy device, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Device::Destroy", "device is not initialized");
+
   if (handle_ != VK_NULL_HANDLE) {
     vkDestroyDevice(handle_, MemoryCallbacks::Get().GetAllocCallbacksHandle());
     handle_ = VK_NULL_HANDLE;
@@ -347,6 +361,11 @@ void Device::WaitIdle() const {
 VkFormat Device::ChooseFormat(VkImageTiling tiling,
                               VkFormatFeatureFlags features,
                               const Array<VkFormat>& candidates) const {
+  COMET_ASSERT(physical_device_handle_ != VK_NULL_HANDLE,
+               "Device::ChooseFormat", "physical device handle is invalid");
+  COMET_ASSERT(!candidates.IsEmpty(), "Device::ChooseFormat",
+               "format candidates are empty");
+
   for (const auto format : candidates) {
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(physical_device_handle_, format,
@@ -361,7 +380,7 @@ VkFormat Device::ChooseFormat(VkImageTiling tiling,
     }
   }
 
-  COMET_ASSERT(false, "Failed to find supported format");
+  COMET_ASSERT(false, "Device::ChooseFormat", "no supported format was found");
   return VK_FORMAT_UNDEFINED;
 }
 
@@ -429,19 +448,22 @@ VkQueue Device::GetTransferQueueHandle() const noexcept {
 
 u32 Device::GetGraphicsQueueIndex() const noexcept {
   COMET_ASSERT(queue_family_indices_.graphics_family.has_value(),
-               "No graphics family available!");
+               "Device::GetGraphicsQueueIndex",
+               "graphics queue family is unavailable");
   return queue_family_indices_.graphics_family.value();
 }
 
 u32 Device::GetPresentQueueIndex() const noexcept {
   COMET_ASSERT(queue_family_indices_.present_family.has_value(),
-               "No present family available!");
+               "Device::GetPresentQueueIndex",
+               "present queue family is unavailable");
   return queue_family_indices_.present_family.value();
 }
 
 u32 Device::GetTransferQueueIndex() const noexcept {
   COMET_ASSERT(queue_family_indices_.transfer_family.has_value(),
-               "No transfer family available!");
+               "Device::GetTransferQueueIndex",
+               "transfer queue family is unavailable");
   return queue_family_indices_.transfer_family.value();
 }
 
@@ -505,6 +527,10 @@ PhysicalDeviceScore Device::GetPhysicalDeviceScore(
 
 bool Device::AreDeviceExtensionsAvailable(
     VkPhysicalDevice physical_device_handle) const {
+  COMET_ASSERT(physical_device_handle != VK_NULL_HANDLE,
+               "Device::AreDeviceExtensionsAvailable",
+               "physical device handle is invalid");
+
   if (kRequiredExtensions_.IsEmpty()) {
     return true;
   }
@@ -514,9 +540,9 @@ bool Device::AreDeviceExtensionsAvailable(
                                        &extension_count, VK_NULL_HANDLE);
 
   if (extension_count == 0) {
-    COMET_LOG_RENDERING_ERROR(
-        "At least one extension is required, when there is none available on "
-        "this device.");
+    COMET_LOG_ERROR(LoggerType::Rendering,
+                    "Device::AreDeviceExtensionsAvailable",
+                    "device extension count is zero");
     return false;
   }
 
@@ -526,7 +552,8 @@ bool Device::AreDeviceExtensionsAvailable(
   COMET_CHECK_VK(vkEnumerateDeviceExtensionProperties(
                      physical_device_handle, VK_NULL_HANDLE, &extension_count,
                      extensions_properties.GetData()),
-                 "Failed to enumerate physical device extension properties!");
+                 "Device::AreDeviceExtensionsAvailable",
+                 "device extension enumeration failed");
 
   for (auto& extension_name : kRequiredExtensions_) {
     auto is_found{false};
@@ -542,8 +569,10 @@ bool Device::AreDeviceExtensionsAvailable(
       continue;
     }
 
-    COMET_LOG_RENDERING_ERROR(
-        "Unsupported extension detected: ", extension_name, "!");
+    COMET_LOG_ERROR(LoggerType::Rendering,
+                    "Device::AreDeviceExtensionsAvailable",
+                    "required device extension is unsupported",
+                    "extension_name", extension_name);
     return false;
   }
 
@@ -552,18 +581,28 @@ bool Device::AreDeviceExtensionsAvailable(
 
 void Device::ResolvePhysicalDeviceHandle() {
   COMET_ASSERT(instance_handle_ != VK_NULL_HANDLE,
-               "Vulkan instance handle is null!");
+               "Device::ResolvePhysicalDeviceHandle",
+               "instance handle is invalid");
 
   u32 physical_device_count{0};
-  vkEnumeratePhysicalDevices(instance_handle_, &physical_device_count,
-                             VK_NULL_HANDLE);
+
+  COMET_CHECK_VK(vkEnumeratePhysicalDevices(
+                     instance_handle_, &physical_device_count, VK_NULL_HANDLE),
+                 "Device::ResolvePhysicalDeviceHandle",
+                 "physical device enumeration failed");
+
   COMET_ASSERT(physical_device_count != 0,
-               "Failed to find GPUs with Vulkan support!");
+               "Device::ResolvePhysicalDeviceHandle",
+               "no vulkan-compatible gpus were found");
 
   frame::FrameArray<VkPhysicalDevice> physical_device_handles{};
   physical_device_handles.Resize(physical_device_count);
-  vkEnumeratePhysicalDevices(instance_handle_, &physical_device_count,
-                             physical_device_handles.GetData());
+
+  COMET_CHECK_VK(
+      vkEnumeratePhysicalDevices(instance_handle_, &physical_device_count,
+                                 physical_device_handles.GetData()),
+      "Device::ResolvePhysicalDeviceHandle",
+      "physical device enumeration failed");
 
   PhysicalDeviceScore best_score{0};
 
@@ -577,7 +616,8 @@ void Device::ResolvePhysicalDeviceHandle() {
   }
 
   COMET_ASSERT(physical_device_handle_ != VK_NULL_HANDLE,
-               "Failed to find a suitable GPU!");
+               "Device::ResolvePhysicalDeviceHandle",
+               "no suitable gpu was found");
 }
 
 #ifdef COMET_DEBUG
@@ -594,7 +634,8 @@ void Device::CheckRequiredExtensions() const {
   }
 
   COMET_ASSERT(found_extensions_count >= kExtensionsToCheck_.GetSize(),
-               "At least one mandatory extension is missing!");
+               "Device::CheckRequiredExtensions",
+               "mandatory device extension is missing");
 }
 #endif  // COMET_DEBUG
 }  // namespace vk

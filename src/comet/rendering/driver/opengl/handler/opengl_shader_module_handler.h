@@ -12,11 +12,11 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader_module.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_module_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/resource/shader_module_resource.h"
+#include "comet/resource/shader/shader_module_resource.h"
 
 namespace comet {
 namespace rendering {

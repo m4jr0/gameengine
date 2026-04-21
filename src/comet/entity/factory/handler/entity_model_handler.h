@@ -11,8 +11,9 @@
 #include "comet/core/type/tstring.h"
 #include "comet/entity/entity_id.h"
 #include "comet/entity/factory/handler/entity_handler.h"
-#include "comet/resource/model_resource.h"
+#include "comet/resource/model/model_resource.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace entity {

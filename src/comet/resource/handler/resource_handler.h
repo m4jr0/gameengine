@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_RESOURCE_RESOURCE_HANDLER_H_
-#define COMET_COMET_RESOURCE_RESOURCE_HANDLER_H_
+#ifndef COMET_COMET_RESOURCE_HANDLER_RESOURCE_HANDLER_H_
+#define COMET_COMET_RESOURCE_HANDLER_RESOURCE_HANDLER_H_
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <type_traits>
@@ -11,20 +11,23 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_event.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/hash_set.h"
 #include "comet/core/type/tstring.h"
+#include "comet/core/type_trait.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/profiler/profiler.h"
 #include "comet/resource/handler/resource_handler_utils.h"
+#include "comet/resource/label/resource_common_label.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_id.h"
 #include "comet/resource/runtime/loaded_resource_handle.h"
 #include "comet/resource/runtime/resource_slots.h"
+#include "comet/resource/type/resource_common_type.h"
 #include "comet/scene/scene_event.h"
 
 namespace comet {
@@ -142,9 +145,11 @@ class ResourceHandler {
 
   void OnEvent(const event::Event& event);
 
+  void RegisterEvents();
+  void UnregisterEvents();
+
   event::EventListenerId scene_unloaded_listener_id_{};
   event::EventListenerId new_frame_listener_id_{};
-  bool are_listeners_registered_{false};
 
   CTStringView root_path_{};
 
@@ -181,32 +186,31 @@ inline ResourceHandler<Tag, T>::ResourceHandler(
                                       : kDefaultResourceCapacity_},
       deleted_resources_{descr.ptr_allocator, 64},
 
-      byte_allocator_{descr.byte_allocator} {}
+      byte_allocator_{descr.byte_allocator} {
+  COMET_ASSERT(descr.ptr_allocator != nullptr,
+               "ResourceHandler::ResourceHandler", "pointer allocator is null");
+  COMET_ASSERT(descr.byte_allocator != nullptr,
+               "ResourceHandler::ResourceHandler", "byte allocator is null");
+  COMET_ASSERT(!descr.root_path.IsEmpty(), "ResourceHandler::ResourceHandler",
+               "root path is empty");
+}
 
 template <typename Tag, typename T>
 inline ResourceHandler<Tag, T>::~ResourceHandler() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for resource handler, but it is still "
-               "initialized!");
+  COMET_ASSERT(!is_initialized_, "ResourceHandler::~ResourceHandler",
+               "resource handler is still initialized");
 }
 
 template <typename Tag, typename T>
 inline void ResourceHandler<Tag, T>::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize resource handler, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "ResourceHandler::Initialize",
+               "resource handler is already initialized");
 
   defaults_.Initialize();
   tracker_.Initialize();
   slots_.Initialize();
 
-  const auto event_function{
-      [this](const event::Event& event) { OnEvent(event); }};
-
-  scene_unloaded_listener_id_ = event::EventManager::Get().Register(
-      event_function, scene::SceneUnloadedEvent::kStaticType_);
-  new_frame_listener_id_ = event::EventManager::Get().Register(
-      event_function, frame::NewFrameEvent::kStaticType_);
-  are_listeners_registered_ = true;
+  RegisterEvents();
 
   OnInitialize();
   InitializeDefaults();
@@ -215,15 +219,10 @@ inline void ResourceHandler<Tag, T>::Initialize() {
 
 template <typename Tag, typename T>
 inline void ResourceHandler<Tag, T>::Destroy() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to destroy resource handler, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "ResourceHandler::Destroy",
+               "resource handler is not initialized");
 
-  if (are_listeners_registered_) {
-    event::EventManager::Get().Unregister(scene_unloaded_listener_id_);
-    event::EventManager::Get().Unregister(new_frame_listener_id_);
-    are_listeners_registered_ = false;
-  }
-
+  UnregisterEvents();
   ReleaseManagedResources();
   DestroyDeleted();
   DestroyDefaults();
@@ -239,11 +238,15 @@ inline void ResourceHandler<Tag, T>::Destroy() {
 
 template <typename Tag, typename T>
 inline T* ResourceHandler<Tag, T>::Get(LoadedHandle handle) {
+  COMET_ASSERT(handle, "ResourceHandler::Get",
+               "loaded resource handle is invalid");
   return slots_.Get(handle);
 }
 
 template <typename Tag, typename T>
 inline const T* ResourceHandler<Tag, T>::Get(LoadedHandle handle) const {
+  COMET_ASSERT(handle, "ResourceHandler::Get",
+               "loaded resource handle is invalid");
   return slots_.Get(handle);
 }
 
@@ -265,7 +268,10 @@ ResourceHandler<Tag, T>::Load(Id id, ResourceLifeSpan life_span) {
   if (defaults_.TryGet(id.GetValue()) != nullptr) {
     // Default resources are pre-registered as immortal slot residents.
     const auto handle{slots_.TryGetHandle(id, ResourceLifeSpan::Immortal)};
-    COMET_ASSERT(handle, "Default resource not registered in slots!");
+    COMET_ASSERT(handle, "ResourceHandler::Load",
+                 "default resource is not registered in slots", "resource_id",
+                 id);
+
     return handle;
   }
 
@@ -301,6 +307,11 @@ ResourceHandler<Tag, T>::Load(Id id, ResourceLifeSpan life_span) {
       [this](T* duplicate_resource) { QueueForDeletion(duplicate_resource); })};
 
   auto* resource{slots_.Get(handle)};
+  COMET_ASSERT(!handle || resource != nullptr, "ResourceHandler::Load",
+               "loaded handle resolved to null resource", "resource_id", id,
+               "life_span", GetResourceLifeSpanLabel(life_span),
+               "life_span_value", ToUnderlying(life_span));
+
   tracker_.Finish(loading_state, resource);
   tracker_.Release(loading_state);
 
@@ -309,8 +320,12 @@ ResourceHandler<Tag, T>::Load(Id id, ResourceLifeSpan life_span) {
 
 template <typename Tag, typename T>
 inline void ResourceHandler<Tag, T>::Unload(LoadedHandle handle) {
+  COMET_ASSERT(handle, "ResourceHandler::Unload",
+               "loaded resource handle is invalid");
+
   auto* resource{slots_.Get(handle)};
-  COMET_ASSERT(resource != nullptr, "Tried to unload resource that is null!");
+  COMET_ASSERT(resource != nullptr, "ResourceHandler::Unload",
+               "loaded resource is null");
 
   if (defaults_.IsDefault(resource->id)) {
     return;
@@ -324,24 +339,32 @@ inline void ResourceHandler<Tag, T>::Unload(LoadedHandle handle) {
 template <typename Tag, typename T>
 inline typename ResourceHandler<Tag, T>::LoadedHandle
 ResourceHandler<Tag, T>::RegisterDefaultResource(T* resource) {
-  COMET_ASSERT(resource != nullptr, "Default resource is null!");
+  COMET_ASSERT(resource != nullptr, "ResourceHandler::RegisterDefaultResource",
+               "default resource is null");
   COMET_ASSERT(resource->id != kInvalidRawResourceId,
-               "Default resource ID is invalid!");
+               "ResourceHandler::RegisterDefaultResource",
+               "default resource id is invalid");
 
   defaults_.Set(resource);
-  return slots_.RegisterImmortal(Id{resource->id}, resource);
+
+  const auto handle{slots_.RegisterImmortal(Id{resource->id}, resource)};
+  COMET_ASSERT(handle, "ResourceHandler::RegisterDefaultResource",
+               "default resource registration failed", "resource_id",
+               resource->id);
+
+  return handle;
 }
 
 template <typename Tag, typename T>
 template <typename Func>
 inline decltype(auto) ResourceHandler<Tag, T>::WithLoaded(LoadedHandle handle,
                                                           Func&& fn) {
-  COMET_ASSERT(handle, "Loaded resource handle is invalid!");
+  COMET_ASSERT(handle, "ResourceHandler::WithLoaded",
+               "loaded resource handle is invalid");
 
   auto* resource{Get(handle)};
-
-  COMET_ASSERT(resource != nullptr,
-               "Loaded resource handle resolved to a null resource!");
+  COMET_ASSERT(resource != nullptr, "ResourceHandler::WithLoaded",
+               "loaded resource is null");
 
   return std::invoke(std::forward<Func>(fn), resource);
 }
@@ -350,12 +373,12 @@ template <typename Tag, typename T>
 template <typename Func>
 inline decltype(auto) ResourceHandler<Tag, T>::WithLoaded(LoadedHandle handle,
                                                           Func&& fn) const {
-  COMET_ASSERT(handle, "Loaded resource handle is invalid!");
+  COMET_ASSERT(handle, "ResourceHandler::WithLoaded",
+               "loaded resource handle is invalid");
 
   const auto* resource{Get(handle)};
-
-  COMET_ASSERT(resource != nullptr,
-               "Loaded resource handle resolved to a null resource!");
+  COMET_ASSERT(resource != nullptr, "ResourceHandler::WithLoaded",
+               "loaded resource is null");
 
   return std::invoke(std::forward<Func>(fn), resource);
 }
@@ -370,9 +393,10 @@ inline bool ResourceHandler<Tag, T>::WithTemporaryLoad(Id id, Func&& fn) {
   }
 
   internal::LoadedResourceScope<ResourceHandler<Tag, T>> scope{*this, handle};
+
   auto* resource{Get(handle)};
-  COMET_ASSERT(resource != nullptr,
-               "Loaded resource handle resolved to a null resource!");
+  COMET_ASSERT(resource != nullptr, "ResourceHandler::WithTemporaryLoad",
+               "loaded resource is null", "resource_id", id.GetValue());
 
   std::invoke(std::forward<Func>(fn), resource);
   return true;
@@ -404,17 +428,24 @@ inline T* ResourceHandler<Tag, T>::LoadInternal(Id id,
 
   const auto& resource_abs_path{
       internal::GenerateTlsResourceAbsPath(root_path_, id.GetValue())};
+  COMET_ASSERT(!resource_abs_path.IsEmpty(), "ResourceHandler::LoadInternal",
+               "resource path is empty", "resource_id", id);
 
   T* resource{nullptr};
 
   if (LoadResourceFile(resource_abs_path, file)) {
     resource = resource_allocator_.AllocateOneAndPopulate<T>();
+    COMET_ASSERT(resource != nullptr, "ResourceHandler::LoadInternal",
+                 "resource allocation failed", "resource_id", id);
+
     Unpack(file, life_span, resource);
     return resource;
   }
 
-  COMET_LOG_RESOURCE_ERROR("Unable to get resource with ID: ",
-                           COMET_STRING_ID_LABEL(id.GetValue()), ".");
+  COMET_LOG_ERROR(LoggerType::Resource, "ResourceHandler::LoadInternal",
+                  "resource file load failed", "resource_id", id,
+                  "resource_label", COMET_STRING_ID_LABEL(id.GetValue()));
+
   return nullptr;
 }
 
@@ -430,6 +461,9 @@ inline void ResourceHandler<Tag, T>::QueueForDeletion(T* resource) {
 template <typename Tag, typename T>
 inline void ResourceHandler<Tag, T>::DestroyDeleted() {
   for (auto* resource : deleted_resources_) {
+    COMET_ASSERT(resource != nullptr, "ResourceHandler::DestroyDeleted",
+                 "deleted resource is null");
+
     resource->~T();
     resource_allocator_.Deallocate(resource);
   }
@@ -454,10 +488,10 @@ inline memory::Allocator* ResourceHandler<Tag, T>::ResolveAllocator(
       return life_span_allocators_.immortal;
 
     default:
-      COMET_ASSERT(
-          false, "Unknown or unsupported lock type provided: ",
-          static_cast<std::underlying_type_t<ResourceLifeSpan>>(life_span),
-          "!");
+      COMET_ASSERT(false, "ResourceHandler::ResolveAllocator",
+                   "resource life span is unsupported", "life_span",
+                   GetResourceLifeSpanLabel(life_span), "life_span_value",
+                   ToUnderlying(life_span));
       return nullptr;
   }
 }
@@ -472,6 +506,40 @@ inline void ResourceHandler<Tag, T>::OnEvent(const event::Event& event) {
     });
   } else if (event_type == frame::NewFrameEvent::kStaticType_) {
     DestroyDeleted();
+  }
+}
+
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::RegisterEvents() {
+  auto& event_manager{event::EventManager::Get()};
+  const auto event_function{
+      [this](const event::Event& event) { OnEvent(event); }};
+
+  scene_unloaded_listener_id_ = event_manager.Register(
+      event_function, scene::SceneUnloadedEvent::kStaticType_);
+  COMET_ASSERT(scene_unloaded_listener_id_ != event::kInvalidEventListenerId,
+               "ResourceHandler::Initialize",
+               "scene unloaded listener registration failed");
+
+  new_frame_listener_id_ = event_manager.Register(
+      event_function, frame::NewFrameEvent::kStaticType_);
+  COMET_ASSERT(new_frame_listener_id_ != event::kInvalidEventListenerId,
+               "ResourceHandler::Initialize",
+               "new frame listener registration failed");
+}
+
+template <typename Tag, typename T>
+inline void ResourceHandler<Tag, T>::UnregisterEvents() {
+  auto& event_manager{event::EventManager::Get()};
+
+  if (scene_unloaded_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(scene_unloaded_listener_id_);
+    scene_unloaded_listener_id_ = event::kInvalidEventListenerId;
+  }
+
+  if (new_frame_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(new_frame_listener_id_);
+    new_frame_listener_id_ = event::kInvalidEventListenerId;
   }
 }
 
@@ -515,4 +583,4 @@ inline void ResourceHandler<Tag, T>::SetupProfiling(
 }  // namespace resource
 }  // namespace comet
 
-#endif  // COMET_COMET_RESOURCE_RESOURCE_HANDLER_H_
+#endif  // COMET_COMET_RESOURCE_HANDLER_RESOURCE_HANDLER_H_

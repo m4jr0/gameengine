@@ -5,11 +5,12 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_VIEW_SHADER_UTILS_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_UTILS_VULKAN_VIEW_SHADER_UTILS_H_
 
+#include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/light/light_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
 #include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/type/rendering_light_type.h"
 
 namespace comet {
 namespace rendering {

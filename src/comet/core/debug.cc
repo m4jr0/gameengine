@@ -47,34 +47,29 @@ namespace comet {
 namespace debug {
 // TODO(m4jr0): Handle critical error properly.
 void HandleCriticalError() {
-  // Let async logs flush if needed.
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-  std::cerr
-      << "A critical error has occurred. The application must now terminate.\n";
+  std::cerr << "debug::HandleCriticalError: critical failure, aborting\n";
 
   constexpr auto kBufferLen{4096};
   schar buffer[kBufferLen]{'\0'};
   GenerateStackTrace(buffer, kBufferLen);
 
   std::cerr << buffer << '\n';
-  std::cerr << "Aborting...\n";
 }
 
 void GenerateStackTrace(schar* buffer, usize buffer_len) {
-  constexpr auto* kPrefix{"Stacktrace:\n"};
+  constexpr auto* kPrefix{"stacktrace:\n"};
   constexpr auto kPrefixLen{GetLength(kPrefix)};
+  COMET_CASSERT(buffer_len > kPrefixLen, "buffer provided is too small");
 
-  COMET_CASSERT(buffer_len > kPrefixLen, "Buffer provided is too small!");
   Copy(buffer, kPrefix, kPrefixLen);
   buffer += kPrefixLen;
   buffer_len -= kPrefixLen;
 
 #ifdef COMET_MSVC
 #ifndef COMET_DEBUG
-  constexpr auto* kReleaseStr{"Not available in release builds."};
+  constexpr auto* kReleaseStr{"not available in release builds"};
   constexpr auto kkReleaseStrLen{GetLength(kReleaseStr)};
-  COMET_CASSERT(buffer_len > kReleaseStr, "Buffer provided is too small!");
+  COMET_CASSERT(buffer_len > kkReleaseStrLen, "buffer provided is too small");
   Copy(buffer, kReleaseStr, kkReleaseStrLen);
   return;
 #else
@@ -127,7 +122,7 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
   }
 
   SymCleanup(process_handle);
-  COMET_CASSERT(buffer_len > 1, "Buffer provided is too small!");
+  COMET_CASSERT(buffer_len > 1, "buffer provided is too small");
   buffer[0] = '\0';
 #endif  // !COMET_DEBUG
 #else
@@ -211,7 +206,7 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
   }
 
   free(symbols);
-  COMET_CASSERT(buffer_len > 1, "Buffer provided is too small!");
+  COMET_CASSERT(buffer_len > 1, "buffer provided is too small");
   buffer[0] = '\0';
 #endif  // COMET_MSVC
 }

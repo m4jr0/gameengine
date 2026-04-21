@@ -15,24 +15,24 @@ namespace comet {
 namespace rendering {
 namespace vk {
 Handler::Handler(const HandlerDescr& descr) : context_{descr.context} {
-  COMET_ASSERT(context_ != nullptr, "Context cannot be null for handler!");
+  COMET_ASSERT(context_ != nullptr, "Handler::Handler", "context is null");
 }
 
 Handler::~Handler() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for handler, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Handler::~Handler",
+               "handler is still initialized");
 }
 
 void Handler::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize handler, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "Handler::Initialize",
+               "handler is already initialized");
   OnInitialize();
   is_initialized_ = true;
 }
 
 void Handler::Shutdown() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to shutdown handler, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Handler::Shutdown",
+               "handler is not initialized");
   OnShutdown();
   is_initialized_ = false;
 }

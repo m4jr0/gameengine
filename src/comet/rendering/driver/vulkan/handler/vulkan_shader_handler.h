@@ -14,8 +14,6 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
@@ -24,8 +22,10 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_module_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_material_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
 namespace rendering {

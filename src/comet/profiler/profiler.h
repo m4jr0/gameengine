@@ -17,7 +17,7 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
 
 #ifdef COMET_PROFILING
 namespace comet {

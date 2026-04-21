@@ -33,19 +33,19 @@ Context::Context(const ContextDescr& descr)
       max_object_count_{descr.max_object_count},
       instance_handle_{descr.instance_handle},
       device_{descr.device} {
-  COMET_ASSERT(instance_handle_ != nullptr,
-               "Instance handle provided is null!");
-  COMET_ASSERT(device_ != nullptr, "Device provided is null!");
+  COMET_ASSERT(instance_handle_ != nullptr, "Context::Context",
+               "instance handle is null");
+  COMET_ASSERT(device_ != nullptr, "Context::Context", "device is null");
 }
 
 Context::~Context() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for context, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Context::~Context",
+               "context is still initialized");
 }
 
 void Context::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize context, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "Context::Initialize",
+               "context is already initialized");
 
   InitializeAllocator();
   InitializeFrameData();
@@ -82,7 +82,8 @@ void Context::InitializeCommands() {
   for (usize i{0}; i < max_frames_in_flight_; ++i) {
     COMET_CHECK_VK(vkCreateCommandPool(*device_, &pool_info, VK_NULL_HANDLE,
                                        &frame_data_[i].command_pool_handle),
-                   "Failed to create frame command pool!");
+                   "Context::InitializeCommands",
+                   "frame command pool creation failed", "frame", i);
 
     const auto allocate_info{init::GenerateCommandBufferAllocateInfo(
         frame_data_[i].command_pool_handle, 1)};
@@ -90,7 +91,9 @@ void Context::InitializeCommands() {
     COMET_CHECK_VK(
         vkAllocateCommandBuffers(*device_, &allocate_info,
                                  &frame_data_[i].command_buffer_handle),
-        "Failed to allocate frame command buffer!");
+        "Context::InitializeCommands", "frame command buffer allocation failed",
+        "frame", i);
+
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
     constexpr auto kDebugLabelLen{31};
     schar debug_label[kDebugLabelLen + 1]{'\0'};
@@ -112,7 +115,8 @@ void Context::InitializeCommands() {
 
   COMET_CHECK_VK(vkCreateCommandPool(*device_, &pool_info, VK_NULL_HANDLE,
                                      &transfer_command_pool_handle_),
-                 "Failed to create transfer command pool!");
+                 "Context::InitializeCommands",
+                 "transfer command pool creation failed");
 }
 
 void Context::InitializeSyncStructures() {
@@ -123,12 +127,14 @@ void Context::InitializeSyncStructures() {
   for (auto& frame_data : frame_data_) {
     COMET_CHECK_VK(vkCreateFence(*device_, &fence_create_info, VK_NULL_HANDLE,
                                  &frame_data.render_fence_handle),
-                   "Unable to create frame fence!");
+                   "Context::InitializeSyncStructures",
+                   "frame fence creation failed");
 
     COMET_CHECK_VK(
         vkCreateSemaphore(*device_, &semaphore_create_info, VK_NULL_HANDLE,
                           &frame_data.present_semaphore_handle),
-        "Unable to create frame present semaphore!");
+        "Context::InitializeSyncStructures",
+        "frame present semaphore creation failed");
   }
 
   VkSemaphoreTypeCreateInfo transfer_semaphore_info{};
@@ -140,19 +146,21 @@ void Context::InitializeSyncStructures() {
 
   COMET_CHECK_VK(vkCreateSemaphore(*device_, &semaphore_create_info,
                                    VK_NULL_HANDLE, &transfer_semaphore_handle_),
-                 "Unable to create frame transfer semaphore!");
+                 "Context::InitializeSyncStructures",
+                 "transfer semaphore creation failed");
 }
 
 void Context::BindImageData(const ImageData* image_data) {
   image_data_ = image_data;
-  COMET_ASSERT(image_data_ != nullptr, "Image data bound is null!");
+  COMET_ASSERT(image_data_ != nullptr, "Context::BindImageData",
+               "image data is null");
 }
 
 void Context::UnbindImageData() { image_data_ = nullptr; }
 
 void Context::Destroy() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to destroy context, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Context::Destroy",
+               "context is not initialized");
   DestroySyncStructures();
   DestroyCommands();
   DestroyFrameData();
@@ -231,7 +239,8 @@ void Context::HandlePostSwapchainReload() {
 }
 
 void Context::GoToNextFrame() noexcept {
-  ++frame_in_flight_index_ %= max_frames_in_flight_;
+  ++frame_in_flight_index_;
+  frame_in_flight_index_ %= max_frames_in_flight_;
   ++frame_count_;
 }
 
@@ -240,9 +249,9 @@ FrameData& Context::GetFrameData(FrameInFlightIndex frame) {
     frame = frame_in_flight_index_;
   }
 
-  COMET_ASSERT(frame < frame_data_.GetSize(),
-               "Requesting command generation from frame #", frame,
-               ", but frame count is ", frame_data_.GetSize(), "!");
+  COMET_ASSERT(frame < frame_data_.GetSize(), "Context::GetFrameData",
+               "frame index is out of bounds", "frame", frame, "frame_count",
+               frame_data_.GetSize());
 
   return frame_data_[frame];
 }
@@ -252,9 +261,9 @@ const FrameData& Context::GetFrameData(FrameInFlightIndex frame) const {
     frame = frame_in_flight_index_;
   }
 
-  COMET_ASSERT(frame < frame_data_.GetSize(),
-               "Requesting command generation from frame #", frame,
-               ", but frame count is ", frame_data_.GetSize(), "!");
+  COMET_ASSERT(frame < frame_data_.GetSize(), "Context::GetFrameData",
+               "frame index is out of bounds", "frame", frame, "frame_count",
+               frame_data_.GetSize());
 
   return frame_data_[frame];
 }
@@ -268,20 +277,20 @@ bool Context::IsSampleRateShading() const noexcept {
 }
 
 ImageIndex Context::GetImageIndex() const {
-  COMET_ASSERT(image_data_ != nullptr,
-               "Image index was required, but is image data null!");
+  COMET_ASSERT(image_data_ != nullptr, "Context::GetImageIndex",
+               "image data is null");
   return image_data_->image_index;
 }
 
 ImageIndex Context::GetImageCount() const {
-  COMET_ASSERT(image_data_ != nullptr,
-               "Image count was required, but image data is null!");
+  COMET_ASSERT(image_data_ != nullptr, "Context::GetImageCount",
+               "image data is null");
   return image_data_->image_count;
 }
 
 VkSemaphore Context::GetRenderSemaphoreHandle() const {
-  COMET_ASSERT(image_data_ != nullptr,
-               "Render semaphore handle was required, but image data is null!");
+  COMET_ASSERT(image_data_ != nullptr, "Context::GetRenderSemaphoreHandle",
+               "image data is null");
   return image_data_->render_semaphore_handle;
 }
 

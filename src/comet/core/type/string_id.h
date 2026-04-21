@@ -49,10 +49,9 @@ class StringIdAllocator : public memory::StatefulAllocator {
   static inline constexpr StringIdAllocatorOffset kInvalidOffset_{-1};
 
   usize capacity_{0};
-  static_assert(std::atomic<StringIdAllocatorOffset>::is_always_lock_free,
-                "std::atomic<StringIdAllocatorOffset> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+  static_assert(
+      std::atomic<StringIdAllocatorOffset>::is_always_lock_free,
+      "std::atomic<StringIdAllocatorOffset> must be always lock-free");
   std::atomic<StringIdAllocatorOffset> offset_{kInvalidOffset_};
   u8* root_{nullptr};
 };

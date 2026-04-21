@@ -155,16 +155,17 @@ class LockFreeStackAllocator : public StatefulAllocator {
 
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize capacity_{0};
-  static_assert(std::atomic<LockFreeStackAllocatorOffset>::is_always_lock_free,
-                "std::atomic<LockFreeStackAllocatorOffset> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+
+  static_assert(
+      std::atomic<LockFreeStackAllocatorOffset>::is_always_lock_free,
+      "std::atomic<LockFreeStackAllocatorOffset> must be always lock-free");
   std::atomic<LockFreeStackAllocatorOffset> offset_{kInvalidOffset_};
+
   u8* root_{nullptr};
 };
 
 template <typename Stack>
-class DoubleStackAllocator : public memory::StatefulAllocator {
+class DoubleStackAllocator : public StatefulAllocator {
  public:
   DoubleStackAllocator(usize stack_capacity, MemoryTag memory_tag)
       : stacks_{Stack{stack_capacity, memory_tag},
@@ -176,7 +177,7 @@ class DoubleStackAllocator : public memory::StatefulAllocator {
   DoubleStackAllocator& operator=(DoubleStackAllocator&&) = delete;
   ~DoubleStackAllocator() override = default;
 
-  void* AllocateAligned(usize size, memory::Alignment align) override {
+  void* AllocateAligned(usize size, Alignment align) override {
     return stacks_[current_stack_].AllocateAligned(size, align);
   }
 
@@ -205,7 +206,7 @@ class DoubleStackAllocator : public memory::StatefulAllocator {
 };
 
 template <typename Stack>
-class FiberDoubleStackAllocator : public memory::StatefulAllocator {
+class FiberDoubleStackAllocator : public StatefulAllocator {
  public:
   FiberDoubleStackAllocator(
       usize stack_capacity, MemoryTag memory_tag,
@@ -221,7 +222,7 @@ class FiberDoubleStackAllocator : public memory::StatefulAllocator {
   FiberDoubleStackAllocator& operator=(FiberDoubleStackAllocator&&) = delete;
   ~FiberDoubleStackAllocator() override = default;
 
-  void* AllocateAligned(usize size, memory::Alignment align) override {
+  void* AllocateAligned(usize size, Alignment align) override {
     return stacks_[current_stack_].AllocateAligned(size, align);
   }
 
@@ -273,10 +274,15 @@ class StaticStackAllocator : public Allocator {
 template <usize Capacity, Alignment Align>
 inline void* StaticStackAllocator<Capacity, Align>::AllocateAligned(
     usize size, Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "StaticStackAllocator::AllocateAligned",
+               "allocation size is zero");
+
   auto* p{AlignPointer(marker_, align)};
-  COMET_ASSERT(p + size <= root_ + Capacity,
-               "Could not allocate enough memory (", size, ")!");
+
+  COMET_ASSERT(
+      p + size <= root_ + Capacity, "StaticStackAllocator::AllocateAligned",
+      "allocation exceeds capacity", "size", size, "capacity", Capacity);
+
   marker_ = p + size;
   return p;
 }

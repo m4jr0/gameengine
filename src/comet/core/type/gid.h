@@ -30,8 +30,10 @@ using IdGeneration =
     std::conditional_t<kGenerationBits <= 16,
                        std::conditional_t<kGenerationBits <= 8, u8, u16>, u32>;
 
-static_assert(sizeof(IdGeneration) * 8 >= kGenerationBits);
-static_assert(sizeof(Gid) - sizeof(IdGeneration) > 0);
+static_assert(sizeof(IdGeneration) * kCharBit >= kGenerationBits,
+              "IdGeneration capacity >= required generation bits");
+static_assert(sizeof(Gid) > sizeof(IdGeneration),
+              "Gid contains more data than IdGeneration");
 
 constexpr bool IsValid(Gid id) noexcept { return id != kIdMask; }
 

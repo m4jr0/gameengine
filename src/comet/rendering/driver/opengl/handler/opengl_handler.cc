@@ -15,25 +15,25 @@ namespace comet {
 namespace rendering {
 namespace gl {
 Handler::Handler(const HandlerDescr& descr) : frame_state_{descr.frame_state} {
-  COMET_ASSERT(frame_state_ != nullptr,
-               "Frame state cannot be null for handler!");
+  COMET_ASSERT(frame_state_ != nullptr, "Handler::Handler",
+               "frame state is null");
 }
 
 Handler::~Handler() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for handler, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Handler::~Handler",
+               "handler is still initialized");
 }
 
 void Handler::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize handler, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "Handler::Initialize",
+               "handler is already initialized");
   OnInitialize();
   is_initialized_ = true;
 }
 
 void Handler::Shutdown() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to shutdown handler, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Handler::Shutdown",
+               "handler is not initialized");
   OnShutdown();
   is_initialized_ = false;
 }

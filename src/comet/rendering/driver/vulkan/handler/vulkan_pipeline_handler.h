@@ -13,9 +13,9 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/handle.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_pipeline_type.h"
 
 namespace comet {
 namespace rendering {

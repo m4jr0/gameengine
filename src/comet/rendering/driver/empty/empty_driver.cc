@@ -13,7 +13,7 @@
 
 #ifdef COMET_DEBUG
 
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/rendering/window/window.h"
 
 namespace comet {
@@ -38,9 +38,13 @@ Window* EmptyDriver::GetWindow() { return window_.get(); }
 u32 EmptyDriver::GetDrawCount() const { return 0; }
 
 void EmptyDriver::OnInitialize() {
-  COMET_LOG_RENDERING_DEBUG("Initializing Empty driver.");
+  COMET_LOG_DEBUG(LoggerType::Rendering, "EmptyDriver::OnInitialize",
+                  "initializing empty driver");
+  COMET_ASSERT(window_ != nullptr, "EmptyDriver::OnInitialize",
+               "window is null");
   window_->Initialize();
-  COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
+  COMET_ASSERT(window_->IsInitialized(), "EmptyDriver::OnInitialize",
+               "window not initialized");
 }
 
 void EmptyDriver::OnShutdown() {

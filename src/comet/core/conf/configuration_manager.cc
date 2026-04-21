@@ -16,7 +16,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 
 namespace comet {
 namespace conf {
@@ -29,14 +29,16 @@ void ConfigurationManager::ParseConfFile() {
   std::ifstream in_file;
 
   if (!OpenFileToReadFrom(kConfigFileRelativePath_, in_file)) {
-    COMET_LOG_CORE_INFO("No configuration file at: ", kConfigFileRelativePath_,
-                        ".");
+    COMET_LOG_INFO(LoggerType::Core, "ConfigurationManager::ParseConfFile",
+                   "configuration file not found", "path",
+                   kConfigFileRelativePath_);
     return;
   }
 
   if (!in_file.good()) {
-    COMET_LOG_CORE_ERROR("Invalid configuration file at: ",
-                         kConfigFileRelativePath_, ". Ignoring.");
+    COMET_LOG_ERROR(LoggerType::Core, "ConfigurationManager::ParseConfFile",
+                    "configuration file is invalid", "path",
+                    kConfigFileRelativePath_);
     return;
   }
 
@@ -87,15 +89,21 @@ void ConfigurationManager::ParseConfFile() {
 
 ConfValue& ConfigurationManager::Get(ConfKey key) {
   auto* value{values_.TryGet(key)};
-  COMET_ASSERT(value != nullptr,
-               "Unknown configuration key: ", COMET_STRING_ID_LABEL(key), "!");
+
+  COMET_ASSERT(value != nullptr, "ConfigurationManager::Get",
+               "configuration key is unknown", "key",
+               COMET_STRING_ID_LABEL(key));
+
   return *value;
 }
 
 const ConfValue& ConfigurationManager::Get(ConfKey key) const {
   const auto* value{values_.TryGet(key)};
-  COMET_ASSERT(value != nullptr,
-               "Unknown configuration key: ", COMET_STRING_ID_LABEL(key), "!");
+
+  COMET_ASSERT(value != nullptr, "ConfigurationManager::Get",
+               "configuration key is unknown", "key",
+               COMET_STRING_ID_LABEL(key));
+
   return *value;
 }
 
@@ -180,10 +188,11 @@ void ConfigurationManager::SetStr(ConfKey key, const schar* value) {
 void ConfigurationManager::SetStr(ConfKey key, const schar* value,
                                   usize length) {
   if (length > kMaxStrValueLength) {
-    COMET_LOG_CORE_ERROR("String value for key ", COMET_STRING_ID_LABEL(key),
-                         "is too long. Length provided is ", length,
-                         ". Max allowed is ", kMaxStrValueLength,
-                         ". Value will be trimmed.");
+    COMET_LOG_ERROR(LoggerType::Core, "ConfigurationManager::SetStr",
+                    "string value is too long", "key",
+                    COMET_STRING_ID_LABEL(key), "length", length, "max_length",
+                    kMaxStrValueLength - 1);
+
     length = kMaxStrValueLength - 1;
   }
 
@@ -199,10 +208,11 @@ void ConfigurationManager::SetTStr(ConfKey key, const tchar* value) {
 void ConfigurationManager::SetTStr(ConfKey key, const tchar* value,
                                    usize length) {
   if (length > kMaxStrValueLength) {
-    COMET_LOG_CORE_ERROR("TString value for key ", COMET_STRING_ID_LABEL(key),
-                         "is too long. Length provided is ", length,
-                         ". Max allowed is ", kMaxStrValueLength,
-                         ". Value will be trimmed.");
+    COMET_LOG_ERROR(LoggerType::Core, "ConfigurationManager::SetTStr",
+                    "tstring value is too long", "key",
+                    COMET_STRING_ID_LABEL(key), "length", length, "max_length",
+                    kMaxStrValueLength - 1);
+
     length = kMaxStrValueLength - 1;
   }
 

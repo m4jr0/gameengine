@@ -11,7 +11,7 @@
 #include "opengl_sampler_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/rendering/driver/opengl/utils/opengl_sampler_utils.h"
 
 namespace comet {
@@ -31,7 +31,8 @@ SamplerHandle SamplerHandler::GetOrGenerate(const SamplerDescr& descr) {
   sampler->key = key;
 
   const auto handle{samplers_.Create(key, sampler)};
-  COMET_ASSERT(handle, "Failed to create instance for sampler!");
+  COMET_ASSERT(handle, "SamplerHandler::GetOrGenerate",
+               "sampler instance creation failed", "sampler_key", key);
 
   sampler->handle = handle;
   return handle;
@@ -44,8 +45,9 @@ void SamplerHandler::Destroy(SamplerHandle handle) {
     return;
   }
 
-  COMET_ASSERT(sampler->handle == handle,
-               "Sampler handle mismatch during destruction!");
+  COMET_ASSERT(sampler->handle == handle, "SamplerHandler::Destroy",
+               "sampler handle mismatch", "expected_handle", handle,
+               "actual_handle", sampler->handle, "sampler_key", sampler->key);
 
   if (sampler->native_handle != kInvalidGlNativeSamplerHandle) {
     glDeleteSamplers(1, &sampler->native_handle);
@@ -59,8 +61,8 @@ void SamplerHandler::Destroy(SamplerHandle handle) {
 
 const Sampler* SamplerHandler::Get(SamplerHandle handle) const {
   const auto* sampler{samplers_.TryGet(handle)};
-  COMET_ASSERT(sampler != nullptr, "Requested sampler does not exist: ", handle,
-               "!");
+  COMET_ASSERT(sampler != nullptr, "SamplerHandler::Get", "sampler not found",
+               "sampler_handle", handle);
   return sampler;
 }
 
@@ -82,10 +84,10 @@ void SamplerHandler::OnShutdown() {
     const auto ref_count{samplers_.GetRefCount(handle)};
 
     if (ref_count > 0) {
-      COMET_LOG_RENDERING_WARNING("Forcing destruction of sampler handle ",
-                                  handle, " with remaining ref count ",
-                                  ref_count, ", key ",
-                                  samplers_.Get(handle)->key, "!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "SamplerHandler::OnShutdown",
+                        "forcing sampler destruction", "sampler_handle", handle,
+                        "ref_count", ref_count, "sampler_key",
+                        samplers_.Get(handle)->key);
     }
 
     auto* sampler{samplers_.Drain(handle)};
@@ -94,8 +96,9 @@ void SamplerHandler::OnShutdown() {
       continue;
     }
 
-    COMET_ASSERT(sampler->handle == handle,
-                 "Sampler handle mismatch during shutdown destruction!");
+    COMET_ASSERT(sampler->handle == handle, "SamplerHandler::OnShutdown",
+                 "sampler handle mismatch", "expected_handle", handle,
+                 "actual_handle", sampler->handle, "sampler_key", sampler->key);
 
     if (sampler->native_handle != kInvalidGlNativeSamplerHandle) {
       glDeleteSamplers(1, &sampler->native_handle);
@@ -112,20 +115,23 @@ void SamplerHandler::OnShutdown() {
 
 Sampler* SamplerHandler::Get(SamplerHandle handle) {
   auto* sampler{samplers_.TryGet(handle)};
-  COMET_ASSERT(sampler != nullptr, "Requested sampler does not exist: ", handle,
-               "!");
+  COMET_ASSERT(sampler != nullptr, "SamplerHandler::Get", "sampler not found",
+               "sampler_handle", handle);
   return sampler;
 }
 
 Sampler* SamplerHandler::GenerateSampler(const SamplerDescr& descr) {
   auto* sampler{allocator_.AllocateOneAndPopulate<Sampler>()};
-  COMET_ASSERT(sampler != nullptr, "Failed to allocate OpenGL sampler!");
+  COMET_ASSERT(sampler != nullptr, "SamplerHandler::GenerateSampler",
+               "sampler allocation failed");
 
   *sampler = {};
 
   glGenSamplers(1, &sampler->native_handle);
   COMET_ASSERT(sampler->native_handle != kInvalidGlNativeSamplerHandle,
-               "Failed to create OpenGL sampler!");
+               "SamplerHandler::GenerateSampler",
+               "OpenGL sampler creation failed", "sampler_key",
+               GenerateSamplerKey(descr));
 
   glSamplerParameteri(sampler->native_handle, GL_TEXTURE_WRAP_S,
                       static_cast<GLint>(descr.wrap_s));

@@ -12,6 +12,7 @@
 target_sources(${COMET_LIBRARY_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/comet/input/input_event.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/input/input_label.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/input/input_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/input/input.h"
 )

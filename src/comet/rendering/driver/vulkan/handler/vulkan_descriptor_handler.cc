@@ -24,6 +24,14 @@ DescriptorHandler::DescriptorHandler(const DescriptorHandlerDescr& descr)
 bool DescriptorHandler::Generate(
     const VkDescriptorSetLayout* descriptor_set_layout_handles,
     VkDescriptorSet* outDescriptorSets, u32 count, DescriptorType type) {
+  COMET_ASSERT(descriptor_set_layout_handles != nullptr,
+               "DescriptorHandler::Generate",
+               "descriptor set layout handles are null");
+  COMET_ASSERT(outDescriptorSets != nullptr, "DescriptorHandler::Generate",
+               "output descriptor sets are null");
+  COMET_ASSERT(count > 0, "DescriptorHandler::Generate",
+               "descriptor set count is zero");
+
   auto& device{context_->GetDevice()};
   auto pool{(type == DescriptorType::Static)
                 ? static_descriptor_pool_
@@ -35,6 +43,10 @@ bool DescriptorHandler::Generate(
 bool DescriptorHandler::Generate(
     const Array<VkDescriptorSetLayout>& descriptor_set_layout_handles,
     Array<VkDescriptorSet>& outDescriptorSets, DescriptorType type) {
+  COMET_ASSERT(!descriptor_set_layout_handles.IsEmpty(),
+               "DescriptorHandler::Generate",
+               "descriptor set layouts are empty");
+
   auto& device{context_->GetDevice()};
   auto pool{(type == DescriptorType::Static)
                 ? static_descriptor_pool_
@@ -46,6 +58,10 @@ bool DescriptorHandler::Generate(
 bool DescriptorHandler::Generate(
     const VkDescriptorSetLayout* descriptor_set_layout_handle,
     VkDescriptorSet& outDescriptorSet, DescriptorType type) {
+  COMET_ASSERT(descriptor_set_layout_handle != nullptr,
+               "DescriptorHandler::Generate",
+               "descriptor set layout handle is null");
+
   auto& device{context_->GetDevice()};
   auto pool{(type == DescriptorType::Static)
                 ? static_descriptor_pool_
@@ -56,6 +72,11 @@ bool DescriptorHandler::Generate(
 
 void DescriptorHandler::Destroy(VkDescriptorSet* descriptor_set_handles,
                                 u32 count, DescriptorType type) {
+  COMET_ASSERT(descriptor_set_handles != nullptr, "DescriptorHandler::Destroy",
+               "descriptor set handles are null");
+  COMET_ASSERT(count > 0, "DescriptorHandler::Destroy",
+               "descriptor set count is zero");
+
   auto& device{context_->GetDevice()};
   auto pool{(type == DescriptorType::Static)
                 ? static_descriptor_pool_
@@ -69,6 +90,9 @@ void DescriptorHandler::Destroy(VkDescriptorSet* descriptor_set_handles,
 
 void DescriptorHandler::Destroy(Array<VkDescriptorSet>& descriptor_set_handles,
                                 DescriptorType type) {
+  COMET_ASSERT(!descriptor_set_handles.IsEmpty(), "DescriptorHandler::Destroy",
+               "descriptor set handles are empty");
+
   auto& device{context_->GetDevice()};
   auto pool{(type == DescriptorType::Static)
                 ? static_descriptor_pool_
@@ -82,6 +106,10 @@ void DescriptorHandler::Destroy(Array<VkDescriptorSet>& descriptor_set_handles,
 
 void DescriptorHandler::Destroy(VkDescriptorSet descriptor_set_handle,
                                 DescriptorType type) {
+  COMET_ASSERT(descriptor_set_handle != VK_NULL_HANDLE,
+               "DescriptorHandler::Destroy",
+               "descriptor set handle is invalid");
+
   auto& device{context_->GetDevice()};
   auto pool{(type == DescriptorType::Static)
                 ? static_descriptor_pool_
@@ -94,9 +122,10 @@ void DescriptorHandler::ResetDynamic() {
 
   const auto dynamic_descriptor_pool{
       dynamic_descriptor_pools_[context_->GetFrameInFlightIndex()]};
-
   COMET_ASSERT(dynamic_descriptor_pool != VK_NULL_HANDLE,
-               "Dynamic descriptor pool is null!");
+               "DescriptorHandler::ResetDynamic",
+               "dynamic descriptor pool is null");
+
   vkResetDescriptorPool(context_->GetDevice(), dynamic_descriptor_pool, 0);
 }
 

@@ -12,6 +12,7 @@
 
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_manager.h"
+#include "comet/profiler/profiler.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -22,6 +23,10 @@ PhysicsManager& PhysicsManager::Get() {
 }
 
 void PhysicsManager::Update(frame::FramePacket* packet) {
+  COMET_PROFILE("PhysicsManager::Update");
+  COMET_ASSERT(packet != nullptr, "PhysicsManager::Update",
+               "frame packet is null");
+
   current_frame_packet_ = packet;
   auto& time_manager{time::TimeManager::Get()};
   const auto delta_time{time_manager.GetDeltaTime()};
@@ -117,6 +122,7 @@ void PhysicsManager::OnShutdown() {
 };
 
 void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {
+  COMET_PROFILE("PhysicsManager::UpdateEntityTransforms");
   auto& entity_manager{entity::EntityManager::Get()};
 
   entity_manager.Each<TransformRootComponent, TransformComponent>(

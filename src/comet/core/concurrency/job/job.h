@@ -47,7 +47,6 @@ enum class JobStackSize {
   ExternalLibrary
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 };
-const schar* GetJobStackSizeLabel(JobStackSize stack_size);
 
 using JobEntryPoint = fiber::EntryPoint;
 using JobParamsHandle = fiber::ParamsHandle;
@@ -98,9 +97,7 @@ class CounterWaiter {
  private:
 #ifdef COMET_DEBUG
   static_assert(std::atomic<JobPrimitiveDebugId>::is_always_lock_free,
-                "std::atomic<JobPrimitiveDebugId> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<JobPrimitiveDebugId> must be always lock-free");
   static inline std::atomic<JobPrimitiveDebugId> id_counter_{0};
   JobPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG

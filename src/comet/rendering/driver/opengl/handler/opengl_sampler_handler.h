@@ -11,8 +11,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/data/opengl_sampler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
+#include "comet/rendering/driver/opengl/type/opengl_sampler_type.h"
 #include "comet/rendering/rendering_handle.h"
 
 namespace comet {

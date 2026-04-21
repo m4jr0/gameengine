@@ -9,9 +9,10 @@
 
 #ifdef COMET_IMGUI
 
+// External. ///////////////////////////////////////////////////////////////////
 #include <functional>
+////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/manager.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"

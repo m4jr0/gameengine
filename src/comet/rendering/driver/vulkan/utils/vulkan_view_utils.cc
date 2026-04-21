@@ -11,6 +11,9 @@
 #include "vulkan_view_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/type_trait.h"
+#include "comet/rendering/driver/vulkan/label/vulkan_view_label.h"
+
 namespace comet {
 namespace rendering {
 namespace vk {
@@ -90,7 +93,9 @@ VkAttachmentLoadOp ToVkAttachmentLoadOp(ViewLoadOp op) {
     case ViewLoadOp::Clear:
       return VK_ATTACHMENT_LOAD_OP_CLEAR;
     default:
-      COMET_ASSERT(false, "Unknown view load op!");
+      COMET_ASSERT(false, "vulkan_view_utils::ToVkAttachmentLoadOp",
+                   "view load op is invalid", "load_op", GetViewLoadOpLabel(op),
+                   "load_op_value", ToUnderlying(op));
       return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   }
 }
@@ -102,7 +107,9 @@ VkAttachmentStoreOp ToVkAttachmentStoreOp(ViewStoreOp op) {
     case ViewStoreOp::Store:
       return VK_ATTACHMENT_STORE_OP_STORE;
     default:
-      COMET_ASSERT(false, "Unknown view store op!");
+      COMET_ASSERT(false, "vulkan_view_utils::ToVkAttachmentStoreOp",
+                   "view store op is invalid", "store_op",
+                   GetViewStoreOpLabel(op), "store_op_value", ToUnderlying(op));
       return VK_ATTACHMENT_STORE_OP_DONT_CARE;
   }
 }

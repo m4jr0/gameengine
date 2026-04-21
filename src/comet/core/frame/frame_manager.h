@@ -57,7 +57,7 @@ class FrameManager : public Manager {
   static inline constexpr usize kInFlightFramePacketCount_{3};
   static inline constexpr usize kFramePacketCount_{16};
   static_assert(kFramePacketCount_ >= kInFlightFramePacketCount_,
-                "Frame packet count must be >= kInFlightFramePacketCount_!");
+                "kFramePacketCount_ must be >= kInFlightFramePacketCount_");
 
   FrameCount frame_count_{kInFlightFramePacketCount_ - 1};
   usize frame_allocator_cursor_{0};

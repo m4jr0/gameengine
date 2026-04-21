@@ -12,7 +12,7 @@
 
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/utils/rendering_driver_utils.h"
 
 namespace comet {
 namespace job {
@@ -20,15 +20,13 @@ static thread_local Worker* tls_current_worker{nullptr};
 
 namespace internal {
 void AttachWorker(Worker* worker) {
-  COMET_CASSERT(tls_current_worker == nullptr,
-                "Tried to attach worker, but it is already done!");
+  COMET_CASSERT(tls_current_worker == nullptr, "worker is already attached");
   tls_current_worker = worker;
   active_worker_count.fetch_add(1, std::memory_order_acq_rel);
 }
 
 void DetachWorker() {
-  COMET_CASSERT(tls_current_worker != nullptr,
-                "Tried to detach worker, but it is not attached!");
+  COMET_CASSERT(tls_current_worker != nullptr, "worker is not attached");
   tls_current_worker = nullptr;
   active_worker_count.fetch_sub(1, std::memory_order_acq_rel);
 }
@@ -72,9 +70,8 @@ WorkerTag GetWorkerTag() {
 }
 
 Worker& GetWorker() {
-  COMET_ASSERT(tls_current_worker != nullptr,
-               "Current worker is null! No worker has been attached for "
-               "this thread!");
+  COMET_ASSERT(tls_current_worker != nullptr, "job::GetWorker",
+               "current worker is null");
   return *tls_current_worker;
 }
 

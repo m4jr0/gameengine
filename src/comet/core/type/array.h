@@ -25,22 +25,22 @@ class BaseArray {
   COMET_POPULATE_ITERATOR(T, this->data_, this->size_)
 
   T& operator[](usize index) {
-    COMET_CASSERT(index < this->size_, "Index out of bounds!");
+    COMET_CASSERT(index < this->size_, "index out of bounds");
     return this->data_[index];
   }
 
   const T& operator[](usize index) const {
-    COMET_CASSERT(index < this->size_, "Index out of bounds!");
+    COMET_CASSERT(index < this->size_, "index out of bounds");
     return this->data_[index];
   }
 
   T& Get(usize index) {
-    COMET_CASSERT(index < this->size_, "Index out of bounds!");
+    COMET_CASSERT(index < this->size_, "index out of bounds");
     return this->data_[index];
   }
 
   const T& Get(usize index) const {
-    COMET_CASSERT(index < this->size_, "Index out of bounds!");
+    COMET_CASSERT(index < this->size_, "index out of bounds");
     return this->data_[index];
   }
 
@@ -53,22 +53,22 @@ class BaseArray {
   }
 
   T& GetFirst() {
-    COMET_CASSERT(this->size_ > 0, "Index out of bounds!");
+    COMET_CASSERT(this->size_ > 0, "index out of bounds");
     return this->data_[0];
   }
 
   const T& GetFirst() const {
-    COMET_CASSERT(this->size_ > 0, "Index out of bounds!");
+    COMET_CASSERT(this->size_ > 0, "index out of bounds");
     return this->data_[0];
   }
 
   T& GetLast() {
-    COMET_CASSERT(this->size_ > 0, "Index out of bounds!");
+    COMET_CASSERT(this->size_ > 0, "index out of bounds");
     return this->data_[size_ - 1];
   }
 
   const T& GetLast() const {
-    COMET_CASSERT(this->size_ > 0, "Index out of bounds!");
+    COMET_CASSERT(this->size_ > 0, "index out of bounds");
     return this->data_[size_ - 1];
   }
 
@@ -280,8 +280,8 @@ class Array : public internal::BaseArray<T> {
 
   template <typename... Targs>
   T& Emplace(usize index, Targs&&... args) {
-    COMET_ASSERT(index < this->size_, "Index out of bounds: ", index,
-                 " >= ", this->size_, "!");
+    COMET_ASSERT(index < this->size_, "Array::Emplace", "index out of bounds",
+                 "index", index, "size", this->size_);
     memory::Populate<T>(&this->data_[index], std::forward<Targs>(args)...);
     return this->data_[index];
   }
@@ -298,7 +298,7 @@ class Array : public internal::BaseArray<T> {
   }
 
   void PopBack() {
-    COMET_ASSERT(this->size_ > 0, "Array is empty!");
+    COMET_ASSERT(this->size_ > 0, "Array::PopBack", "array is empty");
     --this->size_;
 
     if constexpr (!std::is_trivially_destructible_v<T>) {
@@ -307,7 +307,7 @@ class Array : public internal::BaseArray<T> {
   }
 
   T TakeBack() {
-    COMET_ASSERT(this->size_ > 0, "Array is empty!");
+    COMET_ASSERT(this->size_ > 0, "Array::TakeBack", "array is empty");
     const auto value{std::move(this->data_[this->size_ - 1])};
     --this->size_;
 
@@ -345,14 +345,15 @@ class Array : public internal::BaseArray<T> {
   }
 
   ContiguousIterator<T> RemoveFromIndex(usize index) {
-    COMET_ASSERT(index < this->size_, "Index out of bounds: ", index,
-                 " >= ", this->size_, "!");
+    COMET_ASSERT(index < this->size_, "Array::RemoveFromIndex",
+                 "index out of bounds", "index", index, "size", this->size_);
     return RemoveFromPos(this->begin() + index);
   }
 
   void PushFromRange(const T* src, usize src_size, usize count = kInvalidIndex,
                      usize dst_offset = kInvalidIndex, usize src_offset = 0) {
-    COMET_ASSERT(src != nullptr, "Source array is null!");
+    COMET_ASSERT(src != nullptr, "Array::PushFromRange",
+                 "source array is null");
 
     if (count == 0) {
       return;
@@ -378,7 +379,7 @@ class Array : public internal::BaseArray<T> {
                      usize dst_offset = kInvalidIndex, usize src_offset = 0) {
     static_assert(std::is_same_v<decltype(src.GetData()), const T*> &&
                       std::is_same_v<decltype(src.GetSize()), usize>,
-                  "TArray must have GetData() and GetSize() methods!");
+                  "TArray must have GetData() and GetSize() methods");
     PushFromRange(src.GetData(), src.GetSize(), count, dst_offset, src_offset);
   }
 
@@ -472,7 +473,7 @@ class StaticArray {
 template <typename T>
 class StaticArray<T, 0> {
  public:
-  static_assert(std::is_object_v<T>, "T must be an object type!");
+  static_assert(std::is_object_v<T>, "T must be an object type");
 
   constexpr T* begin() noexcept { return nullptr; }
 
@@ -529,42 +530,42 @@ class StaticArray<T, 0> {
   constexpr const T* GetData() const noexcept { return nullptr; }
 
   T& GetFirst() {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{};
   }
 
   const T& GetFirst() const {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{};
   }
 
   T& GetLast() {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{};
   }
 
   const T& GetLast() const {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{};
   }
 
   constexpr T& operator[](usize) {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{"index"};
   }
 
   constexpr const T& operator[](usize) const {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{"index"};
   }
 
   constexpr T& Get(usize index) {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{"index"};
   }
 
   constexpr const T& Get(usize index) const {
-    COMET_CASSERT(false, "Index out of bounds!");
+    COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{"index"};
   }
 };
@@ -572,7 +573,7 @@ class StaticArray<T, 0> {
 template <typename T, typename... Rest>
 struct EnforceSame {
   static_assert(std::conjunction_v<std::is_same<T, Rest>...>,
-                "All elements must have the same type!");
+                "all elements must have the same type");
   using type = T;
 };
 

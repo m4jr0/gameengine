@@ -15,9 +15,10 @@
 namespace comet {
 RegionMap::RegionMap(memory::Allocator* allocator, usize block_size, usize size)
     : block_size_{block_size}, block_map_{allocator} {
-  COMET_ASSERT(block_size_ > 0, "Block size is 0!");
-  COMET_ASSERT(size % block_size_ == 0, "Size (", size,
-               ") is not divisible by the block size (", block_size_, ")!");
+  COMET_ASSERT(block_size_ > 0, "RegionMap::RegionMap", "block size is zero");
+  COMET_ASSERT(size % block_size_ == 0, "RegionMap::RegionMap",
+               "size is not divisible by block size", "size", size,
+               "block_size", block_size_);
   Grow(size);
 }
 
@@ -38,10 +39,13 @@ void RegionMap::Resize(usize size) {
 }
 
 usize RegionMap::Claim(usize size) {
-  COMET_ASSERT(size > 0, "Claimed size is 0!");
+  COMET_ASSERT(size > 0, "RegionMap::Claim", "claimed size is zero");
   size = memory::RoundUpToMultiple(size, block_size_);
-  COMET_ASSERT(size % block_size_ == 0, "Claimed size (", size,
-               ") is not divisible by the block size (", block_size_, ")!");
+
+  COMET_ASSERT(size % block_size_ == 0, "RegionMap::Claim",
+               "claimed size is not divisible by block size", "size", size,
+               "block_size", block_size_);
+
   usize required_count{size / block_size_};
   usize counter{0};
 
@@ -70,14 +74,18 @@ usize RegionMap::Claim(usize size) {
 }
 
 void RegionMap::Release(usize offset, usize size) {
-  COMET_ASSERT(offset % block_size_ == 0, "Offset (", offset,
-               ") provided is not divisible by the block size (", block_size_,
-               ")!");
+  COMET_ASSERT(offset % block_size_ == 0, "RegionMap::Release",
+               "offset is not divisible by block size", "offset", offset,
+               "block_size", block_size_);
+
   const auto index_offset{offset / block_size_};
-  COMET_ASSERT(size > 0, "Released size is 0!");
+  COMET_ASSERT(size > 0, "RegionMap::Release", "released size is zero");
   size = memory::RoundUpToMultiple(size, block_size_);
-  COMET_ASSERT(size % block_size_ == 0, "Claimed size (", size,
-               ") is not divisible by the block size (", block_size_, ")!");
+
+  COMET_ASSERT(size % block_size_ == 0, "RegionMap::Release",
+               "released size is not divisible by block size", "size", size,
+               "block_size", block_size_);
+
   const auto count{size / block_size_};
 
   for (usize i{0}; i < count; ++i) {
@@ -91,9 +99,12 @@ usize RegionMap::GetSourceSize() const noexcept { return size_; }
 
 void RegionMap::Grow(usize size) {
   size_ += size;
-  COMET_ASSERT(size_ % block_size_ == 0, "Tried to grow region map by ", size,
-               " bytes, but now the total size (", size_,
-               ") is not a multiple of block size (", block_size_, ")!");
+
+  COMET_ASSERT(size_ % block_size_ == 0, "RegionMap::Grow",
+               "total size is not divisible by block size after growth",
+               "growth_size", size, "total_size", size_, "block_size",
+               block_size_);
+
   block_map_.Resize(size_ / block_size_);
 }
 }  // namespace comet

@@ -11,7 +11,9 @@
 #include "vulkan_texture_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/rendering_utils.h"
+#include "comet/core/type_trait.h"
+#include "comet/rendering/label/rendering_texture_label.h"
+#include "comet/rendering/utils/rendering_texture_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -41,7 +43,9 @@ bool IsDepthFormat(VkFormat format) {
 }
 
 VkImageLayout GetDescriptorImageLayout(const Texture* texture) {
-  COMET_ASSERT(texture != nullptr, "Texture is null!");
+  COMET_ASSERT(texture != nullptr,
+               "vulkan_texture_utils::GetDescriptorImageLayout",
+               "texture is null");
 
   if (IsDepthFormat(texture->format)) {
     return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
@@ -57,7 +61,10 @@ VkFilter GetVkFilterMode(TextureFilterMode mode) {
     case TextureFilterMode::Linear:
       return VK_FILTER_LINEAR;
     default:
-      COMET_ASSERT(false, "Unsupported texture filter mode!");
+      COMET_ASSERT(false, "vulkan_texture_utils::GetVkFilterMode",
+                   "texture filter mode is unsupported", "filter_mode",
+                   GetTextureFilterModeLabel(mode), "filter_mode_value",
+                   ToUnderlying(mode));
       return VK_FILTER_LINEAR;
   }
 }
@@ -69,7 +76,10 @@ VkSamplerMipmapMode GetVkMipmapMode(TextureFilterMode mode) {
     case TextureFilterMode::Linear:
       return VK_SAMPLER_MIPMAP_MODE_LINEAR;
     default:
-      COMET_ASSERT(false, "Unsupported texture filter mode!");
+      COMET_ASSERT(false, "vulkan_texture_utils::GetVkMipmapMode",
+                   "texture filter mode is unsupported", "filter_mode",
+                   GetTextureFilterModeLabel(mode), "filter_mode_value",
+                   ToUnderlying(mode));
       return VK_SAMPLER_MIPMAP_MODE_LINEAR;
   }
 }
@@ -85,7 +95,10 @@ VkSamplerAddressMode GetVkAddressMode(TextureRepeatMode mode) {
     case TextureRepeatMode::ClampToBorder:
       return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     default:
-      COMET_ASSERT(false, "Unsupported texture repeat mode!");
+      COMET_ASSERT(false, "vulkan_texture_utils::GetVkAddressMode",
+                   "texture repeat mode is unsupported", "repeat_mode",
+                   GetTextureRepeatModeLabel(mode), "repeat_mode_value",
+                   ToUnderlying(mode));
       return VK_SAMPLER_ADDRESS_MODE_REPEAT;
   }
 }
@@ -102,9 +115,10 @@ VkFormat GetVkFormat(TextureFormat format, TextureType type) {
 
     case TextureFormat::Unknown:
     default:
-      COMET_ASSERT(false, "Unknown or unsupported texture format: ",
-                   static_cast<std::underlying_type_t<TextureFormat>>(format),
-                   "!");
+      COMET_ASSERT(false, "vulkan_texture_utils::GetVkFormat",
+                   "texture format is unsupported", "format",
+                   GetTextureFormatLabel(format), "format_value",
+                   ToUnderlying(format));
       return VK_FORMAT_UNDEFINED;
   }
 }

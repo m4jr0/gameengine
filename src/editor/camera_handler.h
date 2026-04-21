@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/rendering_handle.h"
 
@@ -30,6 +31,10 @@ class CameraHandler {
 
  private:
   void OnEvent(const event::Event& event);
+
+  void RegisterEvents();
+  void UnregisterEvents();
+
   void ResetMousePosition();
 
   static constexpr f32 kKeyboardMovementSensitivity_{.05f};
@@ -39,6 +44,17 @@ class CameraHandler {
   static constexpr f32 kMouseZoomSensitivity_{.05f};
 
   bool is_initialized_{false};
+
+  event::EventListenerId keyboard_listener_id_{event::kInvalidEventListenerId};
+  event::EventListenerId mouse_move_listener_id_{
+      event::kInvalidEventListenerId};
+  event::EventListenerId mouse_scroll_listener_id_{
+      event::kInvalidEventListenerId};
+  event::EventListenerId mouse_click_listener_id_{
+      event::kInvalidEventListenerId};
+  event::EventListenerId mouse_release_listener_id_{
+      event::kInvalidEventListenerId};
+
   bool is_orbiting_from_mouse_{false};
   bool is_rotating_from_mouse_{false};
   bool is_panning_from_mouse_{false};

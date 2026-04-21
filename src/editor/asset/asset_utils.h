@@ -10,10 +10,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/resource_type.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace editor {
@@ -45,8 +45,9 @@ comet::Array<T> json_to_array(const json& json_array,
   comet::Array<T> array{allocator};
 
   if (!json_array.is_array()) {
-    COMET_LOG_GLOBAL_ERROR("Wrong type found for JSON array: ",
-                           json_array.type_name(), "! Ignoring.");
+    COMET_LOG_ERROR(comet::LoggerType::External, "asset_utils::json_to_array",
+                    "json value is not an array", "type",
+                    json_array.type_name());
     return array;
   }
 

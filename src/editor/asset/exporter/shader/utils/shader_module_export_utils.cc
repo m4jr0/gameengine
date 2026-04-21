@@ -10,18 +10,16 @@
 #include "shader_module_export_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
 #include "comet/core/c_string.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_type.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/core/type_trait.h"
+#include "comet/rendering/label/rendering_shader_label.h"
+#include "comet/rendering/type/rendering_shader_type.h"
+#include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
 namespace editor {
@@ -29,6 +27,13 @@ namespace asset {
 bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
                            memory::Allocator* allocator,
                            resource::ShaderModuleResource& shader_module) {
+  COMET_ASSERT(code != nullptr,
+               "shader_module_export_utils::PopulateSpvShaderCode",
+               "shader code is null");
+  COMET_ASSERT(allocator != nullptr,
+               "shader_module_export_utils::PopulateSpvShaderCode",
+               "allocator is null");
+
   shaderc::Compiler compiler;
 
   shaderc::CompileOptions options;
@@ -53,11 +58,12 @@ bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
       shader_kind = shaderc_shader_kind::shaderc_glsl_fragment_shader;
       break;
     default:
-      COMET_LOG_GLOBAL_ERROR(
-          "Unknown or unsupported shader module type provided: ",
-          static_cast<std::underlying_type_t<rendering::ShaderStage>>(
-              shader_module.descr.stage),
-          "!");
+      COMET_LOG_ERROR(LoggerType::External,
+                      "shader_module_export_utils::PopulateSpvShaderCode",
+                      "shader stage is unsupported", "stage",
+                      rendering::GetShaderStageLabel(shader_module.descr.stage),
+                      "stage_value", ToUnderlying(shader_module.descr.stage),
+                      "asset_path", asset_abs_path);
       break;
   }
 
@@ -73,9 +79,13 @@ bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
       compiler.CompileGlslToSpv(code, shader_kind, input_file_name, options)};
 
   if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-    COMET_LOG_GLOBAL_ERROR("Shaderc compilation error! At ", asset_abs_path,
-                           ".");
-    COMET_LOG_GLOBAL_ERROR("\t", result.GetErrorMessage());
+    COMET_LOG_ERROR(LoggerType::External,
+                    "shader_module_export_utils::PopulateSpvShaderCode",
+                    "shader compilation failed", "asset_path", asset_abs_path);
+    COMET_LOG_ERROR(LoggerType::External,
+                    "shader_module_export_utils::PopulateSpvShaderCode",
+                    "shader compiler error", "asset_path", asset_abs_path,
+                    "error", result.GetErrorMessage());
     return false;
   }
 
@@ -89,6 +99,13 @@ bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
 bool PopulateGlShaderCode(schar* code, usize code_len,
                           memory::Allocator* allocator,
                           resource::ShaderModuleResource& shader_module) {
+  COMET_ASSERT(code != nullptr,
+               "shader_module_export_utils::PopulateGlShaderCode",
+               "shader code is null");
+  COMET_ASSERT(allocator != nullptr,
+               "shader_module_export_utils::PopulateGlShaderCode",
+               "allocator is null");
+
   constexpr schar kVersionToken[]{"#version"};
   constexpr usize kVersionTokenLen{GetLength(kVersionToken)};
   constexpr schar kNewLine{'\n'};
@@ -111,8 +128,13 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
 
   const auto local_size_value_char_count{
       GetCharCount(rendering::kShaderLocalSize)};
+
   auto* local_size_value{
       GenerateForOneFrame<schar>(local_size_value_char_count)};
+  COMET_ASSERT(local_size_value != nullptr,
+               "shader_module_export_utils::PopulateGlShaderCode",
+               "local size buffer allocation failed");
+
   usize local_size_value_len;
   ConvertToStr(rendering::kShaderLocalSize, local_size_value,
                local_size_value_char_count, &local_size_value_len);
@@ -198,7 +220,12 @@ void AddSpvMacroDefinitions(shaderc::CompileOptions& options) {
   // Inject local workgroup.
   const auto local_size_value_char_count{
       GetCharCount(rendering::kShaderLocalSize)};
+
   auto* local_size{GenerateForOneFrame<schar>(local_size_value_char_count)};
+  COMET_ASSERT(local_size != nullptr,
+               "shader_module_export_utils::AddSpvMacroDefinitions",
+               "local size buffer allocation failed");
+
   usize local_size_len;
 
   ConvertToStr(rendering::kShaderLocalSize, local_size,

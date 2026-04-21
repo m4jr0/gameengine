@@ -17,8 +17,7 @@ class KeyboardEvent : public event::Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  KeyboardEvent(input::KeyCode key, input::ScanCode scan_code,
-                input::Action action, input::Mods mods);
+  KeyboardEvent(KeyCode key, ScanCode scan_code, Action action, Mods mods);
   KeyboardEvent(const KeyboardEvent&) = default;
   KeyboardEvent(KeyboardEvent&&) noexcept = default;
   KeyboardEvent& operator=(const KeyboardEvent&) = default;
@@ -27,16 +26,16 @@ class KeyboardEvent : public event::Event {
 
   stringid::StringId GetType() const noexcept override;
 
-  input::KeyCode GetKey() const noexcept;
-  input::ScanCode GetScanCode() const noexcept;
-  input::Action GetAction() const noexcept;
-  input::Mods GetMods() const noexcept;
+  KeyCode GetKey() const noexcept;
+  ScanCode GetScanCode() const noexcept;
+  Action GetAction() const noexcept;
+  Mods GetMods() const noexcept;
 
  private:
-  input::KeyCode key_{input::KeyCode::Unknown};
-  input::ScanCode scan_code_{0};
-  input::Action action_{input::Action::Unknown};
-  input::Mods mods_{input::Mods::Empty};
+  KeyCode key_{KeyCode::Unknown};
+  ScanCode scan_code_{0};
+  Action action_{Action::Unknown};
+  Mods mods_{Mods::Empty};
 };
 
 class MouseMoveEvent : public event::Event {
@@ -83,7 +82,7 @@ class MouseClickEvent : public event::Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  MouseClickEvent(input::MouseButton button, input::Mods mods);
+  MouseClickEvent(MouseButton button, Mods mods);
   MouseClickEvent(const MouseClickEvent&) = default;
   MouseClickEvent(MouseClickEvent&&) noexcept = default;
   MouseClickEvent& operator=(const MouseClickEvent&) = default;
@@ -92,19 +91,19 @@ class MouseClickEvent : public event::Event {
 
   stringid::StringId GetType() const noexcept override;
 
-  input::MouseButton GetButton() const noexcept;
-  input::Mods GetMods() const noexcept;
+  MouseButton GetButton() const noexcept;
+  Mods GetMods() const noexcept;
 
  private:
-  input::MouseButton button_{input::MouseButton::Unknown};
-  input::Mods mods_{input::Mods::Empty};
+  MouseButton button_{MouseButton::Unknown};
+  Mods mods_{Mods::Empty};
 };
 
 class MouseReleaseEvent : public event::Event {
  public:
   const static stringid::StringId kStaticType_;
 
-  MouseReleaseEvent(input::MouseButton button, input::Mods mods);
+  MouseReleaseEvent(MouseButton button, Mods mods);
   MouseReleaseEvent(const MouseReleaseEvent&) = default;
   MouseReleaseEvent(MouseReleaseEvent&&) noexcept = default;
   MouseReleaseEvent& operator=(const MouseReleaseEvent&) = default;
@@ -113,12 +112,12 @@ class MouseReleaseEvent : public event::Event {
 
   stringid::StringId GetType() const noexcept override;
 
-  input::MouseButton GetButton() const noexcept;
-  input::Mods GetMods() const noexcept;
+  MouseButton GetButton() const noexcept;
+  Mods GetMods() const noexcept;
 
  private:
-  input::MouseButton button_{input::MouseButton::Unknown};
-  input::Mods mods_{input::Mods::Empty};
+  MouseButton button_{MouseButton::Unknown};
+  Mods mods_{Mods::Empty};
 };
 }  // namespace input
 }  // namespace comet

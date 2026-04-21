@@ -12,7 +12,7 @@
 
 #ifdef COMET_HAS_DEBUG_UI
 
-#include "comet/scene/environment/environment_manager.h"
+#include "comet/environment/environment_manager.h"
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
 #include "comet/profiler/profiler_manager.h"
@@ -29,7 +29,7 @@ void DebugUiManager::OnInitialize() {
   auto& registry{rendering::DebugUiRegistry::Get()};
 
   environment_callback_id_ = registry.Register([this]() {
-    environment_debug_ui_.Draw(scene::EnvironmentManager::Get());
+    environment_debug_ui_.Draw(environment::EnvironmentManager::Get());
   });
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI

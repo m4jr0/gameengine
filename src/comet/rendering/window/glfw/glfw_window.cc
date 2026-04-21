@@ -15,7 +15,8 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/logger.h"
+#include "comet/core/debug_label.h"
+#include "comet/core/logger/logging.h"
 #include "comet/event/event_manager.h"
 #include "comet/input/input_manager.h"
 #include "comet/rendering/window/window_event.h"
@@ -76,21 +77,27 @@ GlfwWindow::operator GLFWwindow*() noexcept { return GetHandle(); }
 
 void GlfwWindow::OnInitialize() {
   if (window_count_ == 0) {
-    COMET_LOG_RENDERING_INFO("Initializing GLFW...");
+    COMET_LOG_INFO(LoggerType::Rendering, "GlfwWindow::OnInitialize",
+                   "initializing glfw");
 
     glfwSetErrorCallback([](s32 error_code, const schar* description) {
-      COMET_LOG_RENDERING_ERROR("GLFW Error (", error_code, ")", description);
+      COMET_LOG_ERROR(LoggerType::Rendering, "GlfwWindow::internal::glfwError",
+                      "glfw error", "error_code", error_code, "description",
+                      description);
     });
 
     [[maybe_unused]] const auto result{glfwInit()};
-    COMET_ASSERT(result == GLFW_TRUE, "Could not initialize GLFW!");
+    COMET_ASSERT(result == GLFW_TRUE, "GlfwWindow::OnInitialize",
+                 "glfw initialization failed");
+
     DumpPlatform();
     SetGlfwHints();
   }
 
   handle_ = glfwCreateWindow(width_, height_, name_, nullptr, nullptr);
-  COMET_ASSERT(handle_ != nullptr,
-               "Something bad happened while creating the GLFW window!");
+  COMET_ASSERT(handle_ != nullptr, "GlfwWindow::OnInitialize",
+               "glfw window creation failed");
+
   window_count_++;
 
   glfwSetWindowUserPointer(handle_, static_cast<void*>(this));
@@ -115,7 +122,8 @@ void GlfwWindow::OnDestroy() {
     window_count_--;
 
     if (window_count_ <= 0) {
-      COMET_LOG_RENDERING_INFO("Terminating GLFW...");
+      COMET_LOG_INFO(LoggerType::Rendering, "GlfwWindow::OnDestroy",
+                     "terminating glfw");
       glfwTerminate();
     }
   }
@@ -134,6 +142,9 @@ void GlfwWindow::OnUpdate() {
 }
 
 void GlfwWindow::UpdateSize() {
+  COMET_ASSERT(handle_ != nullptr, "GlfwWindow::UpdateSize",
+               "glfw window handle is null");
+
   if (handle_ != nullptr) {
     glfwSetWindowSize(handle_, width_, height_);
 
@@ -147,31 +158,32 @@ void GlfwWindow::UpdateSize() {
 
 void GlfwWindow::DumpPlatform() const {
   const auto platform{glfwGetPlatform()};
-  [[maybe_unused]] const char* label = "???";
+  [[maybe_unused]] const schar* label;
 
   switch (platform) {
     case GLFW_PLATFORM_WIN32:
-      label = "WIN32";
+      label = "win32";
       break;
     case GLFW_PLATFORM_COCOA:
-      label = "COCOA";
+      label = "cocoa";
       break;
     case GLFW_PLATFORM_WAYLAND:
-      label = "WAYLAND";
+      label = "wayland";
       break;
     case GLFW_PLATFORM_X11:
-      label = "X11";
+      label = "x11";
       break;
     case GLFW_PLATFORM_NULL:
-      label = "NULL";
+      label = "null";
       break;
 
     default:
-      label = "???";
+      label = kUnknownLabel;
       break;
   }
 
-  COMET_LOG_RENDERING_INFO("GLFW platform: ", label);
+  COMET_LOG_INFO(LoggerType::Rendering, "GlfwWindow::DumpPlatform",
+                 "glfw platform detected", "platform", label);
 }
 }  // namespace rendering
 }  // namespace comet

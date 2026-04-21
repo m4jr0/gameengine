@@ -17,14 +17,13 @@
 #include "comet/entity/entity_event.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
-#include "comet/event/event_manager.h"
+#include "comet/environment/environment_manager.h"
 #include "comet/math/geometry.h"
 #include "comet/physics/component/transform_component.h"
 #include "comet/physics/transform.h"
-#include "comet/rendering/light/light_manager.h"
-#include "comet/rendering/light/light_type.h"
-#include "comet/resource/resource.h"
-#include "comet/scene/environment/environment_manager.h"
+#include "comet/rendering/light_manager.h"
+#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/resource/type/resource_common_type.h"
 #include "comet/scene/scene_event.h"
 
 namespace comet {
@@ -45,26 +44,9 @@ usize SceneManager::GetExpectedEntityCount() const {
   return 10000;
 }
 
-void SceneManager::OnInitialize() {
-  const auto event_function{
-      [this](const event::Event& event) { OnEvent(event); }};
+void SceneManager::OnInitialize() { RegisterEvents(); }
 
-  scene_load_request_listener_id_ = event::EventManager::Get().Register(
-      event_function, SceneLoadRequestEvent::kStaticType_);
-
-  model_loaded_listener_id_ = event::EventManager::Get().Register(
-      event_function, entity::ModelLoadedEvent::kStaticType_);
-
-  are_listeners_registered_ = true;
-}
-
-void SceneManager::OnShutdown() {
-  if (are_listeners_registered_) {
-    event::EventManager::Get().Unregister(scene_load_request_listener_id_);
-    event::EventManager::Get().Unregister(model_loaded_listener_id_);
-    are_listeners_registered_ = false;
-  }
-}
+void SceneManager::OnShutdown() { UnregisterEvents(); }
 
 void SceneManager::OnEvent(const event::Event& event) {
   if (event.GetType() == SceneLoadRequestEvent::kStaticType_) {
@@ -75,6 +57,39 @@ void SceneManager::OnEvent(const event::Event& event) {
   }
 }
 
+void SceneManager::RegisterEvents() {
+  auto& event_manager{event::EventManager::Get()};
+  const auto event_function{
+      [this](const event::Event& event) { OnEvent(event); }};
+
+  scene_load_request_listener_id_ = event_manager.Register(
+      event_function, SceneLoadRequestEvent::kStaticType_);
+  COMET_ASSERT(
+      scene_load_request_listener_id_ != event::kInvalidEventListenerId,
+      "SceneManager::RegisterEvents",
+      "scene load request listener registration failed");
+
+  model_loaded_listener_id_ = event_manager.Register(
+      event_function, entity::ModelLoadedEvent::kStaticType_);
+  COMET_ASSERT(model_loaded_listener_id_ != event::kInvalidEventListenerId,
+               "SceneManager::RegisterEvents",
+               "model loaded listener registration failed");
+}
+
+void SceneManager::UnregisterEvents() {
+  auto& event_manager{event::EventManager::Get()};
+
+  if (scene_load_request_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(scene_load_request_listener_id_);
+    scene_load_request_listener_id_ = event::kInvalidEventListenerId;
+  }
+
+  if (model_loaded_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(model_loaded_listener_id_);
+    model_loaded_listener_id_ = event::kInvalidEventListenerId;
+  }
+}
+
 void SceneManager::LoadTmp() {
   models_to_load_count_ = 0;
   loaded_model_count_tmp_ = 0;
@@ -82,11 +97,14 @@ void SceneManager::LoadTmp() {
   character_vampire_id_tmp_ = entity::kInvalidEntityId;
   sponza_id_tmp_ = entity::kInvalidEntityId;
 
-  EnvironmentManager::Get().SetAzimuthOffsetRadians(
+  environment::EnvironmentManager::Get().SetAzimuthOffsetRadians(
       math::ConvertToRadians(-180.0f));
 
   auto& factory_manager{entity::EntityFactoryManager::Get()};
+
   auto* model_handler{factory_manager.GetModel()};
+  COMET_ASSERT(model_handler != nullptr, "SceneManager::LoadTmp",
+               "model factory handler is null");
 
   constexpr auto kIsEveLoaded{true};
   constexpr auto kIsVampireLoaded{true};
@@ -149,12 +167,20 @@ void SceneManager::LoadTmp() {
 }
 
 void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
+  COMET_ASSERT(models_to_load_count_ != 0, "SceneManager::HandleLoadedModelTmp",
+               "no models were scheduled for loading");
+
   if (entity_id != character_eve_id_tmp_ &&
       entity_id != character_vampire_id_tmp_ && entity_id != sponza_id_tmp_) {
     return;
   }
 
   ++loaded_model_count_tmp_;
+  COMET_ASSERT(models_to_load_count_ >= loaded_model_count_tmp_,
+               "SceneManager::HandleLoadedModelTmp",
+               "loaded model count exceeds expected count",
+               "loaded_model_count", loaded_model_count_tmp_,
+               "models_to_load_count", models_to_load_count_);
 
   if (loaded_model_count_tmp_ < models_to_load_count_) {
     return;
@@ -191,12 +217,24 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
                                  {.0f, 1.0f, .0f});
 
             animation::AnimationSet eve_anims{&scene_manager.tmp_allocator_, 3};
-            eve_anims.Set("idle", animation::GenerateAnimationClipId(
-                                      "models/eve/eve.gltf|idle"));
-            eve_anims.Set("walk", animation::GenerateAnimationClipId(
-                                      "models/eve/eve.gltf|walk"));
-            eve_anims.Set("run", animation::GenerateAnimationClipId(
-                                     "models/eve/eve.gltf|run"));
+
+            const auto idle_anim{
+                animation::GenerateAnimationClipId("models/eve/eve.gltf|idle")};
+            COMET_ASSERT(idle_anim, "SceneManager::HandleLoadedModelTmp",
+                         "eve idle animation clip id is invalid");
+            eve_anims.Set("idle", idle_anim);
+
+            const auto walk_anim{
+                animation::GenerateAnimationClipId("models/eve/eve.gltf|walk")};
+            COMET_ASSERT(walk_anim, "SceneManager::HandleLoadedModelTmp",
+                         "eve walk animation clip id is invalid");
+            eve_anims.Set("walk", walk_anim);
+
+            const auto run_anim{
+                animation::GenerateAnimationClipId("models/eve/eve.gltf|run")};
+            COMET_ASSERT(run_anim, "SceneManager::HandleLoadedModelTmp",
+                         "eve run animation clip id is invalid");
+            eve_anims.Set("run", run_anim);
 
             animation_manager.Play(scene_manager.character_eve_id_tmp_,
                                    eve_anims.Get("idle"), 1.0f, true);
@@ -226,10 +264,12 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
 
             animation::AnimationSet vampire_anims{&scene_manager.tmp_allocator_,
                                                   1};
-            vampire_anims.Set(
-                "dance",
-                animation::GenerateAnimationClipId(
-                    "models/dancing_vampire/dancing_vampire.dae|Hips"));
+            const auto dance_anim{animation::GenerateAnimationClipId(
+                "models/dancing_vampire/dancing_vampire.dae|Hips")};
+            COMET_ASSERT(dance_anim, "SceneManager::HandleLoadedModelTmp",
+                         "vampire dance animation clip id is invalid");
+
+            vampire_anims.Set("dance", dance_anim);
 
             animation_manager.Play(scene_manager.character_vampire_id_tmp_,
                                    vampire_anims.Get("dance"), 1.0f, true);

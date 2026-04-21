@@ -36,10 +36,9 @@ class SharedInstanceRegistry {
       default;
 
   ~SharedInstanceRegistry() {
-    COMET_ASSERT(
-        !is_initialized_,
-        "Destructor called for shared instance registry, but it is still "
-        "initialized!");
+    COMET_ASSERT(!is_initialized_,
+                 "SharedInstanceRegistry::~SharedInstanceRegistry",
+                 "shared instance registry is still initialized");
   }
 
   explicit SharedInstanceRegistry(memory::Allocator* allocator,
@@ -47,17 +46,15 @@ class SharedInstanceRegistry {
       : slots_{allocator}, source_ids_{allocator, initial_capacity} {}
 
   void Initialize() {
-    COMET_ASSERT(!is_initialized_,
-                 "Tried to initialize shared instance registry, but it is "
-                 "already done!");
+    COMET_ASSERT(!is_initialized_, "SharedInstanceRegistry::Initialize",
+                 "shared instance registry is already initialized");
     is_initialized_ = true;
   }
 
   void Destroy() {
     fiber::FiberLockGuard lock{mtx_};
-    COMET_ASSERT(is_initialized_,
-                 "Tried to destroy shared instance registry, but it is not "
-                 "initialized!");
+    COMET_ASSERT(is_initialized_, "SharedInstanceRegistry::Destroy",
+                 "shared instance registry is not initialized");
     is_initialized_ = false;
     slots_.Destroy();
     source_ids_.Destroy();
@@ -79,18 +76,24 @@ class SharedInstanceRegistry {
     }
 
     auto& slot{slots_[handle.GetIndex()]};
-    COMET_ASSERT(slot.item != nullptr, "Slot item is null!");
+    COMET_ASSERT(slot.item != nullptr, "SharedInstanceRegistry::TryAcquire",
+                 "slot item is null", "handle", handle.GetValue(), "index",
+                 handle.GetIndex());
+
     ++slot.ref_count;
     return handle;
   }
 
   ItemHandle Create(SourceId source_id, T* item) {
-    COMET_ASSERT(item != nullptr, "Item provided is null!");
+    COMET_ASSERT(item != nullptr, "SharedInstanceRegistry::Create",
+                 "item is null");
+
     fiber::FiberLockGuard lock{mtx_};
 
     COMET_ASSERT(source_ids_.TryGet(source_id) == nullptr ||
                      !handle_pool_.IsAlive(*source_ids_.TryGet(source_id)),
-                 "Item with source ID already exists!");
+                 "SharedInstanceRegistry::Create",
+                 "item with source id already exists");
 
     const auto handle{handle_pool_.Generate()};
     const auto index{handle.GetIndex()};
@@ -116,7 +119,9 @@ class SharedInstanceRegistry {
     }
 
     auto& slot{slots_[handle.GetIndex()]};
-    COMET_ASSERT(slot.ref_count > 0, "Item reference count is already 0!");
+    COMET_ASSERT(slot.ref_count > 0, "SharedInstanceRegistry::Release",
+                 "item reference count is already zero", "handle",
+                 handle.GetValue(), "index", handle.GetIndex());
 
     --slot.ref_count;
     return slot.ref_count == 0;
@@ -130,8 +135,11 @@ class SharedInstanceRegistry {
     }
 
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Item handle index is out of bounds!");
+    COMET_ASSERT(index < slots_.GetSize(), "SharedInstanceRegistry::TryGet",
+                 "item handle index is out of bounds", "handle",
+                 handle.GetValue(), "index", index, "slot_count",
+                 slots_.GetSize());
+
     return slots_[index].item;
   }
 
@@ -143,30 +151,41 @@ class SharedInstanceRegistry {
     }
 
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Item handle index is out of bounds!");
+    COMET_ASSERT(index < slots_.GetSize(), "SharedInstanceRegistry::TryGet",
+                 "item handle index is out of bounds", "handle",
+                 handle.GetValue(), "index", index, "slot_count",
+                 slots_.GetSize());
+
     return slots_[index].item;
   }
 
   T* Get(ItemHandle handle) {
     auto* item{TryGet(handle)};
-    COMET_ASSERT(item != nullptr, "Item handle is invalid!");
+    COMET_ASSERT(item != nullptr, "SharedInstanceRegistry::Get",
+                 "item handle is invalid", "handle", handle.GetValue());
     return item;
   }
 
   const T* Get(ItemHandle handle) const {
     const auto* item{TryGet(handle)};
-    COMET_ASSERT(item != nullptr, "Item handle is invalid!");
+    COMET_ASSERT(item != nullptr, "SharedInstanceRegistry::Get",
+                 "item handle is invalid", "handle", handle.GetValue());
     return item;
   }
 
   SourceId GetSourceId(ItemHandle handle) const {
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(handle_pool_.IsAlive(handle), "Item handle is invalid!");
+    COMET_ASSERT(handle_pool_.IsAlive(handle),
+                 "SharedInstanceRegistry::GetSourceId",
+                 "item handle is invalid", "handle", handle.GetValue());
+
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Item handle index is out of bounds!");
+    COMET_ASSERT(
+        index < slots_.GetSize(), "SharedInstanceRegistry::GetSourceId",
+        "item handle index is out of bounds", "handle", handle.GetValue(),
+        "index", index, "slot_count", slots_.GetSize());
+
     return slots_[index].source_id;
   }
 
@@ -178,8 +197,11 @@ class SharedInstanceRegistry {
     }
 
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Item handle index is out of bounds!");
+    COMET_ASSERT(
+        index < slots_.GetSize(), "SharedInstanceRegistry::GetRefCount",
+        "item handle index is out of bounds", "handle", handle.GetValue(),
+        "index", index, "slot_count", slots_.GetSize());
+
     return slots_[index].ref_count;
   }
 
@@ -208,15 +230,15 @@ class SharedInstanceRegistry {
 
   void Remove(ItemHandle handle) {
     fiber::FiberLockGuard lock{mtx_};
-    COMET_ASSERT(handle_pool_.IsAlive(handle), "Item handle is invalid!");
+    COMET_ASSERT(handle_pool_.IsAlive(handle), "SharedInstanceRegistry::Remove",
+                 "item handle is invalid", "handle", handle.GetValue());
 
     const auto index{handle.GetIndex()};
     auto& slot{slots_[index]};
 
-    COMET_ASSERT(
-        slot.ref_count == 0,
-        "Tried to remove a live shared instance with reference count of ",
-        slot.ref_count, "!");
+    COMET_ASSERT(slot.ref_count == 0, "SharedInstanceRegistry::Remove",
+                 "cannot remove a live shared instance", "handle",
+                 handle.GetValue(), "ref_count", slot.ref_count);
 
     source_ids_.Remove(slot.source_id);
 
@@ -230,20 +252,23 @@ class SharedInstanceRegistry {
   T* Drain(ItemHandle handle) {
     fiber::FiberLockGuard lock{mtx_};
 
-    COMET_ASSERT(
-        is_initialized_,
-        "Tried to drain shared instance registry, but it is not initialized!");
+    COMET_ASSERT(is_initialized_, "SharedInstanceRegistry::Drain",
+                 "shared instance registry is not initialized");
 
     if (!handle_pool_.IsAlive(handle)) {
       return nullptr;
     }
 
     const auto index{handle.GetIndex()};
-    COMET_ASSERT(index < slots_.GetSize(),
-                 "Item handle index is out of bounds!");
+    COMET_ASSERT(index < slots_.GetSize(), "SharedInstanceRegistry::Drain",
+                 "item handle index is out of bounds", "handle",
+                 handle.GetValue(), "index", index, "slot_count",
+                 slots_.GetSize());
 
     auto& slot{slots_[index]};
-    COMET_ASSERT(slot.item != nullptr, "Slot item is null!");
+    COMET_ASSERT(slot.item != nullptr, "SharedInstanceRegistry::Drain",
+                 "slot item is null", "handle", handle.GetValue(), "index",
+                 index);
 
     auto* item{slot.item};
 
@@ -269,8 +294,10 @@ class SharedInstanceRegistry {
       }
 
       const auto index{handle.GetIndex()};
-      COMET_ASSERT(index < slots_.GetSize(),
-                   "Item handle index is out of bounds!");
+      COMET_ASSERT(
+          index < slots_.GetSize(), "SharedInstanceRegistry::ForEachLive",
+          "item handle index is out of bounds", "handle", handle.GetValue(),
+          "index", index, "slot_count", slots_.GetSize());
 
       auto& slot{slots_[index]};
 
@@ -294,8 +321,10 @@ class SharedInstanceRegistry {
       }
 
       const auto index{handle.GetIndex()};
-      COMET_ASSERT(index < slots_.GetSize(),
-                   "Item handle index is out of bounds!");
+      COMET_ASSERT(
+          index < slots_.GetSize(), "SharedInstanceRegistry::ForEachLive",
+          "item handle index is out of bounds", "handle", handle.GetValue(),
+          "index", index, "slot_count", slots_.GetSize());
 
       const auto& slot{slots_[index]};
       if (slot.item == nullptr) {

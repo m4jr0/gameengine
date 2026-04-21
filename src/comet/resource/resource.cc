@@ -20,8 +20,9 @@
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type_trait.h"
 #include "comet/math/math_scalar.h"
 
 namespace comet {
@@ -29,6 +30,13 @@ namespace resource {
 void PackBytes(const u8* bytes, usize bytes_size,
                CompressionMode compression_mode, Array<u8>* packed_bytes,
                usize* packed_bytes_size) {
+  COMET_ASSERT(bytes_size == 0 || bytes != nullptr, "resource::PackBytes",
+               "bytes are null for non-zero size", "bytes_size", bytes_size);
+  COMET_ASSERT(packed_bytes != nullptr, "resource::PackBytes",
+               "packed bytes output is null");
+  COMET_ASSERT(packed_bytes_size != nullptr, "resource::PackBytes",
+               "packed bytes size output is null");
+
   switch (compression_mode) {
     case CompressionMode::Lz4: {
       CompressLz4(bytes, bytes_size, *packed_bytes);
@@ -42,10 +50,11 @@ void PackBytes(const u8* bytes, usize bytes_size,
       break;
     }
     default: {
-      throw std::runtime_error(
-          "Unknown compression mode: " +
-          static_cast<std::underlying_type_t<CompressionMode>>(
-              compression_mode));
+      COMET_ASSERT(false, "resource::PackBytes", "unknown compression mode",
+                   "compression_mode",
+                   GetCompressionModeLabel(compression_mode),
+                   "compression_mode_value", ToUnderlying(compression_mode));
+      return;
     }
   }
 }
@@ -64,6 +73,15 @@ void PackResourceData(const Array<u8>& data, ResourceFile& file) {
 void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
                  usize packed_bytes_size, usize decompressed_size,
                  Array<u8>& data) {
+  COMET_ASSERT(packed_bytes_size == 0 || packed_bytes != nullptr,
+               "resource::UnpackBytes",
+               "packed bytes are null for non-zero size", "packed_bytes_size",
+               packed_bytes_size);
+  COMET_ASSERT(decompressed_size == 0 || packed_bytes != nullptr,
+               "resource::UnpackBytes",
+               "packed bytes are null for non-zero decompressed size",
+               "decompressed_size", decompressed_size);
+
   switch (compression_mode) {
     case CompressionMode::Lz4: {
       DecompressLz4(packed_bytes, packed_bytes_size, decompressed_size, data);
@@ -75,10 +93,11 @@ void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
       break;
     }
     default: {
-      throw std::runtime_error(
-          "Unknown compression mode: " +
-          static_cast<std::underlying_type_t<CompressionMode>>(
-              compression_mode));
+      COMET_ASSERT(false, "resource::UnpackBytes", "unknown compression mode",
+                   "compression_mode",
+                   GetCompressionModeLabel(compression_mode),
+                   "compression_mode_value", ToUnderlying(compression_mode));
+      return;
     }
   }
 }
@@ -92,6 +111,15 @@ void UnpackBytes(CompressionMode compression_mode,
 
 void UnpackResourceData(const ResourceFile& file, Array<u8>& data,
                         usize max_data_size) {
+  COMET_ASSERT(max_data_size == kInvalidSize || max_data_size <= file.data_size,
+               "resource::UnpackResourceData",
+               "max data size exceeds file data size", "max_data_size",
+               max_data_size, "file_data_size", file.data_size);
+  COMET_ASSERT(file.packed_data_size == 0 || file.data.GetData() != nullptr,
+               "resource::UnpackResourceData",
+               "packed file data is null for non-zero size", "packed_data_size",
+               file.packed_data_size);
+
   const auto data_size{max_data_size != kInvalidSize
                            ? math::Min(max_data_size, file.data_size)
                            : file.data_size};
@@ -100,10 +128,21 @@ void UnpackResourceData(const ResourceFile& file, Array<u8>& data,
 }
 
 bool SaveResourceFile(CTStringView path, const ResourceFile& file) {
+  COMET_ASSERT(!path.IsEmpty(), "resource::SaveResourceFile", "path is empty");
+  COMET_ASSERT(file.packed_descr_size == 0 || file.descr.GetData() != nullptr,
+               "resource::SaveResourceFile",
+               "descriptor payload is null for non-zero size",
+               "packed_descr_size", file.packed_descr_size);
+  COMET_ASSERT(file.packed_data_size == 0 || file.data.GetData() != nullptr,
+               "resource::SaveResourceFile",
+               "data payload is null for non-zero size", "packed_data_size",
+               file.packed_data_size);
+
   std::ofstream out_file;
 
   if (!OpenFileToWriteTo(path, out_file, false, true)) {
-    COMET_LOG_RESOURCE_ERROR("Unable to write resource file: ", path);
+    COMET_LOG_ERROR(LoggerType::Resource, "resource::SaveResourceFile",
+                    "unable to open file for writing", "path", path);
     return false;
   }
 
@@ -131,11 +170,16 @@ bool SaveResourceFile(CTStringView path, const ResourceFile& file) {
   out_file.write(reinterpret_cast<const schar*>(file.data.GetData()),
                  file.packed_data_size);
 
+  COMET_ASSERT(out_file.good(), "resource::SaveResourceFile",
+               "failed to write resource file", "path", path);
+
   CloseFile(out_file);
   return true;
 }
 
 bool LoadResourceFile(CTStringView path, ResourceFile& file) {
+  COMET_ASSERT(!path.IsEmpty(), "resource::LoadResourceFile", "path is empty");
+
   struct JobParams {
     bool is_loaded{false};
     const tchar* path{nullptr};
@@ -151,35 +195,56 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
   job::Scheduler::Get().KickAndWait(job::GenerateIOJobDescr(
       [](job::IOJobParamsHandle params_handle) {
         auto* params{reinterpret_cast<JobParams*>(params_handle)};
+        COMET_ASSERT(params != nullptr, "resource::LoadResourceFile",
+                     "job params are null");
+        COMET_ASSERT(params->path != nullptr, "resource::LoadResourceFile",
+                     "path is null");
+        COMET_ASSERT(params->file != nullptr, "resource::LoadResourceFile",
+                     "resource file output is null");
+
         auto* path{params->path};
         auto* file{params->file};
 
         std::ifstream in_file;
 
         if (!OpenFileToReadFrom(path, in_file, false, true)) {
-          COMET_LOG_RESOURCE_ERROR("Unable to open resource file: ", path);
+          COMET_LOG_ERROR(LoggerType::Resource, "resource::LoadResourceFile",
+                          "unable to open resource file", "path", path);
           params->is_loaded = false;
           return;
         }
 
         in_file.seekg(0);
+
         in_file.read(reinterpret_cast<schar*>(&file->resource_type_id),
                      sizeof(ResourceTypeId));
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read resource type id", "path", path);
 
         in_file.read(reinterpret_cast<schar*>(&file->compression_mode),
                      sizeof(file->compression_mode));
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read resource compression mode", "path", path);
 
         in_file.read(reinterpret_cast<schar*>(&file->packed_descr_size),
                      sizeof(file->packed_descr_size));
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read packed description size", "path", path);
 
         in_file.read(reinterpret_cast<schar*>(&file->packed_data_size),
                      sizeof(file->packed_data_size));
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read packed data size", "path", path);
 
         in_file.read(reinterpret_cast<schar*>(&file->descr_size),
                      sizeof(file->descr_size));
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read resource description size", "path", path);
 
         in_file.read(reinterpret_cast<schar*>(&file->data_size),
                      sizeof(file->data_size));
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read resource data size", "path", path);
 
         struct AllocJobParams {
           ResourceFile* file{nullptr};
@@ -209,6 +274,13 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
               [](job::JobParamsHandle params_handle) {
                 auto* alloc_params{
                     reinterpret_cast<AllocJobParams*>(params_handle)};
+                COMET_ASSERT(alloc_params != nullptr,
+                             "resource::LoadResourceFile",
+                             "allocation job params are null");
+                COMET_ASSERT(alloc_params->file != nullptr,
+                             "resource::LoadResourceFile",
+                             "resource file output is null");
+
                 auto* file{alloc_params->file};
                 file->descr.Resize(file->packed_descr_size);
                 file->data.Resize(file->packed_data_size);
@@ -219,9 +291,15 @@ bool LoadResourceFile(CTStringView path, ResourceFile& file) {
 
         in_file.read(reinterpret_cast<schar*>(file->descr.GetData()),
                      file->packed_descr_size);
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read descriptor payload", "path", path,
+                     "packed_descr_size", file->packed_descr_size);
 
         in_file.read(reinterpret_cast<schar*>(file->data.GetData()),
                      file->packed_data_size);
+        COMET_ASSERT(in_file.good(), "resource::LoadResourceFile",
+                     "failed to read data payload", "path", path,
+                     "packed_data_size", file->packed_data_size);
 
         params->is_loaded = true;
       },

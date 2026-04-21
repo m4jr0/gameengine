@@ -22,9 +22,12 @@ namespace frame {
 void FramePacket::RegisterNewGeometry(
     entity::EntityId entity_id, const geometry::MeshComponent* mesh_cmp,
     const physics::TransformComponent* transform_cmp) {
-  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
-  COMET_ASSERT(transform_cmp != nullptr, "Transform component is null!");
-  COMET_ASSERT(mesh_cmp->mesh_handle, "Mesh handle is invalid!");
+  COMET_ASSERT(mesh_cmp != nullptr, "FramePacket::RegisterNewGeometry",
+               "mesh component is null");
+  COMET_ASSERT(transform_cmp != nullptr, "FramePacket::RegisterNewGeometry",
+               "transform component is null");
+  COMET_ASSERT(mesh_cmp->mesh_handle, "FramePacket::RegisterNewGeometry",
+               "mesh handle is invalid");
 
   AddedGeometry geometry{
       .entity_id = entity_id,
@@ -44,8 +47,10 @@ void FramePacket::RegisterNewGeometry(
 
 void FramePacket::RegisterDirtyMesh(entity::EntityId entity_id,
                                     const geometry::MeshComponent* mesh_cmp) {
-  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
-  COMET_ASSERT(mesh_cmp->mesh_handle, "Mesh handle is invalid!");
+  COMET_ASSERT(mesh_cmp != nullptr, "FramePacket::RegisterDirtyMesh",
+               "mesh component is null");
+  COMET_ASSERT(mesh_cmp->mesh_handle, "FramePacket::RegisterDirtyMesh",
+               "mesh handle is invalid");
 
   DirtyMesh mesh{
       .entity_id = entity_id,
@@ -65,7 +70,8 @@ void FramePacket::RegisterDirtyMesh(entity::EntityId entity_id,
 void FramePacket::RegisterDirtyTransform(
     entity::EntityId entity_id,
     const physics::TransformComponent* transform_cmp) {
-  COMET_ASSERT(transform_cmp != nullptr, "Transform component is null!");
+  COMET_ASSERT(transform_cmp != nullptr, "FramePacket::RegisterDirtyTransform",
+               "transform component is null");
 
   DirtyTransform transform{
       .entity_id = entity_id,
@@ -92,8 +98,10 @@ void FramePacket::RegisterRemovedGeometry(entity::EntityId entity_id,
 void FramePacket::RegisterNewLight(rendering::LightHandle light_handle,
                                    const rendering::LightProperties* props,
                                    const rendering::LightShadow* shadow) {
-  COMET_ASSERT(props != nullptr, "Light properties are null!");
-  COMET_ASSERT(shadow != nullptr, "Light shadow is null!");
+  COMET_ASSERT(props != nullptr, "FramePacket::RegisterNewLight",
+               "light properties are null");
+  COMET_ASSERT(shadow != nullptr, "FramePacket::RegisterNewLight",
+               "light shadow is null");
 
   AddedLight light{
       .light_handle = light_handle,
@@ -108,8 +116,10 @@ void FramePacket::RegisterNewLight(rendering::LightHandle light_handle,
 void FramePacket::RegisterDirtyLight(rendering::LightHandle light_handle,
                                      const rendering::LightProperties* props,
                                      const rendering::LightShadow* shadow) {
-  COMET_ASSERT(props != nullptr, "Light properties are null!");
-  COMET_ASSERT(shadow != nullptr, "Light shadow is null!");
+  COMET_ASSERT(props != nullptr, "FramePacket::RegisterDirtyLight",
+               "light properties are null");
+  COMET_ASSERT(shadow != nullptr, "FramePacket::RegisterDirtyLight",
+               "light shadow is null");
 
   DirtyLight light{
       .light_handle = light_handle,
@@ -132,13 +142,15 @@ void FramePacket::RegisterRemovedLight(rendering::LightHandle light_handle) {
 
 bool FramePacket::IsFrameStageStarted(FrameStage stage) const {
   COMET_ASSERT(stage >= 0 && stage < kFrameStageCount,
-               "Invalid frame stage: ", stage, "!");
+               "FramePacket::IsFrameStageStarted", "frame stage is invalid",
+               "stage", stage);
   return stage_times[stage].start > 0;
 }
 
 bool FramePacket::IsFrameStageFinished(FrameStage stage) const {
   COMET_ASSERT(stage >= 0 && stage < kFrameStageCount,
-               "Invalid frame stage: ", stage, "!");
+               "FramePacket::IsFrameStageFinished", "frame stage is invalid",
+               "stage", stage);
   return stage_times[stage].end > 0;
 }
 

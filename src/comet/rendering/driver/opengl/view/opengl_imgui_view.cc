@@ -26,7 +26,7 @@ namespace rendering {
 namespace gl {
 ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
     : View{descr}, window_{descr.window} {
-  COMET_ASSERT(window_ != nullptr, "Window is null!");
+  COMET_ASSERT(window_ != nullptr, "ImGuiView::ImGuiView", "window is null");
 }
 
 void ImGuiView::Update(frame::FramePacket*) {

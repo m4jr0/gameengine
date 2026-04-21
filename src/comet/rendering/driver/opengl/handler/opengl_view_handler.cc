@@ -12,14 +12,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
+#include "comet/core/type_trait.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/opengl/view/opengl_shadow_view.h"
 #include "comet/rendering/driver/opengl/view/opengl_world_view.h"
+#include "comet/rendering/label/rendering_view_label.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/opengl/view/opengl_imgui_view.h"
@@ -42,24 +43,26 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
       lighting_handler_{descr.lighting_handler},
       window_{descr.window},
       rendering_view_descrs_{descr.rendering_view_descrs} {
-  COMET_ASSERT(shader_handler_ != nullptr,
-               "Shader handler cannot be null for view handler!");
-  COMET_ASSERT(material_handler_ != nullptr,
-               "Material handler cannot be null for view handler!");
-  COMET_ASSERT(render_proxy_handler_ != nullptr,
-               "Render proxy handler cannot be null for view handler!");
-  COMET_ASSERT(mesh_handler_ != nullptr,
-               "Mesh handler cannot be null for view handler!");
-  COMET_ASSERT(lighting_handler_ != nullptr,
-               "Lighting handler cannot be null for view handler!");
-  COMET_ASSERT(window_ != nullptr, "Window cannot be null for view handler!");
-  COMET_ASSERT(rendering_view_descrs_ != nullptr,
-               "Render view descriptions cannot be null for view handler!");
+  COMET_ASSERT(shader_handler_ != nullptr, "ViewHandler::ViewHandler",
+               "shader handler is null");
+  COMET_ASSERT(material_handler_ != nullptr, "ViewHandler::ViewHandler",
+               "material handler is null");
+  COMET_ASSERT(render_proxy_handler_ != nullptr, "ViewHandler::ViewHandler",
+               "render proxy handler is null");
+  COMET_ASSERT(mesh_handler_ != nullptr, "ViewHandler::ViewHandler",
+               "mesh handler is null");
+  COMET_ASSERT(lighting_handler_ != nullptr, "ViewHandler::ViewHandler",
+               "lighting handler is null");
+  COMET_ASSERT(window_ != nullptr, "ViewHandler::ViewHandler",
+               "window is null");
+  COMET_ASSERT(rendering_view_descrs_ != nullptr, "ViewHandler::ViewHandler",
+               "rendering view descriptions are null");
 }
 
 void ViewHandler::Update(frame::FramePacket* packet) {
   COMET_PROFILE("ViewHandler::Update");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "ViewHandler::Update",
+               "frame packet is null");
 
   for (const auto& view : views_) {
     view->Update(packet);
@@ -181,15 +184,17 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
 #endif  // COMET_IMGUI
 
     default: {
-      COMET_ASSERT(
-          false, "Unknown view type: ",
-          static_cast<std::underlying_type_t<RenderingViewType>>(descr.type),
-          "!");
+      COMET_ASSERT(false, "ViewHandler::Generate", "view type is unsupported",
+                   "view_type", GetRenderingViewTypeLabel(descr.type),
+                   "view_type_value", ToUnderlying(descr.type));
       return nullptr;
     }
   }
 
-  COMET_ASSERT(view != nullptr, "Generated view is null! What happened?");
+  COMET_ASSERT(view != nullptr, "ViewHandler::Generate",
+               "generated view is null", "view_type",
+               GetRenderingViewTypeLabel(descr.type), "view_type_value",
+               ToUnderlying(descr.type), "view_id", descr.id);
 
   view->Initialize();
   views_.PushBack(std::move(view));
@@ -212,14 +217,16 @@ void ViewHandler::SetSize(WindowSize width, WindowSize height) {
 
 const View* ViewHandler::Get(usize index) const {
   auto* view{TryGet(index)};
-  COMET_ASSERT(view != nullptr,
-               "Requested view with index does not exist: ", index, "!");
+  COMET_ASSERT(view != nullptr, "ViewHandler::Get", "view not found", "index",
+               index);
   return view;
 }
 
 const View* ViewHandler::TryGet(usize index) const {
-  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
-               ", but view count is ", views_.GetSize(), "!");
+  if (index >= views_.GetSize()) {
+    return nullptr;
+  }
+
   return views_[index].get();
 }
 
@@ -242,19 +249,21 @@ void ViewHandler::OnShutdown() {
 
 View* ViewHandler::Get(usize index) {
   auto* view{TryGet(index)};
-  COMET_ASSERT(view != nullptr,
-               "Requested view with index does not exist: ", index, "!");
+  COMET_ASSERT(view != nullptr, "ViewHandler::Get", "view not found", "index",
+               index);
   return view;
 }
 
 View* ViewHandler::TryGet(usize index) {
-  COMET_ASSERT(index < views_.GetSize(), "Requested view at index #", index,
-               ", but view count is ", views_.GetSize(), "!");
+  if (index >= views_.GetSize()) {
+    return nullptr;
+  }
+
   return views_[index].get();
 }
 
 void ViewHandler::Destroy(View* view, bool is_destroying_handler) {
-  COMET_ASSERT(view != nullptr, "View is null!");
+  COMET_ASSERT(view != nullptr, "ViewHandler::Destroy", "view is null");
 
   if (is_destroying_handler) {
     view->Destroy();
@@ -273,8 +282,8 @@ void ViewHandler::Destroy(View* view, bool is_destroying_handler) {
     }
   }
 
-  COMET_ASSERT(view_index != kInvalidIndex,
-               "Tried to destroy view, but it was not found in the list!");
+  COMET_ASSERT(view_index != kInvalidIndex, "ViewHandler::Destroy",
+               "view was not found in handler", "view_id", view_id);
 
   view->Destroy();
   views_.RemoveFromPos(views_.begin() + view_index);

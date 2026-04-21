@@ -17,8 +17,9 @@
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/light/light_type.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/rendering_view_type.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {

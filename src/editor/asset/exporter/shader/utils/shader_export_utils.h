@@ -10,7 +10,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_pipeline_type.h"
+#include "comet/rendering/type/rendering_shader_type.h"
 
 namespace comet {
 namespace editor {

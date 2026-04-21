@@ -6,7 +6,7 @@
 #define COMET_COMET_GEOMETRY_COMPONENT_SKELETON_COMPONENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/resource/model_resource.h"
+#include "comet/resource/model/model_resource.h"
 
 namespace comet {
 namespace geometry {

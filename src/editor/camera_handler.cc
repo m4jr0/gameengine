@@ -10,48 +10,45 @@
 #include "camera_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/event/event_manager.h"
 #include "comet/input/input_event.h"
 #include "comet/input/input_manager.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/camera/camera_manager.h"
+#include "comet/rendering/camera_manager.h"
 
 namespace comet {
 namespace editor {
 CameraHandler::~CameraHandler() {
-  COMET_ASSERT(
-      !is_initialized_,
-      "Destructor called for camera handler, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "CameraHandler::~CameraHandler",
+               "camera handler is still initialized");
 }
 
 void CameraHandler::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize camera handler, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "CameraHandler::Initialize",
+               "camera handler is already initialized");
 
-  auto& event_manager{event::EventManager::Get()};
-
-  const auto event_function{
-      [this](const event::Event& event) { OnEvent(event); }};
-
-  event_manager.Register(event_function, input::KeyboardEvent::kStaticType_);
-  event_manager.Register(event_function, input::MouseMoveEvent::kStaticType_);
-  event_manager.Register(event_function, input::MouseScrollEvent::kStaticType_);
-  event_manager.Register(event_function, input::MouseClickEvent::kStaticType_);
-  event_manager.Register(event_function,
-                         input::MouseReleaseEvent::kStaticType_);
+  RegisterEvents();
 
   camera_ = rendering::CameraManager::Get().GetMainCamera();
+  COMET_ASSERT(camera_, "CameraHandler::Initialize",
+               "main camera handle is invalid");
+
   is_initialized_ = true;
 }
 
 void CameraHandler::Shutdown() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to shutdown camera handler, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "CameraHandler::Shutdown",
+               "camera handler is not initialized");
+
+  UnregisterEvents();
+
   camera_.Invalidate();
   is_initialized_ = false;
 }
 
 void CameraHandler::Update() {
+  COMET_ASSERT(is_initialized_, "CameraHandler::Update",
+               "camera handler is not initialized");
+
   const auto is_mouse_button{is_orbiting_from_mouse_ ||
                              is_rotating_from_mouse_ ||
                              is_panning_from_mouse_ || is_zooming_from_mouse_};
@@ -68,7 +65,8 @@ void CameraHandler::Update() {
   }
 
   auto& camera_manager{rendering::CameraManager::Get()};
-  COMET_ASSERT(camera_manager.IsAlive(camera_), "Editor camera is invalid!");
+  COMET_ASSERT(camera_manager.IsAlive(camera_), "CameraHandler::Update",
+               "camera is invalid");
 
   const auto width{camera_manager.GetWidth(camera_)};
   const auto height{camera_manager.GetHeight(camera_)};
@@ -143,6 +141,9 @@ void CameraHandler::Update() {
 bool CameraHandler::IsInitialized() const noexcept { return is_initialized_; }
 
 void CameraHandler::OnEvent(const event::Event& event) {
+  COMET_ASSERT(is_initialized_, "CameraHandler::OnEvent",
+               "camera handler is not initialized");
+
   const auto event_type{event.GetType()};
   auto& camera_manager{rendering::CameraManager::Get()};
 
@@ -245,7 +246,75 @@ void CameraHandler::OnEvent(const event::Event& event) {
   }
 }
 
+void CameraHandler::RegisterEvents() {
+  auto& event_manager{event::EventManager::Get()};
+  const auto event_function{
+      [this](const event::Event& event) { OnEvent(event); }};
+
+  keyboard_listener_id_ = event_manager.Register(
+      event_function, input::KeyboardEvent::kStaticType_);
+  COMET_ASSERT(keyboard_listener_id_ != event::kInvalidEventListenerId,
+               "CameraHandler::RegisterEvents",
+               "keyboard listener registration failed");
+
+  mouse_move_listener_id_ = event_manager.Register(
+      event_function, input::MouseMoveEvent::kStaticType_);
+  COMET_ASSERT(mouse_move_listener_id_ != event::kInvalidEventListenerId,
+               "CameraHandler::RegisterEvents",
+               "mouse move listener registration failed");
+
+  mouse_scroll_listener_id_ = event_manager.Register(
+      event_function, input::MouseScrollEvent::kStaticType_);
+  COMET_ASSERT(mouse_scroll_listener_id_ != event::kInvalidEventListenerId,
+               "CameraHandler::RegisterEvents",
+               "mouse scroll listener registration failed");
+
+  mouse_click_listener_id_ = event_manager.Register(
+      event_function, input::MouseClickEvent::kStaticType_);
+  COMET_ASSERT(mouse_click_listener_id_ != event::kInvalidEventListenerId,
+               "CameraHandler::RegisterEvents",
+               "mouse click listener registration failed");
+
+  mouse_release_listener_id_ = event_manager.Register(
+      event_function, input::MouseReleaseEvent::kStaticType_);
+  COMET_ASSERT(mouse_release_listener_id_ != event::kInvalidEventListenerId,
+               "CameraHandler::RegisterEvents",
+               "mouse release listener registration failed");
+}
+
+void CameraHandler::UnregisterEvents() {
+  auto& event_manager{event::EventManager::Get()};
+
+  if (keyboard_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(keyboard_listener_id_);
+    keyboard_listener_id_ = event::kInvalidEventListenerId;
+  }
+
+  if (mouse_move_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(mouse_move_listener_id_);
+    mouse_move_listener_id_ = event::kInvalidEventListenerId;
+  }
+
+  if (mouse_scroll_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(mouse_scroll_listener_id_);
+    mouse_scroll_listener_id_ = event::kInvalidEventListenerId;
+  }
+
+  if (mouse_click_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(mouse_click_listener_id_);
+    mouse_click_listener_id_ = event::kInvalidEventListenerId;
+  }
+
+  if (mouse_release_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(mouse_release_listener_id_);
+    mouse_release_listener_id_ = event::kInvalidEventListenerId;
+  }
+}
+
 void CameraHandler::ResetMousePosition() {
+  COMET_ASSERT(is_initialized_, "CameraHandler::ResetMousePosition",
+               "camera handler is not initialized");
+
   last_mouse_pos_ = current_mouse_pos_ =
       input::InputManager::Get().GetMousePosition();
 }

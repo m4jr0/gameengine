@@ -155,7 +155,7 @@ constexpr T Pow(T base, Exp exp) {
   if constexpr (std::is_signed_v<Exp>) {
     if (exp < 0) {
       static_assert(std::is_floating_point_v<T>,
-                    "Negative exponents require a floating-point base!");
+                    "Negative exponents require a floating-point base");
 
       if (base == T{0}) {
         return T{0};

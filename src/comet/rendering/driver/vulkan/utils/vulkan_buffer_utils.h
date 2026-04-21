@@ -11,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_buffer_type.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 
 namespace comet {

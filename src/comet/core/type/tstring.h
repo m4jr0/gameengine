@@ -12,6 +12,7 @@
 
 #include "comet/core/c_array.h"
 #include "comet/core/c_string.h"
+#include "comet/core/essentials.h"
 #include "comet/core/hash.h"
 
 namespace comet {

@@ -11,14 +11,13 @@
 #include "vulkan_render_pass_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
 #include "comet/core/hash.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type_trait.h"
+#include "comet/math/math_scalar.h"
+#include "comet/rendering/driver/vulkan/label/vulkan_render_pass_label.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_render_pass_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
@@ -31,7 +30,8 @@ RenderPassHandler::RenderPassHandler(const RenderPassHandlerDescr& descr)
     : Handler{descr},
       render_passes_{&cache_allocator_, 32},
       swapchain_{descr.swapchain} {
-  COMET_ASSERT(swapchain_ != nullptr, "Swapchain is null!");
+  COMET_ASSERT(swapchain_ != nullptr, "RenderPassHandler::RenderPassHandler",
+               "swapchain is null");
 }
 
 RenderPassHandle RenderPassHandler::GetOrGenerate(
@@ -43,18 +43,22 @@ RenderPassHandle RenderPassHandler::GetOrGenerate(
   }
 
   auto* render_pass{GenerateRenderPass(descr)};
-  COMET_ASSERT(render_pass != nullptr, "Generated render pass is null!");
+  COMET_ASSERT(render_pass != nullptr, "RenderPassHandler::GetOrGenerate",
+               "generated render pass is null");
 
   const auto handle{render_passes_.Create(hash, render_pass)};
-  COMET_ASSERT(handle, "Failed to create instance for render pass!");
+  COMET_ASSERT(handle, "RenderPassHandler::GetOrGenerate",
+               "render pass instance creation failed");
+
   render_pass->handle = handle;
   return handle;
 }
 
 void RenderPassHandler::Destroy(RenderPassHandle handle) {
   auto* render_pass{render_passes_.Get(handle)};
-  COMET_ASSERT(render_pass->handle == handle,
-               "Render pass handle mismatch during destruction!");
+  COMET_ASSERT(render_pass->handle == handle, "RenderPassHandler::Destroy",
+               "render pass handle mismatch", "expected_handle", handle,
+               "actual_handle", render_pass->handle);
 
   if (!render_passes_.Release(handle)) {
     return;
@@ -68,10 +72,14 @@ void RenderPassHandler::BeginPass(RenderPassHandle handle, VkCommandBuffer cmd,
                                   ImageIndex image_index,
                                   const VkClearValue* clear_values,
                                   u32 clear_value_count) const {
-  const auto* render_pass{Get(handle)};
+  COMET_ASSERT(cmd != VK_NULL_HANDLE, "RenderPassHandler::BeginPass",
+               "command buffer is invalid");
 
+  const auto* render_pass{Get(handle)};
   COMET_ASSERT(image_index < render_pass->render_targets.GetSize(),
-               "Image index is too high!");
+               "RenderPassHandler::BeginPass", "image index is out of bounds",
+               "image_index", image_index, "render_target_count",
+               render_pass->render_targets.GetSize());
 
   VkRenderPassBeginInfo begin_info{};
   begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -91,6 +99,11 @@ void RenderPassHandler::BeginPass(RenderPassHandle handle, VkCommandBuffer cmd,
                                   VkFramebuffer framebuffer,
                                   const VkClearValue* clear_values,
                                   u32 clear_value_count) const {
+  COMET_ASSERT(cmd != VK_NULL_HANDLE, "RenderPassHandler::BeginPass",
+               "command buffer is invalid");
+  COMET_ASSERT(framebuffer != VK_NULL_HANDLE, "RenderPassHandler::BeginPass",
+               "framebuffer is invalid");
+
   const auto* render_pass{Get(handle)};
 
   VkRenderPassBeginInfo begin_info{};
@@ -137,15 +150,15 @@ VkExtent2D RenderPassHandler::GetExtent(RenderPassHandle handle) const {
 
 RenderPass* RenderPassHandler::Get(RenderPassHandle handle) {
   auto* render_pass{render_passes_.TryGet(handle)};
-  COMET_ASSERT(render_pass != nullptr, "Render pass does not exist: ", handle,
-               "!");
+  COMET_ASSERT(render_pass != nullptr, "RenderPassHandler::Get",
+               "render pass not found", "render_pass_handle", handle);
   return render_pass;
 }
 
 const RenderPass* RenderPassHandler::Get(RenderPassHandle handle) const {
   const auto* render_pass{render_passes_.TryGet(handle)};
-  COMET_ASSERT(render_pass != nullptr, "Render pass does not exist: ", handle,
-               "!");
+  COMET_ASSERT(render_pass != nullptr, "RenderPassHandler::Get",
+               "render pass not found", "render_pass_handle", handle);
   return render_pass;
 }
 
@@ -167,9 +180,9 @@ void RenderPassHandler::OnShutdown() {
     const auto ref_count{render_passes_.GetRefCount(handle)};
 
     if (ref_count > 0) {
-      COMET_LOG_RENDERING_WARNING("Forcing destruction of render pass handle ",
-                                  handle, " with remaining ref count ",
-                                  ref_count, "!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "RenderPassHandler::OnShutdown",
+                        "forcing render pass destruction", "render_pass_handle",
+                        handle, "ref_count", ref_count);
     }
 
     auto* render_pass{render_passes_.Drain(handle)};
@@ -178,8 +191,9 @@ void RenderPassHandler::OnShutdown() {
       continue;
     }
 
-    COMET_ASSERT(render_pass->handle == handle,
-                 "Render pass handle mismatch during shutdown destruction!");
+    COMET_ASSERT(render_pass->handle == handle, "RenderPassHandler::OnShutdown",
+                 "render pass handle mismatch", "expected_handle", handle,
+                 "actual_handle", render_pass->handle);
 
     DestroyRenderPass(render_pass);
   }
@@ -222,11 +236,12 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
             (attachment_descr.samples & VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM) ==
             VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM};
 
-        COMET_ASSERT(
-            are_samples_empty || is_msaa ||
-                (attachment_descr.samples & VK_SAMPLE_COUNT_1_BIT) ==
-                    VK_SAMPLE_COUNT_1_BIT,
-            "Samples provided are more than 1 bit, but MSAA is disabled!");
+        COMET_ASSERT(are_samples_empty || is_msaa ||
+                         (attachment_descr.samples & VK_SAMPLE_COUNT_1_BIT) ==
+                             VK_SAMPLE_COUNT_1_BIT,
+                     "RenderPassHandler::GenerateRenderPass",
+                     "attachment sample count is invalid when msaa is disabled",
+                     "samples_value", ToUnderlying(attachment_descr.samples));
 
         vk_descr.samples =
             are_samples_empty ? msaa_samples : attachment_descr.samples;
@@ -303,11 +318,11 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
       }
 
       default: {
-        COMET_LOG_RENDERING_ERROR(
-            "Unsupported render pass attachment type: ",
-            static_cast<std::underlying_type_t<AttachmentType>>(
-                attachment_descr.type),
-            "! Ignoring.");
+        COMET_ASSERT(false, "RenderPassHandler::GenerateRenderPass",
+                     "attachment type is unsupported", "attachment_type",
+                     GetAttachmentTypeLabel(attachment_descr.type),
+                     "attachment_type_value",
+                     ToUnderlying(attachment_descr.type));
         continue;
       }
     }
@@ -329,8 +344,9 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
       static_cast<u32>(resolve_attachment_descrs.GetSize())};
 
   COMET_ASSERT(depth_attachment_count <= 1,
-               "Several depth attachments were provided, but with only one "
-               "subpass, the others would be ignored!");
+               "RenderPassHandler::GenerateRenderPass",
+               "depth attachment count exceeds supported limit",
+               "depth_attachment_count", depth_attachment_count);
 
   frame::FrameArray<VkAttachmentDescription> attachment_descrs{};
   attachment_descrs.Reserve(static_cast<usize>(color_attachment_count) +
@@ -411,7 +427,8 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
 
   COMET_CHECK_VK(vkCreateRenderPass(device, &render_pass_info, nullptr,
                                     &render_pass->vk_handle),
-                 "Failed to create render pass!");
+                 "RenderPassHandler::GenerateRenderPass",
+                 "render pass creation failed");
 
   COMET_VK_SET_DEBUG_LABEL(render_pass->vk_handle, "render_pass");
 
@@ -455,7 +472,8 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
 }
 
 void RenderPassHandler::DestroyRenderPass(RenderPass* render_pass) {
-  COMET_ASSERT(render_pass != nullptr, "Render pass is null!");
+  COMET_ASSERT(render_pass != nullptr, "RenderPassHandler::DestroyRenderPass",
+               "render pass is null");
 
   DestroyFrameBuffers(*render_pass);
 
@@ -478,10 +496,20 @@ void RenderPassHandler::GenerateFrameBuffers(RenderPass& render_pass) const {
                                                        render_pass.extent)};
 
   for (auto& render_target : render_pass.render_targets) {
-    VkImageView image_view_handles[32]{VK_NULL_HANDLE};
+    constexpr usize kMaxAttachmentCount{32};
+    VkImageView image_view_handles[kMaxAttachmentCount]{VK_NULL_HANDLE};
+
     const auto attachment_count{render_target.attachments.GetSize()};
 
-    for (usize i{0}; i < attachment_count; ++i) {
+    COMET_ASSERT(attachment_count <= kMaxAttachmentCount,
+                 "RenderPassHandler::GenerateFrameBuffers",
+                 "attachment count exceeds local capacity", "attachment_count",
+                 attachment_count, "max_attachment_count", kMaxAttachmentCount);
+
+    const auto resolved_attachment_count{
+        math::Min(attachment_count, kMaxAttachmentCount)};
+
+    for (usize i{0}; i < resolved_attachment_count; ++i) {
       image_view_handles[i] = render_target.attachments[i].image_view_handle;
     }
 
@@ -491,7 +519,8 @@ void RenderPassHandler::GenerateFrameBuffers(RenderPass& render_pass) const {
     COMET_CHECK_VK(
         vkCreateFramebuffer(context_->GetDevice(), &create_info, nullptr,
                             &render_target.framebuffer_handle),
-        "Failed to create framebuffer!");
+        "RenderPassHandler::GenerateFrameBuffers",
+        "framebuffer creation failed");
   }
 }
 
@@ -516,7 +545,10 @@ void RenderPassHandler::Refresh(RenderPass& render_pass) {
   const auto image_count{swapchain_->GetImageCount()};
 
   COMET_ASSERT(render_pass.render_targets.GetSize() == image_count,
-               "Render target count does not match swapchain image count!");
+               "RenderPassHandler::Refresh",
+               "render target count does not match swapchain image count",
+               "render_target_count", render_pass.render_targets.GetSize(),
+               "image_count", image_count);
 
   const auto is_msaa{context_->GetDevice().IsMsaa()};
 
@@ -543,10 +575,10 @@ void RenderPassHandler::Refresh(RenderPass& render_pass) {
         continue;
       }
 
-      COMET_ASSERT(
-          false, "Unknown or unsupported attachment type: ",
-          static_cast<std::underlying_type_t<AttachmentType>>(attachment.type),
-          "!");
+      COMET_ASSERT(false, "RenderPassHandler::Refresh",
+                   "attachment type is unsupported", "attachment_type",
+                   GetAttachmentTypeLabel(attachment.type),
+                   "attachment_type_value", ToUnderlying(attachment.type));
     }
   }
 

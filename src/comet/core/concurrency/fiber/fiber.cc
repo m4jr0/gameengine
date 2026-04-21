@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/fiber/fiber_context.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
@@ -25,7 +25,7 @@
 
 // TODO(m4jr0): Support other architectures.
 #ifndef COMET_ARCH_X86_64
-static_assert(false, "Unsupported architecture.");
+static_assert(false, "unsupported architecture");
 #endif  // !COMET_ARCH_X86_64
 
 namespace comet {
@@ -41,8 +41,9 @@ usize Fiber::GetAllocatedStackSize(usize capacity) {
 }
 
 void Fiber::Initialize() {
-  COMET_ASSERT(stack_capacity_ != kThreadStacktraceSize_,
-               "Cannot initialize a thread fiber!");
+  COMET_ASSERT(stack_capacity_ != kThreadStacktraceSize_, "Fiber::Initialize",
+               "cannot initialize a thread fiber");
+
   stack_ = internal::FiberInternalAllocator::Get().Allocate(
       GetAllocatedStackSize(stack_capacity_));
 
@@ -112,8 +113,9 @@ void Fiber::Detach() {
 }
 
 void Fiber::Run(Fiber* fiber) {
-  COMET_ASSERT(fiber->entry_point_ != nullptr,
-               "Entry point is null! Did you attach it?");
+  COMET_ASSERT(fiber->entry_point_ != nullptr, "Fiber::Run",
+               "entry point is null");
+
   fiber->entry_point_(fiber->params_handle_);
 
   if (fiber->end_callback_ != nullptr) {
@@ -126,8 +128,9 @@ ExecutionContext& Fiber::GetContext() noexcept { return context_; }
 FiberId Fiber::GetId() const noexcept { return id_; }
 
 sptrdiff Fiber::GetCurrentStackSize() const {
-  COMET_ASSERT(GetFiber() == this,
-               "Cannot compute current stack size from another fiber!");
+  COMET_ASSERT(GetFiber() == this, "Fiber::GetCurrentStackSize",
+               "cannot compute current stack size from another fiber");
+
   // No stack overflow checks for fibers; the OS handles the large stack.
   if (stack_capacity_ == kThreadStacktraceSize_) {
     return stack_capacity_;
@@ -152,8 +155,8 @@ bool Fiber::IsStackOverflow() const {
   const auto size_left{GetCurrentStackSizeLeft()};
 
   if (size_left < 0) {
-    COMET_LOG_CORE_ERROR("Stack overflow of ", -size_left,
-                         " bytes has been detected!");
+    COMET_LOG_ERROR(LoggerType::Core, "Fiber::IsStackOverflow",
+                    "stack overflow detected", "overflow_size", -size_left);
   }
 
   return size_left < 0;
@@ -165,15 +168,17 @@ const schar* Fiber::GetDebugLabel() const noexcept { return debug_label_; }
 
 #ifdef COMET_POISON_FIBER_STACKS
 void Fiber::PoisonStack() {
-  COMET_ASSERT(stack_ != nullptr, "Stack is null!");
-  COMET_ASSERT(stack_capacity_ != 0, "Stack capacity is 0!");
+  COMET_ASSERT(stack_ != nullptr, "Fiber::PoisonStack", "stack is null");
+  COMET_ASSERT(stack_capacity_ != 0, "Fiber::PoisonStack",
+               "stack capacity is zero");
   constexpr StaticArray<u8, 8> kPoison{0xde, 0xad, 0xbe, 0xef,
                                        0xde, 0xad, 0xbe, 0xef};
   constexpr auto kPoisonLen{kPoison.GetSize()};
   constexpr auto kAllocationIdSize{sizeof(id_)};
-  COMET_ASSERT(kPoisonLen == kAllocationIdSize,
-               "Poison and allocation ID size misalign. This would cause "
-               "poison drifting when investigating.");
+
+  COMET_ASSERT(kPoisonLen == kAllocationIdSize, "Fiber::PoisonStack",
+               "poison size and allocation id size mismatch", "poison_size",
+               kPoisonLen, "allocation_id_size", kAllocationIdSize);
 
   usize i{0};
   auto* cur{stack_};
@@ -221,14 +226,14 @@ Fiber::Fiber() : stack_capacity_{kThreadStacktraceSize_} {
 }
 
 Fiber::Fiber(usize stack_size) : stack_capacity_{stack_size} {
-  COMET_ASSERT(stack_capacity_ != 0, "Stack size provided is 0!");
+  COMET_ASSERT(stack_capacity_ != 0, "Fiber::Fiber", "stack size is zero");
 }
 
 namespace internal {
 FiberInternalAllocator::~FiberInternalAllocator() {
   COMET_ASSERT(!is_initialized_,
-               "Destructor called for fiber internal allocator, but it is "
-               "still initialized!");
+               "FiberInternalAllocator::~FiberInternalAllocator",
+               "allocator is still initialized");
 }
 
 FiberInternalAllocator& FiberInternalAllocator::Get() {
@@ -260,17 +265,15 @@ FiberInternalAllocator& FiberInternalAllocator::operator=(
 }
 
 void FiberInternalAllocator::Initialize() {
-  COMET_ASSERT(
-      !is_initialized_,
-      "Tried to initialize fiber internal allocator, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "FiberInternalAllocator::Initialize",
+               "allocator is already initialized");
   allocator_.Initialize();
   is_initialized_ = true;
 }
 
 void FiberInternalAllocator::Destroy() {
-  COMET_ASSERT(
-      is_initialized_,
-      "Tried to destroy fiber internal allocator, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "FiberInternalAllocator::Destroy",
+               "allocator is not initialized");
   allocator_.Destroy();
   is_initialized_ = false;
 }

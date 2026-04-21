@@ -22,9 +22,10 @@
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
 #include "comet/core/memory/allocator/allocator.h"
+#include "comet/core/type_trait.h"
 #include "comet/math/math_scalar.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
+#include "comet/rendering/driver/vulkan/label/vulkan_texture_label.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_image_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
@@ -32,7 +33,8 @@
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/label/rendering_texture_label.h"
+#include "comet/rendering/utils/rendering_texture_utils.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -48,8 +50,8 @@ TextureHandle TextureHandler::GetOrGenerate(
 
 TextureHandle TextureHandler::GetOrGenerate(
     resource::TextureResourceId texture_resource_id, TextureType type) {
-  COMET_ASSERT(texture_resource_id.IsValid(),
-               "Texture resource ID is invalid!");
+  COMET_ASSERT(texture_resource_id.IsValid(), "TextureHandler::GetOrGenerate",
+               "texture resource id is invalid");
 
   TextureKey key{
       .kind = TextureKeyKind::Resource,
@@ -68,10 +70,12 @@ TextureHandle TextureHandler::GetOrGenerate(
 
   const auto is_loaded{texture_resource_handler->WithTemporaryLoad(
       texture_resource_id,
-      [this, &generated_handle,
-       type](const resource::TextureResource* texture_resource) {
+      [this, &generated_handle, type,
+       texture_resource_id](const resource::TextureResource* texture_resource) {
         auto* texture{GenerateTexture(texture_resource, type)};
-        COMET_ASSERT(texture != nullptr, "Generated texture is null!");
+        COMET_ASSERT(texture != nullptr, "TextureHandler::GetOrGenerate",
+                     "generated texture is null", "texture_resource_id",
+                     texture_resource_id);
 
         TextureKey key{
             .kind = TextureKeyKind::Resource,
@@ -81,8 +85,12 @@ TextureHandle TextureHandler::GetOrGenerate(
         };
 
         generated_handle = textures_.Create(key, texture);
-        COMET_ASSERT(generated_handle,
-                     "Failed to create instance for texture!");
+        COMET_ASSERT(generated_handle, "TextureHandler::GetOrGenerate",
+                     "texture instance creation failed", "texture_resource_id",
+                     texture_resource_id, "texture_type",
+                     GetTextureTypeLabel(type), "texture_type_value",
+                     ToUnderlying(type));
+
         texture->handle = generated_handle;
       })};
 
@@ -90,12 +98,16 @@ TextureHandle TextureHandler::GetOrGenerate(
 }
 
 TextureHandle TextureHandler::Generate(const RuntimeTextureDescr& descr) {
-  COMET_ASSERT(descr.width > 0, "Runtime texture width is 0!");
-  COMET_ASSERT(descr.height > 0, "Runtime texture height is 0!");
-  COMET_ASSERT(descr.format != VK_FORMAT_UNDEFINED,
-               "Runtime texture format is undefined!");
-  COMET_ASSERT(descr.usage != 0, "Runtime texture usage is empty!");
-  COMET_ASSERT(descr.layer_count > 0, "Runtime texture layer count is 0!");
+  COMET_ASSERT(descr.width > 0, "TextureHandler::Generate",
+               "runtime texture width is zero");
+  COMET_ASSERT(descr.height > 0, "TextureHandler::Generate",
+               "runtime texture height is zero");
+  COMET_ASSERT(descr.format != VK_FORMAT_UNDEFINED, "TextureHandler::Generate",
+               "runtime texture format is undefined");
+  COMET_ASSERT(descr.usage != 0, "TextureHandler::Generate",
+               "runtime texture usage is empty");
+  COMET_ASSERT(descr.layer_count > 0, "TextureHandler::Generate",
+               "runtime texture layer count is zero");
 
   auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
   texture->handle = TextureHandle::Invalid();
@@ -109,7 +121,7 @@ TextureHandle TextureHandler::Generate(const RuntimeTextureDescr& descr) {
   texture->image.allocator_handle = context_->GetAllocatorHandle();
 
   COMET_ASSERT(next_runtime_texture_id_ != kInvalidRuntimeTextureId,
-               "Runtime texture ID overflow!");
+               "TextureHandler::Generate", "runtime texture id overflow");
 
   texture->runtime_id = next_runtime_texture_id_++;
   texture->is_runtime = true;
@@ -144,7 +156,11 @@ TextureHandle TextureHandler::Generate(const RuntimeTextureDescr& descr) {
   };
 
   const auto handle{textures_.Create(key, texture)};
-  COMET_ASSERT(handle, "Failed to create instance for texture!");
+  COMET_ASSERT(handle, "TextureHandler::Generate",
+               "texture instance creation failed", "runtime_texture_id",
+               texture->runtime_id, "texture_type",
+               GetTextureTypeLabel(texture->type), "texture_type_value",
+               ToUnderlying(texture->type));
 
   texture->handle = handle;
   return handle;
@@ -163,8 +179,8 @@ void TextureHandler::Destroy(TextureHandle handle) {
 
 const Texture* TextureHandler::Get(TextureHandle handle) const {
   const auto* texture{textures_.TryGet(handle)};
-  COMET_ASSERT(texture != nullptr, "Requested texture does not exist: ", handle,
-               "!");
+  COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture not found",
+               "texture_handle", handle);
   return texture;
 }
 
@@ -196,13 +212,14 @@ void TextureHandler::OnShutdown() {
           .type = texture->type,
       };
 
-      COMET_LOG_RENDERING_WARNING(
-          "Forcing destruction of texture handle ", handle,
-          " with remaining ref count ", ref_count,
-          ", key kind: ", static_cast<u32>(key.kind),
-          ", texture_resource_id: ", key.texture_resource_id,
-          ", runtime_id: ", key.runtime_id,
-          ", type: ", static_cast<u32>(key.type), "!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "TextureHandler::OnShutdown",
+                        "forcing texture destruction", "texture_handle", handle,
+                        "ref_count", ref_count, "key_kind",
+                        GetTextureKeyKindLabel(key.kind), "key_kind_value",
+                        ToUnderlying(key.kind), "texture_resource_id",
+                        key.texture_resource_id, "runtime_id", key.runtime_id,
+                        "texture_type", GetTextureTypeLabel(key.type),
+                        "texture_type_value", ToUnderlying(key.type));
     }
 
     auto* texture{textures_.Drain(handle)};
@@ -211,8 +228,11 @@ void TextureHandler::OnShutdown() {
       continue;
     }
 
-    COMET_ASSERT(texture->handle == handle,
-                 "Texture handle mismatch during shutdown destruction!");
+    COMET_ASSERT(texture->handle == handle, "TextureHandler::OnShutdown",
+                 "texture handle mismatch", "expected_handle", handle,
+                 "actual_handle", texture->handle, "texture_resource_id",
+                 texture->texture_resource_id, "runtime_id",
+                 texture->runtime_id);
 
     DestroyTexture(texture);
   }
@@ -223,14 +243,15 @@ void TextureHandler::OnShutdown() {
 
 Texture* TextureHandler::Get(TextureHandle handle) {
   auto* texture{textures_.TryGet(handle)};
-  COMET_ASSERT(texture != nullptr, "Requested texture does not exist: ", handle,
-               "!");
+  COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture not found",
+               "texture_handle", handle);
   return texture;
 }
 
 Texture* TextureHandler::GenerateTexture(
     const resource::TextureResource* resource, TextureType type) {
-  COMET_ASSERT(resource != nullptr, "Texture resource is null!");
+  COMET_ASSERT(resource != nullptr, "TextureHandler::GenerateTexture",
+               "texture resource is null");
 
   auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
   texture->handle = TextureHandle::Invalid();
@@ -325,7 +346,8 @@ Texture* TextureHandler::GenerateTexture(
 }
 
 void TextureHandler::DestroyTexture(Texture* texture) {
-  COMET_ASSERT(texture != nullptr, "Texture is null!");
+  COMET_ASSERT(texture != nullptr, "TextureHandler::DestroyTexture",
+               "texture is null");
 
   if (texture->image.image_view_handle != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->GetDevice(), texture->image.image_view_handle,
@@ -339,7 +361,8 @@ void TextureHandler::DestroyTexture(Texture* texture) {
 }
 
 void TextureHandler::GenerateMipmaps(Texture* texture) const {
-  COMET_ASSERT(texture != nullptr, "Texture is null!");
+  COMET_ASSERT(texture != nullptr, "TextureHandler::GenerateMipmaps",
+               "texture is null");
 
   auto& device{context_->GetDevice()};
 
@@ -350,7 +373,10 @@ void TextureHandler::GenerateMipmaps(Texture* texture) const {
   COMET_ASSERT(
       static_cast<bool>(format_properties.optimalTilingFeatures &
                         VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT),
-      "Texture image format does not support linear blitting!");
+      "TextureHandler::GenerateMipmaps",
+      "texture format does not support linear blitting", "format_value",
+      ToUnderlying(texture->format), "texture_resource_id",
+      texture->texture_resource_id, "runtime_id", texture->runtime_id);
 
   const auto command_pool_handle{context_->GetFrameData().command_pool_handle};
   auto command_buffer_handle{

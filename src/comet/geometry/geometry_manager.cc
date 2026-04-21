@@ -14,7 +14,8 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/geometry/geometry_utils.h"
+#include "comet/geometry/label/geometry_mesh_label.h"
+#include "comet/geometry/type/geometry_skeleton_type.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -49,8 +50,12 @@ MeshHandle GeometryManager::GetOrGenerate(
 
   if (existing_handle != nullptr && mesh_pool_.IsAlive(*existing_handle)) {
     const auto index{static_cast<usize>(existing_handle->GetIndex())};
+
     auto* mesh{meshes_[index]};
-    COMET_ASSERT(mesh != nullptr, "Cached mesh pointer is null!");
+    COMET_ASSERT(mesh != nullptr, "GeometryManager::GetOrGenerate",
+                 "cached mesh is null", "mesh_id", mesh_id, "handle",
+                 *existing_handle);
+
     ++mesh->ref_count;
     return *existing_handle;
   }
@@ -80,8 +85,12 @@ MeshHandle GeometryManager::GetOrGenerate(MeshId mesh_id, MeshType type,
 
   if (existing_handle != nullptr && mesh_pool_.IsAlive(*existing_handle)) {
     const auto index{static_cast<usize>(existing_handle->GetIndex())};
+
     auto* mesh{meshes_[index]};
-    COMET_ASSERT(mesh != nullptr, "Cached procedural mesh pointer is null!");
+    COMET_ASSERT(mesh != nullptr, "GeometryManager::GetOrGenerate",
+                 "cached mesh is null", "mesh_id", mesh_id, "handle",
+                 *existing_handle);
+
     ++mesh->ref_count;
     return *existing_handle;
   }
@@ -103,7 +112,8 @@ MeshHandle GeometryManager::GetOrGenerate(MeshId mesh_id, MeshType type,
 }
 
 MeshHandle GeometryManager::GenerateCube(f32 size) {
-  COMET_ASSERT(size > .0f, "Debug cube size must be > 0!");
+  COMET_ASSERT(size > .0f, "GeometryManager::GenerateCube",
+               "cube size must be greater than zero", "size", size);
 
   const f32 h{size * .5f};
 
@@ -186,7 +196,8 @@ void GeometryManager::Destroy(MeshId mesh_id) {
 
 const Mesh* GeometryManager::Get(MeshHandle handle) const {
   const auto* mesh{TryGet(handle)};
-  COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", handle, "!");
+  COMET_ASSERT(mesh != nullptr, "GeometryManager::Get", "mesh does not exist",
+               "handle", handle);
   return mesh;
 }
 
@@ -208,7 +219,8 @@ const Mesh* GeometryManager::TryGet(MeshHandle handle) const {
 
 MeshHandle GeometryManager::ResolveHandle(MeshId mesh_id) const {
   const auto handle{TryResolveHandle(mesh_id)};
-  COMET_ASSERT(handle, "Requested mesh does not exist: ", mesh_id, "!");
+  COMET_ASSERT(handle, "GeometryManager::ResolveHandle", "mesh does not exist",
+               "mesh_id", mesh_id);
   return handle;
 }
 
@@ -252,8 +264,10 @@ void GeometryManager::PopulateGeometryData(MeshHandle handle,
   out.local_center = mesh->local_center;
   out.local_max_extents = mesh->local_max_extents;
 
-  COMET_ASSERT(out.vertices != nullptr, "Added geometry vertices are null!");
-  COMET_ASSERT(out.indices != nullptr, "Added geometry indices are null!");
+  COMET_ASSERT(out.vertices != nullptr, "GeometryManager::PopulateGeometryData",
+               "output vertices are null", "handle", handle);
+  COMET_ASSERT(out.indices != nullptr, "GeometryManager::PopulateGeometryData",
+               "output indices are null", "handle", handle);
 
   out.vertices->PushFromRange(mesh->vertices);
   out.indices->PushFromRange(mesh->indices);
@@ -267,8 +281,10 @@ void GeometryManager::PopulateGeometryData(MeshHandle handle,
   out.local_center = mesh->local_center;
   out.local_max_extents = mesh->local_max_extents;
 
-  COMET_ASSERT(out.vertices != nullptr, "Dirty mesh vertices are null!");
-  COMET_ASSERT(out.indices != nullptr, "Dirty mesh indices are null!");
+  COMET_ASSERT(out.vertices != nullptr, "GeometryManager::PopulateGeometryData",
+               "output vertices are null", "handle", handle);
+  COMET_ASSERT(out.indices != nullptr, "GeometryManager::PopulateGeometryData",
+               "output indices are null", "handle", handle);
 
   out.vertices->PushFromRange(mesh->vertices);
   out.indices->PushFromRange(mesh->indices);
@@ -329,7 +345,9 @@ SkeletonComponent GeometryManager::GenerateSkeletonComponent(
 
 void GeometryManager::DestroyStaticModelComponent(
     StaticModelComponent* model_cmp) const {
-  COMET_ASSERT(model_cmp != nullptr, "Static model component is null!");
+  COMET_ASSERT(model_cmp != nullptr,
+               "GeometryManager::DestroyStaticModelComponent",
+               "component is null");
 
   model_cmp->entity_id = entity::kInvalidEntityId;
 
@@ -342,7 +360,9 @@ void GeometryManager::DestroyStaticModelComponent(
 
 void GeometryManager::DestroySkeletalModelComponent(
     SkeletalModelComponent* model_cmp) const {
-  COMET_ASSERT(model_cmp != nullptr, "Skeletal model component is null!");
+  COMET_ASSERT(model_cmp != nullptr,
+               "GeometryManager::DestroySkeletalModelComponent",
+               "component is null");
 
   model_cmp->entity_id = entity::kInvalidEntityId;
 
@@ -354,7 +374,9 @@ void GeometryManager::DestroySkeletalModelComponent(
 }
 
 void GeometryManager::DestroyStaticMeshComponent(MeshComponent* mesh_cmp) {
-  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
+  COMET_ASSERT(mesh_cmp != nullptr,
+               "GeometryManager::DestroyStaticMeshComponent",
+               "component is null");
 
   mesh_cmp->entity_id = entity::kInvalidEntityId;
   mesh_cmp->model_entity_id = entity::kInvalidEntityId;
@@ -368,7 +390,9 @@ void GeometryManager::DestroyStaticMeshComponent(MeshComponent* mesh_cmp) {
 }
 
 void GeometryManager::DestroySkinnedMeshComponent(MeshComponent* mesh_cmp) {
-  COMET_ASSERT(mesh_cmp != nullptr, "Mesh component is null!");
+  COMET_ASSERT(mesh_cmp != nullptr,
+               "GeometryManager::DestroySkinnedMeshComponent",
+               "component is null");
 
   mesh_cmp->entity_id = entity::kInvalidEntityId;
   mesh_cmp->model_entity_id = entity::kInvalidEntityId;
@@ -383,7 +407,9 @@ void GeometryManager::DestroySkinnedMeshComponent(MeshComponent* mesh_cmp) {
 
 void GeometryManager::DestroySkeletonComponent(
     SkeletonComponent* skeleton_cmp) const {
-  COMET_ASSERT(skeleton_cmp != nullptr, "Skeleton component is null!");
+  COMET_ASSERT(skeleton_cmp != nullptr,
+               "GeometryManager::DestroySkeletonComponent",
+               "component is null");
 
   if (skeleton_cmp->resource_handle) {
     resource::ResourceManager::Get().GetSkeletons()->Unload(
@@ -423,7 +449,8 @@ void GeometryManager::OnShutdown() {
 
 Mesh* GeometryManager::Get(MeshHandle handle) {
   auto* mesh{TryGet(handle)};
-  COMET_ASSERT(mesh != nullptr, "Requested mesh does not exist: ", handle, "!");
+  COMET_ASSERT(mesh != nullptr, "GeometryManager::Get", "mesh does not exist",
+               "handle", handle);
   return mesh;
 }
 
@@ -477,8 +504,9 @@ Mesh* GeometryManager::CreateMeshObject(const resource::MeshResource& resource,
 
     case MeshType::Unknown:
     default:
-      COMET_ASSERT(false, "Unknown or unsupported mesh type: ",
-                   GetMeshTypeLabel(resource.type), "!");
+      COMET_ASSERT(false, "GeometryManager::CreateMeshObject",
+                   "unsupported mesh type", "mesh_type",
+                   GetMeshTypeLabel(resource.type));
       break;
   }
 
@@ -526,14 +554,18 @@ void GeometryManager::Destroy(MeshHandle handle, bool is_shutdown) {
   }
 
   const auto index{static_cast<usize>(handle.GetIndex())};
-  COMET_ASSERT(index < meshes_.GetSize(), "Mesh handle index out of bounds!");
+  COMET_ASSERT(index < meshes_.GetSize(), "GeometryManager::Destroy",
+               "mesh handle index out of bounds", "handle", handle, "index",
+               index, "mesh_count", meshes_.GetSize());
 
   auto* mesh{meshes_[index]};
-  COMET_ASSERT(mesh != nullptr, "Mesh pointer is null for handle: ", handle,
-               "!");
+  COMET_ASSERT(mesh != nullptr, "GeometryManager::Destroy", "mesh is null",
+               "handle", handle, "index", index);
 
   if (!is_shutdown) {
-    COMET_ASSERT(mesh->ref_count > 0, "Mesh has a reference count of 0!");
+    COMET_ASSERT(mesh->ref_count > 0, "GeometryManager::Destroy",
+                 "mesh reference count is zero", "handle", handle, "mesh_id",
+                 mesh->id);
 
     const auto ref_count{mesh->ref_count.fetch_sub(1) - 1};
 

@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_RENDERING_RENDERING_HANDLE_H_
 #define COMET_COMET_RENDERING_RENDERING_HANDLE_H_
 
+#include "comet/core/essentials.h"
 #include "comet/core/type/handle.h"
 
 namespace comet {

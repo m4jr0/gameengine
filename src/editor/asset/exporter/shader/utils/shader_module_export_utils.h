@@ -12,7 +12,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/shader_module_resource.h"
+#include "comet/resource/shader/shader_module_resource.h"
 
 namespace comet {
 namespace editor {

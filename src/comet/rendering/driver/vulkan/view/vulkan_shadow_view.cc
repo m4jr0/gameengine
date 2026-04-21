@@ -14,7 +14,7 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
@@ -30,12 +30,16 @@ ShadowView::ShadowView(const ShadowViewDescr& descr)
       render_proxy_handler_{descr.render_proxy_handler},
       lighting_handler_{descr.lighting_handler},
       mesh_handler_{descr.mesh_handler} {
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
-  COMET_ASSERT(render_proxy_handler_ != nullptr,
-               "Render proxy handler is null!");
-  COMET_ASSERT(lighting_handler_ != nullptr, "Lighting handler is null!");
-  COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
+  COMET_ASSERT(shader_handler_ != nullptr, "ShadowView::ShadowView",
+               "shader handler is null");
+  COMET_ASSERT(pipeline_handler_ != nullptr, "ShadowView::ShadowView",
+               "pipeline handler is null");
+  COMET_ASSERT(render_proxy_handler_ != nullptr, "ShadowView::ShadowView",
+               "render proxy handler is null");
+  COMET_ASSERT(lighting_handler_ != nullptr, "ShadowView::ShadowView",
+               "lighting handler is null");
+  COMET_ASSERT(mesh_handler_ != nullptr, "ShadowView::ShadowView",
+               "mesh handler is null");
 }
 
 void ShadowView::Update(frame::FramePacket*) {
@@ -58,8 +62,8 @@ void ShadowView::Update(frame::FramePacket*) {
   UpdateShadowShaderPassData();
 
   for (const auto& job : *render_jobs) {
-    COMET_ASSERT(job.resource != nullptr,
-                 "Shadow render job resource is null!");
+    COMET_ASSERT(job.resource != nullptr, "ShadowView::Update",
+                 "shadow render job resource is null");
 
     TransitionShadowMapForRendering(command_buffer_handle, *job.resource,
                                     job.view_proj_index);
@@ -197,8 +201,15 @@ void ShadowView::DrawShadowCasters() {
   }
 
   const auto frame_index{context_->GetFrameInFlightIndex()};
+
   const auto& indirect_buffer{
       render_proxy_handler_->GetShadowIndirectBuffer(frame_index)};
+  COMET_ASSERT(
+      indirect_buffer.handle != VK_NULL_HANDLE, "ShadowView::DrawShadowCasters",
+      "shadow indirect buffer handle is invalid", "frame_index", frame_index);
+  COMET_ASSERT(indirect_buffer.size > 0, "ShadowView::DrawShadowCasters",
+               "shadow indirect buffer size is zero", "frame_index",
+               frame_index);
 
   const auto command_buffer_handle{
       context_->GetFrameData().command_buffer_handle};
@@ -261,9 +272,14 @@ void ShadowView::TransitionShadowLayer(
     VkPipelineStageFlags src_stage_mask,
     VkPipelineStageFlags dst_stage_mask) const {
   COMET_ASSERT(view_proj_index < resource.view_proj_count,
-               "Shadow view-proj index out of bounds!");
+               "ShadowView::TransitionShadowLayer",
+               "shadow view projection index is out of bounds",
+               "view_proj_index", view_proj_index, "view_proj_count",
+               resource.view_proj_count);
   COMET_ASSERT(resource.first_layer_index >= 0,
-               "Shadow resource has invalid first layer index!");
+               "ShadowView::TransitionShadowLayer",
+               "shadow resource first layer index is invalid",
+               "first_layer_index", resource.first_layer_index);
 
   const auto layer_index{static_cast<u32>(resource.first_layer_index) +
                          view_proj_index};

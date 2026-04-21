@@ -23,23 +23,24 @@ View::View(const ViewDescr& descr)
       id_{descr.id},
       context_{descr.context},
       render_pass_handler_{descr.render_pass_handler} {
-  COMET_ASSERT(context_ != nullptr, "Context is null!");
-  COMET_ASSERT(render_pass_handler_ != nullptr, "Render pass handler is null!");
+  COMET_ASSERT(context_ != nullptr, "View::View", "context is null");
+  COMET_ASSERT(render_pass_handler_ != nullptr, "View::View",
+               "render pass handler is null");
 }
 
 View::~View() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for view, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "View::~View", "view is still initialized");
 }
 
 void View::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize view, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "View::Initialize",
+               "view is already initialized");
   OnInitialize();
   is_initialized_ = true;
 }
 
 void View::Destroy() {
+  COMET_ASSERT(is_initialized_, "View::Destroy", "view is not initialized");
   OnDestroy();
   id_ = kInvalidRenderingViewId;
   context_ = nullptr;
@@ -67,8 +68,9 @@ void View::SetSize(WindowSize width, WindowSize height) {
   width_ = width;
   height_ = height;
 
-  COMET_ASSERT(render_pass_handle_, "Tried to set size to ", width_, "x",
-               height_, ", but render pass is invalid!");
+  COMET_ASSERT(render_pass_handle_, "View::SetSize",
+               "render pass handle is invalid", "width", width_, "height",
+               height_);
   render_pass_handler_->SetSize(render_pass_handle_, static_cast<u32>(width_),
                                 static_cast<u32>(height_));
 }

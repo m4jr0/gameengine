@@ -5,7 +5,8 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_TEXTURE_MAP_UTILS_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_TEXTURE_MAP_UTILS_H_
 
-#include "comet/rendering/driver/opengl/data/opengl_texture_map.h"
+#include "comet/core/essentials.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture_map_type.h"
 
 namespace comet {
 namespace rendering {

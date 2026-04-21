@@ -1,4 +1,3 @@
-#include "engine.h"
 // Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
@@ -26,17 +25,15 @@
 #include "comet/core/type/gid.h"
 #include "comet/engine/engine_event.h"
 #include "comet/entity/entity_manager.h"
-#include "comet/event/event.h"
-#include "comet/event/event_manager.h"
+#include "comet/environment/environment_manager.h"
 #include "comet/geometry/geometry_manager.h"
 #include "comet/input/input_manager.h"
 #include "comet/physics/physics_manager.h"
-#include "comet/rendering/camera/camera_manager.h"
-#include "comet/rendering/light/light_manager.h"
+#include "comet/rendering/camera_manager.h"
+#include "comet/rendering/light_manager.h"
 #include "comet/rendering/rendering_manager.h"
 #include "comet/rendering/window/window_event.h"
 #include "comet/resource/resource_manager.h"
-#include "comet/scene/environment/environment_manager.h"
 #include "comet/scene/scene_event.h"
 #include "comet/scene/scene_manager.h"
 #include "comet/time/time_manager.h"
@@ -51,13 +48,11 @@
 
 namespace comet {
 Engine::~Engine() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for engine, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Engine::~Engine", "engine still initialized");
 }
 
 void Engine::Populate() {
-  COMET_CASSERT(!is_initialized_,
-                "Tried to initialize engine, but it is already done!");
+  COMET_CASSERT(!is_initialized_, "engine already initialized");
   COMET_INITIALIZE_ALLOCATION_TRACKING();
   thread::Thread::AttachMainThread();
   COMET_LOG_INITIALIZE();
@@ -73,25 +68,31 @@ void Engine::Populate() {
 }
 
 void Engine::Initialize() {
+  COMET_ASSERT(!is_initialized_, "Engine::Initialize",
+               "engine is already initialized");
+
   Load();
   PostLoad();
   is_initialized_ = true;
 }
 
 void Engine::Run() {
+  COMET_ASSERT(is_initialized_, "Engine::Run", "engine is not initialized");
+  COMET_ASSERT(!is_running_, "Engine::Run", "engine is already running");
+
   try {
     is_running_ = true;
     time::TimeManager::Get().Initialize();
 
     auto& scene_manager{scene::SceneManager::Get()};
     scene_manager.Initialize();
-    scene::EnvironmentManager::Get().Initialize();
+    environment::EnvironmentManager::Get().Initialize();
 
     event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>();
 
     // To catch up time taken to render.
     f64 lag{.0};
-    COMET_LOG_CORE_INFO("Comet started");
+    COMET_LOG_INFO(LoggerType::Engine, "Engine::Run", "engine started");
 
     while (is_running_) {
       if (is_exit_requested_) {
@@ -101,18 +102,21 @@ void Engine::Run() {
       Update(lag);
     }
   } catch ([[maybe_unused]] const std::runtime_error& runtime_error) {
-    COMET_LOG_CORE_ERROR("Runtime error: ", runtime_error.what());
+    COMET_LOG_ERROR(LoggerType::Engine, "Engine::Run", "runtime error", "what",
+                    runtime_error.what());
     Quit();
 
     std::cin.get();
   } catch ([[maybe_unused]] const std::exception& exception) {
-    COMET_LOG_CORE_ERROR("Exception: ", exception.what());
+    COMET_LOG_ERROR(LoggerType::Engine, "Engine::Run", "exception", "what",
+                    exception.what());
     Quit();
 
     std::cin.get();
   } catch (...) {
-    COMET_LOG_CORE_ERROR(
-        "Unknown failure occurred. Possible memory corruption");
+    COMET_LOG_ERROR(LoggerType::Engine, "Engine::Run",
+                    "unknown failure detected", "suspected_cause",
+                    "memory corruption");
     std::cin.get();
   }
 
@@ -120,6 +124,8 @@ void Engine::Run() {
 }
 
 void Engine::Update(f64& lag) {
+  COMET_ASSERT(is_running_, "Engine::Update", "engine is not running");
+
   time::TimeManager::Get().Update();
   lag += time::TimeManager::Get().GetDeltaTime();
 
@@ -148,23 +154,25 @@ void Engine::Update(f64& lag) {
 
 void Engine::Stop() {
   is_running_ = false;
-  COMET_LOG_CORE_INFO("Comet stopped");
+  COMET_LOG_INFO(LoggerType::Engine, "Engine::Stop", "engine stopped");
 }
 
 void Engine::Shutdown() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to shutdown engine, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Engine::Shutdown",
+               "engine is not initialized");
+
   PrepareShutdown();
   PreUnload();
   Unload();
   PostUnload();
-  is_initialized_ = false;
 
-  COMET_LOG_CORE_INFO("Comet destroyed");
+  COMET_LOG_INFO(LoggerType::Engine, "Engine::Shutdown", "engine destroyed");
   COMET_LOG_DESTROY();
   thread::Thread::DetachMainThread();
   COMET_STRING_ID_DESTROY();
   COMET_DESTROY_ALLOCATION_TRACKING();
+
+  is_initialized_ = false;
 }
 
 void Engine::Quit() {
@@ -181,6 +189,9 @@ bool Engine::IsInitialized() const noexcept { return is_initialized_; }
 
 void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   auto* engine{reinterpret_cast<Engine*>(handle)};
+  COMET_ASSERT(engine != nullptr, "Engine::OnSchedulerStarted",
+               "engine is null");
+
   memory::TaggedHeap::Get().Initialize();
   thread::ThreadProviderManager::Get().Initialize();
   frame::FrameManager::Get().Initialize();
@@ -228,17 +239,40 @@ void Engine::OnPostUnloadAfter() {}
 void Engine::Exit() {
   event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();
   Stop();
-  COMET_LOG_CORE_INFO("Comet quit");
+  COMET_LOG_INFO(LoggerType::Engine, "Engine::Exit", "engine quit");
 }
 
-Engine& Engine::Get() { return *Engine::engine_; }
+Engine& Engine::Get() {
+  COMET_ASSERT(Engine::engine_ != nullptr, "Engine::Get",
+               "engine singleton is null");
+  return *Engine::engine_;
+}
 
 void Engine::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
   if (event_type == rendering::WindowCloseEvent::kStaticType_) {
-    COMET_LOG_CORE_DEBUG("Close event.");
+    COMET_LOG_DEBUG(LoggerType::Engine, "Engine::OnEvent",
+                    "window close event");
     Quit();
+  }
+}
+
+void Engine::RegisterEvents() {
+  const auto event_function{
+      [this](const event::Event& event) { OnEvent(event); }};
+
+  window_close_listener_id_ = event::EventManager::Get().Register(
+      event_function, rendering::WindowCloseEvent::kStaticType_);
+  COMET_ASSERT(window_close_listener_id_ != event::kInvalidEventListenerId,
+               "Engine::RegisterEvents",
+               "window close listener registration failed");
+}
+
+void Engine::UnregisterEvents() {
+  if (window_close_listener_id_ != event::kInvalidEventListenerId) {
+    event::EventManager::Get().Unregister(window_close_listener_id_);
+    window_close_listener_id_ = event::kInvalidEventListenerId;
   }
 }
 
@@ -256,11 +290,7 @@ void Engine::Load() {
   rendering::CameraManager::Get().Initialize();
   physics::PhysicsManager::Get().Initialize();
 
-  const auto event_function{
-      [this](const event::Event& event) { OnEvent(event); }};
-
-  event::EventManager::Get().Register(
-      event_function, rendering::WindowCloseEvent::kStaticType_);
+  RegisterEvents();
 
   animation::AnimationManager::Get().Initialize();
   entity::EntityManager::Get().Initialize();
@@ -298,7 +328,7 @@ void Engine::PrepareShutdown() {
 #ifdef COMET_HAS_DEBUG_UI
   debugui::DebugUiManager::Get().PrepareShutdown();
 #endif  // COMET_HAS_DEBUG_UI
-  scene::EnvironmentManager::Get().PrepareShutdown();
+  environment::EnvironmentManager::Get().PrepareShutdown();
   scene::SceneManager::Get().PrepareShutdown();
   time::TimeManager::Get().PrepareShutdown();
   input::InputManager::Get().PrepareShutdown();
@@ -324,11 +354,12 @@ void Engine::PrepareShutdown() {
 
 void Engine::PreUnload() {
   OnPreUnloadBefore();
+  UnregisterEvents();
 
 #ifdef COMET_HAS_DEBUG_UI
   debugui::DebugUiManager::Get().Shutdown();
 #endif  // COMET_HAS_DEBUG_UI
-  scene::EnvironmentManager::Get().Shutdown();
+  environment::EnvironmentManager::Get().Shutdown();
   scene::SceneManager::Get().Shutdown();
   time::TimeManager::Get().Shutdown();
   input::InputManager::Get().Shutdown();
@@ -348,12 +379,12 @@ void Engine::Unload() {
   OnUnloadBefore();
 
   resource::ResourceManager::Get().Shutdown();
-  event::EventManager::Get().Shutdown();
-  gid::DestroyGids();
-  frame::FrameManager::Get().Shutdown();
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().Shutdown();
 #endif  // COMET_PROFILING
+  event::EventManager::Get().Shutdown();
+  gid::DestroyGids();
+  frame::FrameManager::Get().Shutdown();
   thread::ThreadProviderManager::Get().Shutdown();
   memory::TaggedHeap::Get().Destroy();
   job::Scheduler::Get().Shutdown();

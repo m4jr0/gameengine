@@ -14,8 +14,8 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/light/light_type.h"
 #include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/type/rendering_light_type.h"
 
 namespace comet {
 namespace rendering {

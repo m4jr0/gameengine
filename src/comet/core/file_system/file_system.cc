@@ -10,10 +10,12 @@
 #include "file_system.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/file_system/file_system_label.h"
 #include "comet/core/file_system/slash_helper.h"
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
+#include "comet/core/type_trait.h"
 
 #ifndef COMET_WINDOWS
 #include <sys/stat.h>
@@ -120,8 +122,8 @@ bool OpenFileToReadFrom(CTStringView path, std::ifstream& in_file,
     in_file.open(path, mode);
     return in_file.is_open();
   } catch (std::runtime_error& error) {
-    COMET_LOG_CORE_ERROR("Could not open file at path: ", path,
-                         "! Reason: ", error.what());
+    COMET_LOG_ERROR(LoggerType::Core, "file_system::OpenFileToReadFrom",
+                    "file open failed", "path", path, "reason", error.what());
     return false;
   }
 }
@@ -181,15 +183,17 @@ bool ReadStrFromFile(CTStringView path, schar* buff,
   std::ifstream input_stream;
   input_stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   auto is_open{false};
-  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
-  COMET_ASSERT(buff_len > 0, "Length of buffer provided is 0!");
+  COMET_ASSERT(buff != nullptr, "file_system::ReadStrFromFile",
+               "buffer is null");
+  COMET_ASSERT(buff_len > 0, "file_system::ReadStrFromFile",
+               "buffer length is zero");
 
   try {
     input_stream.open(path, std::ios::in);
     is_open = input_stream.is_open();
   } catch (std::runtime_error& error) {
-    COMET_LOG_CORE_ERROR("Could not open file at path: ", path,
-                         "! Reason: ", error.what());
+    COMET_LOG_ERROR(LoggerType::Core, "file_system::ReadStrFromFile",
+                    "file open failed", "path", path, "reason", error.what());
     is_open = false;
   }
 
@@ -201,8 +205,11 @@ bool ReadStrFromFile(CTStringView path, schar* buff,
   // Get character count.
   input_stream.ignore(kSStreamSizeMax);
   const auto file_size{input_stream.gcount()};
-  COMET_ASSERT(buff_len > static_cast<usize>(file_size), "File at path ", path,
-               "is too big for buffer: ", file_size, " >= ", buff_len, "!");
+
+  COMET_ASSERT(buff_len > static_cast<usize>(file_size),
+               "file_system::ReadStrFromFile", "file is too large for buffer",
+               "path", path, "file_size", file_size, "buffer_len", buff_len);
+
   input_stream.clear();  // Reset file (EOF flag is set).
   input_stream.seekg(0, std::ios_base::beg);
   input_stream.read(buff, file_size);
@@ -218,7 +225,7 @@ bool ReadStrFromFile(CTStringView path, schar* buff,
 
 bool GetLine(std::istream& stream, schar* buff, usize buff_len,
              usize* out_len) {
-  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
+  COMET_ASSERT(buff != nullptr, "file_system::GetLine", "buffer is null");
 
   if (buff_len == 0) {
     return false;
@@ -427,7 +434,9 @@ TString GetCurrentDirectory() {
 #else
   is_ok = getcwd(path_str, kMaxPathLength) != nullptr;
 #endif  // COMET_MSVC
-  COMET_ASSERT(is_ok, "Unable to get current directory!");
+
+  COMET_ASSERT(is_ok, "file_system::GetCurrentDirectory",
+               "could not get current directory");
   TString path{reinterpret_cast<const tchar*>(path_str)};
   Clean(path);
   return path;
@@ -485,7 +494,6 @@ TString GetExtension(CTStringView path, bool is_force_lowercase) {
   TString extension{};
   extension.Resize(path.GetLength() - offset);
   GetSubString(extension.GetTStr(), path, path.GetLength(), offset);
-  extension[extension.GetLength()] = COMET_TCHAR('\0');
 
   if (is_force_lowercase) {
     for (usize i{0}; i < extension.GetLength(); ++i) {
@@ -785,7 +793,8 @@ TString GetAbsolutePath(CTStringView relative_path) {
 
 #endif  // COMET_MSVC
 
-  COMET_ASSERT(is_ok, "Unable to get absolute path!");
+  COMET_ASSERT(is_ok, "file_system::GetAbsolutePath",
+               "could not get absolute path", "path", relative_path);
   auto path{TString{reinterpret_cast<const tchar*>(path_str)}};
   Clean(path);
   return path;
@@ -833,8 +842,10 @@ TString GetRelativePath(CTStringView to, CTStringView from) {
       to_cursor = to_p;
       break;
     default:
-      COMET_ASSERT(false, "Unknown or unsupported root type: ",
-                   GetRootTypeLabel(from_root_type), "!");
+      COMET_ASSERT(false, "file_system::GetRelativePath",
+                   "root type is invalid", "root_type",
+                   GetRootTypeLabel(from_root_type), "root_type_value",
+                   ToUnderlying(from_root_type));
       from_cursor = from_p;
       to_cursor = to_p;
   }
@@ -1046,25 +1057,6 @@ bool IsFile(CTStringView path) {
 #endif  // COMET_MSVC
 }
 
-const schar* GetRootTypeLabel(RootType root_type) {
-  switch (root_type) {
-    case RootType::Unknown:
-      return "unknown";
-    case RootType::Unix:
-      return "Unix";
-    case RootType::WindowsDriveLetter:
-      return "Windows drive letter";
-    case RootType::WindowsExtended:
-      return "Windows extended";
-    case RootType::WindowsUnc:
-      return "Windows UNC";
-    case RootType::Invalid:
-      return "invalid";
-  }
-
-  return "???";
-}
-
 RootType GetRootType(CTStringView path) {
   if (path.IsEmpty()) {
     return RootType::Invalid;
@@ -1134,7 +1126,8 @@ bool Exists(CTStringView path) {
 }
 
 bool IsPathEmpty(CTStringView path) {
-  COMET_ASSERT(Exists(path), path, " does not exist!");
+  COMET_ASSERT(Exists(path), "file_system::IsPathEmpty", "path does not exist",
+               "path", path);
 
   if (IsFile(path)) {
     return GetSize(path) == 0;
@@ -1179,10 +1172,14 @@ bool IsPathEmpty(CTStringView path) {
     return false;
   }
 
-  COMET_ASSERT(S_ISDIR(status.st_mode), path,
-               " is not a directory! What happened?");
+  COMET_ASSERT(S_ISDIR(status.st_mode), "file_system::IsPathEmpty",
+               "path is not a directory", "path", path);
+
   auto* dir{opendir(path)};
-  COMET_ASSERT(dir != nullptr, path, " is not a directory! What happened?");
+
+  COMET_ASSERT(dir != nullptr, "file_system::IsPathEmpty",
+               "directory open failed", "path", path);
+
   struct dirent* entry{nullptr};
 
   while ((entry = readdir(dir))) {
@@ -1209,8 +1206,8 @@ bool IsPathEmpty(CTStringView path) {
 
 void AppendTo(CTStringView to_append, tchar* buff,
               [[maybe_unused]] usize buff_len, usize* out_len) {
-  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
-  COMET_ASSERT(buff_len > 0, "Length of buffer provided is 0!");
+  COMET_ASSERT(buff != nullptr, "file_system::AppendTo", "buffer is null");
+  COMET_ASSERT(buff_len > 0, "file_system::AppendTo", "buffer length is zero");
 
   const usize current_len{GetLength(buff)};
 
@@ -1232,9 +1229,9 @@ void AppendTo(CTStringView to_append, tchar* buff,
   }
 
   const usize new_len{buff_offset + to_append.GetLength()};
-  COMET_ASSERT(buff_len > new_len,
-               "Length of buffer provided is too small: ", buff_len,
-               " <= ", new_len, "!");
+  COMET_ASSERT(buff_len > new_len, "file_system::AppendTo",
+               "buffer is too small", "buffer_len", buff_len, "required_len",
+               new_len + 1);
 
   Copy(buff, to_append, to_append.GetLength(), buff_offset);
   buff[new_len] = COMET_TCHAR('\0');
@@ -1246,11 +1243,11 @@ void AppendTo(CTStringView to_append, tchar* buff,
 
 void Append(CTStringView path_a, CTStringView path_b, tchar* buff,
             usize buff_len, usize* out_len) {
-  COMET_ASSERT(buff != nullptr, "Buffer provided is null!");
+  COMET_ASSERT(buff != nullptr, "file_system::Append", "buffer is null");
   const auto path_a_len{path_a.GetLength()};
-  COMET_ASSERT(buff_len >= path_a_len,
-               "Length of buffer provided is too small: ", buff_len, " < ",
-               path_a_len, "!");
+  COMET_ASSERT(buff_len >= path_a_len, "file_system::Append",
+               "buffer is too small", "buffer_len", buff_len, "path_a_len",
+               path_a_len);
 
   Copy(buff, path_a, path_a_len);
   buff[path_a_len] = COMET_TCHAR('\0');
@@ -1310,9 +1307,9 @@ f64 GetLastModificationTime(CTStringView path) {
 }
 
 void GetChecksum(CTStringView path, schar* checksum, usize checksum_len) {
-  COMET_ASSERT(checksum_len > kSha256DigestSize,
-               "Length of checksum provided should be at least ",
-               (kSha256DigestSize + 1), " bytes!");
+  COMET_ASSERT(checksum_len > kSha256DigestSize, "file_system::GetChecksum",
+               "checksum buffer is too small", "checksum_len", checksum_len,
+               "required_len", kSha256DigestSize + 1);
 
   if (!IsFile(path)) {
     checksum[0] = '\0';

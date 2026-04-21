@@ -15,19 +15,6 @@
 
 namespace comet {
 namespace memory {
-#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-using GetCustomMemoryTagLabelFunc = const schar* (*)(MemoryTag);
-
-namespace internal {
-extern GetCustomMemoryTagLabelFunc get_custom_memory_tag_label_func;
-}  // namespace internal
-
-void AttachGetCustomMemoryTagLabelFunc(GetCustomMemoryTagLabelFunc func);
-void DetachGetCustomMemoryTagLabelFunc();
-#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-
-const schar* GetMemoryTagLabel(MemoryTag tag);
-
 void* CopyMemory(void* dst, const void* src, usize size);
 
 void Memset(void* ptr, u8 value, usize size);
@@ -41,21 +28,26 @@ inline uptr AlignAddress(uptr address, Alignment align) {
   }
 
   const usize mask{static_cast<usize>(align) - 1};
-  COMET_ASSERT((align & mask) == 0, "Bad alignment provided for address ",
-               reinterpret_cast<void*>(address), ": ", align,
-               "! Must be a power of 2.");
+  COMET_ASSERT((align & mask) == 0, "memory_utils::AlignAddress",
+               "alignment is not a power of 2", "address",
+               reinterpret_cast<void*>(address), "alignment", align);
+
   return (address + mask) & ~mask;
 }
 
 inline usize AlignSize(usize size, Alignment align) {
   const auto mask{static_cast<usize>(align) - 1};
-  COMET_ASSERT((align & mask) == 0, "Bad alignment provided for size ", size,
-               ": ", align, "! Must be a power of 2.");
+  COMET_ASSERT((align & mask) == 0, "memory_utils::AlignSize",
+               "alignment is not a power of 2", "size", size, "alignment",
+               align);
+
   return (size + mask) & ~mask;
 }
 
 constexpr usize RoundUpToMultiple(usize value, usize multiple) {
-  COMET_ASSERT(multiple > 0, "Multiple must be greater than 0!");
+  COMET_ASSERT(multiple > 0, "memory_utils::RoundUpToMultiple",
+               "multiple must be greater than zero");
+
   return ((value + multiple - 1) / multiple) * multiple;
 }
 
@@ -68,13 +60,13 @@ class Allocator;
 
 template <typename T, typename... Targs>
 T* Populate(void* memory, Targs&&... args) {
-  COMET_ASSERT(memory != nullptr, "Memory provided is null!");
+  COMET_ASSERT(memory != nullptr, "memory_utils::Populate", "memory is null");
   return new (memory) T(std::forward<Targs>(args)...);
 }
 
 template <typename T, typename... Targs>
 T* Populate(void* memory, memory::Allocator* allocator, Targs&&... args) {
-  COMET_ASSERT(memory != nullptr, "Memory provided is null!");
+  COMET_ASSERT(memory != nullptr, "memory_utils::Populate", "memory is null");
 
   if constexpr (!std::is_aggregate_v<T> && sizeof...(Targs) == 0 &&
                 std::is_constructible_v<T, memory::Allocator*>) {
@@ -141,15 +133,5 @@ void Deallocate(void* ptr);
 #else
 #define COMET_POISON(ptr, size)
 #endif  // COMET_POISON_ALLOCATIONS
-
-#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-#define COMET_ATTACH_CUSTOM_MEMORY_LABEL_FUNC(func) \
-  comet::memory::AttachGetCustomMemoryTagLabelFunc(func)
-#define COMET_DETACH_CUSTOM_MEMORY_LABEL_FUNC() \
-  comet::memory::DetachGetCustomMemoryTagLabelFunc()
-#else
-#define COMET_ATTACH_CUSTOM_MEMORY_LABEL_FUNC(func)
-#define COMET_DETACH_CUSTOM_MEMORY_LABEL_FUNC()
-#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
 
 #endif  // COMET_COMET_CORE_MEMORY_MEMORY_UTILS_H_

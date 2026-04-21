@@ -27,6 +27,7 @@ class CometEditor : public Engine {
   void OnPreLoadAfter() override;
   void OnLoadBefore() override;
   void OnPostLoadAfter() override;
+  void OnPreUnloadBefore() override;
   void OnPostUnloadBefore() override;
   void OnPostUnloadAfter() override;
 

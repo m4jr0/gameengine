@@ -9,6 +9,7 @@
 #include "comet/entity/entity_id.h"
 #include "comet/entity/factory/handler/entity_handler.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace entity {

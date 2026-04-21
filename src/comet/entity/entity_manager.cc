@@ -17,7 +17,6 @@
 #include "comet/core/memory/memory_utils.h"
 #include "comet/entity/entity_memory_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
-#include "comet/event/event_manager.h"
 #include "comet/math/math_scalar.h"
 #include "comet/profiler/profiler.h"
 
@@ -92,7 +91,8 @@ void EntityManager::WaitForEntityUpdates() {
 EntityId EntityManager::Generate() {
   const auto new_entity_id{entity_id_handler_.Generate()};
   fiber::FiberLockGuard lock{deferred_mutex_};
-  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+  COMET_ASSERT(deferred_entities_ != nullptr, "EntityManager::Generate",
+               "deferred entities are null");
   deferred_entities_->Emplace(new_entity_id,
                               internal::DeferredEntity{false, new_entity_id});
   return new_entity_id;
@@ -104,11 +104,13 @@ bool EntityManager::IsEntity(const EntityId& entity_id) const {
 }
 
 void EntityManager::Destroy(EntityId entity_id) {
-  COMET_ASSERT(IsEntity(entity_id),
-               "Attempting to destroy a non-existent entity!");
+  COMET_ASSERT(IsEntity(entity_id), "EntityManager::Destroy",
+               "entity does not exist", "entity_id", entity_id);
   {
     fiber::FiberLockGuard lock{deferred_mutex_};
-    COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+    COMET_ASSERT(deferred_entities_ != nullptr, "EntityManager::Destroy",
+                 "deferred entities are null");
+
     auto* entity{deferred_entities_->TryGet(entity_id)};
 
     if (entity != nullptr) {
@@ -116,8 +118,6 @@ void EntityManager::Destroy(EntityId entity_id) {
       entity->added_cmps.Destroy();
       entity->removed_cmps.Destroy();
     } else {
-      COMET_ASSERT(deferred_entities_ != nullptr,
-                   "Deferred entities are null!");
       deferred_entities_->Emplace(entity_id,
                                   internal::DeferredEntity{true, entity_id});
     }
@@ -144,9 +144,12 @@ bool EntityManager::HasComponent(EntityId entity_id,
 
 void EntityManager::RemoveComponents(EntityId entity_id,
                                      const Array<EntityId>& component_ids) {
-  COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id, " does not exist!");
+  COMET_ASSERT(IsEntity(entity_id), "EntityManager::RemoveComponents",
+               "entity does not exist", "entity_id", entity_id);
   fiber::FiberLockGuard lock{deferred_mutex_};
-  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+
+  COMET_ASSERT(deferred_entities_ != nullptr, "EntityManager::RemoveComponents",
+               "deferred entities are null");
   auto* entity{deferred_entities_->TryGet(entity_id)};
 
   if (entity == nullptr) {
@@ -156,22 +159,24 @@ void EntityManager::RemoveComponents(EntityId entity_id,
              .value;
   }
 
-  COMET_ASSERT(!entity->is_destroyed, "Entity #", entity_id,
-               " is scheduled to be destroyed!");
+  COMET_ASSERT(!entity->is_destroyed, "EntityManager::RemoveComponents",
+               "entity scheduled for destruction", "entity_id", entity_id);
   DeferRemovingComponents(entity, component_ids);
 }
 
 void EntityManager::AddParent(EntityId entity_id, EntityId parent_id) {
-  COMET_ASSERT(EntityManager::Get().IsEntity(entity_id),
-               "Trying to add dead entity #", entity_id,
-               " to a parent (entity #", parent_id, ")!");
+  COMET_ASSERT(IsEntity(entity_id), "EntityManager::AddParent",
+               "entity does not exist", "entity_id", entity_id, "parent_id",
+               parent_id);
 
-  COMET_ASSERT(EntityManager::Get().IsEntity(parent_id),
-               "Trying to add entity #", entity_id,
-               " to a dead parent (entity #", parent_id, ")!");
+  COMET_ASSERT(IsEntity(parent_id), "EntityManager::AddParent",
+               "parent does not exist", "entity_id", entity_id, "parent_id",
+               parent_id);
 
   fiber::FiberLockGuard lock{deferred_mutex_};
-  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+
+  COMET_ASSERT(deferred_entities_ != nullptr, "EntityManager::AddParent",
+               "deferred entities are null");
   auto* entity{deferred_entities_->TryGet(entity_id)};
 
   if (entity == nullptr) {
@@ -181,16 +186,18 @@ void EntityManager::AddParent(EntityId entity_id, EntityId parent_id) {
              .value;
   }
 
-  COMET_ASSERT(!entity->is_destroyed, "Entity #", entity_id,
-               " is scheduled to be destroyed!");
+  COMET_ASSERT(!entity->is_destroyed, "EntityManager::AddParent",
+               "entity scheduled for destruction", "entity_id", entity_id);
   DeferAddingParent(entity, parent_id);
 }
 
 bool EntityManager::HasParent(EntityId entity_id, EntityId parent_id) {
-  COMET_ASSERT(IsEntity(entity_id), "Trying to check if a dead entity #",
-               entity_id, " has a parent entity #", parent_id, "!");
-  COMET_ASSERT(IsEntity(parent_id), "Trying to check if entity #", entity_id,
-               " has a dead parent entity #", parent_id, "!");
+  COMET_ASSERT(IsEntity(entity_id), "EntityManager::HasParent",
+               "entity does not exist", "entity_id", entity_id, "parent_id",
+               parent_id);
+  COMET_ASSERT(IsEntity(parent_id), "EntityManager::HasParent",
+               "parent entity does not exist", "entity_id", entity_id,
+               "parent_id", parent_id);
 
   const auto& record{records_[entity_id]};
   const auto& entity_type{record.archetype->entity_type};
@@ -224,16 +231,14 @@ void EntityManager::OnInitialize() {
       DeferredEntities, kDeferredEntityInitialCount_);
   EntityFactoryManager::Get().Initialize();
 
-  const auto on_event{[this](const event::Event& event) { OnEvent(event); }};
-
-  event::EventManager::Get().Register(on_event,
-                                      frame::NewFrameEvent::kStaticType_);
-  event::EventManager::Get().Register(on_event,
-                                      frame::EndFrameEvent::kStaticType_);
+  RegisterEvents();
 }
 
 void EntityManager::OnShutdown() {
   EntityFactoryManager::Get().Shutdown();
+
+  UnregisterEvents();
+
   auto& memory_manager{EntityMemoryManager::Get()};
 
   for (auto& archetype : archetypes_) {
@@ -449,7 +454,9 @@ void EntityManager::RegisterDeferredComponentTypes() {
   frame::FrameHashSet<ComponentTypeDescr, internal::ComponentTypeDescrHashLogic>
       unique_cmp_type_descrs{};
 
-  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+  COMET_ASSERT(deferred_entities_ != nullptr,
+               "EntityManager::RegisterDeferredComponentTypes",
+               "deferred entities are null");
 
   for (const auto& pair : *deferred_entities_) {
     const auto& entity{pair.value};
@@ -468,7 +475,9 @@ void EntityManager::RegisterDeferredComponentTypes() {
 
 internal::DeferredChanges EntityManager::PopulateChanges() {
   internal::DeferredChanges changes{};
-  COMET_ASSERT(deferred_entities_ != nullptr, "Deferred entities are null!");
+
+  COMET_ASSERT(deferred_entities_ != nullptr, "EntityManager::PopulateChanges",
+               "deferred entities are null");
 
   for (const auto& pair : *deferred_entities_) {
     auto& entity{pair.value};
@@ -718,8 +727,9 @@ void EntityManager::CopyNewComponent(
     }
   }
 
-  COMET_ASSERT(found_added_cmp != nullptr,
-               "Tried adding a non-existing component!");
+  COMET_ASSERT(found_added_cmp != nullptr, "EntityManager::CopyNewComponent",
+               "component descriptor not found", "component_type_id",
+               component_type_id);
   memory::CopyMemory(new_cmp_elements + new_cmp_offset, found_added_cmp->data,
                      cmp_size);
 }
@@ -758,7 +768,8 @@ void EntityManager::ResizeDeferredArchetypes(
 
 void EntityManager::PrepareNewFrame() {
   COMET_ASSERT(deferred_entities_ == nullptr || deferred_entities_->IsEmpty(),
-               "No all entity changes have been processed!");
+               "EntityManager::PrepareNewFrame",
+               "deferred entity changes still pending");
 
   deferred_entities_ = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
       DeferredEntities, kDeferredEntityInitialCount_);
@@ -771,6 +782,36 @@ void EntityManager::OnEvent(const event::Event& event) {
     PrepareNewFrame();
   } else if (event_type == frame::EndFrameEvent::kStaticType_) {
     DispatchComponentChanges();
+  }
+}
+
+void EntityManager::RegisterEvents() {
+  const auto on_event{[this](const event::Event& event) { OnEvent(event); }};
+
+  new_frame_listener_id_ = event::EventManager::Get().Register(
+      on_event, frame::NewFrameEvent::kStaticType_);
+  COMET_ASSERT(new_frame_listener_id_ != event::kInvalidEventListenerId,
+               "EntityManager::RegisterEvents",
+               "new frame listener registration failed");
+
+  end_frame_listener_id_ = event::EventManager::Get().Register(
+      on_event, frame::EndFrameEvent::kStaticType_);
+  COMET_ASSERT(end_frame_listener_id_ != event::kInvalidEventListenerId,
+               "EntityManager::RegisterEvents",
+               "end frame listener registration failed");
+}
+
+void EntityManager::UnregisterEvents() {
+  auto& event_manager{event::EventManager::Get()};
+
+  if (new_frame_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(new_frame_listener_id_);
+    new_frame_listener_id_ = event::kInvalidEventListenerId;
+  }
+
+  if (end_frame_listener_id_ != event::kInvalidEventListenerId) {
+    event_manager.Unregister(end_frame_listener_id_);
+    end_frame_listener_id_ = event::kInvalidEventListenerId;
   }
 }
 }  // namespace entity

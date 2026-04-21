@@ -21,13 +21,17 @@ namespace memory {
 void* ReserveVirtualMemory(usize size) {
 #ifdef COMET_WINDOWS
   auto* memory{VirtualAlloc(nullptr, size, MEM_RESERVE, PAGE_NOACCESS)};
-  COMET_ASSERT(memory != nullptr,
-               "Failed to reserve memory! Error code: ", GetLastError());
+
+  COMET_ASSERT(memory != nullptr, "memory::ReserveVirtualMemory",
+               "virtual memory reservation failed", "size", size, "error_code",
+               GetLastError());
 #else
   auto* memory{
       mmap(nullptr, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)};
-  COMET_ASSERT(memory != MAP_FAILED,
-               "Failed to reserve memory! Error code: ", errno);
+
+  COMET_ASSERT(memory != MAP_FAILED, "memory::ReserveVirtualMemory",
+               "virtual memory reservation failed", "size", size, "error_code",
+               errno);
 #endif  // COMET_WINDOWS
 
   return memory;
@@ -37,12 +41,18 @@ void* CommitVirtualMemory(void* memory, usize size) {
 #ifdef COMET_WINDOWS
   auto* committed_memory{
       VirtualAlloc(memory, size, MEM_COMMIT, PAGE_READWRITE)};
-  COMET_ASSERT(committed_memory != nullptr,
-               "Failed to commit memory! Error code: ", GetLastError());
+
+  COMET_ASSERT(committed_memory != nullptr, "memory::CommitVirtualMemory",
+               "virtual memory commit failed", "size", size, "error_code",
+               GetLastError());
+
   return committed_memory;
 #else
   [[maybe_unused]] auto result{mprotect(memory, size, PROT_READ | PROT_WRITE)};
-  COMET_ASSERT(result == 0, "Failed to commit memory! Error code: ", errno);
+
+  COMET_ASSERT(result == 0, "memory::CommitVirtualMemory",
+               "virtual memory commit failed", "size", size, "error_code",
+               errno);
   return memory;
 #endif  // COMET_WINDOWS
 }
@@ -50,10 +60,15 @@ void* CommitVirtualMemory(void* memory, usize size) {
 void FreeVirtualMemory(void* memory, [[maybe_unused]] usize size) {
 #ifdef COMET_WINDOWS
   [[maybe_unused]] const auto is_ok{VirtualFree(memory, 0, MEM_RELEASE)};
-  COMET_ASSERT(is_ok, "Failed to release memory! Error code: ", GetLastError());
+  COMET_ASSERT(is_ok, "memory::FreeVirtualMemory",
+               "virtual memory release failed", "error_code", GetLastError());
+
 #else
   [[maybe_unused]] const auto result{munmap(memory, size)};
-  COMET_ASSERT(result == 0, "Failed to release memory! Error code: ", errno);
+  COMET_ASSERT(result == 0, "memory::FreeVirtualMemory",
+               "virtual memory release failed", "size", size, "error_code",
+               errno);
+
 #endif  // COMET_WINDOWS
 }
 }  // namespace memory

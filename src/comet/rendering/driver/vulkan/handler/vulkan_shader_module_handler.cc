@@ -11,16 +11,12 @@
 #include "vulkan_shader_module_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 #include "comet/resource/resource_manager.h"
-#include "comet/resource/shader_module_resource.h"
+#include "comet/resource/shader/shader_module_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -31,7 +27,8 @@ ShaderModuleHandler::ShaderModuleHandler(const ShaderModuleHandlerDescr& descr)
 ShaderModuleHandle ShaderModuleHandler::GetOrGenerate(
     resource::ShaderModuleResourceId shader_module_resource_id) {
   COMET_ASSERT(shader_module_resource_id.IsValid(),
-               "Shader module resource ID is invalid!");
+               "ShaderModuleHandler::GetOrGenerate",
+               "shader module resource id is invalid");
 
   if (const auto handle{shader_modules_.TryAcquire(shader_module_resource_id)};
       handle) {
@@ -45,16 +42,19 @@ ShaderModuleHandle ShaderModuleHandler::GetOrGenerate(
 
   const auto is_loaded{shader_module_resource_handler->WithTemporaryLoad(
       shader_module_resource_id,
-      [this, &generated_handle](
+      [this, &generated_handle, shader_module_resource_id](
           const resource::ShaderModuleResource* shader_module_resource) {
         auto* shader_module{GenerateShaderModule(shader_module_resource)};
         COMET_ASSERT(shader_module != nullptr,
-                     "Generated shader module is null!");
+                     "ShaderModuleHandler::GetOrGenerate",
+                     "generated shader module is null",
+                     "shader_module_resource_id", shader_module_resource_id);
 
         generated_handle =
             shader_modules_.Create(shader_module->id, shader_module);
-        COMET_ASSERT(generated_handle,
-                     "Failed to create instance for shader module!");
+        COMET_ASSERT(generated_handle, "ShaderModuleHandler::GetOrGenerate",
+                     "shader module instance creation failed",
+                     "shader_module_resource_id", shader_module_resource_id);
 
         shader_module->handle = generated_handle;
       })};
@@ -77,8 +77,9 @@ VkShaderModule ShaderModuleHandler::GetNativeHandle(
     ShaderModuleHandle handle) const {
   const auto* shader_module{Get(handle)};
   COMET_ASSERT(shader_module->native_handle != VK_NULL_HANDLE,
-               "Shader module native handle is invalid for handle: ", handle,
-               "!");
+               "ShaderModuleHandler::GetNativeHandle",
+               "shader module native handle is invalid", "shader_module_handle",
+               handle);
   return shader_module->native_handle;
 }
 
@@ -89,17 +90,15 @@ VkShaderStageFlagBits ShaderModuleHandler::GetStage(
 
 ShaderModule* ShaderModuleHandler::Get(ShaderModuleHandle handle) {
   auto* shader_module{shader_modules_.TryGet(handle)};
-  COMET_ASSERT(shader_module != nullptr,
-               "Requested shader module does not exist for handle: ", handle,
-               "!");
+  COMET_ASSERT(shader_module != nullptr, "ShaderModuleHandler::Get",
+               "shader module not found", "shader_module_handle", handle);
   return shader_module;
 }
 
 const ShaderModule* ShaderModuleHandler::Get(ShaderModuleHandle handle) const {
   const auto* shader_module{shader_modules_.TryGet(handle)};
-  COMET_ASSERT(shader_module != nullptr,
-               "Requested shader module does not exist for handle: ", handle,
-               "!");
+  COMET_ASSERT(shader_module != nullptr, "ShaderModuleHandler::Get",
+               "shader module not found", "shader_module_handle", handle);
   return shader_module;
 }
 
@@ -121,10 +120,11 @@ void ShaderModuleHandler::OnShutdown() {
     const auto ref_count{shader_modules_.GetRefCount(handle)};
 
     if (ref_count > 0) {
-      COMET_LOG_RENDERING_WARNING(
-          "Forcing destruction of shader module handle ", handle,
-          " with remaining ref count ", ref_count, ", resource ID ",
-          shader_modules_.Get(handle)->id, "!");
+      COMET_LOG_WARNING(
+          LoggerType::Rendering, "ShaderModuleHandler::OnShutdown",
+          "forcing shader module destruction", "shader_module_handle", handle,
+          "ref_count", ref_count, "shader_module_resource_id",
+          shader_modules_.Get(handle)->id);
     }
 
     auto* shader_module{shader_modules_.Drain(handle)};
@@ -134,7 +134,10 @@ void ShaderModuleHandler::OnShutdown() {
     }
 
     COMET_ASSERT(shader_module->handle == handle,
-                 "Shader module handle mismatch during shutdown destruction!");
+                 "ShaderModuleHandler::OnShutdown",
+                 "shader module handle mismatch", "expected_handle", handle,
+                 "actual_handle", shader_module->handle,
+                 "shader_module_resource_id", shader_module->id);
 
     DestroyShaderModule(shader_module);
   }
@@ -146,9 +149,14 @@ void ShaderModuleHandler::OnShutdown() {
 ShaderModule* ShaderModuleHandler::GenerateShaderModule(
     const resource::ShaderModuleResource* shader_module_resource) {
   COMET_ASSERT(shader_module_resource != nullptr,
-               "Shader module resource is null!");
+               "ShaderModuleHandler::GenerateShaderModule",
+               "shader module resource is null");
   COMET_ASSERT(shader_module_resource->data.GetSize() % sizeof(u32) == 0,
-               "SPIR-V bytecode size is not 4-byte aligned!");
+               "ShaderModuleHandler::GenerateShaderModule",
+               "spir-v bytecode size is not aligned",
+               "shader_module_resource_id", shader_module_resource->id,
+               "bytecode_size", shader_module_resource->data.GetSize(),
+               "alignment", sizeof(u32));
 
   auto* shader_module{allocator_.AllocateOneAndPopulate<ShaderModule>()};
   shader_module->handle = ShaderModuleHandle::Invalid();
@@ -157,8 +165,10 @@ ShaderModule* ShaderModuleHandler::GenerateShaderModule(
       reinterpret_cast<const u32*>(shader_module_resource->data.GetData());
   shader_module->code_size = shader_module_resource->data.GetSize();
 
-  COMET_ASSERT(shader_module->code_size > 0, "Shader module resource #",
-               shader_module_resource->id, " is empty!");
+  COMET_ASSERT(shader_module->code_size > 0,
+               "ShaderModuleHandler::GenerateShaderModule",
+               "shader module resource is empty", "shader_module_resource_id",
+               shader_module_resource->id);
 
   shader_module->stage = GetVkStage(shader_module_resource->descr.stage);
 
@@ -171,13 +181,17 @@ ShaderModule* ShaderModuleHandler::GenerateShaderModule(
 
   COMET_CHECK_VK(vkCreateShaderModule(context_->GetDevice(), &create_info,
                                       nullptr, &shader_module->native_handle),
-                 "Failed to create shader module!");
+                 "ShaderModuleHandler::GenerateShaderModule",
+                 "shader module creation failed", "shader_module_resource_id",
+                 shader_module->id);
 
   return shader_module;
 }
 
 void ShaderModuleHandler::DestroyShaderModule(ShaderModule* shader_module) {
-  COMET_ASSERT(shader_module != nullptr, "Shader module is null!");
+  COMET_ASSERT(shader_module != nullptr,
+               "ShaderModuleHandler::DestroyShaderModule",
+               "shader module is null");
 
   if (shader_module->native_handle != VK_NULL_HANDLE) {
     vkDestroyShaderModule(context_->GetDevice(), shader_module->native_handle,

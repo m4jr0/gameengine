@@ -20,9 +20,15 @@ void AddWorldGlobalFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
-  COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader_handle, "Shader is null!");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(shader_handler != nullptr,
+               "opengl_view_shader_utils::AddWorldGlobalFieldUpdates",
+               "shader handler is null");
+  COMET_ASSERT(shader_handle,
+               "opengl_view_shader_utils::AddWorldGlobalFieldUpdates",
+               "shader handle is invalid");
+  COMET_ASSERT(packet != nullptr,
+               "opengl_view_shader_utils::AddWorldGlobalFieldUpdates",
+               "frame packet is null");
 
   const auto global_binding_index{
       shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
@@ -61,8 +67,12 @@ void AddWorldGlobalImageBindings(
     const TextureMap* shadow_map,
     frame::FrameArray<ShaderImageBindingUpdate>& image_bindings,
     frame::FrameArray<ShaderImageDescriptor>& image_descriptors) {
-  COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader_handle, "Shader is invalid!");
+  COMET_ASSERT(shader_handler != nullptr,
+               "opengl_view_shader_utils::AddWorldGlobalImageBindings",
+               "shader handler is null");
+  COMET_ASSERT(shader_handle,
+               "opengl_view_shader_utils::AddWorldGlobalImageBindings",
+               "shader handle is invalid");
 
   if (shadow_map == nullptr || !shadow_map->texture_handle ||
       !shadow_map->sampler_handle) {
@@ -88,9 +98,15 @@ void AddDebugGlobalFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
-  COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader_handle, "Shader is null!");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(shader_handler != nullptr,
+               "opengl_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "shader handler is null");
+  COMET_ASSERT(shader_handle,
+               "opengl_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "shader handle is invalid");
+  COMET_ASSERT(packet != nullptr,
+               "opengl_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "frame packet is null");
 
   const auto global_binding_index{
       shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
@@ -112,9 +128,15 @@ void AddWorldShadowSettingsFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const ShadowSettings* shadow_settings,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
-  COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
-  COMET_ASSERT(shader_handle, "Shader is null!");
-  COMET_ASSERT(shadow_settings != nullptr, "Shadow settings are null!");
+  COMET_ASSERT(shader_handler != nullptr,
+               "opengl_view_shader_utils::AddWorldShadowSettingsFieldUpdates",
+               "shader handler is null");
+  COMET_ASSERT(shader_handle,
+               "opengl_view_shader_utils::AddWorldShadowSettingsFieldUpdates",
+               "shader handle is invalid");
+  COMET_ASSERT(shadow_settings != nullptr,
+               "opengl_view_shader_utils::AddWorldShadowSettingsFieldUpdates",
+               "shadow settings are null");
 
   const auto binding_index{shader_handler->GetBindingIndex(
       shader_handle, shaderconsts::kGlobalSet,

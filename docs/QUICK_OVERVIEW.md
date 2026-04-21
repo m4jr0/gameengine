@@ -182,7 +182,7 @@ Things like thread counts, renderer backend, and paths can be customized here.
 
 Lock-free logging system (since fibers and I/O threads can't safely sync).
 * Macro format: `COMET_LOG_A_B` (e.g., `COMET_LOG_CORE_INFO`)
-* Optional `COMET_LOG_IS_FIBER_PREFIX` shows which fiber/thread produced each log
+* Optional `COMET_LOG_USE_FIBER_PREFIX` shows which fiber/thread produced each log
 
 ## Profiling
 
@@ -206,6 +206,7 @@ Modes:
 | Define | Description |
 |--------|-------------|
 | `COMET_DEBUG` | Enables debug-only features and development tooling |
+| `COMET_LOG_USE_CONTEXT_PREFIX` | Displays the caller-provided log prefix, such as Class::Method, file_name::Function, or file_name::internal::Function |
 | `COMET_PROFILING` | Enables profiling instrumentation |
 | `COMET_IMGUI` | Enables the Dear ImGui debug UI |
 | `COMET_HAS_DEBUG_UI` | Internal derived define enabled when debug UI support is available |
@@ -216,7 +217,7 @@ Modes:
 | `COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS` | Allows custom labels for memory tags |
 | `COMET_RESERVE_SYSTEM_THREADS` | Keeps a small number of threads reserved for the OS |
 | `COMET_FIBER_DEBUG_LABEL` | Adds readable names to fiber jobs for debugging |
-| `COMET_LOG_IS_FIBER_PREFIX` | Prefixes log lines with the current fiber/thread |
+| `COMET_LOG_USE_FIBER_PREFIX` | Prefixes log lines with the current fiber/thread |
 | `COMET_WIDE_TCHAR` | Uses wide-character paths/strings on Windows |
 | `COMET_NORMALIZE_PATHS` | Normalizes file paths across platforms |
 | `COMET_COMPRESS_ANIMATIONS` | Compresses animation transform data |

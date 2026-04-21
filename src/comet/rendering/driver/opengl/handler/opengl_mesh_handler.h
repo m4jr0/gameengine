@@ -14,11 +14,11 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/geometry/geometry_type.h"
-#include "comet/rendering/driver/opengl/data/opengl_mesh.h"
-#include "comet/rendering/driver/opengl/data/opengl_region_gpu_buffer.h"
-#include "comet/rendering/driver/opengl/data/opengl_storage.h"
+#include "comet/geometry/type/geometry_mesh_type.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
+#include "comet/rendering/driver/opengl/type/opengl_mesh_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_region_gpu_buffer_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_storage_type.h"
 
 namespace comet {
 namespace rendering {

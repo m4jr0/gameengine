@@ -24,9 +24,10 @@
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/data/opengl_mesh.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_mesh_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/rendering_shader_type.h"
 
 namespace comet {
 namespace rendering {
@@ -36,13 +37,22 @@ RenderProxyHandler::RenderProxyHandler(const RenderProxyHandlerDescr& descr)
       material_handler_{descr.material_handler},
       mesh_handler_{descr.mesh_handler},
       shader_handler_{descr.shader_handler} {
-  COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
-  COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
+  COMET_ASSERT(material_handler_ != nullptr,
+               "RenderProxyHandler::RenderProxyHandler",
+               "material handler is null");
+  COMET_ASSERT(mesh_handler_ != nullptr,
+               "RenderProxyHandler::RenderProxyHandler",
+               "mesh handler is null");
+  COMET_ASSERT(shader_handler_ != nullptr,
+               "RenderProxyHandler::RenderProxyHandler",
+               "shader handler is null");
 }
 
 void RenderProxyHandler::Update(frame::FramePacket* packet) {
   COMET_PROFILE("RenderProxyHandler::Update");
+  COMET_ASSERT(packet != nullptr, "RenderProxyHandler::Update",
+               "frame packet is null");
+
   const auto frame_count{static_cast<FrameCount>(packet->frame_count)};
 
   if (update_frame_ == frame_count) {
@@ -338,7 +348,8 @@ void RenderProxyHandler::GenerateRenderProxies(
 
   for (usize i{0}; i < generated_proxy_count; ++i) {
     COMET_ASSERT(render_proxy_count_ != kMaxRenderProxyCount_,
-                 "Max count of render proxies reached!");
+                 "RenderProxyHandler::GenerateRenderProxies",
+                 "max render proxy count reached");
 
     const auto& geometry{geometries->Get(i)};
 
@@ -355,7 +366,10 @@ void RenderProxyHandler::GenerateRenderProxies(
         material_handler_->GetOrGenerate(geometry.material_resource_id);
 
     COMET_ASSERT(new_proxy.mesh_handle,
-                 "Invalid geometry mesh handle retrieved!");
+                 "RenderProxyHandler::GenerateRenderProxies",
+                 "mesh handle is invalid", "entity_id", geometry.entity_id,
+                 "model_entity_id", geometry.model_entity_id,
+                 "material_resource_id", geometry.material_resource_id);
 
     entity_id_to_proxy_id_map_[geometry.entity_id] = new_proxy.id;
     proxy_id_to_entity_id_map_[new_proxy.id] = geometry.entity_id;
@@ -390,8 +404,9 @@ void RenderProxyHandler::UpdateRenderProxies(
     }
 
     COMET_ASSERT(entity_id_to_proxy_id_map_.IsContained(updated_mesh.entity_id),
-                 "Tried to update non-existing mesh with entity #",
-                 updated_mesh.entity_id, "!");
+                 "RenderProxyHandler::UpdateRenderProxies",
+                 "mesh proxy does not exist", "entity_id",
+                 updated_mesh.entity_id);
 
     const auto proxy_id{entity_id_to_proxy_id_map_[updated_mesh.entity_id]};
     auto& updated_proxy{proxies_[proxy_id]};
@@ -442,16 +457,18 @@ void RenderProxyHandler::DestroyRenderProxies(
         entity_id_to_proxy_id_map_.TryGet(geometry.entity_id)};
 
     if (proxy_id_ptr == nullptr) {
-      COMET_LOG_RENDERING_WARNING("Render proxy with entity #",
-                                  geometry.entity_id,
-                                  " not found! Ignoring destruction...");
+      COMET_LOG_WARNING(
+          LoggerType::Rendering, "RenderProxyHandler::DestroyRenderProxies",
+          "render proxy not found", "entity_id", geometry.entity_id);
       continue;
     }
 
     const auto proxy_id{*proxy_id_ptr};
     COMET_ASSERT(proxy_id < render_proxy_count_,
-                 "Invalid render proxy ID: ", proxy_id, " > ",
-                 render_proxy_count_, "!");
+                 "RenderProxyHandler::DestroyRenderProxies",
+                 "proxy id out of range", "proxy_id", proxy_id,
+                 "render_proxy_count", render_proxy_count_, "entity_id",
+                 geometry.entity_id);
 
     material_handler_->Destroy(proxies_[proxy_id].material_handle);
 
@@ -507,10 +524,12 @@ void RenderProxyHandler::UpdateSkinningMatrices(
     const frame::SkinningBindings* bindings,
     const frame::MatrixPalettes* palettes) {
   COMET_PROFILE("RenderProxyHandler::UpdateSkinningMatrices");
+
   const auto entity_count{bindings->GetSize()};
-  COMET_ASSERT(
-      entity_count == palettes->GetSize(),
-      "Skinning binding count and matrix palette count should be the same!");
+  COMET_ASSERT(entity_count == palettes->GetSize(),
+               "RenderProxyHandler::UpdateSkinningMatrices",
+               "binding/palette count mismatch", "binding_count", entity_count,
+               "palette_count", palettes->GetSize());
 
   if (entity_count == 0) {
     return;
@@ -558,8 +577,8 @@ void RenderProxyHandler::UpdateSkinningMatrices(
 
   auto* memory{
       static_cast<u8*>(glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY))};
-  COMET_ASSERT(memory != nullptr,
-               "Failed to map ssbo_matrix_palettes_handle_!");
+  COMET_ASSERT(memory != nullptr, "RenderProxyHandler::UpdateSkinningMatrices",
+               "failed to map matrix palette buffer");
 
   sptrdiff cursor{0};
 
@@ -777,9 +796,10 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
 
   const auto staging_size{
       static_cast<GLsizei>(pending_count * sizeof(GpuRenderProxyLocalData))};
-
   COMET_ASSERT(staging_size % sizeof(ShaderWord) == 0,
-               "Data should be a multiple of ShaderWord!");
+               "RenderProxyHandler::UploadPendingRenderProxyLocalData",
+               "staging size is not word aligned", "staging_size", staging_size,
+               "shader_word_size", sizeof(ShaderWord));
 
   glBindBuffer(GL_COPY_WRITE_BUFFER, staging_ssbo_proxy_local_datas_handle_);
 
@@ -791,7 +811,8 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   auto* data_memory{static_cast<ShaderWord*>(
       glMapBuffer(GL_COPY_WRITE_BUFFER, GL_WRITE_ONLY))};
   COMET_ASSERT(data_memory != nullptr,
-               "Failed to map staging_ssbo_proxy_local_datas_handle_!");
+               "RenderProxyHandler::UploadPendingRenderProxyLocalData",
+               "failed to map staging proxy local buffer");
 
   memory::CopyMemory(data_memory, pending_proxy_local_data_->GetData(),
                      staging_size);
@@ -814,7 +835,8 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
   auto* word_indices_memory{static_cast<ShaderWord*>(
       glMapBuffer(GL_COPY_WRITE_BUFFER, GL_WRITE_ONLY))};
   COMET_ASSERT(word_indices_memory != nullptr,
-               "Failed to map ssbo_word_indices_handle_!");
+               "RenderProxyHandler::UploadPendingRenderProxyLocalData",
+               "failed to map word index buffer");
 
   sparse_upload_word_count_ = 0;
 
@@ -894,21 +916,24 @@ void RenderProxyHandler::PopulateRenderProxyDrawData(
   auto* indirect_proxies_memory{static_cast<GpuIndirectRenderProxy*>(
       glMapBuffer(GL_DRAW_INDIRECT_BUFFER, GL_WRITE_ONLY))};
   COMET_ASSERT(indirect_proxies_memory != nullptr,
-               "Failed to map indirect proxy buffer!");
+               "RenderProxyHandler::PopulateRenderProxyDrawData",
+               "failed to map indirect proxy buffer");
 
   glBindBuffer(GL_COPY_WRITE_BUFFER,
                ssbo_shadow_indirect_proxies_handle_[frame_index]);
   auto* shadow_indirect_proxies_memory{static_cast<GpuIndirectRenderProxy*>(
       glMapBuffer(GL_COPY_WRITE_BUFFER, GL_WRITE_ONLY))};
   COMET_ASSERT(shadow_indirect_proxies_memory != nullptr,
-               "Failed to map shadow indirect proxy buffer!");
+               "RenderProxyHandler::PopulateRenderProxyDrawData",
+               "failed to map shadow indirect proxy buffer");
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER,
                ssbo_proxy_instances_handle_[frame_index]);
   auto* proxy_instances_memory{static_cast<GpuRenderProxyInstance*>(
       glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY))};
   COMET_ASSERT(proxy_instances_memory != nullptr,
-               "Failed to map proxy instances buffer!");
+               "RenderProxyHandler::PopulateRenderProxyDrawData",
+               "failed to map proxy instance buffer");
 
   usize proxy_instance_index{0};
 
@@ -945,7 +970,10 @@ void RenderProxyHandler::PopulateRenderIndirectProxy(
   auto& batch{indirect_batches_->Get(batch_id)};
   const auto* mesh_proxy{mesh_handler_->Get(batch.proxy->mesh_handle)};
 
-  COMET_ASSERT(mesh_proxy != nullptr, "Mesh proxy is null!");
+  COMET_ASSERT(mesh_proxy != nullptr,
+               "RenderProxyHandler::PopulateRenderIndirectProxy",
+               "mesh proxy is null", "batch_id", batch_id, "mesh_handle",
+               batch.proxy->mesh_handle);
 
   auto& indirect_proxy{memory[batch_id]};
   indirect_proxy.command.firstInstance = batch.offset;
@@ -962,7 +990,10 @@ void RenderProxyHandler::PopulateShadowRenderIndirectProxy(
   auto& batch{indirect_batches_->Get(batch_id)};
   const auto* mesh_proxy{mesh_handler_->Get(batch.proxy->mesh_handle)};
 
-  COMET_ASSERT(mesh_proxy != nullptr, "Mesh proxy is null!");
+  COMET_ASSERT(mesh_proxy != nullptr,
+               "RenderProxyHandler::PopulateShadowRenderIndirectProxy",
+               "mesh proxy is null", "batch_id", batch_id, "mesh_handle",
+               batch.proxy->mesh_handle);
 
   auto& indirect_proxy{memory[batch_id]};
   indirect_proxy.command.firstInstance = batch.offset;
@@ -1166,7 +1197,8 @@ void RenderProxyHandler::InitializeDebugData() {
     void* debug_data{glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, size,
                                       GL_MAP_READ_BIT | GL_MAP_WRITE_BIT)};
     COMET_ASSERT(debug_data != nullptr,
-                 "Failed to map ssbo_debug_data_handle_!");
+                 "RenderProxyHandler::InitializeDebugData",
+                 "failed to map debug data buffer", "buffer_index", i);
 
     debug_data_[i] = static_cast<GpuDebugData*>(debug_data);
   }

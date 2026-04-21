@@ -13,10 +13,10 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_image.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_frame_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_image_type.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
 namespace comet {

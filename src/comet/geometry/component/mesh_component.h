@@ -7,8 +7,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/entity/entity_id.h"
-#include "comet/geometry/geometry_type.h"
-#include "comet/resource/material_resource.h"
+#include "comet/geometry/type/geometry_mesh_type.h"
+#include "comet/resource/material/material_resource.h"
 
 namespace comet {
 namespace geometry {

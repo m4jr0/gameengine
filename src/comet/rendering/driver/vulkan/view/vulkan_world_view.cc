@@ -15,8 +15,7 @@
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
@@ -34,19 +33,28 @@ WorldView::WorldView(const WorldViewDescr& descr)
       render_proxy_handler_{descr.render_proxy_handler},
       mesh_handler_{descr.mesh_handler},
       lighting_handler_{descr.lighting_handler} {
-  COMET_ASSERT(shadow_settings_ != nullptr, "Shadow settings are null!");
-  COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
-  COMET_ASSERT(render_proxy_handler_ != nullptr,
-               "Render proxy handler is null!");
-  COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
-  COMET_ASSERT(lighting_handler_ != nullptr, "Lighting handler is null!");
+  COMET_ASSERT(shadow_settings_ != nullptr, "WorldView::WorldView",
+               "shadow settings are null");
+  COMET_ASSERT(texture_handler_ != nullptr, "WorldView::WorldView",
+               "texture handler is null");
+  COMET_ASSERT(shader_handler_ != nullptr, "WorldView::WorldView",
+               "shader handler is null");
+  COMET_ASSERT(material_handler_ != nullptr, "WorldView::WorldView",
+               "material handler is null");
+  COMET_ASSERT(pipeline_handler_ != nullptr, "WorldView::WorldView",
+               "pipeline handler is null");
+  COMET_ASSERT(render_proxy_handler_ != nullptr, "WorldView::WorldView",
+               "render proxy handler is null");
+  COMET_ASSERT(mesh_handler_ != nullptr, "WorldView::WorldView",
+               "mesh handler is null");
+  COMET_ASSERT(lighting_handler_ != nullptr, "WorldView::WorldView",
+               "lighting handler is null");
 }
 
 void WorldView::Update(frame::FramePacket* packet) {
   COMET_PROFILE("WorldView::Update");
+  COMET_ASSERT(packet != nullptr, "WorldView::Update", "frame packet is null");
+
   UpdateWorldShader(packet);
   RunSparseUpload();
   RunCull(packet);
@@ -331,6 +339,17 @@ void WorldView::RunCull(frame::FramePacket* packet) {
   const auto frame_index{context_->GetFrameInFlightIndex()};
   const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
+  COMET_ASSERT(gpu_data.ssbo_indirect_proxies_handle != VK_NULL_HANDLE,
+               "WorldView::RunCull", "cull indirect buffer handle is invalid",
+               "frame_index", frame_index);
+  COMET_ASSERT(gpu_data.ssbo_proxy_instances_handle != VK_NULL_HANDLE,
+               "WorldView::RunCull",
+               "cull proxy instances buffer handle is invalid", "frame_index",
+               frame_index);
+  COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != VK_NULL_HANDLE,
+               "WorldView::RunCull", "cull proxy ids buffer handle is invalid",
+               "frame_index", frame_index);
+
 #ifdef COMET_DEBUG_RENDERING
   render_proxy_handler_->PrepareCullDebugWrite(frame_index);
 #endif  // COMET_DEBUG_RENDERING
@@ -458,8 +477,15 @@ void WorldView::DrawWorld() {
   }
 
   const auto frame_index{context_->GetFrameInFlightIndex()};
+
   const auto& indirect_buffer{
       render_proxy_handler_->GetIndirectBuffer(frame_index)};
+  COMET_ASSERT(indirect_buffer.handle != VK_NULL_HANDLE, "WorldView::DrawWorld",
+               "draw indirect buffer handle is invalid", "frame_index",
+               frame_index);
+  COMET_ASSERT(indirect_buffer.size > 0, "WorldView::DrawWorld",
+               "draw indirect buffer size is zero", "frame_index", frame_index);
+
   const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
 
   const auto command_buffer_handle{

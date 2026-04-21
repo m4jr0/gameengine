@@ -34,7 +34,7 @@
 #elif defined(__arm__)
 #define COMET_ARCH_ARM
 #else
-static_assert(false, "Unsupported architecture.");
+static_assert(false, "unsupported architecture");
 #endif  // __x86_64__
 #endif  // COMET_GCC
 
@@ -48,7 +48,7 @@ static_assert(false, "Unsupported architecture.");
 #elif defined(_M_ARM)
 #define COMET_ARCH_ARM
 #else
-static_assert(false, "Unsupported architecture.");
+static_assert(false, "unsupported architecture");
 #endif  // _M_X64
 #endif  // COMET_MSVC
 

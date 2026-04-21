@@ -9,6 +9,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 
 namespace comet {
 class Engine {
@@ -64,6 +65,9 @@ class Engine {
 
   void OnEvent(const event::Event& event);
 
+  void RegisterEvents();
+  void UnregisterEvents();
+
  private:
   void PreLoad();
   void Load();
@@ -77,6 +81,9 @@ class Engine {
   bool is_initialized_{false};
   bool is_running_{false};
   bool is_exit_requested_{false};
+
+  event::EventListenerId window_close_listener_id_{
+      event::kInvalidEventListenerId};
 };
 
 memory::UniquePtr<Engine> GenerateEngine();

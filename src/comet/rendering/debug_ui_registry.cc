@@ -12,7 +12,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef COMET_IMGUI
-
 namespace comet {
 namespace rendering {
 DebugUiRegistry& DebugUiRegistry::Get() {
@@ -21,24 +20,21 @@ DebugUiRegistry& DebugUiRegistry::Get() {
 }
 
 DebugUiRegistry::~DebugUiRegistry() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for debug UI registry, but it is still "
-               "initialized!");
+  COMET_ASSERT(!is_initialized_, "DebugUiRegistry::~DebugUiRegistry",
+               "debug ui registry is still initialized");
 }
 
 void DebugUiRegistry::Initialize() {
-  COMET_ASSERT(
-      !is_initialized_,
-      "Tried to initialize debug UI registry, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "DebugUiRegistry::Initialize",
+               "debug ui registry is already initialized");
   entries_ = Array<Entry>{&allocator_};
   entries_.Reserve(5);
   is_initialized_ = true;
 }
 
 void DebugUiRegistry::Destroy() {
-  COMET_ASSERT(
-      is_initialized_,
-      "Tried to destroy debug UI registry, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "DebugUiRegistry::Destroy",
+               "debug ui registry is not initialized");
   entries_.Destroy();
   is_initialized_ = false;
 }

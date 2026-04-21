@@ -6,6 +6,7 @@
 #define COMET_COMET_CORE_FILE_SYSTEM_FILE_SYSTEM_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/file_system/file_system_type.h"
 #include "comet/core/type/array.h"
 
 #ifdef COMET_MSVC
@@ -105,16 +106,6 @@ TString GetParentPath(CTStringView current_path);
 bool IsDirectory(CTStringView path);
 bool IsFile(CTStringView path);
 
-enum class RootType {
-  Unknown = 0,
-  Unix,
-  WindowsDriveLetter,
-  WindowsExtended,
-  WindowsUnc,
-  Invalid
-};
-
-const schar* GetRootTypeLabel(RootType root_type);
 RootType GetRootType(CTStringView path);
 
 bool IsAbsolute(CTStringView path);

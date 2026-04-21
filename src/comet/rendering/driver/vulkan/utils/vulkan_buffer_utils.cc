@@ -25,6 +25,12 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
                       VmaAllocationCreateFlags vma_flags,
                       VkSharingMode sharing_mode,
                       [[maybe_unused]] const schar* debug_label) {
+  COMET_ASSERT(allocator_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::GenerateBuffer",
+               "allocator handle is null");
+  COMET_ASSERT(size > 0, "vulkan_buffer_utils::GenerateBuffer",
+               "buffer size is zero");
+
   Buffer buffer{};
   buffer.allocator_handle = allocator_handle;
 
@@ -44,7 +50,7 @@ Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
   COMET_CHECK_VK(
       vmaCreateBuffer(buffer.allocator_handle, &buffer_info, &alloc_info,
                       &buffer.handle, &buffer.allocation_handle, nullptr),
-      "Failed to create buffer");
+      "vulkan_buffer_utils::GenerateBuffer", "buffer creation failed");
   COMET_VK_SET_DEBUG_LABEL(buffer.handle,
                            debug_label != nullptr ? debug_label : "buffer");
 
@@ -58,10 +64,13 @@ void DestroyBuffer(Buffer& buffer) {
   }
 
   COMET_ASSERT(buffer.allocator_handle != VK_NULL_HANDLE,
-               "Buffer allocator handle is null!");
-  COMET_ASSERT(buffer.handle != VK_NULL_HANDLE, "Buffer handle is null!");
+               "vulkan_buffer_utils::DestroyBuffer",
+               "buffer allocator handle is null");
+  COMET_ASSERT(buffer.handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::DestroyBuffer", "buffer handle is null");
   COMET_ASSERT(buffer.allocation_handle != VK_NULL_HANDLE,
-               "Buffer allocation handle is null!");
+               "vulkan_buffer_utils::DestroyBuffer",
+               "buffer allocation handle is null");
   vmaDestroyBuffer(buffer.allocator_handle, buffer.handle,
                    buffer.allocation_handle);
   buffer.handle = VK_NULL_HANDLE;
@@ -71,17 +80,31 @@ void DestroyBuffer(Buffer& buffer) {
 
 void MapBuffer(Buffer& buffer) {
   COMET_ASSERT(buffer.allocator_handle != VK_NULL_HANDLE,
-               "Buffer allocator handle is null!");
-  COMET_ASSERT(buffer.mapped_memory == nullptr, "Buffer is already mapped!");
+               "vulkan_buffer_utils::MapBuffer",
+               "buffer allocator handle is null");
+  COMET_ASSERT(buffer.allocation_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::MapBuffer",
+               "buffer allocation handle is null");
+  COMET_ASSERT(buffer.mapped_memory == nullptr,
+               "vulkan_buffer_utils::MapBuffer", "buffer is already mapped");
   COMET_CHECK_VK(vmaMapMemory(buffer.allocator_handle, buffer.allocation_handle,
                               &buffer.mapped_memory),
-                 "Unable to map memory for buffer!");
+                 "vulkan_buffer_utils::MapBuffer",
+                 "buffer memory mapping failed");
 }
 
 void CopyToBuffer(Buffer& buffer, void const* data, usize length,
                   sptrdiff offset) {
-  COMET_ASSERT(buffer.mapped_memory != nullptr, "Buffer is not mapped!");
-  COMET_ASSERT(offset >= 0, "Invalid offset provided");
+  COMET_ASSERT(buffer.mapped_memory != nullptr,
+               "vulkan_buffer_utils::CopyToBuffer", "buffer is not mapped");
+  COMET_ASSERT(data != nullptr, "vulkan_buffer_utils::CopyToBuffer",
+               "source data is null");
+  COMET_ASSERT(offset >= 0, "vulkan_buffer_utils::CopyToBuffer",
+               "buffer offset is invalid", "offset", offset);
+  COMET_ASSERT(static_cast<VkDeviceSize>(offset) + length <= buffer.size,
+               "vulkan_buffer_utils::CopyToBuffer",
+               "copy range exceeds buffer size", "offset", offset, "length",
+               length, "buffer_size", buffer.size);
 
   void* dest;
 
@@ -97,8 +120,14 @@ void CopyToBuffer(Buffer& buffer, void const* data, usize length,
 
 void UnmapBuffer(Buffer& buffer) {
   COMET_ASSERT(buffer.allocator_handle != VK_NULL_HANDLE,
-               "Buffer allocator handle is null!");
-  COMET_ASSERT(buffer.mapped_memory != nullptr, "Buffer is not mapped!");
+               "vulkan_buffer_utils::UnmapBuffer",
+               "buffer allocator handle is null");
+  COMET_ASSERT(buffer.allocation_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::UnmapBuffer",
+               "buffer allocation handle is null");
+  COMET_ASSERT(buffer.mapped_memory != nullptr,
+               "vulkan_buffer_utils::UnmapBuffer", "buffer is not mapped");
+
   vmaUnmapMemory(buffer.allocator_handle, buffer.allocation_handle);
   buffer.mapped_memory = nullptr;
 }
@@ -113,6 +142,26 @@ void CopyBufferImmediate(const Device& device,
                          VkCommandPool command_pool_handle, Buffer src_buffer,
                          Buffer dst_buffer, VkDeviceSize size,
                          VkQueue queue_handle, BarrierDescr* barrier_descr) {
+  COMET_ASSERT(command_pool_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::CopyBufferImmediate",
+               "command pool handle is invalid");
+  COMET_ASSERT(src_buffer.handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::CopyBufferImmediate",
+               "source buffer handle is invalid");
+  COMET_ASSERT(dst_buffer.handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::CopyBufferImmediate",
+               "destination buffer handle is invalid");
+  COMET_ASSERT(size > 0, "vulkan_buffer_utils::CopyBufferImmediate",
+               "copy size is zero");
+  COMET_ASSERT(size <= src_buffer.size,
+               "vulkan_buffer_utils::CopyBufferImmediate",
+               "copy size exceeds source buffer size", "copy_size", size,
+               "source_buffer_size", src_buffer.size);
+  COMET_ASSERT(size <= dst_buffer.size,
+               "vulkan_buffer_utils::CopyBufferImmediate",
+               "copy size exceeds destination buffer size", "copy_size", size,
+               "destination_buffer_size", dst_buffer.size);
+
   auto command_buffer_handle{
       GenerateOneTimeCommand(device, command_pool_handle)};
   VkBufferCopy copy_region{};
@@ -165,6 +214,12 @@ void ResizeBuffer(Buffer& buffer, const Device& device,
                   VmaAllocationCreateFlags vma_flags,
                   VkSharingMode sharing_mode, BarrierDescr* barrier_descr,
                   const schar* debug_label) {
+  COMET_ASSERT(command_pool_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::ResizeBuffer",
+               "command pool handle is invalid");
+  COMET_ASSERT(queue_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::ResizeBuffer", "queue handle is invalid");
+
   if (!IsBufferInitialized(buffer)) {
     buffer = GenerateBuffer(allocator_handle, new_size, usage, vma_memory_usage,
                             memory_property_flags, vma_flags, sharing_mode,
@@ -179,10 +234,6 @@ void ResizeBuffer(Buffer& buffer, const Device& device,
   const auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
                                        vma_memory_usage, memory_property_flags,
                                        vma_flags, sharing_mode, debug_label)};
-
-  COMET_ASSERT(
-      command_pool_handle != VK_NULL_HANDLE,
-      "Cannot copy current buffer's content, as no command pool was provided!");
 
   CopyBufferImmediate(device, command_pool_handle, buffer, new_buffer,
                       buffer.size, queue_handle, barrier_descr);
@@ -210,7 +261,9 @@ void AddBufferMemoryBarrier(VkBuffer buffer_handle,
                             u32 src_queue_family_index,
                             u32 dst_queue_family_index, VkDeviceSize offset,
                             VkDeviceSize size) {
-  COMET_ASSERT(barriers != nullptr, "Barriers is null!");
+  COMET_ASSERT(barriers != nullptr,
+               "vulkan_buffer_utils::AddBufferMemoryBarrier",
+               "barriers array is null");
 
   if (buffer_handle == VK_NULL_HANDLE) {
     return;
@@ -225,6 +278,10 @@ void ApplyBufferMemoryBarriers(const Array<VkBufferMemoryBarrier>& barriers,
                                VkCommandBuffer command_buffer_handle,
                                VkPipelineStageFlags src_stage_mask,
                                VkPipelineStageFlags dst_stage_mask) {
+  COMET_ASSERT(command_buffer_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::ApplyBufferMemoryBarriers",
+               "command buffer handle is invalid");
+
   if (barriers.IsEmpty()) {
     return;
   }

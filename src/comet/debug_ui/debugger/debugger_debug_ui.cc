@@ -16,7 +16,7 @@
 #include "imgui.h"
 #endif  // COMET_IMGUI
 
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/label/rendering_common_label.h"
 
 namespace comet {
 namespace debugui {

@@ -5,29 +5,17 @@
 #ifndef COMET_COMET_RESOURCE_RESOURCE_H_
 #define COMET_COMET_RESOURCE_RESOURCE_H_
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
 #include "comet/core/compression.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/string_id.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/resource_type.h"
+#include "comet/core/type_trait.h"
+#include "comet/resource/label/resource_common_label.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace resource {
-enum class CompressionMode : u8 { None = 0, Lz4 };
-
-enum class ResourceLifeSpan : u8 {
-  Unknown = 0,
-  Manual,
-  Scene,
-  Global,
-  Immortal
-};
-
 struct ResourceFile {
   RawResourceId resource_id{kInvalidRawResourceId};
   ResourceTypeId resource_type_id{kInvalidResourceTypeId};
@@ -95,10 +83,10 @@ void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
       break;
     }
     default: {
-      throw std::runtime_error(
-          "Unknown compression mode: " +
-          static_cast<std::underlying_type_t<CompressionMode>>(
-              compression_mode));
+      COMET_ASSERT(false, "resource::UnpackBytes", "unknown compression mode",
+                   "compression_mode",
+                   GetCompressionModeLabel(compression_mode),
+                   "compression_mode_value", ToUnderlying(compression_mode));
     }
   }
 }

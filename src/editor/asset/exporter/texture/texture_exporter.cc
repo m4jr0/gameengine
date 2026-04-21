@@ -20,10 +20,10 @@
 #include "comet/core/generator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_texture_type.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
-#include "comet/resource/texture_resource.h"
+#include "comet/resource/texture/texture_resource.h"
 #include "editor/asset/asset.h"
 #include "editor/asset/exporter/texture/data/texture_export_keys.h"
 
@@ -56,11 +56,15 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
   }
 
   if (texture_context.pixel_data == nullptr) {
-    COMET_LOG_GLOBAL_ERROR("Failed to load texture image");
+    COMET_LOG_ERROR(LoggerType::External, "TextureExporter::PopulateFiles",
+                    "texture image load failed", "asset_path",
+                    asset_descr.asset_abs_path, "error", stbi_failure_reason());
     return;
   }
 
-  COMET_LOG_GLOBAL_DEBUG("Processing texture at ", texture_context.path, "...");
+  COMET_LOG_DEBUG(LoggerType::External, "TextureExporter::PopulateFiles",
+                  "processing texture", "asset_path", texture_context.path);
+
   resource::TextureResource texture{};
   const auto texture_resource_id{
       resource::GenerateResourceIdFromPath<resource::TextureResource>(
@@ -96,11 +100,17 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
   resource_files.PushBack(resource::ResourceManager::Get().GetTextures()->Pack(
       texture, compression_mode_));
   stbi_image_free(texture_context.pixel_data);
-  COMET_LOG_GLOBAL_DEBUG("Texture processed at ", texture_context.path);
+  COMET_LOG_DEBUG(LoggerType::External, "TextureExporter::PopulateFiles",
+                  "texture processed", "asset_path", texture_context.path);
 }
 
 void TextureExporter::OnTextureLoading(job::IOJobParamsHandle params_handle) {
   auto* texture_context{static_cast<TextureContext*>(params_handle)};
+  COMET_ASSERT(texture_context != nullptr, "TextureExporter::OnTextureLoading",
+               "texture context is null");
+  COMET_ASSERT(texture_context->path != nullptr,
+               "TextureExporter::OnTextureLoading", "texture path is null");
+
   texture_context->pixel_data =
       stbi_load(texture_context->path, &texture_context->tex_width,
                 &texture_context->tex_height, &texture_context->tex_channels,

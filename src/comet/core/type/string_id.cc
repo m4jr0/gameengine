@@ -14,7 +14,6 @@
 #include "comet/core/generator.h"
 #include "comet/core/hash.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_utils.h"
 
 #ifdef COMET_LABELIZE_STRING_IDS
 #include <atomic>
@@ -62,26 +61,34 @@ StringIdAllocator::StringIdAllocator(usize capacity)
     : capacity_{capacity}, offset_{kInvalidOffset_}, root_{nullptr} {}
 
 void* StringIdAllocator::AllocateAligned(usize size, memory::Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "StringIdAllocator::AllocateAligned",
+               "allocation size is zero");
+
   auto current_offset{offset_.load(std::memory_order_relaxed)};
-  COMET_ASSERT(current_offset >= 0, "Invalid offset: ", current_offset, "!");
+  COMET_ASSERT(current_offset >= 0, "StringIdAllocator::AllocateAligned",
+               "offset is invalid", "offset", current_offset);
+
   auto aligned_offset{
       memory::AlignAddress(reinterpret_cast<uptr>(root_ + current_offset),
                            align) -
       reinterpret_cast<uptr>(root_)};
   auto new_offset{aligned_offset + size};
 
-  COMET_ASSERT(new_offset < capacity_, "Could not allocate enough memory (",
-               size, ")!");
+  COMET_ASSERT(new_offset < capacity_, "StringIdAllocator::AllocateAligned",
+               "allocation exceeds capacity", "size", size, "new_offset",
+               new_offset, "capacity", capacity_);
 
   while (!offset_.compare_exchange_weak(current_offset, new_offset,
                                         std::memory_order_acquire)) {
-    COMET_ASSERT(current_offset >= 0, "Invalid offset: ", current_offset, "!");
+    COMET_ASSERT(current_offset >= 0, "StringIdAllocator::AllocateAligned",
+                 "offset is invalid", "offset", current_offset);
+
     aligned_offset = memory::AlignAddress(
         reinterpret_cast<uptr>(root_ + current_offset), align);
     new_offset = aligned_offset + size;
-    COMET_ASSERT(new_offset > capacity_, "Could not allocate enough memory (",
-                 size, ")!");
+    COMET_ASSERT(new_offset < capacity_, "StringIdAllocator::AllocateAligned",
+                 "allocation exceeds capacity", "size", size, "new_offset",
+                 new_offset, "capacity", capacity_);
   }
 
   return root_ + aligned_offset;
@@ -135,9 +142,9 @@ StringIdHandler::~StringIdHandler() {
 }
 
 StringId StringIdHandler::Generate(const schar* str, usize length) {
-  COMET_ASSERT(str != nullptr,
-               "String provided is null! Cannot generate string ID.");
-  COMET_ASSERT(length > 0, "Cannot generate ID from empty string.");
+  COMET_ASSERT(str != nullptr, "StringIdHandler::Generate", "string is null");
+  COMET_ASSERT(length > 0, "StringIdHandler::Generate",
+               "string length is zero");
   const auto string_id{HashCrC32(str, length)};
 
 #ifdef COMET_LABELIZE_STRING_IDS
@@ -158,7 +165,9 @@ StringId StringIdHandler::Generate(const schar* str, usize length) {
 }
 
 StringId StringIdHandler::Generate(const wchar* str, usize length) {
-  COMET_ASSERT(length > 0, "Length provided is 0! Cannot generate String ID !");
+  COMET_ASSERT(str != nullptr, "StringIdHandler::Generate", "string is null");
+  COMET_ASSERT(length > 0, "StringIdHandler::Generate",
+               "string length is zero");
   return Generate(GenerateForOneFrame<schar>(str, length), length);
 }
 

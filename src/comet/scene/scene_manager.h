@@ -39,12 +39,14 @@ class SceneManager : public Manager {
  private:
   void OnEvent(const event::Event& event);
 
+  void RegisterEvents();
+  void UnregisterEvents();
+
   void LoadTmp();
   void HandleLoadedModelTmp(entity::EntityId entity_id);
 
   event::EventListenerId scene_load_request_listener_id_{};
   event::EventListenerId model_loaded_listener_id_{};
-  bool are_listeners_registered_{false};
 
   usize models_to_load_count_{0};
   std::atomic<usize> loaded_model_count_tmp_{0};

@@ -10,15 +10,13 @@
 #include "model_exporter_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
-#include "comet/core/logger.h"
-#include "comet/resource/material_resource.h"
-#include "comet/resource/model_resource.h"
+#include "comet/core/logger/logging.h"
+#include "comet/core/type_trait.h"
+#include "comet/resource/material/material_resource.h"
+#include "comet/resource/model/model_resource.h"
 #include "comet/resource/resource.h"
 #include "editor/asset/exporter/assimp_utils.h"
+#include "editor/asset/exporter/model/model_export_label.h"
 #include "editor/asset/exporter/model/utils/animation_export_utils.h"
 
 namespace comet {
@@ -30,7 +28,9 @@ void PopulateIndexedVertices(TModelExport& model_export, const aiMesh* raw_mesh,
                              const Map<usize, ModelVertexWeights>* weights,
                              Array<geometry::SkinnedVertex>& vertices,
                              math::Vec3& min_extents, math::Vec3& max_extents) {
-  COMET_ASSERT(raw_mesh != nullptr, "Raw mesh is null!");
+  COMET_ASSERT(raw_mesh != nullptr,
+               "model_exporter_utils::internal::PopulateIndexedVertices",
+               "raw mesh is null");
 
   const auto vertex_count{static_cast<usize>(raw_mesh->mNumVertices)};
   vertices = Array<geometry::SkinnedVertex>{model_export.allocator};
@@ -156,16 +156,17 @@ void PopulateVertices(SkeletalModelExport& model_export, const aiMesh* raw_mesh,
 
 void PopulateIndices(ModelExport& model_export, const aiMesh* raw_mesh,
                      Array<geometry::Index>& indices) {
-  COMET_ASSERT(raw_mesh != nullptr, "Raw mesh is null!");
+  COMET_ASSERT(raw_mesh != nullptr, "model_exporter_utils::PopulateIndices",
+               "raw mesh is null");
 
   indices = Array<geometry::Index>{model_export.allocator};
   indices.Reserve(static_cast<usize>(raw_mesh->mNumFaces * 3));
 
   for (usize face_index{0}; face_index < raw_mesh->mNumFaces; ++face_index) {
     const auto& face{raw_mesh->mFaces[face_index]};
-
-    COMET_ASSERT(face.mNumIndices == 3,
-                 "Only triangulated meshes are supported!");
+    COMET_ASSERT(face.mNumIndices == 3, "model_exporter_utils::PopulateIndices",
+                 "mesh is not triangulated", "face_index", face_index,
+                 "index_count", face.mNumIndices);
 
     for (usize corner_index{0}; corner_index < face.mNumIndices;
          ++corner_index) {
@@ -230,10 +231,11 @@ Map<usize, ModelVertexWeights> GenerateMeshWeights(
       }
 
       if (weight_data->weight_count >= geometry::kMaxSkeletonJointCount) {
-        COMET_LOG_GLOBAL_WARNING(
-            "Too many bone weights for vertex ", weight.mVertexId, " (max is ",
-            geometry::kMaxSkeletonJointCount, ") in asset at path ",
-            model_export.path, ". Discarding exceeding weights.");
+        COMET_LOG_WARNING(
+            LoggerType::External, "model_exporter_utils::GenerateMeshWeights",
+            "vertex has too many bone weights, discarding excess", "vertex_id",
+            weight.mVertexId, "max_weight_count",
+            geometry::kMaxSkeletonJointCount, "asset_path", model_export.path);
         continue;
       }
 
@@ -249,6 +251,9 @@ Map<usize, ModelVertexWeights> GenerateMeshWeights(
 void LoadModelNode(ModelExport& model_export, const aiNode* raw_node,
                    resource::RawResourceId parent_id,
                    const math::Mat4& parent_transform) {
+  COMET_ASSERT(raw_node != nullptr, "model_exporter_utils::LoadModelNode",
+               "raw node is null");
+
   bool is_static{false};
 
   switch (model_export.type) {
@@ -261,11 +266,11 @@ void LoadModelNode(ModelExport& model_export, const aiNode* raw_node,
       break;
 
     default:
-      COMET_LOG_GLOBAL_ERROR(
-          "Unknown or unsupported model export type: ",
-          static_cast<std::underlying_type_t<ModelExportType>>(
-              model_export.type),
-          "!");
+      COMET_LOG_ERROR(
+          LoggerType::External, "model_exporter_utils::LoadModelNode",
+          "model export type is invalid", "model_export_type",
+          GetModelExportTypeLabel(model_export.type), "model_export_type_value",
+          ToUnderlying(model_export.type));
       return;
   }
 
@@ -335,6 +340,11 @@ StaticModelResources LoadStaticModel(memory::Allocator* allocator,
 SkeletalModelResources LoadSkeletalModel(memory::Allocator* allocator,
                                          const aiScene* scene,
                                          CTStringView path) {
+  COMET_ASSERT(allocator != nullptr, "model_exporter_utils::LoadSkeletalModel",
+               "allocator is null");
+  COMET_ASSERT(scene != nullptr, "model_exporter_utils::LoadSkeletalModel",
+               "scene is null");
+
   SkeletalModelResources resources{};
 
   resources.skeleton.id =

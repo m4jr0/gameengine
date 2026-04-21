@@ -59,8 +59,9 @@ EntityType RemoveFromEntityType(const EntityType& from_entity_type,
   const auto from_size{from_entity_type.GetSize()};
   const auto to_remove_size{to_remove.GetSize()};
 
-  COMET_ASSERT(from_size >= to_remove_size,
-               "Tried to remove too many components from entity type!");
+  COMET_ASSERT(from_size >= to_remove_size, "entity::RemoveFromEntityType",
+               "component removal count exceeds entity type size", "from_size",
+               from_size, "to_remove_size", to_remove_size);
 
   EntityType entity_type{&EntityMemoryManager::Get().GetEntityTypeAllocator()};
   usize size{from_size - to_remove_size};

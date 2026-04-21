@@ -15,7 +15,11 @@
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/generator.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/core/type_trait.h"
+#include "comet/rendering/label/rendering_common_label.h"
+#include "comet/rendering/label/rendering_shader_label.h"
+#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/rendering_shader_type.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/exporter/shader/utils/shader_module_export_utils.h"
 
@@ -33,9 +37,9 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
       asset_descr.asset_path.GetNthToLastIndexOf(COMET_TCHAR('.'), 2)};
 
   if (driver_keyword_pos == kInvalidIndex) {
-    COMET_LOG_GLOBAL_ERROR(
-        "Unable to retrieve driver keyword from asset shader path: ",
-        asset_descr.asset_path, ".");
+    COMET_LOG_ERROR(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
+                    "driver keyword could not be resolved", "asset_path",
+                    asset_descr.asset_path);
     return;
   }
 
@@ -68,14 +72,14 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   }
 
   if (stage == rendering::ShaderStage::Unknown) {
-    COMET_LOG_GLOBAL_ERROR(
-        "Unknown or unsupported shader type! Keyword retrieved is ",
-        shader_keyword, ".");
+    COMET_LOG_ERROR(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
+                    "shader stage is unsupported", "shader_keyword",
+                    shader_keyword, "asset_path", asset_descr.asset_path);
     return;
   } else if (driver_type == rendering::DriverType::Unknown) {
-    COMET_LOG_GLOBAL_ERROR(
-        "Unknown or unsupported driver type! Keyword retrieved is ",
-        driver_keyword, ".");
+    COMET_LOG_ERROR(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
+                    "driver type is unsupported", "driver_keyword",
+                    driver_keyword, "asset_path", asset_descr.asset_path);
     return;
   }
 
@@ -95,8 +99,9 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
         OnShaderModuleLoading, &shader_code_context, guard.GetCounter()));
   }
 
-  COMET_LOG_GLOBAL_DEBUG("Processing shader module at: ",
-                         shader_code_context.asset_abs_path, "...");
+  COMET_LOG_DEBUG(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
+                  "processing shader module", "asset_path",
+                  shader_code_context.asset_abs_path);
 
   auto is_success{false};
 
@@ -116,11 +121,20 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   }
 
   if (!is_success) {
+    COMET_LOG_ERROR(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
+                    "shader module processing failed", "asset_path",
+                    shader_code_context.asset_abs_path, "driver_type",
+                    rendering::GetDriverTypeLabel(driver_type),
+                    "driver_type_value", ToUnderlying(driver_type), "stage",
+                    rendering::GetShaderStageLabel(stage), "stage_value",
+                    ToUnderlying(stage));
+
     return;
   }
 
-  COMET_LOG_GLOBAL_DEBUG("Shader module processed at: ",
-                         shader_code_context.asset_abs_path);
+  COMET_LOG_DEBUG(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
+                  "shader module processed", "asset_path",
+                  shader_code_context.asset_abs_path);
   context.files.PushBack(
       resource::ResourceManager::Get().GetShaderModules()->Pack(
           shader_module, compression_mode_));
@@ -129,6 +143,13 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
 void ShaderModuleExporter::OnShaderModuleLoading(
     job::IOJobParamsHandle params_handle) {
   auto* shader_code_context{static_cast<ShaderCodeContext*>(params_handle)};
+  COMET_ASSERT(shader_code_context != nullptr,
+               "ShaderModuleExporter::OnShaderModuleLoading",
+               "shader code context is null");
+  COMET_ASSERT(shader_code_context->code != nullptr,
+               "ShaderModuleExporter::OnShaderModuleLoading",
+               "shader code buffer is null");
+
   ReadStrFromFile(
       shader_code_context->asset_abs_path, shader_code_context->code,
       ShaderCodeContext::kMaxShaderCodeLen_, &shader_code_context->code_len);

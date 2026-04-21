@@ -67,14 +67,19 @@ nlohmann::json GetMetadata(CTStringView metadata_file_path) {
                     &metadata_raw_len);
 
     if (metadata_raw_len == 0) {
+      COMET_LOG_WARNING(LoggerType::External, "asset_utils::GetMetadata",
+                        "metadata file is empty", "metadata_path",
+                        metadata_file_path);
+
       // Same here.
       return nlohmann::json(nlohmann::json::value_t::object);
     }
 
     return nlohmann::json::parse(metadata_raw);
   } catch (const nlohmann::json::exception& error) {
-    COMET_LOG_GLOBAL_ERROR("An error occurred while processing JSON file: ",
-                           error.what());
+    COMET_LOG_ERROR(LoggerType::External, "asset_utils::GetMetadata",
+                    "json processing failed", "metadata_path",
+                    metadata_file_path, "error", error.what());
   }
 
   // Same here.
@@ -91,12 +96,13 @@ nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path) {
 
   try {
     creation_time =
-        metadata.value(kCometEditorAssetMetadataKeyVersion, update_time);
+        metadata.value(kCometEditorAssetMetadataKeyCreationTime, update_time);
     file_version =
         metadata.value(kCometEditorAssetMetadataKeyVersion, file_version);
   } catch (const nlohmann::json::exception& error) {
-    COMET_LOG_GLOBAL_ERROR("An error occurred while processing JSON file: ",
-                           error.what(), ". Resetting it.");
+    COMET_LOG_ERROR(LoggerType::External, "asset_utils::SetAndGetMetadata",
+                    "json processing failed, resetting metadata",
+                    "metadata_path", metadata_file_path, "error", error.what());
     metadata = nlohmann::json{};
   }
 

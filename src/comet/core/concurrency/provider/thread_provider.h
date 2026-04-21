@@ -23,23 +23,20 @@ class ThreadProvider {
   COMET_POPULATE_ITERATOR(T, this->array_.GetData(), this->array_.GetSize())
 
   virtual ~ThreadProvider() {
-    COMET_ASSERT(!is_initialized_,
-                 "Destructor called for thread provider, but it is still "
-                 "initialized!");
+    COMET_ASSERT(!is_initialized_, "thread::ThreadProvider::~ThreadProvider",
+                 "provider is still initialized");
   }
 
   void Initialize() {
-    COMET_ASSERT(
-        !is_initialized_,
-        "Tried to initialize thread provider, but it is already done!");
+    COMET_ASSERT(!is_initialized_, "thread::ThreadProvider::Initialize",
+                 "provider is already initialized");
     OnInitialize();
     is_initialized_ = true;
   }
 
   void Destroy() {
-    COMET_ASSERT(
-        is_initialized_,
-        "Tried to destroy thread provider, but it is not initialized!");
+    COMET_ASSERT(is_initialized_, "thread::ThreadProvider::Destroy",
+                 "provider is not initialized");
     OnDestroy();
     array_.Destroy();
     is_initialized_ = false;
@@ -48,8 +45,8 @@ class ThreadProvider {
   virtual T& Get() = 0;
   T& GetFromIndex(usize index) { return this->array_[index]; }
 
-  thread::ThreadId GetThreadIdFromIndex(usize index) {
-    return static_cast<thread::ThreadId>(index);
+  ThreadId GetThreadIdFromIndex(usize index) {
+    return static_cast<ThreadId>(index);
   }
 
   usize GetSize() const noexcept { return this->array_.GetSize(); }
@@ -104,7 +101,9 @@ class FiberThreadProvider : public ThreadProvider<T> {
   FiberThreadProvider() = default;
 
   FiberThreadProvider(memory::Allocator* allocator) : allocator_{allocator} {
-    COMET_ASSERT(allocator_ != nullptr, "Allocator is null!");
+    COMET_ASSERT(allocator_ != nullptr,
+                 "thread::FiberThreadProvider::FiberThreadProvider",
+                 "allocator is null");
   }
 
   FiberThreadProvider(const FiberThreadProvider& other)
@@ -141,10 +140,15 @@ class FiberThreadProvider : public ThreadProvider<T> {
 
   T& Get() override {
     COMET_ASSERT(job::GetWorkerTag() == job::FiberWorker::kTag_,
-                 "Tried to provide outside a fiber worker!");
+                 "thread::FiberThreadProvider::Get",
+                 "current worker is not a fiber worker");
+
     const auto type_index{job::GetWorkerTypeIndex()};
+
     COMET_ASSERT(type_index != job::kInvalidWorkerTypeIndex,
-                 "Invalid worker type index retrieved!");
+                 "thread::FiberThreadProvider::Get",
+                 "worker type index is invalid");
+
     return this->array_[type_index];
   }
 
@@ -164,7 +168,9 @@ class IOThreadProvider : public ThreadProvider<T> {
   IOThreadProvider() = default;
 
   IOThreadProvider(memory::Allocator* allocator) : allocator_{allocator} {
-    COMET_ASSERT(allocator_ != nullptr, "Allocator is null!");
+    COMET_ASSERT(allocator_ != nullptr,
+                 "thread::IOThreadProvider::IOThreadProvider",
+                 "allocator is null");
   }
 
   IOThreadProvider(const IOThreadProvider& other)
@@ -201,10 +207,15 @@ class IOThreadProvider : public ThreadProvider<T> {
 
   T& Get() override {
     COMET_ASSERT(job::GetWorkerTag() == job::IOWorker::kTag_,
-                 "Tried to provide outside an I/O worker!");
+                 "thread::IOThreadProvider::Get",
+                 "current worker is not an io worker");
+
     const auto type_index{job::GetWorkerTypeIndex()};
+
     COMET_ASSERT(type_index != job::kInvalidWorkerTypeIndex,
-                 "Invalid worker type index retrieved!");
+                 "thread::IOThreadProvider::Get",
+                 "worker type index is invalid");
+
     return this->array_[type_index];
   }
 

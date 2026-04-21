@@ -10,19 +10,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef COMET_NAME
-static_assert(false, "COMET_NAME preprocessor macro must be defined!");
+static_assert(false, "COMET_NAME is not defined");
 #endif  // COMET_NAME
 
 #ifndef COMET_VERSION_MAJOR
-static_assert(false, "COMET_VERSION_MAJOR preprocessor macro must be defined!");
+static_assert(false, "COMET_VERSION_MAJOR is not defined");
 #endif  // COMET_VERSION_MAJOR
 
 #ifndef COMET_VERSION_MINOR
-static_assert(false, "COMET_VERSION_MINOR preprocessor macro must be defined!");
+static_assert(false, "COMET_VERSION_MINOR is not defined");
 #endif  // COMET_VERSION_MINOR
 
 #ifndef COMET_VERSION_PATCH
-static_assert(false, "COMET_VERSION_PATCH preprocessor macro must be defined!");
+static_assert(false, "COMET_VERSION_PATCH is not defined");
 #endif  // COMET_VERSION_PATCH
 
 #include "comet/core/essentials.h"

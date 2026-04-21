@@ -9,6 +9,7 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 #include "comet/rendering/driver/driver.h"
 #include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
@@ -20,7 +21,7 @@
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_view_handler.h"
 #include "comet/rendering/driver/opengl/opengl_frame_state.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {
@@ -46,6 +47,9 @@ class OpenGlDriver : public Driver {
 
   void SetSize(WindowSize width, WindowSize height);
   void OnEvent(const event::Event& event);
+
+  void RegisterEvents();
+  void UnregisterEvents();
 
   Window* GetWindow() override;
   u32 GetDrawCount() const override;
@@ -76,6 +80,10 @@ class OpenGlDriver : public Driver {
 #endif  // COMET_DEBUG_RENDERING
 
   bool is_resize_{false};
+
+  event::EventListenerId window_resize_listener_id_{
+      event::kInvalidEventListenerId};
+
   memory::UniquePtr<FrameState> frame_state_{nullptr};
 
   memory::UniquePtr<OpenGlGlfwWindow> window_{nullptr};

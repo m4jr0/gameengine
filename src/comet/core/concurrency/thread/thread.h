@@ -33,13 +33,15 @@ class Thread {
 
   template <typename ThreadFunc, typename... Targs>
   void Run(ThreadFunc&& func, Targs&&... args) {
-    COMET_ASSERT(!IsAttached(),
-                 "Tried to run thread, but it is already attached!");
+    COMET_ASSERT(!IsAttached(), "thread::Thread::Run",
+                 "thread is already attached");
+
     COMET_ASSERT(!is_started_.load(std::memory_order_acquire),
-                 "Tried to run thread, but it is already running!");
+                 "thread::Thread::Run", "thread is already running");
+
     COMET_ASSERT(
         thread_id_counter_.load(std::memory_order_acquire) > kMainThreadId_,
-        "Main thread has not been attached!");
+        "thread::Thread::Run", "main thread has not been attached");
 
     auto thread_func{
         [this, func = std::forward<ThreadFunc>(func),
@@ -66,18 +68,15 @@ class Thread {
 
   inline static constexpr ThreadId kMainThreadId_{0};
 
-  static_assert(
-      std::atomic<ThreadId>::is_always_lock_free,
-      "std::atomic<ThreadId> needs to be always lock-free. Unsupported "
-      "architecture");
+  static_assert(std::atomic<ThreadId>::is_always_lock_free,
+                "std::atomic<ThreadId> must be always lock-free");
   inline static std::atomic<ThreadId> thread_id_counter_{0};
   static Thread main_thread_;
 
   ThreadId thread_id_{kInvalidThreadId};
 
   static_assert(std::atomic<bool>::is_always_lock_free,
-                "std::atomic<bool> needs to be always lock-free. Unsupported "
-                "architecture");
+                "std::atomic<bool> must be always lock-free");
   std::atomic<bool> is_started_{false};
 
   std::thread thread_{};

@@ -165,7 +165,7 @@ endif()
 if(MSVC)
   # Disable any non-conformant code with Microsoft Visual C++.
   # As to why W4 is used: https://stackoverflow.com/questions/4001736/whats-up-with-the-thousands-of-warnings-in-standard-headers-in-msvc-wall#comment8922238_4001759
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /W4")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:preprocessor /W4")
 
   if(COMET_ARE_WARNINGS_ERRORS)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")

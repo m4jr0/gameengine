@@ -284,8 +284,11 @@ class HashSet {
   void Add(V&& obj) {
     CheckSize();
     auto& hashable{HashLogic::GetHashable(obj)};
+
     const auto index{GetBucketIndex(hashable)};
-    COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
+    COMET_ASSERT(index != kInvalidIndex, "HashSet::Add",
+                 "hash set is unallocated");
+
     auto& bucket{buckets_[index]};
 
     for (const auto& existing_obj : bucket) {
@@ -302,8 +305,11 @@ class HashSet {
   void Set(V&& obj) {
     CheckSize();
     auto& hashable{HashLogic::GetHashable(obj)};
+
     const auto index{GetBucketIndex(hashable)};
-    COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
+    COMET_ASSERT(index != kInvalidIndex, "HashSet::Set",
+                 "hash set is unallocated");
+
     auto& bucket{buckets_[index]};
 
     for (usize i{0}; i < bucket.GetSize(); ++i) {
@@ -324,8 +330,11 @@ class HashSet {
     CheckSize();
     T obj{std::forward<Targs>(args)...};
     auto& hashable{HashLogic::GetHashable(obj)};
+
     const auto index{GetBucketIndex(hashable)};
-    COMET_ASSERT(index != kInvalidIndex, "Map appears to be unallocated!");
+    COMET_ASSERT(index != kInvalidIndex, "HashSet::Emplace",
+                 "hash set is unallocated");
+
     auto& bucket{buckets_[index]};
 
     for (auto& existing_obj : bucket) {
@@ -421,8 +430,11 @@ class HashSet {
 
   T Pop(const Hashable& hashable) {
     T popped;
+
     const auto index{GetBucketIndex(hashable)};
-    COMET_ASSERT(index != kInvalidIndex, "HashSet is unallocated!");
+    COMET_ASSERT(index != kInvalidIndex, "HashSet::Pop",
+                 "hash set is unallocated");
+
     auto& bucket{buckets_[index]};
 
     for (usize i{0}; i < bucket.GetSize(); ++i) {
@@ -434,7 +446,8 @@ class HashSet {
       }
     }
 
-    COMET_ASSERT(false, "Value not found in HashSet!");
+    COMET_ASSERT(false, "HashSet::Pop", "value not found", "bucket_index",
+                 index);
     return popped;
   }
 
@@ -515,7 +528,7 @@ class HashSet {
           new_buckets[new_index].EmplaceBack(obj);
         } else {
           static_assert(always_false_v<decltype(obj)>,
-                        "Object type must be moveable or copyable!");
+                        "object type must be movable or copyable");
         }
       }
     }

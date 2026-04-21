@@ -91,13 +91,15 @@ static s32 CompareStrings(const CTStringView& lhs, const CTStringView& rhs) {
 }  // namespace internal
 
 void AttachTStringAllocator(memory::Allocator* handle) {
-  COMET_ASSERT(handle != nullptr, "TString allocator provided is null!");
+  COMET_ASSERT(handle != nullptr, "AttachTStringAllocator",
+               "TString allocator is null");
   internal::tls_tstring_allocator = handle;
 }
 
 void DetachTStringAllocator() {
   COMET_ASSERT(internal::tls_tstring_allocator != nullptr,
-               "No TString allocator handle has been provided!");
+               "DetachTStringAllocator",
+               "no TString allocator has been attached");
   internal::tls_tstring_allocator = nullptr;
 }
 
@@ -205,7 +207,9 @@ TString& TString::Append(const TString& str) {
 }
 
 TString& TString::Append(const TString& str, usize offset, usize length) {
-  COMET_ASSERT(offset <= str.GetLength(), "Offset is out of bounds!");
+  COMET_ASSERT(offset <= str.GetLength(), "TString::Append",
+               "offset is out of bounds", "offset", offset, "length",
+               str.GetLength());
 
   const auto remaining{str.GetLength() - offset};
   const auto append_length{
@@ -215,7 +219,8 @@ TString& TString::Append(const TString& str, usize offset, usize length) {
 }
 
 TString TString::GenerateSubString(usize offset, usize count) const {
-  COMET_ASSERT(offset <= length_, "Offset is out of bounds!");
+  COMET_ASSERT(offset <= length_, "TString::GenerateSubString",
+               "offset is out of bounds", "offset", offset, "length", length_);
 
   const auto sub_length{count == kInvalidIndex
                             ? length_ - offset
@@ -303,14 +308,14 @@ void Swap(TString& str1, TString& str2) {
 }
 
 tchar& TString::operator[](usize index) {
-  COMET_ASSERT(index <= length_, "Index is out of bounds: ", index, " > ",
-               length_, "!");
+  COMET_ASSERT(index < length_, "TString::operator[]", "index is out of bounds",
+               "index", index, "length", length_);
   return GetTStr()[index];
 }
 
 const tchar& TString::operator[](usize index) const {
-  COMET_ASSERT(index <= length_, "Index is out of bounds: ", index, " > ",
-               length_, "!");
+  COMET_ASSERT(index < length_, "TString::operator[]", "index is out of bounds",
+               "index", index, "length", length_);
   return GetCTStr()[index];
 }
 
@@ -341,12 +346,12 @@ usize TString::GetCapacity() const noexcept { return capacity_; }
 bool TString::IsEmpty() const noexcept { return length_ == 0; }
 
 const tchar& TString::GetFirst() const noexcept {
-  COMET_ASSERT(length_ > 0, "Length is 0!");
+  COMET_ASSERT(length_ > 0, "TString::GetFirst", "string is empty");
   return GetCTStr()[0];
 }
 
 const tchar& TString::GetLast() const noexcept {
-  COMET_ASSERT(length_ > 0, "Length is 0!");
+  COMET_ASSERT(length_ > 0, "TString::GetLast", "string is empty");
   return GetCTStr()[length_ - 1];
 }
 
@@ -364,7 +369,8 @@ void TString::Allocate(usize capacity) {
   }
 
 #ifdef COMET_DEBUG
-  COMET_ASSERT(is_alloc_allowed_, "Allocation is not allowed on this TString!");
+  COMET_ASSERT(is_alloc_allowed_, "TString::Allocate",
+               "allocation is not allowed on this TString");
 #endif  // COMET_DEBUG
   auto* old{GetTStr()};
   auto* tstring_allocator{internal::GetTStringAllocator()};
@@ -394,7 +400,8 @@ void TString::Deallocate() {
 }
 
 TString CTStringView::GenerateSubString(usize offset, usize count) const {
-  COMET_ASSERT(offset <= length_, "Offset is out of bounds!");
+  COMET_ASSERT(offset <= length_, "CTStringView::GenerateSubString",
+               "offset is out of bounds", "offset", offset, "length", length_);
 
   const auto sub_length{count == kInvalidIndex
                             ? length_ - offset

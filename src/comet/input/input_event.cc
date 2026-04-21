@@ -15,23 +15,21 @@ namespace input {
 const stringid::StringId KeyboardEvent::kStaticType_{
     COMET_STRING_ID("event_keyboard")};
 
-KeyboardEvent::KeyboardEvent(input::KeyCode key, input::ScanCode scan_code,
-                             input::Action action, input::Mods mods)
+KeyboardEvent::KeyboardEvent(KeyCode key, ScanCode scan_code, Action action,
+                             Mods mods)
     : key_{key}, scan_code_{scan_code}, action_{action}, mods_{mods} {}
 
 stringid::StringId KeyboardEvent::GetType() const noexcept {
   return kStaticType_;
 }
 
-input::KeyCode KeyboardEvent::GetKey() const noexcept { return key_; }
+KeyCode KeyboardEvent::GetKey() const noexcept { return key_; }
 
-input::ScanCode KeyboardEvent::GetScanCode() const noexcept {
-  return scan_code_;
-}
+ScanCode KeyboardEvent::GetScanCode() const noexcept { return scan_code_; }
 
-input::Action KeyboardEvent::GetAction() const noexcept { return action_; }
+Action KeyboardEvent::GetAction() const noexcept { return action_; }
 
-input::Mods KeyboardEvent::GetMods() const noexcept { return mods_; }
+Mods KeyboardEvent::GetMods() const noexcept { return mods_; }
 
 const stringid::StringId MouseMoveEvent::kStaticType_{
     COMET_STRING_ID("event_mouse_move")};
@@ -64,34 +62,29 @@ f64 MouseScrollEvent::GetYOffset() const noexcept { return y_offset_; }
 const stringid::StringId MouseClickEvent::kStaticType_{
     COMET_STRING_ID("event_mouse_click")};
 
-MouseClickEvent::MouseClickEvent(input::MouseButton button, input::Mods mods)
+MouseClickEvent::MouseClickEvent(MouseButton button, Mods mods)
     : button_{button}, mods_{mods} {}
 
 stringid::StringId MouseClickEvent::GetType() const noexcept {
   return kStaticType_;
 }
 
-input::MouseButton MouseClickEvent::GetButton() const noexcept {
-  return button_;
-}
+MouseButton MouseClickEvent::GetButton() const noexcept { return button_; }
 
-input::Mods MouseClickEvent::GetMods() const noexcept { return mods_; }
+Mods MouseClickEvent::GetMods() const noexcept { return mods_; }
 
 const stringid::StringId MouseReleaseEvent::kStaticType_{
     COMET_STRING_ID("event_mouse_release")};
 
-MouseReleaseEvent::MouseReleaseEvent(input::MouseButton button,
-                                     input::Mods mods)
+MouseReleaseEvent::MouseReleaseEvent(MouseButton button, Mods mods)
     : button_{button}, mods_{mods} {}
 
 stringid::StringId MouseReleaseEvent::GetType() const noexcept {
   return kStaticType_;
 }
 
-input::MouseButton MouseReleaseEvent::GetButton() const noexcept {
-  return button_;
-}
+MouseButton MouseReleaseEvent::GetButton() const noexcept { return button_; }
 
-input::Mods MouseReleaseEvent::GetMods() const noexcept { return mods_; }
+Mods MouseReleaseEvent::GetMods() const noexcept { return mods_; }
 }  // namespace input
 }  // namespace comet

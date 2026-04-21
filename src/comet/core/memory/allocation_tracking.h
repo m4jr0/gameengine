@@ -46,6 +46,7 @@ struct AllocationInfo {
 // debugging, so... yeah...).
 struct TrackedAllocations {
   TrackedAllocations(memory::Allocator* allocator);
+  ~TrackedAllocations();
 
   void Initialize();
   void Destroy();
@@ -54,6 +55,7 @@ struct TrackedAllocations {
   usize Pop(void* ptr);
 
  private:
+  bool is_initialized{false};
   std::recursive_mutex mutex{};
   Map<void*, usize> allocations{};
   memory::Allocator* allocator{nullptr};
@@ -63,6 +65,7 @@ struct TrackedAllocations {
 // debugging, so... yeah...).
 struct TrackedTags {
   TrackedTags(memory::Allocator* allocator);
+  ~TrackedTags();
 
   void Initialize();
   void Destroy();
@@ -80,6 +83,7 @@ struct TrackedTags {
   Map<MemoryTag, usize> GetTagUse();
 
  private:
+  bool is_initialized{false};
   std::shared_mutex platform_mutex{};
   std::shared_mutex tagged_heap_mutex{};
   Map<void*, AllocationInfo> platform_allocations{};
@@ -91,20 +95,24 @@ struct TrackedTags {
 struct MemoryUse {
   static MemoryUse& Get();
 
+  ~MemoryUse();
+
   void Initialize();
   void Destroy();
 
   bool is_tracking{false};
 
   static_assert(std::atomic<usize>::is_always_lock_free,
-                "std::atomic<usize> needs to be always lock-free. Unsupported "
-                "architecture");
-
+                "std::atomic<usize> must be always lock-free");
   std::atomic<usize> total_allocated{0};
   std::atomic<usize> total_freed{0};
+
   memory::PlatformAllocator allocator{memory::kEngineMemoryTagDebug};
   TrackedAllocations allocations{&allocator};
   TrackedTags tags{&allocator};
+
+ private:
+  bool is_initialized{false};
 };
 
 class ScopedFlagToggle {

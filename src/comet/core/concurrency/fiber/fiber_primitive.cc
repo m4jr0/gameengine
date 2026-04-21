@@ -9,12 +9,9 @@
 // Header. /////////////////////////////////////////////////////////////////////
 #include "fiber_primitive.h"
 ////////////////////////////////////////////////////////////////////////////////
-
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
 #include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/concurrency/fiber/fiber_label.h"
+#include "comet/core/type_trait.h"
 
 namespace comet {
 namespace fiber {
@@ -54,7 +51,8 @@ void FiberMutex::Lock() {
 
     {
       FiberSpinLockGuard guard{spin_lock_};
-      COMET_ASSERT(fiber != owner_, "Lock is already owned by current fiber!");
+      COMET_ASSERT(fiber != owner_, "FiberMutex::Lock",
+                   "lock is already owned by current fiber");
 
       if (owner_ == nullptr) {
         owner_ = fiber;
@@ -73,7 +71,8 @@ void FiberMutex::Lock() {
 void FiberMutex::Unlock() {
   [[maybe_unused]] auto* fiber{GetFiber()};
   FiberSpinLockGuard guard{spin_lock_};
-  COMET_ASSERT(fiber == owner_, "Lock is not owned by current fiber!");
+  COMET_ASSERT(fiber == owner_, "FiberMutex::Unlock",
+               "lock is not owned by current fiber");
   owner_ = nullptr;
 }
 
@@ -122,7 +121,7 @@ void FiberUniqueLock::Unlock() {
 
 void FiberCV::Wait(FiberUniqueLock& lock) {
   auto* fiber{GetFiber()};
-  COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+  COMET_ASSERT(fiber != nullptr, "FiberCV::Wait", "current fiber is null");
 
   {
     FiberSpinLockGuard spin_lock{spin_lock_};
@@ -199,9 +198,10 @@ FiberSharedLockGuard::FiberSharedLockGuard(FiberSharedMutex& mutex,
     : mutex_{mutex}, type_{type} {
   COMET_ASSERT(type_ == FiberSharedLockType::Exclusive ||
                    type_ == FiberSharedLockType::Shared,
-               "Unknown or unsupported lock type provided: ",
-               static_cast<std::underlying_type_t<FiberSharedLockType>>(type_),
-               "!");
+               "FiberSharedLockGuard::FiberSharedLockGuard",
+               "lock type is invalid", "type",
+               GetFiberSharedLockTypeLabel(type_), "type_value",
+               ToUnderlying(type_));
 
   if (type_ == FiberSharedLockType::Exclusive) {
     mutex_.LockExclusive();

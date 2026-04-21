@@ -10,8 +10,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_texture_map_type.h"
 
 namespace comet {
 namespace rendering {

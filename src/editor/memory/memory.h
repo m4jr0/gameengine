@@ -13,10 +13,6 @@ namespace memory {
 enum EditorMemoryTag : MemoryTag {
   kEditorMemoryTagAsset = kEngineMemoryTagUserBase + 1
 };
-
-#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-const schar* GetEditorMemoryTagLabel(MemoryTag tag);
-#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
 }  // namespace memory
 }  // namespace comet
 

@@ -119,8 +119,8 @@ void AssetManager::RefreshFolder(job::Counter* global_counter,
   const auto folder_name{GetName(asset_abs_path)};
 
   if (folder_name.IsEmpty()) {
-    COMET_LOG_GLOBAL_ERROR(
-        "Empty folder name retrieved from path: ", asset_abs_path, "!");
+    COMET_LOG_ERROR(LoggerType::External, "AssetManager::RefreshFolder",
+                    "folder name is empty", "asset_path", asset_abs_path);
     return;
   }
 
@@ -162,11 +162,19 @@ void AssetManager::RefreshAsset(job::Counter* global_counter,
   descr.global_counter = global_counter;
   descr.asset_abs_path = asset_abs_path.GetCTStr();
   descr.allocator = &byte_allocator_;
+  auto is_compatible{false};
 
   for (const auto& exporter : exporters_) {
     if (exporter->IsCompatible(GetExtension(asset_abs_path))) {
+      is_compatible = true;
       exporter->Process(descr);
     }
+  }
+
+  if (!is_compatible) {
+    COMET_LOG_WARNING(LoggerType::External, "AssetManager::RefreshAsset",
+                      "no compatible exporter found", "asset_path",
+                      asset_abs_path);
   }
 }
 
@@ -198,6 +206,9 @@ bool AssetManager::IsRefreshNeeded(CTStringView asset_abs_path,
       existing_metadata[kCometEditorAssetMetadataKeyResourceFiles]};
 
   if (!resource_files.is_array()) {
+    COMET_LOG_WARNING(LoggerType::External, "AssetManager::IsRefreshNeeded",
+                      "resource files metadata is not an array",
+                      "metadata_path", metadata_file_path);
     return true;
   }
 
@@ -207,12 +218,19 @@ bool AssetManager::IsRefreshNeeded(CTStringView asset_abs_path,
 
   for (const auto& item : resource_files) {
     if (!item.is_string()) {
+      COMET_LOG_WARNING(LoggerType::External, "AssetManager::IsRefreshNeeded",
+                        "resource file entry is not a string", "metadata_path",
+                        metadata_file_path);
       return true;
     }
 
     const auto& path_str{item.get_ref<const std::string&>()};
 
     if (path_str.size() > kMaxPathLength) {
+      COMET_LOG_WARNING(LoggerType::External, "AssetManager::IsRefreshNeeded",
+                        "resource file path is too long", "metadata_path",
+                        metadata_file_path, "path_length", path_str.size(),
+                        "max_path_length", kMaxPathLength);
       return true;
     }
 

@@ -14,11 +14,11 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -27,16 +27,17 @@ DebugView::DebugView(const DebugViewDescr& descr)
     : View{descr},
       shader_handler_{descr.shader_handler},
       render_proxy_handler_{descr.render_proxy_handler} {
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(render_proxy_handler_ != nullptr,
-               "Render proxy handler is null!");
+  COMET_ASSERT(shader_handler_ != nullptr, "DebugView::DebugView",
+               "shader handler is null");
+  COMET_ASSERT(render_proxy_handler_ != nullptr, "DebugView::DebugView",
+               "render proxy handler is null");
 }
 
 void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   COMET_PROFILE("DebugView::Update");
-#ifdef COMET_DEBUG_CULLING
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "DebugView::Update", "frame packet is null");
 
+#ifdef COMET_DEBUG_CULLING
   if (render_proxy_handler_->GetRenderProxyCount() == 0) {
     return;
   }
@@ -154,7 +155,8 @@ void DebugView::DrawDebugCull() {
       render_proxy_handler_->GetDebugLineBufferHandle()};
 
   COMET_ASSERT(vertex_buffer_handle != kInvalidGlNativeStorageHandle,
-               "Debug line buffer handle is invalid!");
+               "DebugView::DrawDebugCull",
+               "debug line buffer handle is invalid");
 
   ShaderVertexSource source{};
   source.vertex_buffer_native_handle =

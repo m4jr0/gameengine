@@ -14,12 +14,11 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
-#include "comet/resource/material_resource.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -32,18 +31,23 @@ WorldView::WorldView(const WorldViewDescr& descr)
       render_proxy_handler_{descr.render_proxy_handler},
       mesh_handler_{descr.mesh_handler},
       lighting_handler_{descr.lighting_handler} {
-  COMET_ASSERT(shadow_settings_ != nullptr, "Shadow settings are null!");
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
-  COMET_ASSERT(render_proxy_handler_ != nullptr,
-               "Render proxy handler is null!");
-  COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
-  COMET_ASSERT(lighting_handler_ != nullptr, "Lighting handler is null!");
+  COMET_ASSERT(shadow_settings_ != nullptr, "WorldView::WorldView",
+               "shadow settings are null");
+  COMET_ASSERT(shader_handler_ != nullptr, "WorldView::WorldView",
+               "shader handler is null");
+  COMET_ASSERT(material_handler_ != nullptr, "WorldView::WorldView",
+               "material handler is null");
+  COMET_ASSERT(render_proxy_handler_ != nullptr, "WorldView::WorldView",
+               "render proxy handler is null");
+  COMET_ASSERT(mesh_handler_ != nullptr, "WorldView::WorldView",
+               "mesh handler is null");
+  COMET_ASSERT(lighting_handler_ != nullptr, "WorldView::WorldView",
+               "lighting handler is null");
 }
 
 void WorldView::Update(frame::FramePacket* packet) {
   COMET_PROFILE("WorldView::Update");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "WorldView::Update", "frame packet is null");
 
   UpdateWorldShader(packet);
   RunSparseUpload();
@@ -127,7 +131,8 @@ void WorldView::OnDestroy() {
 }
 
 void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "WorldView::UpdateWorldShader",
+               "frame packet is null");
 
   packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
 
@@ -270,12 +275,12 @@ void WorldView::RunCull(frame::FramePacket* packet) {
 
   COMET_ASSERT(
       gpu_data.ssbo_indirect_proxies_handle != kInvalidGlNativeStorageHandle,
-      "Cull indirect buffer handle is invalid!");
+      "WorldView::RunCull", "cull indirect buffer handle is invalid");
   COMET_ASSERT(
       gpu_data.ssbo_proxy_instances_handle != kInvalidGlNativeStorageHandle,
-      "Cull proxy instances buffer handle is invalid!");
+      "WorldView::RunCull", "cull proxy instances buffer handle is invalid");
   COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != kInvalidGlNativeStorageHandle,
-               "Cull proxy IDs buffer handle is invalid!");
+               "WorldView::RunCull", "cull proxy ids buffer handle is invalid");
 
 #ifdef COMET_DEBUG_RENDERING
   render_proxy_handler_->PrepareCullDebugWrite(frame_index);
@@ -387,9 +392,10 @@ void WorldView::DrawWorld() {
 
   COMET_ASSERT(
       gpu_data.ssbo_indirect_proxies_handle != kInvalidGlNativeStorageHandle,
-      "Draw indirect buffer handle is invalid!");
+      "WorldView::DrawWorld", "draw indirect buffer handle is invalid");
   COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != kInvalidGlNativeStorageHandle,
-               "Draw proxy IDs buffer handle is invalid!");
+               "WorldView::DrawWorld",
+               "draw proxy ids buffer handle is invalid");
 
   const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
 

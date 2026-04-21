@@ -26,35 +26,63 @@ namespace vk {
 void QuerySwapchainSupportDetails(VkPhysicalDevice physical_device_handle,
                                   VkSurfaceKHR surface_handle,
                                   SwapchainSupportDetails& details) {
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      physical_device_handle, surface_handle, &details.capabilities);
+  COMET_ASSERT(physical_device_handle != VK_NULL_HANDLE,
+               "vulkan_swapchain::QuerySwapchainSupportDetails",
+               "physical device handle is invalid");
+  COMET_ASSERT(surface_handle != VK_NULL_HANDLE,
+               "vulkan_swapchain::QuerySwapchainSupportDetails",
+               "surface handle is invalid");
+
+  COMET_CHECK_VK(
+      vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+          physical_device_handle, surface_handle, &details.capabilities),
+      "vulkan_swapchain::QuerySwapchainSupportDetails",
+      "surface capabilities query failed");
 
   u32 format_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_handle, surface_handle,
-                                       &format_count, VK_NULL_HANDLE);
+
+  COMET_CHECK_VK(vkGetPhysicalDeviceSurfaceFormatsKHR(
+                     physical_device_handle, surface_handle, &format_count,
+                     VK_NULL_HANDLE),
+                 "vulkan_swapchain::QuerySwapchainSupportDetails",
+                 "surface format count query failed");
 
   if (format_count != 0) {
     details.formats.Resize(format_count);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_handle, surface_handle,
-                                         &format_count,
-                                         details.formats.GetData());
+
+    COMET_CHECK_VK(vkGetPhysicalDeviceSurfaceFormatsKHR(
+                       physical_device_handle, surface_handle, &format_count,
+                       details.formats.GetData()),
+                   "vulkan_swapchain::QuerySwapchainSupportDetails",
+                   "surface format query failed");
   }
 
   u32 present_mode_count;
-  vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device_handle,
-                                            surface_handle, &present_mode_count,
-                                            VK_NULL_HANDLE);
 
-  COMET_ASSERT(present_mode_count > 0, "No present mode available!!");
+  COMET_CHECK_VK(vkGetPhysicalDeviceSurfacePresentModesKHR(
+                     physical_device_handle, surface_handle,
+                     &present_mode_count, VK_NULL_HANDLE),
+                 "vulkan_swapchain::QuerySwapchainSupportDetails",
+                 "present mode count query failed");
+
+  COMET_ASSERT(present_mode_count > 0,
+               "vulkan_swapchain::QuerySwapchainSupportDetails",
+               "present mode count is zero");
 
   details.present_modes.Resize(present_mode_count);
-  vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device_handle,
-                                            surface_handle, &present_mode_count,
-                                            details.present_modes.GetData());
+
+  COMET_CHECK_VK(vkGetPhysicalDeviceSurfacePresentModesKHR(
+                     physical_device_handle, surface_handle,
+                     &present_mode_count, details.present_modes.GetData()),
+                 "vulkan_swapchain::QuerySwapchainSupportDetails",
+                 "present mode query failed");
 }
 
 VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
     const Array<VkSurfaceFormatKHR>& formats) {
+  COMET_ASSERT(!formats.IsEmpty(), "vulkan_swapchain::ChooseSwapSurfaceFormat",
+               "surface formats are empty");
+
   for (const auto& available_format : formats) {
     // TODO(m4jr0): Retrieve the "best" settings from a configuration file.
     if (available_format.format == VK_FORMAT_B8G8R8A8_SRGB &&
@@ -116,18 +144,19 @@ Swapchain::Swapchain(const SwapchainDescr& descr)
       is_triple_buffering_{descr.is_triple_buffering},
       window_{descr.window},
       context_{descr.context} {
-  COMET_ASSERT(window_ != nullptr, "Window provided is null!");
-  COMET_ASSERT(context_ != nullptr, "Context provided is null!");
+  COMET_ASSERT(window_ != nullptr, "Swapchain::Swapchain", "window is null");
+  COMET_ASSERT(context_ != nullptr, "Swapchain::Swapchain", "context is null");
 }
 
 Swapchain::~Swapchain() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for swapchain, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Swapchain::~Swapchain",
+               "swapchain is still initialized");
 }
 
 void Swapchain::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize Swapchain, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "Swapchain::Initialize",
+               "swapchain is already initialized");
+
   images_ = Array<Image>{&allocator_};
 
   const auto& device{context_->GetDevice()};
@@ -175,7 +204,7 @@ void Swapchain::Initialize() {
       vkCreateSwapchainKHR(device, &create_info,
                            MemoryCallbacks::Get().GetAllocCallbacksHandle(),
                            &handle_),
-      "Failed to create swap chain");
+      "Swapchain::Initialize", "swapchain creation failed");
 
   if (old_handle_ != VK_NULL_HANDLE) {
     vkDestroySwapchainKHR(device, old_handle_,
@@ -183,12 +212,20 @@ void Swapchain::Initialize() {
     old_handle_ = VK_NULL_HANDLE;
   }
 
-  vkGetSwapchainImagesKHR(device, handle_, &image_count, VK_NULL_HANDLE);
+  COMET_CHECK_VK(
+      vkGetSwapchainImagesKHR(device, handle_, &image_count, VK_NULL_HANDLE),
+      "Swapchain::Initialize", "swapchain image count query failed");
+
+  COMET_ASSERT(image_count > 0, "Swapchain::Initialize",
+               "swapchain image count is zero");
+
   images_.Reserve(image_count);
   frame::FrameArray<VkImage> image_handles{};
   image_handles.Resize(image_count);
-  vkGetSwapchainImagesKHR(device, handle_, &image_count,
-                          image_handles.GetData());
+
+  COMET_CHECK_VK(vkGetSwapchainImagesKHR(device, handle_, &image_count,
+                                         image_handles.GetData()),
+                 "Swapchain::Initialize", "swapchain image query failed");
 
   for (const auto image_handle : image_handles) {
     Image image{};
@@ -211,8 +248,9 @@ void Swapchain::Initialize() {
 }
 
 void Swapchain::Destroy() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to destroy Swapchain, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Swapchain::Destroy",
+               "swapchain is not initialized");
+
   context_->UnbindImageData();
   DestroyRenderSemaphores();
   DestroyImageViews();
@@ -270,6 +308,10 @@ bool Swapchain::Reload() {
 
 VkResult Swapchain::AcquireNextImage(VkSemaphore semaphore_handle) {
   COMET_PROFILE("Swapchain::AcquireNextImage");
+  COMET_ASSERT(handle_ != VK_NULL_HANDLE, "Swapchain::AcquireNextImage",
+               "swapchain handle is invalid");
+  COMET_ASSERT(semaphore_handle != VK_NULL_HANDLE,
+               "Swapchain::AcquireNextImage", "semaphore handle is invalid");
 
   const auto result{vkAcquireNextImageKHR(
       context_->GetDevice(), handle_, static_cast<u64>(-1), semaphore_handle,
@@ -287,8 +329,14 @@ VkResult Swapchain::AcquireNextImage(VkSemaphore semaphore_handle) {
 }
 
 VkResult Swapchain::QueuePresent() {
+  COMET_ASSERT(handle_ != VK_NULL_HANDLE, "Swapchain::QueuePresent",
+               "swapchain handle is invalid");
+
   const auto present_queue_handle{
       context_->GetDevice().GetPresentQueueHandle()};
+  COMET_ASSERT(present_queue_handle != VK_NULL_HANDLE,
+               "Swapchain::QueuePresent", "present queue handle is invalid");
+
   const auto semaphore_handle{image_data_.render_semaphore_handle};
   auto present_info{init::GeneratePresentInfo()};
 
@@ -343,6 +391,10 @@ const Image& Swapchain::GetColorImage() const noexcept { return color_image_; }
 const Image& Swapchain::GetDepthImage() const noexcept { return depth_image_; }
 
 void Swapchain::InitializeImageViews() {
+  COMET_ASSERT(format_ != VK_FORMAT_UNDEFINED,
+               "Swapchain::InitializeImageViews",
+               "swapchain format is undefined");
+
   const auto& device{context_->GetDevice()};
 
   for (auto& image : images_) {
@@ -362,11 +414,16 @@ void Swapchain::InitializeRenderSemaphores() {
     COMET_CHECK_VK(
         vkCreateSemaphore(device_handle, &semaphore_create_info, VK_NULL_HANDLE,
                           &render_semaphore_handles_[i]),
-        "Unable to create frame render semaphore!");
+        "Swapchain::InitializeRenderSemaphores",
+        "render semaphore creation failed");
   }
 }
 
 void Swapchain::InitializeColorResources() {
+  COMET_ASSERT(format_ != VK_FORMAT_UNDEFINED,
+               "Swapchain::InitializeColorResources",
+               "swapchain format is undefined");
+
   auto& device{context_->GetDevice()};
 
   if (!device.IsMsaa()) {

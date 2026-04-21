@@ -103,22 +103,22 @@ void Bitset::Destroy() {
 }
 
 void Bitset::Set(usize index) {
-  COMET_ASSERT(index < bit_count_, "Index out of bounds: ", index,
-               " >= ", bit_count_, "!");
+  COMET_ASSERT(index < bit_count_, "Bitset::Set", "index out of bounds",
+               "index", index, "bit_count", bit_count_);
   words_[index / kWorkBitCount_] |=
       (static_cast<Word>(1) << (index % kWorkBitCount_));
 }
 
 void Bitset::Reset(usize index) {
-  COMET_ASSERT(index < bit_count_, "Index out of bounds: ", index,
-               " >= ", bit_count_, "!");
+  COMET_ASSERT(index < bit_count_, "Bitset::Reset", "index out of bounds",
+               "index", index, "bit_count", bit_count_);
   words_[index / kWorkBitCount_] &=
       ~(static_cast<Word>(1) << (index % kWorkBitCount_));
 }
 
 bool Bitset::Test(usize index) const {
-  COMET_ASSERT(index < bit_count_, "Index out of bounds: ", index,
-               " >= ", bit_count_, "!");
+  COMET_ASSERT(index < bit_count_, "Bitset::Test", "index out of bounds",
+               "index", index, "bit_count", bit_count_);
   return words_[index / kWorkBitCount_] &
          (static_cast<Word>(1) << (index % kWorkBitCount_));
 }
@@ -132,7 +132,7 @@ void Bitset::Resize(usize new_bit_count) {
     return;
   }
 
-  COMET_ASSERT(allocator_ != nullptr, "Allocator is null!");
+  COMET_ASSERT(allocator_ != nullptr, "Bitset::Resize", "allocator is null");
   const auto new_word_count{GetWordCountFromBitCount(new_bit_count)};
   auto* new_words{static_cast<Word*>(allocator_->AllocateAligned(
       new_word_count * sizeof(Word), alignof(Word)))};

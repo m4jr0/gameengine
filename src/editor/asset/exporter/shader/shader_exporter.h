@@ -8,7 +8,7 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/resource/shader/shader_resource.h"
 #include "editor/asset/exporter/asset_exporter.h"
 
 namespace comet {

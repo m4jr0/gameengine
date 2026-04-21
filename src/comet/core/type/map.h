@@ -199,16 +199,16 @@ class Map {
       auto& new_pair{pairs_.Emplace(KVPair{key, Value{}})};
       return new_pair.value;
     } else {
-      COMET_ASSERT(false,
-                   "Key not found and value is not default-constructible.");
+      COMET_ASSERT(false, "Map::Get",
+                   "key not found and value is not default-constructible");
       throw std::runtime_error(
-          "Key not found and value is not default-constructible.");
+          "key not found and value is not default-constructible");
     }
   }
 
   const Value& Get(const Key& key) const {
     auto* value = TryGet(key);
-    COMET_ASSERT(value != nullptr, "No value found!");
+    COMET_ASSERT(value != nullptr, "Map::Get", "no value found");
     return *value;
   }
 

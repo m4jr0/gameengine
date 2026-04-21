@@ -71,11 +71,8 @@ class FiberWorker : public Worker {
   void Detach() override;
 
  private:
-  static_assert(
-      std::atomic<WorkerTypeIndex>::is_always_lock_free,
-      "std::atomic<WorkerIndex> needs to be always lock-free. Unsupported "
-      "architecture");
-
+  static_assert(std::atomic<WorkerTypeIndex>::is_always_lock_free,
+                "std::atomic<WorkerTypeIndex> must be always lock-free");
   inline static std::atomic<WorkerTypeIndex> index_counter_{0};
 
   fiber::Fiber* worker_fiber_{nullptr};
@@ -97,10 +94,8 @@ class IOWorker : public Worker {
   void Detach() override;
 
  private:
-  static_assert(
-      std::atomic<WorkerTypeIndex>::is_always_lock_free,
-      "std::atomic<WorkerIndex> needs to be always lock-free. Unsupported "
-      "architecture");
+  static_assert(std::atomic<WorkerTypeIndex>::is_always_lock_free,
+                "std::atomic<WorkerTypeIndex> must be always lock-free");
 
   inline static std::atomic<WorkerTypeIndex> index_counter_{0};
 };

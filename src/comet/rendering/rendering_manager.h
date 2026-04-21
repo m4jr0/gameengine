@@ -11,8 +11,9 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/driver.h"
-#include "comet/rendering/light/light_type.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/rendering_view_type.h"
 
 namespace comet {
 namespace rendering {

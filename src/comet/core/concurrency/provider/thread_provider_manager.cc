@@ -10,8 +10,6 @@
 #include "thread_provider_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/memory/tagged_heap.h"
-
 namespace comet {
 namespace thread {
 ThreadProviderManager& ThreadProviderManager::Get() {

@@ -63,7 +63,7 @@ inline RingQueue<T>::RingQueue(const RingQueue<T>& other)
       head_{other.head_},
       size_{other.size_},
       allocator_{other.allocator_},
-      elements_{other.allocator_, other.elements_} {}
+      elements_{other.elements_} {}
 
 template <class T>
 inline RingQueue<T>::RingQueue(RingQueue<T>&& other) noexcept
@@ -181,8 +181,7 @@ inline usize RingQueue<T>::GetSize() const noexcept {
 template <class T>
 class LockFreeMPSCRingQueue {
   static_assert(std::atomic<usize>::is_always_lock_free,
-                "std::atomic<usize> needs to be always lock-free. Unsupported "
-                "architecture");
+                "std::atomic<usize> must be always lock-free");
 
  public:
   LockFreeMPSCRingQueue() = default;
@@ -221,8 +220,8 @@ template <class T>
 inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
     memory::Allocator* allocator, usize capacity)
     : capacity_{capacity}, allocator_{allocator} {
-  COMET_ASSERT(capacity_ >= 2, "Capacity needs to be at least 2: ", capacity_,
-               "!");
+  COMET_ASSERT(capacity_ >= 2, "LockFreeMPSCRingQueue::LockFreeMPSCRingQueue",
+               "capacity must be at least 2", "capacity", capacity_);
 
   elements_ = static_cast<Slot*>(
       allocator_->AllocateAligned(capacity_ * sizeof(Slot), alignof(Slot)));
@@ -391,8 +390,7 @@ inline usize LockFreeMPSCRingQueue<T>::GetCapacity() const noexcept {
 template <class T>
 class LockFreeMPMCRingQueue {
   static_assert(std::atomic<usize>::is_always_lock_free,
-                "std::atomic<usize> needs to be always lock-free. Unsupported "
-                "architecture");
+                "std::atomic<usize> must be always lock-free");
 
  public:
   LockFreeMPMCRingQueue() = default;
@@ -439,10 +437,11 @@ template <class T>
 inline LockFreeMPMCRingQueue<T>::LockFreeMPMCRingQueue(
     memory::Allocator* allocator, usize capacity)
     : mask_{capacity - 1}, capacity_{capacity}, allocator_{allocator} {
-  COMET_ASSERT(capacity_ >= 2, "Capacity needs to be at least 2: ", capacity_,
-               "!");
+  COMET_ASSERT(capacity_ >= 2, "LockFreeMPMCRingQueue::LockFreeMPMCRingQueue",
+               "capacity must be at least 2", "capacity", capacity_);
   COMET_ASSERT((capacity_ & (capacity_ - 1)) == 0,
-               "Capacity must be a power of 2: ", capacity_, "!");
+               "LockFreeMPMCRingQueue::LockFreeMPMCRingQueue",
+               "capacity must be a power of 2", "capacity", capacity_);
 
   elements_ = static_cast<Node*>(
       allocator_->AllocateAligned(capacity_ * sizeof(Node), alignof(Node)));

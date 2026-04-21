@@ -11,7 +11,7 @@
 #include "window.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/event/event_manager.h"
 #include "comet/rendering/window/window_event.h"
 
@@ -21,14 +21,15 @@ void SetName(WindowDescr& descr, const schar* name, usize name_len) {
   descr.name_len = name_len;
 
   if (descr.name_len >= kMaxWindowNameLen) {
-    COMET_LOG_RENDERING_WARNING(
-        "Window name provided is too long: ", descr.name_len,
-        " >= ", kMaxWindowNameLen, ". It will be truncated.");
+    COMET_LOG_WARNING(LoggerType::Rendering, "window::SetName",
+                      "window name is too long and will be truncated",
+                      "name_len", descr.name_len, "max_name_len",
+                      kMaxWindowNameLen);
     descr.name_len = static_cast<usize>(kMaxWindowNameLen - 1);
   }
 
   Copy(descr.name, name, descr.name_len);
-  descr.name[descr.name_len + 1] = '\0';
+  descr.name[descr.name_len] = '\0';
 }
 
 Window::Window(const WindowDescr& descr)
@@ -70,20 +71,21 @@ Window& Window::operator=(Window&& other) noexcept {
 }
 
 Window::~Window() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for window, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Window::~Window",
+               "window is still initialized");
 }
 
 void Window::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize window, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "Window::Initialize",
+               "window is already initialized");
+
   OnInitialize();
   is_initialized_ = true;
 }
 
 void Window::Destroy() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to destroy window, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Window::Destroy", "window is not initialized");
+
   OnDestroy();
   is_initialized_ = false;
 }

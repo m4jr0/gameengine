@@ -52,14 +52,20 @@ VulkanGlfwWindow& VulkanGlfwWindow::operator=(
 }
 
 void VulkanGlfwWindow::AttachSurface(VkInstance instance_handle) {
+  COMET_ASSERT(instance_handle != VK_NULL_HANDLE,
+               "VulkanGlfwWindow::AttachSurface", "instance handle is invalid");
+  COMET_ASSERT(handle_ != nullptr, "VulkanGlfwWindow::AttachSurface",
+               "glfw window handle is null");
+
   COMET_CHECK_VK(glfwCreateWindowSurface(instance_handle, handle_, nullptr,
                                          &surface_handle_),
-                 "Failed to create window surface");
+                 "VulkanGlfwWindow::AttachSurface",
+                 "window surface creation failed");
 }
 
 void VulkanGlfwWindow::DetachSurface(VkInstance instance_handle) {
   COMET_ASSERT(instance_handle != VK_NULL_HANDLE,
-               "Trying to detach surface, but Vulkan instance is null!");
+               "VulkanGlfwWindow::DetachSurface", "instance handle is invalid");
 
   if (surface_handle_ == VK_NULL_HANDLE) {
     return;

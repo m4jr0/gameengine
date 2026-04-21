@@ -11,7 +11,8 @@
 # Source files #################################################################
 target_sources(${EXECUTABLE_NAME}
   PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/editor/memory/memory.cc"
+    "${PROJECT_SOURCE_DIR}/src/editor/memory/memory.h"
+    "${PROJECT_SOURCE_DIR}/src/editor/memory/memory_label.cc"
 )
 
 # Compiling ####################################################################

@@ -23,7 +23,7 @@ constexpr bool is_component_v{is_component<ComponentType>::value};
 template <typename ComponentType>
 constexpr void CheckComponent() {
   static_assert(is_component_v<ComponentType>,
-                "Component must be trivially copyable!");
+                "ComponentType must be trivially copyable");
 }
 
 struct ComponentTypeDescr {
@@ -36,7 +36,8 @@ class ComponentIdGenerator {
  protected:
   inline static EntityId GenerateId() {
     COMET_ASSERT(component_id_counter_ < kMaxComponentId - 1,
-                 "Max component count reached!");
+                 "ComponentIdGenerator::GenerateId",
+                 "max component count reached");
 
     return Tag(EntityIdTag::Component, component_id_counter_++);
   }

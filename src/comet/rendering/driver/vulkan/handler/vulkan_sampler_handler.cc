@@ -29,14 +29,21 @@ SamplerHandle SamplerHandler::GetOrGenerate(const SamplerDescr& descr) {
   }
 
   auto* sampler{GenerateSampler(key, descr)};
+
   const auto handle{samplers_.Create(key, sampler)};
-  COMET_ASSERT(handle, "Failed to create instance for sampler!");
+  COMET_ASSERT(handle, "SamplerHandler::GetOrGenerate",
+               "sampler instance creation failed", "sampler_key", key);
+
   sampler->handle = handle;
   return handle;
 }
 
 void SamplerHandler::Destroy(SamplerHandle handle) {
   auto* sampler{Get(handle)};
+
+  COMET_ASSERT(sampler->handle == handle, "SamplerHandler::Destroy",
+               "sampler handle mismatch", "expected_handle", handle,
+               "actual_handle", sampler->handle, "sampler_key", sampler->key);
 
   if (!samplers_.Release(handle)) {
     return;
@@ -48,8 +55,8 @@ void SamplerHandler::Destroy(SamplerHandle handle) {
 
 const Sampler* SamplerHandler::Get(SamplerHandle handle) const {
   const auto* sampler{samplers_.TryGet(handle)};
-  COMET_ASSERT(sampler != nullptr, "Requested sampler does not exist: ", handle,
-               "!");
+  COMET_ASSERT(sampler != nullptr, "SamplerHandler::Get", "sampler not found",
+               "sampler_handle", handle);
   return sampler;
 }
 
@@ -71,10 +78,10 @@ void SamplerHandler::OnShutdown() {
     const auto ref_count{samplers_.GetRefCount(handle)};
 
     if (ref_count > 0) {
-      COMET_LOG_RENDERING_WARNING("Forcing destruction of sampler handle ",
-                                  handle, " with remaining ref count ",
-                                  ref_count, ", key ",
-                                  samplers_.Get(handle)->key, "!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "SamplerHandler::OnShutdown",
+                        "forcing sampler destruction", "sampler_handle", handle,
+                        "ref_count", ref_count, "sampler_key",
+                        samplers_.Get(handle)->key);
     }
 
     auto* sampler{samplers_.Drain(handle)};
@@ -83,8 +90,9 @@ void SamplerHandler::OnShutdown() {
       continue;
     }
 
-    COMET_ASSERT(sampler->handle == handle,
-                 "Sampler handle mismatch during shutdown destruction!");
+    COMET_ASSERT(sampler->handle == handle, "SamplerHandler::OnShutdown",
+                 "sampler handle mismatch", "expected_handle", handle,
+                 "actual_handle", sampler->handle, "sampler_key", sampler->key);
 
     DestroySampler(sampler);
   }
@@ -95,8 +103,8 @@ void SamplerHandler::OnShutdown() {
 
 Sampler* SamplerHandler::Get(SamplerHandle handle) {
   auto* sampler{samplers_.TryGet(handle)};
-  COMET_ASSERT(sampler != nullptr, "Requested sampler does not exist: ", handle,
-               "!");
+  COMET_ASSERT(sampler != nullptr, "SamplerHandler::Get", "sampler not found",
+               "sampler_handle", handle);
   return sampler;
 }
 
@@ -127,13 +135,15 @@ Sampler* SamplerHandler::GenerateSampler(SamplerKey key,
 
   COMET_CHECK_VK(vkCreateSampler(context_->GetDevice(), &info, nullptr,
                                  &sampler->native_handle),
-                 "Failed to create sampler!");
+                 "SamplerHandler::GenerateSampler", "sampler creation failed",
+                 "sampler_key", key);
 
   return sampler;
 }
 
 void SamplerHandler::DestroySampler(Sampler* sampler) {
-  COMET_ASSERT(sampler != nullptr, "Sampler is null!");
+  COMET_ASSERT(sampler != nullptr, "SamplerHandler::DestroySampler",
+               "sampler is null");
 
   if (sampler->native_handle != kInvalidVkNativeSamplerHandle) {
     vkDestroySampler(context_->GetDevice(), sampler->native_handle, nullptr);

@@ -14,12 +14,12 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_shader.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -29,10 +29,12 @@ DebugView::DebugView(const DebugViewDescr& descr)
       shader_handler_{descr.shader_handler},
       pipeline_handler_{descr.pipeline_handler},
       render_proxy_handler_{descr.render_proxy_handler} {
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "Pipeline handler is null!");
-  COMET_ASSERT(render_proxy_handler_ != nullptr,
-               "Render proxy handler is null!");
+  COMET_ASSERT(shader_handler_ != nullptr, "DebugView::DebugView",
+               "shader handler is null");
+  COMET_ASSERT(pipeline_handler_ != nullptr, "DebugView::DebugView",
+               "pipeline handler is null");
+  COMET_ASSERT(render_proxy_handler_ != nullptr, "DebugView::DebugView",
+               "render proxy handler is null");
 }
 
 void DebugView::OnInitialize() {
@@ -102,6 +104,7 @@ void DebugView::OnDestroy() {
 
 void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   COMET_PROFILE("DebugView::Update");
+  COMET_ASSERT(packet != nullptr, "DebugView::Update", "frame packet is null");
 
 #ifdef COMET_DEBUG_CULLING
   if (render_proxy_handler_->GetRenderProxyCount() == 0) {

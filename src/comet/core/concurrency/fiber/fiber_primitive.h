@@ -68,9 +68,7 @@ class FiberSpinLock {
  private:
 #ifdef COMET_DEBUG
   static_assert(std::atomic<FiberPrimitiveDebugId>::is_always_lock_free,
-                "std::atomic<FiberPrimitiveDebugId> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<FiberPrimitiveDebugId> must be always lock-free");
   static inline std::atomic<FiberPrimitiveDebugId> id_counter_{0};
   FiberPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG
@@ -90,9 +88,7 @@ class FiberSpinLockGuard {
  private:
 #ifdef COMET_DEBUG
   static_assert(std::atomic<FiberPrimitiveDebugId>::is_always_lock_free,
-                "std::atomic<FiberPrimitiveDebugId> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<FiberPrimitiveDebugId> must be always lock-free");
   static inline std::atomic<FiberPrimitiveDebugId> id_counter_{0};
   FiberPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG
@@ -114,9 +110,7 @@ class FiberMutex {
  private:
 #ifdef COMET_DEBUG
   static_assert(std::atomic<FiberPrimitiveDebugId>::is_always_lock_free,
-                "std::atomic<FiberPrimitiveDebugId> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<FiberPrimitiveDebugId> must be always lock-free");
   static inline std::atomic<FiberPrimitiveDebugId> id_counter_{0};
   FiberPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG
@@ -137,9 +131,7 @@ class FiberLockGuard {
  private:
 #ifdef COMET_DEBUG
   static_assert(std::atomic<FiberPrimitiveDebugId>::is_always_lock_free,
-                "std::atomic<FiberPrimitiveDebugId> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<FiberPrimitiveDebugId> must be always lock-free");
   static inline std::atomic<FiberPrimitiveDebugId> id_counter_{0};
   FiberPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG
@@ -159,9 +151,7 @@ class FiberAwareLockGuard {
  private:
 #ifdef COMET_DEBUG
   static_assert(std::atomic<FiberPrimitiveDebugId>::is_always_lock_free,
-                "std::atomic<FiberPrimitiveDebugId> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<FiberPrimitiveDebugId> must be always lock-free");
   static inline std::atomic<FiberPrimitiveDebugId> id_counter_{0};
   FiberPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG
@@ -199,9 +189,9 @@ class FiberCV {
 
   template <typename Predicate>
   void Wait(FiberUniqueLock& lock, Predicate&& pred) {
-    COMET_ASSERT(IsFiber(), "Current thread is not a fiber!");
+    COMET_ASSERT(IsFiber(), "FiberCV::Wait", "current thread is not a fiber");
     auto* fiber{GetFiber()};
-    COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+    COMET_ASSERT(fiber != nullptr, "FiberCV::Wait", "current fiber is null");
 
     while (!pred()) {
       {
@@ -226,9 +216,7 @@ class FiberCV {
  private:
 #ifdef COMET_DEBUG
   static_assert(std::atomic<FiberPrimitiveDebugId>::is_always_lock_free,
-                "std::atomic<FiberPrimitiveDebugId> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<FiberPrimitiveDebugId> must be always lock-free");
   static inline std::atomic<FiberPrimitiveDebugId> id_counter_{0};
   FiberPrimitiveDebugId id_{id_counter_++};
 #endif  // COMET_DEBUG
@@ -255,8 +243,7 @@ class FiberSharedMutex {
   FiberMutex mutex_{};
   FiberCV cv_{};
   static_assert(std::atomic<usize>::is_always_lock_free,
-                "std::atomic<usize> needs to be always lock-free. Unsupported "
-                "architecture");
+                "std::atomic<usize> must be always lock-free");
   std::atomic<usize> reader_count_{0};
   bool is_writer_{false};
 };

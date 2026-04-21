@@ -30,7 +30,7 @@ bool IsContained(const T* data, usize size, const T& value) {
     return false;
   }
 
-  COMET_ASSERT(data != nullptr, "Data provided is null!");
+  COMET_ASSERT(data != nullptr, "c_array::IsContained", "data is null");
 
   for (usize i{0}; i < size; ++i) {
     if (data[i] == value) {
@@ -47,7 +47,7 @@ usize GetIndex(const T* data, usize size, const T& value) {
     return kInvalidIndex;
   }
 
-  COMET_ASSERT(data != nullptr, "Data provided is null!");
+  COMET_ASSERT(data != nullptr, "c_array::GetIndex", "data is null");
 
   for (usize i{0}; i < size; ++i) {
     if (data[i] == value) {
@@ -64,7 +64,7 @@ void Clear(T* data, usize size) {
     return;
   }
 
-  COMET_ASSERT(data != nullptr, "Data provided is null!");
+  COMET_ASSERT(data != nullptr, "c_array::Clear", "data is null");
 
   if constexpr (!std::is_trivially_destructible_v<T>) {
     for (usize i{0}; i < size; ++i) {
@@ -76,8 +76,9 @@ void Clear(T* data, usize size) {
 template <typename T>
 T* Reserve(memory::Allocator* allocator, T* data, usize size, usize capacity,
            usize new_capacity) {
-  COMET_ASSERT(allocator != nullptr, "Allocator provided is null!");
-  COMET_ASSERT(size == 0 || data != nullptr, "Data provided is null!");
+  COMET_ASSERT(allocator != nullptr, "c_array::Reserve", "allocator is null");
+  COMET_ASSERT(size == 0 || data != nullptr, "c_array::Reserve", "data is null",
+               "size", size);
 
   if (new_capacity <= capacity) {
     return data;
@@ -109,13 +110,17 @@ template <typename T,
 T* Copy(T* dst, [[maybe_unused]] usize dst_size, const T* src,
         [[maybe_unused]] usize src_size, usize count,
         std::size_t dst_offset = 0, std::size_t src_offset = 0) {
-  COMET_ASSERT(src != nullptr, "Source array provided is null!");
-  COMET_ASSERT(dst != nullptr, "Destination array provided is null!");
+  COMET_ASSERT(src != nullptr, "c_array::Copy", "source array is null");
 
-  COMET_ASSERT(src_offset + count <= src_size,
-               "Source range exceeds the source array bounds!");
-  COMET_ASSERT(dst_offset + count <= dst_size,
-               "Destination range exceeds the destination array bounds!");
+  COMET_ASSERT(dst != nullptr, "c_array::Copy", "destination array is null");
+
+  COMET_ASSERT(src_offset + count <= src_size, "c_array::Copy",
+               "source range exceeds bounds", "src_offset", src_offset, "count",
+               count, "src_size", src_size);
+
+  COMET_ASSERT(dst_offset + count <= dst_size, "c_array::Copy",
+               "destination range exceeds bounds", "dst_offset", dst_offset,
+               "count", count, "dst_size", dst_size);
 
   for (usize i{0}; i < count; ++i) {
     dst[dst_offset + i] = src[src_offset + i];

@@ -13,8 +13,8 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_descriptor.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_descriptor_type.h"
 
 namespace comet {
 namespace rendering {

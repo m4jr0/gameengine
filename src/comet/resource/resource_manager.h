@@ -11,13 +11,13 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/handler/animation_resource_handler.h"
-#include "comet/resource/handler/material_resource_handler.h"
-#include "comet/resource/handler/model_resource_handler.h"
-#include "comet/resource/handler/shader_module_resource_handler.h"
-#include "comet/resource/handler/shader_resource_handler.h"
-#include "comet/resource/handler/texture_resource_handler.h"
+#include "comet/resource/animation/animation_resource_handler.h"
+#include "comet/resource/material/material_resource_handler.h"
+#include "comet/resource/model/model_resource_handler.h"
 #include "comet/resource/resource_allocator.h"
+#include "comet/resource/shader/shader_module_resource_handler.h"
+#include "comet/resource/shader/shader_resource_handler.h"
+#include "comet/resource/texture/texture_resource_handler.h"
 
 namespace comet {
 namespace resource {

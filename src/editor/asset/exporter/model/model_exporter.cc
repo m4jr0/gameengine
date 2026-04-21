@@ -18,13 +18,13 @@
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_type.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/label/rendering_texture_label.h"
+#include "comet/rendering/type/rendering_texture_type.h"
 #include "comet/resource/resource_manager.h"
-#include "comet/resource/shader_resource.h"
-#include "comet/resource/texture_resource.h"
+#include "comet/resource/shader/shader_resource.h"
+#include "comet/resource/texture/texture_resource.h"
 #include "editor/asset/asset_utils.h"
 #include "editor/asset/exporter/model/utils/model_exporter_utils.h"
 
@@ -77,7 +77,8 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
                                          resource::MaterialResource& material,
                                          aiMaterial* raw_material,
                                          aiTextureType raw_texture_type) const {
-  COMET_ASSERT(raw_material != nullptr, "Raw material is null!");
+  COMET_ASSERT(raw_material != nullptr, "ModelExporter::LoadMaterialTextures",
+               "raw material is null");
   const auto texture_count{raw_material->GetTextureCount(raw_texture_type)};
 
   if (texture_count == 0) {
@@ -87,11 +88,11 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
   const auto texture_type{GetTextureType(raw_texture_type)};
 
   if (texture_count > 1) {
-    COMET_LOG_GLOBAL_WARNING(
-        "Texture count for type \"",
-        rendering::GetTextureTypeLabel(texture_type),
-        "\" is greater than 1. This is not supported. Ignoring excess "
-        "textures.");
+    COMET_LOG_WARNING(
+        LoggerType::External, "ModelExporter::LoadMaterialTextures",
+        "texture count is greater than one, ignoring excess textures",
+        "texture_type", rendering::GetTextureTypeLabel(texture_type),
+        "texture_count", texture_count);
   }
 
   resource::TextureMapResource* map{nullptr};
@@ -110,9 +111,10 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
       break;
 
     default:
-      COMET_LOG_GLOBAL_WARNING("Unsupported texture type: ",
-                               rendering::GetTextureTypeLabel(texture_type),
-                               ". Ignoring.");
+      COMET_LOG_WARNING(LoggerType::External,
+                        "ModelExporter::LoadMaterialTextures",
+                        "texture type is unsupported", "texture_type",
+                        rendering::GetTextureTypeLabel(texture_type));
       return;
   }
 
@@ -120,55 +122,45 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
 
   if (raw_material->GetTexture(raw_texture_type, 0, &raw_texture_path) !=
       AI_SUCCESS) {
-    COMET_LOG_GLOBAL_ERROR("Could not load ", GetTextureTypeLabel(texture_type),
-                           " texture from material ",
-                           raw_material->GetName().C_Str(), " at path ",
-                           resource_path);
+    COMET_LOG_ERROR(LoggerType::External, "ModelExporter::LoadMaterialTextures",
+                    "material texture load failed", "texture_type",
+                    GetTextureTypeLabel(texture_type), "material",
+                    raw_material->GetName().C_Str(), "resource_path",
+                    resource_path);
     return;
   }
 
   auto path{resource_path / GetTmpTChar(raw_texture_path.C_Str())};
   Clean(path);
 
-  COMET_LOG_GLOBAL_DEBUG(
-      "Material \"", raw_material->GetName().C_Str(), "\" uses texture type \"",
-      GetTextureTypeLabel(texture_type), "\" from Assimp slot ",
-      static_cast<int>(raw_texture_type), " at path ", path);
+  COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::LoadMaterialTextures",
+                  "material texture resolved", "material",
+                  raw_material->GetName().C_Str(), "texture_type",
+                  GetTextureTypeLabel(texture_type), "assimp_slot",
+                  static_cast<int>(raw_texture_type), "path", path);
 
   map->texture_resource_id =
       resource::GenerateResourceIdFromPath<resource::TextureResource>(path);
   map->type = texture_type;
-
-  aiTextureMapMode raw_texture_repeat_mode{aiTextureMapMode_Wrap};
-
-  if (raw_material->Get(AI_MATKEY_MAPPINGMODE_U(raw_texture_type, 0),
-                        raw_texture_repeat_mode) != AI_SUCCESS) {
-    COMET_LOG_GLOBAL_DEBUG(
-        "Could not get texture repeat mode for U. Setting it to repeat mode.");
-    raw_texture_repeat_mode = aiTextureMapMode_Wrap;
-  }
-
-  if (raw_material->Get(AI_MATKEY_MAPPINGMODE_V(raw_texture_type, 0),
-                        raw_texture_repeat_mode) != AI_SUCCESS) {
-    COMET_LOG_GLOBAL_DEBUG(
-        "Could not get texture repeat mode for V. Setting it to repeat mode.");
-    raw_texture_repeat_mode = aiTextureMapMode_Wrap;
-  }
 
   aiTextureMapMode raw_u_repeat_mode;
   aiTextureMapMode raw_v_repeat_mode;
 
   if (raw_material->Get(AI_MATKEY_MAPPINGMODE_U(raw_texture_type, 0),
                         raw_u_repeat_mode) != AI_SUCCESS) {
-    COMET_LOG_GLOBAL_DEBUG(
-        "Could not get texture repeat mode for U. Setting it to repeat mode.");
+    COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::LoadMaterialTextures",
+                    "texture u repeat mode is missing, using wrap",
+                    "texture_type", GetTextureTypeLabel(texture_type),
+                    "material", raw_material->GetName().C_Str());
     raw_u_repeat_mode = aiTextureMapMode_Wrap;
   }
 
   if (raw_material->Get(AI_MATKEY_MAPPINGMODE_V(raw_texture_type, 0),
                         raw_v_repeat_mode) != AI_SUCCESS) {
-    COMET_LOG_GLOBAL_DEBUG(
-        "Could not get texture repeat mode for V. Setting it to repeat mode.");
+    COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::LoadMaterialTextures",
+                    "texture v repeat mode is missing, using wrap",
+                    "texture_type", GetTextureTypeLabel(texture_type),
+                    "material", raw_material->GetName().C_Str());
     raw_v_repeat_mode = aiTextureMapMode_Wrap;
   }
 
@@ -183,6 +175,8 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
 
 void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
   auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
+  COMET_ASSERT(scene_context != nullptr, "ModelExporter::OnSceneLoading",
+               "scene context is null");
 
 #ifdef COMET_WIDE_TCHAR
   const auto length{GetLength(scene_context->asset_abs_path)};
@@ -193,7 +187,8 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
   auto* scene_path{scene_context->asset_abs_path};
 #endif  // COMET_WIDE_TCHAR
 
-  COMET_LOG_GLOBAL_DEBUG("Loading scene at ", scene_path, "...");
+  COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnSceneLoading",
+                  "loading scene", "asset_path", scene_path);
 
   const auto* scene{scene_context->assimp_importer.ReadFile(
       scene_path, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
@@ -218,12 +213,15 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
       }
     }
 
-    COMET_LOG_RESOURCE_ERROR("Assimp error at path: ",
-                             scene_context->asset_abs_path, ": ", assimp_error);
+    COMET_LOG_ERROR(LoggerType::External, "ModelExporter::OnSceneLoading",
+                    "scene loading failed", "asset_path",
+                    scene_context->asset_abs_path, "error", assimp_error);
   }
 
   scene_context->scene = scene;
-  COMET_LOG_GLOBAL_DEBUG("Scene loaded at ", scene_path);
+
+  COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnSceneLoading",
+                  "scene loaded", "asset_path", scene_path);
 
 #ifdef COMET_WIDE_TCHAR
   scene_context->allocator->Deallocate(scene_path);
@@ -233,10 +231,20 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
 
 void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
   auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
+  COMET_ASSERT(scene_context != nullptr, "ModelExporter::OnModelProcessing",
+               "scene context is null");
+
   auto* exporter{scene_context->exporter};
+  COMET_ASSERT(exporter != nullptr, "ModelExporter::OnModelProcessing",
+               "exporter is null");
+
   auto* scene{scene_context->scene};
-  COMET_LOG_GLOBAL_DEBUG("Processing model at: ", scene_context->asset_abs_path,
-                         "...");
+  COMET_ASSERT(scene != nullptr, "ModelExporter::OnModelProcessing",
+               "scene is null");
+
+  COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnModelProcessing",
+                  "processing model", "asset_path",
+                  scene_context->asset_abs_path);
 
   if (scene->HasAnimations()) {
     const auto resources{LoadSkeletalModel(scene_context->allocator, scene,
@@ -265,17 +273,29 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
             resources.model, exporter->compression_mode_));
   }
 
-  COMET_LOG_GLOBAL_DEBUG("Model processed at: ", scene_context->asset_abs_path);
+  COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnModelProcessing",
+                  "model processed", "asset_path",
+                  scene_context->asset_abs_path);
 }
 
 void ModelExporter::OnMaterialsProcessing(job::JobParamsHandle params_handle) {
   auto* scene_context{reinterpret_cast<SceneContext*>(params_handle)};
+  COMET_ASSERT(scene_context != nullptr, "ModelExporter::OnMaterialsProcessing",
+               "scene context is null");
+
   auto* exporter{scene_context->exporter};
-  COMET_LOG_GLOBAL_DEBUG(
-      "Processing model materials at: ", scene_context->asset_abs_path, "...");
+  COMET_ASSERT(exporter != nullptr, "ModelExporter::OnMaterialsProcessing",
+               "exporter is null");
+
+  COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnMaterialsProcessing",
+                  "processing model materials", "asset_path",
+                  scene_context->asset_abs_path);
+
   exporter->LoadMaterials(scene_context);
-  COMET_LOG_GLOBAL_DEBUG("Model materials processed at: ",
-                         scene_context->asset_abs_path);
+
+  COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnMaterialsProcessing",
+                  "model materials processed", "asset_path",
+                  scene_context->asset_abs_path);
 }
 
 void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
@@ -298,20 +318,21 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
 
     if (aiGetMaterialFloat(raw_material, AI_MATKEY_SHININESS,
                            &material.descr.shininess) != AI_SUCCESS) {
-      COMET_LOG_GLOBAL_WARNING(
-          "Could not retrieve shininess property from material. Setting it to ",
-          kDefaultMaterialShininess_);
+      COMET_LOG_WARNING(LoggerType::External, "ModelExporter::LoadMaterials",
+                        "material shininess is missing, using default",
+                        "material", raw_material->GetName().C_Str(),
+                        "default_shininess", kDefaultMaterialShininess_);
       material.descr.shininess = kDefaultMaterialShininess_;
     }
 
     aiColor3D color{};
 
     if (raw_material->Get(AI_MATKEY_COLOR_DIFFUSE, color) != AI_SUCCESS) {
-      COMET_LOG_GLOBAL_WARNING(
-          "Could not retrieve diffuse color property from material. Setting it "
-          "to (",
-          kDefaultColor_.r, ", ", kDefaultColor_.g, ", ", kDefaultColor_.b,
-          ").");
+      COMET_LOG_WARNING(LoggerType::External, "ModelExporter::LoadMaterials",
+                        "material diffuse color is missing, using default",
+                        "material", raw_material->GetName().C_Str(),
+                        "default_r", kDefaultColor_.r, "default_g",
+                        kDefaultColor_.g, "default_b", kDefaultColor_.b);
       color = kDefaultColor_;
     }
 
@@ -380,6 +401,10 @@ job::JobDescr ModelExporter::SceneContext::GenerateMaterialsProcessingJobDescr(
 
 void ModelExporter::SceneContext::AddResourceFile(
     const resource::ResourceFile& file) {
+  COMET_ASSERT(resource_files != nullptr,
+               "ModelExporter::SceneContext::AddResourceFile",
+               "resource files container is null");
+
   fiber::FiberLockGuard lock{resource_mutex};
   resource_files->PushBack(file);
 }

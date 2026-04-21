@@ -22,22 +22,22 @@ View::View(const ViewDescr& descr)
                    descr.clear_color[2], descr.clear_color[3]},
       id_{descr.id},
       frame_state_{descr.frame_state} {
-  COMET_ASSERT(frame_state_ != nullptr, "Frame state is null!");
+  COMET_ASSERT(frame_state_ != nullptr, "View::View", "frame state is null");
 }
 
 View::~View() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for view, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "View::~View", "view is still initialized");
 }
 
 void View::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize view, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "View::Initialize",
+               "view is already initialized");
   OnInitialize();
   is_initialized_ = true;
 }
 
 void View::Destroy() {
+  COMET_ASSERT(is_initialized_, "View::Destroy", "view is not initialized");
   OnDestroy();
   id_ = kInvalidRenderingViewId;
   width_ = 0;

@@ -19,12 +19,14 @@ using Alignment = u16;
 constexpr auto kInvalidAlignment{static_cast<Alignment>(-1)};
 
 constexpr u16 kTrivialTypeMaxAlignment{alignof(std::max_align_t)};
+
 constexpr u16 kMaxAlignment{256};
 static_assert((kMaxAlignment & (kMaxAlignment - 1)) == 0,
-              "kMaxAlignment must be a power of 2!");
+              "kMaxAlignment must be a power of 2");
+
 constexpr Alignment kStackAlignment{16};
 static_assert((kStackAlignment & (kStackAlignment - 1)) == 0,
-              "kStackAlignment must be a power of 2!");
+              "kStackAlignment must be a power of 2");
 
 struct MemoryDescr {
   usize total_memory_size{0};

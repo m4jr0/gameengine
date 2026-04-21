@@ -18,7 +18,7 @@
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/utils/rendering_shader_utils.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/exporter/shader/data/shader_export_keys.h"
@@ -66,6 +66,9 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
   auto* allocator{context.allocator};
   shader_context.file =
       allocator->AllocateMany<schar>(shader_context.file_buffer_len);
+  COMET_ASSERT(shader_context.file != nullptr, "ShaderExporter::PopulateFiles",
+               "shader file buffer allocation failed", "buffer_len",
+               shader_context.file_buffer_len);
 
   {
     job::CounterGuard load_guard{};
@@ -78,8 +81,9 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
     return;
   }
 
-  COMET_LOG_GLOBAL_DEBUG("Processing shader at ", shader_context.asset_abs_path,
-                         "...");
+  COMET_LOG_DEBUG(LoggerType::External, "ShaderExporter::PopulateFiles",
+                  "processing shader", "asset_path",
+                  shader_context.asset_abs_path);
 
   try {
     // Every time we get an object, we must use assignment to prevent a bug
@@ -103,8 +107,10 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
     DumpBindings(shader_file, context.allocator, shader);
     DumpPushConstants(shader_file, context.allocator, shader);
   } catch (const nlohmann::json::exception& error) {
-    COMET_LOG_GLOBAL_ERROR("An error occurred while processing shader file: ",
-                           error.what());
+    COMET_LOG_ERROR(LoggerType::External, "ShaderExporter::PopulateFiles",
+                    "shader file processing failed", "asset_path",
+                    shader_context.asset_abs_path, "error", error.what());
+
     allocator->Deallocate(shader_context.file);
     return;
   }
@@ -114,14 +120,16 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   allocator->Deallocate(shader_context.file);
 
-  COMET_LOG_GLOBAL_DEBUG("Shader processed at ", shader_context.asset_abs_path,
-                         "...");
+  COMET_LOG_DEBUG(LoggerType::External, "ShaderExporter::PopulateFiles",
+                  "shader processed", "asset_path",
+                  shader_context.asset_abs_path);
 }
 
 void ShaderExporter::DumpShaderModules(const nlohmann::json& shader_file,
                                        resource::ShaderResource& shader) {
   if (!shader_file.contains(kCometEditorShaderKeyShaderModulePaths)) {
-    COMET_LOG_GLOBAL_ERROR("Shader has no shader modules defined!");
+    COMET_LOG_ERROR(LoggerType::External, "ShaderExporter::DumpShaderModules",
+                    "shader modules are missing");
     return;
   }
 
@@ -129,13 +137,20 @@ void ShaderExporter::DumpShaderModules(const nlohmann::json& shader_file,
       shader_file[kCometEditorShaderKeyShaderModulePaths]};
 
   if (!raw_module_paths.is_array()) {
-    COMET_LOG_GLOBAL_ERROR("shader_module_paths must be an array!");
+    COMET_LOG_ERROR(LoggerType::External, "ShaderExporter::DumpShaderModules",
+                    "shader module paths is not an array");
     return;
   }
 
   shader.descr.shader_module_resource_ids.Reserve(raw_module_paths.size());
 
   for (const auto& raw_module_path : raw_module_paths) {
+    if (!raw_module_path.is_string()) {
+      COMET_LOG_ERROR(LoggerType::External, "ShaderExporter::DumpShaderModules",
+                      "shader module path is not a string");
+      continue;
+    }
+
     const auto& raw_module_path_str{
         raw_module_path.get_ref<const nlohmann::json::string_t&>()};
 
@@ -349,11 +364,19 @@ void ShaderExporter::DumpPushConstants(const nlohmann::json& shader_file,
 
 void ShaderExporter::OnShaderSizeRequest(job::IOJobParamsHandle params_handle) {
   auto* shader_context{static_cast<ShaderContext*>(params_handle)};
+  COMET_ASSERT(shader_context != nullptr, "ShaderExporter::OnShaderSizeRequest",
+               "shader context is null");
+
   shader_context->file_len = GetSize(shader_context->asset_abs_path);
 }
 
 void ShaderExporter::OnShaderLoading(job::IOJobParamsHandle params_handle) {
   auto* shader_context{static_cast<ShaderContext*>(params_handle)};
+  COMET_ASSERT(shader_context != nullptr, "ShaderExporter::OnShaderLoading",
+               "shader context is null");
+  COMET_ASSERT(shader_context->file != nullptr,
+               "ShaderExporter::OnShaderLoading", "shader file buffer is null");
+
   ReadStrFromFile(shader_context->asset_abs_path, shader_context->file,
                   shader_context->file_buffer_len, &shader_context->file_len);
 }

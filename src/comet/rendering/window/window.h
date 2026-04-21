@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_WINDOW_WINDOW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
 
 namespace comet {
 namespace rendering {

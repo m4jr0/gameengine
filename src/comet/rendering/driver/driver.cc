@@ -41,20 +41,20 @@ Driver::Driver(const DriverDescr& descr)
 }
 
 Driver::~Driver() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for driver, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "Driver::~Driver",
+               "driver is still initialized");
 }
 
 void Driver::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize driver, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "Driver::Initialize",
+               "driver is already initialized");
   OnInitialize();
   is_initialized_ = true;
 }
 
 void Driver::Shutdown() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to shutdown driver, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "Driver::Shutdown",
+               "driver is not initialized");
   OnShutdown();
   is_initialized_ = false;
 }

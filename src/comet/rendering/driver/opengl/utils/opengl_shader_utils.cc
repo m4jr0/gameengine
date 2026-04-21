@@ -11,8 +11,9 @@
 #include "opengl_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/core/type_trait.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
+#include "comet/rendering/utils/rendering_shader_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -35,7 +36,8 @@ u32 ResolveBinding(u32 set, u32 binding) {
     case shaderconsts::kPassSet:
       return binding + shaderconsts::kPassSetOffset;
     default:
-      COMET_ASSERT(false, "Unsupported OpenGL logical set: ", set, "!");
+      COMET_ASSERT(false, "opengl_shader_utils::ResolveBinding",
+                   "logical set is unsupported", "set", set);
       return 0;
   }
 }
@@ -90,7 +92,9 @@ Alignment GetBindingFieldAlignment(ShaderMemoryLayout layout,
     case ShaderMemoryLayout::Packed:
       return GetScalarAlignment(type);
     default:
-      COMET_ASSERT(false, "Unknown shader memory layout!");
+      COMET_ASSERT(false, "opengl_shader_utils::GetBindingFieldAlignment",
+                   "shader memory layout is invalid", "layout",
+                   ToUnderlying(layout));
       return kInvalidAlignment;
   }
 }
@@ -107,7 +111,9 @@ ShaderFieldLayoutInfo GetFieldLayoutInfo(ShaderMemoryLayout layout,
 
   info.element_size = GetShaderVariableTypeSize(type);
   COMET_ASSERT(info.element_size != kInvalidShaderVariableSize,
-               "Invalid shader variable type size!");
+               "opengl_shader_utils::GetFieldLayoutInfo",
+               "shader variable type size is invalid", "type",
+               ToUnderlying(type));
 
   info.alignment = GetBindingFieldAlignment(layout, type);
   info.aligned_size = static_cast<ShaderVariableSize>(memory::AlignSize(
@@ -123,7 +129,8 @@ ShaderFieldLayoutInfo GetFieldLayoutInfo(ShaderMemoryLayout layout,
 
 GlNativeProgramHandle ResolveProgramHandle(const Shader* shader,
                                            ShaderBindType bind_type) {
-  COMET_ASSERT(shader != nullptr, "Shader provided is null!");
+  COMET_ASSERT(shader != nullptr, "opengl_shader_utils::ResolveProgramHandle",
+               "shader is null");
 
   switch (bind_type) {
     case ShaderBindType::Graphics:
@@ -133,6 +140,9 @@ GlNativeProgramHandle ResolveProgramHandle(const Shader* shader,
       return shader->compute_program_native_handle;
 
     default:
+      COMET_ASSERT(false, "opengl_shader_utils::ResolveProgramHandle",
+                   "shader bind type is invalid", "bind_type",
+                   ToUnderlying(bind_type));
       return kInvalidGlNativeProgramHandle;
   }
 }
@@ -148,7 +158,9 @@ GLenum GetGlCullMode(CullMode cull_mode) {
     case CullMode::FrontAndBack:
       return GL_FRONT_AND_BACK;
     default:
-      COMET_ASSERT(false, "Unsupported cull mode!");
+      COMET_ASSERT(false, "opengl_shader_utils::GetGlCullMode",
+                   "cull mode is unsupported", "cull_mode",
+                   ToUnderlying(cull_mode));
       return 0;
   }
 }
@@ -166,7 +178,9 @@ GLenum GetGlPrimitiveTopology(PrimitiveTopology topology) {
     case PrimitiveTopology::TriangleStrip:
       return GL_TRIANGLE_STRIP;
     default:
-      COMET_ASSERT(false, "Unsupported primitive topology!");
+      COMET_ASSERT(false, "opengl_shader_utils::GetGlPrimitiveTopology",
+                   "primitive topology is unsupported", "topology",
+                   ToUnderlying(topology));
       return 0;
   }
 }
@@ -190,7 +204,9 @@ GLenum GetGlCompareOp(CompareOp compare_op) {
     case CompareOp::Always:
       return GL_ALWAYS;
     default:
-      COMET_ASSERT(false, "Unsupported compare op!");
+      COMET_ASSERT(false, "opengl_shader_utils::GetGlCompareOp",
+                   "compare op is unsupported", "compare_op",
+                   ToUnderlying(compare_op));
       return 0;
   }
 }
@@ -207,9 +223,8 @@ GLenum GetGlStage(ShaderStage stage) {
       return GL_FRAGMENT_SHADER;
 
     default:
-      COMET_ASSERT(false, "Unknown shader stage: ",
-                   static_cast<std::underlying_type_t<ShaderStage>>(stage),
-                   "!");
+      COMET_ASSERT(false, "opengl_shader_utils::GetGlStage",
+                   "shader stage is invalid", "stage", ToUnderlying(stage));
       return GL_INVALID_VALUE;
   }
 }

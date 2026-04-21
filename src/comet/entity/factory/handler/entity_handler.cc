@@ -13,19 +13,19 @@
 namespace comet {
 namespace entity {
 Handler::~Handler() {
-  COMET_ASSERT(!is_initialized_,
-               "Destructor called for handler, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "entity::Handler::~Handler",
+               "handler is still initialized");
 }
 
 void Handler::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize handler, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "entity::Handler::Initialize",
+               "handler is already initialized");
   is_initialized_ = true;
 }
 
 void Handler::Shutdown() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to shutdown handler, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "entity::Handler::Shutdown",
+               "handler is not initialized");
   is_initialized_ = false;
 }
 

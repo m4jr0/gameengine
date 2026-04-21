@@ -11,13 +11,17 @@
 #include "opengl_lighting_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/culling/culling_utils.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
 #include "comet/rendering/driver/opengl/utils/opengl_texture_map_utils.h"
-#include "comet/rendering/light/light_utils.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/type/rendering_camera_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/utils/rendering_camera_utils.h"
+#include "comet/rendering/utils/rendering_culling_utils.h"
+#include "comet/rendering/utils/rendering_light_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -27,14 +31,18 @@ LightingHandler::LightingHandler(const LightingHandlerDescr& descr)
       shadow_settings_{descr.shadow_settings},
       texture_handler_{descr.texture_handler},
       sampler_handler_{descr.sampler_handler} {
-  COMET_ASSERT(shadow_settings_ != nullptr, "Shadow settings are null!");
-  COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
-  COMET_ASSERT(sampler_handler_ != nullptr, "Sampler handler is null!");
+  COMET_ASSERT(shadow_settings_ != nullptr, "LightingHandler::LightingHandler",
+               "shadow settings are null");
+  COMET_ASSERT(texture_handler_ != nullptr, "LightingHandler::LightingHandler",
+               "texture handler is null");
+  COMET_ASSERT(sampler_handler_ != nullptr, "LightingHandler::LightingHandler",
+               "sampler handler is null");
 }
 
 void LightingHandler::Update(const frame::FramePacket* packet) {
   COMET_PROFILE("LightingHandler::Update");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "LightingHandler::Update",
+               "frame packet is null");
 
   if (!packet->added_lights->IsEmpty()) {
     AddLights(packet->added_lights);
@@ -56,7 +64,8 @@ void LightingHandler::Update(const frame::FramePacket* packet) {
 
 const LightProxy* LightingHandler::Get(LightHandle handle) const {
   const auto* proxy{TryGetLight(handle)};
-  COMET_ASSERT(proxy != nullptr, "Light proxy does not exist: ", handle, "!");
+  COMET_ASSERT(proxy != nullptr, "LightingHandler::Get",
+               "light proxy does not exist", "light_handle", handle);
   return proxy;
 }
 
@@ -174,7 +183,8 @@ void LightingHandler::OnInitialize() {
 
     glCreateBuffers(1, &ssbo_lights_[i]);
     COMET_ASSERT(ssbo_lights_[i] != kInvalidGlNativeStorageHandle,
-                 "Failed to create light SSBO!");
+                 "LightingHandler::OnInitialize", "failed to create light ssbo",
+                 "frame_index", i);
 
     glNamedBufferData(ssbo_lights_[i], initial_light_buffer_size, nullptr,
                       GL_DYNAMIC_DRAW);
@@ -185,7 +195,8 @@ void LightingHandler::OnInitialize() {
 
     glCreateBuffers(1, &ssbo_shadow_data_[i]);
     COMET_ASSERT(ssbo_shadow_data_[i] != kInvalidGlNativeStorageHandle,
-                 "Failed to create shadow SSBO!");
+                 "LightingHandler::OnInitialize",
+                 "failed to create shadow ssbo", "frame_index", i);
 
     glNamedBufferData(ssbo_shadow_data_[i], initial_shadow_buffer_size, nullptr,
                       GL_DYNAMIC_DRAW);
@@ -311,11 +322,12 @@ void LightingHandler::AddShadowForLight(const LightProxy& light) {
 
   if (!IsShadowSupportedForLight(light.props, light.shadow)) {
     if (shadow_type == ShadowType::PointCubemap) {
-      COMET_LOG_RENDERING_WARNING(
-          "Point cubemap shadows are not implemented yet. Ignoring shadow "
-          "setup for light ",
-          light.handle, ".");
+      COMET_LOG_WARNING(LoggerType::Rendering,
+                        "LightingHandler::AddShadowForLight",
+                        "point cubemap shadows not implemented", "light_handle",
+                        light.handle);
     }
+
     return;
   }
 
@@ -486,7 +498,9 @@ void LightingHandler::UploadGpuLights(FrameInFlightIndex frame_index) {
       glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, required_size,
                        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT))};
 
-  COMET_ASSERT(gpu_lights != nullptr, "Failed to map light SSBO!");
+  COMET_ASSERT(gpu_lights != nullptr, "LightingHandler::UploadGpuLights",
+               "failed to map light ssbo", "frame_index", frame_index,
+               "required_size", required_size);
 
   usize gpu_index{0};
 
@@ -523,7 +537,9 @@ void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
       glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, required_size,
                        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT))};
 
-  COMET_ASSERT(gpu_data != nullptr, "Failed to map shadow SSBO!");
+  COMET_ASSERT(gpu_data != nullptr, "LightingHandler::UploadGpuShadowData",
+               "failed to map shadow ssbo", "frame_index", frame_index,
+               "required_size", required_size);
 
   for (usize i{0}; i < shadow_count; ++i) {
     const auto& job{render_jobs_->Get(i)};
@@ -585,7 +601,9 @@ void LightingHandler::InitializeShadowArrayResources() {
   texture_descr.internal_format = GL_DEPTH_COMPONENT32F;
 
   const auto texture_handle{texture_handler_->Generate(texture_descr)};
-  COMET_ASSERT(texture_handle, "Failed to generate shadow array texture!");
+  COMET_ASSERT(texture_handle,
+               "LightingHandler::InitializeShadowArrayResources",
+               "failed to generate shadow array texture");
 
   SamplerDescr sampler_descr{};
   sampler_descr.wrap_s = GL_CLAMP_TO_BORDER;
@@ -599,14 +617,18 @@ void LightingHandler::InitializeShadowArrayResources() {
   sampler_descr.use_border_color = true;
 
   const auto sampler_handle{sampler_handler_->GetOrGenerate(sampler_descr)};
-  COMET_ASSERT(sampler_handle, "Failed to generate shadow array sampler!");
+  COMET_ASSERT(sampler_handle,
+               "LightingHandler::InitializeShadowArrayResources",
+               "failed to generate shadow array sampler");
 
   shadow_array_texture_map_ = BuildTextureMap(
       sampler_handle, texture_handle, resource::TextureResourceId::Invalid(),
       TextureType::Unknown);
 
   const auto* texture{GetTextureHandler()->Get(texture_handle)};
-  COMET_ASSERT(texture != nullptr, "Shadow array texture is null!");
+  COMET_ASSERT(texture != nullptr,
+               "LightingHandler::InitializeShadowArrayResources",
+               "shadow array texture is null");
 
   glBindTexture(GL_TEXTURE_2D_ARRAY, texture->native_handle);
   glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BASE_LEVEL, 0);
@@ -652,7 +674,10 @@ s32 LightingHandler::AllocateShadowLayers(u32 layer_count) {
     return static_cast<s32>(i);
   }
 
-  COMET_LOG_RENDERING_ERROR("No free shadow layers left in shadow array!");
+  COMET_LOG_ERROR(LoggerType::Rendering,
+                  "LightingHandler::AllocateShadowLayers",
+                  "no free shadow layers left", "layer_count", layer_count,
+                  "capacity", kShadowLayerCapacity_);
   return -1;
 }
 
@@ -688,28 +713,36 @@ void LightingHandler::InitializeShadowResource(LightHandle light_handle,
 
   resource.first_layer_index = AllocateShadowLayers(resource.view_proj_count);
   COMET_ASSERT(resource.first_layer_index >= 0,
-               "Failed to allocate shadow layers!");
+               "LightingHandler::InitializeShadowResource",
+               "failed to allocate shadow layers", "light_handle", light_handle,
+               "view_proj_count", resource.view_proj_count);
 
   for (u32 i{0}; i < resource.view_proj_count; ++i) {
     glGenFramebuffers(1, &resource.framebuffers[i]);
     COMET_ASSERT(resource.framebuffers[i] != kInvalidFrameBufferHandle,
-                 "Failed to create shadow framebuffer!");
+                 "LightingHandler::InitializeShadowResource",
+                 "failed to create shadow framebuffer", "light_handle",
+                 light_handle, "framebuffer_index", i);
 
     glBindFramebuffer(GL_FRAMEBUFFER, resource.framebuffers[i]);
 
     const auto* shadow_texture{
         GetTextureHandler()->Get(shadow_array_texture_map_.texture_handle)};
-    COMET_ASSERT(shadow_texture != nullptr, "Shadow array texture is null!");
+    COMET_ASSERT(shadow_texture != nullptr,
+                 "LightingHandler::InitializeShadowResource",
+                 "shadow array texture is null", "light_handle", light_handle);
+
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                               shadow_texture->native_handle, 0,
                               resource.first_layer_index + i);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
-    [[maybe_unused]] const auto status{
-        glCheckFramebufferStatus(GL_FRAMEBUFFER)};
-    COMET_ASSERT(status == GL_FRAMEBUFFER_COMPLETE,
-                 "Shadow framebuffer is incomplete!");
+    COMET_FASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER),
+                  GL_FRAMEBUFFER_COMPLETE,
+                  "LightingHandler::InitializeShadowResource",
+                  "shadow framebuffer is incomplete", "light_handle",
+                  light_handle, "framebuffer_index", i);
   }
 
   glBindFramebuffer(GL_FRAMEBUFFER, kInvalidFrameBufferHandle);
@@ -814,7 +847,8 @@ bool LightingHandler::IsShadowSlotAlive(usize index) const noexcept {
 void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
                                             f32 max_distance, u32 cascade_count,
                                             f32 lambda, f32* out_splits) const {
-  COMET_ASSERT(out_splits != nullptr, "Cascade split output is null!");
+  COMET_ASSERT(out_splits != nullptr, "LightingHandler::PopulateCascadeSplits",
+               "cascade split output is null");
 
   const auto near_plane{camera_data.near_plane};
   const auto far_plane{max_distance};
@@ -908,7 +942,8 @@ void LightingHandler::EnsureStorageBufferCapacity(GlNativeStorageHandle& handle,
                                                   GLsizeiptr& capacity,
                                                   GLsizeiptr required_size) {
   COMET_ASSERT(handle != kInvalidGlNativeStorageHandle,
-               "Storage buffer must be allocated before resizing!");
+               "LightingHandler::EnsureStorageBufferCapacity",
+               "storage buffer handle is invalid");
 
   if (required_size <= capacity) {
     return;

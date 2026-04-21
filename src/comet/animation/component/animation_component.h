@@ -6,7 +6,8 @@
 #define COMET_COMET_ANIMATION_COMPONENT_ANIMATION_COMPONENT_H_
 
 #include "comet/animation/animation_id.h"
-#include "comet/animation/animation_type.h"
+#include "comet/animation/type/animation_clip_type.h"
+#include "comet/animation/type/animation_pose_type.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

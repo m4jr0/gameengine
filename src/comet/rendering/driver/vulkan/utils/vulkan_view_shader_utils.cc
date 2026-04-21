@@ -11,7 +11,7 @@
 #include "vulkan_view_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/vulkan/data/vulkan_shader_data.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
 
@@ -22,6 +22,16 @@ void AddWorldGlobalFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
+  COMET_ASSERT(shader_handler != nullptr,
+               "vulkan_view_shader_utils::AddWorldGlobalFieldUpdates",
+               "shader handler is null");
+  COMET_ASSERT(shader_handle,
+               "vulkan_view_shader_utils::AddWorldGlobalFieldUpdates",
+               "shader handle is invalid");
+  COMET_ASSERT(packet != nullptr,
+               "vulkan_view_shader_utils::AddWorldGlobalFieldUpdates",
+               "frame packet is null");
+
   const auto global_binding_index{
       shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
                                       sharedshaderconsts::kGlobalUboBinding)};
@@ -63,18 +73,30 @@ void AddWorldGlobalImageBindings(
     return;
   }
 
-  COMET_ASSERT(shader_handler != nullptr, "Shader handler is null!");
   COMET_ASSERT(shadow_map->texture_handle,
-               "Shadow map texture handle is null!");
+               "vulkan_view_shader_utils::AddWorldGlobalImageBindings",
+               "shadow map texture handle is invalid");
   COMET_ASSERT(shadow_map->sampler_handle,
-               "Shadow map sampler handle is null!");
+               "vulkan_view_shader_utils::AddWorldGlobalImageBindings",
+               "shadow map sampler handle is invalid");
+  COMET_ASSERT(shader_handler != nullptr,
+               "vulkan_view_shader_utils::AddWorldGlobalImageBindings",
+               "shader handler is null");
+  COMET_ASSERT(texture_handler != nullptr,
+               "vulkan_view_shader_utils::AddWorldGlobalImageBindings",
+               "texture handler is null");
+  COMET_ASSERT(shader_handle,
+               "vulkan_view_shader_utils::AddWorldGlobalImageBindings",
+               "shader handle is invalid");
 
   const auto binding_index{shader_handler->GetBindingIndex(
       shader_handle, shaderconsts::kGlobalSet,
       sharedshaderconsts::kMainShadowMapBinding)};
 
   const auto* texture{texture_handler->Get(shadow_map->texture_handle)};
-  COMET_ASSERT(texture != nullptr, "Shadow map texture is null!");
+  COMET_ASSERT(texture != nullptr,
+               "vulkan_view_shader_utils::AddWorldGlobalImageBindings",
+               "shadow map texture is null");
 
   const auto image_layout{GetDescriptorImageLayout(texture)};
 
@@ -92,9 +114,15 @@ void AddWorldShadowSettingsFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const ShadowSettings* shadow_settings,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
-  COMET_ASSERT(shader_handler != nullptr, "shader_handle handler is null!");
-  COMET_ASSERT(shader_handle, "shader_handle is invalid!");
-  COMET_ASSERT(shadow_settings != nullptr, "Shadow settings are null!");
+  COMET_ASSERT(shader_handler != nullptr,
+               "vulkan_view_shader_utils::AddWorldShadowSettingsFieldUpdates",
+               "shader handler is null");
+  COMET_ASSERT(shader_handle,
+               "vulkan_view_shader_utils::AddWorldShadowSettingsFieldUpdates",
+               "shader handle is invalid");
+  COMET_ASSERT(shadow_settings != nullptr,
+               "vulkan_view_shader_utils::AddWorldShadowSettingsFieldUpdates",
+               "shadow settings are null");
 
   const auto binding_index{shader_handler->GetBindingIndex(
       shader_handle, shaderconsts::kGlobalSet,
@@ -124,6 +152,16 @@ void AddDebugGlobalFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const frame::FramePacket* packet,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
+  COMET_ASSERT(shader_handler != nullptr,
+               "vulkan_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "shader handler is null");
+  COMET_ASSERT(shader_handle,
+               "vulkan_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "shader handle is invalid");
+  COMET_ASSERT(packet != nullptr,
+               "vulkan_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "frame packet is null");
+
   const auto global_binding_index{
       shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
                                       sharedshaderconsts::kGlobalUboBinding)};

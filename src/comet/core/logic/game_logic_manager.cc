@@ -13,7 +13,6 @@
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/rendering/camera/camera.h"
 
 namespace comet {
 GameLogicManager& GameLogicManager::Get() {
@@ -22,13 +21,16 @@ GameLogicManager& GameLogicManager::Get() {
 }
 
 void GameLogicManager::Update(frame::FramePacket* packet) {
+  COMET_ASSERT(packet != nullptr, "GameLogicManager::Update",
+               "frame packet is null");
+
   PopulatePacket(packet);
   event_manager_->FireAllEvents();
 
   struct Job {
     frame::FramePacket* packet{nullptr};
     rendering::LightManager* light_manager{nullptr};
-    scene::EnvironmentManager* environment_manager{nullptr};
+    environment::EnvironmentManager* environment_manager{nullptr};
     physics::PhysicsManager* physics_manager{nullptr};
     entity::EntityManager* entity_manager{nullptr};
     animation::AnimationManager* animation_manager{nullptr};
@@ -62,7 +64,7 @@ void GameLogicManager::Update(frame::FramePacket* packet) {
 
 void GameLogicManager::OnInitialize() {
   light_manager_ = &rendering::LightManager::Get();
-  environment_manager_ = &scene::EnvironmentManager::Get();
+  environment_manager_ = &environment::EnvironmentManager::Get();
   physics_manager_ = &physics::PhysicsManager::Get();
   entity_manager_ = &entity::EntityManager::Get();
   animation_manager_ = &animation::AnimationManager::Get();

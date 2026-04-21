@@ -12,8 +12,7 @@ namespace comet {
 namespace job {
 namespace internal {
 static_assert(std::atomic<usize>::is_always_lock_free,
-              "std::atomic<usize> needs to be always lock-free. Unsupported "
-              "architecture");
+              "std::atomic<usize> must be always lock-free");
 inline static std::atomic<usize> active_worker_count{0};
 inline static std::atomic<usize> active_fiber_worker_count{0};
 inline static std::atomic<usize> active_io_worker_count{0};

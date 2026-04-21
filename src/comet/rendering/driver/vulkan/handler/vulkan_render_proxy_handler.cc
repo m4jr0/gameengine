@@ -24,9 +24,9 @@
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_mesh_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_shader_type.h"
 
 namespace comet {
 namespace rendering {
@@ -36,13 +36,22 @@ RenderProxyHandler::RenderProxyHandler(const RenderProxyHandlerDescr& descr)
       material_handler_{descr.material_handler},
       mesh_handler_{descr.mesh_handler},
       shader_handler_{descr.shader_handler} {
-  COMET_ASSERT(material_handler_ != nullptr, "Material handler is null!");
-  COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
+  COMET_ASSERT(material_handler_ != nullptr,
+               "RenderProxyHandler::RenderProxyHandler",
+               "material handler is null");
+  COMET_ASSERT(mesh_handler_ != nullptr,
+               "RenderProxyHandler::RenderProxyHandler",
+               "mesh handler is null");
+  COMET_ASSERT(shader_handler_ != nullptr,
+               "RenderProxyHandler::RenderProxyHandler",
+               "shader handler is null");
 }
 
 void RenderProxyHandler::Update(frame::FramePacket* packet) {
   COMET_PROFILE("RenderProxyHandler::Update");
+  COMET_ASSERT(packet != nullptr, "RenderProxyHandler::Update",
+               "frame packet is null");
+
   const auto frame_count{context_->GetFrameCount()};
 
   if (update_frame_ == frame_count) {
@@ -57,8 +66,8 @@ void RenderProxyHandler::Update(frame::FramePacket* packet) {
   UploadRenderProxyLocalData();
   PrepareRenderProxyDrawData(context_->GetFrameInFlightIndex());
 
-  COMET_ASSERT(post_update_barriers_ != nullptr,
-               "Post-update barriers are null!");
+  COMET_ASSERT(post_update_barriers_ != nullptr, "RenderProxyHandler::Update",
+               "post update barriers are null");
 
   ApplyBufferMemoryBarriers(*post_update_barriers_,
                             context_->GetFrameData().command_buffer_handle,
@@ -395,7 +404,8 @@ void RenderProxyHandler::GenerateRenderProxies(
 
   for (usize i{0}; i < generated_proxy_count; ++i) {
     COMET_ASSERT(render_proxy_count_ != kMaxRenderProxyCount_,
-                 "Max count of render proxies reached!");
+                 "RenderProxyHandler::GenerateRenderProxies",
+                 "max render proxy count reached");
 
     const auto& geometry{geometries->Get(i)};
 
@@ -412,7 +422,10 @@ void RenderProxyHandler::GenerateRenderProxies(
         material_handler_->GetOrGenerate(geometry.material_resource_id);
 
     COMET_ASSERT(new_proxy.mesh_handle,
-                 "Invalid mesh handle retrieved from added geometry!");
+                 "RenderProxyHandler::GenerateRenderProxies",
+                 "mesh handle is invalid", "entity_id", geometry.entity_id,
+                 "model_entity_id", geometry.model_entity_id,
+                 "material_resource_id", geometry.material_resource_id);
 
     entity_id_to_proxy_id_map_[geometry.entity_id] = new_proxy.id;
     proxy_id_to_entity_id_map_[new_proxy.id] = geometry.entity_id;
@@ -447,8 +460,9 @@ void RenderProxyHandler::UpdateRenderProxies(
     }
 
     COMET_ASSERT(entity_id_to_proxy_id_map_.IsContained(updated_mesh.entity_id),
-                 "Tried to update non-existing mesh with entity #",
-                 updated_mesh.entity_id, "!");
+                 "RenderProxyHandler::UpdateRenderProxies",
+                 "mesh proxy does not exist", "entity_id",
+                 updated_mesh.entity_id);
 
     const auto proxy_id{entity_id_to_proxy_id_map_[updated_mesh.entity_id]};
 
@@ -502,16 +516,18 @@ void RenderProxyHandler::DestroyRenderProxies(
         entity_id_to_proxy_id_map_.TryGet(geometry.entity_id)};
 
     if (proxy_id_ptr == nullptr) {
-      COMET_LOG_RENDERING_WARNING("Render proxy with entity #",
-                                  geometry.entity_id,
-                                  " not found! Ignoring destruction...");
+      COMET_LOG_WARNING(
+          LoggerType::Rendering, "RenderProxyHandler::DestroyRenderProxies",
+          "render proxy not found", "entity_id", geometry.entity_id);
       continue;
     }
 
     const auto proxy_id{*proxy_id_ptr};
     COMET_ASSERT(proxy_id < render_proxy_count_,
-                 "Invalid render proxy ID: ", proxy_id, " > ",
-                 render_proxy_count_, "!");
+                 "RenderProxyHandler::DestroyRenderProxies",
+                 "proxy id out of range", "proxy_id", proxy_id,
+                 "render_proxy_count", render_proxy_count_, "entity_id",
+                 geometry.entity_id);
 
     material_handler_->Destroy(proxies_[proxy_id].material_handle);
 
@@ -573,10 +589,12 @@ void RenderProxyHandler::UpdateSkinningMatrices(
     const frame::SkinningBindings* bindings,
     const frame::MatrixPalettes* palettes) {
   COMET_PROFILE("RenderProxyHandler::UpdateSkinningMatrices");
+
   const auto entity_count{bindings->GetSize()};
-  COMET_ASSERT(
-      entity_count == palettes->GetSize(),
-      "Skinning binding count and matrix palette count should be the same!");
+  COMET_ASSERT(entity_count == palettes->GetSize(),
+               "RenderProxyHandler::UpdateSkinningMatrices",
+               "binding/palette count mismatch", "binding_count", entity_count,
+               "palette_count", palettes->GetSize());
 
   if (entity_count == 0) {
     return;
@@ -837,10 +855,12 @@ void RenderProxyHandler::UploadPendingRenderProxyLocalData() {
 
   const auto staging_ssbo_proxy_local_datas_buffer_size{
       pending_count * sizeof(GpuRenderProxyLocalData)};
-
   COMET_ASSERT(
       staging_ssbo_proxy_local_datas_buffer_size % sizeof(ShaderWord) == 0,
-      "Data should be a multiple of ShaderWord!");
+      "RenderProxyHandler::UploadPendingRenderProxyLocalData",
+      "staging size is not word aligned", "staging_size",
+      staging_ssbo_proxy_local_datas_buffer_size, "shader_word_size",
+      sizeof(ShaderWord));
 
   ReallocateBuffer(
       staging_ssbo_proxy_local_datas_, allocator_handle,
@@ -1012,7 +1032,9 @@ void RenderProxyHandler::UploadRenderDrawData(FrameInFlightIndex frame_index) {
   }
 
   COMET_ASSERT(shader_to_transfer_barriers_ != nullptr,
-               "Shader-to-transfer barriers are null!");
+               "RenderProxyHandler::UploadRenderDrawData",
+               "shader to transfer barriers are null");
+
   shader_to_transfer_barriers_->Clear();
 
   const auto command_buffer_handle{
@@ -1090,7 +1112,10 @@ void RenderProxyHandler::PopulateRenderIndirectProxy(
   auto& batch{indirect_batches_->Get(batch_id)};
   const auto* mesh_proxy{mesh_handler_->Get(batch.proxy->mesh_handle)};
 
-  COMET_ASSERT(mesh_proxy != nullptr, "Mesh proxy is null!");
+  COMET_ASSERT(mesh_proxy != nullptr,
+               "RenderProxyHandler::PopulateRenderIndirectProxy",
+               "mesh proxy is null", "batch_id", batch_id, "mesh_handle",
+               batch.proxy->mesh_handle);
 
   auto& indirect_proxy{memory[batch_id]};
   indirect_proxy.command.firstInstance = batch.offset;
@@ -1107,7 +1132,10 @@ void RenderProxyHandler::PopulateShadowRenderIndirectProxy(
   auto& batch{indirect_batches_->Get(batch_id)};
   const auto* mesh_proxy{mesh_handler_->Get(batch.proxy->mesh_handle)};
 
-  COMET_ASSERT(mesh_proxy != nullptr, "Mesh proxy is null!");
+  COMET_ASSERT(mesh_proxy != nullptr,
+               "RenderProxyHandler::PopulateShadowRenderIndirectProxy",
+               "mesh proxy is null", "batch_id", batch_id, "mesh_handle",
+               batch.proxy->mesh_handle);
 
   auto& indirect_proxy{memory[batch_id]};
   indirect_proxy.command.firstInstance = batch.offset;

@@ -13,7 +13,7 @@
 #include "GLFW/glfw3.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
 #include "comet/rendering/window/window.h"
 
 namespace comet {

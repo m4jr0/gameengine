@@ -50,8 +50,8 @@ Thread& Thread::operator=(Thread&& other) noexcept {
 }
 
 Thread::~Thread() {
-  COMET_ASSERT(!IsAttached(),
-               "Destructor called for thread, but it is still initialized!");
+  COMET_ASSERT(!IsAttached(), "thread::Thread::~Thread",
+               "thread is still attached");
 }
 
 void Thread::TryJoin() {
@@ -71,14 +71,15 @@ bool Thread::IsMain() const noexcept {
 }
 
 void Thread::Attach() {
-  COMET_ASSERT(!IsAttached(),
-               "Tried to attach thread, but it is already done!");
+  COMET_ASSERT(!IsAttached(), "thread::Thread::Attach",
+               "thread is already attached");
   thread_id_ = thread_id_counter_.fetch_add(1, std::memory_order_acq_rel);
   internal::AttachThread(this);
 }
 
 void Thread::Detach() {
-  COMET_ASSERT(IsAttached(), "Tried to detach thread, but it is not attached!");
+  COMET_ASSERT(IsAttached(), "thread::Thread::Detach",
+               "thread is not attached");
   thread_id_ = kInvalidThreadId;
   internal::DetachThread();
 }

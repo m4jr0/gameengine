@@ -15,7 +15,7 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
 #include "comet/entity/entity_id.h"
-#include "comet/resource/resource.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace animation {

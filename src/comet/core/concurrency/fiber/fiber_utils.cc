@@ -21,8 +21,8 @@ void SleepMs(u32 duration_ms) {
     return;
   }
 
-  fiber::FiberMutex mutex{};
-  fiber::FiberUniqueLock lock{mutex};
+  FiberMutex mutex{};
+  FiberUniqueLock lock{mutex};
   time::Chrono chrono{};
   chrono.Start(duration_ms);
 

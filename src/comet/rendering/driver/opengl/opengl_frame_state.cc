@@ -18,8 +18,8 @@ FrameState::FrameState(const FrameStateDescr& descr)
     : max_frames_in_flight_{descr.max_frames_in_flight} {}
 
 void FrameState::Initialize() {
-  COMET_ASSERT(max_frames_in_flight_ != 0,
-               "Max frames in flight must be greater than 0!");
+  COMET_ASSERT(max_frames_in_flight_ != 0, "FrameState::Initialize",
+               "max frames in flight is zero");
   frame_count_ = 0;
   frame_in_flight_index_ = 0;
 }

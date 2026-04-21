@@ -23,7 +23,7 @@
 #include "comet/rendering/driver/empty/empty_driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/utils/rendering_driver_utils.h"
 #include "comet/time/time_manager.h"
 
 #ifdef COMET_HAS_DEBUG_UI
@@ -39,6 +39,8 @@ RenderingManager& RenderingManager::Get() {
 
 void RenderingManager::Update(frame::FramePacket* packet) {
   COMET_PROFILE("RenderingManager::Update");
+  COMET_ASSERT(packet != nullptr, "RenderingManager::Update",
+               "frame packet is null");
 
   current_time_ += time::TimeManager::Get().GetUnscaledDeltaTime();
 
@@ -87,14 +89,14 @@ void RenderingManager::Update(frame::FramePacket* packet) {
 }
 
 const Window* RenderingManager::GetWindow() const {
-  if (driver_ == nullptr) {
-    return nullptr;
-  }
-
+  COMET_ASSERT(driver_ != nullptr, "RenderingManager::OnShutdown",
+               "rendering driver is null");
   return driver_->GetWindow();
 }
 
 DriverType RenderingManager::GetDriverType() const noexcept {
+  COMET_ASSERT(driver_ != nullptr, "RenderingManager::OnShutdown",
+               "rendering driver is null");
   return driver_->GetType();
 }
 
@@ -105,6 +107,8 @@ f64 RenderingManager::GetFrameTime() const noexcept {
 }
 
 u32 RenderingManager::GetDrawCount() const noexcept {
+  COMET_ASSERT(driver_ != nullptr, "RenderingManager::OnShutdown",
+               "rendering driver is null");
   return driver_->GetDrawCount();
 }
 
@@ -129,10 +133,13 @@ void RenderingManager::OnInitialize() {
   shadow_settings_ = GenerateShadowSettings();
 
   const auto* driver_label{COMET_CONF_STR(conf::kRenderingDriver)};
-  COMET_LOG_RENDERING_INFO("Graphics backend: ", driver_label, ".");
+  COMET_LOG_INFO(LoggerType::Rendering, "RenderingManager::OnInitialize",
+                 "graphics backend selected", "driver_label", driver_label);
+
   const auto driver_type{GetDriverTypeFromStr(driver_label)};
-  COMET_ASSERT(driver_type != DriverType::Unknown,
-               "Unknown rendering driver type!");
+  COMET_ASSERT(
+      driver_type != DriverType::Unknown, "RenderingManager::OnInitialize",
+      "rendering driver type is unknown", "driver_label", driver_label);
 
   if (driver_type == DriverType::OpenGl) {
     GenerateOpenGlDriver();
@@ -147,7 +154,8 @@ void RenderingManager::OnInitialize() {
   }
 #endif  // COMET_DEBUG
 
-  COMET_ASSERT(driver_ != nullptr, "Rendering driver is null!");
+  COMET_ASSERT(driver_ != nullptr, "RenderingManager::OnInitialize",
+               "rendering driver is null");
   is_multithreaded_ = IsMultithreading(driver_type);
 
   // Driver can't be initialized in another thread, as it would not be
@@ -168,9 +176,8 @@ void RenderingManager::OnInitialize() {
 
     guard.Wait();
 #else
-    COMET_ASSERT(false,
-                 "Multithreading is not enabled with rendering manager, but "
-                 "main thread is not available!");
+    COMET_ASSERT(false, "RenderingManager::OnInitialize",
+                 "main thread worker is unavailable");
 #endif  //  COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   }
 
@@ -193,8 +200,11 @@ void RenderingManager::OnShutdown() {
   DebugUiRegistry::Get().Destroy();
 #endif  // COMET_HAS_DEBUG_UI
 
-  driver_->Shutdown();
-  driver_ = nullptr;
+  if (driver_ != nullptr) {
+    driver_->Shutdown();
+    driver_ = nullptr;
+  }
+
   frame_rate_ = 0;
   counter_ = 0;
   frame_time_threshold_ = 0;
@@ -230,7 +240,8 @@ void RenderingManager::GenerateVulkanDriver() {
 }
 
 void RenderingManager::GenerateDirect3D12Driver() {
-  COMET_ASSERT(false, "Direct3D 12 is unsupported at this time.");
+  COMET_ASSERT(false, "RenderingManager::GenerateDirect3D12Driver",
+               "direct3d12 is unsupported");
 }
 
 #ifdef COMET_DEBUG
@@ -267,10 +278,13 @@ void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
   descr.rendering_view_descrs = GenerateRenderingViewDescrs();
 
   const auto* app_name{COMET_CONF_STR(conf::kApplicationName)};
+
   descr.app_name_len = GetLength(app_name);
   COMET_ASSERT(descr.app_name_len < kMaxAppNameLen,
-               "Application name provided is too long (", descr.app_name_len,
-               " > ", kMaxAppNameLen, ")!");
+               "RenderingManager::FillDriverDescr",
+               "application name is too long", "app_name_len",
+               descr.app_name_len, "max_app_name_len", kMaxAppNameLen);
+
   Copy(descr.app_name, app_name, descr.app_name_len);
   descr.app_major_version = COMET_CONF_U8(conf::kRenderingVulkanMajorVersion);
   descr.app_minor_version = COMET_CONF_U8(conf::kRenderingVulkanMinorVersion);

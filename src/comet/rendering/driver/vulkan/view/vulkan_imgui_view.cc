@@ -33,7 +33,7 @@ namespace rendering {
 namespace vk {
 ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
     : View{descr}, window_{descr.window} {
-  COMET_ASSERT(window_ != nullptr, "Window is null!");
+  COMET_ASSERT(window_ != nullptr, "ImGuiView::ImGuiView", "window is null");
 }
 
 void ImGuiView::Update(frame::FramePacket*) {
@@ -117,7 +117,8 @@ void ImGuiView::OnInitialize() {
 
   COMET_CHECK_VK(vkCreateDescriptorPool(device, &pool_info, VK_NULL_HANDLE,
                                         &descriptor_pool_handle_),
-                 "Failed to create descriptor pool for ImGui!");
+                 "ImGuiView::OnInitialize",
+                 "imgui descriptor pool creation failed");
 
 #ifdef COMET_DEBUG
   IMGUI_CHECKVERSION();

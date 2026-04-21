@@ -23,7 +23,7 @@
 // Memory.
 #ifdef COMET_DEBUG
 // TODO(m4jr0): Find lock-free solution.
-// #define COMET_TRACK_ALLOCATIONS
+//  #define COMET_TRACK_ALLOCATIONS
 // #define COMET_POISON_ALLOCATIONS
 // #define COMET_POISON_FIBER_STACKS
 
@@ -40,7 +40,10 @@
 
 // Logging.
 #ifdef COMET_DEBUG
-#define COMET_LOG_IS_FIBER_PREFIX
+#define COMET_LOG_USE_FIBER_PREFIX
+
+// Displays the forwarded log prefix (for example Class::Method).
+// #define COMET_LOG_USE_CONTEXT_PREFIX
 #endif  // COMET_DEBUG
 
 // String.

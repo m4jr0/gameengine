@@ -19,7 +19,7 @@ class MaximumCapacityReachedError : public std::runtime_error {
 
 class EmptyError : public std::runtime_error {
  public:
-  EmptyError() : runtime_error("Structure instance is empty") {}
+  EmptyError() : runtime_error("structure instance is empty") {}
 };
 }  // namespace comet
 

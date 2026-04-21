@@ -12,6 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/c_string.h"
+#include "comet/core/debug_label.h"
 
 namespace comet {
 namespace rendering {
@@ -120,7 +121,7 @@ const schar* GetVkResultString(VkResult result) {
     case VK_ERROR_NOT_ENOUGH_SPACE_KHR:
       return "VK_ERROR_NOT_ENOUGH_SPACE_KHR";
     default:
-      return "???";
+      return kUnknownLabel;
   }
 }
 
@@ -202,6 +203,13 @@ static VkDevice device_handle{VK_NULL_HANDLE};
 }  // namespace internal
 
 void InitializeDebugLabels(VkInstance instance_handle, VkDevice device_handle) {
+  COMET_ASSERT(instance_handle != VK_NULL_HANDLE,
+               "vulkan_debug::InitializeDebugLabels",
+               "instance handle is invalid");
+  COMET_ASSERT(device_handle != VK_NULL_HANDLE,
+               "vulkan_debug::InitializeDebugLabels",
+               "device handle is invalid");
+
   if (internal::vkSetDebugUtilsObjectNameEXT != nullptr) {
     return;
   }
@@ -213,13 +221,21 @@ void InitializeDebugLabels(VkInstance instance_handle, VkDevice device_handle) {
           instance_handle, "vkSetDebugUtilsObjectNameEXT");
 
   COMET_ASSERT(internal::vkSetDebugUtilsObjectNameEXT != nullptr,
-               "Cound not load vkSetDebugUtilsObjectNameEXT!");
+               "vulkan_debug::InitializeDebugLabels",
+               "vkSetDebugUtilsObjectNameEXT could not be loaded");
 }
 
 void SetDebugLabel(VkObjectType object_type, u64 object_handle,
                    const schar* label) {
   COMET_ASSERT(internal::vkSetDebugUtilsObjectNameEXT != nullptr,
-               "Debug names are not initialized!");
+               "vulkan_debug::SetDebugLabel",
+               "debug labels are not initialized");
+  COMET_ASSERT(internal::device_handle != VK_NULL_HANDLE,
+               "vulkan_debug::SetDebugLabel", "device handle is invalid");
+  COMET_ASSERT(object_handle != 0, "vulkan_debug::SetDebugLabel",
+               "object handle is invalid");
+  COMET_ASSERT(label != nullptr, "vulkan_debug::SetDebugLabel",
+               "label is null");
 
   VkDebugUtilsObjectNameInfoEXT name_info{};
   name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;

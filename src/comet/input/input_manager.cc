@@ -11,7 +11,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/thread/thread_context.h"
-#include "comet/core/memory/allocator/allocator.h"
 #include "comet/event/event_manager.h"
 #include "comet/input/input_event.h"
 
@@ -27,11 +26,9 @@ InputManager& InputManager::Get() {
 }
 
 void InputManager::Update() {
-  COMET_ASSERT(thread_id_ == thread::GetThreadId(),
-               "Input Manager was initialized on thread #", thread_id_,
-               ", but GLFW is not thread-safe. The Update method MUST be "
-               "called from the "
-               "same thread.");
+  COMET_ASSERT(thread_id_ == thread::GetThreadId(), "InputManager::Update",
+               "called from wrong thread", "expected_thread_id", thread_id_,
+               "actual_thread_id", thread::GetThreadId());
 
   ReadInputs();
   ApplyUserUpdates();
@@ -87,6 +84,8 @@ void InputManager::DisableUnconstrainedMouseCursor() {
 }
 
 void InputManager::AttachGlfwWindow(GLFWwindow* window_handle) {
+  COMET_ASSERT(window_handle != nullptr, "InputManager::AttachGlfwWindow",
+               "window handle is null");
   window_handle_ = window_handle;
 }
 
@@ -103,6 +102,9 @@ bool InputManager::IsShiftPressed() const {
 }
 
 void InputManager::OnInitialize() {
+  COMET_ASSERT(window_handle_ != nullptr, "InputManager::OnInitialize",
+               "window handle is null");
+
   thread_id_ = thread::GetThreadId();
 
   cached_input_state_.keys_pressed =
@@ -161,9 +163,8 @@ void InputManager::OnInitialize() {
 #endif  // COMET_IMGUI
 
         event::EventManager::Get().FireEvent<KeyboardEvent>(
-            static_cast<input::KeyCode>(key),
-            static_cast<input::ScanCode>(scan_code),
-            static_cast<input::Action>(action), static_cast<input::Mods>(mods));
+            static_cast<KeyCode>(key), static_cast<ScanCode>(scan_code),
+            static_cast<Action>(action), static_cast<Mods>(mods));
       });
 
   glfwSetMouseButtonCallback(

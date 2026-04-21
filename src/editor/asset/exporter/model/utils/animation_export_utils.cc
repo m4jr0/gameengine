@@ -11,9 +11,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/animation/animation_id.h"
-#include "comet/animation/animation_utils.h"
-#include "comet/core/logger.h"
-#include "comet/geometry/geometry_type.h"
+#include "comet/animation/utils/animation_clip_utils.h"
+#include "comet/core/logger/logging.h"
+#include "comet/geometry/type/geometry_skeleton_type.h"
 #include "comet/math/geometry.h"
 #include "comet/math/vector.h"
 #include "comet/resource/resource.h"
@@ -169,8 +169,16 @@ void PopulateAnimationClip(ModelExport& model_export,
                            const aiAnimation* raw_animation,
                            const geometry::Skeleton& skeleton,
                            resource::AnimationClipResource& clip_resource) {
+  COMET_ASSERT(raw_animation != nullptr,
+               "animation_export_utils::PopulateAnimationClip",
+               "raw animation is null");
+
   const auto* animation_name{raw_animation->mName.C_Str()};
-  COMET_LOG_GLOBAL_DEBUG("Processing ", animation_name, " animation...");
+  COMET_LOG_DEBUG(LoggerType::External,
+                  "animation_export_utils::PopulateAnimationClip",
+                  "processing animation", "animation", animation_name,
+                  "asset_path", model_export.path);
+
   const auto animation_id{animation::GenerateQualifiedAnimationClipId(
       model_export.path, animation_name)};
   clip_resource.id = animation_id.GetValue();

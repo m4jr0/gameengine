@@ -100,9 +100,9 @@ f32 DecompressF32Rl(u32 quantized, u32 bit_count) {
 }
 
 u32 CompressF32Rl(f32 f, f32 min, f32 max, u32 bit_count) {
-  COMET_ASSERT(min <= f && f <= max,
-               "Float value to be compressed is out of bounds: ", f,
-               ", min: ", min, "max: ", max, "!");
+  COMET_ASSERT(min <= f && f <= max, "CompressF32Rl",
+               "float value is out of bounds", "value", f, "min", min, "max",
+               max);
   f = (f - min) / (max - min);
   const auto quantized{CompressF32Rl(f, bit_count)};
   return quantized;

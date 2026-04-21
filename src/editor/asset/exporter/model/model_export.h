@@ -13,9 +13,9 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/geometry/geometry_type.h"
-#include "comet/resource/animation_resource.h"
-#include "comet/resource/model_resource.h"
+#include "comet/geometry/type/geometry_skeleton_type.h"
+#include "comet/resource/animation/animation_resource.h"
+#include "comet/resource/model/model_resource.h"
 
 namespace comet {
 namespace editor {

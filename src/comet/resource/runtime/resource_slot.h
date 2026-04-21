@@ -6,8 +6,8 @@
 #define COMET_COMET_RESOURCE_RUNTIME_RESOURCE_SLOT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/resource/resource.h"
 #include "comet/resource/resource_id.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace resource {

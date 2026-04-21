@@ -18,8 +18,10 @@ namespace comet {
 namespace gid {
 Gid GenerateNewGeneration(Gid id) noexcept {
   Gid generation{GetGeneration(id) + 1};
-  COMET_ASSERT(generation >= (kGenerationMask >> kIndexBits),
-               "Bad generation retrieved: ", generation, "!");
+  COMET_ASSERT(generation <= (kGenerationMask >> kIndexBits),
+               "gid::GenerateNewGeneration", "generation is out of range",
+               "generation", generation, "max_generation",
+               (kGenerationMask >> kIndexBits));
   return generation | GetIndex(id);
 }
 
@@ -95,8 +97,10 @@ Gid BreedHandler::Generate() {
 
   if (free_ids_.size() > gid::kMinFreeIndices) {
     breed_id = free_ids_.front();
-    COMET_ASSERT(!IsAlive(breed_id), "Breed ID generated is alive: ", breed_id,
-                 "!");
+
+    COMET_ASSERT(!IsAlive(breed_id), "gid::BreedHandler::Generate",
+                 "recycled breed id is still alive", "breed_id", breed_id);
+
     free_ids_.pop_front();
     breed_id = gid::GenerateNewGeneration(breed_id);
   } else {
@@ -108,19 +112,28 @@ Gid BreedHandler::Generate() {
 }
 
 void BreedHandler::Destroy(Gid breed_id) {
-  COMET_ASSERT(IsAlive(breed_id), "Breed with ID ", breed_id,
-               " is already destroyed.");
+  COMET_ASSERT(IsAlive(breed_id), "gid::BreedHandler::Destroy",
+               "breed is already destroyed", "breed_id", breed_id);
+
   const auto breed_index{GetIndex(breed_id)};
-  COMET_ASSERT(breed_index < generations_.GetSize(), "Breed with ID ", breed_id,
-               " is malformed.");
+
+  COMET_ASSERT(breed_index < generations_.GetSize(),
+               "gid::BreedHandler::Destroy", "breed id is malformed",
+               "breed_id", breed_id, "breed_index", breed_index,
+               "generation_count", generations_.GetSize());
+
   ++generations_[breed_index];
   free_ids_.push_back(breed_id);
 }
 
 bool BreedHandler::IsAlive(Gid breed_id) const {
   const auto breed_index{GetIndex(breed_id)};
-  COMET_ASSERT(breed_index < generations_.GetSize(), "Breed with ID ", breed_id,
-               " is malformed.");
+
+  COMET_ASSERT(breed_index < generations_.GetSize(),
+               "gid::BreedHandler::IsAlive", "breed id is malformed",
+               "breed_id", breed_id, "breed_index", breed_index,
+               "generation_count", generations_.GetSize());
+
   return generations_[breed_index] == GetGeneration(breed_id);
 }
 }  // namespace gid

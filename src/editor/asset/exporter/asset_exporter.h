@@ -13,6 +13,7 @@
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource.h"
+#include "comet/resource/type/resource_common_type.h"
 #include "editor/asset/asset.h"
 #include "editor/memory/memory.h"
 

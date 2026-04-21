@@ -49,12 +49,16 @@ void Sleep(Fiber* fiber) { FiberLifeCycleHandler::Get().PutToSleep(fiber); }
 
 void RunOrResume(Fiber* to) {
   auto* from{GetFiber()};
-  COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
-  COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
-  COMET_ASSERT(from != to, "Trying to switch from and to the same fiber!");
-  COMET_ASSERT(!IsStackOverflow(), "Stack overflow detected! ",
-               from->GetCurrentStackSize(), " > ", from->GetStackCapacity(),
-               "!");
+  COMET_ASSERT(from != nullptr, "fiber::internal::RunOrResume",
+               "source fiber is null");
+  COMET_ASSERT(to != nullptr, "fiber::internal::RunOrResume",
+               "destination fiber is null");
+  COMET_ASSERT(from != to, "fiber::internal::RunOrResume",
+               "source fiber and destination fiber are identical");
+  COMET_ASSERT(!IsStackOverflow(), "fiber::internal::RunOrResume",
+               "stack overflow detected", "current_stack_size",
+               from->GetCurrentStackSize(), "stack_capacity",
+               from->GetStackCapacity());
   tls_current_fiber = to;
 #ifdef COMET_IS_ASAN
   if (tls_fake_stack == nullptr) {
@@ -87,12 +91,21 @@ void RunOrResume(Fiber* to) {
 void ResumeWorker() {
   auto* from{GetFiber()};
   auto* to{&tls_thread_fiber};
-  COMET_ASSERT(from != nullptr, "Fiber to switch from is null!");
-  COMET_ASSERT(to != nullptr, "Fiber to switch to is null!");
-  COMET_ASSERT(from != to, "Trying to switch from and to the same fiber!");
-  COMET_ASSERT(!IsStackOverflow(), "Stack overflow detected! ",
-               from->GetCurrentStackSize(), " > ", from->GetStackCapacity(),
-               "!");
+
+  COMET_ASSERT(from != nullptr, "fiber::internal::ResumeWorker",
+               "source fiber is null");
+
+  COMET_ASSERT(to != nullptr, "fiber::internal::ResumeWorker",
+               "destination fiber is null");
+
+  COMET_ASSERT(from != to, "fiber::internal::ResumeWorker",
+               "source fiber and destination fiber are identical");
+
+  COMET_ASSERT(!IsStackOverflow(), "fiber::internal::ResumeWorker",
+               "stack overflow detected", "current_stack_size",
+               from->GetCurrentStackSize(), "stack_capacity",
+               from->GetStackCapacity());
+
   tls_current_fiber = to;
 
 #ifdef COMET_IS_ASAN
@@ -141,7 +154,8 @@ FiberId GetFiberId() {
 }
 
 Fiber* GetFiber() {
-  COMET_ASSERT(tls_current_fiber != nullptr, "Current fiber is null!");
+  COMET_ASSERT(tls_current_fiber != nullptr, "fiber::GetFiber",
+               "current fiber is null");
   return tls_current_fiber;
 }
 
@@ -163,25 +177,29 @@ void DestroyFiberFromThread() { tls_thread_fiber.Destroy(); }
 
 usize GetStackCapacity() {
   auto* fiber{GetFiber()};
-  COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+  COMET_ASSERT(fiber != nullptr, "fiber::GetStackCapacity",
+               "current fiber is null");
   return fiber->GetStackCapacity();
 }
 
 usize GetCurrentStackSize() {
   auto* fiber{GetFiber()};
-  COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+  COMET_ASSERT(fiber != nullptr, "fiber::GetCurrentStackSize",
+               "current fiber is null");
   return fiber->GetCurrentStackSize();
 }
 
 usize GetCurrentStackSizeLeft() {
   auto* fiber{GetFiber()};
-  COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+  COMET_ASSERT(fiber != nullptr, "fiber::GetCurrentStackSizeLeft",
+               "current fiber is null");
   return fiber->GetCurrentStackSizeLeft();
 }
 
 bool IsStackOverflow() {
   auto* fiber{GetFiber()};
-  COMET_ASSERT(fiber != nullptr, "Current fiber is null!");
+  COMET_ASSERT(fiber != nullptr, "fiber::IsStackOverflow",
+               "current fiber is null");
   return fiber->IsStackOverflow();
 }
 }  // namespace fiber

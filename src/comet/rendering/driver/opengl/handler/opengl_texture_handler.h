@@ -12,10 +12,10 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/data/opengl_texture.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture_type.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/resource/texture_resource.h"
+#include "comet/resource/texture/texture_resource.h"
 
 namespace comet {
 namespace rendering {

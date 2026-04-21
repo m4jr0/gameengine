@@ -12,6 +12,10 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 
+#ifdef COMET_FIBER_DEBUG_LABEL
+#include "comet/core/debug_label.h"
+#endif  // COMET_FIBER_DEBUG_LABEL
+
 namespace comet {
 namespace fiber {
 using FiberId = usize;

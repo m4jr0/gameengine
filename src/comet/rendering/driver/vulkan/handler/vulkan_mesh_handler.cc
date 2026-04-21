@@ -11,9 +11,9 @@
 #include "vulkan_mesh_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_buffer.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_buffer_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
@@ -26,6 +26,8 @@ MeshHandler::MeshHandler(const MeshHandlerDescr& descr) : Handler{descr} {}
 
 void MeshHandler::Update(const frame::FramePacket* packet) {
   COMET_PROFILE("MeshHandler::Update");
+  COMET_ASSERT(packet != nullptr, "MeshHandler::Update",
+               "frame packet is null");
 
   if (packet->added_geometries->IsEmpty() && packet->dirty_meshes->IsEmpty() &&
       packet->removed_geometries->IsEmpty()) {
@@ -69,7 +71,9 @@ void MeshHandler::AcquireFromTransferQueueIfNeeded() {
         VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
         transfer_queue_index, graphics_queue_index);
 
-    COMET_ASSERT(acquire_barriers != nullptr, "Acquire barriers are null!");
+    COMET_ASSERT(acquire_barriers != nullptr,
+                 "MeshHandler::AcquireFromTransferQueueIfNeeded",
+                 "acquire barriers are null");
 
     ApplyBufferMemoryBarriers(*acquire_barriers,
                               context_->GetFrameData().command_buffer_handle,
@@ -83,8 +87,8 @@ void MeshHandler::AcquireFromTransferQueueIfNeeded() {
 
 const MeshProxy* MeshHandler::Get(geometry::MeshHandle handle) const {
   const auto* proxy{TryGet(handle)};
-  COMET_ASSERT(proxy != nullptr,
-               "Requested mesh proxy does not exist: ", handle, "!");
+  COMET_ASSERT(proxy != nullptr, "MeshHandler::Get", "mesh proxy not found",
+               "mesh_handle", handle);
   return proxy;
 }
 
@@ -253,7 +257,8 @@ void MeshHandler::FinishUpdate(internal::UpdateContext& update_context) {
                            VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
                            transfer_queue_index, graphics_queue_index);
 
-    COMET_ASSERT(release_barriers != nullptr, "Release barriers are null!");
+    COMET_ASSERT(release_barriers != nullptr, "MeshHandler::FinishUpdate",
+                 "release barriers are null");
 
     ApplyBufferMemoryBarriers(
         *release_barriers, update_context.command_buffer_handle,
@@ -289,8 +294,8 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
 
   for (const auto& geometry : *geometries) {
     if (!geometry.mesh_handle) {
-      COMET_LOG_RENDERING_WARNING(
-          "Tried to add geometry with invalid mesh handle!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::AddMeshProxies",
+                        "invalid mesh handle");
       continue;
     }
 
@@ -303,9 +308,9 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
     auto& proxy{proxies_[proxy_index]};
 
     if (proxy.is_alive) {
-      COMET_LOG_RENDERING_WARNING(
-          "Tried to add already existing mesh proxy for handle: ",
-          geometry.mesh_handle, "!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::AddMeshProxies",
+                        "mesh proxy already exists", "mesh_handle",
+                        geometry.mesh_handle);
       continue;
     }
 
@@ -354,18 +359,17 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
 
   for (const auto& mesh : *meshes) {
     if (!mesh.mesh_handle) {
-      COMET_LOG_RENDERING_WARNING(
-          "Tried to update geometry with invalid mesh handle!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::UpdateMeshProxies",
+                        "invalid mesh handle");
       continue;
     }
 
     const auto proxy_index{static_cast<usize>(mesh.mesh_handle.GetIndex())};
 
     if (proxy_index >= proxies_.GetSize() || !proxies_[proxy_index].is_alive) {
-      COMET_LOG_RENDERING_WARNING(
-          "Tried to update non-existing mesh proxy for "
-          "handle: ",
-          mesh.mesh_handle, "!");
+      COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::UpdateMeshProxies",
+                        "mesh proxy not found", "mesh_handle",
+                        mesh.mesh_handle);
       continue;
     }
 
@@ -409,18 +413,18 @@ void MeshHandler::DestroyMeshProxies(
 
   for (const auto& geometry : *geometries) {
     if (!geometry.mesh_handle) {
-      COMET_LOG_RENDERING_WARNING(
-          "Tried to remove geometry with invalid mesh handle!");
+      COMET_LOG_WARNING(LoggerType::Rendering,
+                        "MeshHandler::DestroyMeshProxies",
+                        "invalid mesh handle");
       continue;
     }
 
     const auto proxy_index{static_cast<usize>(geometry.mesh_handle.GetIndex())};
 
     if (proxy_index >= proxies_.GetSize() || !proxies_[proxy_index].is_alive) {
-      COMET_LOG_RENDERING_WARNING(
-          "Tried to remove non-existing mesh proxy for "
-          "handle: ",
-          geometry.mesh_handle, "!");
+      COMET_LOG_WARNING(
+          LoggerType::Rendering, "MeshHandler::DestroyMeshProxies",
+          "mesh proxy not found", "mesh_handle", geometry.mesh_handle);
       continue;
     }
 

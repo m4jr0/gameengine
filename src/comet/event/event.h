@@ -71,10 +71,8 @@ class Event {
   virtual stringid::StringId GetType() const noexcept = 0;
 
  private:
-  static_assert(
-      std::atomic<SequenceNumber>::is_always_lock_free,
-      "std::atomic<SequenceNumber> needs to be always lock-free. Unsupported "
-      "architecture");
+  static_assert(std::atomic<SequenceNumber>::is_always_lock_free,
+                "std::atomic<SequenceNumber> must be always lock-free");
   static inline std::atomic<SequenceNumber> sequence_number_count_{0};
   SequenceNumber sequence_number_{0};
 };

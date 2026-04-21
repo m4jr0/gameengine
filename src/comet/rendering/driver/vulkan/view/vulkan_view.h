@@ -12,31 +12,16 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_view_type.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/type/rendering_view_type.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-enum class RenderTargetKind : u8 { Swapchain, Offscreen };
-
-enum class ViewLoadOp : u8 { DontCare, Load, Clear };
-
-enum class ViewStoreOp : u8 { DontCare, Store };
-
-enum class ViewFinalColorOp : u8 { Keep, Present };
-
-using ViewPassFlags = u32;
-
-enum ViewPassFlagBits : ViewPassFlags {
-  kViewPassFlagBitsNone = 0x0,
-  kViewPassFlagBitsSwapchainTarget = 0x1,
-  kViewPassFlagBitsOffscreenTarget = 0x2,
-  kViewPassFlagBitsHasColor = 0x4,
-  kViewPassFlagBitsHasDepth = 0x8
-};
-
 struct ViewPassDescr {
   RenderTargetKind target_kind{RenderTargetKind::Swapchain};
   ViewPassFlags flags{kViewPassFlagBitsNone};

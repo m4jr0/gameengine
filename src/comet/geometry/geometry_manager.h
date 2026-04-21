@@ -16,8 +16,9 @@
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/component/model_component.h"
 #include "comet/geometry/component/skeleton_component.h"
-#include "comet/geometry/geometry_type.h"
-#include "comet/resource/model_resource.h"
+#include "comet/geometry/type/geometry_mesh_type.h"
+#include "comet/resource/model/model_resource.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace geometry {

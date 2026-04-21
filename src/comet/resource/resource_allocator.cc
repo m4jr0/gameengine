@@ -10,14 +10,30 @@
 #include "resource_allocator.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
+#include "comet/core/debug_label.h"
+#include "comet/core/type_trait.h"
 
 namespace comet {
 namespace resource {
 namespace internal {
+const schar* GetAllocatorTypeLabel(AllocatorType type) {
+  switch (type) {
+    case AllocatorType::Unknown:
+      return "unknown";
+    case AllocatorType::Small:
+      return "small";
+    case AllocatorType::Big:
+      return "big";
+    default:
+      return kUnknownLabel;
+  }
+}
+
 void* ResourceAllocator::AllocateAligned(usize size, memory::Alignment align) {
+  COMET_ASSERT(size > 0, "ResourceAllocator::AllocateAligned",
+               "allocation size is zero");
+  COMET_ASSERT(align != 0, "ResourceAllocator::AllocateAligned",
+               "alignment is zero");
   const auto total_size{size + align + kHeaderSize_};
 
   u8* raw{nullptr};
@@ -25,13 +41,15 @@ void* ResourceAllocator::AllocateAligned(usize size, memory::Alignment align) {
 
   if (total_size <= kAllocationThresholdSize_) {
     raw = static_cast<u8*>(small_allocator_.Allocate(total_size));
-    tag = static_cast<std::underlying_type_t<AllocatorType>>(
-        AllocatorType::Small);
+    tag = ToUnderlying(AllocatorType::Small);
   } else {
     raw = static_cast<u8*>(big_allocator_.Allocate(total_size));
-    tag =
-        static_cast<std::underlying_type_t<AllocatorType>>(AllocatorType::Big);
+    tag = ToUnderlying(AllocatorType::Big);
   }
+
+  COMET_ASSERT(raw != nullptr, "ResourceAllocator::AllocateAligned",
+               "allocator returned null", "size", size, "alignment", align,
+               "total_size", total_size);
 
   raw[0] = tag;
   auto* ptr{static_cast<u8*>(memory::StoreShiftAndReturnAligned(
@@ -41,9 +59,8 @@ void* ResourceAllocator::AllocateAligned(usize size, memory::Alignment align) {
 }
 
 void ResourceAllocator::Deallocate(void* ptr) {
-  COMET_ASSERT(
-      ptr != nullptr,
-      "Tried to deallocate from resource allocator, but pointer is null!");
+  COMET_ASSERT(ptr != nullptr, "ResourceAllocator::Deallocate",
+               "pointer is null");
 
   auto* offset{static_cast<u8*>(memory::ResolveNonAligned(ptr))};
   auto* raw{offset - kHeaderSize_};
@@ -54,7 +71,9 @@ void ResourceAllocator::Deallocate(void* ptr) {
   } else if (tag == AllocatorType::Big) {
     big_allocator_.Deallocate(raw);
   } else {
-    COMET_ASSERT(false, "Malformed tag found, can't deallocate resource!");
+    COMET_ASSERT(false, "ResourceAllocator::Deallocate",
+                 "allocator tag is invalid", "tag", GetAllocatorTypeLabel(tag),
+                 "tag_value", ToUnderlying(tag));
   }
 }
 
@@ -64,6 +83,10 @@ void ResourceAllocator::OnInitialize() {
       kSmallAllocatorCapacity_ / kSmallAllocatorAllocationUnitSize_,
       memory::kEngineMemoryTagResource};
   small_allocator_.Initialize();
+
+  COMET_ASSERT(small_allocator_.IsInitialized(),
+               "ResourceAllocator::OnInitialize",
+               "small allocator failed to initialize");
 }
 
 void ResourceAllocator::OnDestroy() { small_allocator_.Destroy(); }

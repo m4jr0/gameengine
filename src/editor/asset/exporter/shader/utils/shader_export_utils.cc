@@ -33,8 +33,8 @@ rendering::CullMode GetCullMode(std::string_view raw_cull_mode) {
     return rendering::CullMode::FrontAndBack;
   }
 
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported culling mode: ", raw_cull_mode,
-                         "! Setting \"unknown\" mode instead.");
+  COMET_LOG_ERROR(LoggerType::External, "shader_export_utils::GetCullMode",
+                  "cull mode is unsupported", "cull_mode", raw_cull_mode);
   return rendering::CullMode::Unknown;
 }
 
@@ -52,9 +52,10 @@ rendering::RasterizerDescr GetRasterizerDescr(
   const auto& raw_rasterizer{shader_file[kCometEditorShaderKeyRasterizer]};
 
   if (!raw_rasterizer.is_object()) {
-    COMET_LOG_GLOBAL_ERROR(
-        "Wrong type found for rasterizer object: ", raw_rasterizer.type_name(),
-        "! Using default rasterizer settings instead.");
+    COMET_LOG_ERROR(LoggerType::External,
+                    "shader_export_utils::GetRasterizerDescr",
+                    "rasterizer value is not an object", "type",
+                    raw_rasterizer.type_name());
     rasterizer.is_wireframe = false;
     rasterizer.is_depth_bias = false;
     rasterizer.cull_mode = rendering::CullMode::Back;
@@ -101,8 +102,8 @@ rendering::CompareOp GetCompareOp(std::string_view raw_compare_op) {
     return rendering::CompareOp::Always;
   }
 
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported compare op: ", raw_compare_op,
-                         "! Setting \"less\" compare op instead.");
+  COMET_LOG_ERROR(LoggerType::External, "shader_export_utils::GetCompareOp",
+                  "compare op is unsupported", "compare_op", raw_compare_op);
   return rendering::CompareOp::Less;
 }
 
@@ -120,9 +121,11 @@ rendering::DepthStencilDescr GetDepthStencilDescr(
   const auto& raw_depth_stencil{shader_file[kCometEditorShaderKeyDepthStencil]};
 
   if (!raw_depth_stencil.is_object()) {
-    COMET_LOG_GLOBAL_ERROR("Wrong type found for depth_stencil object: ",
-                           raw_depth_stencil.type_name(),
-                           "! Using default depth-stencil settings instead.");
+    COMET_LOG_ERROR(LoggerType::External,
+                    "shader_export_utils::GetDepthStencilDescr",
+                    "depth stencil value is not an object", "type",
+                    raw_depth_stencil.type_name());
+
     depth_stencil.is_depth_test = true;
     depth_stencil.is_depth_write = true;
     depth_stencil.compare_op = rendering::CompareOp::Less;
@@ -164,8 +167,10 @@ rendering::PrimitiveTopology GetPrimitiveTopology(
     return rendering::PrimitiveTopology::TriangleStrip;
   }
 
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported topology: ", raw_topology,
-                         "! Setting \"unknown\" mode instead.");
+  COMET_LOG_ERROR(
+      LoggerType::External, "shader_export_utils::GetPrimitiveTopology",
+      "primitive topology is unsupported", "topology", raw_topology);
+
   return rendering::PrimitiveTopology::Unknown;
 }
 
@@ -183,9 +188,11 @@ rendering::ShaderVertexLayout GetShaderVertexLayout(
     return rendering::ShaderVertexLayout::DebugLine;
   }
 
-  COMET_LOG_GLOBAL_ERROR(
-      "Unknown or unsupported vertex layout: ", raw_vertex_layout,
-      "! Setting \"none\" layout instead.");
+  COMET_LOG_ERROR(LoggerType::External,
+                  "shader_export_utils::GetShaderVertexLayout",
+                  "shader vertex layout is unsupported", "vertex_layout",
+                  raw_vertex_layout);
+
   return rendering::ShaderVertexLayout::None;
 }
 
@@ -334,8 +341,10 @@ rendering::ShaderVariableType GetShaderVariableType(
     return rendering::ShaderVariableType::Atomic;
   }
 
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported shader field type: ",
-                         raw_data_type, "! Setting \"unknown\" mode instead.");
+  COMET_LOG_ERROR(
+      LoggerType::External, "shader_export_utils::GetShaderVariableType",
+      "shader variable type is unsupported", "variable_type", raw_data_type);
+
   return rendering::ShaderVariableType::Unknown;
 }
 
@@ -366,9 +375,10 @@ rendering::ShaderBindingType GetShaderBindingType(
     return rendering::ShaderBindingType::StorageImage;
   }
 
-  COMET_LOG_GLOBAL_ERROR(
-      "Unknown or unsupported shader binding type: ", raw_binding_type,
-      "! Setting \"unknown\" type instead.");
+  COMET_LOG_ERROR(
+      LoggerType::External, "shader_export_utils::GetShaderBindingType",
+      "shader binding type is unsupported", "binding_type", raw_binding_type);
+
   return rendering::ShaderBindingType::Unknown;
 }
 
@@ -390,9 +400,11 @@ rendering::ShaderBindingScope GetShaderBindingScope(
     return rendering::ShaderBindingScope::Draw;
   }
 
-  COMET_LOG_GLOBAL_ERROR(
-      "Unknown or unsupported binding scope: ", raw_binding_scope,
-      "! Setting \"unknown\" scope instead.");
+  COMET_LOG_ERROR(LoggerType::External,
+                  "shader_export_utils::GetShaderBindingScope",
+                  "shader binding scope is unsupported", "binding_scope",
+                  raw_binding_scope);
+
   return rendering::ShaderBindingScope::Unknown;
 }
 
@@ -410,8 +422,10 @@ rendering::ShaderMemoryLayout GetShaderMemoryLayout(
     return rendering::ShaderMemoryLayout::Packed;
   }
 
-  COMET_LOG_GLOBAL_ERROR("Unknown or unsupported memory layout: ", raw_layout,
-                         "! Setting \"unknown\" layout instead.");
+  COMET_LOG_ERROR(
+      LoggerType::External, "shader_export_utils::GetShaderMemoryLayout",
+      "shader memory layout is unsupported", "memory_layout", raw_layout);
+
   return rendering::ShaderMemoryLayout::Unknown;
 }
 
@@ -420,8 +434,9 @@ rendering::ShaderStageFlags GetShaderStageFlags(
   rendering::ShaderStageFlags stages{rendering::kShaderStageFlagBitsNone};
 
   if (!raw_stages.is_array()) {
-    COMET_LOG_GLOBAL_ERROR("Wrong type found for stages array: ",
-                           raw_stages.type_name(), "! Ignoring.");
+    COMET_LOG_ERROR(
+        LoggerType::External, "shader_export_utils::GetShaderStageFlags",
+        "stages value is not an array", "type", raw_stages.type_name());
     return stages;
   }
 
@@ -436,8 +451,9 @@ rendering::ShaderStageFlags GetShaderStageFlags(
     } else if (raw_stage == kCometEditorShaderKeyStageFragment) {
       stages |= rendering::kShaderStageFlagBitsFragment;
     } else {
-      COMET_LOG_GLOBAL_ERROR(
-          "Unknown or unsupported stage provided: ", raw_stage, "! Ignoring.");
+      COMET_LOG_ERROR(LoggerType::External,
+                      "shader_export_utils::GetShaderStageFlags",
+                      "shader stage is unsupported", "stage", raw_stage);
     }
   }
 
@@ -469,6 +485,11 @@ rendering::ShaderImageBindingSemantic GetShaderImageBindingSemantic(
   if (raw_semantic == kCometEditorShaderKeyImageSemanticShadowMaps) {
     return rendering::ShaderImageBindingSemantic::ShadowMaps;
   }
+
+  COMET_LOG_ERROR(LoggerType::External,
+                  "shader_export_utils::GetShaderImageBindingSemantic",
+                  "shader image binding semantic is unsupported", "semantic",
+                  raw_semantic);
 
   return rendering::ShaderImageBindingSemantic::Unknown;
 }

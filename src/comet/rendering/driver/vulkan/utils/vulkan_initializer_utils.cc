@@ -11,12 +11,11 @@
 #include "vulkan_initializer_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-// External. ///////////////////////////////////////////////////////////////////
-#include <type_traits>
-////////////////////////////////////////////////////////////////////////////////
-
+#include "comet/core/type_trait.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_pipeline_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_sampler_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
+#include "comet/rendering/label/rendering_pipeline_label.h"
 
 namespace comet {
 namespace rendering {
@@ -50,6 +49,13 @@ VkCommandPoolCreateInfo GenerateCommandPoolCreateInfo(
 
 VkCommandBufferAllocateInfo GenerateCommandBufferAllocateInfo(
     VkCommandPool command_pool_handle, u32 count, VkCommandBufferLevel level) {
+  COMET_ASSERT(command_pool_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateCommandBufferAllocateInfo",
+               "command pool handle is invalid");
+  COMET_ASSERT(count > 0,
+               "vulkan_initializer_utils::GenerateCommandBufferAllocateInfo",
+               "command buffer count is zero");
+
   VkCommandBufferAllocateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   info.pNext = VK_NULL_HANDLE;
@@ -71,6 +77,11 @@ VkCommandBufferBeginInfo GenerateCommandBufferBeginInfo(
 
 VkDeviceQueueCreateInfo GenerateDeviceQueueCreateInfo(
     u32 queue_family_index, const f32& queue_priority) {
+  COMET_ASSERT(queue_priority >= .0f && queue_priority <= 1.0f,
+               "vulkan_initializer_utils::GenerateDeviceQueueCreateInfo",
+               "queue priority is out of range", "queue_priority",
+               queue_priority);
+
   VkDeviceQueueCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
   info.queueFamilyIndex = queue_family_index;
@@ -97,6 +108,16 @@ VkDeviceCreateInfo GenerateDeviceCreateInfo(
 
 VkFramebufferCreateInfo GenerateFrameBufferCreateInfo(
     VkRenderPass render_pass_handle, VkExtent2D extent) {
+  COMET_ASSERT(render_pass_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateFrameBufferCreateInfo",
+               "render pass handle is invalid");
+  COMET_ASSERT(extent.width > 0,
+               "vulkan_initializer_utils::GenerateFrameBufferCreateInfo",
+               "framebuffer width is zero");
+  COMET_ASSERT(extent.height > 0,
+               "vulkan_initializer_utils::GenerateFrameBufferCreateInfo",
+               "framebuffer height is zero");
+
   VkFramebufferCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
   info.pNext = VK_NULL_HANDLE;
@@ -113,6 +134,22 @@ VkSwapchainCreateInfoKHR GenerateSwapchainCreateInfo(
     const VkExtent2D& extent, const VkPresentModeKHR& present_mode,
     const SwapchainSupportDetails& details,
     const Array<u32>& queue_family_unique_indices, u32 image_count) {
+  COMET_ASSERT(surface_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateSwapchainCreateInfo",
+               "surface handle is invalid");
+  COMET_ASSERT(image_count > 0,
+               "vulkan_initializer_utils::GenerateSwapchainCreateInfo",
+               "swapchain image count is zero");
+  COMET_ASSERT(extent.width > 0,
+               "vulkan_initializer_utils::GenerateSwapchainCreateInfo",
+               "swapchain width is zero");
+  COMET_ASSERT(extent.height > 0,
+               "vulkan_initializer_utils::GenerateSwapchainCreateInfo",
+               "swapchain height is zero");
+  COMET_ASSERT(!queue_family_unique_indices.IsEmpty(),
+               "vulkan_initializer_utils::GenerateSwapchainCreateInfo",
+               "queue family indices are empty");
+
   VkSwapchainCreateInfoKHR info{};
   info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   info.surface = surface_handle;
@@ -168,6 +205,19 @@ VkSubmitInfo GenerateSubmitInfo(const VkCommandBuffer* command_buffer_handle,
                                 u32 signal_semaphore_count,
                                 const VkPipelineStageFlags* wait_dst_stage_mask,
                                 const void* next) {
+  COMET_ASSERT(command_buffer_handle != nullptr,
+               "vulkan_initializer_utils::GenerateSubmitInfo",
+               "command buffer handle pointer is null");
+  COMET_ASSERT(wait_semaphore_count == 0 || wait_semaphores != nullptr,
+               "vulkan_initializer_utils::GenerateSubmitInfo",
+               "wait semaphores are null");
+  COMET_ASSERT(wait_semaphore_count == 0 || wait_dst_stage_mask != nullptr,
+               "vulkan_initializer_utils::GenerateSubmitInfo",
+               "wait stage masks are null");
+  COMET_ASSERT(signal_semaphore_count == 0 || signal_semaphores != nullptr,
+               "vulkan_initializer_utils::GenerateSubmitInfo",
+               "signal semaphores are null");
+
   VkSubmitInfo info{};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   info.pNext = next;
@@ -187,6 +237,20 @@ VkSubmitInfo2 GenerateSubmitInfo2(
     const VkSemaphoreSubmitInfo* wait_semaphore_infos, u32 wait_semaphore_count,
     const VkSemaphoreSubmitInfo* signal_semaphore_infos,
     u32 signal_semaphore_info_count, const void* next) {
+  COMET_ASSERT(command_buffer_info_count > 0,
+               "vulkan_initializer_utils::GenerateSubmitInfo2",
+               "command buffer submit info count is zero");
+  COMET_ASSERT(command_buffer_infos != nullptr,
+               "vulkan_initializer_utils::GenerateSubmitInfo2",
+               "command buffer submit infos are null");
+  COMET_ASSERT(wait_semaphore_count == 0 || wait_semaphore_infos != nullptr,
+               "vulkan_initializer_utils::GenerateSubmitInfo2",
+               "wait semaphore infos are null");
+  COMET_ASSERT(
+      signal_semaphore_info_count == 0 || signal_semaphore_infos != nullptr,
+      "vulkan_initializer_utils::GenerateSubmitInfo2",
+      "signal semaphore infos are null");
+
   VkSubmitInfo2 info{};
   info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
   info.pNext = next;
@@ -214,6 +278,19 @@ VkPresentInfoKHR GeneratePresentInfo() {
 VkRenderPassBeginInfo GenerateRenderPassBeginInfo(
     VkRenderPass render_pass_handle, VkExtent2D extent,
     VkFramebuffer framebuffer_handle) {
+  COMET_ASSERT(render_pass_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateRenderPassBeginInfo",
+               "render pass handle is invalid");
+  COMET_ASSERT(framebuffer_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateRenderPassBeginInfo",
+               "framebuffer handle is invalid");
+  COMET_ASSERT(extent.width > 0,
+               "vulkan_initializer_utils::GenerateRenderPassBeginInfo",
+               "render pass width is zero");
+  COMET_ASSERT(extent.height > 0,
+               "vulkan_initializer_utils::GenerateRenderPassBeginInfo",
+               "render pass height is zero");
+
   VkRenderPassBeginInfo info{};
   info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   info.pNext = VK_NULL_HANDLE;
@@ -229,6 +306,11 @@ VkRenderPassBeginInfo GenerateRenderPassBeginInfo(
 
 VkPipelineShaderStageCreateInfo GeneratePipelineShaderStageCreateInfo(
     VkShaderStageFlagBits stage, VkShaderModule shader_module_handle) {
+  COMET_ASSERT(
+      shader_module_handle != VK_NULL_HANDLE,
+      "vulkan_initializer_utils::GeneratePipelineShaderStageCreateInfo",
+      "shader module handle is invalid");
+
   VkPipelineShaderStageCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   info.pNext = VK_NULL_HANDLE;
@@ -280,10 +362,12 @@ GeneratePipelineInputAssemblyStateCreateInfo(
       vk_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
       break;
     default:
-      COMET_ASSERT(
-          false, "Unknown or unsupported primitive topology provided: ",
-          static_cast<std::underlying_type_t<PrimitiveTopology>>(topology),
-          "!");
+      COMET_ASSERT(false,
+                   "vulkan_initializer_utils::"
+                   "GeneratePipelineInputAssemblyStateCreateInfo",
+                   "primitive topology is unsupported", "topology",
+                   GetPrimitiveTopologyLabel(topology), "topology_value",
+                   ToUnderlying(topology));
   }
 
   info.topology = vk_topology;
@@ -330,9 +414,12 @@ GeneratePipelineRasterizationStateCreateInfo(bool is_wireframe,
       vk_cull_mode = VK_CULL_MODE_FRONT_AND_BACK;
       break;
     default:
-      COMET_ASSERT(false, "Unknown or unsupported cull mode provided: ",
-                   static_cast<std::underlying_type_t<CullMode>>(cull_mode),
-                   "!");
+      COMET_ASSERT(false,
+                   "vulkan_initializer_utils::"
+                   "GeneratePipelineRasterizationStateCreateInfo",
+                   "cull mode is unsupported", "cull_mode",
+                   GetCullModeLabel(cull_mode), "cull_mode_value",
+                   ToUnderlying(cull_mode));
   }
 
   return GeneratePipelineRasterizationStateCreateInfo(
@@ -379,6 +466,11 @@ GeneratePipelineColorBlendAttachmentState() {
 VkPipelineColorBlendStateCreateInfo GeneratePipelineColorBlendStateCreateInfo(
     const VkPipelineColorBlendAttachmentState* color_blend_attachments,
     usize color_blend_attachment_count) {
+  COMET_ASSERT(
+      color_blend_attachment_count == 0 || color_blend_attachments != nullptr,
+      "vulkan_initializer_utils::GeneratePipelineColorBlendStateCreateInfo",
+      "color blend attachments are null");
+
   VkPipelineColorBlendStateCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   info.logicOpEnable = VK_FALSE;
@@ -454,6 +546,20 @@ VkImageCreateInfo GenerateImageCreateInfo(
     VkSampleCountFlagBits num_samples, VkFormat format, VkImageTiling tiling,
     VkImageUsageFlags usage_flags, VkSharingMode sharing_mode,
     const u32* queue_family_indices, u32 queue_family_index_count) {
+  COMET_ASSERT(width > 0, "vulkan_initializer_utils::GenerateImageCreateInfo",
+               "image width is zero");
+  COMET_ASSERT(height > 0, "vulkan_initializer_utils::GenerateImageCreateInfo",
+               "image height is zero");
+  COMET_ASSERT(mip_levels > 0,
+               "vulkan_initializer_utils::GenerateImageCreateInfo",
+               "mip level count is zero");
+  COMET_ASSERT(array_layers > 0,
+               "vulkan_initializer_utils::GenerateImageCreateInfo",
+               "array layer count is zero");
+  COMET_ASSERT(format != VK_FORMAT_UNDEFINED,
+               "vulkan_initializer_utils::GenerateImageCreateInfo",
+               "image format is undefined");
+
   VkImageCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   info.imageType = VK_IMAGE_TYPE_2D;
@@ -478,6 +584,19 @@ VkImageViewCreateInfo GenerateImageViewCreateInfo(
     VkImage image_handle, VkFormat format, VkImageAspectFlags aspect_flags,
     u32 mip_levels, u32 base_array_layer, u32 layer_count,
     VkImageViewType view_type) {
+  COMET_ASSERT(image_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateImageViewCreateInfo",
+               "image handle is invalid");
+  COMET_ASSERT(format != VK_FORMAT_UNDEFINED,
+               "vulkan_initializer_utils::GenerateImageViewCreateInfo",
+               "image format is undefined");
+  COMET_ASSERT(mip_levels > 0,
+               "vulkan_initializer_utils::GenerateImageViewCreateInfo",
+               "mip level count is zero");
+  COMET_ASSERT(layer_count > 0,
+               "vulkan_initializer_utils::GenerateImageViewCreateInfo",
+               "layer count is zero");
+
   VkImageViewCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   info.image = image_handle;
@@ -499,6 +618,12 @@ VkImageViewCreateInfo GenerateImageViewCreateInfo(
 
 VkDescriptorSetLayoutCreateInfo GenerateDescriptorSetLayoutCreateInfo(
     const DescriptorSetLayoutBinding& descriptor_set_data) {
+  COMET_ASSERT(
+      descriptor_set_data.binding_count == 0 ||
+          !descriptor_set_data.bindings.IsEmpty(),
+      "vulkan_initializer_utils::GenerateDescriptorSetLayoutCreateInfo",
+      "descriptor set layout bindings are empty");
+
   VkDescriptorSetLayoutCreateInfo info{};
   info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   info.pBindings = descriptor_set_data.bindings.GetData();
@@ -521,6 +646,16 @@ VkDescriptorSetLayoutBinding GenerateDescriptorSetLayoutBinding(
 VkDescriptorBufferInfo GenerateDescriptorBufferInfo(VkBuffer buffer_handle,
                                                     sptrdiff offset,
                                                     usize stride) {
+  COMET_ASSERT(buffer_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateDescriptorBufferInfo",
+               "buffer handle is invalid");
+  COMET_ASSERT(offset >= 0,
+               "vulkan_initializer_utils::GenerateDescriptorBufferInfo",
+               "buffer offset is invalid", "offset", offset);
+  COMET_ASSERT(stride > 0,
+               "vulkan_initializer_utils::GenerateDescriptorBufferInfo",
+               "buffer range is zero");
+
   VkDescriptorBufferInfo info{};
   info.buffer = buffer_handle;
   info.offset = static_cast<VkDeviceSize>(offset);
@@ -541,6 +676,13 @@ VkDescriptorImageInfo GenerateDescriptorImageInfo(VkSampler sampler_handle,
 VkWriteDescriptorSet GenerateBufferWriteDescriptorSet(
     VkDescriptorType type, VkDescriptorSet dst_descriptor_set_handle,
     const VkDescriptorBufferInfo* buffer_info, u32 binding) {
+  COMET_ASSERT(dst_descriptor_set_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateBufferWriteDescriptorSet",
+               "descriptor set handle is invalid");
+  COMET_ASSERT(buffer_info != nullptr,
+               "vulkan_initializer_utils::GenerateBufferWriteDescriptorSet",
+               "buffer info is null");
+
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.pNext = VK_NULL_HANDLE;
@@ -555,6 +697,13 @@ VkWriteDescriptorSet GenerateBufferWriteDescriptorSet(
 VkWriteDescriptorSet GenerateImageWriteDescriptorSet(
     VkDescriptorType type, VkDescriptorSet dst_descriptor_set_handle,
     const VkDescriptorImageInfo* image_info, u32 binding) {
+  COMET_ASSERT(dst_descriptor_set_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateImageWriteDescriptorSet",
+               "descriptor set handle is invalid");
+  COMET_ASSERT(image_info != nullptr,
+               "vulkan_initializer_utils::GenerateImageWriteDescriptorSet",
+               "image info is null");
+
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.pNext = VK_NULL_HANDLE;
@@ -570,6 +719,16 @@ VkWriteDescriptorSet GenerateImageWriteDescriptorSet(
     VkDescriptorType type, VkDescriptorSet dst_descriptor_set_handle,
     const VkDescriptorImageInfo* image_info_list, u32 image_info_count,
     u32 binding) {
+  COMET_ASSERT(dst_descriptor_set_handle != VK_NULL_HANDLE,
+               "vulkan_initializer_utils::GenerateImageWriteDescriptorSet",
+               "descriptor set handle is invalid");
+  COMET_ASSERT(image_info_count > 0,
+               "vulkan_initializer_utils::GenerateImageWriteDescriptorSet",
+               "image info count is zero");
+  COMET_ASSERT(image_info_list != nullptr,
+               "vulkan_initializer_utils::GenerateImageWriteDescriptorSet",
+               "image info list is null");
+
   VkWriteDescriptorSet write{};
   write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   write.pNext = VK_NULL_HANDLE;
@@ -654,6 +813,15 @@ VkBufferMemoryBarrier GenerateBufferMemoryBarrier(
 VkTimelineSemaphoreSubmitInfo GenerateTimelineSemaphoreSubmitInfo(
     u32 wait_semaphore_value_count, const u64* wait_semaphore_values,
     u32 signal_semaphore_value_count, const u64* signal_semaphore_values) {
+  COMET_ASSERT(
+      wait_semaphore_value_count == 0 || wait_semaphore_values != nullptr,
+      "vulkan_initializer_utils::GenerateTimelineSemaphoreSubmitInfo",
+      "wait semaphore values are null");
+  COMET_ASSERT(
+      signal_semaphore_value_count == 0 || signal_semaphore_values != nullptr,
+      "vulkan_initializer_utils::GenerateTimelineSemaphoreSubmitInfo",
+      "signal semaphore values are null");
+
   VkTimelineSemaphoreSubmitInfo info{};
   info.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
   info.waitSemaphoreValueCount = wait_semaphore_value_count;

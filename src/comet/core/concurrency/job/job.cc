@@ -31,29 +31,13 @@ void Counter::Reset() { value_ = 0; }
 void Counter::Increment() { ++value_; }
 
 void Counter::Decrement() {
-  COMET_ASSERT(!IsZero(), "Counter cannot be decremented! Value is 0!");
+  COMET_ASSERT(!IsZero(), "job::Counter::Decrement",
+               "counter cannot be decremented", "value", value_);
   --value_;
 }
 
 bool Counter::IsZero() const noexcept { return value_ == 0; }
 
 usize Counter::GetValue() const noexcept { return value_; }
-
-const schar* GetJobStackSizeLabel(JobStackSize stack_size) {
-  switch (stack_size) {
-    case JobStackSize::Unknown:
-      return "unknown";
-    case JobStackSize::Normal:
-      return "normal";
-    case JobStackSize::Large:
-      return "large";
-#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
-    case JobStackSize::ExternalLibrary:
-      return "external library";
-#endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
-  }
-
-  return "???";
-}
 }  // namespace job
 }  // namespace comet

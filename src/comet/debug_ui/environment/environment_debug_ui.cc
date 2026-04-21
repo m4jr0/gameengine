@@ -17,7 +17,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/math/math_scalar.h"
-#include "comet/scene/environment/environment_manager.h"
 
 namespace comet {
 namespace debugui {
@@ -30,7 +29,8 @@ static void DrawTimeLabel(f32 hours) {
 }
 }  // namespace internal
 
-void EnvironmentDebugUi::Draw(scene::EnvironmentManager& environment) const {
+void EnvironmentDebugUi::Draw(
+    environment::EnvironmentManager& environment) const {
   ImGui::Begin("Environment");
   ImGui::Indent();
 

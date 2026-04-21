@@ -22,7 +22,9 @@ namespace vk {
 
 PipelineHandler::PipelineHandler(const PipelineHandlerDescr& descr)
     : Handler{descr}, render_pass_handler_{descr.render_pass_handler} {
-  COMET_ASSERT(render_pass_handler_ != nullptr, "Render pass handler is null!");
+  COMET_ASSERT(render_pass_handler_ != nullptr,
+               "PipelineHandler::PipelineHandler",
+               "render pass handler is null");
 }
 
 PipelineLayoutHandle PipelineHandler::GenerateLayout(
@@ -41,7 +43,8 @@ PipelineLayoutHandle PipelineHandler::GenerateLayout(
 
   COMET_CHECK_VK(vkCreatePipelineLayout(context_->GetDevice(), &info, nullptr,
                                         &layout->native_handle),
-                 "Unable to create pipeline layout!");
+                 "PipelineHandler::GenerateLayout",
+                 "pipeline layout creation failed");
 
   layouts_[index] = layout;
   layout->handle = handle;
@@ -49,6 +52,9 @@ PipelineLayoutHandle PipelineHandler::GenerateLayout(
 }
 
 PipelineHandle PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
+  COMET_ASSERT(descr.layout_handle, "PipelineHandler::Generate",
+               "pipeline layout handle is invalid");
+
   const auto handle{pipeline_pool_.Generate()};
   const auto index{static_cast<usize>(handle.GetIndex())};
 
@@ -121,7 +127,7 @@ PipelineHandle PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
   COMET_CHECK_VK(
       vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info,
                                 nullptr, &pipeline->native_handle),
-      "Failed to create graphics pipeline!");
+      "PipelineHandler::Generate", "graphics pipeline creation failed");
 
   pipelines_[index] = pipeline;
   pipeline->handle = handle;
@@ -129,6 +135,9 @@ PipelineHandle PipelineHandler::Generate(const GraphicsPipelineDescr& descr) {
 }
 
 PipelineHandle PipelineHandler::Generate(const ComputePipelineDescr& descr) {
+  COMET_ASSERT(descr.layout_handle, "PipelineHandler::Generate",
+               "pipeline layout handle is invalid");
+
   const auto handle{pipeline_pool_.Generate()};
   const auto index{static_cast<usize>(handle.GetIndex())};
 
@@ -155,7 +164,8 @@ PipelineHandle PipelineHandler::Generate(const ComputePipelineDescr& descr) {
   COMET_CHECK_VK(vkCreateComputePipelines(context_->GetDevice(), VK_NULL_HANDLE,
                                           1, &pipeline_info, nullptr,
                                           &pipeline->native_handle),
-                 "Failed to create compute pipeline!");
+                 "PipelineHandler::Generate",
+                 "compute pipeline creation failed");
 
   pipelines_[index] = pipeline;
   pipeline->handle = handle;
@@ -169,12 +179,16 @@ void PipelineHandler::DestroyLayout(PipelineLayoutHandle handle) {
     return;
   }
 
-  COMET_ASSERT(layout->handle == handle,
-               "Pipeline layout handle mismatch during destruction!");
+  COMET_ASSERT(layout->handle == handle, "PipelineHandler::DestroyLayout",
+               "pipeline layout handle mismatch", "expected_handle", handle,
+               "actual_handle", layout->handle);
 
   layouts_[handle.GetIndex()] = nullptr;
+
   layout_pool_.Destroy(handle);
-  COMET_ASSERT(!layout_pool_.IsAlive(handle), "Handle should be dead here!");
+  COMET_ASSERT(!layout_pool_.IsAlive(handle), "PipelineHandler::DestroyLayout",
+               "pipeline layout handle is still alive", "handle", handle);
+
   DestroyPipelineLayoutObject(layout);
 }
 
@@ -185,16 +199,20 @@ void PipelineHandler::Destroy(PipelineHandle handle) {
     return;
   }
 
-  COMET_ASSERT(pipeline->handle == handle,
-               "Pipeline handle mismatch during destruction!");
+  COMET_ASSERT(pipeline->handle == handle, "PipelineHandler::Destroy",
+               "pipeline handle mismatch", "expected_handle", handle,
+               "actual_handle", pipeline->handle);
 
   if (bound_pipeline_ == handle) {
     bound_pipeline_.Invalidate();
   }
 
   pipelines_[handle.GetIndex()] = nullptr;
+
   pipeline_pool_.Destroy(handle);
-  COMET_ASSERT(!pipeline_pool_.IsAlive(handle), "Handle should be dead here!");
+  COMET_ASSERT(!pipeline_pool_.IsAlive(handle), "PipelineHandler::Destroy",
+               "pipeline handle is still alive", "handle", handle);
+
   DestroyPipelineObject(pipeline);
 }
 
@@ -204,9 +222,9 @@ void PipelineHandler::Bind(PipelineHandle handle) {
   }
 
   const auto* pipeline{Get(handle)};
-
   COMET_ASSERT(pipeline->native_handle != VK_NULL_HANDLE,
-               "Pipeline handle is null! Unable to bind!");
+               "PipelineHandler::Bind", "pipeline native handle is invalid",
+               "pipeline_handle", handle);
 
   vkCmdBindPipeline(context_->GetFrameData().command_buffer_handle,
                     pipeline->type == PipelineBindType::Graphics
@@ -273,15 +291,15 @@ void PipelineHandler::OnShutdown() {
 
 Pipeline* PipelineHandler::Get(PipelineHandle handle) {
   auto* pipeline{TryGet(handle)};
-  COMET_ASSERT(pipeline != nullptr,
-               "Requested pipeline does not exist: ", handle, "!");
+  COMET_ASSERT(pipeline != nullptr, "PipelineHandler::Get",
+               "pipeline not found", "pipeline_handle", handle);
   return pipeline;
 }
 
 const Pipeline* PipelineHandler::Get(PipelineHandle handle) const {
   const auto* pipeline{TryGet(handle)};
-  COMET_ASSERT(pipeline != nullptr,
-               "Requested pipeline does not exist: ", handle, "!");
+  COMET_ASSERT(pipeline != nullptr, "PipelineHandler::Get",
+               "pipeline not found", "pipeline_handle", handle);
   return pipeline;
 }
 
@@ -315,16 +333,16 @@ const Pipeline* PipelineHandler::TryGet(PipelineHandle handle) const {
 
 PipelineLayout* PipelineHandler::GetLayout(PipelineLayoutHandle handle) {
   auto* layout{TryGetLayout(handle)};
-  COMET_ASSERT(layout != nullptr,
-               "Requested pipeline layout does not exist: ", handle, "!");
+  COMET_ASSERT(layout != nullptr, "PipelineHandler::GetLayout",
+               "pipeline layout not found", "pipeline_layout_handle", handle);
   return layout;
 }
 
 const PipelineLayout* PipelineHandler::GetLayout(
     PipelineLayoutHandle handle) const {
   const auto* layout{TryGetLayout(handle)};
-  COMET_ASSERT(layout != nullptr,
-               "Requested pipeline layout does not exist: ", handle, "!");
+  COMET_ASSERT(layout != nullptr, "PipelineHandler::GetLayout",
+               "pipeline layout not found", "pipeline_layout_handle", handle);
   return layout;
 }
 

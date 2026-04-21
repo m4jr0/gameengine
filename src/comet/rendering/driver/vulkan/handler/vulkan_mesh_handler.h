@@ -15,10 +15,10 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/geometry/geometry_type.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_mesh.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_region_gpu_buffer.h"
+#include "comet/geometry/type/geometry_mesh_type.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_mesh_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_region_gpu_buffer_type.h"
 
 namespace comet {
 namespace rendering {

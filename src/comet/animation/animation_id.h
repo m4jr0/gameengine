@@ -5,6 +5,7 @@
 #ifndef COMET_COMET_ANIMATION_ANIMATION_ID_H_
 #define COMET_COMET_ANIMATION_ANIMATION_ID_H_
 
+#include "comet/core/essentials.h"
 #include "comet/core/type/tstring.h"
 #include "comet/resource/resource_id.h"
 #include "comet/resource/runtime/loaded_resource_handle.h"

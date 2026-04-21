@@ -16,6 +16,8 @@ namespace resource {
 namespace internal {
 enum class AllocatorType : u8 { Unknown = 0, Small = 1, Big = 2 };
 
+const schar* GetAllocatorTypeLabel(AllocatorType type);
+
 class ResourceAllocator : public memory::StatefulAllocator {
  public:
   ResourceAllocator() = default;

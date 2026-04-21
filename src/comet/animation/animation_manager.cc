@@ -10,8 +10,9 @@
 #include "animation_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/animation_type.h"
-#include "comet/animation/animation_utils.h"
+#include "comet/animation/type/animation_clip_type.h"
+#include "comet/animation/type/animation_pose_type.h"
+#include "comet/animation/utils/animation_clip_utils.h"
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
@@ -19,7 +20,7 @@
 #include "comet/entity/entity_manager.h"
 #include "comet/geometry/component/skeleton_component.h"
 #include "comet/profiler/profiler.h"
-#include "comet/resource/animation_resource.h"
+#include "comet/resource/animation/animation_resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/scene/scene_manager.h"
 
@@ -32,6 +33,9 @@ AnimationManager& AnimationManager::Get() {
 
 void AnimationManager::Update(frame::FramePacket* packet) {
   COMET_PROFILE("AnimationManager::Update");
+  COMET_ASSERT(packet != nullptr, "AnimationManager::Update",
+               "frame packet is null");
+
   last_time_ = packet->time + packet->lag;
 
   auto& entity_manager{entity::EntityManager::Get()};
@@ -103,8 +107,8 @@ void AnimationManager::Play(entity::EntityId entity_id, AnimationClipId id,
   COMET_PROFILE("AnimationManager::Play");
   auto* animation_cmp{
       entity::EntityManager::Get().GetComponent<AnimationComponent>(entity_id)};
-  COMET_ASSERT(animation_cmp != nullptr, "No animation component for entity #",
-               entity_id, "!");
+  COMET_ASSERT(animation_cmp != nullptr, "AnimationManager::Play",
+               "no animation component", "entity", entity_id);
 
   auto* handler{resource::ResourceManager::Get().GetAnimationClips()};
 
@@ -247,13 +251,13 @@ void AnimationManager::PlayInternal(entity::EntityId entity_id,
                                     AnimationClipHandle handle, f32 speed,
                                     std::optional<bool> is_loop) {
   COMET_PROFILE("AnimationManager::PlayInternal");
-  COMET_ASSERT(handle, "Tried to play an invalid animation handle for entity #",
-               entity_id, "!");
+  COMET_ASSERT(handle, "AnimationManager::PlayInternal",
+               "animation handle is invalid", "entity", entity_id);
 
   auto* animation_cmp{
       entity::EntityManager::Get().GetComponent<AnimationComponent>(entity_id)};
-  COMET_ASSERT(animation_cmp != nullptr, "No animation component for entity #",
-               entity_id, "!");
+  COMET_ASSERT(animation_cmp != nullptr, "AnimationManager::PlayInternal",
+               "no animation component", "entity", entity_id);
 
   auto* handler{resource::ResourceManager::Get().GetAnimationClips()};
 

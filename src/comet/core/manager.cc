@@ -10,29 +10,56 @@
 #include "manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/debug_label.h"
+#include "comet/core/type_trait.h"
+
 namespace comet {
+namespace internal {
+[[maybe_unused]]
+static const schar* GetManagerStateLabel(ManagerState state) {
+  switch (state) {
+    case ManagerState::Uninitialized:
+      return "uSninitialized";
+    case ManagerState::Running:
+      return "running";
+    case ManagerState::ShutdownPending:
+      return "shutdown pending";
+    default:
+      return kUnknownLabel;
+  }
+}
+}  // namespace internal
+
 Manager::~Manager() {
-  COMET_ASSERT(state_ == ManagerState::Uninitialized,
-               "Destructor called for manager, but it is still initialized!");
+  COMET_ASSERT(state_ == ManagerState::Uninitialized, "Manager::~Manager",
+               "manager is still initialized", "state",
+               internal::GetManagerStateLabel(state_), "state_value",
+               ToUnderlying(state_));
 }
 
 void Manager::Initialize() {
-  COMET_ASSERT(state_ == ManagerState::Uninitialized,
-               "Tried to initialize manager, but it is already done!");
+  COMET_ASSERT(state_ == ManagerState::Uninitialized, "Manager::Initialize",
+               "manager is already initialized", "state",
+               internal::GetManagerStateLabel(state_), "state_value",
+               ToUnderlying(state_));
   OnInitialize();
   state_ = ManagerState::Running;
 }
 
 void Manager::PrepareShutdown() {
-  COMET_ASSERT(state_ == ManagerState::Running,
-               "Tried to prepare manager shutdown, but it is not running!");
+  COMET_ASSERT(state_ == ManagerState::Running, "Manager::PrepareShutdown",
+               "manager is not running", "state",
+               internal::GetManagerStateLabel(state_), "state_value",
+               ToUnderlying(state_));
   OnPrepareShutdown();
   state_ = ManagerState::ShutdownPending;
 }
 
 void Manager::Shutdown() {
-  COMET_ASSERT(state_ != ManagerState::Uninitialized,
-               "Tried to shutdown manager, but it is not initialized!");
+  COMET_ASSERT(state_ != ManagerState::Uninitialized, "Manager::Shutdown",
+               "manager is not initialized", "state",
+               internal::GetManagerStateLabel(state_), "state_value",
+               ToUnderlying(state_));
   OnShutdown();
   state_ = ManagerState::Uninitialized;
 }

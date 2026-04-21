@@ -68,9 +68,9 @@ HashValue32 HashCrC32(const void* data, usize length) {
 }
 
 void HashSha256(std::ifstream& stream, schar* buffer, usize buffer_len) {
-  COMET_ASSERT(buffer_len >= kSha256DigestSize,
-               "Buffer length is too small: ", buffer_len, " < ",
-               kSha256DigestSize, "!");
+  COMET_ASSERT(buffer_len >= kSha256DigestSize, "hash::HashSha256",
+               "buffer is too small", "buffer_len", buffer_len, "required_len",
+               kSha256DigestSize);
   picosha2::hash256(stream, buffer, buffer + buffer_len);
 }
 

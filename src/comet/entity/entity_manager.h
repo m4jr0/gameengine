@@ -22,6 +22,7 @@
 #include "comet/entity/entity_id.h"
 #include "comet/entity/entity_type.h"
 #include "comet/event/event.h"
+#include "comet/event/event_manager.h"
 
 namespace comet {
 namespace entity {
@@ -99,8 +100,8 @@ class EntityManager : public Manager {
 
   template <typename... ComponentTypes>
   void AddComponents(EntityId entity_id, const ComponentTypes&... components) {
-    COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id,
-                 " does not exist!");
+    COMET_ASSERT(IsEntity(entity_id), "EntityManager::AddComponents",
+                 "entity does not exist", "entity_id", entity_id);
     fiber::FiberLockGuard lock{deferred_mutex_};
     auto* entity{deferred_entities_->TryGet(entity_id)};
 
@@ -111,8 +112,8 @@ class EntityManager : public Manager {
                .value;
     }
 
-    COMET_ASSERT(!entity->is_destroyed, "Entity #", entity_id,
-                 " is scheduled to be destroyed!");
+    COMET_ASSERT(!entity->is_destroyed, "EntityManager::AddComponents",
+                 "entity scheduled for destruction", "entity_id", entity_id);
 
     (DeferAddingComponent(entity, components), ...);
   }
@@ -122,9 +123,14 @@ class EntityManager : public Manager {
 
   template <typename... ComponentIds>
   void RemoveComponents(EntityId entity_id, ComponentIds&&... component_ids) {
-    COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id,
-                 " does not exist!");
+    COMET_ASSERT(IsEntity(entity_id),
+                 "EntityManager::RemoveComponents<ComponentIds...>",
+                 "entity does not exist", "entity_id", entity_id);
     fiber::FiberLockGuard lock{deferred_mutex_};
+
+    COMET_ASSERT(deferred_entities_ != nullptr,
+                 "EntityManager::RemoveComponents<ComponentIds...>",
+                 "deferred entities are null");
     auto* entity{deferred_entities_->TryGet(entity_id)};
 
     if (entity == nullptr) {
@@ -134,18 +140,24 @@ class EntityManager : public Manager {
                .value;
     }
 
-    COMET_ASSERT(!entity->is_destroyed, "Entity #", entity_id,
-                 " is scheduled to be destroyed!");
-    (DeferRemovingComponent(entity->removed_cmps,
-                            std::forward<ComponentIds>(component_ids)),
+    COMET_ASSERT(!entity->is_destroyed,
+                 "EntityManager::RemoveComponents<ComponentIds...>",
+                 "entity scheduled for destruction", "entity_id", entity_id);
+
+    (DeferRemovingComponent(entity, std::forward<ComponentIds>(component_ids)),
      ...);
   }
 
   template <typename... ComponentTypes>
   void RemoveComponents(EntityId entity_id) {
-    COMET_ASSERT(IsEntity(entity_id), "Entity #", entity_id,
-                 " does not exist!");
+    COMET_ASSERT(IsEntity(entity_id),
+                 "EntityManager::RemoveComponents<ComponentTypes...>",
+                 "entity does not exist", "entity_id", entity_id);
     fiber::FiberLockGuard lock{deferred_mutex_};
+
+    COMET_ASSERT(deferred_entities_ != nullptr,
+                 "EntityManager::RemoveComponents<ComponentTypes...>",
+                 "deferred entities are null");
     auto* entity{deferred_entities_->TryGet(entity_id)};
 
     if (entity == nullptr) {
@@ -155,8 +167,9 @@ class EntityManager : public Manager {
                .value;
     }
 
-    COMET_ASSERT(!entity->is_destroyed, "Entity #", entity_id,
-                 " is scheduled to be destroyed!");
+    COMET_ASSERT(!entity->is_destroyed,
+                 "EntityManager::RemoveComponents<ComponentTypes...>",
+                 "entity scheduled for destruction", "entity_id", entity_id);
     (DeferRemovingComponent(entity,
                             ComponentTypeDescrGetter<ComponentTypes>::Get().id),
      ...);
@@ -166,8 +179,9 @@ class EntityManager : public Manager {
   ComponentType* GetComponent(EntityId entity_id) {
     const auto component_type_id{
         ComponentTypeDescrGetter<ComponentType>::Get().id};
-    COMET_ASSERT(IsEntity(entity_id), "Trying to get a ", component_type_id,
-                 " component from a dead entity #", entity_id, "!");
+    COMET_ASSERT(IsEntity(entity_id), "EntityManager::GetComponent",
+                 "entity does not exist", "entity_id", entity_id,
+                 "component_type_id", component_type_id);
 
     if (!HasComponent(entity_id, component_type_id)) {
       return nullptr;
@@ -359,6 +373,12 @@ class EntityManager : public Manager {
   void PrepareNewFrame();
 
   void OnEvent(const event::Event& event);
+
+  void RegisterEvents();
+  void UnregisterEvents();
+
+  event::EventListenerId new_frame_listener_id_{event::kInvalidEventListenerId};
+  event::EventListenerId end_frame_listener_id_{event::kInvalidEventListenerId};
 
   using DeferredEntities = frame::FrameMap<EntityId, internal::DeferredEntity>;
 

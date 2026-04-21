@@ -12,14 +12,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/culling/culling_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_texture_map_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/light/light_utils.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/rendering/type/rendering_camera_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/utils/rendering_camera_utils.h"
+#include "comet/rendering/utils/rendering_culling_utils.h"
+#include "comet/rendering/utils/rendering_light_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -30,15 +34,21 @@ LightingHandler::LightingHandler(const LightingHandlerDescr& descr)
       texture_handler_{descr.texture_handler},
       sampler_handler_{descr.sampler_handler},
       render_pass_handler_{descr.render_pass_handler} {
-  COMET_ASSERT(shadow_settings_ != nullptr, "Shadow settings are null!");
-  COMET_ASSERT(texture_handler_ != nullptr, "Texture handler is null!");
-  COMET_ASSERT(sampler_handler_ != nullptr, "Sampler handler is null!");
-  COMET_ASSERT(render_pass_handler_ != nullptr, "Render pass handler is null!");
+  COMET_ASSERT(shadow_settings_ != nullptr, "LightingHandler::LightingHandler",
+               "shadow settings are null");
+  COMET_ASSERT(texture_handler_ != nullptr, "LightingHandler::LightingHandler",
+               "texture handler is null");
+  COMET_ASSERT(sampler_handler_ != nullptr, "LightingHandler::LightingHandler",
+               "sampler handler is null");
+  COMET_ASSERT(render_pass_handler_ != nullptr,
+               "LightingHandler::LightingHandler",
+               "render pass handler is null");
 }
 
 void LightingHandler::Update(const frame::FramePacket* packet) {
   COMET_PROFILE("LightingHandler::Update");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "LightingHandler::Update",
+               "frame packet is null");
 
   if (!packet->added_lights->IsEmpty()) {
     AddLights(packet->added_lights);
@@ -60,7 +70,8 @@ void LightingHandler::Update(const frame::FramePacket* packet) {
 
 const LightProxy* LightingHandler::Get(LightHandle handle) const {
   const auto* proxy{TryGetLight(handle)};
-  COMET_ASSERT(proxy != nullptr, "Light proxy does not exist: ", handle, "!");
+  COMET_ASSERT(proxy != nullptr, "LightingHandler::Get",
+               "light proxy does not exist", "light_handle", handle);
   return proxy;
 }
 
@@ -306,10 +317,10 @@ void LightingHandler::AddShadowForLight(const LightProxy& light) {
 
   if (!IsShadowSupportedForLight(light.props, light.shadow)) {
     if (shadow_type == ShadowType::PointCubemap) {
-      COMET_LOG_RENDERING_WARNING(
-          "Point cubemap shadows are not implemented yet. Ignoring shadow "
-          "setup for light ",
-          light.handle, ".");
+      COMET_LOG_WARNING(LoggerType::Rendering,
+                        "LightingHandler::AddShadowForLight",
+                        "point cubemap shadows not implemented", "light_handle",
+                        light.handle);
     }
     return;
   }
@@ -607,7 +618,9 @@ void LightingHandler::InitializeShadowArrayResources() {
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
   const auto texture_handle{texture_handler_->Generate(texture_descr)};
-  COMET_ASSERT(texture_handle, "Failed to generate shadow array texture!");
+  COMET_ASSERT(texture_handle,
+               "LightingHandler::InitializeShadowArrayResources",
+               "failed to generate shadow array texture");
 
   SamplerDescr sampler_descr{};
   sampler_descr.min_filter = VK_FILTER_LINEAR;
@@ -624,7 +637,9 @@ void LightingHandler::InitializeShadowArrayResources() {
   sampler_descr.unnormalized_coordinates = false;
 
   const auto sampler_handle{sampler_handler_->GetOrGenerate(sampler_descr)};
-  COMET_ASSERT(sampler_handle, "Failed to generate shadow array sampler!");
+  COMET_ASSERT(sampler_handle,
+               "LightingHandler::InitializeShadowArrayResources",
+               "failed to generate shadow array sampler");
 
   shadow_array_texture_map_ = BuildTextureMap(
       sampler_handle, texture_handle, resource::TextureResourceId::Invalid(),
@@ -669,7 +684,10 @@ s32 LightingHandler::AllocateShadowLayers(u32 layer_count) {
     return static_cast<s32>(i);
   }
 
-  COMET_LOG_RENDERING_ERROR("No free shadow layers left in shadow array!");
+  COMET_LOG_ERROR(LoggerType::Rendering,
+                  "LightingHandler::AllocateShadowLayers",
+                  "no free shadow layers left", "layer_count", layer_count,
+                  "capacity", kShadowLayerCapacity_);
   return -1;
 }
 
@@ -686,13 +704,14 @@ void LightingHandler::FreeShadowLayers(s32 first_layer, u32 layer_count) {
 void LightingHandler::InitializeShadowResource(LightHandle light_handle,
                                                const LightProxy& light,
                                                ShadowResource& resource) {
-  COMET_ASSERT(render_pass_handle_,
-               "Shadow render pass must be set before creating shadow "
-               "resources!");
+  COMET_ASSERT(render_pass_handle_, "LightingHandler::InitializeShadowResource",
+               "shadow render pass is invalid");
 
   const auto* shadow_texture{
       GetTextureHandler()->Get(shadow_array_texture_map_.texture_handle)};
-  COMET_ASSERT(shadow_texture != nullptr, "Shadow array texture is null!");
+  COMET_ASSERT(shadow_texture != nullptr,
+               "LightingHandler::InitializeShadowResource",
+               "shadow array texture is null", "light_handle", light_handle);
 
   auto& device{context_->GetDevice()};
   const auto depth_format{device.ChooseDepthFormat()};
@@ -718,7 +737,9 @@ void LightingHandler::InitializeShadowResource(LightHandle light_handle,
 
   resource.first_layer_index = AllocateShadowLayers(resource.view_proj_count);
   COMET_ASSERT(resource.first_layer_index >= 0,
-               "Failed to allocate shadow layers!");
+               "LightingHandler::InitializeShadowResource",
+               "failed to allocate shadow layers", "light_handle", light_handle,
+               "view_proj_count", resource.view_proj_count);
 
   for (u32 i{0}; i < resource.view_proj_count; ++i) {
     resource.layer_image_views[i] =
@@ -741,7 +762,9 @@ void LightingHandler::InitializeShadowResource(LightHandle light_handle,
         vkCreateFramebuffer(device, &framebuffer_info,
                             MemoryCallbacks::Get().GetAllocCallbacksHandle(),
                             &resource.framebuffers[i]),
-        "Failed to create shadow framebuffer!");
+        "LightingHandler::InitializeShadowResource",
+        "failed to create shadow framebuffer", "light_handle", light_handle,
+        "framebuffer_index", i);
   }
 }
 
@@ -853,7 +876,8 @@ bool LightingHandler::IsShadowSlotAlive(usize index) const noexcept {
 void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
                                             f32 max_distance, u32 cascade_count,
                                             f32 lambda, f32* out_splits) const {
-  COMET_ASSERT(out_splits != nullptr, "Cascade split output is null!");
+  COMET_ASSERT(out_splits != nullptr, "LightingHandler::PopulateCascadeSplits",
+               "cascade split output is null");
 
   const auto near_plane{camera_data.near_plane};
   const auto far_plane{max_distance};

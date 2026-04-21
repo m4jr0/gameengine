@@ -11,7 +11,8 @@
 #include "opengl_texture_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/rendering_utils.h"
+#include "comet/core/type_trait.h"
+#include "comet/rendering/utils/rendering_texture_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -38,7 +39,9 @@ GLenum GetGlWrapMode(TextureRepeatMode repeat_mode) {
       return GL_CLAMP_TO_BORDER;
     case TextureRepeatMode::Unknown:
     default:
-      COMET_ASSERT(false, "Unknown or unsupported repeat mode!");
+      COMET_ASSERT(false, "opengl_texture_utils::GetGlWrapMode",
+                   "texture repeat mode is unsupported", "repeat_mode",
+                   ToUnderlying(repeat_mode));
       return GL_REPEAT;
   }
 }
@@ -51,13 +54,16 @@ GLenum GetGlFilterMode(TextureFilterMode filter_mode) {
       return GL_NEAREST;
     case TextureFilterMode::Unknown:
     default:
-      COMET_ASSERT(false, "Unknown or unsupported filter mode!");
+      COMET_ASSERT(false, "opengl_texture_utils::GetGlFilterMode",
+                   "texture filter mode is unsupported", "filter_mode",
+                   ToUnderlying(filter_mode));
       return GL_LINEAR;
   }
 }
 
 GLenum GetGlFormat(const resource::TextureResource* resource) {
-  COMET_ASSERT(resource != nullptr, "Texture resource is null!");
+  COMET_ASSERT(resource != nullptr, "opengl_texture_utils::GetGlFormat",
+               "texture resource is null");
 
   switch (resource->descr.format) {
     case TextureFormat::Rgba8:
@@ -68,17 +74,17 @@ GLenum GetGlFormat(const resource::TextureResource* resource) {
 
     case TextureFormat::Unknown:
     default:
-      COMET_ASSERT(false, "Unknown or unsupported texture format: ",
-                   static_cast<std::underlying_type_t<TextureFormat>>(
-                       resource->descr.format),
-                   "!");
+      COMET_ASSERT(false, "opengl_texture_utils::GetGlFormat",
+                   "texture format is unsupported", "format",
+                   ToUnderlying(resource->descr.format));
       return GL_RGBA;
   }
 }
 
 GLenum GetGlInternalFormat(const resource::TextureResource* resource,
                            TextureType type) {
-  COMET_ASSERT(resource != nullptr, "Texture resource is null!");
+  COMET_ASSERT(resource != nullptr, "opengl_texture_utils::GetGlInternalFormat",
+               "texture resource is null");
 
   const auto is_srgb{IsSrgbTextureType(type)};
 
@@ -91,10 +97,9 @@ GLenum GetGlInternalFormat(const resource::TextureResource* resource,
 
     case TextureFormat::Unknown:
     default:
-      COMET_ASSERT(false, "Unknown or unsupported texture format: ",
-                   static_cast<std::underlying_type_t<TextureFormat>>(
-                       resource->descr.format),
-                   "!");
+      COMET_ASSERT(false, "opengl_texture_utils::GetGlInternalFormat",
+                   "texture format is unsupported", "format",
+                   ToUnderlying(resource->descr.format));
       return GL_RGBA8;
   }
 }

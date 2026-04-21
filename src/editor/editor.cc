@@ -18,13 +18,17 @@
 #include <signal.h>
 #endif  // COMET_MSVC
 
+#include "comet/core/logger/logging.h"
+#include "comet/core/memory/memory_label.h"
 #include "editor/asset/asset_manager.h"
-#include "editor/memory/memory.h"
+#include "editor/memory/memory_label.h"
 
 namespace comet {
 namespace editor {
 void CometEditor::Update(f64& lag) {
   Engine::Update(lag);
+  COMET_ASSERT(camera_handler_ != nullptr, "CometEditor::Update",
+               "camera handler is null");
   camera_handler_->Update();
 }
 
@@ -36,10 +40,9 @@ void CometEditor::OnLoadBefore() {
 #ifdef COMET_WINDOWS
   if (!SetConsoleCtrlHandler(static_cast<PHANDLER_ROUTINE>(HandleConsole),
                              TRUE)) {
-    std::cout
-        << "Could not set console handler. This could result in "
-        << "memory leaks as the engine would not shut down properly if the "
-        << "console window is closed." << '\n';
+    std::cerr
+        << "CometEditor::OnLoadBefore: console handler registration failed"
+        << '\n';
   }
 #endif  // COMET_WINDOWS
 
@@ -56,17 +59,30 @@ void CometEditor::OnLoadBefore() {
   LoadTmpCode();
   auto& asset_manager{asset::AssetManager::Get()};
   asset_manager.Initialize();
+
+  COMET_LOG_INFO(LoggerType::External, "CometEditor::OnLoadBefore",
+                 "editor assets refresh started");
   asset_manager.Refresh();
+  COMET_LOG_INFO(LoggerType::External, "CometEditor::OnLoadBefore",
+                 "editor assets refresh completed");
 }
 
 // TODO(m4jr0): Remove temporary code.
 void CometEditor::OnPostLoadAfter() {
   camera_handler_ = std::make_unique<CameraHandler>();
+  COMET_ASSERT(camera_handler_ != nullptr, "CometEditor::OnPostLoadAfter",
+               "camera handler allocation failed");
   camera_handler_->Initialize();
 }
 
+void CometEditor::OnPreUnloadBefore() {
+  if (camera_handler_ != nullptr) {
+    camera_handler_->Shutdown();
+    camera_handler_ = nullptr;
+  }
+}
+
 void CometEditor::OnPostUnloadBefore() {
-  camera_handler_->Shutdown();
   asset::AssetManager::Get().Shutdown();
 }
 

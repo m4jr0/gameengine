@@ -15,12 +15,12 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/entity/entity_id.h"
-#include "comet/rendering/driver/opengl/data/opengl_frame.h"
-#include "comet/rendering/driver/opengl/data/opengl_render_proxy.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/rendering/driver/opengl/type/opengl_frame_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_render_proxy_type.h"
 
 namespace comet {
 namespace rendering {

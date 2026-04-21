@@ -19,7 +19,6 @@
 #include "comet/core/date.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/engine/engine_event.h"
-#include "comet/event/event_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/rendering_manager.h"
 
@@ -71,9 +70,15 @@ void ProfilerManager::EndFrame() {
     thread_context.root_nodes = Array<ProfilerNode*>{&allocator_};
     thread_context.nodes = Array<memory::UniquePtr<ProfilerNode>>{&allocator_};
   }
+
+  COMET_ASSERT(thread_contexts_.IsInitialized(), "ProfilerManager::EndFrame",
+               "thread contexts are not initialized");
 }
 
 void ProfilerManager::StartProfiling(const schar* label) {
+  COMET_ASSERT(label != nullptr, "ProfilerManager::StartProfiling",
+               "profile label is null");
+
   if (!is_recording_) {
     return;
   }
@@ -132,11 +137,7 @@ void ProfilerManager::OnInitialize() {
     thread_context.thread_id = thread_contexts_.GetThreadIdFromIndex(i);
   }
 
-  const auto event_function{
-      [this](const event::Event& event) { OnEvent(event); }};
-
-  event::EventManager::Get().Register(event_function,
-                                      ApplicationQuitEvent::kStaticType_);
+  RegisterEvents();
 
 #ifdef COMET_PROFILING
 #ifdef COMET_IMGUI
@@ -144,13 +145,34 @@ void ProfilerManager::OnInitialize() {
 #endif  // COMET_DEBUG
 }
 
-void ProfilerManager::OnShutdown() { thread_contexts_.Destroy(); }
+void ProfilerManager::OnShutdown() {
+  UnregisterEvents();
+  thread_contexts_.Destroy();
+}
 
 void ProfilerManager::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
   if (event_type == ApplicationQuitEvent::kStaticType_) {
     ProfilerManager::Get().StopRecording();
+  }
+}
+
+void ProfilerManager::RegisterEvents() {
+  const auto event_function{
+      [this](const event::Event& event) { OnEvent(event); }};
+
+  application_quit_listener_id_ = event::EventManager::Get().Register(
+      event_function, ApplicationQuitEvent::kStaticType_);
+  COMET_ASSERT(application_quit_listener_id_ != event::kInvalidEventListenerId,
+               "ProfilerManager::RegisterEvents",
+               "application quit listener registration failed");
+}
+
+void ProfilerManager::UnregisterEvents() {
+  if (application_quit_listener_id_ != event::kInvalidEventListenerId) {
+    event::EventManager::Get().Unregister(application_quit_listener_id_);
+    application_quit_listener_id_ = event::kInvalidEventListenerId;
   }
 }
 

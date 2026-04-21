@@ -60,10 +60,15 @@ StackAllocator& StackAllocator::operator=(StackAllocator&& other) noexcept {
 }
 
 void* StackAllocator::AllocateAligned(usize size, Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "StackAllocator::AllocateAligned",
+               "allocation size is zero");
+
   auto* p{AlignPointer(marker_, align)};
-  COMET_ASSERT(p + size <= root_ + capacity_,
-               "Could not allocate enough memory (", size, ")!");
+
+  COMET_ASSERT(p + size <= root_ + capacity_, "StackAllocator::AllocateAligned",
+               "allocation exceeds capacity", "size", size, "capacity",
+               capacity_);
+
   marker_ = p + size;
   return p;
 }
@@ -77,7 +82,9 @@ void StackAllocator::Deallocate(void*) {
 void StackAllocator::Clear() { marker_ = root_; }
 
 void StackAllocator::OnInitialize() {
-  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
+  COMET_ASSERT(capacity_ > 0, "StackAllocator::OnInitialize",
+               "capacity is invalid", "capacity", capacity_);
+
   root_ = static_cast<u8*>(TaggedHeap::Get().AllocateAligned(
       capacity_, alignof(u8), memory_tag_, &capacity_));
   marker_ = root_;
@@ -101,7 +108,9 @@ FiberStackAllocator::FiberStackAllocator(usize base_capacity,
       marker_{root_} {}
 
 void* FiberStackAllocator::AllocateAligned(usize size, Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "FiberStackAllocator::AllocateAligned",
+               "allocation size is zero");
+
   auto& context{thread_contexts_.Get()};
   auto* p{AlignPointer(context.marker, align)};
 
@@ -125,7 +134,9 @@ void* FiberStackAllocator::AllocateAligned(usize size, Alignment align) {
     }
 
     COMET_ASSERT(extended_memory_tag_ != kEngineMemoryTagInvalid,
-                 "Could not allocate enough memory (", size, ")!");
+                 "FiberStackAllocator::AllocateAligned",
+                 "extended memory is disabled", "size", size);
+
     ExtendCommonMemory(size * 2);
   }
 
@@ -162,7 +173,9 @@ void FiberStackAllocator::Clear() {
 void FiberStackAllocator::OnInitialize() {
   thread_capacity_ = TaggedHeap::Get().GetBlockSize() - 1;
   thread_contexts_.Initialize();
-  COMET_ASSERT(base_capacity_ > 0, "Capacity is ", base_capacity_, "!");
+
+  COMET_ASSERT(base_capacity_ > 0, "FiberStackAllocator::OnInitialize",
+               "base capacity is invalid", "base_capacity", base_capacity_);
 
   const auto size{thread_contexts_.GetSize()};
   auto& tagged_heap{TaggedHeap::Get()};
@@ -193,7 +206,9 @@ void FiberStackAllocator::AllocateCommonMemory() {
 
 void FiberStackAllocator::ExtendCommonMemory(usize capacity) {
   COMET_ASSERT(extended_memory_tag_ != kEngineMemoryTagInvalid,
-               "Extended memory is not enabled on this stack allocator!");
+               "FiberStackAllocator::ExtendCommonMemory",
+               "extended memory is disabled");
+
   extended_root_ = static_cast<u8*>(TaggedHeap::Get().Allocate(
       capacity, extended_memory_tag_, &extended_capacity_));
   extended_marker_ = extended_root_;
@@ -203,11 +218,17 @@ IOStackAllocator::IOStackAllocator(usize thread_capacity, MemoryTag memory_tag)
     : memory_tag_{memory_tag}, thread_capacity_{thread_capacity} {}
 
 void* IOStackAllocator::AllocateAligned(usize size, Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "IOStackAllocator::AllocateAligned",
+               "allocation size is zero");
+
   auto& context{thread_contexts_.Get()};
   auto* p{AlignPointer(context.marker, align)};
+
   COMET_ASSERT(p + size <= context.root + thread_capacity_,
-               "Could not allocate enough memory (", size, ")!");
+               "IOStackAllocator::AllocateAligned",
+               "allocation exceeds thread capacity", "size", size,
+               "thread_capacity", thread_capacity_);
+
   context.marker = p + size;
   return p;
 }
@@ -249,26 +270,37 @@ LockFreeStackAllocator::LockFreeStackAllocator(usize capacity,
       root_{nullptr} {}
 
 void* LockFreeStackAllocator::AllocateAligned(usize size, Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "LockFreeStackAllocator::AllocateAligned",
+               "allocation size is zero");
+
   auto current_offset{offset_.load(std::memory_order_relaxed)};
-  COMET_ASSERT(current_offset >= 0, "Invalid offset: ", current_offset, "!");
+
+  COMET_ASSERT(current_offset >= 0, "LockFreeStackAllocator::AllocateAligned",
+               "offset is invalid", "offset", current_offset);
+
   auto aligned_offset{
-      memory::AlignAddress(reinterpret_cast<uptr>(root_ + current_offset),
-                           align) -
+      AlignAddress(reinterpret_cast<uptr>(root_ + current_offset), align) -
       reinterpret_cast<uptr>(root_)};
   auto new_offset{aligned_offset + size};
 
-  COMET_ASSERT(new_offset < capacity_, "Could not allocate enough memory (",
-               size, ")!");
+  COMET_ASSERT(new_offset < capacity_,
+               "LockFreeStackAllocator::AllocateAligned",
+               "allocation exceeds capacity", "size", size, "capacity",
+               capacity_, "new_offset", new_offset);
 
   while (!offset_.compare_exchange_weak(current_offset, new_offset,
                                         std::memory_order_acquire)) {
-    COMET_ASSERT(current_offset >= 0, "Invalid offset: ", current_offset, "!");
-    aligned_offset = memory::AlignAddress(
-        reinterpret_cast<uptr>(root_ + current_offset), align);
+    COMET_ASSERT(current_offset >= 0, "LockFreeStackAllocator::AllocateAligned",
+                 "offset is invalid", "offset", current_offset);
+
+    aligned_offset =
+        AlignAddress(reinterpret_cast<uptr>(root_ + current_offset), align);
     new_offset = aligned_offset + size;
-    COMET_ASSERT(new_offset > capacity_, "Could not allocate enough memory (",
-                 size, ")!");
+
+    COMET_ASSERT(new_offset < capacity_,
+                 "LockFreeStackAllocator::AllocateAligned",
+                 "allocation exceeds capacity", "size", size, "capacity",
+                 capacity_, "new_offset", new_offset);
   }
 
   return root_ + aligned_offset;

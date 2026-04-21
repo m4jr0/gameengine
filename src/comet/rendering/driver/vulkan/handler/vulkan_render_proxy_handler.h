@@ -17,10 +17,10 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/entity/entity_id.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_render_proxy.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_render_proxy_type.h"
 
 namespace comet {
 namespace rendering {

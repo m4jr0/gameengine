@@ -20,15 +20,15 @@ static thread_local Thread* tls_current_thread{nullptr};
 
 namespace internal {
 void AttachThread(Thread* thread) {
-  COMET_ASSERT(tls_current_thread == nullptr,
-               "Tried to attach thread, but it is already done!");
+  COMET_ASSERT(tls_current_thread == nullptr, "thread_context::AttachThread",
+               "thread is already attached");
   tls_current_thread = thread;
   active_thread_count.fetch_add(1, std::memory_order_acq_rel);
 }
 
 void DetachThread() {
-  COMET_ASSERT(tls_current_thread != nullptr,
-               "Tried to detach thread, but it is not attached!");
+  COMET_ASSERT(tls_current_thread != nullptr, "thread_context::DetachWorker",
+               "thread is not attached");
   active_thread_count.fetch_sub(1, std::memory_order_acq_rel);
   tls_current_thread = nullptr;
 }
@@ -50,7 +50,7 @@ void Yield() { std::this_thread::yield(); }
 usize GetMaxConcurrentThreadCount() {
   const auto max_thread_count{std::thread::hardware_concurrency()};
   COMET_CASSERT(max_thread_count > internal::kReservedThreadCount,
-                "No thread available!");
+                "no thread available");
   return max_thread_count - internal::kReservedThreadCount;
 }
 

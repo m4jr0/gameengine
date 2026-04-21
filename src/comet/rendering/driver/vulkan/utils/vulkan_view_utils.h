@@ -11,7 +11,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_render_pass.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_render_pass_type.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
 
 namespace comet {

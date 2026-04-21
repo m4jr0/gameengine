@@ -16,12 +16,13 @@
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
 #include "comet/core/type/tstring.h"
-#include "comet/geometry/geometry_type.h"
+#include "comet/geometry/type/geometry_mesh_type.h"
+#include "comet/geometry/type/geometry_skeleton_type.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/rendering_type.h"
-#include "comet/rendering/rendering_utils.h"
-#include "comet/resource/material_resource.h"
+#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/utils/rendering_geometry_utils.h"
+#include "comet/resource/material/material_resource.h"
 #include "editor/asset/exporter/model/model_export.h"
 
 namespace comet {
@@ -44,7 +45,8 @@ void PopulateSkeletonJoints(SkeletalModelExport& model_export);
 
 template <typename TVertex>
 void PopulateVertex(const aiMesh* raw_mesh, usize index, TVertex& vertex) {
-  COMET_ASSERT(raw_mesh != nullptr, "Raw mesh is null!");
+  COMET_ASSERT(raw_mesh != nullptr, "model_exporter_utils::PopulateVertex",
+               "raw mesh is null");
 
   if (raw_mesh->mVertices != nullptr) {
     vertex.position =

@@ -18,26 +18,33 @@ AnimationSet::AnimationSet(memory::Allocator* allocator, usize capacity)
 void AnimationSet::Reserve(usize capacity) { animations_.Reserve(capacity); }
 
 void AnimationSet::Set(const schar* local_name, AnimationClipId id) {
-  COMET_ASSERT(local_name != nullptr, "Animation local name is null!");
-  COMET_ASSERT(local_name[0] != '\0', "Animation local name is empty!");
-  COMET_ASSERT(id, "Animation ID is invalid!");
+  COMET_ASSERT(local_name != nullptr, "AnimationSet::Set",
+               "animation local name is null");
+  COMET_ASSERT(local_name[0] != '\0', "AnimationSet::Set",
+               "animation local name is empty");
+  COMET_ASSERT(id, "AnimationSet::Set", "animation clip id is invalid");
 
   animations_.Set(COMET_STRING_ID(local_name), id);
 }
 
 void AnimationSet::Set(const schar* local_name, const schar* qualified_name) {
-  COMET_ASSERT(qualified_name != nullptr, "Animation qualified name is null!");
+  COMET_ASSERT(qualified_name != nullptr, "AnimationSet::Set",
+               "animation qualified name is null");
   Set(local_name, GenerateAnimationClipId(qualified_name));
 }
 
 void AnimationSet::Set(const schar* local_name, const wchar* qualified_name) {
-  COMET_ASSERT(qualified_name != nullptr, "Animation qualified name is null!");
+  COMET_ASSERT(qualified_name != nullptr, "AnimationSet::Set",
+               "animation qualified name is null");
   Set(local_name, GenerateAnimationClipId(qualified_name));
 }
 
 AnimationClipId AnimationSet::TryGet(const schar* local_name) const {
-  COMET_ASSERT(local_name != nullptr, "Animation local name is null!");
-  COMET_ASSERT(local_name[0] != '\0', "Animation local name is empty!");
+  COMET_ASSERT(local_name != nullptr, "AnimationSet::TryGet",
+               "animation local name is null");
+
+  COMET_ASSERT(local_name[0] != '\0', "AnimationSet::TryGet",
+               "animation local name is empty");
 
   const auto* id_ptr{animations_.TryGet(COMET_STRING_ID(local_name))};
   return id_ptr == nullptr ? AnimationClipId::Invalid() : *id_ptr;
@@ -45,7 +52,8 @@ AnimationClipId AnimationSet::TryGet(const schar* local_name) const {
 
 AnimationClipId AnimationSet::Get(const schar* local_name) const {
   const auto id{TryGet(local_name)};
-  COMET_ASSERT(id, "Unknown animation local name: ", local_name, "!");
+  COMET_ASSERT(id, "AnimationSet::Get", "animation local name is unknown",
+               "local_name", local_name);
   return id;
 }
 

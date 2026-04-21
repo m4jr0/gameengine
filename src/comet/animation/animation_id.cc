@@ -16,8 +16,12 @@ namespace comet {
 namespace animation {
 AnimationClipId GenerateQualifiedAnimationClipId(CTStringView file_path,
                                                  const schar* animation_name) {
-  COMET_ASSERT(animation_name != nullptr, "Animation name is null!");
-  COMET_ASSERT(!file_path.IsEmpty(), "Animation file path is empty!");
+  COMET_ASSERT(animation_name != nullptr,
+               "animation_id::GenerateQualifiedAnimationClipId",
+               "animation name is null");
+  COMET_ASSERT(!file_path.IsEmpty(),
+               "animation_id::GenerateQualifiedAnimationClipId",
+               "animation file path is empty");
   const auto animation_len{GetLength(animation_name)};
 
   const auto path_len{file_path.GetLength()};
@@ -42,17 +46,23 @@ AnimationClipId GenerateQualifiedAnimationClipId(CTStringView file_path,
 }
 
 AnimationClipId GenerateAnimationClipId(const schar* qualified_name) {
-  COMET_ASSERT(qualified_name != nullptr, "Animation qualified name is null!");
+  COMET_ASSERT(qualified_name != nullptr,
+               "animation_id::GenerateAnimationClipId",
+               "animation qualified name is null");
   return AnimationClipId{COMET_STRING_ID(qualified_name)};
 }
 
 AnimationClipId GenerateAnimationClipId(const wchar* qualified_name) {
-  COMET_ASSERT(qualified_name != nullptr, "Animation qualified name is null!");
+  COMET_ASSERT(qualified_name != nullptr,
+               "animation_id::GenerateAnimationClipId",
+               "animation qualified name is null");
   return AnimationClipId{COMET_STRING_ID(qualified_name)};
 }
 
 AnimationClipId GenerateAnimationClipId(CTStringView qualified_name) {
-  COMET_ASSERT(!qualified_name.IsEmpty(), "Animation qualified name is empty!");
+  COMET_ASSERT(!qualified_name.IsEmpty(),
+               "animation_id::GenerateAnimationClipId",
+               "animation qualified name is empty");
   return AnimationClipId{COMET_STRING_ID(qualified_name)};
 }
 }  // namespace animation

@@ -14,11 +14,11 @@
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader_data.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/shader_resource.h"
+#include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
 namespace rendering {
@@ -29,11 +29,14 @@ ShadowView::ShadowView(const ShadowViewDescr& descr)
       render_proxy_handler_{descr.render_proxy_handler},
       lighting_handler_{descr.lighting_handler},
       mesh_handler_{descr.mesh_handler} {
-  COMET_ASSERT(shader_handler_ != nullptr, "Shader handler is null!");
-  COMET_ASSERT(render_proxy_handler_ != nullptr,
-               "Render proxy handler is null!");
-  COMET_ASSERT(lighting_handler_ != nullptr, "Lighting handler is null!");
-  COMET_ASSERT(mesh_handler_ != nullptr, "Mesh handler is null!");
+  COMET_ASSERT(shader_handler_ != nullptr, "ShadowView::ShadowView",
+               "shader handler is null");
+  COMET_ASSERT(render_proxy_handler_ != nullptr, "ShadowView::ShadowView",
+               "render proxy handler is null");
+  COMET_ASSERT(lighting_handler_ != nullptr, "ShadowView::ShadowView",
+               "lighting handler is null");
+  COMET_ASSERT(mesh_handler_ != nullptr, "ShadowView::ShadowView",
+               "mesh handler is null");
 }
 
 void ShadowView::Update(frame::FramePacket*) {
@@ -72,10 +75,11 @@ void ShadowView::Update(frame::FramePacket*) {
                                     mesh_handler_->GetVertexSource());
 
   for (const auto& job : *render_jobs) {
-    COMET_ASSERT(job.resource != nullptr,
-                 "Shadow render job resource is null!");
+    COMET_ASSERT(job.resource != nullptr, "ShadowView::Update",
+                 "shadow render job resource is null");
     COMET_ASSERT(job.framebuffer != kInvalidFrameBufferHandle,
-                 "Shadow render job framebuffer is invalid!");
+                 "ShadowView::Update",
+                 "shadow render job framebuffer is invalid");
 
     glBindFramebuffer(GL_FRAMEBUFFER, job.framebuffer);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -178,7 +182,8 @@ void ShadowView::DrawShadowCasters() {
       render_proxy_handler_->GetShadowIndirectBufferHandle(frame_index)};
 
   COMET_ASSERT(indirect_buffer_handle != kInvalidGlNativeStorageHandle,
-               "Shadow indirect buffer handle is invalid!");
+               "ShadowView::DrawShadowCasters",
+               "shadow indirect buffer handle is invalid");
 
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer_handle);
 

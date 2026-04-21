@@ -42,13 +42,14 @@ FrameManager::FrameManager()
                                  memory::kEngineMemoryTagDoubleFrame} {}
 
 void FrameManager::Update() {
-  event::EventManager::Get().FireEventNow<EndFrameEvent>();
+  auto& event_manager{event::EventManager::Get()};
+  event_manager.FireEventNow<EndFrameEvent>();
   StepFrame();
 
   // Fire a new frame event now, as many frame-specific systems rely on
   // temporary allocations that must be reset or reallocated at the start of
   // each frame.
-  event::EventManager::Get().FireEventNow<NewFrameEvent>();
+  event_manager.FireEventNow<NewFrameEvent>();
 }
 
 void FrameManager::WaitForNextFrame() {
@@ -81,9 +82,8 @@ memory::Allocator* FrameManager::GetFrameAllocator() {
     return &io_frame_allocator_;
   }
 
-  COMET_ASSERT(false,
-               "No frame allocator available: no worker has been "
-               "attached on this thread!");
+  COMET_ASSERT(false, "FrameManager::GetFrameAllocator",
+               "no worker is attached to this thread");
   return nullptr;
 }
 
@@ -96,9 +96,8 @@ memory::Allocator* FrameManager::GetDoubleFrameAllocator() {
     return &io_double_frame_allocator_;
   }
 
-  COMET_ASSERT(false,
-               "No double frame allocator available: no worker has been "
-               "attached on this thread!");
+  COMET_ASSERT(false, "FrameManager::GetDoubleFrameAllocator",
+               "no worker is attached to this thread");
   return nullptr;
 }
 

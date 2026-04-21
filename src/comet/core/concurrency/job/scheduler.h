@@ -80,7 +80,7 @@ class Scheduler {
   Scheduler(Scheduler&&) = delete;
   Scheduler& operator=(const Scheduler&) = delete;
   Scheduler& operator=(Scheduler&&) = delete;
-  ~Scheduler() = default;
+  ~Scheduler();
 
   void Initialize();
   void Shutdown();
@@ -112,6 +112,7 @@ class Scheduler {
 
   std::counting_semaphore<> io_worker_wakeup_{0};
 
+  bool is_initialized_{false};
   usize fiber_worker_count_{0};
   usize io_worker_count_{0};
   u32 promotion_interval_{1000};
@@ -131,10 +132,9 @@ class Scheduler {
   memory::PlatformAllocator worker_allocator{memory::kEngineMemoryTagFiber};
   Array<FiberWorker> fiber_workers_{};
   Array<IOWorker> io_workers_{};
+
   static_assert(std::atomic<bool>::is_always_lock_free,
-                "std::atomic<bool> needs to be always "
-                "lock-free. Unsupported "
-                "architecture");
+                "std::atomic<bool> must be always lock-free");
   std::atomic<bool> is_shutdown_required_{false};
 
   memory::PlatformAllocator job_queue_allocator_{memory::kEngineMemoryTagFiber};

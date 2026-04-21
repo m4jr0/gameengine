@@ -13,7 +13,7 @@
 // External. ///////////////////////////////////////////////////////////////////
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
-#include "comet/core/logger.h"
+
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/tagged_heap.h"
 
@@ -27,9 +27,16 @@ FiberFreeListAllocator::FiberFreeListAllocator(usize allocation_unit_size,
       block_count_{block_count},
       memory_tag_{memory_tag} {
   COMET_ASSERT(block_size_ >= allocation_unit_size + sizeof(Block),
-               "Block size must be sufficient for alignment and metadata!");
-  COMET_ASSERT(block_size_ > 0, "Invalid block size!");
-  COMET_ASSERT(block_count_ > 0, "Invalid block count!");
+               "FiberFreeListAllocator::FiberFreeListAllocator",
+               "block size too small for allocation unit", "block_size",
+               block_size_, "required_min",
+               allocation_unit_size + sizeof(Block));
+  COMET_ASSERT(block_size_ > 0,
+               "FiberFreeListAllocator::FiberFreeListAllocator",
+               "invalid block size", "block_size", block_size_);
+  COMET_ASSERT(block_count_ > 0,
+               "FiberFreeListAllocator::FiberFreeListAllocator",
+               "invalid block count", "block_count", block_count_);
 }
 
 FiberFreeListAllocator::FiberFreeListAllocator(
@@ -69,7 +76,9 @@ FiberFreeListAllocator& FiberFreeListAllocator::operator=(
 }
 
 void* FiberFreeListAllocator::AllocateAligned(usize size, Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "FiberFreeListAllocator::AllocateAligned",
+               "allocation size is zero");
+
   // Add alignment storage + header of first block.
   auto allocation_size{size + align + sizeof(Block)};
   Block* head_block{nullptr};
@@ -81,8 +90,10 @@ void* FiberFreeListAllocator::AllocateAligned(usize size, Alignment align) {
     head_block = Grow(allocation_size);
   }
 
-  COMET_ASSERT(head_block != nullptr, "Could not allocate memory (size: ", size,
-               ")!");
+  COMET_ASSERT(head_block != nullptr, "FiberFreeListAllocator::AllocateAligned",
+               "allocation failed", "requested_size", size, "allocation_size",
+               allocation_size);
+
   auto* ptr{reinterpret_cast<u8*>(head_block) + sizeof(Block)};
   auto* cursor{head_block->next};
   head_block->is_free = false;
@@ -95,8 +106,8 @@ void* FiberFreeListAllocator::AllocateAligned(usize size, Alignment align) {
       head_block->is_free = true;
     }
 
-    COMET_ASSERT(cursor->is_free,
-                 "Tried to allocate a block that is not free!");
+    COMET_ASSERT(cursor->is_free, "FiberFreeListAllocator::AllocateAligned",
+                 "encountered non-free block during allocation");
     new_block_size += block_size_;
     --block_count_;
     cursor = cursor->next;
@@ -105,10 +116,15 @@ void* FiberFreeListAllocator::AllocateAligned(usize size, Alignment align) {
   head_block->next = cursor;
   head_block->size = new_block_size;
 
-  COMET_ASSERT(head_block->size > 0,
-               "Bad allocation or corrupted memory detected!");
+  COMET_ASSERT(head_block->size > 0, "FiberFreeListAllocator::AllocateAligned",
+               "invalid block size after allocation", "block_size",
+               head_block->size);
   COMET_ASSERT(head_block->size % block_size_ == 0,
-               "Bad allocation or corrupted memory detected!");
+               "FiberFreeListAllocator::AllocateAligned",
+               "block size is not aligned to allocator block size",
+               "block_size", head_block->size, "allocator_block_size",
+               block_size_);
+
   return StoreShiftAndReturnAligned(ptr, size, new_block_size, align);
 }
 
@@ -117,8 +133,11 @@ void FiberFreeListAllocator::Deallocate(void* ptr) {
       static_cast<u8*>(ResolveNonAligned(static_cast<u8*>(ptr))) -
       sizeof(Block))};
   auto saved_block_size{head_block->size};
-  COMET_ASSERT(saved_block_size > 0,
-               "Bad deallocation or corrupted memory detected!");
+
+  COMET_ASSERT(saved_block_size > 0, "FiberFreeListAllocator::Deallocate",
+               "invalid block size during deallocation", "block_size",
+               saved_block_size);
+
   auto* block{head_block};
 
   fiber::FiberLockGuard lock{mutex_};
@@ -166,11 +185,8 @@ FiberFreeListAllocator::Block* FiberFreeListAllocator::Grow(usize size) {
 
   auto* head_block{static_cast<Block*>(TaggedHeap::Get().AllocateAligned(
       size, alignof(Block), memory_tag_, &size))};
-
-  if (head_block == nullptr) {
-    COMET_LOG_CORE_ERROR("Out of memory! Failed to grow allocator.");
-    return nullptr;
-  }
+  COMET_ASSERT(head_block != nullptr, "FiberFreeListAllocator::Grow",
+               "allocation failed", "size", size, "block_size", block_size_);
 
   auto* cursor{head_block};
   const auto block_count{static_cast<usize>(size / block_size_)};

@@ -35,123 +35,11 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/c_string.h"
+#include "comet/core/memory/memory_label.h"
 #include "comet/core/processor.h"
 
 namespace comet {
 namespace memory {
-#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-namespace internal {
-GetCustomMemoryTagLabelFunc get_custom_memory_tag_label_func{nullptr};
-}  // namespace internal
-
-void AttachGetCustomMemoryTagLabelFunc(GetCustomMemoryTagLabelFunc func) {
-  COMET_ASSERT(func != nullptr,
-               "GetCustomMemoryTagLabelFunc provided is null!");
-  internal::get_custom_memory_tag_label_func = func;
-}
-
-void DetachGetCustomMemoryTagLabelFunc() {
-  internal::get_custom_memory_tag_label_func = nullptr;
-}
-#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-
-const schar* GetMemoryTagLabel(MemoryTag tag) {
-  switch (tag) {
-    case kEngineMemoryTagUntagged:
-      return "untagged";
-    case kEngineMemoryTagConfig:
-      return "config";
-    case kEngineMemoryTagTaggedHeap:
-      return "tagged_heap";
-    case kEngineMemoryTagGid:
-      return "gid";
-    case kEngineMemoryTagStringId:
-      return "string_id";
-    case kEngineMemoryTagFrame:
-      return "frame";
-    case kEngineMemoryTagInput:
-      return "input";
-    case kEngineMemoryTagFrameExtended:
-      return "frame_extended";
-    case kEngineMemoryTagDoubleFrame:
-      return "double_frame";
-    case kEngineMemoryTagDoubleFrameExtended1:
-      return "double_frame_extended_1";
-    case kEngineMemoryTagDoubleFrameExtended2:
-      return "double_frame_extended_2";
-    case kEngineMemoryTagGeometry:
-      return "geometry";
-    case kEngineMemoryTagRendering:
-      return "rendering";
-    case kEngineMemoryTagRenderingInternal:
-      return "rendering_internal";
-    case kEngineMemoryTagRenderingDevice:
-      return "rendering_device (VRAM)";
-    case kEngineMemoryTagResource:
-      return "resource";
-    case kEngineMemoryTagResourceGlobal:
-      return "resource_global";
-    case kEngineMemoryTagResourceGlobalExtended:
-      return "resource_global_extended";
-    case kEngineMemoryTagResourceScene:
-      return "resource_scene";
-    case kEngineMemoryTagResourceSceneExtended:
-      return "resource_scene_extended";
-    case kEngineMemoryTagResourceAnimationHandler:
-      return "resource_animation_handler";
-    case kEngineMemoryTagResourceMaterialHandler:
-      return "resource_material_handler";
-    case kEngineMemoryTagResourceStaticModelHandler:
-      return "resource_static_model_handler";
-    case kEngineMemoryTagResourceSkeletalModelHandler:
-      return "resource_skeletal_model_handler";
-    case kEngineMemoryTagResourceSkeletonHandler:
-      return "resource_skeleton_handler";
-    case kEngineMemoryTagResourceAnimationClipHandler:
-      return "resource_animation_clip_handler";
-    case kEngineMemoryTagResourceShaderModuleHandler:
-      return "resource_shader_module_handler";
-    case kEngineMemoryTagResourceShaderHandler:
-      return "resource_shader_handler";
-    case kEngineMemoryTagResourceTextureHandler:
-      return "resource_texture_handler";
-    case kEngineMemoryTagResourceAnimation:
-      return "resource_animation";
-    case kEngineMemoryTagResourceTexture:
-      return "resource_texture";
-    case kEngineMemoryTagTString:
-      return "tstring";
-    case kEngineMemoryTagEntity:
-      return "entity";
-    case kEngineMemoryTagFiber:
-      return "fiber";
-    case kEngineMemoryTagThreadProvider:
-      return "thread_provider";
-    case kEngineMemoryTagEvent:
-      return "event";
-    case kEngineMemoryTagDebug:
-      return "debug";
-    case kEngineMemoryTagMainThread:
-      return "main_thread";
-    case kEngineMemoryTagUserBase:
-      return "user_base (should not be used)";
-    case kEngineMemoryTagInvalid:
-      return "invalid (please investigate)";
-#ifdef COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-    default:
-      if (internal::get_custom_memory_tag_label_func != nullptr) {
-        const auto* result{internal::get_custom_memory_tag_label_func(tag)};
-
-        if (result != nullptr) {
-          return result;
-        }
-      }
-#endif  // COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS
-  }
-
-  return "???";
-}
-
 void* CopyMemory(void* dst, const void* src, usize size) {
   return std::memcpy(dst, src, size);
 }
@@ -192,7 +80,10 @@ void* StoreShiftAndReturnAligned(void* ptr, [[maybe_unused]] usize data_size,
                                  [[maybe_unused]] usize allocation_size,
                                  Alignment align) {
   COMET_ASSERT(allocation_size > data_size,
-               "Cannot save shift, allocation size is too small!");
+               "memory_utils::StoreShiftAndReturnAligned",
+               "allocation size is too small to store shift", "allocation_size",
+               allocation_size, "data_size", data_size);
+
   const auto cast_ptr{static_cast<u8*>(ptr)};
   auto* aligned_ptr{AlignPointer(cast_ptr, align)};
 
@@ -203,9 +94,11 @@ void* StoreShiftAndReturnAligned(void* ptr, [[maybe_unused]] usize data_size,
   }
 
   const auto shift{aligned_ptr - cast_ptr};
+
   COMET_ASSERT(shift > 0 && shift <= kMaxAlignment,
-               "Invalid shift in memory allocation! Shift is ", shift,
-               ", but it must be between ", 0, " and ", kMaxAlignment, ".");
+               "memory_utils::StoreShiftAndReturnAligned",
+               "alignment shift is invalid", "shift", shift, "max_alignment",
+               kMaxAlignment);
 
 #ifdef COMET_GCC
 #pragma GCC diagnostic push
@@ -238,7 +131,8 @@ void* ResolveNonAligned(void* ptr) {
 
 void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
                          usize* out_len) {
-  COMET_ASSERT(buffer_len > 2, "Buffer provided is too small!");
+  COMET_ASSERT(buffer_len > 2, "memory_utils::GetMemorySizeString",
+               "buffer is too small", "buffer_len", buffer_len);
 
   if (size < 0) {
     buffer[0] = '-';
@@ -256,7 +150,10 @@ void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
     n = n / 1024;
   }
 
-  COMET_ASSERT(l < kUnits.GetSize(), "Size is too big: ", size, "!");
+  COMET_ASSERT(l < kUnits.GetSize(), "memory_utils::GetMemorySizeString",
+               "size unit index is out of bounds", "size", size, "unit_index",
+               l, "unit_count", kUnits.GetSize());
+
   usize len;
   ConvertToStr(n, n < 10 && l > 0 ? 1 : 0, buffer, buffer_len, &len);
 
@@ -273,16 +170,17 @@ void GetMemorySizeString(ssize size, schar* buffer, usize buffer_len,
 
 #ifdef COMET_POISON_ALLOCATIONS
 void Poison(void* ptr, usize size) {
-  COMET_ASSERT(ptr != nullptr, "Pointer provided is null!");
-  COMET_ASSERT(size != 0, "Size provided is 0!");
+  COMET_ASSERT(ptr != nullptr, "memory_utils::Poison", "pointer is null");
+  COMET_ASSERT(size != 0, "memory_utils::Poison", "size is zero");
+
   constexpr StaticArray<u8, 4> kPoison{0xde, 0xad, 0xbe, 0xef};
   constexpr auto kPoisonLen{kPoison.GetSize()};
 
 #ifdef COMET_INVESTIGATE_MEMORY_CORRUPTION
   static_assert(std::atomic<u64>::is_always_lock_free,
-                "std::atomic<u64> needs to be always lock-free. Unsupported "
-                "architecture");
+                "std::atomic<u64> must be always lock-free");
   static std::atomic<u64> allocation_id_counter{0};
+
   const auto allocation_id{
       allocation_id_counter.fetch_add(1, std::memory_order_acq_rel)};
   constexpr auto kAllocationIdSize{sizeof(allocation_id)};
@@ -323,7 +221,8 @@ MemoryDescr GetMemoryDescr() {
 
   [[maybe_unused]] const auto is_ok{
       GetPhysicallyInstalledSystemMemory(&total_memory_in_kilobytes)};
-  COMET_ASSERT(is_ok, "Could not retrieve the total memory from the system!");
+  COMET_ASSERT(is_ok, "memory_utils::GetMemoryDescr",
+               "could not retrieve total system memory");
 
   descr.total_memory_size =
       static_cast<usize>(total_memory_in_kilobytes * 1024);
@@ -371,8 +270,9 @@ MemoryDescr GetMemoryDescr() {
 
 void ConvertAddressToHex(uptr address, schar* buffer, usize buffer_len) {
   COMET_ASSERT(buffer_len > kHexAddressLength,
-               "Insufficient buffer size provided: ", buffer_len, " < ",
-               kHexAddressLength, "!");
+               "memory_utils::ConvertAddressToHex", "buffer is too small",
+               "buffer_len", buffer_len, "required_buffer_len",
+               kHexAddressLength + 1);
 #ifdef COMET_WINDOWS
   std::snprintf(buffer, buffer_len, "0x%016llx", address);
 #else
@@ -394,8 +294,9 @@ void* AllocateAligned(usize size, Alignment align,
   auto* ptr{new u8[allocation_size]};
 
   if (ptr == nullptr) {
-    COMET_ASSERT(false, "Unable to allocate with size ", size, ", align ",
-                 align, " and tag ", GetMemoryTagLabel(tag), "!");
+    COMET_ASSERT(false, "memory_utils::AllocateAligned", "allocation failed",
+                 "size", size, "alignment", align, "tag",
+                 GetMemoryTagLabel(tag));
     throw std::bad_alloc();
   }
 

@@ -13,16 +13,18 @@
 
 #define VMA_IMPLEMENTATION
 #include "comet/core/c_string.h"
+#include "comet/core/debug_label.h"
 #include "comet/core/frame/frame_utils.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_frame.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_frame_type.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/rendering_type.h"
+#include "comet/rendering/type/rendering_camera_type.h"
+#include "comet/rendering/type/rendering_common_type.h"
 
 namespace comet {
 namespace rendering {
@@ -42,6 +44,11 @@ VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
 }
 
 void VulkanDriver::Update(frame::FramePacket* packet) {
+  COMET_ASSERT(packet != nullptr, "VulkanDriver::Update",
+               "frame packet is null");
+  COMET_ASSERT(window_ != nullptr, "VulkanDriver::Update", "window is null");
+  COMET_ASSERT(context_ != nullptr, "VulkanDriver::Update", "context is null");
+
   // Axis is inverted in Vulkan.
   packet->camera_data.projection_matrix[1][1] *= -1;
   window_->Update();
@@ -70,9 +77,17 @@ u32 VulkanDriver::GetDrawCount() const {
 }
 
 void VulkanDriver::OnInitialize() {
-  COMET_LOG_RENDERING_DEBUG("Initializing Vulkan driver.");
+  COMET_LOG_DEBUG(LoggerType::Rendering, "VulkanDriver::OnInitialize",
+                  "initializing vulkan driver");
+
+  COMET_ASSERT(window_ != nullptr, "VulkanDriver::OnInitialize",
+               "window is null");
+
   window_->Initialize();
-  COMET_ASSERT(window_->IsInitialized(), " GLFW window is not initialized!");
+
+  COMET_ASSERT(window_->IsInitialized(), "VulkanDriver::OnInitialize",
+               "window not initialized");
+
   InitializeVulkanInstance();
 
 #ifdef COMET_DEBUG_RENDERING
@@ -151,7 +166,10 @@ void VulkanDriver::OnShutdown() {
 }
 
 void VulkanDriver::InitializeVulkanInstance() {
-  COMET_LOG_RENDERING_DEBUG("Initializing  instance.");
+  COMET_LOG_DEBUG(LoggerType::Rendering,
+                  "VulkanDriver::InitializeVulkanInstance",
+                  "initializing vulkan instance");
+
   u32 extension_count{0};
   vkEnumerateInstanceExtensionProperties(VK_NULL_HANDLE, &extension_count,
                                          VK_NULL_HANDLE);
@@ -160,11 +178,15 @@ void VulkanDriver::InitializeVulkanInstance() {
   vkEnumerateInstanceExtensionProperties(VK_NULL_HANDLE, &extension_count,
                                          extensions.GetData());
 
-  COMET_LOG_RENDERING_DEBUG("Available  extensions:");
+  COMET_LOG_DEBUG(LoggerType::Rendering,
+                  "VulkanDriver::InitializeVulkanInstance",
+                  "enumerated instance extensions", "count", extension_count);
 
 #ifdef COMET_DEBUG
   for (const auto& extension : extensions) {
-    COMET_LOG_RENDERING_DEBUG("\t", extension.extensionName);
+    COMET_LOG_DEBUG(
+        LoggerType::Rendering, "VulkanDriver::InitializeVulkanInstance",
+        "available instance extension", "name", extension.extensionName);
   }
 #endif  // COMET_DEBUG
 
@@ -220,17 +242,15 @@ void VulkanDriver::InitializeVulkanInstance() {
   validation_features.pNext = VK_NULL_HANDLE;
 #endif  // COMET_DEBUG_RENDERING
 
-  COMET_ASSERT(glfwVulkanSupported(), "GLFW reports Vulkan not supported!");
+  COMET_ASSERT(glfwVulkanSupported(), "VulkanDriver::InitializeVulkanInstance",
+               "glfw reports vulkan not supported");
 
   const auto required_extensions{GetRequiredExtensions()};
   const auto required_extension_count{
       static_cast<u32>(required_extensions.GetSize())};
 
-  COMET_LOG_RENDERING_DEBUG("Required extensions:");
-
   for (usize i{0}; i < required_extension_count; ++i) {
     const auto* required_extension{required_extensions[i]};
-    COMET_LOG_RENDERING_DEBUG("\t", required_extension);
     auto is_found{false};
 
     for (const auto& extension : extensions) {
@@ -241,8 +261,13 @@ void VulkanDriver::InitializeVulkanInstance() {
     }
 
     if (!is_found) {
-      COMET_LOG_RENDERING_ERROR("Required extension is not available: ",
-                                required_extension);
+      COMET_LOG_ERROR(
+          LoggerType::Rendering, "VulkanDriver::InitializeVulkanInstance",
+          "required extension not available", "extension", required_extension);
+    } else {
+      COMET_LOG_DEBUG(
+          LoggerType::Rendering, "VulkanDriver::InitializeVulkanInstance",
+          "required extension available", "extension", required_extension);
     }
   }
 
@@ -254,7 +279,8 @@ void VulkanDriver::InitializeVulkanInstance() {
   create_info.pNext = VK_NULL_HANDLE;
 #else
   COMET_ASSERT(AreValidationLayersSupported(),
-               "At least one validation layer is not available!");
+               "VulkanDriver::InitializeVulkanInstance",
+               "validation layers not supported");
 
   create_info.enabledLayerCount =
       static_cast<u32>(kValidationLayers_.GetSize());
@@ -270,7 +296,7 @@ void VulkanDriver::InitializeVulkanInstance() {
       vkCreateInstance(&create_info,
                        MemoryCallbacks::Get().GetAllocCallbacksHandle(),
                        &instance_handle_),
-      "Failed to create instance!");
+      "VulkanDriver::InitializeVulkanInstance", "failed to create instance");
 }
 
 void VulkanDriver::InitializeHandlers() {
@@ -459,6 +485,9 @@ void VulkanDriver::ApplyWindowResize() {
 
 void VulkanDriver::PreDraw(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::PreDraw");
+  COMET_ASSERT(packet != nullptr, "VulkanDriver::PreDraw",
+               "frame packet is null");
+
   WaitForFences();
   descriptor_handler_->ResetDynamic();
 
@@ -478,9 +507,8 @@ void VulkanDriver::PreDraw(frame::FramePacket* packet) {
   }
 
   COMET_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR,
-               "Failed to acquire swapchain image!");
-
-  return;
+               "VulkanDriver::PreDraw", "failed to acquire swapchain image",
+               "result", static_cast<s32>(result));
 }
 
 void VulkanDriver::PostDraw() {
@@ -492,11 +520,15 @@ void VulkanDriver::PostDraw() {
     return;
   }
 
-  COMET_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
+  COMET_ASSERT(result == VK_SUCCESS, "VulkanDriver::PostDraw",
+               "failed to present swapchain image", "result",
+               static_cast<s32>(result));
 }
 
 void VulkanDriver::Draw(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::Draw");
+  COMET_ASSERT(packet != nullptr, "VulkanDriver::Draw", "frame packet is null");
+
   auto& frame_data{context_->GetFrameData()};
 
   ResetRenderFence(frame_data);
@@ -521,10 +553,13 @@ void VulkanDriver::WaitForFences() {
   COMET_CHECK_VK(
       vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
                       VK_TRUE, static_cast<u64>(-1)),
-      "Something wrong happened while waiting for render fence!");
+      "VulkanDriver::WaitForFences", "failed to wait for render fence");
 }
 
 void VulkanDriver::HandleSwapchainState(frame::FramePacket* packet) {
+  COMET_ASSERT(packet != nullptr, "VulkanDriver::HandleSwapchainState",
+               "frame packet is null");
+
   if (swapchain_->IsReloadNeeded()) {
     ApplyWindowResize();
     packet->can_present = false;
@@ -535,14 +570,18 @@ void VulkanDriver::HandleSwapchainState(frame::FramePacket* packet) {
 
 void VulkanDriver::ResetRenderFence(FrameData& frame_data) {
   COMET_PROFILE("VulkanDriver::ResetRenderFence");
+
   // Reset fence if work is submitted.
   COMET_CHECK_VK(
       vkResetFences(device_->GetHandle(), 1, &frame_data.render_fence_handle),
-      "Unable to reset render fence!");
+      "VulkanDriver::ResetRenderFence", "failed to reset render fence");
 }
 
 void VulkanDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::UpdateGpuSceneState");
+  COMET_ASSERT(packet != nullptr, "VulkanDriver::UpdateGpuSceneState",
+               "frame packet is null");
+
   mesh_handler_->AcquireFromTransferQueueIfNeeded();
   mesh_handler_->Update(packet);
   lighting_handler_->Update(packet);
@@ -551,6 +590,9 @@ void VulkanDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
 
 void VulkanDriver::RecordFrame(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::RecordFrame");
+  COMET_ASSERT(packet != nullptr, "VulkanDriver::SubmitFrame",
+               "frame packet is null");
+
   view_handler_->Update(packet);
 }
 
@@ -600,11 +642,14 @@ frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
   if (glfw_extensions == nullptr || glfw_extension_count == 0) {
     const char* desc;
     const auto code{glfwGetError(&desc)};
-    COMET_LOG_RENDERING_ERROR(
-        "glfwGetRequiredInstanceExtensions returned 0. GLFW error ", code, ": ",
-        desc ? desc : "(null)");
-    COMET_ASSERT(false,
-                 "Cannot continue without required instance extensions.");
+
+    COMET_LOG_ERROR(LoggerType::Rendering,
+                    "VulkanDriver::GetRequiredExtensions",
+                    "failed to get required instance extensions", "glfw_error",
+                    code, "description", desc != nullptr ? desc : "(null)");
+
+    COMET_ASSERT(false, "VulkanDriver::GetRequiredExtensions",
+                 "required instance extensions unavailable");
   }
 
   extensions.Reserve(glfw_extension_count);
@@ -630,7 +675,8 @@ void VulkanDriver::InitializeDebugMessenger() {
   COMET_CHECK_VK(debug::CreateDebugUtilsMessengerEXT(
                      instance_handle_, &create_info, VK_NULL_HANDLE,
                      &debug_messenger_handle_),
-                 "Failed to set up debug messenger");
+                 "VulkanDriver::InitializeDebugMessenger",
+                 "failed to set up debug messenger");
 }
 
 void VulkanDriver::DestroyDebugMessenger() {
@@ -653,7 +699,8 @@ void VulkanDriver::InitializeDebugReportCallback() {
               VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT,
           VulkanDriver::LogVulkanDebugReportMessage,
           debug_report_callback_handle_),
-      "Failed to set up debug report callback");
+      "VulkanDriver::InitializeDebugReportCallback",
+      "failed to set up debug report callback");
 }
 
 void VulkanDriver::DestroyDebugReportCallback() {
@@ -684,8 +731,9 @@ bool VulkanDriver::AreValidationLayersSupported() {
     }
 
     if (!is_layer_found) {
-      COMET_LOG_RENDERING_ERROR("Unavailable validation layer: ", layer_name,
-                                ".");
+      COMET_LOG_ERROR(LoggerType::Rendering,
+                      "VulkanDriver::AreValidationLayersSupported",
+                      "validation layer unavailable", "layer", layer_name);
       return false;
     }
   }
@@ -702,39 +750,48 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanValidationMessage(
 
   switch (message_type) {
     case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
-      Copy(message_type_str, "General", 7);
+      Copy(message_type_str, "general", 7);
       break;
     case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
-      Copy(message_type_str, "Validation", 10);
+      Copy(message_type_str, "validation", 10);
       break;
     case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
-      Copy(message_type_str, "Performance", 11);
+      Copy(message_type_str, "performance", 11);
       break;
     default:
-      Copy(message_type_str, "???", 3);
+      Copy(message_type_str, kUnknownLabel, kUnknownLabelLen);
       break;
   }
 
   switch (message_severity) {
     default:
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-      COMET_LOG_RENDERING_DEBUG("[Validation | ", message_type_str, "] ",
-                                callback_data->pMessage);
+      COMET_LOG_DEBUG(LoggerType::Rendering,
+                      "VulkanDriver::LogVulkanValidationMessage",
+                      "vulkan validation message", "type", message_type_str,
+                      "message", callback_data->pMessage);
       break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-      COMET_LOG_RENDERING_INFO("[Validation | ", message_type_str, "] ",
-                               callback_data->pMessage);
+      COMET_LOG_INFO(LoggerType::Rendering,
+                     "VulkanDriver::LogVulkanValidationMessage",
+                     "vulkan validation message", "type", message_type_str,
+                     "message", callback_data->pMessage);
       break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-      COMET_LOG_RENDERING_WARNING("[Validation | ", message_type_str, "] ",
-                                  callback_data->pMessage);
+      COMET_LOG_WARNING(LoggerType::Rendering,
+                        "VulkanDriver::LogVulkanValidationMessage",
+                        "vulkan validation message", "type", message_type_str,
+                        "message", callback_data->pMessage);
       break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-      COMET_LOG_RENDERING_ERROR("[Validation | ", message_type_str, "] ",
-                                callback_data->pMessage);
+      COMET_LOG_ERROR(LoggerType::Rendering,
+                      "VulkanDriver::LogVulkanValidationMessage",
+                      "vulkan validation message", "type", message_type_str,
+                      "message", callback_data->pMessage);
 
 #ifdef COMET_VULKAN_ABORT_ON_ERROR
-      COMET_ASSERT(false, callback_data->pMessage);
+      COMET_ASSERT(false, "VulkanDriver::LogVulkanValidationMessage",
+                   "validation error", "message", callback_data->pMessage);
 #endif  // COMET_VULKAN_ABORT_ON_ERROR
       break;
   }
@@ -748,19 +805,30 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanDebugReportMessage(
     void*) {
   if (message_flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT ||
       message_flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
-    COMET_LOG_RENDERING_DEBUG("[Debug | ", layer_prefix, "] ", message_code,
-                              ": ", message);
+    COMET_LOG_DEBUG(LoggerType::Rendering,
+                    "VulkanDriver::LogVulkanDebugReportMessage",
+                    "vulkan debug report message", "layer", layer_prefix,
+                    "code", message_code, "message", message);
   } else if (message_flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
-    COMET_LOG_RENDERING_INFO("[Debug | ", layer_prefix, "] ", message_code,
-                             ": ", message);
-    COMET_LOG_RENDERING_WARNING("[Debug | ", layer_prefix, "] ", message_code,
-                                ": ", message);
+    COMET_LOG_INFO(LoggerType::Rendering,
+                   "VulkanDriver::LogVulkanDebugReportMessage",
+                   "vulkan debug report message", "layer", layer_prefix, "code",
+                   message_code, "message", message);
+  } else if (message_flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+    COMET_LOG_WARNING(LoggerType::Rendering,
+                      "VulkanDriver::LogVulkanDebugReportMessage",
+                      "vulkan debug report message", "layer", layer_prefix,
+                      "code", message_code, "message", message);
   } else if (message_flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-    COMET_LOG_RENDERING_ERROR("[Debug | ", layer_prefix, "] ", message_code,
-                              ": ", message);
+    COMET_LOG_ERROR(LoggerType::Rendering,
+                    "VulkanDriver::LogVulkanDebugReportMessage",
+                    "vulkan debug report message", "layer", layer_prefix,
+                    "code", message_code, "message", message);
 
 #ifdef COMET_VULKAN_ABORT_ON_ERROR
-    COMET_ASSERT(false, "[", layer_prefix, "] ", message_code, ": ", message);
+    COMET_ASSERT(false, "VulkanDriver::LogVulkanDebugReportMessage",
+                 "debug report error", "layer", layer_prefix, "code",
+                 message_code, "message", message);
 #endif  // COMET_VULKAN_ABORT_ON_ERROR
   }
 

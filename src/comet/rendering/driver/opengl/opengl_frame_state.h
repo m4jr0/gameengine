@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_FRAME_STATE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/data/opengl_frame.h"
+#include "comet/rendering/driver/opengl/type/opengl_frame_type.h"
 
 namespace comet {
 namespace rendering {

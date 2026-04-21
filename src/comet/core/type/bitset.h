@@ -41,7 +41,7 @@ class Bitset {
  private:
   static inline constexpr usize kWorkBitCount_{sizeof(Word) * kCharBit};
   static_assert((kWorkBitCount_ & (kWorkBitCount_ - 1)) == 0,
-                "kWorkdBitCount_ must be a power of 2!");
+                "kWorkdBitCount_ must be a power of 2");
 
   usize bit_count_{0};
   usize word_count_{0};

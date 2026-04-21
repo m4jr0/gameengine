@@ -72,10 +72,15 @@ PlatformStackAllocator& PlatformStackAllocator::operator=(
 }
 
 void* PlatformStackAllocator::AllocateAligned(usize size, Alignment align) {
-  COMET_ASSERT(size > 0, "Allocation size provided is 0!");
+  COMET_ASSERT(size > 0, "PlatformStackAllocator::AllocateAligned",
+               "allocation size is zero");
+
   auto* p{AlignPointer(marker_, align)};
-  COMET_ASSERT(p + size <= root_ + capacity_,
-               "Could not allocate enough memory (", size, ")!");
+
+  COMET_ASSERT(
+      p + size <= root_ + capacity_, "PlatformStackAllocator::AllocateAligned",
+      "allocation exceeds capacity", "size", size, "capacity", capacity_);
+
   marker_ = p + size;
   return p;
 }
@@ -89,7 +94,9 @@ void PlatformStackAllocator::Deallocate(void*) {
 void PlatformStackAllocator::Clear() { marker_ = root_; }
 
 void PlatformStackAllocator::OnInitialize() {
-  COMET_ASSERT(capacity_ > 0, "Capacity is ", capacity_, "!");
+  COMET_ASSERT(capacity_ > 0, "PlatformStackAllocator::OnInitialize",
+               "capacity is invalid", "capacity", capacity_);
+
   root_ = memory::AllocateMany<u8>(capacity_, memory_tag_);
   marker_ = root_;
 }

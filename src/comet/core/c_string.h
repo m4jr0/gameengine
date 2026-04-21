@@ -317,7 +317,7 @@ void ConvertToStr(Float number, u8 precision, wchar* buffer, usize buffer_len,
 namespace internal {
 template <typename Char>
 Char* TrimLeft(Char* str, usize length, usize* new_length = nullptr) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(str != nullptr, "c_string::TrimLeft", "string is null");
 
   if (length == 0) {
     return str;
@@ -349,7 +349,7 @@ Char* TrimLeft(Char* str, usize length, usize* new_length = nullptr) {
 
 template <typename Char>
 Char* TrimRight(Char* str, usize length, usize* new_length = nullptr) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(str != nullptr, "c_string::TrimRight", "string is null");
 
   if (length == 0) {
     return str;
@@ -374,7 +374,7 @@ Char* TrimRight(Char* str, usize length, usize* new_length = nullptr) {
 
 template <typename Char>
 Char* Trim(Char* str, usize length, usize* new_length = nullptr) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(str != nullptr, "c_string::Trim", "string is null");
 
   if (length == 0) {
     return str;
@@ -418,8 +418,10 @@ Char* Trim(Char* str, usize length, usize* new_length = nullptr) {
 template <typename Char>
 void GetSubString(Char* dst, const Char* src, usize src_length, usize offset,
                   usize length) {
-  COMET_ASSERT(src != nullptr, "Source string provided is null!");
-  COMET_ASSERT(dst != nullptr, "Destination string provided is null!");
+  COMET_ASSERT(src != nullptr, "c_string::GetSubString",
+               "source string is null");
+  COMET_ASSERT(dst != nullptr, "c_string::GetSubString",
+               "destination string is null");
 
   if (length == kInvalidIndex) {
     length = src_length - offset + 1;
@@ -446,15 +448,19 @@ void GetSubString(Char* dst, const Char* src, usize src_length, usize offset,
 
 template <typename Char>
 void FillWith(Char* str, usize str_length, Char c, usize offset, usize length) {
-  COMET_ASSERT(str != nullptr, "String provided is null!");
+  COMET_ASSERT(str != nullptr, "c_string::FillWith", "string is null");
 
   if (str_length == 0) {
     return;
   }
 
-  COMET_ASSERT(offset < str_length, "Offset provided is too big!");
+  COMET_ASSERT(offset < str_length, "c_string::FillWith",
+               "offset is out of bounds", "offset", offset, "str_length",
+               str_length);
+
   COMET_ASSERT(length == kInvalidIndex || offset + length < str_length,
-               "Length provided is too big!");
+               "c_string::FillWith", "length is out of bounds", "offset",
+               offset, "length", length, "str_length", str_length);
 
   if (length == kInvalidIndex) {
     length = str_length - offset;

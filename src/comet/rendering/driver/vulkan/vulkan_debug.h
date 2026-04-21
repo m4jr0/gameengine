@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 
 namespace comet {
 namespace rendering {
@@ -22,10 +22,13 @@ const schar* GenerateTmpVkResultString(VkResult result);
 
 #define COMET_VULKAN_ABORT_ON_ERROR
 
-#define VMA_LEAK_LOG_FORMAT(...) \
-  COMET_LOG_RENDERING_DEBUG(comet::GenerateTmpFromFormat(1024, __VA_ARGS__))
+#define VMA_LEAK_LOG_FORMAT(...)                                           \
+  COMET_LOG_DEBUG(comet::LoggerType::Rendering,                            \
+                  "vulkan_debug::internal::VmaLeakLog", "vma leak report", \
+                  "message", comet::GenerateTmpFromFormat(1024, __VA_ARGS__))
 
-#define VMA_ASSERT(cond) COMET_ASSERT((cond), "VMA assert error!")
+#define VMA_ASSERT(cond) \
+  COMET_ASSERT((cond), "vulkan_debug::internal::VmaAssert", "vma assert failed")
 
 #ifdef COMET_DEBUG_RENDERING
 #undef VMA_DEBUG_LOG
@@ -39,7 +42,9 @@ const schar* GenerateTmpVkResultString(VkResult result);
     const auto len{                                                         \
         std::snprintf(message, kMessageLength - 1, format, ##__VA_ARGS__)}; \
     message[len] = '\0';                                                    \
-    COMET_LOG_RENDERING_DEBUG("[VMA] ", message);                           \
+    COMET_LOG_DEBUG(comet::LoggerType::Rendering,                           \
+                    "vulkan_debug::internal::VmaDebugLog",                  \
+                    "vma debug message", "message", message);               \
   } while (false)
 #endif  // COMET_VULKAN_DEBUG_VMA
 #endif  // COMET_DEBUG_RENDERING
@@ -89,15 +94,16 @@ void SetDebugLabel(VkDescriptorSet descriptor_set_handle, const schar* label);
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
 #ifndef COMET_DEBUG
-#define COMET_CHECK_VK(vk_expression, ...) vk_expression
+#define COMET_CHECK_VK(vk_expression, prefix, message, ...) \
+  (static_cast<void>(vk_expression))
 #else
-// Disable Vulkan's validation layers even in debug mode, if necessary.
-#define COMET_CHECK_VK(vk_expression, ...)                               \
-  do {                                                                   \
-    COMET_ASSERT(static_cast<VkResult>(vk_expression) == VK_SUCCESS,     \
-                 __VA_ARGS__, " VkResult: ",                             \
-                 comet::rendering::vk::debug::GenerateTmpVkResultString( \
-                     static_cast<VkResult>(vk_expression)));             \
+#define COMET_CHECK_VK(vk_expression, prefix, message, ...)                   \
+  do {                                                                        \
+    const VkResult comet_vk_result{static_cast<VkResult>(vk_expression)};     \
+    COMET_ASSERT(comet_vk_result == VK_SUCCESS, prefix, message, "vk_result", \
+                 static_cast<s32>(comet_vk_result), "vk_result_str",          \
+                 comet::rendering::vk::debug::GenerateTmpVkResultString(      \
+                     comet_vk_result) __VA_OPT__(, ) __VA_ARGS__);            \
   } while (false)
 #endif  // !COMET_DEBUG
 

@@ -14,7 +14,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/hash.h"
 #include "comet/core/type/buffer_formatter.h"
-#include "comet/resource/resource_type.h"
+#include "comet/resource/type/resource_common_type.h"
 
 namespace comet {
 namespace resource {

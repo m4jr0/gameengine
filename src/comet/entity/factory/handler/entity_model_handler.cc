@@ -365,10 +365,17 @@ void ModelHandler::OnStaticGeneration(job::JobParamsHandle params_handle) {
   auto* params{
       static_cast<internal::StaticGenerationJobParams*>(params_handle)};
 
-  COMET_ASSERT(params->id != kInvalidEntityId, "Invalid entity ID provided!");
+  COMET_ASSERT(params->id != kInvalidEntityId,
+               "entity::ModelHandler::OnStaticGeneration", "invalid entity id",
+               "entity_id", params->id);
+
   COMET_ASSERT(params->parent_id != kInvalidEntityId,
-               "Invalid parent entity ID provided!");
-  COMET_ASSERT(params->mesh != nullptr, "Static mesh resource is null!");
+               "entity::ModelHandler::OnStaticGeneration",
+               "invalid parent entity id", "parent_id", params->parent_id);
+
+  COMET_ASSERT(params->mesh != nullptr,
+               "entity::ModelHandler::OnStaticGeneration",
+               "static mesh resource is null");
 
   const auto& mesh{*params->mesh};
 
@@ -392,10 +399,17 @@ void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
   auto* params{
       static_cast<internal::SkeletalGenerationJobParams*>(params_handle)};
 
-  COMET_ASSERT(params->id != kInvalidEntityId, "Invalid entity ID provided!");
+  COMET_ASSERT(params->id != kInvalidEntityId,
+               "entity::ModelHandler::OnSkeletalGeneration",
+               "invalid entity id", "entity_id", params->id);
+
   COMET_ASSERT(params->parent_id != kInvalidEntityId,
-               "Invalid parent entity ID provided!");
-  COMET_ASSERT(params->mesh != nullptr, "Skinned mesh resource is null!");
+               "entity::ModelHandler::OnSkeletalGeneration",
+               "invalid parent entity id", "parent_id", params->parent_id);
+
+  COMET_ASSERT(params->mesh != nullptr,
+               "entity::ModelHandler::OnSkeletalGeneration",
+               "skinned mesh resource is null");
 
   const auto& mesh{*params->mesh};
 

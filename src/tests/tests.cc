@@ -22,7 +22,7 @@
 #include "comet/core/conf/configuration_value.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_manager.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/core/memory/tagged_heap.h"
 #include "comet/core/type/gid.h"

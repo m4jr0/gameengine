@@ -12,12 +12,12 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/data/vulkan_texture_map.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_material_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_texture_map_type.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/resource/material_resource.h"
+#include "comet/resource/material/material_resource.h"
 
 namespace comet {
 namespace rendering {

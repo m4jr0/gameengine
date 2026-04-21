@@ -14,7 +14,7 @@
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
 #include "comet/math/matrix.h"
-#include "comet/resource/animation_resource.h"
+#include "comet/resource/animation/animation_resource.h"
 #include "editor/asset/exporter/model/model_export.h"
 
 namespace comet {

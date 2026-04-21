@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/entity/entity_id.h"
-#include "comet/resource/model_resource.h"
+#include "comet/resource/model/model_resource.h"
 
 namespace comet {
 namespace geometry {

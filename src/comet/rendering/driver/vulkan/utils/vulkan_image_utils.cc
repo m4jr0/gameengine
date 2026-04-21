@@ -13,10 +13,17 @@
 
 #include "comet/core/frame/frame_utils.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type_trait.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/rendering/label/rendering_common_label.h"
+#include "comet/rendering/label/rendering_light_label.h"
+#include "comet/rendering/label/rendering_pipeline_label.h"
+#include "comet/rendering/label/rendering_shader_label.h"
+#include "comet/rendering/label/rendering_texture_label.h"
+#include "comet/rendering/label/rendering_view_label.h"
 
 namespace comet {
 namespace rendering {
@@ -27,21 +34,47 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
                    VkImageTiling tiling, VkImageUsageFlags usage_flags,
                    VkMemoryPropertyFlags properties,
                    [[maybe_unused]] const schar* debug_label) {
-  auto& queue_family_indices{device.GetQueueFamilyIndices()};
+  COMET_ASSERT(image.allocator_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::GenerateImage",
+               "allocator handle is invalid");
+  COMET_ASSERT(width > 0, "vulkan_image_utils::GenerateImage",
+               "image width is zero");
+  COMET_ASSERT(height > 0, "vulkan_image_utils::GenerateImage",
+               "image height is zero");
+  COMET_ASSERT(mip_levels > 0, "vulkan_image_utils::GenerateImage",
+               "mip level count is zero");
+  COMET_ASSERT(array_layers > 0, "vulkan_image_utils::GenerateImage",
+               "array layer count is zero");
+  COMET_ASSERT(format != VK_FORMAT_UNDEFINED,
+               "vulkan_image_utils::GenerateImage",
+               "image format is undefined");
 
-  frame::FrameArray<u32> family_indices{};
-  family_indices.Reserve(2);
-  family_indices.PushBack(queue_family_indices.transfer_family.value());
-  family_indices.PushBack(queue_family_indices.graphics_family.value());
+  auto& queue_family_indices{device.GetQueueFamilyIndices()};
 
   auto sharing_mode{VK_SHARING_MODE_EXCLUSIVE};
   u32 queue_family_index_count{0};
   u32* queue_family_indices_pointer{nullptr};
 
+  frame::FrameArray<u32> family_indices{};
+  family_indices.Reserve(2);
+
+  COMET_ASSERT(queue_family_indices.graphics_family.has_value(),
+               "vulkan_image_utils::GenerateImage",
+               "graphics queue family index is missing");
+  family_indices.PushBack(queue_family_indices.graphics_family.value());
+
   if (IsTransferFamilyInQueueFamilyIndices(queue_family_indices)) {
-    sharing_mode = VK_SHARING_MODE_CONCURRENT;
-    queue_family_index_count = 2;
-    queue_family_indices_pointer = family_indices.GetData();
+    COMET_ASSERT(queue_family_indices.transfer_family.has_value(),
+                 "vulkan_image_utils::GenerateImage",
+                 "transfer queue family index is missing");
+
+    if (queue_family_indices.transfer_family.value() !=
+        queue_family_indices.graphics_family.value()) {
+      family_indices.PushBack(queue_family_indices.transfer_family.value());
+      sharing_mode = VK_SHARING_MODE_CONCURRENT;
+      queue_family_index_count = 2;
+      queue_family_indices_pointer = family_indices.GetData();
+    }
   }
 
   const auto create_info{init::GenerateImageCreateInfo(
@@ -56,7 +89,8 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
   COMET_CHECK_VK(
       vmaCreateImage(image.allocator_handle, &create_info, &alloc_info,
                      &image.handle, &image.allocation_handle, VK_NULL_HANDLE),
-      "Failed to create image!");
+      "vulkan_image_utils::GenerateImage", "image creation failed");
+
   COMET_VK_SET_DEBUG_LABEL(image.handle,
                            debug_label != nullptr ? debug_label : "image");
 
@@ -67,10 +101,14 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
 
 void DestroyImage(Image& image) {
   COMET_ASSERT(image.allocator_handle != VK_NULL_HANDLE,
-               "Allocator handle is null!");
-  COMET_ASSERT(image.handle != VK_NULL_HANDLE, "Image handle is null!");
+               "vulkan_image_utils::DestroyImage",
+               "allocator handle is invalid");
+  COMET_ASSERT(image.handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::DestroyImage", "image handle is invalid");
   COMET_ASSERT(image.allocation_handle != VK_NULL_HANDLE,
-               "Allocation handle is null!");
+               "vulkan_image_utils::DestroyImage",
+               "allocation handle is invalid");
+
   vmaDestroyImage(image.allocator_handle, image.handle,
                   image.allocation_handle);
   image.handle = VK_NULL_HANDLE;
@@ -81,6 +119,20 @@ VkImageView GenerateImageView(VkDevice device_handle, VkImage image_handle,
                               VkFormat format, VkImageAspectFlags aspect_flags,
                               u32 mip_levels, u32 base_array_layer,
                               u32 layer_count, VkImageViewType view_type) {
+  COMET_ASSERT(device_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::GenerateImageView",
+               "device handle is invalid");
+  COMET_ASSERT(image_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::GenerateImageView",
+               "image handle is invalid");
+  COMET_ASSERT(format != VK_FORMAT_UNDEFINED,
+               "vulkan_image_utils::GenerateImageView",
+               "image format is undefined");
+  COMET_ASSERT(mip_levels > 0, "vulkan_image_utils::GenerateImageView",
+               "mip level count is zero");
+  COMET_ASSERT(layer_count > 0, "vulkan_image_utils::GenerateImageView",
+               "layer count is zero");
+
   const auto create_info{init::GenerateImageViewCreateInfo(
       image_handle, format, aspect_flags, mip_levels, base_array_layer,
       layer_count, view_type)};
@@ -91,7 +143,7 @@ VkImageView GenerateImageView(VkDevice device_handle, VkImage image_handle,
       vkCreateImageView(device_handle, &create_info,
                         MemoryCallbacks::Get().GetAllocCallbacksHandle(),
                         &image_view_handle),
-      "Failed to create image view");
+      "vulkan_image_utils::GenerateImageView", "image view creation failed");
 
   return image_view_handle;
 }
@@ -119,6 +171,20 @@ bool HasStencilComponent(VkFormat format) {
 void CopyBufferToImage(VkCommandBuffer command_buffer_handle,
                        const Buffer& buffer, const Image& image, u32 width,
                        u32 height) {
+  COMET_ASSERT(command_buffer_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::CopyBufferToImage",
+               "command buffer handle is invalid");
+  COMET_ASSERT(buffer.handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::CopyBufferToImage",
+               "buffer handle is invalid");
+  COMET_ASSERT(image.handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::CopyBufferToImage",
+               "image handle is invalid");
+  COMET_ASSERT(width > 0, "vulkan_image_utils::CopyBufferToImage",
+               "image width is zero");
+  COMET_ASSERT(height > 0, "vulkan_image_utils::CopyBufferToImage",
+               "image height is zero");
+
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = 0;
@@ -145,6 +211,17 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
                            VkImageLayout new_layout, u32 mip_levels,
                            u32 layer_count, u32 src_queue_family_index,
                            u32 dst_queue_family_index) {
+  COMET_ASSERT(image_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::TransitionImageLayout",
+               "image handle is invalid");
+  COMET_ASSERT(format != VK_FORMAT_UNDEFINED,
+               "vulkan_image_utils::TransitionImageLayout",
+               "image format is undefined");
+  COMET_ASSERT(mip_levels > 0, "vulkan_image_utils::TransitionImageLayout",
+               "mip level count is zero");
+  COMET_ASSERT(layer_count > 0, "vulkan_image_utils::TransitionImageLayout",
+               "layer count is zero");
+
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout = old_layout;
@@ -222,7 +299,10 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
     source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   } else {
-    COMET_ASSERT(false, "Unsupported layout transition!");
+    COMET_ASSERT(false, "vulkan_image_utils::TransitionImageLayout",
+                 "image layout transition is unsupported", "old_layout_value",
+                 ToUnderlying(old_layout), "new_layout_value",
+                 ToUnderlying(new_layout));
     return;
   }
 

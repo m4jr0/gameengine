@@ -6,8 +6,6 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_VIEW_OPENGL_DEBUG_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/data/opengl_shader.h"
-#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
 #include "comet/rendering/driver/opengl/view/opengl_view.h"

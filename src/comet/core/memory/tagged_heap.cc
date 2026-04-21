@@ -15,15 +15,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/allocation_tracking.h"
+#include "comet/core/memory/memory_label.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/virtual_memory.h"
 
 namespace comet {
 namespace memory {
 TaggedHeap::~TaggedHeap() {
-  COMET_ASSERT(
-      !is_initialized_,
-      "Destructor called for tagged heap, but it is still initialized!");
+  COMET_ASSERT(!is_initialized_, "TaggedHeap::~TaggedHeap",
+               "tagged heap is still initialized");
 }
 
 TaggedHeap& TaggedHeap::Get() {
@@ -32,22 +32,29 @@ TaggedHeap& TaggedHeap::Get() {
 }
 
 void TaggedHeap::Initialize() {
-  COMET_ASSERT(!is_initialized_,
-               "Tried to initialize tagged heap, but it is already done!");
+  COMET_ASSERT(!is_initialized_, "TaggedHeap::Initialize",
+               "tagged heap is already initialized");
+
   block_size_ = memory_descr_.large_page_size != 0
                     ? memory_descr_.large_page_size
                     : memory_descr_.page_size;
 
-  COMET_ASSERT(block_size_ > kMaxAlignment, "Invalid block size!");
+  COMET_ASSERT(block_size_ > kMaxAlignment, "TaggedHeap::Initialize",
+               "block size is invalid", "block_size", block_size_,
+               "required_min", kMaxAlignment + 1);
 
   total_block_count_ = capacity_ / block_size_;
-  COMET_ASSERT(total_block_count_ > 0,
-               "Total capacity must be at least one block.");
+
+  COMET_ASSERT(total_block_count_ > 0, "TaggedHeap::Initialize",
+               "total block count is zero", "capacity", capacity_, "block_size",
+               block_size_);
 
   memory_ = ReserveVirtualMemory(capacity_);
   memory_ = CommitVirtualMemory(memory_, capacity_);
 
-  COMET_ASSERT(memory_ != nullptr, "Failed to allocate memory!");
+  COMET_ASSERT(memory_ != nullptr, "TaggedHeap::Initialize",
+               "virtual memory allocation failed", "capacity", capacity_);
+
   COMET_REGISTER_TAGGED_HEAP_POOL_ALLOCATION(capacity_);
 
   // Set the capacity for all bitsets (including the global one), with
@@ -71,8 +78,8 @@ void TaggedHeap::Initialize() {
 }
 
 void TaggedHeap::Destroy() {
-  COMET_ASSERT(is_initialized_,
-               "Tried to destroy tagged heap, but it is not initialized!");
+  COMET_ASSERT(is_initialized_, "TaggedHeap::Destroy",
+               "tagged heap is not initialized");
 
   global_block_map_.Destroy();
 
@@ -110,8 +117,9 @@ void* TaggedHeap::AllocateAligned(usize size, Alignment align, MemoryTag tag,
   }
 
   if (ptr == nullptr) {
-    COMET_ASSERT(false, "Unable to allocate with size ", size, ", alignment ",
-                 align, " and tag ", GetMemoryTagLabel(tag), "!");
+    COMET_ASSERT(false, "TaggedHeap::AllocateAligned", "allocation failed",
+                 "size", size, "alignment", align, "tag",
+                 GetMemoryTagLabel(tag));
     throw std::bad_alloc();
   }
 
@@ -125,9 +133,10 @@ void* TaggedHeap::AllocateAligned(usize size, Alignment align, MemoryTag tag,
   }
 
   const auto shift{aligned_ptr - ptr};
+
   COMET_ASSERT(shift > 0 && shift <= kMaxAlignment,
-               "Invalid shift in memory allocation! Shift is ", shift,
-               ", but it must be between ", 0, " and ", kMaxAlignment, ".");
+               "TaggedHeap::AllocateAligned", "alignment shift is invalid",
+               "shift", shift, "max_alignment", kMaxAlignment);
 
 #ifdef COMET_GCC
 #pragma GCC diagnostic push
@@ -190,10 +199,16 @@ usize TaggedHeap::GetBlockSize() const noexcept { return block_size_; }
 
 void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
                                    usize& block_count) {
-  COMET_ASSERT(memory_ != nullptr,
-               "Cannot allocate! No memory is available...");
+  COMET_ASSERT(memory_ != nullptr, "TaggedHeap::AllocateInternal",
+               "memory is not initialized");
+
   block_count = (size + block_size_ - 1) / block_size_;
-  COMET_ASSERT(block_count <= total_block_count_, "Max capacity reached!");
+
+  COMET_ASSERT(block_count <= total_block_count_,
+               "TaggedHeap::AllocateInternal",
+               "requested block count exceeds capacity", "block_count",
+               block_count, "total_block_count", total_block_count_);
+
   usize free_blocks_index;
 
   {
@@ -201,9 +216,10 @@ void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
     free_blocks_index = ResolveFreeBlocks(block_count);
 
     if (free_blocks_index == kInvalidIndex) {
-      COMET_ASSERT(false,
-                   "No sufficient memory available for allocation with size ",
-                   size, " and tag ", GetMemoryTagLabel(tag), "!");
+      COMET_ASSERT(false, "TaggedHeap::AllocateInternal",
+                   "no contiguous block range is available", "size", size,
+                   "tag", GetMemoryTagLabel(tag), "block_count", block_count);
+
       throw std::bad_alloc();
     }
 
@@ -255,7 +271,9 @@ TaggedHeap::TagBlockMap* TaggedHeap::FindOrAddTag(MemoryTag tag) {
     }
   }
 
-  COMET_ASSERT(false, "No entry found: the bucket seems to be full!");
+  COMET_ASSERT(false, "TaggedHeap::FindOrAddTag", "tag bucket is full", "tag",
+               GetMemoryTagLabel(tag), "bucket_index", bucket_index);
+
   return nullptr;
 }
 }  // namespace memory

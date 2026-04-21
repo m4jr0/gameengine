@@ -6,6 +6,7 @@
 #define COMET_COMET_DEBUG_UI_ENVIRONMENT_ENVIRONMENT_DEBUG_UI_H_
 
 #include "comet/core/essentials.h"
+#include "comet/environment/environment_manager.h"
 
 #ifdef COMET_HAS_DEBUG_UI
 
@@ -24,7 +25,7 @@ class EnvironmentDebugUi {
   EnvironmentDebugUi& operator=(EnvironmentDebugUi&&) = delete;
   ~EnvironmentDebugUi() = default;
 
-  void Draw(scene::EnvironmentManager& environment) const;
+  void Draw(environment::EnvironmentManager& environment) const;
 };
 }  // namespace debugui
 }  // namespace comet

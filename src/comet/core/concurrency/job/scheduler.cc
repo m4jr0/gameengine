@@ -12,19 +12,20 @@
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <optional>
-#include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/fiber/fiber_life_cycle.h"
 #include "comet/core/concurrency/job/job.h"
+#include "comet/core/concurrency/job/job_label.h"
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/concurrency/thread/thread_context.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
-#include "comet/core/logger.h"
+#include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/type_trait.h"
 #include "comet/time/chrono.h"
 
 namespace comet {
@@ -78,8 +79,10 @@ fiber::Fiber* FiberPool::TryPop() {
 
 void FiberPool::Push(fiber::Fiber* fiber) {
   COMET_ASSERT(fiber->GetStackCapacity() == fiber_stack_size_,
-               "A wrong fiber was pushed to pool (", fiber->GetStackCapacity(),
-               " != ", fiber_stack_size_, ")!");
+               "job::internal::FiberPool::Push",
+               "fiber stack capacity mismatch", "stack_capacity",
+               fiber->GetStackCapacity(), "expected_stack_capacity",
+               fiber_stack_size_);
   fibers_.Push(fiber);
 }
 
@@ -124,7 +127,15 @@ Scheduler& Scheduler::Get() {
   return singleton;
 }
 
+Scheduler::~Scheduler() {
+  COMET_ASSERT(!is_initialized_, "Scheduler::~Scheduler",
+               "scheduler is still initialized");
+}
+
 void Scheduler::Initialize() {
+  COMET_ASSERT(!is_initialized_, "Scheduler::Initialize",
+               "scheduler is already initialized");
+
   low_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
       &job_queue_allocator_,
       static_cast<usize>(COMET_CONF_U16(conf::kCoreJobQueueCount))};
@@ -169,22 +180,28 @@ void Scheduler::Initialize() {
     if (thread_count > io_worker_count_) {
       fiber_worker_count_ = thread_count - io_worker_count_;
     } else {
-      COMET_LOG_CORE_WARNING(
-          "I/O worker count is too high on this architecture (",
-          io_worker_count_, "). Oversubscription will occur.");
+      COMET_LOG_WARNING(LoggerType::Core, "Scheduler::Initialize",
+                        "io worker count is too high for current architecture",
+                        "io_worker_count", io_worker_count_);
       fiber_worker_count_ = thread_count;
     }
   }
 
-  COMET_LOG_CORE_INFO("Worker count: ", fiber_worker_count_,
-                      ", I/O worker count: ", io_worker_count_, ".");
+  COMET_LOG_INFO(LoggerType::Core, "Scheduler::Initialize",
+                 "worker counts resolved", "fiber_worker_count",
+                 fiber_worker_count_, "io_worker_count", io_worker_count_);
   fiber_workers_ = Array<FiberWorker>{&worker_allocator};
   fiber_workers_.Resize(fiber_worker_count_);
   io_workers_ = Array<IOWorker>{&worker_allocator};
   io_workers_.Resize(io_worker_count_);
+
+  is_initialized_ = true;
 }
 
 void Scheduler::Shutdown() {
+  COMET_ASSERT(is_initialized_, "Scheduler::Shutdown",
+               "scheduler is not initialized");
+
   RequestShutdown();
 
   for (auto& fiber_worker : fiber_workers_) {
@@ -208,10 +225,15 @@ void Scheduler::Shutdown() {
 
   counters_.Destroy();
   fiber::DestroyFiberStackMemory();
+
+  is_initialized_ = false;
 }
 
 void Scheduler::Run(const JobDescr& callback_descr,
                     bool is_main_thread_worker) {
+  COMET_ASSERT(is_initialized_, "Scheduler::Run",
+               "scheduler is not initialized");
+
   for (usize i{1}; i < fiber_worker_count_; ++i) {
     auto& fiber_worker{fiber_workers_[i]};
     fiber_worker.Run(&Scheduler::Work, this, &fiber_worker,
@@ -243,9 +265,8 @@ void Scheduler::Run(const JobDescr& callback_descr,
     return;
   }
 #else
-  COMET_ASSERT(!IsMainThreadWorkerDisabled(),
-               "Rendering must run on the main thread, but the main thread "
-               "worker cannot be disabled.");
+  COMET_ASSERT(!IsMainThreadWorkerDisabled(), "Scheduler::Run",
+               "main thread worker cannot be disabled");
 #endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
   // From this point onward, the rest of the code must be fully jobified.
@@ -269,29 +290,50 @@ void Scheduler::RequestShutdown() {
 }
 
 Counter* Scheduler::GenerateCounter() {
+  COMET_ASSERT(is_initialized_, "Scheduler::GenerateCounter",
+               "scheduler is not initialized");
+
   auto* counter{counters_.TryGet()};
-  COMET_ASSERT(counter != nullptr, "No counter is available anymore!");
+  COMET_ASSERT(counter != nullptr, "Scheduler::GenerateCounter",
+               "no counter is available");
   counter->Reset();
   return counter;
 }
 
 void Scheduler::DestroyCounter(Counter* counter) {
-  COMET_ASSERT(counter != nullptr, "Counter provided is null!");
+  COMET_ASSERT(is_initialized_, "Scheduler::DestroyCounter",
+               "scheduler is not initialized");
+  COMET_ASSERT(counter != nullptr, "Scheduler::DestroyCounter",
+               "counter is null");
   counter->Reset();
   counters_.Push(counter);
 }
 
-void Scheduler::Kick(const JobDescr& job_descr) { SubmitJob(job_descr); }
+void Scheduler::Kick(const JobDescr& job_descr) {
+  COMET_ASSERT(is_initialized_, "Scheduler::Kick",
+               "scheduler is not initialized");
+  SubmitJob(job_descr);
+}
 
 void Scheduler::Kick(usize job_count, const JobDescr* job_descrs) {
+  COMET_ASSERT(is_initialized_, "Scheduler::Kick",
+               "scheduler is not initialized");
+
   for (usize i{0}; i < job_count; ++i) {
     Kick(job_descrs[i]);
   }
 }
 
-void Scheduler::Kick(const IOJobDescr& job_descr) { SubmitJob(job_descr); }
+void Scheduler::Kick(const IOJobDescr& job_descr) {
+  COMET_ASSERT(is_initialized_, "Scheduler::Kick",
+               "scheduler is not initialized");
+  SubmitJob(job_descr);
+}
 
 void Scheduler::Kick(usize job_count, const IOJobDescr* job_descrs) {
+  COMET_ASSERT(is_initialized_, "Scheduler::Kick",
+               "scheduler is not initialized");
+
   for (usize i{0}; i < job_count; ++i) {
     Kick(job_descrs[i]);
   }
@@ -306,11 +348,15 @@ void Scheduler::Wait(Counter* counter) {
 }
 
 void Scheduler::KickAndWait(const JobDescr& job_descr) {
+  COMET_ASSERT(is_initialized_, "Scheduler::KickAndWait",
+               "scheduler is not initialized");
   Kick(job_descr);
   Wait(job_descr.counter);
 }
 
 void Scheduler::KickAndWait(usize job_count, const JobDescr* job_descrs) {
+  COMET_ASSERT(is_initialized_, "Scheduler::KickAndWait",
+               "scheduler is not initialized");
   Kick(job_count, job_descrs);
 
   for (usize i{0}; i < job_count; ++i) {
@@ -319,11 +365,15 @@ void Scheduler::KickAndWait(usize job_count, const JobDescr* job_descrs) {
 }
 
 void Scheduler::KickAndWait(const IOJobDescr& job_descr) {
+  COMET_ASSERT(is_initialized_, "Scheduler::KickAndWait",
+               "scheduler is not initialized");
   Kick(job_descr);
   Wait(job_descr.counter);
 }
 
 void Scheduler::KickAndWait(usize job_count, const IOJobDescr* job_descrs) {
+  COMET_ASSERT(is_initialized_, "Scheduler::KickAndWait",
+               "scheduler is not initialized");
   Kick(job_count, job_descrs);
 
   for (usize i{0}; i < job_count; ++i) {
@@ -350,8 +400,11 @@ usize Scheduler::GetFiberWorkerCount() const noexcept {
 usize Scheduler::GetIOWorkerCount() const noexcept { return io_worker_count_; }
 
 void Scheduler::Work(Worker* worker, WorkFunc work_func) {
-  COMET_ASSERT(worker != nullptr, "Worker provided is null!");
-  COMET_ASSERT(work_func != nullptr, "Work function provided is null!");
+  COMET_ASSERT(worker != nullptr, "Scheduler::Work", "worker is null");
+
+  COMET_ASSERT(work_func != nullptr, "Scheduler::Work",
+               "work function is null");
+
   worker->Attach();
   (this->*work_func)();
   worker->Detach();
@@ -449,8 +502,11 @@ internal::FiberPool* Scheduler::ResolveFiberPool(const JobDescr& job_descr) {
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
     default:
-      COMET_ASSERT(false, "Unknown or unsupported job stack size: ",
-                   GetJobStackSizeLabel(job_descr.stack_size), "!");
+      COMET_ASSERT(false, "Scheduler::ResolveFiberPool",
+                   "job stack size is invalid", "stack_size",
+                   GetJobStackSizeLabel(job_descr.stack_size),
+                   "stack_size_value", ToUnderlying(job_descr.stack_size));
+      break;
   }
 
   return fibers;
@@ -479,8 +535,10 @@ void Scheduler::CleanCompletedAndTryResumeNext() {
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
       default:
-        COMET_ASSERT(false, "Unknown or unsupported fiber size: ",
-                     completed_fiber->GetStackCapacity(), "!");
+        COMET_ASSERT(false, "Scheduler::CleanCompletedAndTryResumeNext",
+                     "fiber stack capacity is invalid", "stack_capacity",
+                     completed_fiber->GetStackCapacity());
+        break;
     }
 
     fibers->Push(completed_fiber);
@@ -522,10 +580,9 @@ void Scheduler::SubmitJob(const JobDescr& job_descr) {
       low_priority_queue_.Push(job_descr);
       break;
     default:
-      COMET_ASSERT(
-          false, "Unknown or unsupported job priority: ",
-          static_cast<std::underlying_type_t<JobPriority>>(job_descr.priority),
-          "!");
+      COMET_ASSERT(false, "Scheduler::SubmitJob", "job priority is invalid",
+                   "priority", GetJobPriorityLabel(job_descr.priority),
+                   "priority_value", ToUnderlying(job_descr.priority));
       break;
   }
 }
@@ -566,7 +623,10 @@ bool Scheduler::TryAcquireRunnableJobFromQueue(
 
   job_descr = job_box.value();
   auto* fibers{ResolveFiberPool(job_descr)};
-  COMET_ASSERT(fibers != nullptr, "Could not resolve which fiber to use!");
+
+  COMET_ASSERT(fibers != nullptr, "Scheduler::TryAcquireRunnableJobFromQueue",
+               "fiber pool could not be resolved");
+
   fiber = fibers->TryPop();
 
   if (fiber != nullptr) {
@@ -608,10 +668,9 @@ void Scheduler::RequeueJob(const JobDescr& job_descr) {
       break;
 
     default:
-      COMET_ASSERT(
-          false, "Unknown or unsupported job priority: ",
-          static_cast<std::underlying_type_t<JobPriority>>(job_descr.priority),
-          "!");
+      COMET_ASSERT(false, "Scheduler::RequeueJob", "job priority is invalid",
+                   "priority", GetJobPriorityLabel(job_descr.priority),
+                   "priority_value", ToUnderlying(job_descr.priority));
       break;
   }
 }
@@ -650,6 +709,6 @@ CounterGuard::~CounterGuard() { Scheduler::Get().DestroyCounter(counter_); }
 
 void CounterGuard::Wait() { Scheduler::Get().Wait(counter_); }
 
-Counter* job::CounterGuard::GetCounter() { return counter_; }
+Counter* CounterGuard::GetCounter() { return counter_; }
 }  // namespace job
 }  // namespace comet

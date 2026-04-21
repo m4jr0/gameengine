@@ -20,6 +20,7 @@
 
 #include "comet/core/frame/frame_manager.h"
 #include "comet/core/memory/memory.h"
+#include "comet/core/memory/memory_label.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/debug_ui/imgui_utils.h"
 

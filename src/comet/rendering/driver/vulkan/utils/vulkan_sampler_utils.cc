@@ -11,9 +11,13 @@
 #include "vulkan_sampler_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+// External. ///////////////////////////////////////////////////////////////////
+#include <type_traits>
+////////////////////////////////////////////////////////////////////////////////
+
 #include "comet/core/hash.h"
-#include "comet/core/logger.h"
-#include "comet/rendering/rendering_utils.h"
+#include "comet/core/type_trait.h"
+#include "comet/rendering/label/rendering_texture_label.h"
 
 namespace comet {
 namespace rendering {
@@ -43,9 +47,10 @@ VkFilter GetFilter(TextureFilterMode filter) {
     case TextureFilterMode::Nearest:
       return VK_FILTER_NEAREST;
     default:
-      COMET_LOG_RENDERING_ERROR(
-          "Unsupported filter mode: ", GetTextureFilterModeLabel(filter),
-          "! Using linear by default.");
+      COMET_ASSERT(false, "vulkan_sampler_utils::GetFilter",
+                   "texture filter mode is unsupported", "filter_mode",
+                   GetTextureFilterModeLabel(filter), "filter_mode_value",
+                   ToUnderlying(filter));
       return VK_FILTER_LINEAR;
   }
 }

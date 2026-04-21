@@ -11,7 +11,7 @@
 #include "opengl_driver.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/event/event_manager.h"
+#include "comet/core/debug_label.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/window/window_event.h"
 
@@ -30,15 +30,18 @@ OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr) : Driver(descr) {
   window_ = std::make_unique<OpenGlGlfwWindow>(window_descr);
 
   if (is_triple_buffering_) {
-    COMET_LOG_RENDERING_WARNING(
-        "Triple buffering is not currently supported on the OpenGL driver. "
-        "Disabling it.");
+    COMET_LOG_WARNING(LoggerType::Rendering, "OpenGlDriver::OpenGlDriver",
+                      "triple buffering not supported", "driver", "OpenGL");
     is_triple_buffering_ = false;
   }
 }
 
 void OpenGlDriver::Update(frame::FramePacket* packet) {
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "OpenGlDriver::Update",
+               "frame packet is null");
+  COMET_ASSERT(window_ != nullptr, "OpenGlDriver::Update", "window is null");
+  COMET_ASSERT(frame_state_ != nullptr, "OpenGlDriver::Update",
+               "frame state is null");
 
   window_->Update();
   HandlePresentationState(packet);
@@ -64,6 +67,22 @@ void OpenGlDriver::OnEvent(const event::Event& event) {
   SetSize(resize_event.GetWidth(), resize_event.GetHeight());
 }
 
+void OpenGlDriver::RegisterEvents() {
+  window_resize_listener_id_ = event::EventManager::Get().Register(
+      [this](const event::Event& event) { OnEvent(event); },
+      WindowResizeEvent::kStaticType_);
+  COMET_ASSERT(window_resize_listener_id_ != event::kInvalidEventListenerId,
+               "OpenGlDriver::RegisterEvents",
+               "window resize listener registration failed");
+}
+
+void OpenGlDriver::UnregisterEvents() {
+  if (window_resize_listener_id_ != event::kInvalidEventListenerId) {
+    event::EventManager::Get().Unregister(window_resize_listener_id_);
+    window_resize_listener_id_ = event::kInvalidEventListenerId;
+  }
+}
+
 Window* OpenGlDriver::GetWindow() { return window_.get(); }
 
 u32 OpenGlDriver::GetDrawCount() const {
@@ -73,19 +92,24 @@ u32 OpenGlDriver::GetDrawCount() const {
 }
 
 void OpenGlDriver::OnInitialize() {
-  COMET_LOG_RENDERING_DEBUG("Initializing OpenGL driver.");
+  COMET_LOG_DEBUG(LoggerType::Rendering, "OpenGlDriver::OnInitialize",
+                  "initializing opengl driver");
+
+  COMET_ASSERT(window_ != nullptr, "OpenGlDriver::OnInitialize",
+               "window is null");
 
   window_->Initialize();
-  COMET_ASSERT(window_ != nullptr && window_->IsInitialized(),
-               "Window could not be initialized!");
 
-  event::EventManager::Get().Register(
-      [this](const event::Event& event) { OnEvent(event); },
-      WindowResizeEvent::kStaticType_);
+  COMET_ASSERT(window_->IsInitialized(), "OpenGlDriver::OnInitialize",
+               "window not initialized");
+
+  RegisterEvents();
 
   [[maybe_unused]] const auto result{
       gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))};
-  COMET_ASSERT(result, "Could not load GL loader!");
+
+  COMET_ASSERT(result != 0, "OpenGlDriver::OnInitialize",
+               "failed to load gl loader");
 
 #ifdef COMET_DEBUG_RENDERING
   glEnable(GL_DEBUG_OUTPUT);
@@ -123,6 +147,7 @@ void OpenGlDriver::OnInitialize() {
 }
 
 void OpenGlDriver::OnShutdown() {
+  UnregisterEvents();
   DestroyHandlers();
 
   if (window_ != nullptr && window_->IsInitialized()) {
@@ -252,6 +277,9 @@ void OpenGlDriver::DestroyHandlers() {
 }
 
 void OpenGlDriver::ApplyWindowResize() {
+  COMET_ASSERT(window_ != nullptr, "OpenGlDriver::ApplyWindowResize",
+               "window is null");
+
   if (!is_resize_) {
     return;
   }
@@ -270,7 +298,8 @@ void OpenGlDriver::ApplyWindowResize() {
 
 void OpenGlDriver::PreDraw(frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::PreDraw");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "OpenGlDriver::PreDraw",
+               "frame packet is null");
 
   ApplyWindowResize();
 
@@ -285,7 +314,8 @@ void OpenGlDriver::PreDraw(frame::FramePacket* packet) {
 
 void OpenGlDriver::PostDraw(const frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::PostDraw");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "OpenGlDriver::PostDraw",
+               "frame packet is null");
 
   if (!packet->can_present) {
     return;
@@ -296,7 +326,7 @@ void OpenGlDriver::PostDraw(const frame::FramePacket* packet) {
 
 void OpenGlDriver::Draw(frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::Draw");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "OpenGlDriver::Draw", "frame packet is null");
 
   UpdateGpuSceneState(packet);
 
@@ -306,7 +336,8 @@ void OpenGlDriver::Draw(frame::FramePacket* packet) {
 }
 
 void OpenGlDriver::HandlePresentationState(frame::FramePacket* packet) {
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "OpenGlDriver::HandlePresentationState",
+               "frame packet is null");
 
   if (window_->IsFlat()) {
     packet->can_present = false;
@@ -315,7 +346,8 @@ void OpenGlDriver::HandlePresentationState(frame::FramePacket* packet) {
 
 void OpenGlDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::UpdateGpuSceneState");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "OpenGlDriver::UpdateGpuSceneState",
+               "frame packet is null");
 
   mesh_handler_->Update(packet);
   lighting_handler_->Update(packet);
@@ -324,7 +356,8 @@ void OpenGlDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
 
 void OpenGlDriver::RecordFrame(frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::RecordFrame");
-  COMET_ASSERT(packet != nullptr, "Frame packet is null!");
+  COMET_ASSERT(packet != nullptr, "OpenGlDriver::RecordFrame",
+               "frame packet is null");
   view_handler_->Update(packet);
 }
 
@@ -338,43 +371,43 @@ void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum, GLenum type, GLuint,
 
   switch (type) {
     case GL_DEBUG_TYPE_ERROR:
-      Copy(type_str, "Error", 5);
+      Copy(type_str, "error", 5);
       break;
 
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-      Copy(type_str, "Deprecated", 10);
+      Copy(type_str, "deprecated", 10);
       break;
 
     case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-      Copy(type_str, "Undefined", 9);
+      Copy(type_str, "undefined", 9);
       break;
 
     case GL_DEBUG_TYPE_PORTABILITY:
-      Copy(type_str, "Portability", 11);
+      Copy(type_str, "portability", 11);
       break;
 
     case GL_DEBUG_TYPE_PERFORMANCE:
-      Copy(type_str, "Performance", 11);
+      Copy(type_str, "performance", 11);
       break;
 
     case GL_DEBUG_TYPE_MARKER:
-      Copy(type_str, "Marker", 6);
+      Copy(type_str, "marker", 6);
       break;
 
     case GL_DEBUG_TYPE_PUSH_GROUP:
-      Copy(type_str, "Push Group", 10);
+      Copy(type_str, "push_group", 10);
       break;
 
     case GL_DEBUG_TYPE_POP_GROUP:
-      Copy(type_str, "Pop Group", 9);
+      Copy(type_str, "pop_group", 9);
       break;
 
     case GL_DEBUG_TYPE_OTHER:
-      Copy(type_str, "Other", 5);
+      Copy(type_str, "other", 5);
       break;
 
     default:
-      Copy(type_str, "???", 3);
+      Copy(type_str, kUnknownLabel, kUnknownLabelLen);
       break;
   }
 
@@ -384,28 +417,31 @@ void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum, GLenum type, GLuint,
   switch (severity) {
     case GL_DEBUG_SEVERITY_HIGH:
       Copy(severity_str, "High", 4);
-
-      COMET_LOG_RENDERING_ERROR("[", severity_str, " | ", type_str, "] ",
-                                message);
+      COMET_LOG_ERROR(LoggerType::Rendering, "OpenGlDriver::LogOpenGlMessage",
+                      "opengl debug message", "severity", severity_str, "type",
+                      type_str, "message", message);
       break;
 
     case GL_DEBUG_SEVERITY_MEDIUM:
       Copy(severity_str, "Medium", 6);
-      COMET_LOG_RENDERING_ERROR("[", severity_str, " | ", type_str, "] ",
-                                message);
+      COMET_LOG_ERROR(LoggerType::Rendering, "OpenGlDriver::LogOpenGlMessage",
+                      "opengl debug message", "severity", severity_str, "type",
+                      type_str, "message", message);
       break;
 
     case GL_DEBUG_SEVERITY_LOW:
       Copy(severity_str, "Low", 3);
-      COMET_LOG_RENDERING_WARNING("[", severity_str, " | ", type_str, "] ",
-                                  message);
+      COMET_LOG_WARNING(LoggerType::Rendering, "OpenGlDriver::LogOpenGlMessage",
+                        "opengl debug message", "severity", severity_str,
+                        "type", type_str, "message", message);
       break;
 
     default:
     case GL_DEBUG_SEVERITY_NOTIFICATION:
       Copy(severity_str, "Notification", 12);
-      COMET_LOG_RENDERING_DEBUG("[", severity_str, " | ", type_str, "] ",
-                                message);
+      COMET_LOG_DEBUG(LoggerType::Rendering, "OpenGlDriver::LogOpenGlMessage",
+                      "opengl debug message", "severity", severity_str, "type",
+                      type_str, "message", message);
       break;
   }
 }

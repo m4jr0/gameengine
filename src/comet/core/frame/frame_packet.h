@@ -5,7 +5,7 @@
 #ifndef COMET_COMET_CORE_FRAME_PACKET_H_
 #define COMET_COMET_CORE_FRAME_PACKET_H_
 
-#include "comet/animation/animation_type.h"
+#include "comet/animation/type/animation_skinning_type.h"
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
@@ -13,13 +13,14 @@
 #include "comet/core/hash.h"
 #include "comet/entity/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/geometry_type.h"
+#include "comet/geometry/type/geometry_mesh_type.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/physics/component/transform_component.h"
-#include "comet/rendering/light/light_type.h"
-#include "comet/rendering/rendering_type.h"
-#include "comet/resource/material_resource.h"
+#include "comet/rendering/type/rendering_camera_type.h"
+#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/resource/material/material_resource.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {
@@ -110,15 +111,15 @@ HashValue GenerateHash(const AddedLight& value);
 HashValue GenerateHash(const DirtyLight& value);
 HashValue GenerateHash(const RemovedLight& value);
 
-using AddedGeometries = frame::DoubleFrameOrderedSet<AddedGeometry>;
-using DirtyMeshes = frame::DoubleFrameOrderedSet<DirtyMesh>;
-using DirtyTransforms = frame::DoubleFrameOrderedSet<DirtyTransform>;
-using RemovedGeometries = frame::DoubleFrameOrderedSet<RemovedGeometry>;
-using AddedLights = frame::DoubleFrameOrderedSet<AddedLight>;
-using DirtyLights = frame::DoubleFrameOrderedSet<DirtyLight>;
-using RemovedLights = frame::DoubleFrameOrderedSet<RemovedLight>;
-using SkinningBindings = frame::DoubleFrameArray<animation::SkinningBinding>;
-using MatrixPalettes = frame::DoubleFrameArray<animation::MatrixPalette>;
+using AddedGeometries = DoubleFrameOrderedSet<AddedGeometry>;
+using DirtyMeshes = DoubleFrameOrderedSet<DirtyMesh>;
+using DirtyTransforms = DoubleFrameOrderedSet<DirtyTransform>;
+using RemovedGeometries = DoubleFrameOrderedSet<RemovedGeometry>;
+using AddedLights = DoubleFrameOrderedSet<AddedLight>;
+using DirtyLights = DoubleFrameOrderedSet<DirtyLight>;
+using RemovedLights = DoubleFrameOrderedSet<RemovedLight>;
+using SkinningBindings = DoubleFrameArray<animation::SkinningBinding>;
+using MatrixPalettes = DoubleFrameArray<animation::MatrixPalette>;
 
 struct FramePacket {
 #ifdef COMET_DEBUG
