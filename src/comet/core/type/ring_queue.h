@@ -12,6 +12,7 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/concurrency/thread/thread_common.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
@@ -207,13 +208,43 @@ class LockFreeMPSCRingQueue {
     std::atomic<usize> sequence{0};
   };
 
+  static_assert(sizeof(std::atomic<usize>) <= thread::kCacheLineSize,
+                "atomic counter exceeds assumed cache line size");
+
+  struct alignas(thread::kCacheLineSize) ConsumerHead {
+    std::atomic<usize> value{0};
+    u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
+  };
+
+  struct alignas(thread::kCacheLineSize) ProducerReserve {
+    std::atomic<usize> value{0};
+    u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
+  };
+
+  static_assert(sizeof(ConsumerHead) == thread::kCacheLineSize,
+                "ConsumerHead must occupy exactly one cache line");
+  static_assert(sizeof(ProducerReserve) == thread::kCacheLineSize,
+                "ProducerReserve must occupy exactly one cache line");
+
+  static_assert(alignof(ConsumerHead) == thread::kCacheLineSize,
+                "ConsumerHead alignment is invalid");
+  static_assert(alignof(ProducerReserve) == thread::kCacheLineSize,
+                "ProducerReserve alignment is invalid");
+
+  void DestroyElements() noexcept;
+
   usize capacity_{0};
-  std::atomic<usize> head_{0};     // Consumer-owned logical position.
-  std::atomic<usize> reserve_{0};  // Producer reservation position.
   memory::Allocator* allocator_{nullptr};
   Slot* elements_{nullptr};
 
-  void DestroyElements() noexcept;
+  COMET_DISABLE_PADDING_WARNING_BEGIN
+
+  // Isolated hot counters to reduce false sharing between producers and
+  // consumers.
+  ConsumerHead consumer_head_{};
+  ProducerReserve producer_reserve_{};
+
+  COMET_DISABLE_PADDING_WARNING_END
 };
 
 template <class T>
@@ -231,21 +262,26 @@ inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
     elements_[i].sequence.store(i, std::memory_order_relaxed);
   }
 
-  head_.store(0, std::memory_order_relaxed);
-  reserve_.store(0, std::memory_order_relaxed);
+  consumer_head_.value.store(0, std::memory_order_relaxed);
+  producer_reserve_.value.store(0, std::memory_order_relaxed);
 }
 
 template <class T>
 inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
     LockFreeMPSCRingQueue<T>&& other) noexcept
     : capacity_{other.capacity_},
-      head_{other.head_.load(std::memory_order_acquire)},
-      reserve_{other.reserve_.load(std::memory_order_acquire)},
       allocator_{other.allocator_},
       elements_{other.elements_} {
+  consumer_head_.value.store(
+      other.consumer_head_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
+  producer_reserve_.value.store(
+      other.producer_reserve_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
+
   other.capacity_ = 0;
-  other.head_.store(0, std::memory_order_relaxed);
-  other.reserve_.store(0, std::memory_order_relaxed);
+  other.consumer_head_.value.store(0, std::memory_order_relaxed);
+  other.producer_reserve_.value.store(0, std::memory_order_relaxed);
   other.allocator_ = nullptr;
   other.elements_ = nullptr;
 }
@@ -260,16 +296,18 @@ inline LockFreeMPSCRingQueue<T>& LockFreeMPSCRingQueue<T>::operator=(
   Destroy();
 
   capacity_ = other.capacity_;
-  head_.store(other.head_.load(std::memory_order_acquire),
-              std::memory_order_relaxed);
-  reserve_.store(other.reserve_.load(std::memory_order_acquire),
-                 std::memory_order_relaxed);
+  consumer_head_.value.store(
+      other.consumer_head_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
+  producer_reserve_.value.store(
+      other.producer_reserve_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
   allocator_ = other.allocator_;
   elements_ = other.elements_;
 
   other.capacity_ = 0;
-  other.head_.store(0, std::memory_order_relaxed);
-  other.reserve_.store(0, std::memory_order_relaxed);
+  other.consumer_head_.value.store(0, std::memory_order_relaxed);
+  other.producer_reserve_.value.store(0, std::memory_order_relaxed);
   other.allocator_ = nullptr;
   other.elements_ = nullptr;
 
@@ -301,8 +339,8 @@ inline void LockFreeMPSCRingQueue<T>::Destroy() {
   }
 
   capacity_ = 0;
-  head_.store(0, std::memory_order_relaxed);
-  reserve_.store(0, std::memory_order_relaxed);
+  consumer_head_.value.store(0, std::memory_order_relaxed);
+  producer_reserve_.value.store(0, std::memory_order_relaxed);
   allocator_ = nullptr;
 }
 
@@ -311,15 +349,15 @@ inline void LockFreeMPSCRingQueue<T>::Push(T&& element) {
   usize pos;
 
   for (;;) {
-    pos = reserve_.load(std::memory_order_relaxed);
+    pos = producer_reserve_.value.load(std::memory_order_relaxed);
     auto& slot{elements_[pos % capacity_]};
     const auto seq{slot.sequence.load(std::memory_order_acquire)};
     const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
-      if (reserve_.compare_exchange_weak(pos, pos + 1,
-                                         std::memory_order_acq_rel,
-                                         std::memory_order_relaxed)) {
+      if (producer_reserve_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_acq_rel,
+              std::memory_order_relaxed)) {
         slot.element = std::forward<T>(element);
         slot.sequence.store(pos + 1, std::memory_order_release);
         return;
@@ -337,15 +375,15 @@ inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
   usize pos;
 
   for (;;) {
-    pos = reserve_.load(std::memory_order_relaxed);
+    pos = producer_reserve_.value.load(std::memory_order_relaxed);
     auto& slot{elements_[pos % capacity_]};
     const auto seq{slot.sequence.load(std::memory_order_acquire)};
     const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
-      if (reserve_.compare_exchange_weak(pos, pos + 1,
-                                         std::memory_order_acq_rel,
-                                         std::memory_order_relaxed)) {
+      if (producer_reserve_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_acq_rel,
+              std::memory_order_relaxed)) {
         slot.element = element;
         slot.sequence.store(pos + 1, std::memory_order_release);
         return;
@@ -360,7 +398,7 @@ inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
 
 template <class T>
 inline bool LockFreeMPSCRingQueue<T>::TryPop(T& element) {
-  const auto pos{head_.load(std::memory_order_relaxed)};
+  const auto pos{consumer_head_.value.load(std::memory_order_relaxed)};
   auto& slot{elements_[pos % capacity_]};
   const auto seq{slot.sequence.load(std::memory_order_acquire)};
   const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos + 1)};
@@ -371,7 +409,7 @@ inline bool LockFreeMPSCRingQueue<T>::TryPop(T& element) {
 
   element = std::move(slot.element);
   slot.sequence.store(pos + capacity_, std::memory_order_release);
-  head_.store(pos + 1, std::memory_order_relaxed);
+  consumer_head_.value.store(pos + 1, std::memory_order_relaxed);
   return true;
 }
 
@@ -416,21 +454,44 @@ class LockFreeMPMCRingQueue {
     std::atomic<usize> sequence{0};
   };
 
-  constexpr static auto kCachelineSize_{64};
-  using CachelinePad = u8[kCachelineSize_];
+  static_assert(sizeof(std::atomic<usize>) <= thread::kCacheLineSize,
+                "atomic counter exceeds assumed cache line size");
+
+  struct alignas(thread::kCacheLineSize) ProducerHead {
+    std::atomic<usize> value{0};
+    u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
+  };
+
+  struct alignas(thread::kCacheLineSize) ConsumerTail {
+    std::atomic<usize> value{0};
+    u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
+  };
+
+  static_assert(sizeof(ProducerHead) == thread::kCacheLineSize,
+                "ProducerHead must occupy exactly one cache line");
+  static_assert(sizeof(ConsumerTail) == thread::kCacheLineSize,
+                "ConsumerTail must occupy exactly one cache line");
+
+  static_assert(alignof(ProducerHead) == thread::kCacheLineSize,
+                "ProducerHead alignment is invalid");
+  static_assert(alignof(ConsumerTail) == thread::kCacheLineSize,
+                "ConsumerTail alignment is invalid");
 
   void DestroyElements() noexcept;
 
-  CachelinePad pad0_{};
   usize mask_{0};
   Node* elements_{nullptr};
-  CachelinePad pad1_{};
-  std::atomic<usize> head_{0};  // Producer-owned logical position.
-  CachelinePad pad2_{};
-  std::atomic<usize> tail_{0};  // Consumer-owned logical position.
-  CachelinePad pad3_{};
   usize capacity_{0};
   memory::Allocator* allocator_{nullptr};
+
+  COMET_DISABLE_PADDING_WARNING_BEGIN
+
+  // Isolated hot counters to reduce false sharing between producers and
+  // consumers.
+  ProducerHead producer_head_{};
+  ConsumerTail consumer_tail_{};
+
+  COMET_DISABLE_PADDING_WARNING_END
 };
 
 template <class T>
@@ -451,8 +512,8 @@ inline LockFreeMPMCRingQueue<T>::LockFreeMPMCRingQueue(
     elements_[i].sequence.store(i, std::memory_order_relaxed);
   }
 
-  head_.store(0, std::memory_order_relaxed);
-  tail_.store(0, std::memory_order_relaxed);
+  producer_head_.value.store(0, std::memory_order_relaxed);
+  consumer_tail_.value.store(0, std::memory_order_relaxed);
 }
 
 template <class T>
@@ -460,14 +521,19 @@ inline LockFreeMPMCRingQueue<T>::LockFreeMPMCRingQueue(
     LockFreeMPMCRingQueue<T>&& other) noexcept
     : mask_{other.mask_},
       elements_{other.elements_},
-      head_{other.head_.load(std::memory_order_acquire)},
-      tail_{other.tail_.load(std::memory_order_acquire)},
       capacity_{other.capacity_},
       allocator_{other.allocator_} {
+  producer_head_.value.store(
+      other.producer_head_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
+  consumer_tail_.value.store(
+      other.consumer_tail_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
+
   other.mask_ = 0;
   other.elements_ = nullptr;
-  other.head_.store(0, std::memory_order_relaxed);
-  other.tail_.store(0, std::memory_order_relaxed);
+  other.producer_head_.value.store(0, std::memory_order_relaxed);
+  other.consumer_tail_.value.store(0, std::memory_order_relaxed);
   other.capacity_ = 0;
   other.allocator_ = nullptr;
 }
@@ -483,17 +549,19 @@ inline LockFreeMPMCRingQueue<T>& LockFreeMPMCRingQueue<T>::operator=(
 
   mask_ = other.mask_;
   elements_ = other.elements_;
-  head_.store(other.head_.load(std::memory_order_acquire),
-              std::memory_order_relaxed);
-  tail_.store(other.tail_.load(std::memory_order_acquire),
-              std::memory_order_relaxed);
+  producer_head_.value.store(
+      other.producer_head_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
+  consumer_tail_.value.store(
+      other.consumer_tail_.value.load(std::memory_order_acquire),
+      std::memory_order_relaxed);
   capacity_ = other.capacity_;
   allocator_ = other.allocator_;
 
   other.mask_ = 0;
   other.elements_ = nullptr;
-  other.head_.store(0, std::memory_order_relaxed);
-  other.tail_.store(0, std::memory_order_relaxed);
+  other.producer_head_.value.store(0, std::memory_order_relaxed);
+  other.consumer_tail_.value.store(0, std::memory_order_relaxed);
   other.capacity_ = 0;
   other.allocator_ = nullptr;
 
@@ -526,15 +594,15 @@ inline void LockFreeMPMCRingQueue<T>::Destroy() {
 
   mask_ = 0;
   capacity_ = 0;
-  head_.store(0, std::memory_order_relaxed);
-  tail_.store(0, std::memory_order_relaxed);
+  producer_head_.value.store(0, std::memory_order_relaxed);
+  consumer_tail_.value.store(0, std::memory_order_relaxed);
   allocator_ = nullptr;
 }
 
 template <class T>
 inline void LockFreeMPMCRingQueue<T>::Push(const T& element) {
   Node* node;
-  auto pos{head_.load(std::memory_order_relaxed)};
+  auto pos{producer_head_.value.load(std::memory_order_relaxed)};
 
   for (;;) {
     node = &elements_[pos & mask_];
@@ -542,14 +610,15 @@ inline void LockFreeMPMCRingQueue<T>::Push(const T& element) {
     const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
-      if (head_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed,
-                                      std::memory_order_relaxed)) {
+      if (producer_head_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_relaxed,
+              std::memory_order_relaxed)) {
         break;
       }
     } else if (delta < 0) {
       throw MaximumCapacityReachedError(mask_ + 1);
     } else {
-      pos = head_.load(std::memory_order_relaxed);
+      pos = producer_head_.value.load(std::memory_order_relaxed);
     }
   }
 
@@ -560,7 +629,7 @@ inline void LockFreeMPMCRingQueue<T>::Push(const T& element) {
 template <class T>
 inline void LockFreeMPMCRingQueue<T>::Push(T&& element) {
   Node* node;
-  auto pos{head_.load(std::memory_order_relaxed)};
+  auto pos{producer_head_.value.load(std::memory_order_relaxed)};
 
   for (;;) {
     node = &elements_[pos & mask_];
@@ -568,14 +637,15 @@ inline void LockFreeMPMCRingQueue<T>::Push(T&& element) {
     const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
 
     if (delta == 0) {
-      if (head_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed,
-                                      std::memory_order_relaxed)) {
+      if (producer_head_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_relaxed,
+              std::memory_order_relaxed)) {
         break;
       }
     } else if (delta < 0) {
       throw MaximumCapacityReachedError(mask_ + 1);
     } else {
-      pos = head_.load(std::memory_order_relaxed);
+      pos = producer_head_.value.load(std::memory_order_relaxed);
     }
   }
 
@@ -586,7 +656,7 @@ inline void LockFreeMPMCRingQueue<T>::Push(T&& element) {
 template <class T>
 inline std::optional<T> LockFreeMPMCRingQueue<T>::TryPop() {
   Node* node;
-  auto pos{tail_.load(std::memory_order_relaxed)};
+  auto pos{consumer_tail_.value.load(std::memory_order_relaxed)};
 
   for (;;) {
     node = &elements_[pos & mask_];
@@ -595,14 +665,15 @@ inline std::optional<T> LockFreeMPMCRingQueue<T>::TryPop() {
                      static_cast<sptrdiff>(pos + 1)};
 
     if (delta == 0) {
-      if (tail_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed,
-                                      std::memory_order_relaxed)) {
+      if (consumer_tail_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_relaxed,
+              std::memory_order_relaxed)) {
         break;
       }
     } else if (delta < 0) {
       return std::nullopt;
     } else {
-      pos = tail_.load(std::memory_order_relaxed);
+      pos = consumer_tail_.value.load(std::memory_order_relaxed);
     }
   }
 

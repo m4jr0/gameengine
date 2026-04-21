@@ -64,4 +64,13 @@ static_assert(false, "unsupported architecture");
 #endif
 #endif  // COMET_MSVC
 
+#ifdef COMET_MSVC
+#define COMET_DISABLE_PADDING_WARNING_BEGIN \
+  __pragma(warning(push)) __pragma(warning(disable : 4324))
+#define COMET_DISABLE_PADDING_WARNING_END __pragma(warning(pop))
+#else
+#define COMET_DISABLE_PADDING_WARNING_BEGIN
+#define COMET_DISABLE_PADDING_WARNING_END
+#endif  // COMET_MSVC
+
 #endif  // COMET_COMET_CORE_COMPILER_H_

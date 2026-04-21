@@ -8,6 +8,7 @@
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/provider/thread_provider.h"
 #include "comet/core/concurrency/provider/thread_provider_manager.h"
+#include "comet/core/concurrency/thread/thread_common.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/memory/memory.h"
@@ -68,10 +69,14 @@ class FiberStackAllocator : public StatefulAllocator {
  private:
   using FiberStackAllocatorMarker = u8*;
 
-  struct ThreadContext {
+  COMET_DISABLE_PADDING_WARNING_BEGIN
+
+  struct alignas(thread::kCacheLineSize) ThreadContext {
     u8* root{nullptr};
     FiberStackAllocatorMarker marker{nullptr};
-  } typedef ThreadContext;
+  };
+
+  COMET_DISABLE_PADDING_WARNING_END
 
   using ThreadContexts = thread::FiberThreadProvider<ThreadContext>;
 
@@ -115,10 +120,14 @@ class IOStackAllocator : public StatefulAllocator {
  private:
   using IOStackAllocatorMarker = u8*;
 
-  struct ThreadContext {
+  COMET_DISABLE_PADDING_WARNING_BEGIN
+
+  struct alignas(thread::kCacheLineSize) ThreadContext {
     u8* root{nullptr};
     IOStackAllocatorMarker marker{nullptr};
-  } typedef ThreadContext;
+  };
+
+  COMET_DISABLE_PADDING_WARNING_END
 
   using ThreadContexts = thread::IOThreadProvider<ThreadContext>;
 
