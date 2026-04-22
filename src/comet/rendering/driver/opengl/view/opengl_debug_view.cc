@@ -46,8 +46,6 @@ void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   RunDebugCullGeneration();
   SetViewport();
   DrawDebugCull();
-
-  shader_handler_->Reset();
 #endif  // COMET_DEBUG_CULLING
 }
 

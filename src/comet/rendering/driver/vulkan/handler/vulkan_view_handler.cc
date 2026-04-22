@@ -36,9 +36,7 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
     : Handler{descr},
       shadow_settings_{descr.shadow_settings},
       shader_handler_{descr.shader_handler},
-      material_handler_{descr.material_handler},
       texture_handler_{descr.texture_handler},
-      pipeline_handler_{descr.pipeline_handler},
       render_pass_handler_{descr.render_pass_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       mesh_handler_{descr.mesh_handler},
@@ -47,12 +45,8 @@ ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
       rendering_view_descrs_{descr.rendering_view_descrs} {
   COMET_ASSERT(shader_handler_ != nullptr, "ViewHandler::ViewHandler",
                "shader handler is null");
-  COMET_ASSERT(material_handler_ != nullptr, "ViewHandler::ViewHandler",
-               "material handler is null");
   COMET_ASSERT(texture_handler_ != nullptr, "ViewHandler::ViewHandler",
                "texture handler is null");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "ViewHandler::ViewHandler",
-               "pipeline handler is null");
   COMET_ASSERT(render_pass_handler_ != nullptr, "ViewHandler::ViewHandler",
                "render pass handler is null");
   COMET_ASSERT(render_proxy_handler_ != nullptr, "ViewHandler::ViewHandler",
@@ -103,8 +97,6 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
       view_descr.shadow_settings = shadow_settings_;
       view_descr.shader_handler = shader_handler_;
       view_descr.texture_handler = texture_handler_;
-      view_descr.material_handler = material_handler_;
-      view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
       view_descr.mesh_handler = mesh_handler_;
@@ -129,7 +121,6 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
-      view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
       view_descr.lighting_handler = lighting_handler_;
@@ -159,7 +150,6 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
                          sizeof(descr.clear_color[0]) * 4);
       view_descr.context = context_;
       view_descr.shader_handler = shader_handler_;
-      view_descr.pipeline_handler = pipeline_handler_;
       view_descr.render_pass_handler = render_pass_handler_;
       view_descr.render_proxy_handler = render_proxy_handler_;
       view = std::make_unique<DebugView>(view_descr);
@@ -253,6 +243,18 @@ void ViewHandler::OnShutdown() {
   }
 
   views_.Release();
+
+  context_ = nullptr;
+  shadow_settings_ = nullptr;
+
+  shader_handler_ = nullptr;
+  texture_handler_ = nullptr;
+  render_pass_handler_ = nullptr;
+  render_proxy_handler_ = nullptr;
+  mesh_handler_ = nullptr;
+  lighting_handler_ = nullptr;
+  window_ = nullptr;
+  rendering_view_descrs_ = nullptr;
 }
 
 View* ViewHandler::Get(usize index) {

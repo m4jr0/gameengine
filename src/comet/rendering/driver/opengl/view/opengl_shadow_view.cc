@@ -44,12 +44,10 @@ void ShadowView::Update(frame::FramePacket*) {
   const auto* render_jobs{lighting_handler_->GetRenderJobs()};
 
   if (render_jobs == nullptr || render_jobs->IsEmpty()) {
-    shader_handler_->Reset();
     return;
   }
 
   if (render_proxy_handler_->GetRenderProxyCount() == 0) {
-    shader_handler_->Reset();
     return;
   }
 
@@ -96,8 +94,6 @@ void ShadowView::Update(frame::FramePacket*) {
   glViewport(previous_viewport[0], previous_viewport[1], previous_viewport[2],
              previous_viewport[3]);
   glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
-
-  shader_handler_->Reset();
 }
 
 void ShadowView::OnInitialize() {

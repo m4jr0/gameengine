@@ -26,14 +26,11 @@ namespace vk {
 ShadowView::ShadowView(const ShadowViewDescr& descr)
     : View{descr},
       shader_handler_{descr.shader_handler},
-      pipeline_handler_{descr.pipeline_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       lighting_handler_{descr.lighting_handler},
       mesh_handler_{descr.mesh_handler} {
   COMET_ASSERT(shader_handler_ != nullptr, "ShadowView::ShadowView",
                "shader handler is null");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "ShadowView::ShadowView",
-               "pipeline handler is null");
   COMET_ASSERT(render_proxy_handler_ != nullptr, "ShadowView::ShadowView",
                "render proxy handler is null");
   COMET_ASSERT(lighting_handler_ != nullptr, "ShadowView::ShadowView",
@@ -47,17 +44,17 @@ void ShadowView::Update(frame::FramePacket*) {
   const auto* render_jobs{lighting_handler_->GetRenderJobs()};
 
   if (render_jobs == nullptr || render_jobs->IsEmpty()) {
-    pipeline_handler_->Reset();
     return;
   }
 
   if (render_proxy_handler_->GetRenderProxyCount() == 0) {
-    pipeline_handler_->Reset();
     return;
   }
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   UpdateShadowShaderPassData();
 
@@ -89,8 +86,6 @@ void ShadowView::Update(frame::FramePacket*) {
     TransitionShadowMapForSampling(command_buffer_handle, *job.resource,
                                    job.view_proj_index);
   }
-
-  pipeline_handler_->Reset();
 }
 
 void ShadowView::OnInitialize() {
@@ -137,7 +132,6 @@ void ShadowView::OnDestroy() {
   }
 
   shader_handler_ = nullptr;
-  pipeline_handler_ = nullptr;
   render_proxy_handler_ = nullptr;
   lighting_handler_ = nullptr;
   mesh_handler_ = nullptr;
@@ -211,8 +205,10 @@ void ShadowView::DrawShadowCasters() {
                "shadow indirect buffer size is zero", "frame_index",
                frame_index);
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   mesh_handler_->Bind();
   shader_handler_->Bind(shadow_shader_, PipelineBindType::Graphics);
@@ -223,8 +219,10 @@ void ShadowView::DrawShadowCasters() {
 }
 
 void ShadowView::SetViewportAndScissor(VkExtent2D extent) const {
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   VkViewport viewport{};
   viewport.x = .0f;

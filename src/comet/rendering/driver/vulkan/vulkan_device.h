@@ -27,6 +27,15 @@ struct QueueFamilyIndices {
   std::optional<u32> transfer_family{};
 };
 
+struct QueueContext {
+  VkQueue handle{VK_NULL_HANDLE};
+  u32 family_index{VK_QUEUE_FAMILY_IGNORED};
+
+  bool IsValid() const noexcept {
+    return handle != VK_NULL_HANDLE && family_index != VK_QUEUE_FAMILY_IGNORED;
+  }
+};
+
 // Useful for debugging purposes.
 constexpr auto kIsSpecificTransferQueue{true};
 
@@ -78,19 +87,24 @@ class Device {
   const VkPhysicalDeviceProperties& GetProperties() const noexcept;
   const VkPhysicalDeviceFeatures& GetFeatures() const noexcept;
   const VkPhysicalDeviceMemoryProperties& GetMemoryProperties() const noexcept;
+
+  const QueueContext& GetGraphicsQueueContext() const noexcept;
+  const QueueContext& GetPresentQueueContext() const noexcept;
+  const QueueContext& GetTransferQueueContext() const noexcept;
+  const QueueContext& GetUploadQueueContext() const noexcept;
+
+  bool HasDedicatedTransferQueue() const noexcept;
+  bool IsUploadQueueGraphics() const noexcept;
   const QueueFamilyIndices& GetQueueFamilyIndices() const noexcept;
-  VkQueue GetGraphicsQueueHandle() const noexcept;
-  VkQueue GetPresentQueueHandle() const noexcept;
-  VkQueue GetTransferQueueHandle() const noexcept;
-  u32 GetGraphicsQueueIndex() const noexcept;
-  u32 GetPresentQueueIndex() const noexcept;
-  u32 GetTransferQueueIndex() const noexcept;
+
   VkSampleCountFlagBits GetMsaaSamples() const noexcept;
 
   bool IsMsaa() const noexcept;
   bool IsInitialized() const noexcept;
 
  private:
+  static inline constexpr bool kForceUploadQueueGraphics_{false};
+
   PhysicalDeviceScore GetPhysicalDeviceScore(
       VkPhysicalDevice physical_device_handle) const;
 
@@ -122,12 +136,11 @@ class Device {
   VkPhysicalDevice physical_device_handle_{VK_NULL_HANDLE};
   VkDevice handle_{VK_NULL_HANDLE};
   VkSurfaceKHR surface_handle_{VK_NULL_HANDLE};
-  VkQueue graphics_queue_handle_{
-      VK_NULL_HANDLE};  // Will be destroyed automatically.
-  VkQueue present_queue_handle_{
-      VK_NULL_HANDLE};  // Will be destroyed automatically.
-  VkQueue transfer_queue_handle_{
-      VK_NULL_HANDLE};  // Will be destroyed automatically.
+
+  QueueContext graphics_queue_context_{};
+  QueueContext present_queue_context_{};
+  QueueContext transfer_queue_context_{};
+  QueueContext upload_queue_context_{};
 
   static constexpr StaticArray kRequiredExtensions_{
       VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,

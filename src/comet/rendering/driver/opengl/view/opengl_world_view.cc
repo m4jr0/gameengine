@@ -27,7 +27,6 @@ WorldView::WorldView(const WorldViewDescr& descr)
     : View{descr},
       shadow_settings_{descr.shadow_settings},
       shader_handler_{descr.shader_handler},
-      material_handler_{descr.material_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       mesh_handler_{descr.mesh_handler},
       lighting_handler_{descr.lighting_handler} {
@@ -35,8 +34,6 @@ WorldView::WorldView(const WorldViewDescr& descr)
                "shadow settings are null");
   COMET_ASSERT(shader_handler_ != nullptr, "WorldView::WorldView",
                "shader handler is null");
-  COMET_ASSERT(material_handler_ != nullptr, "WorldView::WorldView",
-               "material handler is null");
   COMET_ASSERT(render_proxy_handler_ != nullptr, "WorldView::WorldView",
                "render proxy handler is null");
   COMET_ASSERT(mesh_handler_ != nullptr, "WorldView::WorldView",
@@ -76,9 +73,6 @@ void WorldView::Update(frame::FramePacket* packet) {
 
   SetViewport();
   DrawWorld();
-
-  render_proxy_handler_->Reset();
-  shader_handler_->Reset();
 }
 
 void WorldView::OnInitialize() {
@@ -124,7 +118,6 @@ void WorldView::OnDestroy() {
   }
 
   shader_handler_ = nullptr;
-  material_handler_ = nullptr;
   render_proxy_handler_ = nullptr;
   mesh_handler_ = nullptr;
   lighting_handler_ = nullptr;

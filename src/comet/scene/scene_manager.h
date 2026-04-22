@@ -11,8 +11,6 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
-#include "comet/core/memory/memory.h"
-#include "comet/entity/type/entity_id.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 
@@ -29,6 +27,8 @@ class SceneManager : public Manager {
   SceneManager& operator=(SceneManager&&) = delete;
   ~SceneManager() override = default;
 
+  void Update();
+
   void LoadScene();
   usize GetExpectedEntityCount() const;
 
@@ -42,19 +42,10 @@ class SceneManager : public Manager {
   void RegisterEvents();
   void UnregisterEvents();
 
-  void LoadTmp();
-  void HandleLoadedModelTmp(entity::EntityId entity_id);
-
-  event::EventListenerId scene_load_request_listener_id_{};
-  event::EventListenerId model_loaded_listener_id_{};
-
-  usize models_to_load_count_{0};
-  std::atomic<usize> loaded_model_count_tmp_{0};
-  entity::EntityId character_eve_id_tmp_{entity::kInvalidEntityId};
-  entity::EntityId character_vampire_id_tmp_{entity::kInvalidEntityId};
-  entity::EntityId sponza_id_tmp_{entity::kInvalidEntityId};
-  memory::PlatformAllocator tmp_allocator_{
-      memory::kEngineMemoryTagResourceScene};
+  event::EventListenerId scene_load_request_listener_id_{
+      event::kInvalidEventListenerId};
+  event::EventListenerId model_loaded_listener_id_{
+      event::kInvalidEventListenerId};
 };
 }  // namespace scene
 }  // namespace comet

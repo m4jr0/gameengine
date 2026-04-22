@@ -28,8 +28,6 @@ WorldView::WorldView(const WorldViewDescr& descr)
       shadow_settings_{descr.shadow_settings},
       shader_handler_{descr.shader_handler},
       texture_handler_{descr.texture_handler},
-      material_handler_{descr.material_handler},
-      pipeline_handler_{descr.pipeline_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       mesh_handler_{descr.mesh_handler},
       lighting_handler_{descr.lighting_handler} {
@@ -39,10 +37,6 @@ WorldView::WorldView(const WorldViewDescr& descr)
                "texture handler is null");
   COMET_ASSERT(shader_handler_ != nullptr, "WorldView::WorldView",
                "shader handler is null");
-  COMET_ASSERT(material_handler_ != nullptr, "WorldView::WorldView",
-               "material handler is null");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "WorldView::WorldView",
-               "pipeline handler is null");
   COMET_ASSERT(render_proxy_handler_ != nullptr, "WorldView::WorldView",
                "render proxy handler is null");
   COMET_ASSERT(mesh_handler_ != nullptr, "WorldView::WorldView",
@@ -65,8 +59,11 @@ void WorldView::Update(frame::FramePacket* packet) {
   clear_values[1].depthStencil.depth = 1.0f;
   clear_values[1].depthStencil.stencil = 0;
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
+
   render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
                                   context_->GetImageIndex(), clear_values, 2);
 
@@ -74,9 +71,6 @@ void WorldView::Update(frame::FramePacket* packet) {
   DrawWorld();
 
   render_pass_handler_->EndPass(command_buffer_handle);
-
-  render_proxy_handler_->Reset();
-  pipeline_handler_->Reset();
 }
 
 void WorldView::OnInitialize() {
@@ -180,8 +174,6 @@ void WorldView::OnDestroy() {
   shadow_settings_ = nullptr;
   shader_handler_ = nullptr;
   texture_handler_ = nullptr;
-  material_handler_ = nullptr;
-  pipeline_handler_ = nullptr;
   render_proxy_handler_ = nullptr;
   mesh_handler_ = nullptr;
   lighting_handler_ = nullptr;
@@ -270,11 +262,30 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
 void WorldView::RunSparseUpload() {
   COMET_PROFILE("WorldView::RunSparseUpload");
 
-  if (!render_proxy_handler_->HasPendingSparseUpload()) {
+  const auto frame_index{context_->GetFrameInFlightIndex()};
+
+  if (!render_proxy_handler_->HasPendingSparseUpload(frame_index)) {
     return;
   }
 
-  const auto gpu_data{render_proxy_handler_->GetSparseUploadGpuData()};
+  const auto gpu_data{
+      render_proxy_handler_->GetSparseUploadGpuData(frame_index)};
+
+  {
+    static constexpr usize kSparseUploadReadBarrierCapacity{2};
+    auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+        VkBufferMemoryBarrier, kSparseUploadReadBarrierCapacity)};
+
+    render_proxy_handler_->PopulateSparseUploadReadBarriers(frame_index,
+                                                            barriers);
+
+    const auto current_frame{context_->GetFrameInFlightIndex()};
+    auto& frame_data{context_->GetFrameData(current_frame)};
+
+    ApplyBufferMemoryBarriers(barriers, frame_data.command_buffer_handle,
+                              VK_PIPELINE_STAGE_HOST_BIT,
+                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+  }
 
   static constexpr usize kShaderBufferBindingCapacity{3};
   auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
@@ -285,7 +296,8 @@ void WorldView::RunSparseUpload() {
       shader_handler_->GetBindingIndex(
           sparse_upload_shader_, shaderconsts::kGlobalSet,
           worldsparseuploadshaderconsts::kSparseUploadWordIndicesBinding),
-      gpu_data.ssbo_word_indices_handle, gpu_data.ssbo_word_indices_size);
+      gpu_data.ssbo_sparse_upload_word_indices_handle,
+      gpu_data.ssbo_sparse_upload_word_indices_size);
 
   AddBufferBinding(
       buffer_bindings,
@@ -320,17 +332,24 @@ void WorldView::RunSparseUpload() {
   shader_handler_->Bind(sparse_upload_shader_, PipelineBindType::Compute);
   shader_handler_->PushConstants(sparse_upload_shader_, push_constants);
 
-  vkCmdDispatch(context_->GetFrameData().command_buffer_handle,
-                render_proxy_handler_->GetSparseUploadGroupCount(), 1, 1);
+  auto& frame_data{context_->GetFrameData(frame_index)};
 
-  auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 1)};
-  render_proxy_handler_->PopulateSparseUploadBarriers(barriers);
+  vkCmdDispatch(frame_data.command_buffer_handle,
+                render_proxy_handler_->GetSparseUploadGroupCount(frame_index),
+                1, 1);
 
-  ApplyBufferMemoryBarriers(barriers,
-                            context_->GetFrameData().command_buffer_handle,
-                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
-                                VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
+  {
+    static constexpr usize kSparseUploadWriteBarrierCapacity{1};
+    auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+        VkBufferMemoryBarrier, kSparseUploadWriteBarrierCapacity)};
+
+    render_proxy_handler_->PopulateSparseUploadBarriers(frame_index, barriers);
+
+    ApplyBufferMemoryBarriers(barriers, frame_data.command_buffer_handle,
+                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                                  VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
+  }
 }
 
 void WorldView::RunCull(frame::FramePacket* packet) {
@@ -439,15 +458,17 @@ void WorldView::RunCull(frame::FramePacket* packet) {
   shader_handler_->Bind(cull_shader_, PipelineBindType::Compute);
   shader_handler_->PushConstants(cull_shader_, push_constants);
 
-  vkCmdDispatch(context_->GetFrameData().command_buffer_handle,
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  vkCmdDispatch(frame_data.command_buffer_handle,
                 render_proxy_handler_->GetCullGroupCount(), 1, 1);
 
   {
     auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 2)};
     render_proxy_handler_->PopulateDrawCullBarriers(frame_index, barriers);
 
-    ApplyBufferMemoryBarriers(barriers,
-                              context_->GetFrameData().command_buffer_handle,
+    ApplyBufferMemoryBarriers(barriers, frame_data.command_buffer_handle,
                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                               VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |
                                   VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
@@ -458,9 +479,9 @@ void WorldView::RunCull(frame::FramePacket* packet) {
     auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 1)};
     render_proxy_handler_->PopulateCullDebugReadBarriers(frame_index, barriers);
 
-    ApplyBufferMemoryBarriers(
-        barriers, context_->GetFrameData().command_buffer_handle,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT);
+    ApplyBufferMemoryBarriers(barriers, frame_data.command_buffer_handle,
+                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                              VK_PIPELINE_STAGE_HOST_BIT);
   }
 #endif  // COMET_DEBUG_RENDERING
 }
@@ -484,9 +505,13 @@ void WorldView::DrawWorld() {
                "draw indirect buffer size is zero", "frame_index", frame_index);
 
   const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
+  COMET_ASSERT(indirect_batches != nullptr, "WorldView::DrawWorld",
+               "indirect batches are null");
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   mesh_handler_->Bind();
   shader_handler_->Bind(world_shader_, PipelineBindType::Graphics);
@@ -509,17 +534,18 @@ void WorldView::DrawWorld() {
 
   for (const auto& group : *batch_groups) {
     const auto& batch{indirect_batches->Get(group.offset)};
-    const auto* proxy{batch.proxy};
+    const auto proxy_id{batch.proxy_id};
+    const auto material_handle{
+        render_proxy_handler_->GetMaterialHandle(proxy_id)};
 
-    if (proxy->material_handle != last_material_handle) {
-      if (!shader_handler_->HasMaterial(world_shader_,
-                                        proxy->material_handle)) {
-        shader_handler_->BindMaterial(world_shader_, proxy->material_handle);
+    if (material_handle != last_material_handle) {
+      if (!shader_handler_->HasMaterial(world_shader_, material_handle)) {
+        shader_handler_->BindMaterial(world_shader_, material_handle);
       }
 
-      shader_handler_->BindInstance(world_shader_, proxy->material_handle,
+      shader_handler_->BindInstance(world_shader_, material_handle,
                                     PipelineBindType::Graphics);
-      last_material_handle = proxy->material_handle;
+      last_material_handle = material_handle;
     }
 
     vkCmdDrawIndexedIndirect(command_buffer_handle, indirect_buffer.handle,
@@ -529,8 +555,10 @@ void WorldView::DrawWorld() {
 }
 
 void WorldView::SetViewportAndScissor() const {
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   VkViewport viewport{};
   viewport.x = .0f;

@@ -8,6 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/rendering/render_proxy_record_store.h"
 #include "comet/rendering/type/common.h"
 #include "comet/rendering/type/light.h"
 #include "comet/rendering/type/texture.h"
@@ -33,6 +34,7 @@ struct DriverDescr {
   schar app_name[kMaxAppNameLen]{'\0'};
   usize app_name_len{0};
   const ShadowSettings* shadow_settings{nullptr};
+  const RenderProxyRecordStore* render_proxy_record_store{nullptr};
   Array<RenderingViewDescr> rendering_view_descrs{};
 };
 
@@ -77,6 +79,7 @@ class Driver {
   schar app_name_[kMaxAppNameLen]{'\0'};
   usize app_name_len_{0};
   const ShadowSettings* shadow_settings_{};
+  const RenderProxyRecordStore* render_proxy_record_store_{nullptr};
   memory::PlatformAllocator rendering_view_descrs_allocator_{
       memory::kEngineMemoryTagRendering};
   Array<RenderingViewDescr> rendering_view_descrs_{};

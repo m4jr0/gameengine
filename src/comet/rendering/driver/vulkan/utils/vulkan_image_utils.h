@@ -38,16 +38,24 @@ bool IsImageInitialized(const Image& image) noexcept;
 bool HasDepthComponent(VkFormat format);
 bool HasStencilComponent(VkFormat format);
 
-void CopyBufferToImage(VkCommandBuffer command_buffer, const Buffer& buffer,
-                       const Image& image, u32 width, u32 height);
+void CopyBufferToImage(VkCommandBuffer command_buffer_handle,
+                       const Buffer& buffer, const Image& image, u32 width,
+                       u32 height, u32 layer_count);
 void CopyBufferToImage(const CommandData& command_data, const Buffer& buffer,
-                       const Image& image, u32 width, u32 height);
+                       const Image& image, u32 width, u32 height,
+                       u32 layer_count);
 
-void TransitionImageLayout(
-    const Context& context, VkImage image_handle, VkFormat format,
-    VkImageLayout old_layout, VkImageLayout new_layout, u32 mip_levels,
-    u32 layer_count, u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+void CmdTransitionImageLayoutGraphics(
+    VkCommandBuffer command_buffer_handle, VkImage image_handle,
+    VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout,
+    u32 mip_levels, u32 layer_count,
+    u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
     u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
+
+void GenerateMipmaps(VkCommandBuffer command_buffer_handle,
+                     VkPhysicalDevice physical_device_handle,
+                     VkImage image_handle, VkFormat format, u32 width,
+                     u32 height, u32 mip_levels, u32 layer_count = 1);
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

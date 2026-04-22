@@ -1164,10 +1164,14 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
     switch (binding.type) {
       case ShaderBindingType::CombinedImageSampler:
         COMET_ASSERT(texture != nullptr, "ShaderHandler::BindImageBinding",
-                     "combined image sampler requires texture", "binding_index",
+                     "combined image sampler requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "api_binding", binding.api_binding, "binding_index",
                      binding.index, "descriptor_index", i);
         COMET_ASSERT(sampler != nullptr, "ShaderHandler::BindImageBinding",
-                     "combined image sampler requires sampler", "binding_index",
+                     "combined image sampler requires sampler", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "api_binding", binding.api_binding, "binding_index",
                      binding.index, "descriptor_index", i);
 
         glBindTextureUnit(unit, texture->native_handle);
@@ -1176,7 +1180,9 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
 
       case ShaderBindingType::SampledImage:
         COMET_ASSERT(texture != nullptr, "ShaderHandler::BindImageBinding",
-                     "sampled image requires texture", "binding_index",
+                     "sampled image requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "api_binding", binding.api_binding, "binding_index",
                      binding.index, "descriptor_index", i);
 
         glBindTextureUnit(unit, texture->native_handle);
@@ -1184,7 +1190,9 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
 
       case ShaderBindingType::Sampler:
         COMET_ASSERT(sampler != nullptr, "ShaderHandler::BindImageBinding",
-                     "sampler binding requires sampler", "binding_index",
+                     "sampler binding requires sampler", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "api_binding", binding.api_binding, "binding_index",
                      binding.index, "descriptor_index", i);
 
         glBindSampler(unit, sampler->native_handle);
@@ -1192,7 +1200,9 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
 
       case ShaderBindingType::StorageImage:
         COMET_ASSERT(texture != nullptr, "ShaderHandler::BindImageBinding",
-                     "storage image requires texture", "binding_index",
+                     "storage image requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "api_binding", binding.api_binding, "binding_index",
                      binding.index, "descriptor_index", i);
 
         glBindImageTexture(unit, texture->native_handle, 0, GL_FALSE, 0,
@@ -1202,7 +1212,9 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
 
       default:
         COMET_ASSERT(false, "ShaderHandler::BindImageBinding",
-                     "unsupported image binding type", "binding_index",
+                     "unsupported image binding type", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "api_binding", binding.api_binding, "binding_index",
                      binding.index, "binding_type",
                      GetShaderBindingTypeLabel(binding.type),
                      "binding_type_value", ToUnderlying(binding.type));
@@ -1489,9 +1501,10 @@ void ShaderHandler::HandleBindingsGeneration(
         binding.scope != ShaderBindingScope::Material) {
       COMET_ASSERT(false, "ShaderHandler::HandleBindingsGeneration",
                    "pass or draw uniform buffers are not implemented",
-                   "shader_handle", shader->handle, "binding_index",
-                   binding.index, "binding_scope",
-                   GetShaderBindingScopeLabel(binding.scope),
+                   "shader_handle", shader->handle, "binding_set", binding.set,
+                   "binding_binding", binding.binding, "api_binding",
+                   binding.api_binding, "binding_index", binding.index,
+                   "binding_scope", GetShaderBindingScopeLabel(binding.scope),
                    "binding_scope_value", ToUnderlying(binding.scope));
     }
 
@@ -1685,10 +1698,11 @@ void ShaderHandler::CollectMaterialTextureMaps(
                "material is null");
   COMET_ASSERT(IsImageBindingType(binding.type),
                "ShaderHandler::CollectMaterialTextureMaps",
-               "binding is not an image binding", "binding_index",
-               binding.index, "binding_type",
-               GetShaderBindingTypeLabel(binding.type), "binding_type_value",
-               ToUnderlying(binding.type));
+               "binding is not an image binding", "binding_set", binding.set,
+               "binding_binding", binding.binding, "api_binding",
+               binding.api_binding, "binding_index", binding.index,
+               "binding_type", GetShaderBindingTypeLabel(binding.type),
+               "binding_type_value", ToUnderlying(binding.type));
 
   texture_maps.Clear();
   texture_maps.Reserve(binding.descriptor_count);
@@ -1737,12 +1751,13 @@ void ShaderHandler::CollectMaterialTextureMaps(
       return;
 
     default:
-      COMET_ASSERT(false, "ShaderHandler::CollectMaterialTextureMaps",
-                   "unsupported material image semantic", "binding_index",
-                   binding.index, "image_semantic",
-                   GetShaderImageBindingSemanticLabel(binding.image_semantic),
-                   "image_semantic_value",
-                   ToUnderlying(binding.image_semantic));
+      COMET_ASSERT(
+          false, "ShaderHandler::CollectMaterialTextureMaps",
+          "unsupported material image semantic", "binding_set", binding.set,
+          "binding_binding", binding.binding, "api_binding",
+          binding.api_binding, "binding_index", binding.index, "image_semantic",
+          GetShaderImageBindingSemanticLabel(binding.image_semantic),
+          "image_semantic_value", ToUnderlying(binding.image_semantic));
       return;
   }
 }
@@ -1822,9 +1837,11 @@ void ShaderHandler::WriteBindingFieldToUbo(
   const auto copy_size{value_size == 0 ? raw_size : value_size};
 
   COMET_ASSERT(copy_size <= field.size, "ShaderHandler::WriteBindingFieldToUbo",
-               "field update exceeds field size", "binding_index",
-               binding.index, "field_index", field_index, "copy_size",
-               copy_size, "field_size", field.size);
+               "field update exceeds field size", "binding_set", binding.set,
+               "binding_binding", binding.binding, "api_binding",
+               binding.api_binding, "binding_index", binding.index,
+               "field_index", field_index, "copy_size", copy_size, "field_size",
+               field.size);
 
   glBindBuffer(GL_UNIFORM_BUFFER, shader->uniform_buffer_native_handle);
   glBufferSubData(GL_UNIFORM_BUFFER,

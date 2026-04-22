@@ -45,6 +45,7 @@ void GameLogicManager::Update(frame::FramePacket* packet) {
         COMET_PROFILE("GameLogicManager::Update::Job");
         auto* packet{reinterpret_cast<frame::FramePacket*>(params_handle)};
 
+        scene::SceneManager::Get().Update();
         rendering::LightManager::Get().Update(packet);
         environment::EnvironmentManager::Get().Update(packet);
         physics::PhysicsManager::Get().Update(packet);

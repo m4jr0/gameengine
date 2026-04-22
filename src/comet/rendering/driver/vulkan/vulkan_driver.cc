@@ -106,9 +106,15 @@ void VulkanDriver::OnInitialize() {
   device_->Initialize();
 
   COMET_VK_INITIALIZE_DEBUG_LABELS(instance_handle_, device_->GetHandle());
-  COMET_VK_SET_DEBUG_LABEL(device_->GetGraphicsQueueHandle(), "graphics_queue");
-  COMET_VK_SET_DEBUG_LABEL(device_->GetPresentQueueHandle(), "present_queue");
-  COMET_VK_SET_DEBUG_LABEL(device_->GetTransferQueueHandle(), "transfer_queue");
+  COMET_VK_SET_DEBUG_LABEL(device_->GetGraphicsQueueContext().handle,
+                           "graphics_queue");
+  COMET_VK_SET_DEBUG_LABEL(device_->GetPresentQueueContext().handle,
+                           "present_queue");
+
+  if (device_->HasDedicatedTransferQueue()) {
+    COMET_VK_SET_DEBUG_LABEL(device_->GetTransferQueueContext().handle,
+                             "transfer_queue");
+  }
 
   ContextDescr context_descr{};
   context_descr.vulkan_major_version = vulkan_major_version_;
@@ -351,6 +357,7 @@ void VulkanDriver::InitializeHandlers() {
 
   RenderProxyHandlerDescr proxy_handler_descr{};
   proxy_handler_descr.context = context_.get();
+  proxy_handler_descr.render_proxy_record_store = render_proxy_record_store_;
   proxy_handler_descr.material_handler = material_handler_.get();
   proxy_handler_descr.mesh_handler = mesh_handler_.get();
   proxy_handler_descr.shader_handler = shader_handler_.get();
@@ -369,9 +376,7 @@ void VulkanDriver::InitializeHandlers() {
   view_handler_descr.context = context_.get();
   view_handler_descr.shadow_settings = shadow_settings_;
   view_handler_descr.shader_handler = shader_handler_.get();
-  view_handler_descr.material_handler = material_handler_.get();
   view_handler_descr.texture_handler = texture_handler_.get();
-  view_handler_descr.pipeline_handler = pipeline_handler_.get();
   view_handler_descr.render_pass_handler = render_pass_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
   view_handler_descr.mesh_handler = mesh_handler_.get();
@@ -494,7 +499,8 @@ void VulkanDriver::PreDraw(frame::FramePacket* packet) {
     return;
   }
 
-  auto& frame_data{context_->GetFrameData()};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
 
   const auto result{
       swapchain_->AcquireNextImage(frame_data.present_semaphore_handle)};
@@ -528,15 +534,20 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
   COMET_PROFILE("VulkanDriver::Draw");
   COMET_ASSERT(packet != nullptr, "VulkanDriver::Draw", "frame packet is null");
 
-  auto& frame_data{context_->GetFrameData()};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
 
   ResetRenderFence(frame_data);
 
+  BeginUploadCommands();
+
   const auto command_data{
       GenerateCommandData(*device_, frame_data.command_buffer_handle)};
-
   BeginFrameCommandRecording(command_data);
+
   UpdateGpuSceneState(packet);
+
+  SubmitUploadCommands();
 
   if (packet->can_present) {
     RecordFrame(packet);
@@ -545,9 +556,70 @@ void VulkanDriver::Draw(frame::FramePacket* packet) {
   SubmitFrame(packet, command_data, frame_data);
 }
 
+void VulkanDriver::BeginUploadCommands() {
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  auto& device{context_->GetDevice()};
+
+  COMET_CHECK_VK(vkWaitForFences(device, 1, &frame_data.upload_fence_handle,
+                                 VK_TRUE, UINT64_MAX),
+                 "VulkanDriver::BeginUploadCommands",
+                 "upload fence wait failed");
+
+  texture_handler_->ReleasePendingUploadResources(current_frame);
+  render_proxy_handler_->ReleasePendingUploadResources(current_frame);
+  mesh_handler_->ReleasePendingUploadResources(current_frame);
+
+  COMET_CHECK_VK(vkResetFences(device, 1, &frame_data.upload_fence_handle),
+                 "VulkanDriver::BeginUploadCommands",
+                 "upload fence reset failed");
+
+  COMET_CHECK_VK(
+      vkResetCommandBuffer(frame_data.upload_command_buffer_handle, 0),
+      "VulkanDriver::BeginUploadCommands",
+      "upload command buffer reset failed");
+
+  RecordCommand(frame_data.upload_command_buffer_handle);
+  ResetUploadFrameState();
+}
+
+void VulkanDriver::SubmitUploadCommands() {
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto& upload_queue{context_->GetUploadQueueContext()};
+
+  if (frame_data.has_upload_submission) {
+    frame_data.upload_timeline_wait_value =
+        context_->AdvanceUploadTimelineValue();
+
+    const auto timeline_info{init::GenerateTimelineSemaphoreSubmitInfo(
+        0, VK_NULL_HANDLE, 1, &frame_data.upload_timeline_wait_value)};
+
+    SubmitOneTimeCommandAsync(
+        frame_data.upload_command_buffer_handle, upload_queue.handle,
+        frame_data.upload_fence_handle, VK_NULL_HANDLE,
+        context_->GetUploadSemaphoreHandle(), VK_NULL_HANDLE, &timeline_info);
+  } else {
+    SubmitOneTimeCommandAsync(frame_data.upload_command_buffer_handle,
+                              upload_queue.handle,
+                              frame_data.upload_fence_handle, VK_NULL_HANDLE,
+                              VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE);
+  }
+}
+
+void VulkanDriver::ResetUploadFrameState() {
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  frame_data.upload_timeline_wait_value = 0;
+  frame_data.requires_upload_ownership_acquire = false;
+  frame_data.has_upload_submission = false;
+}
+
 void VulkanDriver::WaitForFences() {
   COMET_PROFILE("VulkanDriver::WaitForFences");
-  auto& frame_data{context_->GetFrameData()};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
 
   COMET_CHECK_VK(
       vkWaitForFences(device_->GetHandle(), 1, &frame_data.render_fence_handle,
@@ -593,14 +665,14 @@ void VulkanDriver::RecordFrame(frame::FramePacket* packet) {
                "frame packet is null");
 
   view_handler_->Update(packet);
+  render_proxy_handler_->Reset();
+  pipeline_handler_->Reset();
 }
 
 void VulkanDriver::SubmitFrame(const frame::FramePacket* packet,
                                const CommandData& command_data,
                                FrameData& frame_data) {
   COMET_PROFILE("VulkanDriver::SubmitFrame");
-  VkPipelineStageFlags2 wait_stage{
-      VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT};
 
   frame::FrameArray<VkSemaphoreSubmitInfo> wait_infos{};
   wait_infos.Reserve(2);
@@ -608,25 +680,42 @@ void VulkanDriver::SubmitFrame(const frame::FramePacket* packet,
   if (packet->can_present) {
     auto& wait_present{wait_infos.EmplaceLast()};
     wait_present.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    wait_present.pNext = VK_NULL_HANDLE;
     wait_present.semaphore = frame_data.present_semaphore_handle;
     wait_present.value = 0;
-    wait_present.stageMask = wait_stage;
+    wait_present.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     wait_present.deviceIndex = 0;
   }
 
+  const auto upload_value{frame_data.upload_timeline_wait_value};
+
+  if (upload_value > 0) {
+    auto& wait_upload{wait_infos.EmplaceLast()};
+    wait_upload.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    wait_upload.pNext = VK_NULL_HANDLE;
+    wait_upload.semaphore = *context_->GetUploadSemaphoreHandle();
+    wait_upload.value = upload_value;
+    wait_upload.stageMask = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT |
+                            VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT |
+                            VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT |
+                            VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+    wait_upload.deviceIndex = 0;
+  }
+
   frame::FrameArray<VkSemaphoreSubmitInfo> signal_infos{};
-  signal_infos.Reserve(0 + static_cast<ssize>(packet->can_present));
+  signal_infos.Reserve(static_cast<usize>(packet->can_present));
 
   if (packet->can_present) {
     auto& signal_render{signal_infos.EmplaceLast()};
     signal_render.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    signal_render.pNext = VK_NULL_HANDLE;
     signal_render.semaphore = context_->GetRenderSemaphoreHandle();
     signal_render.value = 0;
     signal_render.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
     signal_render.deviceIndex = 0;
   }
 
-  SubmitCommand2(command_data, device_->GetGraphicsQueueHandle(),
+  SubmitCommand2(command_data, device_->GetGraphicsQueueContext().handle,
                  frame_data.render_fence_handle, wait_infos.GetData(),
                  static_cast<u32>(wait_infos.GetSize()), signal_infos.GetData(),
                  static_cast<u32>(signal_infos.GetSize()), VK_NULL_HANDLE);

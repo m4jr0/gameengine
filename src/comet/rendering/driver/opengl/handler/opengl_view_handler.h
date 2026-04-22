@@ -12,7 +12,6 @@
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
@@ -28,7 +27,6 @@ namespace gl {
 struct ViewHandlerDescr : HandlerDescr {
   const ShadowSettings* shadow_settings{nullptr};
   ShaderHandler* shader_handler{nullptr};
-  MaterialHandler* material_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
   LightingHandler* lighting_handler{nullptr};
@@ -72,7 +70,6 @@ class ViewHandler : public Handler {
 
   const ShadowSettings* shadow_settings_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
-  MaterialHandler* material_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
   LightingHandler* lighting_handler_{nullptr};

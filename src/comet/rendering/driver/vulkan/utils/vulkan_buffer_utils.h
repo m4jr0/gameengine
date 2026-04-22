@@ -38,23 +38,20 @@ void CopyBufferImmediate(const Device& device,
                          VkQueue queue_handle,
                          BarrierDescr* barrier_descr = nullptr);
 
-void ReallocateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
-                      VkDeviceSize new_size, VkBufferUsageFlags usage,
-                      VmaMemoryUsage vma_memory_usage,
-                      VkMemoryPropertyFlags memory_property_flags,
-                      VmaAllocationCreateFlags vma_flags,
-                      VkSharingMode sharing_mode, const schar* debug_label);
+void RecreateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
+                    VkDeviceSize new_size, VkBufferUsageFlags usage,
+                    VmaMemoryUsage vma_memory_usage,
+                    VkMemoryPropertyFlags memory_property_flags,
+                    VmaAllocationCreateFlags vma_flags,
+                    VkSharingMode sharing_mode, const schar* debug_label);
 
-void ResizeBuffer(Buffer& buffer, const Device& device,
-                  VkCommandPool command_pool_handle,
-                  VmaAllocator allocator_handle, VkDeviceSize new_size,
-                  VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
-                  VkQueue queue_handle,
-                  VkMemoryPropertyFlags memory_property_flags = 0,
-                  VmaAllocationCreateFlags vma_flags = 0,
-                  VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE,
-                  BarrierDescr* barrier_descr = nullptr,
-                  const schar* debug_label = nullptr);
+BufferCapacityResult EnsureBufferCapacity(
+    Buffer& buffer, VkCommandBuffer command_buffer_handle,
+    VmaAllocator allocator_handle, VkDeviceSize required_size,
+    VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
+    VkMemoryPropertyFlags memory_property_flags,
+    VmaAllocationCreateFlags vma_flags, VkSharingMode sharing_mode,
+    bool preserve_contents, const schar* debug_label);
 
 void AddBufferMemoryBarrier(
     const Buffer& buffer, Array<VkBufferMemoryBarrier>* barriers,

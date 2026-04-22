@@ -77,93 +77,59 @@ TextureHandle TextureHandler::GetOrGenerate(
                      "generated texture is null", "texture_resource_id",
                      texture_resource_id);
 
-        TextureKey key{
-            .kind = TextureKeyKind::Resource,
-            .texture_resource_id = texture->texture_resource_id,
-            .runtime_id = texture->runtime_id,
-            .type = texture->type,
-        };
+        generated_handle = RegisterTexture(texture);
 
-        generated_handle = textures_.Create(key, texture);
         COMET_ASSERT(generated_handle, "TextureHandler::GetOrGenerate",
                      "texture instance creation failed", "texture_resource_id",
                      texture_resource_id, "texture_type",
                      GetTextureTypeLabel(type), "texture_type_value",
                      ToUnderlying(type));
-
-        texture->handle = generated_handle;
       })};
 
   return is_loaded ? generated_handle : TextureHandle::Invalid();
 }
 
-TextureHandle TextureHandler::Generate(const RuntimeTextureDescr& descr) {
-  COMET_ASSERT(descr.width > 0, "TextureHandler::Generate",
-               "runtime texture width is zero");
-  COMET_ASSERT(descr.height > 0, "TextureHandler::Generate",
-               "runtime texture height is zero");
-  COMET_ASSERT(descr.format != VK_FORMAT_UNDEFINED, "TextureHandler::Generate",
-               "runtime texture format is undefined");
-  COMET_ASSERT(descr.usage != 0, "TextureHandler::Generate",
-               "runtime texture usage is empty");
-  COMET_ASSERT(descr.layer_count > 0, "TextureHandler::Generate",
-               "runtime texture layer count is zero");
+TextureHandle TextureHandler::GenerateRuntimeDeferred(
+    const RuntimeTextureDescr& descr) {
+  auto* texture{GenerateRuntimeTexture(descr)};
+  COMET_ASSERT(texture != nullptr, "TextureHandler::GenerateRuntimeDeferred",
+               "generated runtime texture is null");
 
-  auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
-  texture->handle = TextureHandle::Invalid();
-  texture->type = descr.type;
-  texture->width = descr.width;
-  texture->height = descr.height;
-  texture->depth = descr.depth;
-  texture->mip_levels = descr.mip_levels;
-  texture->channel_count = descr.channel_count;
-  texture->format = descr.format;
-  texture->image.allocator_handle = context_->GetAllocatorHandle();
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
-  COMET_ASSERT(next_runtime_texture_id_ != kInvalidRuntimeTextureId,
-               "TextureHandler::Generate", "runtime texture id overflow");
+  CmdTransitionImageLayoutGraphics(command_buffer_handle, texture->image.handle,
+                                   texture->format, VK_IMAGE_LAYOUT_UNDEFINED,
+                                   descr.final_layout, texture->mip_levels,
+                                   descr.layer_count);
 
-  texture->runtime_id = next_runtime_texture_id_++;
-  texture->is_runtime = true;
-  texture->texture_resource_id = resource::TextureResourceId::Invalid();
+  return RegisterTexture(texture);
+}
+
+TextureHandle TextureHandler::GenerateRuntimeImmediate(
+    const RuntimeTextureDescr& descr) {
+  auto* texture{GenerateRuntimeTexture(descr)};
+  COMET_ASSERT(texture != nullptr, "TextureHandler::GenerateRuntimeImmediate",
+               "generated runtime texture is null");
 
   auto& device{context_->GetDevice()};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  const auto command_pool_handle{
+      context_->GetGraphicsCommandPoolHandle(current_frame)};
 
-#ifdef COMET_RENDERING_USE_DEBUG_LABELS
-  const schar* debug_label{descr.debug_label};
-#else
-  const schar* debug_label{nullptr};
-#endif  // COMET_RENDERING_USE_DEBUG_LABELS
+  auto command_buffer_handle{
+      GenerateOneTimeCommand(device, command_pool_handle)};
 
-  GenerateImage(texture->image, device, descr.width, descr.height,
-                descr.mip_levels, descr.layer_count, descr.sample_count,
-                descr.format, VK_IMAGE_TILING_OPTIMAL, descr.usage, 0,
-                debug_label);
+  CmdTransitionImageLayoutGraphics(command_buffer_handle, texture->image.handle,
+                                   texture->format, VK_IMAGE_LAYOUT_UNDEFINED,
+                                   descr.final_layout, texture->mip_levels,
+                                   descr.layer_count);
 
-  texture->image.image_view_handle = GenerateImageView(
-      device, texture->image.handle, descr.format, descr.aspect_flags,
-      descr.mip_levels, 0, descr.layer_count, descr.view_type);
+  SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
+                       device.GetGraphicsQueueContext().handle);
 
-  TransitionImageLayout(*context_, texture->image.handle, descr.format,
-                        VK_IMAGE_LAYOUT_UNDEFINED, descr.final_layout,
-                        descr.mip_levels, descr.layer_count);
-
-  TextureKey key{
-      .kind = TextureKeyKind::Runtime,
-      .texture_resource_id = texture->texture_resource_id,
-      .runtime_id = texture->runtime_id,
-      .type = texture->type,
-  };
-
-  const auto handle{textures_.Create(key, texture)};
-  COMET_ASSERT(handle, "TextureHandler::Generate",
-               "texture instance creation failed", "runtime_texture_id",
-               texture->runtime_id, "texture_type",
-               GetTextureTypeLabel(texture->type), "texture_type_value",
-               ToUnderlying(texture->type));
-
-  texture->handle = handle;
-  return handle;
+  return RegisterTexture(texture);
 }
 
 void TextureHandler::Destroy(TextureHandle handle) {
@@ -182,6 +148,19 @@ const Texture* TextureHandler::Get(TextureHandle handle) const {
   COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture not found",
                "texture_handle", handle);
   return texture;
+}
+
+Texture* TextureHandler::Get(TextureHandle handle) {
+  auto* texture{textures_.TryGet(handle)};
+  COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture not found",
+               "texture_handle", handle);
+  return texture;
+}
+
+void TextureHandler::ReleasePendingUploadResources(
+    [[maybe_unused]] FrameInFlightIndex frame) {
+  // No-op.
+  // Texture uploads/transitions are no longer tied to the upload queue.
 }
 
 void TextureHandler::OnInitialize() {
@@ -242,13 +221,6 @@ void TextureHandler::OnShutdown() {
   allocator_.Destroy();
 }
 
-Texture* TextureHandler::Get(TextureHandle handle) {
-  auto* texture{textures_.TryGet(handle)};
-  COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture not found",
-               "texture_handle", handle);
-  return texture;
-}
-
 Texture* TextureHandler::GenerateTexture(
     const resource::TextureResource* resource, TextureType type) {
   COMET_ASSERT(resource != nullptr, "TextureHandler::GenerateTexture",
@@ -256,6 +228,7 @@ Texture* TextureHandler::GenerateTexture(
 
   auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
   texture->handle = TextureHandle::Invalid();
+
   const auto& resource_descr{resource->descr};
 
   texture->type = type;
@@ -312,38 +285,131 @@ Texture* TextureHandler::GenerateTexture(
   const schar* debug_label{nullptr};
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
+  VkImageUsageFlags image_usage{VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                VK_IMAGE_USAGE_SAMPLED_BIT};
+
+  if (texture->mip_levels > 1) {
+    image_usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  }
+
   GenerateImage(texture->image, device, texture->width, texture->height,
                 texture->mip_levels, 1, VK_SAMPLE_COUNT_1_BIT, texture->format,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                    VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_TILING_OPTIMAL, image_usage,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, debug_label);
 
-  TransitionImageLayout(*context_, texture->image.handle, texture->format,
-                        VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        texture->mip_levels, 1);
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  const auto command_pool_handle{
+      context_->GetGraphicsCommandPoolHandle(current_frame)};
 
-  const auto command_pool_handle{context_->GetFrameData().command_pool_handle};
   auto command_buffer_handle{
       GenerateOneTimeCommand(device, command_pool_handle)};
 
+  CmdTransitionImageLayoutGraphics(command_buffer_handle, texture->image.handle,
+                                   texture->format, VK_IMAGE_LAYOUT_UNDEFINED,
+                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                   texture->mip_levels, 1);
+
   CopyBufferToImage(command_buffer_handle, staging_buffer, texture->image,
-                    texture->width, texture->height);
+                    texture->width, texture->height, 1);
+
+  if (texture->mip_levels > 1) {
+    GenerateMipmaps(command_buffer_handle, device.GetPhysicalDeviceHandle(),
+                    texture->image.handle, texture->format, texture->width,
+                    texture->height, texture->mip_levels, 1);
+  } else {
+    CmdTransitionImageLayoutGraphics(
+        command_buffer_handle, texture->image.handle, texture->format,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 1);
+  }
 
   SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
-                       device.GetGraphicsQueueHandle());
+                       device.GetGraphicsQueueContext().handle);
 
   DestroyBuffer(staging_buffer);
-
-  GenerateMipmaps(texture);
 
   texture->image.image_view_handle =
       GenerateImageView(device, texture->image.handle, texture->format,
                         VK_IMAGE_ASPECT_COLOR_BIT, texture->mip_levels);
 
   return texture;
+}
+
+Texture* TextureHandler::GenerateRuntimeTexture(
+    const RuntimeTextureDescr& descr) {
+  COMET_ASSERT(descr.width > 0, "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture width is zero");
+  COMET_ASSERT(descr.height > 0, "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture height is zero");
+  COMET_ASSERT(descr.format != VK_FORMAT_UNDEFINED,
+               "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture format is undefined");
+  COMET_ASSERT(descr.usage != 0, "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture usage is empty");
+  COMET_ASSERT(descr.layer_count > 0, "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture layer count is zero");
+
+  auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
+  texture->handle = TextureHandle::Invalid();
+  texture->type = descr.type;
+  texture->width = descr.width;
+  texture->height = descr.height;
+  texture->depth = descr.depth;
+  texture->mip_levels = descr.mip_levels;
+  texture->channel_count = descr.channel_count;
+  texture->format = descr.format;
+  texture->image.allocator_handle = context_->GetAllocatorHandle();
+
+  COMET_ASSERT(next_runtime_texture_id_ != kInvalidRuntimeTextureId,
+               "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture id overflow");
+
+  texture->runtime_id = next_runtime_texture_id_++;
+  texture->is_runtime = true;
+  texture->texture_resource_id = resource::TextureResourceId::Invalid();
+
+  auto& device{context_->GetDevice()};
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+  const schar* debug_label{descr.debug_label};
+#else
+  const schar* debug_label{nullptr};
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
+
+  GenerateImage(texture->image, device, descr.width, descr.height,
+                descr.mip_levels, descr.layer_count, descr.sample_count,
+                descr.format, VK_IMAGE_TILING_OPTIMAL, descr.usage, 0,
+                debug_label);
+
+  texture->image.image_view_handle = GenerateImageView(
+      device, texture->image.handle, descr.format, descr.aspect_flags,
+      descr.mip_levels, 0, descr.layer_count, descr.view_type);
+
+  return texture;
+}
+
+TextureHandle TextureHandler::RegisterTexture(Texture* texture) {
+  COMET_ASSERT(texture != nullptr, "TextureHandler::RegisterTexture",
+               "texture is null");
+
+  TextureKey key{
+      .kind = texture->is_runtime ? TextureKeyKind::Runtime
+                                  : TextureKeyKind::Resource,
+      .texture_resource_id = texture->texture_resource_id,
+      .runtime_id = texture->runtime_id,
+      .type = texture->type,
+  };
+
+  const auto handle{textures_.Create(key, texture)};
+  COMET_ASSERT(handle, "TextureHandler::RegisterTexture",
+               "texture instance creation failed", "texture_type",
+               GetTextureTypeLabel(texture->type), "texture_type_value",
+               ToUnderlying(texture->type), "texture_resource_id",
+               texture->texture_resource_id, "runtime_texture_id",
+               texture->runtime_id);
+
+  texture->handle = handle;
+  return handle;
 }
 
 void TextureHandler::DestroyTexture(Texture* texture) {
@@ -359,107 +425,6 @@ void TextureHandler::DestroyTexture(Texture* texture) {
   DestroyImage(texture->image);
   texture->handle.Invalidate();
   allocator_.Deallocate(texture);
-}
-
-void TextureHandler::GenerateMipmaps(Texture* texture) const {
-  COMET_ASSERT(texture != nullptr, "TextureHandler::GenerateMipmaps",
-               "texture is null");
-
-  auto& device{context_->GetDevice()};
-
-  VkFormatProperties format_properties{};
-  vkGetPhysicalDeviceFormatProperties(device.GetPhysicalDeviceHandle(),
-                                      texture->format, &format_properties);
-
-  COMET_ASSERT(
-      static_cast<bool>(format_properties.optimalTilingFeatures &
-                        VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT),
-      "TextureHandler::GenerateMipmaps",
-      "texture format does not support linear blitting", "format_value",
-      ToUnderlying(texture->format), "texture_resource_id",
-      texture->texture_resource_id, "runtime_id", texture->runtime_id);
-
-  const auto command_pool_handle{context_->GetFrameData().command_pool_handle};
-  auto command_buffer_handle{
-      GenerateOneTimeCommand(device, command_pool_handle)};
-
-  VkImageMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.image = texture->image.handle;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
-  barrier.subresourceRange.levelCount = 1;
-
-  auto mip_width{texture->width};
-  auto mip_height{texture->height};
-
-  for (u32 mip_level{1}; mip_level < texture->mip_levels; ++mip_level) {
-    barrier.subresourceRange.baseMipLevel = mip_level - 1;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-    vkCmdPipelineBarrier(command_buffer_handle, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &barrier);
-
-    VkImageBlit blit{};
-    blit.srcOffsets[0] = {0, 0, 0};
-    blit.srcOffsets[1] = {static_cast<s32>(mip_width),
-                          static_cast<s32>(mip_height), 1};
-    blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    blit.srcSubresource.mipLevel = mip_level - 1;
-    blit.srcSubresource.baseArrayLayer = 0;
-    blit.srcSubresource.layerCount = 1;
-
-    blit.dstOffsets[0] = {0, 0, 0};
-    blit.dstOffsets[1] = {mip_width > 1 ? static_cast<s32>(mip_width / 2) : 1,
-                          mip_height > 1 ? static_cast<s32>(mip_height / 2) : 1,
-                          1};
-    blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    blit.dstSubresource.mipLevel = mip_level;
-    blit.dstSubresource.baseArrayLayer = 0;
-    blit.dstSubresource.layerCount = 1;
-
-    vkCmdBlitImage(command_buffer_handle, texture->image.handle,
-                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, texture->image.handle,
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
-                   VK_FILTER_LINEAR);
-
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-    vkCmdPipelineBarrier(command_buffer_handle, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr,
-                         0, nullptr, 1, &barrier);
-
-    if (mip_width > 1) {
-      mip_width /= 2;
-    }
-
-    if (mip_height > 1) {
-      mip_height /= 2;
-    }
-  }
-
-  barrier.subresourceRange.baseMipLevel = texture->mip_levels - 1;
-  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-  vkCmdPipelineBarrier(command_buffer_handle, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0,
-                       nullptr, 1, &barrier);
-
-  SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
-                       device.GetGraphicsQueueHandle());
 }
 }  // namespace vk
 }  // namespace rendering

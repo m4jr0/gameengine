@@ -50,8 +50,11 @@ void ImGuiView::Update(frame::FramePacket*) {
   clear_values[1].depthStencil.depth = 1.0f;
   clear_values[1].depthStencil.stencil = 0;
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
+
   render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
                                   context_->GetImageIndex(), clear_values, 2);
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_handle);
@@ -133,7 +136,7 @@ void ImGuiView::OnInitialize() {
   imgui_info.Device = device;
   auto& indices{device.GetQueueFamilyIndices()};
   imgui_info.QueueFamily = indices.graphics_family.value_or(0);
-  imgui_info.Queue = device.GetGraphicsQueueHandle();
+  imgui_info.Queue = device.GetGraphicsQueueContext().handle;
   imgui_info.PipelineCache = VK_NULL_HANDLE;
   imgui_info.DescriptorPool = descriptor_pool_handle_;
   imgui_info.PipelineInfoMain.RenderPass =

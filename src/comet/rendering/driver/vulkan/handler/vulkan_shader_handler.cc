@@ -162,8 +162,10 @@ void ShaderHandler::Bind(ShaderHandle handle,
                             ? VK_PIPELINE_BIND_POINT_GRAPHICS
                             : VK_PIPELINE_BIND_POINT_COMPUTE};
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
   const auto image_index{context_->GetImageIndex()};
 
   if (!shader->global_descriptor_data.descriptor_set_handles.IsEmpty() &&
@@ -231,8 +233,10 @@ void ShaderHandler::BindInstance(ShaderHandle handle, const Material* material,
                             ? VK_PIPELINE_BIND_POINT_GRAPHICS
                             : VK_PIPELINE_BIND_POINT_COMPUTE};
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
   const auto image_index{context_->GetImageIndex()};
   auto& instance{GetInstance(shader, material)};
 
@@ -636,8 +640,10 @@ void ShaderHandler::PushConstants(ShaderHandle handle,
     return;
   }
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   for (const auto& block_update : *update.blocks) {
     COMET_ASSERT(
@@ -1798,7 +1804,8 @@ void ShaderHandler::CollectMaterialTextureMaps(
                "material is null");
   COMET_ASSERT(IsImageBindingType(binding.type),
                "ShaderHandler::CollectMaterialTextureMaps",
-               "binding is not an image binding", "binding_index",
+               "binding is not an image binding", "binding_set", binding.set,
+               "binding_binding", binding.binding, "binding_index",
                binding.index, "binding_type",
                GetShaderBindingTypeLabel(binding.type), "binding_type_value",
                ToUnderlying(binding.type));
@@ -1811,8 +1818,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 1,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material diffuse binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   1u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 1u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->diffuse_map);
       return;
@@ -1821,8 +1830,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 1,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material specular binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   1u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 1u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->specular_map);
       return;
@@ -1831,8 +1842,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 1,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material normal binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   1u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 1u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->normal_map);
       return;
@@ -1841,8 +1854,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 3,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material textures binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   3u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 3u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->diffuse_map);
       texture_maps.PushLast(&material->specular_map);
@@ -1851,8 +1866,9 @@ void ShaderHandler::CollectMaterialTextureMaps(
 
     default:
       COMET_ASSERT(false, "ShaderHandler::CollectMaterialTextureMaps",
-                   "unsupported material image semantic", "binding_index",
-                   binding.index, "image_semantic",
+                   "unsupported material image semantic", "binding_set",
+                   binding.set, "binding_binding", binding.binding,
+                   "binding_index", binding.index, "image_semantic",
                    GetShaderImageBindingSemanticLabel(binding.image_semantic),
                    "image_semantic_value",
                    ToUnderlying(binding.image_semantic));
@@ -1872,7 +1888,9 @@ void ShaderHandler::CollectMaterialImageDescriptors(
   for (const auto* texture_map : texture_maps) {
     COMET_ASSERT(texture_map != nullptr,
                  "ShaderHandler::CollectMaterialImageDescriptors",
-                 "texture map is null", "binding_index", binding.index);
+                 "texture map is null", "binding_set", binding.set,
+                 "binding_binding", binding.binding, "binding_index",
+                 binding.index);
 
     VkImageLayout image_layout{VK_IMAGE_LAYOUT_UNDEFINED};
 
@@ -1880,16 +1898,19 @@ void ShaderHandler::CollectMaterialImageDescriptors(
         binding.type == ShaderBindingType::SampledImage) {
       COMET_ASSERT(texture_map->texture_handle,
                    "ShaderHandler::CollectMaterialImageDescriptors",
-                   "binding requires texture handle", "binding_index",
-                   binding.index, "binding_type",
+                   "binding requires texture handle", "binding_set",
+                   binding.set, "binding_binding", binding.binding,
+                   "binding_index", binding.index, "binding_type",
                    GetShaderBindingTypeLabel(binding.type),
                    "binding_type_value", ToUnderlying(binding.type));
 
       const auto* texture{texture_handler_->Get(texture_map->texture_handle)};
       COMET_ASSERT(texture_map->texture_handle,
                    "ShaderHandler::CollectMaterialImageDescriptors",
-                   "texture is null", "binding_index", binding.index,
-                   "texture_handle", texture_map->texture_handle);
+                   "texture is null", "binding_set", binding.set,
+                   "binding_binding", binding.binding, "binding_index",
+                   binding.index, "texture_handle",
+                   texture_map->texture_handle);
 
       image_layout = GetDescriptorImageLayout(texture);
     } else if (binding.type == ShaderBindingType::StorageImage) {
@@ -1908,20 +1929,23 @@ void ShaderHandler::CollectMaterialImageDescriptors(
 void ShaderHandler::UpdateDescriptorSetImages(
     VkDescriptorSet set_handle, const ShaderBinding& binding,
     const ShaderImageDescriptor* descriptors, u32 descriptor_count) const {
-  COMET_ASSERT(descriptors != nullptr,
-               "ShaderHandler::UpdateDescriptorSetImages",
-               "image descriptors are null", "binding_index", binding.index);
+  COMET_ASSERT(
+      descriptors != nullptr, "ShaderHandler::UpdateDescriptorSetImages",
+      "image descriptors are null", "binding_set", binding.set,
+      "binding_binding", binding.binding, "binding_index", binding.index);
   COMET_ASSERT(descriptor_count > 0, "ShaderHandler::UpdateDescriptorSetImages",
                "image descriptor count is zero", "binding_index",
                binding.index);
-  COMET_ASSERT(descriptor_count == binding.descriptor_count,
-               "ShaderHandler::UpdateDescriptorSetImages",
-               "descriptor count mismatch", "binding_index", binding.index,
-               "expected_descriptor_count", binding.descriptor_count,
-               "actual_descriptor_count", descriptor_count);
+  COMET_ASSERT(
+      descriptor_count == binding.descriptor_count,
+      "ShaderHandler::UpdateDescriptorSetImages", "descriptor count mismatch",
+      "binding_set", binding.set, "binding_binding", binding.binding,
+      "binding_index", binding.index, "expected_descriptor_count",
+      binding.descriptor_count, "actual_descriptor_count", descriptor_count);
   COMET_ASSERT(IsImageBindingType(binding.type),
                "ShaderHandler::UpdateDescriptorSetImages",
-               "binding is not an image binding", "binding_index",
+               "binding is not an image binding", "binding_set", binding.set,
+               "binding_binding", binding.binding, "binding_index",
                binding.index, "binding_type",
                GetShaderBindingTypeLabel(binding.type), "binding_type_value",
                ToUnderlying(binding.type));
@@ -1946,12 +1970,14 @@ void ShaderHandler::UpdateDescriptorSetImages(
       case ShaderBindingType::CombinedImageSampler:
         COMET_ASSERT(texture != nullptr,
                      "ShaderHandler::UpdateDescriptorSetImages",
-                     "combined image sampler requires texture", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "combined image sampler requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
         COMET_ASSERT(sampler != nullptr,
                      "ShaderHandler::UpdateDescriptorSetImages",
-                     "combined image sampler requires sampler", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "combined image sampler requires sampler", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         image_info.imageView = texture->image.image_view_handle;
         image_info.sampler = sampler->native_handle;
@@ -1961,8 +1987,9 @@ void ShaderHandler::UpdateDescriptorSetImages(
       case ShaderBindingType::SampledImage:
         COMET_ASSERT(texture != nullptr,
                      "ShaderHandler::UpdateDescriptorSetImages",
-                     "sampled image requires texture", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "sampled image requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         image_info.imageView = texture->image.image_view_handle;
         image_info.sampler = VK_NULL_HANDLE;
@@ -1972,8 +1999,9 @@ void ShaderHandler::UpdateDescriptorSetImages(
       case ShaderBindingType::Sampler:
         COMET_ASSERT(sampler != nullptr,
                      "ShaderHandler::UpdateDescriptorSetImages",
-                     "sampler binding requires sampler", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "sampler binding requires sampler", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         image_info.imageView = VK_NULL_HANDLE;
         image_info.sampler = sampler->native_handle;
@@ -1983,8 +2011,9 @@ void ShaderHandler::UpdateDescriptorSetImages(
       case ShaderBindingType::StorageImage:
         COMET_ASSERT(texture != nullptr,
                      "ShaderHandler::UpdateDescriptorSetImages",
-                     "storage image requires texture", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "storage image requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         image_info.imageView = texture->image.image_view_handle;
         image_info.sampler = VK_NULL_HANDLE;
@@ -1993,8 +2022,9 @@ void ShaderHandler::UpdateDescriptorSetImages(
 
       default:
         COMET_ASSERT(false, "ShaderHandler::UpdateDescriptorSetImages",
-                     "unsupported image binding type", "binding_index",
-                     binding.index, "binding_type",
+                     "unsupported image binding type", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "binding_type",
                      GetShaderBindingTypeLabel(binding.type),
                      "binding_type_value", ToUnderlying(binding.type));
         break;
@@ -2018,15 +2048,18 @@ void ShaderHandler::UpdateDescriptorSetBuffer(VkDescriptorSet set_handle,
   COMET_ASSERT(binding.type == ShaderBindingType::UniformBuffer ||
                    binding.type == ShaderBindingType::StorageBuffer,
                "ShaderHandler::UpdateDescriptorSetBuffer",
-               "binding is not a buffer binding", "binding_index",
+               "binding is not a buffer binding", "binding_set", binding.set,
+               "binding_binding", binding.binding, "binding_index",
                binding.index, "binding_type",
                GetShaderBindingTypeLabel(binding.type), "binding_type_value",
                ToUnderlying(binding.type));
   COMET_ASSERT(buffer_handle != VK_NULL_HANDLE,
                "ShaderHandler::UpdateDescriptorSetBuffer",
-               "buffer handle is null", "binding_index", binding.index,
-               "binding_type", GetShaderBindingTypeLabel(binding.type),
-               "binding_type_value", ToUnderlying(binding.type));
+               "buffer handle is null", "binding_set", binding.set,
+               "binding_binding", binding.binding, "binding_index",
+               binding.index, "binding_type",
+               GetShaderBindingTypeLabel(binding.type), "binding_type_value",
+               ToUnderlying(binding.type));
 
   const auto buffer_info{
       init::GenerateDescriptorBufferInfo(buffer_handle, offset, range)};

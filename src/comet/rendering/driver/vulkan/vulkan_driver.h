@@ -82,6 +82,10 @@ class VulkanDriver : public Driver {
   void PostDraw();
   void Draw(frame::FramePacket* packet);
 
+  void BeginUploadCommands();
+  void SubmitUploadCommands();
+  void ResetUploadFrameState();
+
   void WaitForFences();
   void HandleSwapchainState(frame::FramePacket* packet);
   void ResetRenderFence(FrameData& frame_data);

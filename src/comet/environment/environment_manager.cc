@@ -272,6 +272,9 @@ void EnvironmentManager::OnInitialize() {
   sun.shadow.bias_constant = shadow_settings.bias_constant;
   sun.shadow.bias_slope = shadow_settings.bias_slope;
 
+  sun.shadow.cascade_count = shadow_settings.cascade_count;
+  sun.shadow.cascade_lambda = shadow_settings.cascade_lambda;
+
   sun_light_ = rendering::LightManager::Get().Generate(sun);
 }
 

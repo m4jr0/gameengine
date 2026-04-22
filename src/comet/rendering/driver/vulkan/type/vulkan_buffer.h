@@ -28,6 +28,13 @@ struct BarrierDescr {
   VkPipelineStageFlagBits src_stage_mask{VK_PIPELINE_STAGE_NONE};
   VkPipelineStageFlagBits dst_stage_mask{VK_PIPELINE_STAGE_NONE};
 };
+
+struct BufferCapacityResult {
+  bool is_recreated{false};
+  bool has_transfer_work{false};
+  VkDeviceSize copied_size{0};
+  Buffer old_buffer{};
+};
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

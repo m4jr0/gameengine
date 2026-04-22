@@ -27,12 +27,9 @@ namespace vk {
 DebugView::DebugView(const DebugViewDescr& descr)
     : View{descr},
       shader_handler_{descr.shader_handler},
-      pipeline_handler_{descr.pipeline_handler},
       render_proxy_handler_{descr.render_proxy_handler} {
   COMET_ASSERT(shader_handler_ != nullptr, "DebugView::DebugView",
                "shader handler is null");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "DebugView::DebugView",
-               "pipeline handler is null");
   COMET_ASSERT(render_proxy_handler_ != nullptr, "DebugView::DebugView",
                "render proxy handler is null");
 }
@@ -114,8 +111,10 @@ void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   UpdateDebugShader(packet);
   RunDebugCullGeneration();
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
   render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
                                   context_->GetImageIndex(), nullptr, 0);
 
@@ -123,8 +122,6 @@ void DebugView::Update([[maybe_unused]] frame::FramePacket* packet) {
   DrawDebugCull();
 
   render_pass_handler_->EndPass(command_buffer_handle);
-
-  pipeline_handler_->Reset();
 #endif  // COMET_DEBUG_CULLING
 }
 
@@ -185,8 +182,10 @@ void DebugView::RunDebugCullGeneration() {
   ShaderPushConstantsUpdate push_constants{};
   push_constants.blocks = &blocks;
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   shader_handler_->Bind(debug_shader_, PipelineBindType::Compute);
   shader_handler_->PushConstants(debug_shader_, push_constants);
@@ -223,8 +222,10 @@ void DebugView::DrawDebugCull() {
     return;
   }
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
   const auto& debug_line_buffer{render_proxy_handler_->GetDebugLineBuffer()};
   const VkDeviceSize offsets[]{0};
 
@@ -238,8 +239,10 @@ void DebugView::DrawDebugCull() {
 }
 
 void DebugView::SetViewportAndScissor() const {
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   VkViewport viewport{};
   viewport.x = .0f;

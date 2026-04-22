@@ -11,6 +11,7 @@
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/render_proxy_record_store.h"
 #include "comet/rendering/type/common.h"
 #include "comet/rendering/type/light.h"
 #include "comet/rendering/type/view.h"
@@ -54,6 +55,8 @@ class RenderingManager : public Manager {
 
   void FillDriverDescr(DriverDescr& descr) const;
 
+  inline static constexpr usize kDefaultRenderProxyCount_{512};
+
   frame::FrameArray<RenderingViewDescr> GenerateRenderingViewDescrs() const;
   ShadowSettings GenerateShadowSettings() const;
 
@@ -65,6 +68,7 @@ class RenderingManager : public Manager {
   f64 frame_time_threshold_{0};
   f64 current_time_{0};
   ShadowSettings shadow_settings_{};
+  RenderProxyRecordStore render_proxy_record_store_{};
   memory::UniquePtr<Driver> driver_{nullptr};
 };
 }  // namespace rendering

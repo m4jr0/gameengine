@@ -54,11 +54,13 @@ void RenderingManager::Update(frame::FramePacket* packet) {
 
   struct Job {
     frame::FramePacket* packet{nullptr};
+    RenderProxyRecordStore* render_proxy_record_store{nullptr};
     Driver* driver{nullptr};
   };
 
   auto* job{COMET_DOUBLE_FRAME_ALLOC_ONE_AND_POPULATE(Job)};
   job->packet = packet;
+  job->render_proxy_record_store = &render_proxy_record_store_;
   job->driver = driver_.get();
 
   if (is_multithreaded_) {
@@ -68,6 +70,7 @@ void RenderingManager::Update(frame::FramePacket* packet) {
         job::JobPriority::High,
         [](job::JobParamsHandle params_handle) {
           auto* job{reinterpret_cast<Job*>(params_handle)};
+          job->render_proxy_record_store->Update(job->packet);
           job->driver->Update(job->packet);
         },
         job, job::JobStackSize::Large, packet->counter,
@@ -78,6 +81,7 @@ void RenderingManager::Update(frame::FramePacket* packet) {
     job::Scheduler::Get().KickOnMainThread(job::GenerateMainThreadJobDescr(
         [](job::MainThreadParamsHandle params_handle) {
           auto* job{reinterpret_cast<Job*>(params_handle)};
+          job->render_proxy_record_store->Update(job->packet);
           job->driver->Update(job->packet);
 
           input::InputManager::Get().Update();
@@ -131,6 +135,7 @@ void RenderingManager::OnInitialize() {
   }
 
   shadow_settings_ = GenerateShadowSettings();
+  render_proxy_record_store_.Initialize(kDefaultRenderProxyCount_);
 
   const auto* driver_label{COMET_CONF_STR(conf::kRenderingDriver)};
   COMET_LOG_INFO(LoggerType::Rendering, "RenderingManager::OnInitialize",
@@ -204,6 +209,8 @@ void RenderingManager::OnShutdown() {
     driver_->Shutdown();
     driver_ = nullptr;
   }
+
+  render_proxy_record_store_.Shutdown();
 
   frame_rate_ = 0;
   counter_ = 0;
@@ -291,6 +298,7 @@ void RenderingManager::FillDriverDescr(DriverDescr& descr) const {
   descr.app_patch_version = COMET_CONF_U8(conf::kRenderingVulkanPatchVersion);
 
   descr.shadow_settings = &shadow_settings_;
+  descr.render_proxy_record_store = &render_proxy_record_store_;
 }
 
 frame::FrameArray<RenderingViewDescr>

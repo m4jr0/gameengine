@@ -489,16 +489,15 @@ void LightingHandler::UploadGpuLights(FrameInFlightIndex frame_index) {
       static_cast<VkDeviceSize>(live_light_count * sizeof(GpuLight))};
 
   if (required_size > ssbo_lights.size) {
-    ResizeBuffer(
-        ssbo_lights, context_->GetDevice(),
-        context_->GetFrameData().command_pool_handle,
+    auto& frame_data{context_->GetFrameData(frame_index)};
+
+    EnsureBufferCapacity(
+        ssbo_lights, frame_data.upload_command_buffer_handle,
         context_->GetAllocatorHandle(),
         math::Max<VkDeviceSize>(required_size, sizeof(GpuLight)),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VMA_MEMORY_USAGE_CPU_TO_GPU,
-        context_->GetDevice().GetGraphicsQueueHandle(), 0,
-        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_SHARING_MODE_EXCLUSIVE,
-        VK_NULL_HANDLE, "ssbo_lights_");
+        VMA_MEMORY_USAGE_CPU_TO_GPU, 0, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_SHARING_MODE_EXCLUSIVE, false, "ssbo_lights_");
   }
 
   ScopedMappedBuffer mapped{ssbo_lights};
@@ -530,17 +529,16 @@ void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
       static_cast<VkDeviceSize>(shadow_count * sizeof(GpuShadowData))};
 
   if (required_size > ssbo_shadow_data.size) {
-    ResizeBuffer(
-        ssbo_shadow_data, context_->GetDevice(),
-        context_->GetFrameData().command_pool_handle,
+    auto& frame_data{context_->GetFrameData(frame_index)};
+
+    EnsureBufferCapacity(
+        ssbo_shadow_data, frame_data.upload_command_buffer_handle,
         context_->GetAllocatorHandle(),
         math::Max<VkDeviceSize>(required_size,
                                 kShadowLayerCapacity_ * sizeof(GpuShadowData)),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VMA_MEMORY_USAGE_CPU_TO_GPU,
-        context_->GetDevice().GetGraphicsQueueHandle(), 0,
-        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_SHARING_MODE_EXCLUSIVE,
-        VK_NULL_HANDLE, "ssbo_shadow_data_");
+        VMA_MEMORY_USAGE_CPU_TO_GPU, 0, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_SHARING_MODE_EXCLUSIVE, false, "ssbo_shadow_data_");
   }
 
   ScopedMappedBuffer mapped{ssbo_shadow_data};
@@ -618,7 +616,8 @@ void LightingHandler::InitializeShadowArrayResources() {
   texture_descr.debug_label = "shadow_array_depth_image";
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
-  const auto texture_handle{texture_handler_->Generate(texture_descr)};
+  const auto texture_handle{
+      texture_handler_->GenerateRuntimeImmediate(texture_descr)};
   COMET_ASSERT(texture_handle,
                "LightingHandler::InitializeShadowArrayResources",
                "failed to generate shadow array texture");

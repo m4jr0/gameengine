@@ -40,6 +40,7 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/light_manager.cc"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_handle.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/rendering_manager.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/render_proxy_record_store.cc"
 
     # Label.
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/label/common_label.cc"
@@ -54,6 +55,7 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/type/common.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/type/light.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/type/pipeline.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/rendering/type/render_proxy.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/type/shader.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/type/texture.h"
     "${PROJECT_SOURCE_DIR}/src/comet/rendering/type/view.h"

@@ -210,7 +210,6 @@ void OpenGlDriver::InitializeHandlers() {
   view_handler_descr.frame_state = frame_state_.get();
   view_handler_descr.shadow_settings = shadow_settings_;
   view_handler_descr.shader_handler = shader_handler_.get();
-  view_handler_descr.material_handler = material_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
   view_handler_descr.mesh_handler = mesh_handler_.get();
   view_handler_descr.lighting_handler = lighting_handler_.get();
@@ -359,6 +358,8 @@ void OpenGlDriver::RecordFrame(frame::FramePacket* packet) {
   COMET_ASSERT(packet != nullptr, "OpenGlDriver::RecordFrame",
                "frame packet is null");
   view_handler_->Update(packet);
+  shader_handler_->Reset();
+  render_proxy_handler_->Reset();
 }
 
 #ifdef COMET_DEBUG_RENDERING

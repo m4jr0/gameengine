@@ -13,7 +13,6 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
@@ -30,9 +29,7 @@ namespace vk {
 struct ViewHandlerDescr : HandlerDescr {
   const ShadowSettings* shadow_settings{nullptr};
   ShaderHandler* shader_handler{nullptr};
-  MaterialHandler* material_handler{nullptr};
   TextureHandler* texture_handler{nullptr};
-  PipelineHandler* pipeline_handler{nullptr};
   RenderPassHandler* render_pass_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
@@ -76,9 +73,7 @@ class ViewHandler : public Handler {
   Array<memory::UniquePtr<View>> views_{};
   const ShadowSettings* shadow_settings_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
-  MaterialHandler* material_handler_{nullptr};
   TextureHandler* texture_handler_{nullptr};
-  PipelineHandler* pipeline_handler_{nullptr};
   RenderPassHandler* render_pass_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
