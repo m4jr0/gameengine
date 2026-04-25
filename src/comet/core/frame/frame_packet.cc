@@ -186,6 +186,35 @@ void FramePacket::Reset() {
   rendering_data = nullptr;
 }
 
+bool operator==(const AddedGeometry& lhs, const AddedGeometry& rhs) noexcept {
+  return lhs.entity_id == rhs.entity_id;
+}
+
+bool operator==(const DirtyMesh& lhs, const DirtyMesh& rhs) noexcept {
+  return lhs.entity_id == rhs.entity_id;
+}
+
+bool operator==(const DirtyTransform& lhs, const DirtyTransform& rhs) noexcept {
+  return lhs.entity_id == rhs.entity_id;
+}
+
+bool operator==(const RemovedGeometry& lhs,
+                const RemovedGeometry& rhs) noexcept {
+  return lhs.entity_id == rhs.entity_id;
+}
+
+bool operator==(const AddedLight& lhs, const AddedLight& rhs) noexcept {
+  return lhs.light_handle == rhs.light_handle;
+}
+
+bool operator==(const DirtyLight& lhs, const DirtyLight& rhs) noexcept {
+  return lhs.light_handle == rhs.light_handle;
+}
+
+bool operator==(const RemovedLight& lhs, const RemovedLight& rhs) noexcept {
+  return lhs.light_handle == rhs.light_handle;
+}
+
 HashValue GenerateHash(const AddedGeometry& value) {
   return comet::GenerateHash(value.entity_id);
 }

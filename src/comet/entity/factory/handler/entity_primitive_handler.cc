@@ -15,7 +15,6 @@
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/geometry_manager.h"
 #include "comet/physics/physics_manager.h"
-#include "comet/resource/resource.h"
 
 namespace comet {
 namespace entity {

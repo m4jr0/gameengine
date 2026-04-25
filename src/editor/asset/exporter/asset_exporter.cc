@@ -15,7 +15,7 @@
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/type_trait.h"
-#include "comet/resource/label/resource_common_label.h"
+#include "comet/resource/label/common_label.h"
 #include "editor/asset/asset_utils.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL

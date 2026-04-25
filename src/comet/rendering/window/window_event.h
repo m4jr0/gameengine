@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/type/string_id.h"
 #include "comet/event/event.h"
-#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/common.h"
 
 namespace comet {
 namespace rendering {

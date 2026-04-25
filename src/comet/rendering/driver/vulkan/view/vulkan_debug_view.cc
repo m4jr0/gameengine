@@ -11,10 +11,10 @@
 #include "vulkan_debug_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
@@ -50,7 +50,7 @@ void DebugView::OnInitialize() {
   render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
   render_pass_descr.dependencies.Reserve(1);
 
-  auto& dependency{render_pass_descr.dependencies.EmplaceBack()};
+  auto& dependency{render_pass_descr.dependencies.EmplaceLast()};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass = 0;
   dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
@@ -133,7 +133,7 @@ void DebugView::UpdateDebugShader(
 #ifdef COMET_DEBUG_CULLING
   {
     auto& field_updates{
-        *COMET_FRAME_ARRAY(ShaderBufferFieldUpdate, static_cast<usize>(2))};
+        *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderBufferFieldUpdate, 2)};
     AddDebugGlobalFieldUpdates(shader_handler_, debug_shader_, packet,
                                field_updates);
 
@@ -146,7 +146,7 @@ void DebugView::UpdateDebugShader(
   const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
   auto& buffer_bindings{
-      *COMET_FRAME_ARRAY(ShaderBufferBindingUpdate, static_cast<usize>(2))};
+      *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderBufferBindingUpdate, 2)};
 
   AddBufferBinding(
       buffer_bindings,
@@ -176,8 +176,8 @@ void DebugView::RunDebugCullGeneration() {
   }
 
   auto& blocks{
-      *COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate, static_cast<usize>(1))};
-  auto& block{blocks.EmplaceBack()};
+      *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderPushConstantBlockUpdate, 1)};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = debugshaderconsts::kCountPushConstantIndex;
   block.data = &proxy_count;
   block.size = sizeof(proxy_count);

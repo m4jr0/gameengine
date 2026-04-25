@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_TEXTURE_MAP_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_map_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
 
 namespace comet {
 namespace rendering {

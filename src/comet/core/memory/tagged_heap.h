@@ -22,6 +22,14 @@ struct TaggedHeapArena {
   u8 data{0};
 };
 
+struct TaggedHeapStats {
+  usize total_block_count{0};
+  usize used_block_count{0};
+  usize free_block_count{0};
+  usize largest_free_range{0};
+  usize free_range_count{0};
+};
+
 class TaggedHeap {
  public:
   TaggedHeap() = default;
@@ -46,6 +54,9 @@ class TaggedHeap {
                               usize* out_size = nullptr);
   void DeallocateAll(MemoryTag tag);
 
+  TaggedHeapStats GetStats() const;
+  bool IsFragmentedFor(usize block_count) const;
+
   bool IsInitialized() const noexcept;
   usize GetBlockSize() const noexcept;
 
@@ -63,6 +74,7 @@ class TaggedHeap {
   void* AllocateInternal(usize size, MemoryTag tag, usize& block_count);
   usize ResolveFreeBlocks(usize block_count) const;
   TagBlockMap* FindOrAddTag(MemoryTag tag);
+  TaggedHeapStats GetStatsNoLock() const;
 
   bool is_initialized_{false};
   usize total_block_count_{0};

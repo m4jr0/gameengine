@@ -48,6 +48,7 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagFrameExtended,
   kEngineMemoryTagDoubleFrameExtended1,
   kEngineMemoryTagDoubleFrameExtended2,
+  kEngineMemoryTagContinuation,
   kEngineMemoryTagGeometry,
   kEngineMemoryTagRendering,
   kEngineMemoryTagRenderingInternal,

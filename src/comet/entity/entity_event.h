@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/string_id.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/event/event.h"
 
 namespace comet {

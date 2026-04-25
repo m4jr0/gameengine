@@ -7,8 +7,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/type/rendering_pipeline_type.h"
-#include "comet/rendering/type/rendering_shader_type.h"
+#include "comet/rendering/type/pipeline.h"
+#include "comet/rendering/type/shader.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_id.h"
 #include "comet/resource/runtime/loaded_resource_handle.h"

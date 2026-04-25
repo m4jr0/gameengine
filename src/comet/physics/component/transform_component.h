@@ -6,7 +6,8 @@
 #define COMET_COMET_PHYSICS_COMPONENT_TRANSFORM_COMPONENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
+#include "comet/entity/utils/entity_id_utils.h"
 #include "comet/math/matrix.h"
 
 namespace comet {

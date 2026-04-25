@@ -1,0 +1,370 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "windows-base",
+      "displayName": "Windows Base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "toolset": "v145",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "VCPKG_ROOT": "${sourceDir}/.vcpkg",
+        "IS_VCPKG_CLONE": "TRUE",
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "linux-base",
+      "displayName": "Linux Base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "VCPKG_ROOT": "${sourceDir}/.vcpkg",
+        "IS_VCPKG_CLONE": "TRUE",
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "displayName": "Windows Debug",
+      "inherits": "windows-base"
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows Release",
+      "inherits": "windows-base"
+    },
+    {
+      "name": "windows-debug-release",
+      "displayName": "Windows DebugRelease",
+      "inherits": "windows-base"
+    },
+    {
+      "name": "windows-debug-track-allocations",
+      "displayName": "Windows Debug + Track Allocations",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_DEBUG_TRACK_ALLOCATIONS": "ON"
+      }
+    },
+    {
+      "name": "windows-debug-release-track-allocations",
+      "displayName": "Windows DebugRelease + Track Allocations",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_DEBUG_TRACK_ALLOCATIONS": "ON"
+      }
+    },
+    {
+      "name": "windows-release-track-allocations",
+      "displayName": "Windows Release + Track Allocations + COMET_DEBUG",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_DEBUG_TRACK_ALLOCATIONS": "ON"
+      }
+    },
+    {
+      "name": "windows-release-debug-defines",
+      "displayName": "Windows Release + COMET_DEBUG",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_FORCE_DEBUG_DEFINES": "ON"
+      }
+    },
+    {
+      "name": "windows-debug-full-checks",
+      "displayName": "Windows Debug + Full Checks",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_FULL_DEBUG_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "windows-debug-memory",
+      "displayName": "Windows Debug + Memory Checks",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_DEBUG_MEMORY_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "windows-debug-rendering",
+      "displayName": "Windows Debug + Rendering Checks",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_DEBUG_RENDERING_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "windows-release-full-checks",
+      "displayName": "Windows Release + Full Checks + COMET_DEBUG",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_FULL_DEBUG_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "windows-release-memory",
+      "displayName": "Windows Release + Memory Checks + COMET_DEBUG",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_DEBUG_MEMORY_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "windows-release-rendering",
+      "displayName": "Windows Release + Rendering Checks + COMET_DEBUG",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_DEBUG_RENDERING_CHECKS": "ON"
+      }
+    },
+
+    {
+      "name": "linux-debug",
+      "displayName": "Linux Debug",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux Release",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "linux-debug-release",
+      "displayName": "Linux DebugRelease",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "DebugRelease"
+      }
+    },
+    {
+      "name": "linux-debug-track-allocations",
+      "displayName": "Linux Debug + Track Allocations",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COMET_DEBUG_TRACK_ALLOCATIONS": "ON"
+      }
+    },
+    {
+      "name": "linux-debug-release-track-allocations",
+      "displayName": "Linux DebugRelease + Track Allocations",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "DebugRelease",
+        "COMET_DEBUG_TRACK_ALLOCATIONS": "ON"
+      }
+    },
+    {
+      "name": "linux-release-track-allocations",
+      "displayName": "Linux Release + Track Allocations + COMET_DEBUG",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_DEBUG_TRACK_ALLOCATIONS": "ON"
+      }
+    },
+    {
+      "name": "linux-release-debug-defines",
+      "displayName": "Linux Release + COMET_DEBUG",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMET_FORCE_DEBUG_DEFINES": "ON"
+      }
+    },
+    {
+      "name": "linux-debug-full-checks",
+      "displayName": "Linux Debug + Full Checks",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COMET_FULL_DEBUG_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "linux-debug-memory",
+      "displayName": "Linux Debug + Memory Checks",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COMET_DEBUG_MEMORY_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "linux-debug-rendering",
+      "displayName": "Linux Debug + Rendering Checks",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COMET_DEBUG_RENDERING_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "linux-release-full-checks",
+      "displayName": "Linux Release + Full Checks + COMET_DEBUG",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_FULL_DEBUG_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "linux-release-memory",
+      "displayName": "Linux Release + Memory Checks + COMET_DEBUG",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_DEBUG_MEMORY_CHECKS": "ON"
+      }
+    },
+    {
+      "name": "linux-release-rendering",
+      "displayName": "Linux Release + Rendering Checks + COMET_DEBUG",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMET_FORCE_DEBUG_DEFINES": "ON",
+        "COMET_DEBUG_RENDERING_CHECKS": "ON"
+      }
+    }
+  ],
+
+  "buildPresets": [
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-debug-release",
+      "configurePreset": "windows-debug-release",
+      "configuration": "DebugRelease"
+    },
+    {
+      "name": "windows-debug-track-allocations",
+      "configurePreset": "windows-debug-track-allocations",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-debug-release-track-allocations",
+      "configurePreset": "windows-debug-release-track-allocations",
+      "configuration": "DebugRelease"
+    },
+    {
+      "name": "windows-release-track-allocations",
+      "configurePreset": "windows-release-track-allocations",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-release-debug-defines",
+      "configurePreset": "windows-release-debug-defines",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-debug-full-checks",
+      "configurePreset": "windows-debug-full-checks",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-debug-memory",
+      "configurePreset": "windows-debug-memory",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-debug-rendering",
+      "configurePreset": "windows-debug-rendering",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-release-full-checks",
+      "configurePreset": "windows-release-full-checks",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-release-memory",
+      "configurePreset": "windows-release-memory",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-release-rendering",
+      "configurePreset": "windows-release-rendering",
+      "configuration": "Release"
+    },
+
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
+    },
+    {
+      "name": "linux-debug-release",
+      "configurePreset": "linux-debug-release"
+    },
+    {
+      "name": "linux-debug-track-allocations",
+      "configurePreset": "linux-debug-track-allocations"
+    },
+    {
+      "name": "linux-debug-release-track-allocations",
+      "configurePreset": "linux-debug-release-track-allocations"
+    },
+    {
+      "name": "linux-release-track-allocations",
+      "configurePreset": "linux-release-track-allocations"
+    },
+    {
+      "name": "linux-release-debug-defines",
+      "configurePreset": "linux-release-debug-defines"
+    },
+    {
+      "name": "linux-debug-full-checks",
+      "configurePreset": "linux-debug-full-checks"
+    },
+    {
+      "name": "linux-debug-memory",
+      "configurePreset": "linux-debug-memory"
+    },
+    {
+      "name": "linux-debug-rendering",
+      "configurePreset": "linux-debug-rendering"
+    },
+    {
+      "name": "linux-release-full-checks",
+      "configurePreset": "linux-release-full-checks"
+    },
+    {
+      "name": "linux-release-memory",
+      "configurePreset": "linux-release-memory"
+    },
+    {
+      "name": "linux-release-rendering",
+      "configurePreset": "linux-release-rendering"
+    }
+  ]
+}

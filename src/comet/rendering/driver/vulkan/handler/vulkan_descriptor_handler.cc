@@ -171,7 +171,7 @@ void DescriptorHandler::OnShutdown() {
     DestroyDescriptorPool(device, dynamic_descriptor_pools_[i]);
   }
 
-  dynamic_descriptor_pools_.Destroy();
+  dynamic_descriptor_pools_.Release();
 }
 }  // namespace vk
 }  // namespace rendering

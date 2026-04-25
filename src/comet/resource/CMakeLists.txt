@@ -21,7 +21,7 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/resource/handler/resource_handler_utils.cc"
 
     # Label.
-    "${PROJECT_SOURCE_DIR}/src/comet/resource/label/resource_common_label.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/label/common_label.cc"
 
     # Runtime.
     "${PROJECT_SOURCE_DIR}/src/comet/resource/runtime/loaded_resource_handle.h"
@@ -29,7 +29,7 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/resource/runtime/resource_slots.h"
     
     # Type.
-    "${PROJECT_SOURCE_DIR}/src/comet/resource/type/resource_common_type.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/resource/type/common.h"
 
     # Animation.
     "${PROJECT_SOURCE_DIR}/src/comet/resource/animation/animation_resource.cc"
@@ -57,31 +57,5 @@ target_sources(${COMET_LIBRARY_NAME}
 # Compiling ####################################################################
 target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE
-    ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
-
-# Linking ######################################################################
-target_link_directories(${COMET_LIBRARY_NAME}
-  PRIVATE
-    ${VCPKG_LIBRARY_DIR}
-)
-
-target_link_libraries(${COMET_LIBRARY_NAME}
-  PRIVATE
-    # Put internal libraries here.
-)
-
-if(WIN32)
-  target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()
-
-if(LINUX)
-  target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()

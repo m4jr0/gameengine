@@ -9,6 +9,7 @@
 // Header. /////////////////////////////////////////////////////////////////////
 #include "fiber_primitive.h"
 ////////////////////////////////////////////////////////////////////////////////
+
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/fiber/fiber_label.h"
 #include "comet/core/type_trait.h"
@@ -164,33 +165,77 @@ void FiberCV::NotifyAll() {
 }
 
 void FiberSharedMutex::LockExclusive() {
-  FiberUniqueLock lock{mutex_};
+  auto* fiber{GetFiber()};
 
-  while (is_writer_ || reader_count_.load(std::memory_order_acquire) > 0) {
-    cv_.Wait(lock);
+  {
+    FiberSpinLockGuard guard{spin_lock_};
+    ++waiting_writers_;
   }
 
-  is_writer_ = true;
+  for (;;) {
+    bool acquired{false};
+
+    {
+      FiberSpinLockGuard guard{spin_lock_};
+
+      COMET_ASSERT(writer_ != fiber, "FiberSharedMutex::Lock",
+                   "exclusive lock is already owned by current fiber");
+
+      if (writer_ == nullptr && reader_count_ == 0) {
+        writer_ = fiber;
+        --waiting_writers_;
+        acquired = true;
+      }
+    }
+
+    if (acquired) {
+      return;
+    }
+
+    Yield();
+  }
 }
 
 void FiberSharedMutex::UnlockExclusive() {
-  FiberLockGuard lock{mutex_};
-  is_writer_ = false;
-  cv_.NotifyAll();
+  [[maybe_unused]] auto* fiber{GetFiber()};
+
+  FiberSpinLockGuard guard{spin_lock_};
+
+  COMET_ASSERT(writer_ == fiber, "FiberSharedMutex::Unlock",
+               "exclusive lock is not owned by current fiber");
+
+  writer_ = nullptr;
 }
 
 void FiberSharedMutex::LockShared() {
-  FiberUniqueLock lock{mutex_};
-  cv_.Wait(lock, [this] { return !is_writer_; });
-  reader_count_.fetch_add(1, std::memory_order_acq_rel);
+  for (;;) {
+    bool acquired{false};
+
+    {
+      FiberSpinLockGuard guard{spin_lock_};
+
+      // Writer-preference: prevent new readers from starving a waiting writer.
+      if (writer_ == nullptr && waiting_writers_ == 0) {
+        ++reader_count_;
+        acquired = true;
+      }
+    }
+
+    if (acquired) {
+      return;
+    }
+
+    Yield();
+  }
 }
 
 void FiberSharedMutex::UnlockShared() {
-  FiberLockGuard lock{mutex_};
+  FiberSpinLockGuard guard{spin_lock_};
 
-  if (reader_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-    cv_.NotifyAll();
-  }
+  COMET_ASSERT(reader_count_ > 0, "FiberSharedMutex::UnlockShared",
+               "shared lock count underflow");
+
+  --reader_count_;
 }
 
 FiberSharedLockGuard::FiberSharedLockGuard(FiberSharedMutex& mutex,

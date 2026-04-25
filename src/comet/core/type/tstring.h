@@ -49,7 +49,7 @@ class TString {
 
   template <typename TChar>
   TString(const TChar* str, usize length) : length_{length} {
-    Allocate(length_);
+    ReserveStorage(length_);
     Copy(GetTStr(), str, length_);
     GetTStr()[length_] = COMET_TCHAR('\0');
   }
@@ -62,7 +62,7 @@ class TString {
 
   template <typename TChar>
   TString(usize length, TChar c) : length_{length} {
-    Allocate(length_);
+    ReserveStorage(length_);
 
     for (usize i = 0; i < length_; ++i) {
       GetTStr()[i] = static_cast<tchar>(c);
@@ -83,7 +83,7 @@ class TString {
   template <typename TChar>
   TString(const TChar* start, const TChar* end)
       : length_{static_cast<usize>(end - start)} {
-    Allocate(length_);
+    ReserveStorage(length_);
     Copy(GetTStr(), start, length_);
     GetTStr()[length_] = COMET_TCHAR('\0');
   }
@@ -95,9 +95,10 @@ class TString {
   TString& operator=(TString&& other) noexcept;
   ~TString();
 
-  void Destroy();
+  void Release();
 
   void Reserve(usize capacity);
+  void TrimCapacity();
   void Resize(usize length);
   void Clear();
 
@@ -190,7 +191,7 @@ class TString {
 #endif  // COMET_DEBUG
 
  private:
-  void Allocate(usize capacity);
+  void ReserveStorage(usize capacity);
   void Deallocate();
 
   usize length_{0};

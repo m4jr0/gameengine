@@ -16,7 +16,6 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/exception.h"
 
 namespace comet {
 template <class T>
@@ -32,9 +31,16 @@ class RingQueue {
 
   void Destroy();
 
+  bool TryPush(T&& element);
+  bool TryPush(const T& element);
   void Push(T&& element);
   void Push(const T& element);
+
+  T* TryGet() noexcept;
+  const T* TryGet() const noexcept;
   T& Get();
+  const T& Get() const;
+
   void TryPop() noexcept;
   void Clear() noexcept;
   bool IsEmpty() const noexcept;
@@ -52,9 +58,7 @@ class RingQueue {
 
 template <class T>
 inline RingQueue<T>::RingQueue(memory::Allocator* allocator, usize capacity)
-    : capacity_{capacity},
-      allocator_{allocator},
-      elements_{allocator_, capacity} {
+    : capacity_{capacity}, allocator_{allocator}, elements_{allocator_} {
   elements_.Resize(capacity);
 }
 
@@ -90,7 +94,6 @@ inline RingQueue<T>& RingQueue<T>::operator=(const RingQueue<T>& other) {
   size_ = other.size_;
   allocator_ = other.allocator_;
   elements_ = other.elements_;
-
   return *this;
 }
 
@@ -110,42 +113,88 @@ inline RingQueue<T>& RingQueue<T>::operator=(RingQueue<T>&& other) noexcept {
   other.head_ = 0;
   other.size_ = 0;
   other.allocator_ = nullptr;
-
   return *this;
 }
 
 template <class T>
 inline void RingQueue<T>::Destroy() {
   elements_.Destroy();
+  capacity_ = 0;
+  head_ = 0;
+  size_ = 0;
+  allocator_ = nullptr;
+}
+
+template <class T>
+inline bool RingQueue<T>::TryPush(T&& element) {
+  if (size_ == capacity_) {
+    return false;
+  }
+
+  COMET_ASSERT(capacity_ > 0, "RingQueue::TryPush",
+               "capacity is zero while queue is not full");
+
+  elements_[(head_ + size_) % capacity_] = std::move(element);
+  ++size_;
+  return true;
+}
+
+template <class T>
+inline bool RingQueue<T>::TryPush(const T& element) {
+  if (size_ == capacity_) {
+    return false;
+  }
+
+  COMET_ASSERT(capacity_ > 0, "RingQueue::TryPush",
+               "capacity is zero while queue is not full");
+
+  elements_[(head_ + size_) % capacity_] = element;
+  ++size_;
+  return true;
 }
 
 template <class T>
 inline void RingQueue<T>::Push(T&& element) {
-  if (size_ == capacity_) {
-    throw MaximumCapacityReachedError(capacity_);
-  }
-
-  elements_[(head_ + size_) % capacity_] = std::forward<T>(element);
-  ++size_;
+  COMET_FASSERT(TryPush(std::move(element)), true, "RingQueue::Push",
+                "queue is full", "capacity", capacity_);
 }
 
 template <class T>
 inline void RingQueue<T>::Push(const T& element) {
-  if (size_ == capacity_) {
-    throw MaximumCapacityReachedError(capacity_);
+  COMET_FASSERT(TryPush(element), true, "RingQueue::Push", "queue is full",
+                "capacity", capacity_);
+}
+
+template <class T>
+inline T* RingQueue<T>::TryGet() noexcept {
+  if (size_ == 0) {
+    return nullptr;
   }
 
-  elements_[(head_ + size_) % capacity_] = element;
-  ++size_;
+  return &elements_[head_];
+}
+
+template <class T>
+inline const T* RingQueue<T>::TryGet() const noexcept {
+  if (size_ == 0) {
+    return nullptr;
+  }
+
+  return &elements_[head_];
 }
 
 template <class T>
 inline T& RingQueue<T>::Get() {
-  if (size_ == 0) {
-    throw EmptyError();
-  }
+  auto* element{TryGet()};
+  COMET_ASSERT(element != nullptr, "RingQueue::Get", "queue is empty");
+  return *element;
+}
 
-  return elements_[head_];
+template <class T>
+inline const T& RingQueue<T>::Get() const {
+  const auto* element{TryGet()};
+  COMET_ASSERT(element != nullptr, "RingQueue::Get", "queue is empty");
+  return *element;
 }
 
 template <class T>
@@ -195,8 +244,11 @@ class LockFreeMPSCRingQueue {
 
   void Destroy();
 
+  bool TryPush(T&& element);
+  bool TryPush(const T& element);
   void Push(T&& element);
   void Push(const T& element);
+
   bool TryPop(T& element);
   void Clear();
 
@@ -208,9 +260,6 @@ class LockFreeMPSCRingQueue {
     std::atomic<usize> sequence{0};
   };
 
-  static_assert(sizeof(std::atomic<usize>) <= thread::kCacheLineSize,
-                "atomic counter exceeds assumed cache line size");
-
   struct alignas(thread::kCacheLineSize) ConsumerHead {
     std::atomic<usize> value{0};
     u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
@@ -221,16 +270,6 @@ class LockFreeMPSCRingQueue {
     u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
   };
 
-  static_assert(sizeof(ConsumerHead) == thread::kCacheLineSize,
-                "ConsumerHead must occupy exactly one cache line");
-  static_assert(sizeof(ProducerReserve) == thread::kCacheLineSize,
-                "ProducerReserve must occupy exactly one cache line");
-
-  static_assert(alignof(ConsumerHead) == thread::kCacheLineSize,
-                "ConsumerHead alignment is invalid");
-  static_assert(alignof(ProducerReserve) == thread::kCacheLineSize,
-                "ProducerReserve alignment is invalid");
-
   void DestroyElements() noexcept;
 
   usize capacity_{0};
@@ -238,12 +277,8 @@ class LockFreeMPSCRingQueue {
   Slot* elements_{nullptr};
 
   COMET_DISABLE_PADDING_WARNING_BEGIN
-
-  // Isolated hot counters to reduce false sharing between producers and
-  // consumers.
   ConsumerHead consumer_head_{};
   ProducerReserve producer_reserve_{};
-
   COMET_DISABLE_PADDING_WARNING_END
 };
 
@@ -261,9 +296,6 @@ inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
     std::construct_at(&elements_[i]);
     elements_[i].sequence.store(i, std::memory_order_relaxed);
   }
-
-  consumer_head_.value.store(0, std::memory_order_relaxed);
-  producer_reserve_.value.store(0, std::memory_order_relaxed);
 }
 
 template <class T>
@@ -280,10 +312,10 @@ inline LockFreeMPSCRingQueue<T>::LockFreeMPSCRingQueue(
       std::memory_order_relaxed);
 
   other.capacity_ = 0;
-  other.consumer_head_.value.store(0, std::memory_order_relaxed);
-  other.producer_reserve_.value.store(0, std::memory_order_relaxed);
   other.allocator_ = nullptr;
   other.elements_ = nullptr;
+  other.consumer_head_.value.store(0, std::memory_order_relaxed);
+  other.producer_reserve_.value.store(0, std::memory_order_relaxed);
 }
 
 template <class T>
@@ -296,21 +328,21 @@ inline LockFreeMPSCRingQueue<T>& LockFreeMPSCRingQueue<T>::operator=(
   Destroy();
 
   capacity_ = other.capacity_;
+  allocator_ = other.allocator_;
+  elements_ = other.elements_;
+
   consumer_head_.value.store(
       other.consumer_head_.value.load(std::memory_order_acquire),
       std::memory_order_relaxed);
   producer_reserve_.value.store(
       other.producer_reserve_.value.load(std::memory_order_acquire),
       std::memory_order_relaxed);
-  allocator_ = other.allocator_;
-  elements_ = other.elements_;
 
   other.capacity_ = 0;
-  other.consumer_head_.value.store(0, std::memory_order_relaxed);
-  other.producer_reserve_.value.store(0, std::memory_order_relaxed);
   other.allocator_ = nullptr;
   other.elements_ = nullptr;
-
+  other.consumer_head_.value.store(0, std::memory_order_relaxed);
+  other.producer_reserve_.value.store(0, std::memory_order_relaxed);
   return *this;
 }
 
@@ -339,43 +371,16 @@ inline void LockFreeMPSCRingQueue<T>::Destroy() {
   }
 
   capacity_ = 0;
+  allocator_ = nullptr;
   consumer_head_.value.store(0, std::memory_order_relaxed);
   producer_reserve_.value.store(0, std::memory_order_relaxed);
-  allocator_ = nullptr;
 }
 
 template <class T>
-inline void LockFreeMPSCRingQueue<T>::Push(T&& element) {
-  usize pos;
+inline bool LockFreeMPSCRingQueue<T>::TryPush(const T& element) {
+  auto pos{producer_reserve_.value.load(std::memory_order_relaxed)};
 
   for (;;) {
-    pos = producer_reserve_.value.load(std::memory_order_relaxed);
-    auto& slot{elements_[pos % capacity_]};
-    const auto seq{slot.sequence.load(std::memory_order_acquire)};
-    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
-
-    if (delta == 0) {
-      if (producer_reserve_.value.compare_exchange_weak(
-              pos, pos + 1, std::memory_order_acq_rel,
-              std::memory_order_relaxed)) {
-        slot.element = std::forward<T>(element);
-        slot.sequence.store(pos + 1, std::memory_order_release);
-        return;
-      }
-    } else if (delta < 0) {
-      throw MaximumCapacityReachedError(capacity_);
-    } else {
-      // Another producer moved further ahead. Retry.
-    }
-  }
-}
-
-template <class T>
-inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
-  usize pos;
-
-  for (;;) {
-    pos = producer_reserve_.value.load(std::memory_order_relaxed);
     auto& slot{elements_[pos % capacity_]};
     const auto seq{slot.sequence.load(std::memory_order_acquire)};
     const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
@@ -386,24 +391,71 @@ inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
               std::memory_order_relaxed)) {
         slot.element = element;
         slot.sequence.store(pos + 1, std::memory_order_release);
-        return;
+        return true;
       }
-    } else if (delta < 0) {
-      throw MaximumCapacityReachedError(capacity_);
-    } else {
-      // Another producer moved further ahead. Retry.
+
+      continue;
     }
+
+    if (delta < 0) {
+      return false;
+    }
+
+    pos = producer_reserve_.value.load(std::memory_order_relaxed);
   }
+}
+
+template <class T>
+inline bool LockFreeMPSCRingQueue<T>::TryPush(T&& element) {
+  auto pos{producer_reserve_.value.load(std::memory_order_relaxed)};
+
+  for (;;) {
+    auto& slot{elements_[pos % capacity_]};
+    const auto seq{slot.sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+
+    if (delta == 0) {
+      if (producer_reserve_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_acq_rel,
+              std::memory_order_relaxed)) {
+        slot.element = std::move(element);
+        slot.sequence.store(pos + 1, std::memory_order_release);
+        return true;
+      }
+
+      continue;
+    }
+
+    if (delta < 0) {
+      return false;
+    }
+
+    pos = producer_reserve_.value.load(std::memory_order_relaxed);
+  }
+}
+
+template <class T>
+inline void LockFreeMPSCRingQueue<T>::Push(const T& element) {
+  COMET_FASSERT(TryPush(element), true, "LockFreeMPSCRingQueue::Push",
+                "queue is full", "capacity", capacity_);
+}
+
+template <class T>
+inline void LockFreeMPSCRingQueue<T>::Push(T&& element) {
+  COMET_FASSERT(TryPush(std::move(element)), true,
+                "LockFreeMPSCRingQueue::Push", "queue is full", "capacity",
+                capacity_);
 }
 
 template <class T>
 inline bool LockFreeMPSCRingQueue<T>::TryPop(T& element) {
   const auto pos{consumer_head_.value.load(std::memory_order_relaxed)};
   auto& slot{elements_[pos % capacity_]};
+
   const auto seq{slot.sequence.load(std::memory_order_acquire)};
   const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos + 1)};
 
-  if (delta < 0) {
+  if (delta != 0) {
     return false;
   }
 
@@ -415,7 +467,7 @@ inline bool LockFreeMPSCRingQueue<T>::TryPop(T& element) {
 
 template <class T>
 inline void LockFreeMPSCRingQueue<T>::Clear() {
-  T element;
+  T element{};
   while (TryPop(element)) {
   }
 }
@@ -441,8 +493,11 @@ class LockFreeMPMCRingQueue {
 
   void Destroy();
 
+  bool TryPush(const T& element);
+  bool TryPush(T&& element);
   void Push(const T& element);
   void Push(T&& element);
+
   std::optional<T> TryPop();
   void Clear();
 
@@ -454,9 +509,6 @@ class LockFreeMPMCRingQueue {
     std::atomic<usize> sequence{0};
   };
 
-  static_assert(sizeof(std::atomic<usize>) <= thread::kCacheLineSize,
-                "atomic counter exceeds assumed cache line size");
-
   struct alignas(thread::kCacheLineSize) ProducerHead {
     std::atomic<usize> value{0};
     u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
@@ -467,16 +519,6 @@ class LockFreeMPMCRingQueue {
     u8 pad[thread::kCacheLineSize - sizeof(std::atomic<usize>)]{};
   };
 
-  static_assert(sizeof(ProducerHead) == thread::kCacheLineSize,
-                "ProducerHead must occupy exactly one cache line");
-  static_assert(sizeof(ConsumerTail) == thread::kCacheLineSize,
-                "ConsumerTail must occupy exactly one cache line");
-
-  static_assert(alignof(ProducerHead) == thread::kCacheLineSize,
-                "ProducerHead alignment is invalid");
-  static_assert(alignof(ConsumerTail) == thread::kCacheLineSize,
-                "ConsumerTail alignment is invalid");
-
   void DestroyElements() noexcept;
 
   usize mask_{0};
@@ -485,12 +527,8 @@ class LockFreeMPMCRingQueue {
   memory::Allocator* allocator_{nullptr};
 
   COMET_DISABLE_PADDING_WARNING_BEGIN
-
-  // Isolated hot counters to reduce false sharing between producers and
-  // consumers.
   ProducerHead producer_head_{};
   ConsumerTail consumer_tail_{};
-
   COMET_DISABLE_PADDING_WARNING_END
 };
 
@@ -511,9 +549,6 @@ inline LockFreeMPMCRingQueue<T>::LockFreeMPMCRingQueue(
     std::construct_at(&elements_[i]);
     elements_[i].sequence.store(i, std::memory_order_relaxed);
   }
-
-  producer_head_.value.store(0, std::memory_order_relaxed);
-  consumer_tail_.value.store(0, std::memory_order_relaxed);
 }
 
 template <class T>
@@ -532,10 +567,10 @@ inline LockFreeMPMCRingQueue<T>::LockFreeMPMCRingQueue(
 
   other.mask_ = 0;
   other.elements_ = nullptr;
-  other.producer_head_.value.store(0, std::memory_order_relaxed);
-  other.consumer_tail_.value.store(0, std::memory_order_relaxed);
   other.capacity_ = 0;
   other.allocator_ = nullptr;
+  other.producer_head_.value.store(0, std::memory_order_relaxed);
+  other.consumer_tail_.value.store(0, std::memory_order_relaxed);
 }
 
 template <class T>
@@ -549,22 +584,22 @@ inline LockFreeMPMCRingQueue<T>& LockFreeMPMCRingQueue<T>::operator=(
 
   mask_ = other.mask_;
   elements_ = other.elements_;
+  capacity_ = other.capacity_;
+  allocator_ = other.allocator_;
+
   producer_head_.value.store(
       other.producer_head_.value.load(std::memory_order_acquire),
       std::memory_order_relaxed);
   consumer_tail_.value.store(
       other.consumer_tail_.value.load(std::memory_order_acquire),
       std::memory_order_relaxed);
-  capacity_ = other.capacity_;
-  allocator_ = other.allocator_;
 
   other.mask_ = 0;
   other.elements_ = nullptr;
-  other.producer_head_.value.store(0, std::memory_order_relaxed);
-  other.consumer_tail_.value.store(0, std::memory_order_relaxed);
   other.capacity_ = 0;
   other.allocator_ = nullptr;
-
+  other.producer_head_.value.store(0, std::memory_order_relaxed);
+  other.consumer_tail_.value.store(0, std::memory_order_relaxed);
   return *this;
 }
 
@@ -594,63 +629,82 @@ inline void LockFreeMPMCRingQueue<T>::Destroy() {
 
   mask_ = 0;
   capacity_ = 0;
+  allocator_ = nullptr;
   producer_head_.value.store(0, std::memory_order_relaxed);
   consumer_tail_.value.store(0, std::memory_order_relaxed);
-  allocator_ = nullptr;
+}
+
+template <class T>
+inline bool LockFreeMPMCRingQueue<T>::TryPush(const T& element) {
+  Node* node{nullptr};
+  auto pos{producer_head_.value.load(std::memory_order_relaxed)};
+
+  for (;;) {
+    node = &elements_[pos & mask_];
+    const auto seq{node->sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+
+    if (delta == 0) {
+      if (producer_head_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_relaxed,
+              std::memory_order_relaxed)) {
+        node->element = element;
+        node->sequence.store(pos + 1, std::memory_order_release);
+        return true;
+      }
+
+      continue;
+    }
+
+    if (delta < 0) {
+      return false;
+    }
+
+    pos = producer_head_.value.load(std::memory_order_relaxed);
+  }
+}
+
+template <class T>
+inline bool LockFreeMPMCRingQueue<T>::TryPush(T&& element) {
+  Node* node{nullptr};
+  auto pos{producer_head_.value.load(std::memory_order_relaxed)};
+
+  for (;;) {
+    node = &elements_[pos & mask_];
+    const auto seq{node->sequence.load(std::memory_order_acquire)};
+    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
+
+    if (delta == 0) {
+      if (producer_head_.value.compare_exchange_weak(
+              pos, pos + 1, std::memory_order_relaxed,
+              std::memory_order_relaxed)) {
+        node->element = std::move(element);
+        node->sequence.store(pos + 1, std::memory_order_release);
+        return true;
+      }
+
+      continue;
+    }
+
+    if (delta < 0) {
+      return false;
+    }
+
+    pos = producer_head_.value.load(std::memory_order_relaxed);
+  }
 }
 
 template <class T>
 inline void LockFreeMPMCRingQueue<T>::Push(const T& element) {
-  Node* node;
-  auto pos{producer_head_.value.load(std::memory_order_relaxed)};
-
-  for (;;) {
-    node = &elements_[pos & mask_];
-    const auto seq{node->sequence.load(std::memory_order_acquire)};
-    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
-
-    if (delta == 0) {
-      if (producer_head_.value.compare_exchange_weak(
-              pos, pos + 1, std::memory_order_relaxed,
-              std::memory_order_relaxed)) {
-        break;
-      }
-    } else if (delta < 0) {
-      throw MaximumCapacityReachedError(mask_ + 1);
-    } else {
-      pos = producer_head_.value.load(std::memory_order_relaxed);
-    }
-  }
-
-  node->element = element;
-  node->sequence.store(pos + 1, std::memory_order_release);
+  COMET_FASSERT(TryPush(element), true, "LockFreeMPMCRingQueue::Push",
+                "queue is full", "capacity", capacity_);
 }
 
 template <class T>
 inline void LockFreeMPMCRingQueue<T>::Push(T&& element) {
-  Node* node;
-  auto pos{producer_head_.value.load(std::memory_order_relaxed)};
-
-  for (;;) {
-    node = &elements_[pos & mask_];
-    const auto seq{node->sequence.load(std::memory_order_acquire)};
-    const auto delta{static_cast<sptrdiff>(seq) - static_cast<sptrdiff>(pos)};
-
-    if (delta == 0) {
-      if (producer_head_.value.compare_exchange_weak(
-              pos, pos + 1, std::memory_order_relaxed,
-              std::memory_order_relaxed)) {
-        break;
-      }
-    } else if (delta < 0) {
-      throw MaximumCapacityReachedError(mask_ + 1);
-    } else {
-      pos = producer_head_.value.load(std::memory_order_relaxed);
-    }
-  }
-
-  node->element = std::forward<T>(element);
-  node->sequence.store(pos + 1, std::memory_order_release);
+  COMET_FASSERT(TryPush(std::move(element)), true,
+                "LockFreeMPMCRingQueue::Push", "queue is full", "capacity",
+                capacity_);
 }
 
 template <class T>
@@ -660,6 +714,7 @@ inline std::optional<T> LockFreeMPMCRingQueue<T>::TryPop() {
 
   for (;;) {
     node = &elements_[pos & mask_];
+
     const auto seq{node->sequence.load(std::memory_order_acquire)};
     const auto delta{static_cast<sptrdiff>(seq) -
                      static_cast<sptrdiff>(pos + 1)};
@@ -677,8 +732,8 @@ inline std::optional<T> LockFreeMPMCRingQueue<T>::TryPop() {
     }
   }
 
-  const auto element{std::move(node->element)};
-  node->sequence.store(pos + mask_ + 1, std::memory_order_release);
+  auto element{std::move(node->element)};
+  node->sequence.store(pos + capacity_, std::memory_order_release);
   return element;
 }
 

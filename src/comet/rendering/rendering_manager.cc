@@ -23,7 +23,7 @@
 #include "comet/rendering/driver/empty/empty_driver.h"
 #include "comet/rendering/driver/opengl/opengl_driver.h"
 #include "comet/rendering/driver/vulkan/vulkan_driver.h"
-#include "comet/rendering/utils/rendering_driver_utils.h"
+#include "comet/rendering/utils/driver_utils.h"
 #include "comet/time/time_manager.h"
 
 #ifdef COMET_HAS_DEBUG_UI

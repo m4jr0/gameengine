@@ -36,6 +36,7 @@ class TimeManager : public Manager {
   f64 GetUnscaledDeltaTime() const noexcept;
   f64 GetCurrentTime() const noexcept;
   f64 GetRealTime() const noexcept;
+  f64 GetUptime() const noexcept;
   f32 GetTimeScale() const noexcept;
 
   void SetTimeScale(f32 time_scale) noexcept;
@@ -50,6 +51,7 @@ class TimeManager : public Manager {
   f64 real_current_time_{.0};
   f64 real_previous_time_{.0};
   f64 unscaled_delta_time_{.0};
+  f64 real_start_time_{.0};
 
   f64 current_time_{.0};
   f64 delta_time_{.0};

@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/resource/resource_id.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/type/common.h"
 
 namespace comet {
 namespace resource {

@@ -16,6 +16,8 @@
 namespace comet {
 namespace memory {
 void* CopyMemory(void* dst, const void* src, usize size);
+void* MoveMemory(void* dst, const void* src, usize size);
+void* CopyOrMoveMemory(void* dst, const void* src, usize size);
 
 void Memset(void* ptr, u8 value, usize size);
 void AVXMemset(void* ptr, u8 value, usize size);
@@ -49,6 +51,23 @@ constexpr usize RoundUpToMultiple(usize value, usize multiple) {
                "multiple must be greater than zero");
 
   return ((value + multiple - 1) / multiple) * multiple;
+}
+
+constexpr usize RoundDownToMultiple(usize value, usize multiple) {
+  COMET_ASSERT(multiple > 0, "RoundDownToMultiple",
+               "multiple must be greater than zero", "multiple", multiple);
+
+  return value - (value % multiple);
+}
+
+constexpr usize RoundDownToMultiplePow2(usize value, usize multiple) {
+  COMET_ASSERT(multiple > 0, "memory_utils::RoundDownToMultiplePow2",
+               "multiple must be greater than zero", "multiple", multiple);
+  COMET_ASSERT((multiple & (multiple - 1)) == 0,
+               "memory_utils::RoundDownToMultiplePow2",
+               "multiple is not a power of 2", "multiple", multiple);
+
+  return value & ~(multiple - 1);
 }
 
 template <typename T>
@@ -101,9 +120,10 @@ void Poison(void* ptr, usize size);
 MemoryDescr GetMemoryDescr();
 
 constexpr auto kHexAddressLength{18};  // "0x" + 16 hex digits.
+constexpr auto kHexAddressBufferLen{kHexAddressLength + 1};
 
 void ConvertAddressToHex(uptr address, schar* buffer, usize buffer_len);
-void ConvertAddressToHex(void* address, schar* buffer, usize buffer_len);
+void ConvertAddressToHex(const void* address, schar* buffer, usize buffer_len);
 
 void* Allocate(usize size, MemoryTag tag = kEngineMemoryTagUntagged);
 void* AllocateAligned(usize size, Alignment align, MemoryTag tag);

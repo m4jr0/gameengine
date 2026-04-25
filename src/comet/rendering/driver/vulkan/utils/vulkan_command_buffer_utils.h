@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_command_buffer_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_command_buffer.h"
 
 namespace comet {
 namespace rendering {

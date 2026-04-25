@@ -12,13 +12,13 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/rendering_shader_label.h"
-#include "comet/rendering/type/rendering_shader_type.h"
+#include "comet/rendering/label/shader_label.h"
+#include "comet/rendering/type/shader.h"
 #include "comet/resource/shader/shader_resource.h"
 
 namespace comet {
@@ -69,7 +69,7 @@ bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
 
   const auto tmp_input_file_name{GetName(asset_abs_path)};
 #ifdef COMET_WIDE_TCHAR
-  const auto* input_file_name{GenerateForOneFrame<schar>(
+  const auto* input_file_name{GenerateFrameString<schar>(
       tmp_input_file_name.GetCTStr(), tmp_input_file_name.GetLength())};
 #else
   const auto* input_file_name{tmp_input_file_name.GetCTStr()};
@@ -130,7 +130,7 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
       GetCharCount(rendering::kShaderLocalSize)};
 
   auto* local_size_value{
-      GenerateForOneFrame<schar>(local_size_value_char_count)};
+      GenerateFrameString<schar>(local_size_value_char_count)};
   COMET_ASSERT(local_size_value != nullptr,
                "shader_module_export_utils::PopulateGlShaderCode",
                "local size buffer allocation failed");
@@ -221,7 +221,7 @@ void AddSpvMacroDefinitions(shaderc::CompileOptions& options) {
   const auto local_size_value_char_count{
       GetCharCount(rendering::kShaderLocalSize)};
 
-  auto* local_size{GenerateForOneFrame<schar>(local_size_value_char_count)};
+  auto* local_size{GenerateFrameString<schar>(local_size_value_char_count)};
   COMET_ASSERT(local_size != nullptr,
                "shader_module_export_utils::AddSpvMacroDefinitions",
                "local size buffer allocation failed");

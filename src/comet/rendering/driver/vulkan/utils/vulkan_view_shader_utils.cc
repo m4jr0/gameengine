@@ -11,7 +11,7 @@
 #include "vulkan_view_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
 
@@ -102,7 +102,7 @@ void AddWorldGlobalImageBindings(
 
   image_descriptors.Clear();
   image_descriptors.Reserve(1);
-  image_descriptors.PushBack(GenerateImageDescriptor(
+  image_descriptors.PushLast(GenerateImageDescriptor(
       ShaderBindingType::CombinedImageSampler, shadow_map->texture_handle,
       shadow_map->sampler_handle, image_layout));
 

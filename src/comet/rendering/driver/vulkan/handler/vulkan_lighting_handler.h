@@ -16,13 +16,13 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer_type.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_light_type.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shadow_type.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_texture_map_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_light.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shadow.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_texture_map.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/rendering_camera_type.h"
-#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/camera.h"
+#include "comet/rendering/type/light.h"
 
 namespace comet {
 namespace rendering {

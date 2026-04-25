@@ -34,6 +34,19 @@
 
 namespace comet {
 namespace memory {
+struct MemoryTagUseSnapshot {
+  memory::MemoryTag tag{memory::kEngineMemoryTagInvalid};
+  usize size{0};
+};
+
+struct MemoryUseSnapshot {
+  static constexpr usize kMaxTagCount{512};
+
+  usize memory_use{0};
+  usize tag_count{0};
+  MemoryTagUseSnapshot tags[kMaxTagCount]{};
+};
+
 namespace internal {
 // TODO(m4jr0): Consider using a lock-free solution (though it's primarily for
 // debugging, so... yeah...).
@@ -125,20 +138,24 @@ class ScopedFlagToggle {
   bool& flag_;
 };
 
+#ifdef COMET_MSVC
+void TrackAlignedAlloc(void* ptr, std::size_t size);
+void TrackAlignedFree(void* ptr);
+#endif  // COMET_MSVC
+
 void* MallocHooked(std::size_t size);
 void* ReallocHooked(void* ptr, std::size_t size);
 void* CallocHooked(std::size_t count, std::size_t size);
 void FreeHooked(void* ptr);
 
 #ifdef COMET_MSVC
-static void*(__cdecl* PlatformMalloc)(std::size_t) = std::malloc;
-static void*(__cdecl* PlatformRealloc)(void*, std::size_t) = std::realloc;
-static void*(__cdecl* PlatformCalloc)(std::size_t, std::size_t) = std::calloc;
-static void(__cdecl* PlatformFree)(void*) = std::free;
+extern void*(__cdecl* PlatformMalloc)(std::size_t);
+extern void*(__cdecl* PlatformRealloc)(void*, std::size_t);
+extern void*(__cdecl* PlatformCalloc)(std::size_t, std::size_t);
+extern void(__cdecl* PlatformFree)(void*);
 
-static LPVOID(WINAPI* PlatformVirtualAlloc)(LPVOID, SIZE_T, DWORD,
-                                            DWORD) = VirtualAlloc;
-static BOOL(WINAPI* PlatformVirtualFree)(LPVOID, SIZE_T, DWORD) = VirtualFree;
+extern LPVOID(WINAPI* PlatformVirtualAlloc)(LPVOID, SIZE_T, DWORD, DWORD);
+extern BOOL(WINAPI* PlatformVirtualFree)(LPVOID, SIZE_T, DWORD);
 
 void* WINAPI VirtualAllocHooked(LPVOID lp_address, SIZE_T dw_size,
                                 DWORD fl_allocation_type, DWORD fl_protect);
@@ -153,6 +170,9 @@ extern void (*PlatformFree)(void*);
 extern void* (*PlatformMmap)(void*, std::size_t, int, int, int, off_t);
 extern int (*PlatformMunmap)(void*, std::size_t);
 #endif  // COMET_MSVC
+
+inline std::mutex latest_memory_snapshot_mutex{};
+inline MemoryUseSnapshot latest_memory_snapshot{};
 }  // namespace internal
 
 void InitializeAllocationTracking();
@@ -165,10 +185,13 @@ void RegisterTaggedHeapPoolAllocation(usize size);
 void RegisterTaggedHeapPoolDeallocation(usize size);
 void RegisterTaggedHeapAllocation(usize size, MemoryTag memory_tag);
 void RegisterTaggedHeapDeallocation(MemoryTag memory_tag);
+
 usize GetTotalAllocatedMemory();
 usize GetTotalFreedMemory();
 usize GetMemoryUse();
 Map<MemoryTag, usize> GetTagUse();
+void UpdateMemoryUseSnapshot();
+MemoryUseSnapshot GetLatestMemoryUseSnapshot();
 }  // namespace memory
 }  // namespace comet
 
@@ -194,6 +217,10 @@ Map<MemoryTag, usize> GetTagUse();
   comet::memory::RegisterTaggedHeapDeallocation(memory_tag)
 #define COMET_GET_MEMORY_USE(handle) handle = comet::memory::GetMemoryUse()
 #define COMET_GET_TAG_USE(handle) handle = comet::memory::GetTagUse()
+#define COMET_UPDATE_MEMORY_USE_SNAPSHOT() \
+  comet::memory::UpdateMemoryUseSnapshot()
+#define COMET_GET_LATEST_MEMORY_USE_SNAPSHOT(handle) \
+  handle = comet::memory::GetLatestMemoryUseSnapshot()
 
 #ifdef COMET_MSVC
 #endif  // COMET_MSVC
@@ -210,6 +237,8 @@ Map<MemoryTag, usize> GetTagUse();
 #define COMET_REGISTER_TAGGED_HEAP_DEALLOCATION(memory_tag)
 #define COMET_GET_MEMORY_USE(handle)
 #define COMET_GET_TAG_USE(handle)
+#define COMET_UPDATE_MEMORY_USE_SNAPSHOT()
+#define COMET_GET_LATEST_MEMORY_USE_SNAPSHOT(handle)
 #endif  // COMET_TRACK_ALLOCATIONS
 
 #endif  // COMET_COMET_CORE_ALLOCATION_H_

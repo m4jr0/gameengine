@@ -16,8 +16,8 @@
 #include "comet/rendering/driver/opengl/label/opengl_texture_label.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
 #include "comet/rendering/driver/opengl/utils/opengl_texture_utils.h"
-#include "comet/rendering/label/rendering_texture_label.h"
-#include "comet/rendering/utils/rendering_texture_utils.h"
+#include "comet/rendering/label/texture_label.h"
+#include "comet/rendering/utils/texture_utils.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -206,11 +206,12 @@ void TextureHandler::OnInitialize() {
 
 void TextureHandler::OnShutdown() {
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-  Array<TextureHandle> handles_to_destroy{&tmp_allocator};
+  auto handles_to_destroy{Array<TextureHandle>::WithCapacity(
+      &tmp_allocator, textures_.GetLiveCount())};
 
   textures_.ForEachLive(
       [&handles_to_destroy](TextureHandle handle, const Texture*) {
-        handles_to_destroy.PushBack(handle);
+        handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : handles_to_destroy) {

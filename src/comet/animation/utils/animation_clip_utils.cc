@@ -11,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/compression.h"
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/math/math_compression.h"
 #include "comet/math/math_interpolation.h"
 #include "comet/math/math_scalar.h"
@@ -91,11 +91,12 @@ AnimationPose PopulatePoseFromSample(const CompressedAnimationClip& clip,
   const auto joint_pose_count{sample.joint_poses.GetSize()};
 
   AnimationPose out_pose{};
-  out_pose.local_pose = COMET_DOUBLE_FRAME_ARRAY(JointPose, joint_pose_count);
+  out_pose.local_pose =
+      COMET_FRAME_ARRAY_WITH_CAPACITY(JointPose, joint_pose_count);
 
   for (usize i{0}; i < joint_pose_count; ++i) {
     const auto pose{DecompressJointPose(sample.joint_poses[i])};
-    out_pose.local_pose->PushBack(pose);
+    out_pose.local_pose->PushLast(pose);
   }
 
   return out_pose;
@@ -127,13 +128,14 @@ AnimationPose PopulatePoseFromSamples(const CompressedAnimationClip& clip,
   const auto joint_pose_count{a_sample.joint_poses.GetSize()};
 
   AnimationPose out_pose{};
-  out_pose.local_pose = COMET_DOUBLE_FRAME_ARRAY(JointPose, joint_pose_count);
+  out_pose.local_pose =
+      COMET_FRAME_ARRAY_WITH_CAPACITY(JointPose, joint_pose_count);
 
   for (usize i{0}; i < joint_pose_count; ++i) {
     const auto pose_a{DecompressJointPose(a_sample.joint_poses[i])};
     const auto pose_b{DecompressJointPose(b_sample.joint_poses[i])};
 
-    auto& joint{out_pose.local_pose->EmplaceBack()};
+    auto& joint{out_pose.local_pose->EmplaceLast()};
     joint.translation =
         math::Lerp(pose_a.translation, pose_b.translation, alpha);
     joint.scale = math::Lerp(pose_a.scale, pose_b.scale, alpha);
@@ -183,7 +185,7 @@ void PopulateGlobalPose(const geometry::Skeleton& skeleton,
                joint_count, "pose_joint_count", pose.local_pose->GetSize());
 
   pose.global_pose =
-      COMET_DOUBLE_FRAME_ARRAY(math::Mat4, pose.local_pose->GetSize());
+      COMET_FRAME_ARRAY_WITH_CAPACITY(math::Mat4, pose.local_pose->GetSize());
 
   for (usize i{0}; i < joint_count; ++i) {
     const auto& local_pose{pose.local_pose->Get(i)};
@@ -193,10 +195,10 @@ void PopulateGlobalPose(const geometry::Skeleton& skeleton,
         local_pose.translation, local_pose.rotation, local_pose.scale)};
 
     if (joint.parent_index == geometry::kInvalidSkeletonJointIndex) {
-      pose.global_pose->PushBack(local_matrix);
+      pose.global_pose->PushLast(local_matrix);
     } else {
       auto& parent{pose.global_pose->Get(joint.parent_index)};
-      pose.global_pose->PushBack(parent * local_matrix);
+      pose.global_pose->PushLast(parent * local_matrix);
     }
   }
 }

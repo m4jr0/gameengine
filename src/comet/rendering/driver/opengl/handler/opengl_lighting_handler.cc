@@ -15,13 +15,13 @@
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
 #include "comet/rendering/driver/opengl/utils/opengl_texture_map_utils.h"
-#include "comet/rendering/type/rendering_camera_type.h"
-#include "comet/rendering/type/rendering_common_type.h"
-#include "comet/rendering/type/rendering_light_type.h"
-#include "comet/rendering/type/rendering_texture_type.h"
-#include "comet/rendering/utils/rendering_camera_utils.h"
-#include "comet/rendering/utils/rendering_culling_utils.h"
-#include "comet/rendering/utils/rendering_light_utils.h"
+#include "comet/rendering/type/camera.h"
+#include "comet/rendering/type/common.h"
+#include "comet/rendering/type/light.h"
+#include "comet/rendering/type/texture.h"
+#include "comet/rendering/utils/camera_utils.h"
+#include "comet/rendering/utils/culling_utils.h"
+#include "comet/rendering/utils/light_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -147,8 +147,9 @@ GLenum LightingHandler::GetShadowArrayFormat() const noexcept {
 void LightingHandler::OnInitialize() {
   allocator_.Initialize();
 
-  proxies_ = Array<LightProxy>{&allocator_, kDefaultLightCount_};
-  shadow_resources_ = Array<ShadowResource>{&allocator_, kDefaultLightCount_};
+  proxies_ = Array<LightProxy>::WithCapacity(&allocator_, kDefaultLightCount_);
+  shadow_resources_ =
+      Array<ShadowResource>::WithCapacity(&allocator_, kDefaultLightCount_);
 
   shadow_layer_usage_ = Array<bool>{&allocator_};
   shadow_layer_usage_.Resize(kShadowLayerCapacity_);
@@ -216,7 +217,7 @@ void LightingHandler::OnShutdown() {
     DestroyShadowResource(resource);
   }
 
-  shadow_resources_.Destroy();
+  shadow_resources_.Release();
 
   DestroyShadowArrayResources();
 
@@ -234,13 +235,13 @@ void LightingHandler::OnShutdown() {
     }
   }
 
-  ssbo_shadow_data_.Destroy();
-  ssbo_lights_.Destroy();
-  ssbo_shadow_data_size_.Destroy();
-  ssbo_lights_size_.Destroy();
+  ssbo_shadow_data_.Release();
+  ssbo_lights_.Release();
+  ssbo_shadow_data_size_.Release();
+  ssbo_lights_size_.Release();
 
-  shadow_layer_usage_.Destroy();
-  proxies_.Destroy();
+  shadow_layer_usage_.Release();
+  proxies_.Release();
 
   allocator_.Destroy();
   render_jobs_ = nullptr;
@@ -390,8 +391,8 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
     }
   }
 
-  render_jobs_ = COMET_FRAME_ARRAY(ShadowRenderJob,
-                                   live_shadow_count * kMaxShadowCascades_);
+  render_jobs_ = COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShadowRenderJob, live_shadow_count * kMaxShadowCascades_);
 
   for (usize i{0}; i < proxies_.GetSize(); ++i) {
     if (!IsLightSlotAlive(i)) {
@@ -448,7 +449,7 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
         job.view_proj_index = j;
         job.view_proj = resource.view_proj[j];
         job.framebuffer = resource.framebuffers[j];
-        render_jobs_->PushBack(job);
+        render_jobs_->PushLast(job);
 
         cascade_near = cascade_far;
       }
@@ -468,7 +469,7 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
       job.view_proj_index = 0;
       job.view_proj = resource.view_proj[0];
       job.framebuffer = resource.framebuffers[0];
-      render_jobs_->PushBack(job);
+      render_jobs_->PushLast(job);
     }
   }
 }

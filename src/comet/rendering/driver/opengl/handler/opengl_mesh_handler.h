@@ -10,15 +10,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/geometry/type/geometry_mesh_type.h"
+#include "comet/geometry/type/mesh.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_mesh_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_region_gpu_buffer_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_mesh.h"
+#include "comet/rendering/driver/opengl/type/opengl_region_gpu_buffer.h"
+#include "comet/rendering/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
 namespace rendering {

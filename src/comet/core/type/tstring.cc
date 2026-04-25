@@ -12,7 +12,7 @@
 
 #include "comet/core/c_string.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 #include "comet/core/hash.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
@@ -106,14 +106,14 @@ void DetachTStringAllocator() {
 #ifdef COMET_WIDE_TCHAR
 TString::TString(std::string_view str) {
   length_ = str.size();
-  Allocate(length_);
+  ReserveStorage(length_);
   Copy(GetTStr(), str.data(), length_);
   GetTStr()[length_] = COMET_TCHAR('\0');
 }
 #else
 TString::TString(std::wstring_view str) {
   length_ = str.size();
-  Allocate(length_);
+  ReserveStorage(length_);
   Copy(GetTStr(), str.data(), length_);
   GetTStr()[length_] = COMET_TCHAR('\0');
 }
@@ -126,7 +126,7 @@ TString::TString(const TString& other)
       is_alloc_allowed_{other.is_alloc_allowed_}
 #endif  // COMET_DEBUG
 {
-  Allocate(other.capacity_);
+  ReserveStorage(other.capacity_);
   Copy(GetTStr(), other.GetCTStr(), length_);
   GetTStr()[length_] = COMET_TCHAR('\0');
 }
@@ -134,13 +134,40 @@ TString::TString(const TString& other)
 TString::TString(const TString& other, usize pos, usize length)
     : TString{other.GenerateSubString(pos, length)} {}
 
-TString::TString(TString&& other) noexcept { Swap(*this, other); }
+TString::TString(TString&& other) noexcept {
+#ifdef COMET_DEBUG
+  is_alloc_allowed_ = other.is_alloc_allowed_;
+#endif  // COMET_DEBUG
+
+  length_ = other.length_;
+  capacity_ = other.capacity_;
+
+  if (other.str_ != nullptr) {
+    str_ = other.str_;
+    other.str_ = nullptr;
+  } else {
+    Copy(sso_, other.sso_, other.length_ + 1);
+    str_ = nullptr;
+  }
+
+  other.length_ = 0;
+  other.capacity_ = kSSOCapacityThreshold;
+  other.sso_[0] = COMET_TCHAR('\0');
+}
 
 TString& TString::operator=(const TString& other) {
+  if (this == &other) {
+    return *this;
+  }
+
   if (other.length_ > capacity_) {
     Deallocate();
-    Allocate(other.length_);
+    ReserveStorage(other.length_);
   }
+
+#ifdef COMET_DEBUG
+  is_alloc_allowed_ = other.is_alloc_allowed_;
+#endif  // COMET_DEBUG
 
   length_ = other.length_;
   Copy(GetTStr(), other.GetCTStr(), length_);
@@ -149,27 +176,53 @@ TString& TString::operator=(const TString& other) {
 }
 
 TString& TString::operator=(TString&& other) noexcept {
-  Swap(*this, other);
+  if (this == &other) {
+    return *this;
+  }
+
+  Deallocate();
+
+#ifdef COMET_DEBUG
+  is_alloc_allowed_ = other.is_alloc_allowed_;
+#endif  // COMET_DEBUG
+
+  length_ = other.length_;
+  capacity_ = other.capacity_;
+
+  if (other.str_ != nullptr) {
+    str_ = other.str_;
+    other.str_ = nullptr;
+  } else {
+    Copy(sso_, other.sso_, other.length_ + 1);
+    str_ = nullptr;
+  }
+
+  other.length_ = 0;
+  other.capacity_ = kSSOCapacityThreshold;
+  other.sso_[0] = COMET_TCHAR('\0');
+
   return *this;
 }
 
 TString& TString::operator=(const CTStringView& other) {
-  const auto length{other.GetLength()};
-
-  if (length > capacity_) {
+  if (other.GetLength() > capacity_) {
     Deallocate();
-    Allocate(length);
+    ReserveStorage(other.GetLength());
   }
 
-  length_ = length;
-  Copy(GetTStr(), other.GetCTStr(), length_);
+  length_ = other.GetLength();
+
+  if (length_ > 0) {
+    Copy(GetTStr(), other.GetCTStr(), length_);
+  }
+
   GetTStr()[length_] = COMET_TCHAR('\0');
   return *this;
 }
 
-TString::~TString() { Destroy(); }
+TString::~TString() { Release(); }
 
-void TString::Destroy() { Deallocate(); }
+void TString::Release() { Deallocate(); }
 
 TString& TString::operator=(const tchar* other) {
   return operator=(CTStringView{other});
@@ -180,16 +233,53 @@ void TString::Reserve(usize capacity) {
     return;
   }
 
-  Allocate(capacity);
+  ReserveStorage(capacity);
+}
+
+void TString::TrimCapacity() {
+  if (length_ <= kSSOCapacityThreshold) {
+    if (str_ != nullptr) {
+      auto* old{str_};
+      Copy(sso_, old, length_);
+      sso_[length_] = COMET_TCHAR('\0');
+      internal::GetTStringAllocator()->Deallocate(old);
+      str_ = nullptr;
+    }
+
+    capacity_ = kSSOCapacityThreshold;
+    return;
+  }
+
+  if (capacity_ == length_) {
+    return;
+  }
+
+#ifdef COMET_DEBUG
+  COMET_ASSERT(is_alloc_allowed_, "TString::TrimCapacity",
+               "allocation is not allowed on this TString");
+#endif  // COMET_DEBUG
+
+  auto* tstring_allocator{internal::GetTStringAllocator()};
+  auto* new_str{reinterpret_cast<tchar*>(
+      tstring_allocator->AllocateMany<tchar>(length_ + 1))};
+
+  Copy(new_str, GetCTStr(), length_);
+  new_str[length_] = COMET_TCHAR('\0');
+
+  if (str_ != nullptr) {
+    tstring_allocator->Deallocate(str_);
+  }
+
+  str_ = new_str;
+  capacity_ = length_;
 }
 
 void TString::Resize(usize length) {
-  length_ = length;
-
-  if (length_ > capacity_) {
-    Allocate(length_);
+  if (length > capacity_) {
+    ReserveStorage(length);
   }
 
+  length_ = length;
   GetTStr()[length_] = COMET_TCHAR('\0');
 }
 
@@ -298,13 +388,13 @@ usize TString::GetNthToLastIndexOf(tchar c, usize count,
 }
 
 void Swap(TString& str1, TString& str2) {
-#ifdef COMET_DEBUG
-  std::swap(str1.is_alloc_allowed_, str2.is_alloc_allowed_);
-#endif  // COMET_DEBUG
-  std::swap(str1.length_, str2.length_);
-  std::swap(str1.capacity_, str2.capacity_);
-  std::swap(str1.str_, str2.str_);
-  std::swap(str1.sso_, str2.sso_);
+  if (&str1 == &str2) {
+    return;
+  }
+
+  TString tmp{std::move(str1)};
+  str1 = std::move(str2);
+  str2 = std::move(tmp);
 }
 
 tchar& TString::operator[](usize index) {
@@ -363,15 +453,16 @@ void TString::AllowAlloc() noexcept { is_alloc_allowed_ = true; }
 void TString::DisallowAlloc() noexcept { is_alloc_allowed_ = false; }
 #endif  // COMET_DEBUG
 
-void TString::Allocate(usize capacity) {
+void TString::ReserveStorage(usize capacity) {
   if (capacity <= capacity_ || capacity <= kSSOCapacityThreshold) {
     return;
   }
 
 #ifdef COMET_DEBUG
-  COMET_ASSERT(is_alloc_allowed_, "TString::Allocate",
+  COMET_ASSERT(is_alloc_allowed_, "TString::ReserveStorage",
                "allocation is not allowed on this TString");
 #endif  // COMET_DEBUG
+
   auto* old{GetTStr()};
   auto* tstring_allocator{internal::GetTStringAllocator()};
 
@@ -396,7 +487,9 @@ void TString::Deallocate() {
     str_ = nullptr;
   }
 
-  capacity_ = length_ = 0;
+  length_ = 0;
+  capacity_ = kSSOCapacityThreshold;
+  sso_[0] = COMET_TCHAR('\0');
 }
 
 TString CTStringView::GenerateSubString(usize offset, usize count) const {
@@ -415,7 +508,7 @@ TString CTStringView::GenerateSubString(usize offset, usize count) const {
 
 std::ostream& operator<<(std::ostream& stream, const TString& str) {
 #ifdef COMET_WIDE_TCHAR
-  return stream << GenerateForOneFrame<schar>(str.GetCTStr(), str.GetLength());
+  return stream << GenerateFrameString<schar>(str.GetCTStr(), str.GetLength());
 #else
   return stream << str.GetCTStr();
 #endif  // COMET_WIDE_TCHAR
@@ -423,7 +516,7 @@ std::ostream& operator<<(std::ostream& stream, const TString& str) {
 
 std::ostream& operator<<(std::ostream& stream, const CTStringView& str) {
 #ifdef COMET_WIDE_TCHAR
-  return stream << GenerateForOneFrame<schar>(str.GetCTStr(), str.GetLength());
+  return stream << GenerateFrameString<schar>(str.GetCTStr(), str.GetLength());
 #else
   return stream << str.GetCTStr();
 #endif  // COMET_WIDE_TCHAR

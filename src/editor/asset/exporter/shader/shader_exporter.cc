@@ -18,7 +18,7 @@
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/utils/rendering_shader_utils.h"
+#include "comet/rendering/utils/shader_utils.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/exporter/shader/data/shader_export_keys.h"
@@ -115,7 +115,7 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
     return;
   }
 
-  resource_files.PushBack(resource::ResourceManager::Get().GetShaders()->Pack(
+  resource_files.PushLast(resource::ResourceManager::Get().GetShaders()->Pack(
       shader, compression_mode_));
 
   allocator->Deallocate(shader_context.file);
@@ -158,7 +158,7 @@ void ShaderExporter::DumpShaderModules(const nlohmann::json& shader_file,
         resource::GenerateResourceIdFromPath<resource::ShaderModuleResource>(
             GetTmpTChar(raw_module_path_str.c_str()))};
 
-    shader.descr.shader_module_resource_ids.PushBack(module_resource_id);
+    shader.descr.shader_module_resource_ids.PushLast(module_resource_id);
   }
 }
 
@@ -176,7 +176,7 @@ void ShaderExporter::DumpDefines(const nlohmann::json& shader_file,
 
   for (usize i{0}; i < raw_defines.size(); ++i) {
     const auto& raw_define = raw_defines[i];
-    auto& define{shader.descr.defines.EmplaceBack()};
+    auto& define{shader.descr.defines.EmplaceLast()};
 
     const auto& raw_define_name_json{raw_define[kCometEditorShaderKeyName]};
     const auto& raw_define_name{
@@ -211,7 +211,7 @@ void ShaderExporter::DumpBindings(const nlohmann::json& shader_file,
 
   for (usize i{0}; i < raw_bindings.size(); ++i) {
     const auto& raw_binding = raw_bindings[i];
-    auto& binding_descr{shader.descr.bindings.EmplaceBack()};
+    auto& binding_descr{shader.descr.bindings.EmplaceLast()};
 
     const auto& raw_name_json{raw_binding[kCometEditorShaderKeyName]};
     const auto& raw_name{
@@ -279,7 +279,7 @@ void ShaderExporter::DumpBindings(const nlohmann::json& shader_file,
 
     for (usize j{0}; j < raw_fields.size(); ++j) {
       const auto& raw_field = raw_fields[j];
-      auto& field_descr{binding_descr.fields.EmplaceBack()};
+      auto& field_descr{binding_descr.fields.EmplaceLast()};
 
       const auto& raw_field_name_json{raw_field[kCometEditorShaderKeyName]};
       const auto& raw_field_name{
@@ -316,7 +316,7 @@ void ShaderExporter::DumpPushConstants(const nlohmann::json& shader_file,
 
   for (usize i{0}; i < raw_push_constants.size(); ++i) {
     const auto& raw_push_constant = raw_push_constants[i];
-    auto& push_constant_descr{shader.descr.push_constants.EmplaceBack()};
+    auto& push_constant_descr{shader.descr.push_constants.EmplaceLast()};
 
     const auto& raw_name_json{raw_push_constant[kCometEditorShaderKeyName]};
     const auto& raw_name{
@@ -338,7 +338,7 @@ void ShaderExporter::DumpPushConstants(const nlohmann::json& shader_file,
 
     for (usize j{0}; j < raw_fields.size(); ++j) {
       const auto& raw_field = raw_fields[j];
-      auto& field_descr{push_constant_descr.fields.EmplaceBack()};
+      auto& field_descr{push_constant_descr.fields.EmplaceLast()};
 
       const auto& raw_field_name_json{raw_field[kCometEditorShaderKeyName]};
       const auto& raw_field_name{

@@ -11,11 +11,11 @@
 #include "vulkan_world_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
@@ -92,7 +92,7 @@ void WorldView::OnInitialize() {
   render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
   render_pass_descr.dependencies.Reserve(2);
 
-  auto& dependency_1{render_pass_descr.dependencies.EmplaceBack()};
+  auto& dependency_1{render_pass_descr.dependencies.EmplaceLast()};
   dependency_1.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency_1.dstSubpass = 0;
   dependency_1.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
@@ -105,7 +105,7 @@ void WorldView::OnInitialize() {
                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
   dependency_1.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-  auto& dependency_2{render_pass_descr.dependencies.EmplaceBack()};
+  auto& dependency_2{render_pass_descr.dependencies.EmplaceLast()};
   dependency_2.srcSubpass = 0;
   dependency_2.dstSubpass = VK_SUBPASS_EXTERNAL;
   dependency_2.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -192,8 +192,8 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
 
   {
     static constexpr usize kShaderBufferFieldCapacity{6};
-    auto& field_updates{*COMET_FRAME_ARRAY(ShaderBufferFieldUpdate,
-                                           kShaderBufferFieldCapacity)};
+    auto& field_updates{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+        ShaderBufferFieldUpdate, kShaderBufferFieldCapacity)};
 
     AddWorldGlobalFieldUpdates(shader_handler_, world_shader_, packet,
                                field_updates);
@@ -207,10 +207,10 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
     const auto* shadow_map{lighting_handler_->GetShadowArrayTextureMap()};
 
     static constexpr usize kShaderImageBindingCapacity{1};
-    auto& image_bindings{*COMET_FRAME_ARRAY(ShaderImageBindingUpdate,
-                                            kShaderImageBindingCapacity)};
-    auto& image_descriptors{
-        *COMET_FRAME_ARRAY(ShaderImageDescriptor, kShaderImageBindingCapacity)};
+    auto& image_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+        ShaderImageBindingUpdate, kShaderImageBindingCapacity)};
+    auto& image_descriptors{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+        ShaderImageDescriptor, kShaderImageBindingCapacity)};
 
     AddWorldGlobalImageBindings(shader_handler_, texture_handler_,
                                 world_shader_, shadow_map, image_bindings,
@@ -226,8 +226,8 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
   const auto shadow_gpu_data{lighting_handler_->GetShadowGpuData(frame_index)};
 
   static constexpr usize kShaderBufferBindingCapacity{5};
-  auto& buffer_bindings{*COMET_FRAME_ARRAY(ShaderBufferBindingUpdate,
-                                           kShaderBufferBindingCapacity)};
+  auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -277,8 +277,8 @@ void WorldView::RunSparseUpload() {
   const auto gpu_data{render_proxy_handler_->GetSparseUploadGpuData()};
 
   static constexpr usize kShaderBufferBindingCapacity{3};
-  auto& buffer_bindings{*COMET_FRAME_ARRAY(ShaderBufferBindingUpdate,
-                                           kShaderBufferBindingCapacity)};
+  auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
 
   AddBufferBinding(
       buffer_bindings,
@@ -307,9 +307,9 @@ void WorldView::RunSparseUpload() {
   shader_handler_->UpdateGlobals(sparse_upload_shader_, global_update);
 
   static constexpr usize kShaderPushConstantBlockCapacity{1};
-  auto& blocks{*COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate,
-                                  kShaderPushConstantBlockCapacity)};
-  auto& block{blocks.EmplaceBack()};
+  auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderPushConstantBlockUpdate, kShaderPushConstantBlockCapacity)};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = worldsparseuploadshaderconsts::kCountPushConstantIndex;
   block.data = &gpu_data.word_count;
   block.size = sizeof(gpu_data.word_count);
@@ -323,8 +323,7 @@ void WorldView::RunSparseUpload() {
   vkCmdDispatch(context_->GetFrameData().command_buffer_handle,
                 render_proxy_handler_->GetSparseUploadGroupCount(), 1, 1);
 
-  auto& barriers{
-      *COMET_FRAME_ARRAY(VkBufferMemoryBarrier, static_cast<usize>(1))};
+  auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 1)};
   render_proxy_handler_->PopulateSparseUploadBarriers(barriers);
 
   ApplyBufferMemoryBarriers(barriers,
@@ -358,8 +357,8 @@ void WorldView::RunCull(frame::FramePacket* packet) {
 
   {
     static constexpr usize kShaderBufferFieldCapacity{5};
-    auto& field_updates{*COMET_FRAME_ARRAY(ShaderBufferFieldUpdate,
-                                           kShaderBufferFieldCapacity)};
+    auto& field_updates{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+        ShaderBufferFieldUpdate, kShaderBufferFieldCapacity)};
     AddWorldGlobalFieldUpdates(shader_handler_, cull_shader_, packet,
                                field_updates);
 
@@ -369,8 +368,8 @@ void WorldView::RunCull(frame::FramePacket* packet) {
   }
 
   static constexpr usize kShaderBufferBindingCapacity{6};
-  auto& buffer_bindings{*COMET_FRAME_ARRAY(ShaderBufferBindingUpdate,
-                                           kShaderBufferBindingCapacity)};
+  auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -425,11 +424,11 @@ void WorldView::RunCull(frame::FramePacket* packet) {
   shader_handler_->UpdatePass(cull_shader_, pass_update);
 
   static constexpr usize kShaderPushConstantBlockCapacity{1};
-  auto& blocks{*COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate,
-                                  kShaderPushConstantBlockCapacity)};
+  auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderPushConstantBlockUpdate, kShaderPushConstantBlockCapacity)};
 
   const auto draw_count{static_cast<u32>(packet->draw_count)};
-  auto& block{blocks.EmplaceBack()};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = worldcullshaderconsts::kDrawCountPushConstantIndex;
   block.data = &draw_count;
   block.size = sizeof(draw_count);
@@ -444,8 +443,7 @@ void WorldView::RunCull(frame::FramePacket* packet) {
                 render_proxy_handler_->GetCullGroupCount(), 1, 1);
 
   {
-    auto& barriers{
-        *COMET_FRAME_ARRAY(VkBufferMemoryBarrier, static_cast<usize>(2))};
+    auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 2)};
     render_proxy_handler_->PopulateDrawCullBarriers(frame_index, barriers);
 
     ApplyBufferMemoryBarriers(barriers,
@@ -457,8 +455,7 @@ void WorldView::RunCull(frame::FramePacket* packet) {
 
 #ifdef COMET_DEBUG_RENDERING
   {
-    auto& barriers{
-        *COMET_FRAME_ARRAY(VkBufferMemoryBarrier, static_cast<usize>(1))};
+    auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 1)};
     render_proxy_handler_->PopulateCullDebugReadBarriers(frame_index, barriers);
 
     ApplyBufferMemoryBarriers(
@@ -497,9 +494,9 @@ void WorldView::DrawWorld() {
   const auto light_count{lighting_handler_->GetLightCount()};
 
   static constexpr usize kShaderPushConstantBlockCapacity{1};
-  auto& blocks{*COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate,
-                                  kShaderPushConstantBlockCapacity)};
-  auto& block{blocks.EmplaceBack()};
+  auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderPushConstantBlockUpdate, kShaderPushConstantBlockCapacity)};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = worldshaderconsts::kLightingPushConstantIndex;
   block.data = &light_count;
   block.size = sizeof(light_count);

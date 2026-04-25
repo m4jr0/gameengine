@@ -12,7 +12,7 @@
 #include "comet/resource/runtime/loaded_resource_handle.h"
 #include "comet/resource/shader/shader_resource.h"
 #include "comet/resource/texture/texture_resource.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/type/common.h"
 
 namespace comet {
 namespace resource {

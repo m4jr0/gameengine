@@ -20,18 +20,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Multi-config builds.
-foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-    string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
-endforeach()
-
 # Global variables #############################################################
 # Executables.
 set(EXECUTABLE_NAME "comet_editor")
-set(TESTS_EXECUTABLE_NAME "comet_tests")
 
 # Internal library names.
 set(COMET_LIBRARY_NAME "comet")
@@ -40,16 +31,7 @@ set(COMET_LIBRARY_NAME "comet")
 set(MESSAGE_PREFIX "[Comet] ")
 set(VCPKG_REPO "https://github.com/Microsoft/vcpkg.git")
 
-# Build type.
-if (NOT DEFINED CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
 message(STATUS "${MESSAGE_PREFIX}Build type: ${CMAKE_BUILD_TYPE}")
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_compile_definitions(COMET_DEBUG)
-endif()
 
 # OS specifics #################################################################
 if(UNIX AND NOT APPLE)
@@ -57,8 +39,6 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # Vcpkg setup ##################################################################
-string(TOLOWER ${CMAKE_BUILD_TYPE} VCPKG_BUILD_TYPE)
-message(STATUS "${MESSAGE_PREFIX}Vcpkg Build type: ${CMAKE_BUILD_TYPE}")
 set(ENV{VCPKG_FEATURE_FLAGS} "versions")
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -114,12 +94,11 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     )
   endif()
 
-  if(WIN32)
-    set(CMAKE_TOOLCHAIN_FILE
-      "${VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake")
-  else()
-    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-  endif()
+  set(CMAKE_TOOLCHAIN_FILE
+    "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+    CACHE FILEPATH "Vcpkg toolchain file"
+    FORCE
+  )
 
   message(STATUS "${MESSAGE_PREFIX}CMAKE_TOOLCHAIN_FILE set to"
     " \"${CMAKE_TOOLCHAIN_FILE}\".")
@@ -140,10 +119,80 @@ message(STATUS
 project("comet_game_engine"
   VERSION 0.1.0
   DESCRIPTION "Simple video game engine"
-  LANGUAGES CXX C ASM ASM_MASM
+  LANGUAGES CXX C ASM
 )
 
-option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" OFF)
+if(WIN32)
+  enable_language(ASM_MASM)
+endif()
+
+# Debug feature groups.
+option(COMET_FORCE_DEBUG_DEFINES
+  "Define COMET_DEBUG even outside Debug builds"
+  OFF
+)
+
+option(COMET_FULL_DEBUG_CHECKS
+  "Enable every expensive/full debug check used before merging"
+  OFF
+)
+
+option(COMET_DEBUG_LABELIZE_STRING_IDS
+  "Enable string ID labels"
+  OFF
+)
+
+option(COMET_DEBUG_MEMORY_CHECKS
+  "Enable memory-related debug checks"
+  OFF
+)
+
+option(COMET_DEBUG_TRACK_ALLOCATIONS
+  "Enable allocation tracking only"
+  OFF
+)
+
+option(COMET_DEBUG_LOG_CONTEXT_PREFIX
+  "Enable forwarded log context prefixes"
+  OFF
+)
+
+option(COMET_DEBUG_ENTITY_CHECKS
+  "Enable entity debug checks"
+  OFF
+)
+
+option(COMET_DEBUG_RENDERING_CHECKS
+  "Enable rendering debug checks"
+  OFF
+)
+
+if(CMAKE_CONFIGURATION_TYPES)
+  list(APPEND CMAKE_CONFIGURATION_TYPES DebugRelease)
+  list(REMOVE_DUPLICATES CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING "" FORCE)
+endif()
+
+# Multi-config builds.
+foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+    string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+endforeach()
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_DEBUGRELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi" CACHE STRING "" FORCE)
+  set(CMAKE_C_FLAGS_DEBUGRELEASE "${CMAKE_C_FLAGS_RELEASE} /Zi" CACHE STRING "" FORCE)
+  set(CMAKE_EXE_LINKER_FLAGS_DEBUGRELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF" CACHE STRING "" FORCE)
+  set(CMAKE_SHARED_LINKER_FLAGS_DEBUGRELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF" CACHE STRING "" FORCE)
+endif()
+
+if(MSVC)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+
+option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" ON)
 option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" OFF)
 option(COMET_IS_ASAN "Enable ASan (AddressSanitizer)" OFF)
 option(COMET_ARE_STACK_OVERFLOW_CHECKS "Enable stack overflow checks" ON)
@@ -165,50 +214,61 @@ endif()
 if(MSVC)
   # Disable any non-conformant code with Microsoft Visual C++.
   # As to why W4 is used: https://stackoverflow.com/questions/4001736/whats-up-with-the-thousands-of-warnings-in-standard-headers-in-msvc-wall#comment8922238_4001759
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:preprocessor /W4")
+  add_compile_options(
+    $<$<COMPILE_LANGUAGE:CXX>:/permissive->
+    $<$<COMPILE_LANGUAGE:CXX>:/Zc:preprocessor>
+    $<$<COMPILE_LANGUAGE:CXX>:/W4>
+    $<$<COMPILE_LANGUAGE:CXX>:/MP>
+
+    $<$<COMPILE_LANGUAGE:C>:/W4>
+    $<$<COMPILE_LANGUAGE:C>:/MP>
+  )
 
   if(COMET_ARE_WARNINGS_ERRORS)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
+    add_compile_options(
+      $<$<COMPILE_LANGUAGE:CXX>:/WX>
+      $<$<COMPILE_LANGUAGE:C>:/WX>
+    )
   endif()
 
   if(COMET_IS_ASAN)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
-    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} /fsanitize=address")
+    add_compile_options(
+      $<$<COMPILE_LANGUAGE:CXX>:/fsanitize=address>
+      $<$<COMPILE_LANGUAGE:C>:/fsanitize=address>
+    )
+
+    add_link_options(/fsanitize=address)
     add_definitions(-D_DISABLE_STRING_ANNOTATION=1)
     add_definitions(-D_DISABLE_VECTOR_ANNOTATION=1)
   endif()
 
   if(COMET_IS_TSAN)
-    message(ERROR "${MESSAGE_PREFIX}Unsupported option on current compiler: COMET_IS_TSAN")
+    message(FATAL_ERROR "${MESSAGE_PREFIX}Unsupported option on current compiler: COMET_IS_TSAN")
   endif()
 else()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -mavx")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -mavx")
 
   if(COMET_ARE_WARNINGS_ERRORS)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -rdynamic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -rdynamic")
+  endif()
+
+  if(CMAKE_BUILD_TYPE STREQUAL "DebugRelease")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -DNDEBUG -rdynamic")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g -DNDEBUG")
   endif()
 
   if(COMET_IS_ASAN)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
   endif()
 
   if(COMET_IS_TSAN)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-    SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=thread")
-  endif()
-endif()
-
-if(COMET_DEBUG_RELEASE)
-  if(MSVC)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
-    add_link_options("/INCREMENTAL:NO" "/DEBUG" "/OPT:REF" "/OPT:ICF")
-  else()
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -rdynamic -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=thread")
   endif()
 endif()
 
@@ -219,6 +279,25 @@ list(GET VERSION_LIST 1 COMET_VERSION_MINOR)
 list(GET VERSION_LIST 2 COMET_VERSION_PATCH)
 
 add_library(${COMET_LIBRARY_NAME})
+
+target_compile_definitions(${COMET_LIBRARY_NAME}
+  PUBLIC
+    $<$<OR:$<CONFIG:Debug>,$<CONFIG:DebugRelease>,$<BOOL:${COMET_FORCE_DEBUG_DEFINES}>>:COMET_DEBUG>
+
+    $<$<BOOL:${COMET_FULL_DEBUG_CHECKS}>:COMET_FULL_DEBUG_CHECKS>
+    $<$<BOOL:${COMET_DEBUG_LABELIZE_STRING_IDS}>:COMET_DEBUG_LABELIZE_STRING_IDS>
+    $<$<BOOL:${COMET_DEBUG_MEMORY_CHECKS}>:COMET_DEBUG_MEMORY_CHECKS>
+    $<$<BOOL:${COMET_DEBUG_TRACK_ALLOCATIONS}>:COMET_DEBUG_TRACK_ALLOCATIONS>
+    $<$<BOOL:${COMET_DEBUG_LOG_CONTEXT_PREFIX}>:COMET_DEBUG_LOG_CONTEXT_PREFIX>
+    $<$<BOOL:${COMET_DEBUG_ENTITY_CHECKS}>:COMET_DEBUG_ENTITY_CHECKS>
+    $<$<BOOL:${COMET_DEBUG_RENDERING_CHECKS}>:COMET_DEBUG_RENDERING_CHECKS>
+
+    COMET_NAME="${COMET_NAME}"
+    COMET_VERSION_MAJOR=${COMET_VERSION_MAJOR}
+    COMET_VERSION_MINOR=${COMET_VERSION_MINOR}
+    COMET_VERSION_PATCH=${COMET_VERSION_PATCH}
+    COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+)
 
 target_precompile_headers(${COMET_LIBRARY_NAME}
   PRIVATE 
@@ -234,20 +313,6 @@ else()
     message(ERROR "${MESSAGE_PREFIX}Unsupported option on current compiler: COMET_IS_BUILD_PERFORMANCE_SUMMARY")
   endif()
 endif()
-
-target_compile_definitions(${COMET_LIBRARY_NAME}
-  PUBLIC
-    COMET_NAME="${COMET_NAME}"
-    COMET_VERSION_MAJOR=${COMET_VERSION_MAJOR}
-    COMET_VERSION_MINOR=${COMET_VERSION_MINOR}
-    COMET_VERSION_PATCH=${COMET_VERSION_PATCH}
-    COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
-)
-
-# Vcpkg variables ##############################################################
-set(VCPKG_BASE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
-set(VCPKG_INCLUDE_DIR "${VCPKG_BASE_DIR}/include")
-set(VCPKG_LIBRARY_DIR "${VCPKG_BASE_DIR}/lib")
 
 # Subdirectories ###############################################################
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet")

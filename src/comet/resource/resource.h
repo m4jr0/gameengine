@@ -11,8 +11,8 @@
 #include "comet/core/type/string_id.h"
 #include "comet/core/type/tstring.h"
 #include "comet/core/type_trait.h"
-#include "comet/resource/label/resource_common_label.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/label/common_label.h"
+#include "comet/resource/type/common.h"
 
 namespace comet {
 namespace resource {

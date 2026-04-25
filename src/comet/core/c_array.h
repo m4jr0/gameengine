@@ -102,6 +102,41 @@ T* Reserve(memory::Allocator* allocator, T* data, usize size, usize capacity,
   return new_data;
 }
 
+template <typename T>
+T* TrimCapacity(memory::Allocator* allocator, T* data, usize size,
+                usize capacity) {
+  COMET_ASSERT(allocator != nullptr, "c_array::TrimCapacity",
+               "allocator is null");
+  COMET_ASSERT(size == 0 || data != nullptr, "c_array::TrimCapacity",
+               "data is null", "size", size);
+
+  if (size == capacity) {
+    return data;
+  }
+
+  if (size == 0) {
+    if (data != nullptr) {
+      allocator->Deallocate(data);
+    }
+
+    return nullptr;
+  }
+
+  auto* new_data{allocator->AllocateMany<T>(size)};
+
+  if constexpr (std::is_trivially_constructible_v<T>) {
+    memory::CopyMemory(new_data, data, size * sizeof(T));
+  } else {
+    for (usize i{0}; i < size; ++i) {
+      memory::Populate<T>(&new_data[i], std::move(data[i]));
+      data[i].~T();
+    }
+  }
+
+  allocator->Deallocate(data);
+  return new_data;
+}
+
 template <typename T,
           typename = std::enable_if_t<
               !std::is_same_v<T, schar> && !std::is_same_v<T, wchar> &&

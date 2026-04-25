@@ -10,7 +10,7 @@
 #include "material_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 #include "comet/core/type/string_id.h"
 
 namespace comet {
@@ -84,7 +84,7 @@ MaterialResourceId GenerateQualifiedMaterialId(CTStringView file_path,
   if (total_len + 1 <= kMaxStackBufferSize) {
     buffer = stack_buffer;
   } else {
-    buffer = GenerateForOneFrame<schar>(total_len + 1);
+    buffer = GenerateFrameString<schar>(total_len + 1);
   }
 
   usize cursor{0};

@@ -10,17 +10,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_render_proxy_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_render_proxy.h"
 
 namespace comet {
 namespace rendering {

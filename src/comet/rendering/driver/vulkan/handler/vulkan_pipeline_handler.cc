@@ -259,8 +259,10 @@ PipelineBindType PipelineHandler::GetBindType(PipelineHandle handle) const {
 void PipelineHandler::OnInitialize() {
   allocator_.Initialize();
 
-  pipelines_ = Array<Pipeline*>{&allocator_};
-  layouts_ = Array<PipelineLayout*>{&allocator_};
+  constexpr usize kDefaultCapacity(16);
+  pipelines_ = Array<Pipeline*>::WithCapacity(&allocator_, kDefaultCapacity);
+  layouts_ =
+      Array<PipelineLayout*>::WithCapacity(&allocator_, kDefaultCapacity);
 
   bound_pipeline_.Invalidate();
 }
@@ -278,8 +280,8 @@ void PipelineHandler::OnShutdown() {
     }
   }
 
-  pipelines_.Destroy();
-  layouts_.Destroy();
+  pipelines_.Release();
+  layouts_.Release();
 
   pipeline_pool_.Destroy();
   layout_pool_.Destroy();

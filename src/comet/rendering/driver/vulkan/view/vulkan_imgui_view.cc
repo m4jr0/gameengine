@@ -19,8 +19,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/c_array.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
@@ -70,7 +70,7 @@ void ImGuiView::OnInitialize() {
   render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
   render_pass_descr.dependencies.Reserve(1);
 
-  auto& dependency{render_pass_descr.dependencies.EmplaceBack()};
+  auto& dependency{render_pass_descr.dependencies.EmplaceLast()};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass = 0;
   dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;

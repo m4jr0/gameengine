@@ -16,7 +16,7 @@
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/light_manager.h"
 #include "comet/rendering/rendering_manager.h"
-#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/light.h"
 #include "comet/time/time_manager.h"
 
 namespace comet {

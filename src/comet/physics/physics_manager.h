@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/manager.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/math/matrix.h"
 #include "comet/physics/component/transform_component.h"
 
@@ -26,9 +26,6 @@ class PhysicsManager : public Manager {
   ~PhysicsManager() override = default;
 
   void Update(frame::FramePacket* packet);
-
-  void UpdateTree(frame::FramePacket* packet, entity::EntityId parent_entity_id,
-                  const TransformComponent* parent_transform_cmp) const;
 
   TransformRootComponent GenerateTransformRootComponent() const;
   TransformComponent GenerateTransformComponent(
@@ -49,6 +46,9 @@ class PhysicsManager : public Manager {
 
  private:
   void UpdateEntityTransforms(frame::FramePacket* packet);
+
+  void UpdateTree(frame::FramePacket* packet, entity::EntityId root_entity_id,
+                  const TransformComponent* root_transform_cmp) const;
 
   u32 counter_{0};
   u32 frame_rate_{0};

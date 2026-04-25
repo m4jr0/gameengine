@@ -21,7 +21,7 @@
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_view_handler.h"
 #include "comet/rendering/driver/opengl/opengl_frame_state.h"
-#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/common.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {

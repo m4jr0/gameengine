@@ -18,7 +18,7 @@
 #include <string>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 
 namespace comet {
 s32 Compare(const schar* str1, const schar* str2) {
@@ -759,7 +759,7 @@ void ConvertToStr(bool boolean, wchar* buffer, usize buffer_len,
 
 const schar* GenerateTmpFromFormat(usize buffer_size, const schar* format,
                                    ...) {
-  auto* buffer{GenerateForOneFrame<schar>(buffer_size)};
+  auto* buffer{GenerateFrameString<schar>(buffer_size)};
   va_list args;
   va_start(args, format);
   std::vsnprintf(buffer, buffer_size, format, args);

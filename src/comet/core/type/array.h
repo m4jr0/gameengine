@@ -6,6 +6,7 @@
 #define COMET_COMET_CORE_TYPE_ARRAY_H_
 
 // External. ///////////////////////////////////////////////////////////////////
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
@@ -44,6 +45,13 @@ class BaseArray {
     return this->data_[index];
   }
 
+  template <typename U>
+  T& Set(usize index, U&& value) {
+    auto& slot{this->operator[](index)};
+    slot = std::forward<U>(value);
+    return slot;
+  }
+
   bool IsContained(const T& value) const {
     return comet::IsContained(this->data_, this->size_, value);
   }
@@ -64,15 +72,15 @@ class BaseArray {
 
   T& GetLast() {
     COMET_CASSERT(this->size_ > 0, "index out of bounds");
-    return this->data_[size_ - 1];
+    return this->data_[this->size_ - 1];
   }
 
   const T& GetLast() const {
     COMET_CASSERT(this->size_ > 0, "index out of bounds");
-    return this->data_[size_ - 1];
+    return this->data_[this->size_ - 1];
   }
 
-  usize GetSize() const noexcept { return this->size_; };
+  usize GetSize() const noexcept { return this->size_; }
   T* GetData() noexcept { return this->data_; }
   const T* GetData() const noexcept { return this->data_; }
   bool IsEmpty() const noexcept { return this->size_ == 0; }
@@ -87,71 +95,68 @@ class BaseArray {
 
 template <typename T>
 class Array : public internal::BaseArray<T> {
+  struct WithCapacityTag {};
+  struct FromDataTag {};
+
  public:
+  static Array WithCapacity(memory::Allocator* allocator, usize capacity) {
+    return Array{allocator, WithCapacityTag{}, capacity};
+  }
+
+  static Array FromData(memory::Allocator* allocator, const T* data,
+                        usize count) {
+    return Array{allocator, FromDataTag{}, data, count};
+  }
+
   Array() = default;
 
   explicit Array(memory::Allocator* allocator)
       : internal::BaseArray<T>{0, nullptr}, allocator_{allocator} {}
 
-  Array(memory::Allocator* allocator, usize capacity)
-      : internal::BaseArray<T>{0,
-                               capacity == 0
-                                   ? nullptr
-                                   : static_cast<T*>(allocator->AllocateAligned(
-                                         capacity * sizeof(T), alignof(T)))},
-        capacity_{capacity},
-        allocator_{allocator} {}
-
-  template <typename... Targs>
+  template <typename... Targs,
+            typename = std::enable_if_t<(sizeof...(Targs) > 1)>>
   Array(memory::Allocator* allocator, Targs&&... args)
-      : internal::BaseArray<T>{sizeof...(Targs),
-                               sizeof...(Targs) == 0
-                                   ? nullptr
-                                   : static_cast<T*>(allocator->AllocateAligned(
-                                         sizeof...(Targs) * sizeof(T),
-                                         alignof(T)))},
+      : internal::BaseArray<T>{0, nullptr},
         capacity_{sizeof...(Targs)},
         allocator_{allocator} {
+    COMET_ASSERT(allocator_ != nullptr, "Array::Array", "allocator is null");
+
+    this->data_ = static_cast<T*>(
+        allocator_->AllocateAligned(capacity_ * sizeof(T), alignof(T)));
+
     usize index{0};
+
     ((memory::Populate<T>(&this->data_[index++], std::forward<Targs>(args))),
      ...);
-  }
 
-  Array(memory::Allocator* allocator, const T* data, usize count)
-      : internal::BaseArray<T>(
-            count, count == 0 ? nullptr
-                              : static_cast<T*>(allocator->AllocateAligned(
-                                    count * sizeof(T), alignof(T)))),
-        capacity_{count},
-        allocator_{allocator} {
-    if (this->data_ == nullptr) {
-      return;
-    }
-
-    for (usize i{0}; i < count; ++i) {
-      memory::Populate<T>(&this->data_[i], allocator_, data[i]);
-    }
+    this->size_ = capacity_;
   }
 
   Array(const Array& other)
-      : internal::BaseArray<T>{other.size_,
-                               other.size_ == 0
-                                   ? nullptr
-                                   : static_cast<T*>(
-                                         other.allocator_->AllocateAligned(
-                                             other.capacity_ * sizeof(T),
-                                             alignof(T)))},
+      : internal::BaseArray<T>{0, nullptr},
         capacity_{other.capacity_},
         allocator_{other.allocator_} {
-    if (this->data_ != nullptr) {
-      for (usize i{0}; i < this->size_; ++i) {
-        memory::Populate<T>(&this->data_[i], other.data_[i]);
+    COMET_ASSERT(capacity_ == 0 || allocator_ != nullptr, "Array::Array",
+                 "source allocator is null");
+
+    if (capacity_ != 0) {
+      this->data_ = static_cast<T*>(
+          allocator_->AllocateAligned(capacity_ * sizeof(T), alignof(T)));
+
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        memory::CopyMemory(this->data_, other.data_, other.size_ * sizeof(T));
+      } else {
+        for (usize i{0}; i < other.size_; ++i) {
+          memory::Populate<T>(&this->data_[i], other.data_[i]);
+        }
       }
     }
+
+    this->size_ = other.size_;
   }
 
   Array(Array&& other) noexcept
-      : internal::BaseArray<T>(other.size_, other.data_),
+      : internal::BaseArray<T>{other.size_, other.data_},
         capacity_{other.capacity_},
         allocator_{other.allocator_} {
     other.size_ = 0;
@@ -165,21 +170,28 @@ class Array : public internal::BaseArray<T> {
       return *this;
     }
 
-    Destroy();
+    Release();
 
-    this->size_ = other.size_;
-    this->capacity_ = other.capacity_;
-    this->allocator_ = other.allocator_;
+    capacity_ = other.capacity_;
+    allocator_ = other.allocator_;
 
-    if (this->size_ != 0) {
-      this->data_ = static_cast<T*>(this->allocator_->AllocateAligned(
-          this->capacity_ * sizeof(T), alignof(T)));
+    COMET_ASSERT(capacity_ == 0 || allocator_ != nullptr,
+                 "Array::operator=", "source allocator is null");
 
-      for (usize i{0}; i < this->size_; ++i) {
-        memory::Populate<T>(&this->data_[i], other.data_[i]);
+    if (capacity_ != 0) {
+      this->data_ = static_cast<T*>(
+          allocator_->AllocateAligned(capacity_ * sizeof(T), alignof(T)));
+
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        memory::CopyMemory(this->data_, other.data_, other.size_ * sizeof(T));
+      } else {
+        for (usize i{0}; i < other.size_; ++i) {
+          memory::Populate<T>(&this->data_[i], other.data_[i]);
+        }
       }
     }
 
+    this->size_ = other.size_;
     return *this;
   }
 
@@ -188,12 +200,12 @@ class Array : public internal::BaseArray<T> {
       return *this;
     }
 
-    Destroy();
+    Release();
 
     this->size_ = other.size_;
-    this->capacity_ = other.capacity_;
+    capacity_ = other.capacity_;
     this->data_ = other.data_;
-    this->allocator_ = other.allocator_;
+    allocator_ = other.allocator_;
 
     other.size_ = 0;
     other.capacity_ = 0;
@@ -203,9 +215,9 @@ class Array : public internal::BaseArray<T> {
     return *this;
   }
 
-  ~Array() { Destroy(); }
+  ~Array() { Release(); }
 
-  bool operator==(const Array& other) {
+  bool operator==(const Array& other) const {
     if (this->size_ != other.size_) {
       return false;
     }
@@ -219,32 +231,49 @@ class Array : public internal::BaseArray<T> {
     return true;
   }
 
-  bool operator!=(const Array& other) { return !operator==(other); }
+  bool operator!=(const Array& other) const { return !operator==(other); }
 
-  void Destroy() {
+  void Release() {
     if (this->data_ != nullptr) {
+      COMET_ASSERT(allocator_ != nullptr, "Array::Release",
+                   "allocator is null while data is not null");
       comet::Clear(this->data_, this->size_);
-      this->allocator_->Deallocate(this->data_);
+      allocator_->Deallocate(this->data_);
     }
 
-    this->allocator_ = nullptr;
+    allocator_ = nullptr;
     this->data_ = nullptr;
     this->size_ = 0;
-    this->capacity_ = 0;
+    capacity_ = 0;
   }
 
   void Reserve(usize new_capacity) {
-    if (new_capacity <= this->capacity_) {
+    if (new_capacity <= capacity_) {
       return;
     }
 
-    this->data_ = comet::Reserve(this->allocator_, this->data_, this->size_,
-                                 this->capacity_, new_capacity);
-    this->capacity_ = new_capacity;
+    COMET_ASSERT(allocator_ != nullptr, "Array::Reserve", "allocator is null");
+
+    this->data_ = comet::Reserve(allocator_, this->data_, this->size_,
+                                 capacity_, new_capacity);
+    capacity_ = new_capacity;
+  }
+
+  void TrimCapacity() {
+    if (this->size_ == capacity_) {
+      return;
+    }
+
+    COMET_ASSERT(allocator_ != nullptr, "Array::TrimCapacity",
+                 "allocator is null");
+
+    this->data_ =
+        comet::TrimCapacity(allocator_, this->data_, this->size_, capacity_);
+    capacity_ = this->size_;
   }
 
   void Resize(usize new_size) {
-    if (new_size > this->capacity_) {
+    if (new_size > capacity_) {
       Reserve(new_size);
     }
 
@@ -254,7 +283,7 @@ class Array : public internal::BaseArray<T> {
                             (new_size - this->size_) * sizeof(T));
       } else {
         for (usize i{this->size_}; i < new_size; ++i) {
-          memory::Populate<T>(&this->data_[i], this->allocator_);
+          memory::Populate<T>(&this->data_[i], allocator_);
         }
       }
     } else if (new_size < this->size_) {
@@ -269,9 +298,9 @@ class Array : public internal::BaseArray<T> {
   }
 
   template <typename U>
-  void PushBack(U&& value) {
-    if (this->size_ == this->capacity_) {
-      Reserve(this->capacity_ == 0 ? 1 : this->capacity_ * 2);
+  void PushLast(U&& value) {
+    if (this->size_ == capacity_) {
+      Reserve(capacity_ == 0 ? 1 : capacity_ * 2);
     }
 
     memory::Populate<T>(&this->data_[this->size_++],
@@ -282,14 +311,19 @@ class Array : public internal::BaseArray<T> {
   T& Emplace(usize index, Targs&&... args) {
     COMET_ASSERT(index < this->size_, "Array::Emplace", "index out of bounds",
                  "index", index, "size", this->size_);
+
+    if constexpr (!std::is_trivially_destructible_v<T>) {
+      this->data_[index].~T();
+    }
+
     memory::Populate<T>(&this->data_[index], std::forward<Targs>(args)...);
     return this->data_[index];
   }
 
   template <typename... Targs>
-  T& EmplaceBack(Targs&&... args) {
-    if (this->size_ == this->capacity_) {
-      Reserve(this->capacity_ == 0 ? 1 : this->capacity_ * 2);
+  T& EmplaceLast(Targs&&... args) {
+    if (this->size_ == capacity_) {
+      Reserve(capacity_ == 0 ? 1 : capacity_ * 2);
     }
 
     memory::Populate<T>(&this->data_[this->size_],
@@ -297,8 +331,9 @@ class Array : public internal::BaseArray<T> {
     return this->data_[this->size_++];
   }
 
-  void PopBack() {
-    COMET_ASSERT(this->size_ > 0, "Array::PopBack", "array is empty");
+  void PopLast() {
+    COMET_ASSERT(this->size_ > 0, "Array::PopLast", "array is empty");
+
     --this->size_;
 
     if constexpr (!std::is_trivially_destructible_v<T>) {
@@ -306,13 +341,16 @@ class Array : public internal::BaseArray<T> {
     }
   }
 
-  T TakeBack() {
-    COMET_ASSERT(this->size_ > 0, "Array::TakeBack", "array is empty");
-    const auto value{std::move(this->data_[this->size_ - 1])};
+  T TakeLast() {
+    COMET_ASSERT(this->size_ > 0, "Array::TakeLast", "array is empty");
+
+    const auto index{this->size_ - 1};
+    T value{std::move(this->data_[index])};
+
     --this->size_;
 
     if constexpr (!std::is_trivially_destructible_v<T>) {
-      this->data_[this->size_].~T();
+      this->data_[index].~T();
     }
 
     return value;
@@ -324,7 +362,11 @@ class Array : public internal::BaseArray<T> {
     }
 
     --this->size_;
-    this->data_[this->size_].~T();
+
+    if constexpr (!std::is_trivially_destructible_v<T>) {
+      this->data_[this->size_].~T();
+    }
+
     return pos;
   }
 
@@ -347,6 +389,7 @@ class Array : public internal::BaseArray<T> {
   ContiguousIterator<T> RemoveFromIndex(usize index) {
     COMET_ASSERT(index < this->size_, "Array::RemoveFromIndex",
                  "index out of bounds", "index", index, "size", this->size_);
+
     return RemoveFromPos(this->begin() + index);
   }
 
@@ -354,45 +397,142 @@ class Array : public internal::BaseArray<T> {
                      usize dst_offset = kInvalidIndex, usize src_offset = 0) {
     COMET_ASSERT(src != nullptr, "Array::PushFromRange",
                  "source array is null");
+    COMET_ASSERT(src_offset <= src_size, "Array::PushFromRange",
+                 "source offset exceeds bounds", "src_offset", src_offset,
+                 "src_size", src_size);
+
+    if (count == kInvalidIndex) {
+      count = src_size - src_offset;
+    }
 
     if (count == 0) {
       return;
     }
 
-    if (count == kInvalidIndex) {
-      count = src_size;
-    }
+    COMET_ASSERT(src_offset + count <= src_size, "Array::PushFromRange",
+                 "source range exceeds bounds", "src_offset", src_offset,
+                 "count", count, "src_size", src_size);
 
     if (dst_offset == kInvalidIndex) {
       dst_offset = this->size_;
     }
 
-    const auto new_size{math::Max(this->size_, dst_offset + count)};
+    const auto* old_data{this->data_};
+    const auto old_size{this->size_};
+    const auto new_size{math::Max(old_size, dst_offset + count)};
+
+    const auto* src_begin{src + src_offset};
+    const auto* src_end{src_begin + count};
+
+    [[maybe_unused]] const auto is_self_range{old_data != nullptr &&
+                                              src_begin < old_data + old_size &&
+                                              old_data < src_end};
+
+    COMET_ASSERT(!is_self_range || new_size <= capacity_,
+                 "Array::PushFromRange",
+                 "self-range PushFromRange cannot grow because source would be "
+                 "invalidated");
+
     Reserve(new_size);
-    comet::Copy(this->data_, this->capacity_, src, src_size, count, dst_offset,
-                src_offset);
+
+    if constexpr (std::is_trivially_copyable_v<T>) {
+      memory::CopyOrMoveMemory(this->data_ + dst_offset, src_begin,
+                               count * sizeof(T));
+    } else {
+      const bool copy_backward{is_self_range &&
+                               (old_data + dst_offset > src_begin)};
+
+      if (copy_backward) {
+        for (usize n{count}; n > 0; --n) {
+          const auto i{n - 1};
+          const auto dst_index{dst_offset + i};
+          const auto src_index{src_offset + i};
+
+          if (dst_index < old_size) {
+            this->data_[dst_index] = src[src_index];
+          } else {
+            memory::Populate<T>(&this->data_[dst_index], src[src_index]);
+          }
+        }
+      } else {
+        for (usize i{0}; i < count; ++i) {
+          const auto dst_index{dst_offset + i};
+          const auto src_index{src_offset + i};
+
+          if (dst_index < old_size) {
+            this->data_[dst_index] = src[src_index];
+          } else {
+            memory::Populate<T>(&this->data_[dst_index], src[src_index]);
+          }
+        }
+      }
+    }
+
     this->size_ = new_size;
   }
 
-  template <typename TArray>
+  template <typename TArray,
+            typename = std::enable_if_t<!std::is_array_v<TArray>>>
   void PushFromRange(const TArray& src, usize count = kInvalidIndex,
                      usize dst_offset = kInvalidIndex, usize src_offset = 0) {
-    static_assert(std::is_same_v<decltype(src.GetData()), const T*> &&
+    static_assert(std::is_convertible_v<decltype(src.GetData()), const T*> &&
                       std::is_same_v<decltype(src.GetSize()), usize>,
                   "TArray must have GetData() and GetSize() methods");
+
     PushFromRange(src.GetData(), src.GetSize(), count, dst_offset, src_offset);
+  }
+
+  template <usize N>
+  void PushFromRange(const T (&src)[N], usize count = kInvalidIndex,
+                     usize dst_offset = kInvalidIndex, usize src_offset = 0) {
+    PushFromRange(src, N, count, dst_offset, src_offset);
   }
 
   void Clear() {
     if (this->data_ != nullptr) {
       comet::Clear(this->data_, this->size_);
-      this->size_ = 0;
+    }
+
+    this->size_ = 0;
+  }
+
+  usize GetCapacity() const noexcept { return capacity_; }
+  memory::Allocator* GetAllocator() noexcept { return allocator_; }
+  const memory::Allocator* GetAllocator() const noexcept { return allocator_; }
+
+ private:
+  Array(memory::Allocator* allocator, WithCapacityTag, usize capacity)
+      : internal::BaseArray<T>{}, capacity_{capacity}, allocator_{allocator} {
+    COMET_ASSERT(capacity == 0 || allocator != nullptr, "Array::WithCapacity",
+                 "allocator is null");
+
+    if (capacity != 0) {
+      this->data_ = static_cast<T*>(
+          allocator->AllocateAligned(capacity * sizeof(T), alignof(T)));
     }
   }
 
-  usize GetCapacity() const noexcept { return this->capacity_; };
+  Array(memory::Allocator* allocator, FromDataTag, const T* data, usize count)
+      : internal::BaseArray<T>{0, nullptr},
+        capacity_{count},
+        allocator_{allocator} {
+    COMET_ASSERT(count == 0 || allocator_ != nullptr, "Array::FromData",
+                 "allocator is null");
+    COMET_ASSERT(count == 0 || data != nullptr, "Array::FromData",
+                 "source data is null");
 
- private:
+    if (count != 0) {
+      this->data_ = static_cast<T*>(
+          allocator_->AllocateAligned(count * sizeof(T), alignof(T)));
+
+      for (usize i{0}; i < count; ++i) {
+        memory::Populate<T>(&this->data_[i], data[i]);
+      }
+    }
+
+    this->size_ = count;
+  }
+
   usize capacity_{0};
   memory::Allocator* allocator_{nullptr};
 };
@@ -416,9 +556,15 @@ class StaticArray {
 
   constexpr const T& Get(usize index) const { return data_[index]; }
 
-  constexpr bool operator==(const StaticArray& other) {
+  template <typename U>
+  constexpr T& Set(usize index, U&& value) {
+    data_[index] = std::forward<U>(value);
+    return data_[index];
+  }
+
+  constexpr bool operator==(const StaticArray& other) const {
     for (usize i{0}; i < N; ++i) {
-      if (!(this->data_[i] == other.data_[i])) {
+      if (!(data_[i] == other.data_[i])) {
         return false;
       }
     }
@@ -426,7 +572,7 @@ class StaticArray {
     return true;
   }
 
-  constexpr bool operator!=(const StaticArray& other) {
+  constexpr bool operator!=(const StaticArray& other) const {
     return !operator==(other);
   }
 
@@ -458,13 +604,13 @@ class StaticArray {
 
   constexpr bool IsEmpty() const noexcept { return N == 0; }
 
-  T& GetFirst() { return this->data_[0]; }
+  T& GetFirst() { return data_[0]; }
 
-  const T& GetFirst() const { return this->data_[0]; }
+  const T& GetFirst() const { return data_[0]; }
 
-  T& GetLast() { return this->data_[N - 1]; }
+  T& GetLast() { return data_[N - 1]; }
 
-  const T& GetLast() const { return this->data_[N - 1]; }
+  const T& GetLast() const { return data_[N - 1]; }
 
  private:
   T data_[N]{};
@@ -487,12 +633,12 @@ class StaticArray<T, 0> {
 
   constexpr const T* cend() const noexcept { return nullptr; }
 
-  constexpr std::reverse_iterator<T> rbegin() noexcept {
-    return std::reverse_iterator<T>(end());
+  constexpr std::reverse_iterator<T*> rbegin() noexcept {
+    return std::reverse_iterator<T*>(end());
   }
 
-  constexpr std::reverse_iterator<T> rend() noexcept {
-    return std::reverse_iterator<T>(begin());
+  constexpr std::reverse_iterator<T*> rend() noexcept {
+    return std::reverse_iterator<T*>(begin());
   }
 
   constexpr std::reverse_iterator<const T*> rbegin() const noexcept {
@@ -513,13 +659,13 @@ class StaticArray<T, 0> {
 
   constexpr StaticArray() {}
 
-  constexpr bool operator==(const StaticArray&) { return true; }
+  constexpr bool operator==(const StaticArray&) const { return true; }
 
-  constexpr bool operator!=(const StaticArray&) { return false; }
+  constexpr bool operator!=(const StaticArray&) const { return false; }
 
-  constexpr bool IsContained(const T& value) const { return false; }
+  constexpr bool IsContained(const T&) const { return false; }
 
-  constexpr usize GetIndex(const T& value) const { return kInvalidIndex; }
+  constexpr usize GetIndex(const T&) const { return kInvalidIndex; }
 
   constexpr usize GetSize() const noexcept { return 0; }
 
@@ -559,12 +705,18 @@ class StaticArray<T, 0> {
     throw std::out_of_range{"index"};
   }
 
-  constexpr T& Get(usize index) {
+  constexpr T& Get(usize) {
     COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{"index"};
   }
 
-  constexpr const T& Get(usize index) const {
+  constexpr const T& Get(usize) const {
+    COMET_CASSERT(false, "index out of bounds");
+    throw std::out_of_range{"index"};
+  }
+
+  template <typename U>
+  constexpr T& Set(usize, U&&) {
     COMET_CASSERT(false, "index out of bounds");
     throw std::out_of_range{"index"};
   }

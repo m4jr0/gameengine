@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/utils/rendering_texture_utils.h"
+#include "comet/rendering/utils/texture_utils.h"
 
 namespace comet {
 namespace rendering {

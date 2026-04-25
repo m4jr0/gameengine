@@ -463,6 +463,6 @@ void ConfigurationManager::OnInitialize() {
   ParseConfFile();
 }
 
-void ConfigurationManager::OnShutdown() { values_.Destroy(); }
+void ConfigurationManager::OnShutdown() { values_.Release(); }
 }  // namespace conf
 }  // namespace comet

@@ -14,7 +14,7 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_module_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader_module.h"
 #include "comet/rendering/rendering_handle.h"
 #include "comet/resource/shader/shader_module_resource.h"
 

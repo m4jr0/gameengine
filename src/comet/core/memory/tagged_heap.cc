@@ -18,6 +18,7 @@
 #include "comet/core/memory/memory_label.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/memory/virtual_memory.h"
+#include "comet/math/math_scalar.h"
 
 namespace comet {
 namespace memory {
@@ -65,11 +66,12 @@ void TaggedHeap::Initialize() {
           alignof(Bitset::Word),
       kEngineMemoryTagTaggedHeap};
   bitset_allocator_.Initialize();
-  global_block_map_ = Bitset{&bitset_allocator_, total_block_count_};
+  global_block_map_ = Bitset::WithSize(&bitset_allocator_, total_block_count_);
 
   for (auto& bucket : tag_block_maps_) {
     for (auto& entry : bucket) {
-      entry.block_map = Bitset{&bitset_allocator_, total_block_count_};
+      entry.block_map =
+          Bitset::WithSize(&bitset_allocator_, total_block_count_);
       entry.tag = kEngineMemoryTagInvalid;
     }
   }
@@ -81,11 +83,11 @@ void TaggedHeap::Destroy() {
   COMET_ASSERT(is_initialized_, "TaggedHeap::Destroy",
                "tagged heap is not initialized");
 
-  global_block_map_.Destroy();
+  global_block_map_.Release();
 
   for (auto& bucket : tag_block_maps_) {
     for (auto& entry : bucket) {
-      entry.block_map.Destroy();
+      entry.block_map.Release();
       entry.tag = kEngineMemoryTagInvalid;
     }
   }
@@ -193,6 +195,17 @@ void TaggedHeap::DeallocateAll(MemoryTag tag) {
   COMET_REGISTER_TAGGED_HEAP_DEALLOCATION(tag);
 }
 
+TaggedHeapStats TaggedHeap::GetStats() const {
+  fiber::FiberLockGuard lock{mutex_};
+  return GetStatsNoLock();
+}
+
+bool TaggedHeap::IsFragmentedFor(usize block_count) const {
+  const auto stats{GetStats()};
+  return stats.free_block_count >= block_count &&
+         stats.largest_free_range < block_count;
+}
+
 bool TaggedHeap::IsInitialized() const noexcept { return is_initialized_; }
 
 usize TaggedHeap::GetBlockSize() const noexcept { return block_size_; }
@@ -216,9 +229,16 @@ void* TaggedHeap::AllocateInternal(usize size, MemoryTag tag,
     free_blocks_index = ResolveFreeBlocks(block_count);
 
     if (free_blocks_index == kInvalidIndex) {
+      [[maybe_unused]] const auto stats{GetStatsNoLock()};
+
       COMET_ASSERT(false, "TaggedHeap::AllocateInternal",
                    "no contiguous block range is available", "size", size,
-                   "tag", GetMemoryTagLabel(tag), "block_count", block_count);
+                   "tag", GetMemoryTagLabel(tag), "block_count", block_count,
+                   "free_block_count", stats.free_block_count,
+                   "largest_free_range", stats.largest_free_range,
+                   "free_range_count", stats.free_range_count, "is_fragmented",
+                   stats.free_block_count >= block_count &&
+                       stats.largest_free_range < block_count);
 
       throw std::bad_alloc();
     }
@@ -275,6 +295,39 @@ TaggedHeap::TagBlockMap* TaggedHeap::FindOrAddTag(MemoryTag tag) {
                GetMemoryTagLabel(tag), "bucket_index", bucket_index);
 
   return nullptr;
+}
+
+TaggedHeapStats TaggedHeap::GetStatsNoLock() const {
+  TaggedHeapStats stats{};
+  stats.total_block_count = total_block_count_;
+
+  usize current_free_range{0};
+
+  for (usize i{0}; i < total_block_count_; ++i) {
+    if (global_block_map_.Test(i)) {
+      ++stats.used_block_count;
+
+      if (current_free_range > 0) {
+        ++stats.free_range_count;
+        stats.largest_free_range =
+            math::Max(stats.largest_free_range, current_free_range);
+        current_free_range = 0;
+      }
+
+      continue;
+    }
+
+    ++stats.free_block_count;
+    ++current_free_range;
+  }
+
+  if (current_free_range > 0) {
+    ++stats.free_range_count;
+    stats.largest_free_range =
+        math::Max(stats.largest_free_range, current_free_range);
+  }
+
+  return stats;
 }
 }  // namespace memory
 }  // namespace comet

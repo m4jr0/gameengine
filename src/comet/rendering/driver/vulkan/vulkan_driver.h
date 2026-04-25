@@ -15,8 +15,8 @@
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/driver.h"
@@ -32,7 +32,7 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_module_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_view_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_command_buffer_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_command_buffer.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 

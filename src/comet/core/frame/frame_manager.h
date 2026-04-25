@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_COMET_CORE_FRAME_MANAGER_H_
-#define COMET_COMET_CORE_FRAME_MANAGER_H_
+#ifndef COMET_COMET_CORE_FRAME_FRAME_MANAGER_H_
+#define COMET_COMET_CORE_FRAME_FRAME_MANAGER_H_
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
@@ -79,4 +79,4 @@ class FrameManager : public Manager {
 }  // namespace frame
 }  // namespace comet
 
-#endif  // COMET_COMET_CORE_FRAME_MANAGER_H_
+#endif  // COMET_COMET_CORE_FRAME_FRAME_MANAGER_H_

@@ -8,10 +8,10 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/opengl_frame_state.h"
-#include "comet/rendering/driver/opengl/type/opengl_view_type.h"
-#include "comet/rendering/type/rendering_common_type.h"
-#include "comet/rendering/type/rendering_texture_type.h"
-#include "comet/rendering/type/rendering_view_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_view.h"
+#include "comet/rendering/type/common.h"
+#include "comet/rendering/type/texture.h"
+#include "comet/rendering/type/view.h"
 
 namespace comet {
 namespace rendering {

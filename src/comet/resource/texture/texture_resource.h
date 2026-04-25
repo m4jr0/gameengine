@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/type/texture.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_id.h"
 #include "comet/resource/runtime/loaded_resource_handle.h"

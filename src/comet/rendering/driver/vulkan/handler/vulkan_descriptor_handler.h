@@ -14,7 +14,7 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_descriptor_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_descriptor.h"
 
 namespace comet {
 namespace rendering {

@@ -14,8 +14,8 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/geometry/label/geometry_mesh_label.h"
-#include "comet/geometry/type/geometry_skeleton_type.h"
+#include "comet/geometry/label/mesh_label.h"
+#include "comet/geometry/type/skeleton.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -43,6 +43,7 @@ GeometryManager::GeometryManager()
 
 MeshHandle GeometryManager::GetOrGenerate(
     const resource::MeshResource& resource) {
+  COMET_PROFILE("GeometryManager::GetOrGenerate");
   fiber::FiberLockGuard lock{mutex_};
 
   const auto mesh_id{GenerateMeshId(resource)};
@@ -79,6 +80,7 @@ MeshHandle GeometryManager::GetOrGenerate(MeshId mesh_id, MeshType type,
                                           const Array<Index>& indices,
                                           const math::Vec3& local_center,
                                           const math::Vec3& local_max_extents) {
+  COMET_PROFILE("GeometryManager::GetOrGenerate");
   fiber::FiberLockGuard lock{mutex_};
 
   auto* existing_handle{mesh_handles_by_id_.TryGet(mesh_id)};
@@ -112,6 +114,7 @@ MeshHandle GeometryManager::GetOrGenerate(MeshId mesh_id, MeshType type,
 }
 
 MeshHandle GeometryManager::GenerateCube(f32 size) {
+  COMET_PROFILE("GeometryManager::GenerateCube");
   COMET_ASSERT(size > .0f, "GeometryManager::GenerateCube",
                "cube size must be greater than zero", "size", size);
 
@@ -126,7 +129,7 @@ MeshHandle GeometryManager::GenerateCube(f32 size) {
   const auto push_vertex{[&](const math::Vec3& position,
                              const math::Vec3& normal,
                              const math::Vec4& tangent, const math::Vec2& uv) {
-    auto& vertex{vertices.EmplaceBack()};
+    auto& vertex{vertices.EmplaceLast()};
     vertex.position = position;
     vertex.normal = normal;
     vertex.tangent = tangent;
@@ -150,13 +153,13 @@ MeshHandle GeometryManager::GenerateCube(f32 size) {
     push_vertex(p2, normal, tangent, math::Vec2{1.0f, 1.0f});
     push_vertex(p3, normal, tangent, math::Vec2{.0f, 1.0f});
 
-    indices.PushBack(base_index + 0);
-    indices.PushBack(base_index + 1);
-    indices.PushBack(base_index + 2);
+    indices.PushLast(base_index + 0);
+    indices.PushLast(base_index + 1);
+    indices.PushLast(base_index + 2);
 
-    indices.PushBack(base_index + 0);
-    indices.PushBack(base_index + 2);
-    indices.PushBack(base_index + 3);
+    indices.PushLast(base_index + 0);
+    indices.PushLast(base_index + 2);
+    indices.PushLast(base_index + 3);
   }};
 
   push_face(math::Vec3{h, -h, -h}, math::Vec3{h, -h, h}, math::Vec3{h, h, h},
@@ -258,6 +261,7 @@ MeshId GeometryManager::GenerateMeshId(
 
 void GeometryManager::PopulateGeometryData(MeshHandle handle,
                                            frame::AddedGeometry& out) const {
+  COMET_PROFILE("GeometryManager::PopulateGeometryData");
   const auto* mesh{Get(handle)};
 
   out.mesh_handle = mesh->handle;
@@ -275,6 +279,7 @@ void GeometryManager::PopulateGeometryData(MeshHandle handle,
 
 void GeometryManager::PopulateGeometryData(MeshHandle handle,
                                            frame::DirtyMesh& out) const {
+  COMET_PROFILE("GeometryManager::PopulateGeometryData");
   const auto* mesh{Get(handle)};
 
   out.mesh_handle = mesh->handle;
@@ -293,6 +298,7 @@ void GeometryManager::PopulateGeometryData(MeshHandle handle,
 StaticModelComponent GeometryManager::GenerateStaticModelComponent(
     entity::EntityId entity_id, CTStringView model_path,
     resource::ResourceLifeSpan life_span) const {
+  COMET_PROFILE("GeometryManager::GenerateStaticModelComponent");
   StaticModelComponent model_cmp{};
   model_cmp.entity_id = entity_id;
   model_cmp.resource_handle =
@@ -304,6 +310,7 @@ StaticModelComponent GeometryManager::GenerateStaticModelComponent(
 SkeletalModelComponent GeometryManager::GenerateSkeletalModelComponent(
     entity::EntityId entity_id, CTStringView model_path,
     resource::ResourceLifeSpan life_span) const {
+  COMET_PROFILE("GeometryManager::GenerateSkeletalModelComponent");
   SkeletalModelComponent model_cmp{};
   model_cmp.entity_id = entity_id;
   model_cmp.resource_handle =
@@ -315,6 +322,7 @@ SkeletalModelComponent GeometryManager::GenerateSkeletalModelComponent(
 MeshComponent GeometryManager::GenerateStaticMeshComponent(
     const resource::StaticMeshResource& resource, entity::EntityId entity_id,
     entity::EntityId model_entity_id) {
+  COMET_PROFILE("GeometryManager::GenerateStaticMeshComponent");
   MeshComponent mesh_cmp{};
   mesh_cmp.entity_id = entity_id;
   mesh_cmp.model_entity_id = model_entity_id;
@@ -326,6 +334,7 @@ MeshComponent GeometryManager::GenerateStaticMeshComponent(
 MeshComponent GeometryManager::GenerateSkinnedMeshComponent(
     const resource::SkinnedMeshResource& resource, entity::EntityId entity_id,
     entity::EntityId model_entity_id) {
+  COMET_PROFILE("GeometryManager::GenerateSkinnedMeshComponent");
   MeshComponent mesh_cmp{};
   mesh_cmp.entity_id = entity_id;
   mesh_cmp.model_entity_id = model_entity_id;
@@ -336,6 +345,7 @@ MeshComponent GeometryManager::GenerateSkinnedMeshComponent(
 
 SkeletonComponent GeometryManager::GenerateSkeletonComponent(
     CTStringView model_path, resource::ResourceLifeSpan life_span) const {
+  COMET_PROFILE("GeometryManager::GenerateSkeletonComponent");
   SkeletonComponent skeleton_cmp{};
   skeleton_cmp.resource_handle =
       resource::ResourceManager::Get().GetSkeletons()->Load(model_path,
@@ -345,6 +355,7 @@ SkeletonComponent GeometryManager::GenerateSkeletonComponent(
 
 void GeometryManager::DestroyStaticModelComponent(
     StaticModelComponent* model_cmp) const {
+  COMET_PROFILE("GeometryManager::DestroyStaticModelComponent");
   COMET_ASSERT(model_cmp != nullptr,
                "GeometryManager::DestroyStaticModelComponent",
                "component is null");
@@ -360,6 +371,7 @@ void GeometryManager::DestroyStaticModelComponent(
 
 void GeometryManager::DestroySkeletalModelComponent(
     SkeletalModelComponent* model_cmp) const {
+  COMET_PROFILE("GeometryManager::DestroySkeletalModelComponent");
   COMET_ASSERT(model_cmp != nullptr,
                "GeometryManager::DestroySkeletalModelComponent",
                "component is null");
@@ -374,6 +386,7 @@ void GeometryManager::DestroySkeletalModelComponent(
 }
 
 void GeometryManager::DestroyStaticMeshComponent(MeshComponent* mesh_cmp) {
+  COMET_PROFILE("GeometryManager::DestroyStaticMeshComponent");
   COMET_ASSERT(mesh_cmp != nullptr,
                "GeometryManager::DestroyStaticMeshComponent",
                "component is null");
@@ -390,6 +403,7 @@ void GeometryManager::DestroyStaticMeshComponent(MeshComponent* mesh_cmp) {
 }
 
 void GeometryManager::DestroySkinnedMeshComponent(MeshComponent* mesh_cmp) {
+  COMET_PROFILE("GeometryManager::DestroySkinnedMeshComponent");
   COMET_ASSERT(mesh_cmp != nullptr,
                "GeometryManager::DestroySkinnedMeshComponent",
                "component is null");
@@ -407,6 +421,7 @@ void GeometryManager::DestroySkinnedMeshComponent(MeshComponent* mesh_cmp) {
 
 void GeometryManager::DestroySkeletonComponent(
     SkeletonComponent* skeleton_cmp) const {
+  COMET_PROFILE("GeometryManager::DestroySkeletonComponent");
   COMET_ASSERT(skeleton_cmp != nullptr,
                "GeometryManager::DestroySkeletonComponent",
                "component is null");
@@ -420,6 +435,7 @@ void GeometryManager::DestroySkeletonComponent(
 
 void GeometryManager::OnInitialize() {
   mesh_allocator_.Initialize();
+  mesh_array_allocator_.Initialize();
   mesh_map_allocator_.Initialize();
   vertex_allocator_.Initialize();
   index_allocator_.Initialize();
@@ -437,13 +453,14 @@ void GeometryManager::OnShutdown() {
     }
   }
 
-  meshes_.Destroy();
-  mesh_handles_by_id_.Destroy();
+  meshes_.Release();
+  mesh_handles_by_id_.Release();
   mesh_pool_.Destroy();
 
   index_allocator_.Destroy();
   vertex_allocator_.Destroy();
   mesh_map_allocator_.Destroy();
+  mesh_array_allocator_.Destroy();
   mesh_allocator_.Destroy();
 }
 
@@ -472,6 +489,7 @@ Mesh* GeometryManager::TryGet(MeshHandle handle) {
 
 Mesh* GeometryManager::CreateMeshObject(const resource::MeshResource& resource,
                                         MeshHandle handle) {
+  COMET_PROFILE("GeometryManager::CreateMeshObject");
   auto* mesh{mesh_allocator_.AllocateOneAndPopulate<Mesh>()};
 
   mesh->handle = handle;
@@ -517,6 +535,7 @@ Mesh* GeometryManager::CreateProceduralMeshObject(
     MeshId mesh_id, MeshType type, const Array<SkinnedVertex>& vertices,
     const Array<Index>& indices, const math::Vec3& local_center,
     const math::Vec3& local_max_extents, MeshHandle handle) {
+  COMET_PROFILE("GeometryManager::CreateProceduralMeshObject");
   auto* mesh{mesh_allocator_.AllocateOneAndPopulate<Mesh>()};
 
   mesh->handle = handle;
@@ -537,16 +556,19 @@ Mesh* GeometryManager::CreateProceduralMeshObject(
 }
 
 void GeometryManager::DestroyMeshObject(Mesh* mesh) {
+  COMET_PROFILE("GeometryManager::DestroyMeshObject");
+
   if (mesh == nullptr) {
     return;
   }
 
-  mesh->vertices.Destroy();
-  mesh->indices.Destroy();
+  mesh->vertices.Release();
+  mesh->indices.Release();
   mesh_allocator_.Deallocate(mesh);
 }
 
 void GeometryManager::Destroy(MeshHandle handle, bool is_shutdown) {
+  COMET_PROFILE("GeometryManager::Destroy");
   fiber::FiberLockGuard lock{mutex_};
 
   if (!mesh_pool_.IsAlive(handle)) {

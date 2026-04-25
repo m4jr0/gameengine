@@ -10,6 +10,9 @@
 namespace comet {
 constexpr const schar* kUnknownLabel{"<?>"};
 constexpr auto kUnknownLabelLen{GetLength(kUnknownLabel)};
+
+constexpr const schar* kNullLabel{"<null>"};
+constexpr const auto kNullLabelLen{GetLength(kNullLabel)};
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_DEBUG_LABEL_H_

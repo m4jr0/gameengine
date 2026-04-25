@@ -11,10 +11,10 @@
 #include "opengl_shadow_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
 #include "comet/resource/resource.h"
@@ -125,8 +125,8 @@ void ShadowView::UpdateShadowShaderPassData() {
   const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
   static constexpr usize kShaderBufferBindingCapacity{3};
-  auto& buffer_bindings{*COMET_FRAME_ARRAY(ShaderBufferBindingUpdate,
-                                           kShaderBufferBindingCapacity)};
+  auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -156,10 +156,10 @@ void ShadowView::UpdateShadowShaderPassData() {
 
 void ShadowView::PushShadowConstants(const ShadowRenderJob& job) {
   static constexpr usize kPushBlockCapacity{1};
-  auto& blocks{
-      *COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate, kPushBlockCapacity)};
+  auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderPushConstantBlockUpdate,
+                                                kPushBlockCapacity)};
 
-  auto& block{blocks.EmplaceBack()};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = shadowshaderconsts::kShadowLightViewProjFieldIndex;
   block.data = &job.view_proj;
   block.size = sizeof(job.view_proj);

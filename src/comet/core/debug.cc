@@ -35,6 +35,9 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/memory/memory_utils.h"
+#include "comet/entity/entity_manager.h"
+#include "comet/time/time_manager.h"
+#include "comet/time/time_utils.h"
 
 #ifdef COMET_CHECK_STACK_OVERFLOWS
 #ifdef COMET_UNIX
@@ -43,11 +46,68 @@
 #endif  // COMET_UNIX
 #endif  // COMET_CHECK_STACK_OVERFLOWS
 
+#ifdef COMET_TRACK_ALLOCATIONS
+#include "comet/core/memory/allocation_tracking.h"
+#include "comet/core/memory/memory_label.h"
+#endif  // COMET_TRACK_ALLOCATIONS
+
 namespace comet {
 namespace debug {
+namespace internal {
+static void PrintUptime() {
+  auto uptime{time::TimeManager::Get().GetUptime()};
+  schar uptime_str[32]{'\0'};
+  time::GetTimeString(uptime, uptime_str, sizeof(uptime_str));
+  std::cerr << "uptime: " << uptime_str << '\n';
+}
+static void PrintEntityInfo() {
+  auto entity_count{entity::EntityManager::Get().GetEntityCount()};
+  std::cerr << "entity count: " << entity_count << '\n';
+
+  auto entity_capacity{entity::EntityManager::Get().GetEntityCapacity()};
+  std::cerr << "entity capacity: " << entity_capacity << '\n';
+
+  auto pending_entity_count{
+      entity::EntityManager::Get().GetPendingEntityCount()};
+  std::cerr << "pending entity count: " << pending_entity_count << '\n';
+}
+
+static void PrintMemoryUse() {
+#ifdef COMET_TRACK_ALLOCATIONS
+  const auto snapshot{memory::GetLatestMemoryUseSnapshot()};
+
+  constexpr usize kBufferCapacity{512};
+  schar buffer[kBufferCapacity]{'\0'};
+  usize buffer_len{0};
+
+  memory::GetMemorySizeString(snapshot.memory_use, buffer, kBufferCapacity,
+                              &buffer_len);
+
+  std::cerr << "memory snapshot:\n";
+  std::cerr << "\tusage: " << buffer << '\n';
+
+  for (usize i{0}; i < snapshot.tag_count; ++i) {
+    const auto& entry{snapshot.tags[i]};
+
+    memory::GetMemorySizeString(entry.size, buffer, kBufferCapacity,
+                                &buffer_len);
+
+    std::cerr << "\t" << memory::GetMemoryTagLabel(entry.tag) << ": " << buffer
+              << '\n';
+  }
+#else
+  std::cerr << "memory: allocation tracking disabled\n";
+#endif  // COMET_TRACK_ALLOCATIONS
+}
+}  // namespace internal
+
 // TODO(m4jr0): Handle critical error properly.
 void HandleCriticalError() {
-  std::cerr << "debug::HandleCriticalError: critical failure, aborting\n";
+  std::cerr << "debug::HandleCriticalError: critical failure\n";
+
+  internal::PrintUptime();
+  internal::PrintEntityInfo();
+  internal::PrintMemoryUse();
 
   constexpr auto kBufferLen{4096};
   schar buffer[kBufferLen]{'\0'};
@@ -78,9 +138,23 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
   const auto frame_count{
       CaptureStackBackTrace(0, max_frame_count, frames, nullptr)};
   const auto process_handle{GetCurrentProcess()};
-  SymInitialize(process_handle, nullptr, true);
+
+  try {
+    if (!SymInitialize(process_handle, nullptr, true)) {
+      std::cerr << "debug::GenerateStackTrace: could not generate stacktrace. "
+                   "error code: "
+                << GetLastError() << '\n';
+      return;
+    }
+  } catch (...) {
+    std::cerr << "debug::GenerateStackTrace: could not generate stacktrace. "
+                 "error code: "
+              << GetLastError() << '\n';
+    return;
+  }
+
   constexpr usize kHexAddressLen{memory::kHexAddressLength};
-  constexpr usize kHexAddressBufferLen{kHexAddressLen + 1};
+  constexpr usize kHexAddressBufferLen{memory::kHexAddressBufferLen};
   schar hex_address[kHexAddressBufferLen]{'\0'};
   constexpr usize kDepthBufferLen{4};
   schar depth[kDepthBufferLen]{'\0'};
@@ -121,7 +195,20 @@ void GenerateStackTrace(schar* buffer, usize buffer_len) {
     buffer += required_len;
   }
 
-  SymCleanup(process_handle);
+  try {
+    if (!SymCleanup(process_handle)) {
+      std::cerr << "debug::GenerateStackTrace: could not generate stacktrace. "
+                   "error code: "
+                << GetLastError() << '\n';
+      return;
+    }
+  } catch (...) {
+    std::cerr << "debug::GenerateStackTrace: could not generate stacktrace. "
+                 "error code: "
+              << GetLastError() << '\n';
+    return;
+  }
+
   COMET_CASSERT(buffer_len > 1, "buffer provided is too small");
   buffer[0] = '\0';
 #endif  // !COMET_DEBUG

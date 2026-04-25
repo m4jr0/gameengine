@@ -17,6 +17,7 @@
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/fiber/fiber_context.h"
 #include "comet/core/concurrency/fiber/fiber_life_cycle.h"
+#include "comet/core/concurrency/fiber/fiber_utils.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/job_label.h"
 #include "comet/core/concurrency/job/worker_context.h"
@@ -83,7 +84,10 @@ void FiberPool::Push(fiber::Fiber* fiber) {
                "fiber stack capacity mismatch", "stack_capacity",
                fiber->GetStackCapacity(), "expected_stack_capacity",
                fiber_stack_size_);
-  fibers_.Push(fiber);
+
+  while (!fibers_.TryPush(fiber)) {
+    fiber::Yield();
+  }
 }
 
 usize FiberPool::GetTotalAllocatedStackSize() const {
@@ -105,7 +109,10 @@ void CounterPool::Initialize() {
   for (usize i{0}; i < capacity; ++i) {
     auto* counter{counter_allocator_.AllocateOneAndPopulate<Counter>()};
     new (counter) Counter{};
-    counters_.Push(counter);
+
+    while (!counters_.TryPush(counter)) {
+      fiber::Yield();
+    }
   }
 }
 
@@ -119,7 +126,11 @@ Counter* CounterPool::TryGet() {
   return counter_box.value_or(nullptr);
 }
 
-void CounterPool::Push(Counter* counter) { counters_.Push(counter); }
+void CounterPool::Push(Counter* counter) {
+  while (!counters_.TryPush(counter)) {
+    fiber::Yield();
+  }
+}
 }  // namespace internal
 
 Scheduler& Scheduler::Get() {
@@ -151,7 +162,7 @@ void Scheduler::Initialize() {
 
   fiber::AllocateFiberStackMemory(
       large_stack_fibers_.GetTotalAllocatedStackSize() +
-      large_stack_fibers_.GetTotalAllocatedStackSize()
+      gigantic_stack_fibers_.GetTotalAllocatedStackSize()
 #ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
       + external_library_stack_fibers_.GetTotalAllocatedStackSize()
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
@@ -389,7 +400,10 @@ void Scheduler::KickOnMainThread(
     [[maybe_unused]] const MainThreadJobDescr& descr) {
 #ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   descr.counter->Increment();
-  main_thread_queue.Push(descr);
+
+  while (!main_thread_queue.TryPush(descr)) {
+    fiber::Yield();
+  }
 #endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 }
 
@@ -414,9 +428,11 @@ void Scheduler::WorkOnFibers() {
   time::Chrono chrono{};
   chrono.Start(promotion_interval_);
 
+#ifdef COMET_ALLOW_WORKER_SLEEP
   constexpr usize kIdleYieldCount{64};
-  constexpr auto kIdleSleepDuration{std::chrono::microseconds{100}};
+  constexpr auto kIdleSleepDuration{std::chrono::nanoseconds{500}};
   usize idle_count{0};
+#endif  // COMET_ALLOW_WORKER_SLEEP
 
   while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
     if (chrono.IsFinished()) {
@@ -432,18 +448,21 @@ void Scheduler::WorkOnFibers() {
     if (!TryAcquireRunnableJob(job_descr, fiber)) {
       CleanCompletedAndTryResumeNext();
 
+#ifdef COMET_ALLOW_WORKER_SLEEP
       if (idle_count < kIdleYieldCount) {
         ++idle_count;
-        thread::Yield();
       } else {
         std::this_thread::sleep_for(kIdleSleepDuration);
         idle_count = 0;
       }
+#endif  // COMET_ALLOW_WORKER_SLEEP
 
       continue;
     }
 
+#ifdef COMET_ALLOW_WORKER_SLEEP
     idle_count = 0;
+#endif  // COMET_ALLOW_WORKER_SLEEP
 
     fiber->Attach(job_descr.entry_point, job_descr.params_handle, OnFiberEnd,
                   job_descr.counter
@@ -571,14 +590,26 @@ void Scheduler::SubmitJob(const JobDescr& job_descr) {
 
   switch (job_descr.priority) {
     case JobPriority::High:
-      high_priority_queue_.Push(job_descr);
+      while (!high_priority_queue_.TryPush(job_descr)) {
+        fiber::Yield();
+      }
+
       break;
+
     case JobPriority::Normal:
-      normal_priority_queue_.Push(job_descr);
+      while (!normal_priority_queue_.TryPush(job_descr)) {
+        fiber::Yield();
+      }
+
       break;
+
     case JobPriority::Low:
-      low_priority_queue_.Push(job_descr);
+      while (!low_priority_queue_.TryPush(job_descr)) {
+        fiber::Yield();
+      }
+
       break;
+
     default:
       COMET_ASSERT(false, "Scheduler::SubmitJob", "job priority is invalid",
                    "priority", GetJobPriorityLabel(job_descr.priority),
@@ -592,22 +623,31 @@ void Scheduler::SubmitJob(const IOJobDescr& job_descr) {
     job_descr.counter->Increment();
   }
 
-  io_queue_.Push(job_descr);
+  while (!io_queue_.TryPush(job_descr)) {
+    fiber::Yield();
+  }
+
   io_worker_wakeup_.release();
 }
 
 void Scheduler::PromoteJobs() {
-  std::optional<JobDescr> job_box{normal_priority_queue_.TryPop()};
+  auto job_box{normal_priority_queue_.TryPop()};
 
   while (job_box.has_value()) {
-    high_priority_queue_.Push(job_box.value());
+    while (!high_priority_queue_.TryPush(std::move(job_box.value()))) {
+      fiber::Yield();
+    }
+
     job_box = normal_priority_queue_.TryPop();
   }
 
   job_box = low_priority_queue_.TryPop();
 
   while (job_box.has_value()) {
-    normal_priority_queue_.Push(job_box.value());
+    while (!normal_priority_queue_.TryPush(std::move(job_box.value()))) {
+      fiber::Yield();
+    }
+
     job_box = low_priority_queue_.TryPop();
   }
 }
@@ -654,24 +694,28 @@ bool Scheduler::TryAcquireRunnableJob(JobDescr& job_descr,
 }
 
 void Scheduler::RequeueJob(const JobDescr& job_descr) {
+  while (!TryRequeueJob(job_descr)) {
+    CleanCompletedAndTryResumeNext();
+    fiber::Yield();
+  }
+}
+
+bool Scheduler::TryRequeueJob(const JobDescr& job_descr) {
   switch (job_descr.priority) {
     case JobPriority::High:
-      high_priority_queue_.Push(job_descr);
-      break;
+      return high_priority_queue_.TryPush(job_descr);
 
     case JobPriority::Normal:
-      normal_priority_queue_.Push(job_descr);
-      break;
+      return normal_priority_queue_.TryPush(job_descr);
 
     case JobPriority::Low:
-      low_priority_queue_.Push(job_descr);
-      break;
+      return low_priority_queue_.TryPush(job_descr);
 
     default:
-      COMET_ASSERT(false, "Scheduler::RequeueJob", "job priority is invalid",
+      COMET_ASSERT(false, "Scheduler::TryRequeueJob", "job priority is invalid",
                    "priority", GetJobPriorityLabel(job_descr.priority),
                    "priority_value", ToUnderlying(job_descr.priority));
-      break;
+      return false;
   }
 }
 

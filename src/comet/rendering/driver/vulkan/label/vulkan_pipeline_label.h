@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_LABEL_VULKAN_PIPELINE_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_pipeline_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_pipeline.h"
 
 namespace comet {
 namespace rendering {

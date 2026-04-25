@@ -8,9 +8,9 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/light.h"
 
 namespace comet {
 namespace rendering {

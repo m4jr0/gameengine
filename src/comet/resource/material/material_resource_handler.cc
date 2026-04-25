@@ -13,7 +13,7 @@
 #include "comet/core/memory/allocator/stack_allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/type/texture.h"
 #include "comet/resource/texture/texture_resource.h"
 
 namespace comet {

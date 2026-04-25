@@ -22,8 +22,8 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_module_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_material_type.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_material.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/rendering_handle.h"
 #include "comet/resource/shader/shader_resource.h"
 

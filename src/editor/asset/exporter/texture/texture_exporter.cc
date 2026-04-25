@@ -17,10 +17,10 @@
 
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/type/texture.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture/texture_resource.h"
@@ -42,7 +42,7 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
   TextureContext texture_context{};
 #ifdef COMET_WIDE_TCHAR
   texture_context.path =
-      GenerateForOneFrame<schar>(asset_descr.asset_abs_path.GetCTStr(),
+      GenerateFrameString<schar>(asset_descr.asset_abs_path.GetCTStr(),
                                  asset_descr.asset_abs_path.GetLength());
 #else
   texture_context.path = asset_descr.asset_abs_path.GetCTStr();
@@ -97,7 +97,7 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
       texture.descr.resolution[1];
   asset_descr.metadata[kCometEditorTextureMetadataKeySize] = texture.descr.size;
 
-  resource_files.PushBack(resource::ResourceManager::Get().GetTextures()->Pack(
+  resource_files.PushLast(resource::ResourceManager::Get().GetTextures()->Pack(
       texture, compression_mode_));
   stbi_image_free(texture_context.pixel_data);
   COMET_LOG_DEBUG(LoggerType::External, "TextureExporter::PopulateFiles",

@@ -13,9 +13,9 @@
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
-#include "comet/rendering/type/rendering_pipeline_type.h"
-#include "comet/rendering/type/rendering_shader_type.h"
-#include "comet/rendering/utils/rendering_shader_utils.h"
+#include "comet/rendering/type/pipeline.h"
+#include "comet/rendering/type/shader.h"
+#include "comet/rendering/utils/shader_utils.h"
 
 namespace comet {
 namespace resource {
@@ -415,7 +415,7 @@ void ShaderResourceHandler::ParseShaderModules(const u8* buffer,
   constexpr auto kShaderModuleResourceIdSize{sizeof(ShaderModuleResourceId)};
 
   for (usize i{0}; i < module_count; ++i) {
-    auto& module_resource_id{descr.shader_module_resource_ids.EmplaceBack()};
+    auto& module_resource_id{descr.shader_module_resource_ids.EmplaceLast()};
     memory::CopyMemory(&module_resource_id, &buffer[cursor],
                        kShaderModuleResourceIdSize);
     cursor += kShaderModuleResourceIdSize;
@@ -432,7 +432,7 @@ void ShaderResourceHandler::ParseShaderDefines(const u8* buffer,
   descr.defines.Reserve(define_count);
 
   for (usize i{0}; i < define_count; ++i) {
-    auto& define_descr{descr.defines.EmplaceBack()};
+    auto& define_descr{descr.defines.EmplaceLast()};
 
     usize define_name_len{0};
     memory::CopyMemory(&define_name_len, &buffer[cursor], internal::kUsizeSize);
@@ -475,7 +475,7 @@ void ShaderResourceHandler::ParseBindings(const u8* buffer,
   descr.bindings.Reserve(binding_count);
 
   for (usize i{0}; i < binding_count; ++i) {
-    auto& binding_descr{descr.bindings.EmplaceBack()};
+    auto& binding_descr{descr.bindings.EmplaceLast()};
 
     usize binding_name_len{0};
     memory::CopyMemory(&binding_name_len, &buffer[cursor],
@@ -527,7 +527,7 @@ void ShaderResourceHandler::ParseBindings(const u8* buffer,
     binding_descr.fields.Reserve(field_count);
 
     for (usize j{0}; j < field_count; ++j) {
-      auto& field_descr{binding_descr.fields.EmplaceBack()};
+      auto& field_descr{binding_descr.fields.EmplaceLast()};
 
       usize field_name_len{0};
       memory::CopyMemory(&field_name_len, &buffer[cursor],
@@ -566,7 +566,7 @@ void ShaderResourceHandler::ParsePushConstants(const u8* buffer,
   descr.push_constants.Reserve(push_constant_count);
 
   for (usize i{0}; i < push_constant_count; ++i) {
-    auto& push_constant_descr{descr.push_constants.EmplaceBack()};
+    auto& push_constant_descr{descr.push_constants.EmplaceLast()};
 
     usize push_constant_name_len{0};
     memory::CopyMemory(&push_constant_name_len, &buffer[cursor],
@@ -593,7 +593,7 @@ void ShaderResourceHandler::ParsePushConstants(const u8* buffer,
     push_constant_descr.fields.Reserve(field_count);
 
     for (usize j{0}; j < field_count; ++j) {
-      auto& field_descr{push_constant_descr.fields.EmplaceBack()};
+      auto& field_descr{push_constant_descr.fields.EmplaceLast()};
 
       usize field_name_len{0};
       memory::CopyMemory(&field_name_len, &buffer[cursor],

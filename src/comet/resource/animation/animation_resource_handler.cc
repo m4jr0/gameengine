@@ -232,7 +232,7 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
   clip.samples.Reserve(sample_count);
 
   for (usize i{0}; i < sample_count; ++i) {
-    auto& sample{clip.samples.EmplaceBack()};
+    auto& sample{clip.samples.EmplaceLast()};
 
     sample.joint_poses = Array<animation::CompressedJointPose>{
         ResolveAllocator(&anim_allocator_, life_span)};
@@ -244,7 +244,7 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
     sample.joint_poses.Reserve(joint_pose_count);
 
     for (usize j{0}; j < joint_pose_count; ++j) {
-      auto& pose{sample.joint_poses.EmplaceBack()};
+      auto& pose{sample.joint_poses.EmplaceLast()};
 
 #ifndef COMET_COMPRESS_ANIMATIONS
       memory::CopyMemory(&pose.rotation, &buffer[cursor],

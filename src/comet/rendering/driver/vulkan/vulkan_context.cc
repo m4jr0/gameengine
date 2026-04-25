@@ -193,7 +193,7 @@ void Context::DestroyAllocator() {
   allocator_handle_ = VK_NULL_HANDLE;
 }
 
-void Context::DestroyFrameData() { frame_data_.Destroy(); }
+void Context::DestroyFrameData() { frame_data_.Release(); }
 
 void Context::DestroyCommands() {
   for (auto& frame_data : frame_data_) {

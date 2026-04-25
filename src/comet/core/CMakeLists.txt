@@ -12,10 +12,8 @@
 find_package(lz4 REQUIRED)
 
 if(WIN32)
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    find_path(DETOURS_INCLUDE_DIRS "detours/detours.h")
-    find_library(DETOURS_LIBRARY detours REQUIRED)
-  endif()
+  find_path(DETOURS_INCLUDE_DIRS "detours/detours.h" REQUIRED)
+  find_library(DETOURS_LIBRARY detours REQUIRED)
 endif()
 
 # Source files #################################################################
@@ -29,7 +27,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/debug_label.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/define.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/essentials.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/generator.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_string.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/hash.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/os.h"
@@ -50,6 +48,14 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/conf/configuration_value.cc"
 
+  # Continuation.
+  "${PROJECT_SOURCE_DIR}/src/comet/core/continuation/continuation_manager.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/continuation/continuation_utils.h"
+
+  "${PROJECT_SOURCE_DIR}/src/comet/core/continuation/label/continuation_phase_label.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/comet/core/continuation/type/continuation_phase.h"
+
   # File system.
   "${PROJECT_SOURCE_DIR}/src/comet/core/file_system/file_system.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/file_system/file_system_label.cc"
@@ -61,7 +67,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_event.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_manager.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_packet.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_utils.h"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/frame/frame_container.h"
   
   # Logic.
   "${PROJECT_SOURCE_DIR}/src/comet/core/logic/game_logic_manager.cc"
@@ -81,6 +87,7 @@ set(COMET_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/fiber/fiber_utils.cc"
 
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/job/job.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/job/job_fence.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/job/job_label.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/job/job_utils.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/concurrency/job/scheduler.cc"
@@ -110,8 +117,7 @@ set(COMET_LIBRARY_SOURCES
   # Type.
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/array.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/bitset.cc"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/type/buffer_formatter.h"
-  "${PROJECT_SOURCE_DIR}/src/comet/core/type/exception.cc"
+  "${PROJECT_SOURCE_DIR}/src/comet/core/buffer_formatter.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/gid.cc"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/handle.h"
   "${PROJECT_SOURCE_DIR}/src/comet/core/type/hash_set.h"
@@ -154,25 +160,17 @@ target_sources(${COMET_LIBRARY_NAME}
 # Compiling ####################################################################
 target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE
-    ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 if(WIN32)
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_include_directories(${COMET_LIBRARY_NAME}
-      PRIVATE
-        ${DETOURS_INCLUDE_DIRS}
-    )
-  endif()
+  target_include_directories(${COMET_LIBRARY_NAME}
+    PRIVATE
+      ${DETOURS_INCLUDE_DIRS}
+  )
 endif()
 
 # Linking ######################################################################
-target_link_directories(${COMET_LIBRARY_NAME}
-  PRIVATE
-    "${VCPKG_LIBRARY_DIR}"
-)
-
 target_link_libraries(${COMET_LIBRARY_NAME}
   PRIVATE
     lz4::lz4
@@ -180,22 +178,9 @@ target_link_libraries(${COMET_LIBRARY_NAME}
 
 if(WIN32)
   target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_link_libraries(${COMET_LIBRARY_NAME}
-      PRIVATE
-        Dbghelp
-        ${DETOURS_LIBRARY}
-    )
-  endif()
-endif()
-
-if(LINUX)
-  target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
+    PUBLIC
+      Dbghelp
+      $<$<CONFIG:Debug>:${DETOURS_LIBRARY}>
+      $<$<CONFIG:DebugRelease>:${DETOURS_LIBRARY}>
   )
 endif()

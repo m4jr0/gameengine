@@ -11,6 +11,7 @@
 
 // Undef annoying Windows macros...
 #undef CopyMemory
+#undef MoveMemory
 #undef CreateFile
 #undef CreateDirectory
 #undef GetCurrentDirectory

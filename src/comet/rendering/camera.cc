@@ -13,9 +13,9 @@
 
 #include "comet/math/geometry.h"
 #include "comet/math/quaternion.h"
-#include "comet/rendering/type/rendering_camera_type.h"
-#include "comet/rendering/type/rendering_common_type.h"
-#include "comet/rendering/utils/rendering_camera_utils.h"
+#include "comet/rendering/type/camera.h"
+#include "comet/rendering/type/common.h"
+#include "comet/rendering/utils/camera_utils.h"
 
 namespace comet {
 namespace rendering {

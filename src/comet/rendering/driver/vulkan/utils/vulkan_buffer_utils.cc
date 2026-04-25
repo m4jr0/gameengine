@@ -269,7 +269,7 @@ void AddBufferMemoryBarrier(VkBuffer buffer_handle,
     return;
   }
 
-  barriers->EmplaceBack(init::GenerateBufferMemoryBarrier(
+  barriers->EmplaceLast(init::GenerateBufferMemoryBarrier(
       buffer_handle, src_access_mask, dst_access_mask, src_queue_family_index,
       dst_queue_family_index, offset, size));
 }

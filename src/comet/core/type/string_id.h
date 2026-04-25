@@ -54,6 +54,14 @@ class StringIdAllocator : public memory::StatefulAllocator {
       "std::atomic<StringIdAllocatorOffset> must be always lock-free");
   std::atomic<StringIdAllocatorOffset> offset_{kInvalidOffset_};
   u8* root_{nullptr};
+
+#ifdef COMET_DEBUG_STRING_ID_ALLOCATOR
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> must be always lock-free");
+  std::atomic<usize> allocation_count_{0};
+  std::atomic<usize> peak_used_size_{0};
+  std::atomic<usize> clear_count_{0};
+#endif  // COMET_DEBUG_STRING_ID_ALLOCATOR
 };
 }  // namespace internal
 #endif  // COMET_LABELIZE_STRING_IDS

@@ -80,6 +80,8 @@ struct DefaultSetHashLogic<wchar*> : DefaultSetHashLogic<const wchar*> {};
 
 template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
 class HashSet {
+  struct WithCapacityTag {};
+
  public:
   using Bucket = Array<T>;
   using Buckets = Array<Bucket>;
@@ -162,6 +164,75 @@ class HashSet {
   using Iterator = IteratorImpl<false>;
   using ConstIterator = IteratorImpl<true>;
 
+  static inline constexpr usize kDefaultObjCount{16};
+
+  static HashSet WithCapacity(memory::Allocator* allocator, usize capacity) {
+    return HashSet{allocator, WithCapacityTag{}, capacity};
+  }
+
+  HashSet() = default;
+
+  explicit HashSet(memory::Allocator* allocator)
+      : buckets_{allocator}, allocator_{allocator} {}
+
+  HashSet(const HashSet& other)
+      : max_load_factor_{other.max_load_factor_},
+        bucket_count_{other.bucket_count_},
+        entry_count_{other.entry_count_},
+        buckets_{other.buckets_},
+        allocator_{other.allocator_} {}
+
+  HashSet(HashSet&& other) noexcept
+      : max_load_factor_{other.max_load_factor_},
+        bucket_count_{other.bucket_count_},
+        entry_count_{other.entry_count_},
+        buckets_{std::move(other.buckets_)},
+        allocator_{other.allocator_} {
+    other.max_load_factor_ = 1.0f;
+    other.bucket_count_ = 0;
+    other.entry_count_ = 0;
+    other.allocator_ = nullptr;
+  }
+
+  HashSet& operator=(const HashSet& other) {
+    if (this == &other) {
+      return *this;
+    }
+
+    Release();
+
+    max_load_factor_ = other.max_load_factor_;
+    bucket_count_ = other.bucket_count_;
+    entry_count_ = other.entry_count_;
+    buckets_ = other.buckets_;
+    allocator_ = other.allocator_;
+
+    return *this;
+  }
+
+  HashSet& operator=(HashSet&& other) noexcept {
+    if (this == &other) {
+      return *this;
+    }
+
+    Release();
+
+    max_load_factor_ = other.max_load_factor_;
+    bucket_count_ = other.bucket_count_;
+    entry_count_ = other.entry_count_;
+    buckets_ = std::move(other.buckets_);
+    allocator_ = other.allocator_;
+
+    other.max_load_factor_ = 1.0f;
+    other.bucket_count_ = 0;
+    other.entry_count_ = 0;
+    other.allocator_ = nullptr;
+
+    return *this;
+  }
+
+  ~HashSet() { Release(); }
+
   Iterator begin() {
     return Iterator{
         buckets_.begin(), buckets_.end(),
@@ -187,74 +258,8 @@ class HashSet {
   }
 
   ConstIterator cbegin() const { return begin(); }
+
   ConstIterator cend() const { return end(); }
-
-  static inline constexpr usize kDefaultObjCount{16};
-
-  HashSet() = default;
-
-  HashSet(memory::Allocator* allocator,
-          usize default_obj_count = kDefaultObjCount)
-      : buckets_{allocator}, allocator_{allocator} {
-    if (default_obj_count == 0) {
-      return;
-    }
-
-    Reserve(default_obj_count);
-  }
-
-  HashSet(const HashSet& other)
-      : max_load_factor_{other.max_load_factor_},
-        bucket_count_{other.bucket_count_},
-        entry_count_{other.entry_count_},
-        buckets_{other.buckets_},
-        allocator_{other.allocator_} {}
-
-  HashSet(HashSet&& other) noexcept
-      : max_load_factor_{other.max_load_factor_},
-        bucket_count_{std::move(other.bucket_count_)},
-        entry_count_{std::move(other.entry_count_)},
-        buckets_{std::move(other.buckets_)},
-        allocator_{other.allocator_} {
-    other.max_load_factor_ = 1.0f;
-    other.bucket_count_ = 0;
-    other.entry_count_ = 0;
-    other.allocator_ = nullptr;
-  }
-
-  ~HashSet() { Destroy(); }
-
-  HashSet& operator=(const HashSet& other) {
-    if (this == &other) {
-      return *this;
-    }
-
-    max_load_factor_ = other.max_load_factor_;
-    bucket_count_ = other.bucket_count_;
-    entry_count_ = other.entry_count_;
-    buckets_ = other.buckets_;
-    allocator_ = other.allocator_;
-
-    return *this;
-  }
-
-  HashSet& operator=(HashSet&& other) noexcept {
-    if (this == &other) {
-      return *this;
-    }
-
-    max_load_factor_ = other.max_load_factor_;
-    bucket_count_ = other.bucket_count_;
-    entry_count_ = other.entry_count_;
-    buckets_ = std::move(other.buckets_);
-    allocator_ = other.allocator_;
-
-    other.max_load_factor_ = 1.0f;
-    other.bucket_count_ = 0;
-    other.entry_count_ = 0;
-    other.allocator_ = nullptr;
-    return *this;
-  }
 
   bool operator==(const HashSet& other) const {
     if (entry_count_ != other.entry_count_) {
@@ -274,10 +279,12 @@ class HashSet {
 
   bool operator!=(const HashSet& other) const { return !(*this == other); }
 
-  void Destroy() {
-    buckets_.Destroy();
+  void Release() {
+    buckets_.Release();
     entry_count_ = 0;
     bucket_count_ = 0;
+    allocator_ = nullptr;
+    max_load_factor_ = 1.0f;
   }
 
   template <typename V>
@@ -297,7 +304,7 @@ class HashSet {
       }
     }
 
-    bucket.PushBack(std::forward<V>(obj));
+    bucket.PushLast(std::forward<V>(obj));
     ++entry_count_;
   }
 
@@ -321,13 +328,14 @@ class HashSet {
       }
     }
 
-    buckets_[index].PushBack(std::forward<V>(obj));
+    bucket.PushLast(std::forward<V>(obj));
     ++entry_count_;
   }
 
   template <typename... Targs>
   T& Emplace(Targs&&... args) {
     CheckSize();
+
     T obj{std::forward<Targs>(args)...};
     auto& hashable{HashLogic::GetHashable(obj)};
 
@@ -343,7 +351,7 @@ class HashSet {
       }
     }
 
-    bucket.EmplaceBack(std::move(obj));
+    bucket.EmplaceLast(std::move(obj));
     ++entry_count_;
     return bucket.GetLast();
   }
@@ -419,7 +427,7 @@ class HashSet {
       return nullptr;
     }
 
-    for (auto& obj : buckets_[index]) {
+    for (const auto& obj : buckets_[index]) {
       if (HashLogic::AreEqual(HashLogic::GetHashable(obj), hashable)) {
         return &obj;
       }
@@ -429,7 +437,7 @@ class HashSet {
   }
 
   T Pop(const Hashable& hashable) {
-    T popped;
+    T popped{};
 
     const auto index{GetBucketIndex(hashable)};
     COMET_ASSERT(index != kInvalidIndex, "HashSet::Pop",
@@ -451,17 +459,6 @@ class HashSet {
     return popped;
   }
 
-  void Reserve(usize entry_count) {
-    const auto bucket_count{
-        static_cast<usize>(math::Ceil(entry_count / max_load_factor_))};
-
-    if (bucket_count <= bucket_count_) {
-      return;
-    }
-
-    Rehash(bucket_count);
-  }
-
   bool IsContained(const Hashable& hashable) const {
     const auto index{GetBucketIndex(hashable)};
 
@@ -478,8 +475,36 @@ class HashSet {
     return false;
   }
 
+  void Reserve(usize entry_count) {
+    COMET_ASSERT(allocator_ != nullptr, "HashSet::Reserve",
+                 "allocator is null");
+
+    const auto bucket_count{
+        static_cast<usize>(math::Ceil(entry_count / max_load_factor_))};
+
+    if (bucket_count <= bucket_count_) {
+      return;
+    }
+
+    Rehash(bucket_count);
+  }
+
+  void TrimCapacity() {
+    for (auto& bucket : buckets_) {
+      bucket.TrimCapacity();
+    }
+  }
+
   void SetMaxLoadFactor(f32 max_load_factor) {
+    COMET_ASSERT(max_load_factor > .0f, "HashSet::SetMaxLoadFactor",
+                 "max load factor must be positive", "max_load_factor",
+                 max_load_factor);
+
     max_load_factor_ = max_load_factor;
+
+    if (entry_count_ > bucket_count_ * max_load_factor_) {
+      Reserve(entry_count_);
+    }
   }
 
   usize GetEntryCount() const noexcept { return entry_count_; }
@@ -490,7 +515,21 @@ class HashSet {
 
   f32 GetMaxLoadFactor() const noexcept { return max_load_factor_; }
 
+  memory::Allocator* GetAllocator() noexcept { return allocator_; }
+
+  const memory::Allocator* GetAllocator() const noexcept { return allocator_; }
+
  private:
+  HashSet(memory::Allocator* allocator, WithCapacityTag, usize capacity)
+      : buckets_{allocator}, allocator_{allocator} {
+    COMET_ASSERT(capacity == 0 || allocator != nullptr, "HashSet::WithCapacity",
+                 "allocator is null");
+
+    if (capacity > 0) {
+      Reserve(capacity);
+    }
+  }
+
   void CheckSize() {
     if (bucket_count_ == 0) {
       Reserve(kDefaultObjCount);
@@ -498,7 +537,7 @@ class HashSet {
     }
 
     if (entry_count_ + 1 > bucket_count_ * max_load_factor_) {
-      Reserve(entry_count_ * 2);
+      Reserve(entry_count_ == 0 ? kDefaultObjCount : entry_count_ * 2);
     }
   }
 
@@ -522,12 +561,13 @@ class HashSet {
       for (auto& obj : buckets_[i]) {
         const auto new_index{static_cast<usize>(
             HashLogic::Hash(HashLogic::GetHashable(obj)) % bucket_count)};
-        if constexpr (std::is_move_constructible_v<decltype(obj)>) {
-          new_buckets[new_index].EmplaceBack(std::move(obj));
-        } else if constexpr (std::is_copy_constructible_v<decltype(obj)>) {
-          new_buckets[new_index].EmplaceBack(obj);
+
+        if constexpr (std::is_move_constructible_v<T>) {
+          new_buckets[new_index].EmplaceLast(std::move(obj));
+        } else if constexpr (std::is_copy_constructible_v<T>) {
+          new_buckets[new_index].EmplaceLast(obj);
         } else {
-          static_assert(always_false_v<decltype(obj)>,
+          static_assert(always_false_v<T>,
                         "object type must be movable or copyable");
         }
       }

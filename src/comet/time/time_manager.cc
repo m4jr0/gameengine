@@ -57,6 +57,11 @@ f64 TimeManager::GetCurrentTime() const noexcept { return current_time_; }
 
 f64 TimeManager::GetRealTime() const noexcept { return real_current_time_; }
 
+f64 TimeManager::GetUptime() const noexcept {
+  return real_current_time_ - real_start_time_;
+  ;
+}
+
 f32 TimeManager::GetTimeScale() const noexcept { return time_scale_; }
 
 void TimeManager::SetTimeScale(f32 time_scale) noexcept {
@@ -66,6 +71,7 @@ void TimeManager::SetTimeScale(f32 time_scale) noexcept {
 void TimeManager::OnInitialize() {
   real_current_time_ = GetRealNow();
   real_previous_time_ = real_current_time_;
+  real_start_time_ = real_current_time_;
 
   unscaled_delta_time_ = .0;
   current_time_ = .0;

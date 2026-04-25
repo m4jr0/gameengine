@@ -9,6 +9,7 @@
 #include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_event.h"
 #include "comet/core/logger/logging.h"
@@ -22,12 +23,12 @@
 #include "comet/event/event_manager.h"
 #include "comet/profiler/profiler.h"
 #include "comet/resource/handler/resource_handler_utils.h"
-#include "comet/resource/label/resource_common_label.h"
+#include "comet/resource/label/common_label.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_id.h"
 #include "comet/resource/runtime/loaded_resource_handle.h"
 #include "comet/resource/runtime/resource_slots.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/type/common.h"
 #include "comet/scene/scene_event.h"
 
 namespace comet {
@@ -134,19 +135,12 @@ class ResourceHandler {
   memory::Allocator* ResolveAllocator(memory::Allocator* default_allocator,
                                       ResourceLifeSpan life_span) const;
 
-#ifdef COMET_PROFILING
-  void SetupProfiling(const schar* method_name,
-                      RawResourceId resource_id) const;
-#define COMET_RESOURCE_HANDLER_SETUP_PROFILING(method_name, resource_id) \
-  SetupProfiling(method_name, resource_id)
-#else
-#define COMET_RESOURCE_HANDLER_SETUP_PROFILING(method_name, resource_id)
-#endif  // COMET_PROFILING
-
   void OnEvent(const event::Event& event);
 
   void RegisterEvents();
   void UnregisterEvents();
+
+  mutable fiber::FiberMutex deleted_resources_mutex_{};
 
   event::EventListenerId scene_unloaded_listener_id_{};
   event::EventListenerId new_frame_listener_id_{};
@@ -184,8 +178,6 @@ inline ResourceHandler<Tag, T>::ResourceHandler(
       slots_{descr.ptr_allocator, descr.initial_capacity != kInvalidSize
                                       ? descr.initial_capacity
                                       : kDefaultResourceCapacity_},
-      deleted_resources_{descr.ptr_allocator, 64},
-
       byte_allocator_{descr.byte_allocator} {
   COMET_ASSERT(descr.ptr_allocator != nullptr,
                "ResourceHandler::ResourceHandler", "pointer allocator is null");
@@ -193,6 +185,7 @@ inline ResourceHandler<Tag, T>::ResourceHandler(
                "ResourceHandler::ResourceHandler", "byte allocator is null");
   COMET_ASSERT(!descr.root_path.IsEmpty(), "ResourceHandler::ResourceHandler",
                "root path is empty");
+  deleted_resources_ = HashSet<T*>::WithCapacity(descr.ptr_allocator, 64);
 }
 
 template <typename Tag, typename T>
@@ -206,6 +199,7 @@ inline void ResourceHandler<Tag, T>::Initialize() {
   COMET_ASSERT(!is_initialized_, "ResourceHandler::Initialize",
                "resource handler is already initialized");
 
+  resource_allocator_.Initialize();
   defaults_.Initialize();
   tracker_.Initialize();
   slots_.Initialize();
@@ -231,7 +225,8 @@ inline void ResourceHandler<Tag, T>::Destroy() {
   defaults_.Destroy();
   tracker_.Destroy();
   slots_.Destroy();
-  deleted_resources_.Destroy();
+  deleted_resources_.Release();
+  resource_allocator_.Destroy();
 
   is_initialized_ = false;
 }
@@ -259,7 +254,7 @@ ResourceHandler<Tag, T>::Load(CTStringView path, ResourceLifeSpan life_span) {
 template <typename Tag, typename T>
 inline typename ResourceHandler<Tag, T>::LoadedHandle
 ResourceHandler<Tag, T>::Load(Id id, ResourceLifeSpan life_span) {
-  COMET_RESOURCE_HANDLER_SETUP_PROFILING("Load", id.GetValue());
+  COMET_PROFILE("ResourceHandler::Load");
 
   if (id.IsInvalid()) {
     return LoadedHandle::Invalid();
@@ -292,7 +287,14 @@ ResourceHandler<Tag, T>::Load(Id id, ResourceLifeSpan life_span) {
 
     const auto handle{slots_.TryRetain(Id{resource->id}, life_span)};
 
+    COMET_ASSERT(handle, "ResourceHandler::Load",
+                 "finished loading resource could not be retained",
+                 "resource_id", resource->id, "life_span",
+                 GetResourceLifeSpanLabel(life_span), "life_span_value",
+                 ToUnderlying(life_span));
+
     if (!handle) {
+      QueueForDeletion(resource);
       return LoadedHandle::Invalid();
     }
 
@@ -420,7 +422,7 @@ inline void ResourceHandler<Tag, T>::ReleaseManagedResources() {
 template <typename Tag, typename T>
 inline T* ResourceHandler<Tag, T>::LoadInternal(Id id,
                                                 ResourceLifeSpan life_span) {
-  COMET_RESOURCE_HANDLER_SETUP_PROFILING("LoadInternal", id.GetValue());
+  COMET_PROFILE("ResourceHandler::LoadInternal");
 
   ResourceFile file{};
   file.descr = Array<u8>{byte_allocator_};
@@ -455,11 +457,14 @@ inline void ResourceHandler<Tag, T>::QueueForDeletion(T* resource) {
     return;
   }
 
+  fiber::FiberLockGuard lock{deleted_resources_mutex_};
   deleted_resources_.Add(resource);
 }
 
 template <typename Tag, typename T>
 inline void ResourceHandler<Tag, T>::DestroyDeleted() {
+  fiber::FiberLockGuard lock{deleted_resources_mutex_};
+
   for (auto* resource : deleted_resources_) {
     COMET_ASSERT(resource != nullptr, "ResourceHandler::DestroyDeleted",
                  "deleted resource is null");
@@ -518,13 +523,13 @@ inline void ResourceHandler<Tag, T>::RegisterEvents() {
   scene_unloaded_listener_id_ = event_manager.Register(
       event_function, scene::SceneUnloadedEvent::kStaticType_);
   COMET_ASSERT(scene_unloaded_listener_id_ != event::kInvalidEventListenerId,
-               "ResourceHandler::Initialize",
+               "ResourceHandler::RegisterEvents",
                "scene unloaded listener registration failed");
 
   new_frame_listener_id_ = event_manager.Register(
       event_function, frame::NewFrameEvent::kStaticType_);
   COMET_ASSERT(new_frame_listener_id_ != event::kInvalidEventListenerId,
-               "ResourceHandler::Initialize",
+               "ResourceHandler::RegisterEvents",
                "new frame listener registration failed");
 }
 
@@ -542,44 +547,6 @@ inline void ResourceHandler<Tag, T>::UnregisterEvents() {
     new_frame_listener_id_ = event::kInvalidEventListenerId;
   }
 }
-
-#ifdef COMET_PROFILING
-template <typename Tag, typename T>
-inline void ResourceHandler<Tag, T>::SetupProfiling(
-    const schar* method_name, RawResourceId resource_id) const {
-  schar label[profiler::kMaxProfileLabelLen + 1]{'\0'};
-
-  constexpr schar kLabelPrefix[]{"ResourceHandler<T>::"};
-  constexpr auto kLabelPrefixLen{GetLength(kLabelPrefix)};
-  constexpr schar kLabelOpen[]{" ("};
-  constexpr auto kLabelOpenLen{GetLength(kLabelOpen)};
-  constexpr schar kLabelClose[]{")"};
-  constexpr auto kLabelCloseLen{GetLength(kLabelClose)};
-
-  usize offset{0};
-
-  Copy(label + offset, kLabelPrefix, kLabelPrefixLen);
-  offset += kLabelPrefixLen;
-
-  const auto method_len{GetLength(method_name)};
-  Copy(label + offset, method_name, method_len);
-  offset += method_len;
-
-  Copy(label + offset, kLabelOpen, kLabelOpenLen);
-  offset += kLabelOpenLen;
-
-  usize id_len{0};
-  ConvertToStr(resource_id, label + offset,
-               profiler::kMaxProfileLabelLen - offset, &id_len);
-  offset += id_len;
-
-  Copy(label + offset, kLabelClose, kLabelCloseLen);
-  offset += kLabelCloseLen;
-
-  label[offset] = '\0';
-  COMET_PROFILE(label);
-}
-#endif  // COMET_PROFILING
 }  // namespace resource
 }  // namespace comet
 

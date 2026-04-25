@@ -8,8 +8,8 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
-#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
+#include "comet/rendering/type/light.h"
 
 namespace comet {
 namespace rendering {

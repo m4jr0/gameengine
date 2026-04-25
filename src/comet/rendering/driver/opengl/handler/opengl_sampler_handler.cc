@@ -73,11 +73,12 @@ void SamplerHandler::OnInitialize() {
 
 void SamplerHandler::OnShutdown() {
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-  Array<SamplerHandle> handles_to_destroy{&tmp_allocator};
+  auto handles_to_destroy{Array<SamplerHandle>::WithCapacity(
+      &tmp_allocator, samplers_.GetLiveCount())};
 
   samplers_.ForEachLive(
       [&handles_to_destroy](SamplerHandle handle, const Sampler*) {
-        handles_to_destroy.PushBack(handle);
+        handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : handles_to_destroy) {

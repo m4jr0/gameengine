@@ -11,7 +11,7 @@
 #include "vulkan_swapchain.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/math/math_scalar.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
@@ -230,7 +230,7 @@ void Swapchain::Initialize() {
   for (const auto image_handle : image_handles) {
     Image image{};
     image.handle = image_handle;
-    images_.PushBack(image);
+    images_.PushLast(image);
   }
 
   image_data_ = {0, static_cast<ImageIndex>(image_handles.GetSize())};
@@ -468,7 +468,7 @@ void Swapchain::DestroyRenderSemaphores() {
     }
   }
 
-  render_semaphore_handles_.Destroy();
+  render_semaphore_handles_.Release();
 }
 
 void Swapchain::DestroyImageViews() {
@@ -482,7 +482,7 @@ void Swapchain::DestroyImageViews() {
     image.image_view_handle = VK_NULL_HANDLE;
   }
 
-  images_.Destroy();
+  images_.Release();
 }
 
 void Swapchain::DestroyDepthResources() {

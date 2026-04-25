@@ -20,15 +20,21 @@ Handler::~Handler() {
 void Handler::Initialize() {
   COMET_ASSERT(!is_initialized_, "entity::Handler::Initialize",
                "handler is already initialized");
+  OnInitialize();
   is_initialized_ = true;
 }
 
 void Handler::Shutdown() {
   COMET_ASSERT(is_initialized_, "entity::Handler::Shutdown",
                "handler is not initialized");
+  OnShutdown();
   is_initialized_ = false;
 }
 
 bool Handler::IsInitialized() const noexcept { return is_initialized_; }
+
+void Handler::OnInitialize() {}
+
+void Handler::OnShutdown() {}
 }  // namespace entity
 }  // namespace comet

@@ -5,13 +5,13 @@
 #ifndef COMET_COMET_ANIMATION_UTILS_ANIMATION_CLIP_UTILS_H_
 #define COMET_COMET_ANIMATION_UTILS_ANIMATION_CLIP_UTILS_H_
 
-#include "comet/animation/type/animation_clip_type.h"
-#include "comet/animation/type/animation_pose_type.h"
-#include "comet/animation/type/animation_skinning_type.h"
+#include "comet/animation/type/animation_clip.h"
+#include "comet/animation/type/animation_pose.h"
+#include "comet/animation/type/animation_skinning.h"
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/entity/entity_id.h"
-#include "comet/geometry/type/geometry_skeleton_type.h"
+#include "comet/entity/type/entity_id.h"
+#include "comet/geometry/type/skeleton.h"
 #include "comet/math/matrix.h"
 
 namespace comet {

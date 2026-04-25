@@ -21,13 +21,13 @@ class BackInsertIterator {
 
   BackInsertIterator& operator=(
       const typename Container::Iterator::value_type& value) {
-    container_->EmplaceBack(value);
+    container_->EmplaceLast(value);
     return *this;
   }
 
   BackInsertIterator& operator=(
       typename Container::Iterator::value_type&& value) {
-    container_->EmplaceBack(std::move(value));
+    container_->EmplaceLast(std::move(value));
     return *this;
   }
 

@@ -13,38 +13,50 @@
 #include "comet/core/type/array.h"
 #include "comet/core/type/hash_set.h"
 #include "comet/core/type/iterator.h"
+#include "comet/core/type/map.h"
 
 namespace comet {
 template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>
 class OrderedSet {
+  struct WithCapacityTag {};
+
  public:
   using Elements = Array<T>;
-  using Hashes = HashSet<HashValue>;
+  using Indices = Array<usize>;
+  using Lookup = Map<HashValue, Indices>;
 
   COMET_POPULATE_ITERATOR(T, elements_.GetData(), elements_.GetSize())
+
+  static OrderedSet WithCapacity(memory::Allocator* allocator, usize capacity) {
+    return OrderedSet{allocator, WithCapacityTag{}, capacity};
+  }
 
   OrderedSet() = default;
 
   explicit OrderedSet(memory::Allocator* allocator)
-      : OrderedSet{allocator, kDefaultCapacity_} {}
-
-  OrderedSet(memory::Allocator* allocator, usize capacity)
-      : elements_{allocator, capacity}, hashes_{allocator, capacity} {}
+      : elements_{allocator}, lookup_{allocator}, allocator_{allocator} {}
 
   OrderedSet(const OrderedSet& other)
-      : elements_{other.elements_}, hashes_{other.hashes_} {}
+      : elements_{other.elements_},
+        lookup_{other.lookup_},
+        allocator_{other.allocator_} {}
 
   OrderedSet(OrderedSet&& other) noexcept
       : elements_{std::move(other.elements_)},
-        hashes_{std::move(other.hashes_)} {}
+        lookup_{std::move(other.lookup_)},
+        allocator_{other.allocator_} {
+    other.allocator_ = nullptr;
+  }
 
   OrderedSet& operator=(const OrderedSet& other) {
     if (this == &other) {
       return *this;
     }
 
-    this->elements_ = other.elements_;
-    this->hashes_ = other.hashes_;
+    Release();
+    elements_ = other.elements_;
+    lookup_ = other.lookup_;
+    allocator_ = other.allocator_;
     return *this;
   }
 
@@ -53,102 +65,177 @@ class OrderedSet {
       return *this;
     }
 
-    this->elements_ = std::move(other.elements_);
-    this->hashes_ = std::move(other.hashes_);
+    Release();
+    elements_ = std::move(other.elements_);
+    lookup_ = std::move(other.lookup_);
+    allocator_ = other.allocator_;
+    other.allocator_ = nullptr;
     return *this;
   }
 
-  ~OrderedSet() { Destroy(); }
+  ~OrderedSet() { Release(); }
 
-  void Destroy() {
-    this->elements_.Destroy();
-    this->hashes_.Destroy();
+  void Release() {
+    elements_.Release();
+    lookup_.Release();
+    allocator_ = nullptr;
   }
 
   template <typename V>
   void Add(V&& value) {
-    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
-
-    if (this->hashes_.IsContained(hash)) {
+    if (FindIndex(value) != kInvalidIndex) {
       return;
     }
 
-    this->elements_.PushBack(std::forward<V>(value));
-    this->hashes_.Add(hash);
+    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
+    const auto index{elements_.GetSize()};
+
+    elements_.PushLast(std::forward<V>(value));
+    GetOrCreateBucket(hash).PushLast(index);
   }
 
   template <typename... Targs>
-  T& EmplaceBack(Targs&&... args) {
+  T& EmplaceLast(Targs&&... args) {
     T value{std::forward<Targs>(args)...};
-    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
 
-    if (this->hashes_.IsContained(hash)) {
-      return this->elements_.Get(this->elements_.GetIndex(value));
+    const auto existing_index{FindIndex(value)};
+
+    if (existing_index != kInvalidIndex) {
+      return elements_.Get(existing_index);
     }
 
-    this->hashes_.Add(hash);
-    return this->elements_.EmplaceBack(std::move(value));
+    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
+    const auto index{elements_.GetSize()};
+
+    GetOrCreateBucket(hash).PushLast(index);
+    return elements_.EmplaceLast(std::move(value));
   }
 
   bool Remove(const T& value) {
     const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
+    auto* bucket{lookup_.TryGet(hash)};
 
-    if (!this->hashes_.IsContained(hash)) {
+    if (bucket == nullptr) {
       return false;
     }
 
-    const auto index{this->elements_.GetIndex(value)};
+    for (usize i{0}; i < bucket->GetSize(); ++i) {
+      const auto index{bucket->Get(i)};
 
-    if (index == kInvalidIndex) {
-      return false;
+      if (HashLogic::AreEqual(HashLogic::GetHashable(elements_.Get(index)),
+                              HashLogic::GetHashable(value))) {
+        bucket->RemoveFromIndex(i);
+
+        if (bucket->IsEmpty()) {
+          lookup_.Remove(hash);
+        }
+
+        elements_.RemoveFromIndex(index);
+        DecrementIndicesAfter(index);
+        return true;
+      }
     }
 
-    this->elements_.RemoveFromIndex(index);
-    this->hashes_.Remove(hash);
-    return true;
+    return false;
   }
 
-  T& operator[](usize index) { return this->elements_.Get(index); }
+  T& operator[](usize index) { return elements_.Get(index); }
+  const T& operator[](usize index) const { return elements_.Get(index); }
 
-  const T& operator[](usize index) const { return this->elements_.Get(index); }
+  T& Get(usize index) { return elements_.Get(index); }
+  const T& Get(usize index) const { return elements_.Get(index); }
 
-  T& Get(usize index) { return this->elements_.Get(index); }
+  T& GetFirst() { return elements_.GetFirst(); }
+  const T& GetFirst() const { return elements_.GetFirst(); }
 
-  const T& Get(usize index) const { return this->elements_.Get(index); }
+  T& GetLast() { return elements_.GetLast(); }
+  const T& GetLast() const { return elements_.GetLast(); }
 
   void Reserve(usize capacity) {
-    this->elements_.Reserve(capacity);
-    this->hashes_.Reserve(capacity);
+    elements_.Reserve(capacity);
+    lookup_.Reserve(capacity);
+  }
+
+  void TrimCapacity() {
+    elements_.TrimCapacity();
+    lookup_.TrimCapacity();
   }
 
   void Clear() {
-    this->elements_.Clear();
-    this->hashes_.Clear();
+    elements_.Clear();
+    lookup_.Clear();
   }
 
   bool IsContained(const T& value) const {
-    return hashes_.IsContained(HashLogic::Hash(HashLogic::GetHashable(value)));
+    return FindIndex(value) != kInvalidIndex;
   }
+
+  bool Contains(const T& value) const { return IsContained(value); }
 
   void SetMaxLoadFactor(f32 max_load_factor) {
-    this->hashes_.SetMaxLoadFactor(max_load_factor);
+    lookup_.SetMaxLoadFactor(max_load_factor);
   }
 
-  usize GetSize() const noexcept { return this->elements_.GetSize(); }
-
-  bool IsEmpty() const noexcept { return this->elements_.IsEmpty(); }
-
-  usize GetCapacity() const noexcept { return this->elements_.GetCapacity(); }
-
-  f32 GetMaxLoadFactor() const noexcept {
-    return this->hashes_.GetMaxLoadFactor();
-  }
+  usize GetSize() const noexcept { return elements_.GetSize(); }
+  bool IsEmpty() const noexcept { return elements_.IsEmpty(); }
+  usize GetCapacity() const noexcept { return elements_.GetCapacity(); }
+  f32 GetMaxLoadFactor() const noexcept { return lookup_.GetMaxLoadFactor(); }
 
  private:
-  static inline constexpr usize kDefaultCapacity_{16};
+  OrderedSet(memory::Allocator* allocator, WithCapacityTag, usize capacity)
+      : elements_{Elements::WithCapacity(allocator, capacity)},
+        lookup_{Lookup::WithCapacity(allocator, capacity)},
+        allocator_{allocator} {
+    COMET_ASSERT(capacity == 0 || allocator != nullptr,
+                 "OrderedSet::WithCapacity", "allocator is null");
+  }
+
+  Indices& GetOrCreateBucket(HashValue hash) {
+    auto* bucket{lookup_.TryGet(hash)};
+
+    if (bucket != nullptr) {
+      return *bucket;
+    }
+
+    lookup_.Set(hash, Indices{allocator_});
+    return lookup_.Get(hash);
+  }
+
+  usize FindIndex(const T& value) const {
+    const auto hash{HashLogic::Hash(HashLogic::GetHashable(value))};
+    const auto* bucket{lookup_.TryGet(hash)};
+
+    if (bucket == nullptr) {
+      return kInvalidIndex;
+    }
+
+    for (const auto index : *bucket) {
+      COMET_ASSERT(index < elements_.GetSize(), "OrderedSet::FindIndex",
+                   "lookup index out of bounds", "index", index, "size",
+                   elements_.GetSize());
+
+      if (HashLogic::AreEqual(HashLogic::GetHashable(elements_.Get(index)),
+                              HashLogic::GetHashable(value))) {
+        return index;
+      }
+    }
+
+    return kInvalidIndex;
+  }
+
+  void DecrementIndicesAfter(usize removed_index) {
+    for (auto& pair : lookup_) {
+      for (usize& index : pair.value) {
+        if (index > removed_index) {
+          --index;
+        }
+      }
+    }
+  }
 
   Elements elements_{};
-  Hashes hashes_{};
+  Lookup lookup_{};
+  memory::Allocator* allocator_{nullptr};
 };
 }  // namespace comet
 

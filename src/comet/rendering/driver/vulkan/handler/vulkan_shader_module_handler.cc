@@ -109,11 +109,12 @@ void ShaderModuleHandler::OnInitialize() {
 
 void ShaderModuleHandler::OnShutdown() {
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-  Array<ShaderModuleHandle> handles_to_destroy{&tmp_allocator};
+  auto handles_to_destroy{Array<ShaderModuleHandle>::WithCapacity(
+      &tmp_allocator, shader_modules_.GetLiveCount())};
 
   shader_modules_.ForEachLive(
       [&handles_to_destroy](ShaderModuleHandle handle, const ShaderModule*) {
-        handles_to_destroy.PushBack(handle);
+        handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : handles_to_destroy) {

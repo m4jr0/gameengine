@@ -6,71 +6,37 @@
 #define COMET_COMET_ENTITY_ENTITY_MANAGER_H_
 
 // External. ///////////////////////////////////////////////////////////////////
+#ifdef COMET_DEBUG
+#include <atomic>
+#endif  // COMET_DEBUG
+
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_utils.h"
-#include "comet/core/hash.h"
 #include "comet/core/manager.h"
-#include "comet/core/memory/memory_utils.h"
+#include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/entity/archetype.h"
 #include "comet/entity/component.h"
-#include "comet/entity/entity_id.h"
 #include "comet/entity/entity_type.h"
+#include "comet/entity/type/archetype.h"
+#include "comet/entity/type/entity_flush.h"
+#include "comet/entity/type/entity_id.h"
+#include "comet/entity/type/pending_entity.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 
 namespace comet {
 namespace entity {
-namespace internal {
-struct DeferredEntity {
-  bool is_destroyed{false};
-  EntityId id{kInvalidEntityId};
-  frame::FrameArray<ComponentDescr> added_cmps{};
-  frame::FrameArray<EntityId> removed_cmps{};
-  job::Counter* global_counter{nullptr};
-};
-
-HashValue GenerateHash(const ComponentTypeDescr& descr);
-
-struct ComponentTypeDescrHashLogic {
-  using Value = ComponentTypeDescr;
-  using Hashable = ComponentTypeDescr;
-
-  static const Hashable& GetHashable(const Value& value);
-  static HashValue Hash(const Hashable& hashable);
-  static bool AreEqual(const Hashable& a, const Hashable& b);
-};
-
-struct MovedEntities {
-  using MoveMap =
-      frame::FrameMap<Archetype*,
-                      frame::FrameArray<const internal::DeferredEntity*>>;
-  MoveMap map{};
-
-  void Add(Archetype* archetype, const internal::DeferredEntity& entity);
-
-  bool IsEmpty() const;
-};
-
-struct DeferredChanges {
-  using ArchetypeDeltas = frame::FrameMap<Archetype*, s16>;
-  using DestroyedEntityIds = frame::FrameArray<EntityId>;
-
-  ArchetypeDeltas archetype_size_deltas{};
-  MovedEntities added_to{};
-  MovedEntities removed_from{};
-  DestroyedEntityIds destroyed_ids{static_cast<usize>(16)};
-
-  bool IsEmpty() const;
-};
-}  // namespace internal
-
 class EntityManager : public Manager {
+ private:
+  // Private constants.
+  static inline constexpr f32 kGrowthThreshold_{.1f};
+  static inline constexpr f32 kShrinkThreshold_{.25f};
+  static inline constexpr usize kMinCapacity_{16};
+  inline static constexpr usize kPendingAllocatorCapacity_{262144};  // 256 KiB.
+
  public:
   static EntityManager& Get();
 
@@ -81,320 +47,311 @@ class EntityManager : public Manager {
   EntityManager& operator=(EntityManager&&) = delete;
   ~EntityManager() override = default;
 
-  void DispatchComponentChanges();
-  void WaitForEntityUpdates();
-
-  EntityId Generate();
-
-  bool IsEntity(const EntityId& entity_id) const;
-  void Destroy(EntityId entity_id);
-
-  bool HasComponent(EntityId entity_id, EntityId component_id) const;
-
-  template <typename ComponentType>
-  bool HasComponent(EntityId entity_id) const {
-    const auto component_type_id{
-        ComponentTypeDescrGetter<ComponentType>::Get().id};
-    return HasComponent(entity_id, component_type_id);
-  }
-
-  template <typename... ComponentTypes>
-  void AddComponents(EntityId entity_id, const ComponentTypes&... components) {
-    COMET_ASSERT(IsEntity(entity_id), "EntityManager::AddComponents",
-                 "entity does not exist", "entity_id", entity_id);
-    fiber::FiberLockGuard lock{deferred_mutex_};
-    auto* entity{deferred_entities_->TryGet(entity_id)};
-
-    if (entity == nullptr) {
-      entity =
-          &deferred_entities_
-               ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
-               .value;
-    }
-
-    COMET_ASSERT(!entity->is_destroyed, "EntityManager::AddComponents",
-                 "entity scheduled for destruction", "entity_id", entity_id);
-
-    (DeferAddingComponent(entity, components), ...);
-  }
-
-  void RemoveComponents(EntityId entity_id,
-                        const Array<EntityId>& component_ids);
-
-  template <typename... ComponentIds>
-  void RemoveComponents(EntityId entity_id, ComponentIds&&... component_ids) {
-    COMET_ASSERT(IsEntity(entity_id),
-                 "EntityManager::RemoveComponents<ComponentIds...>",
-                 "entity does not exist", "entity_id", entity_id);
-    fiber::FiberLockGuard lock{deferred_mutex_};
-
-    COMET_ASSERT(deferred_entities_ != nullptr,
-                 "EntityManager::RemoveComponents<ComponentIds...>",
-                 "deferred entities are null");
-    auto* entity{deferred_entities_->TryGet(entity_id)};
-
-    if (entity == nullptr) {
-      entity =
-          &deferred_entities_
-               ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
-               .value;
-    }
-
-    COMET_ASSERT(!entity->is_destroyed,
-                 "EntityManager::RemoveComponents<ComponentIds...>",
-                 "entity scheduled for destruction", "entity_id", entity_id);
-
-    (DeferRemovingComponent(entity, std::forward<ComponentIds>(component_ids)),
-     ...);
-  }
-
-  template <typename... ComponentTypes>
-  void RemoveComponents(EntityId entity_id) {
-    COMET_ASSERT(IsEntity(entity_id),
-                 "EntityManager::RemoveComponents<ComponentTypes...>",
-                 "entity does not exist", "entity_id", entity_id);
-    fiber::FiberLockGuard lock{deferred_mutex_};
-
-    COMET_ASSERT(deferred_entities_ != nullptr,
-                 "EntityManager::RemoveComponents<ComponentTypes...>",
-                 "deferred entities are null");
-    auto* entity{deferred_entities_->TryGet(entity_id)};
-
-    if (entity == nullptr) {
-      entity =
-          &deferred_entities_
-               ->Emplace(entity_id, internal::DeferredEntity{false, entity_id})
-               .value;
-    }
-
-    COMET_ASSERT(!entity->is_destroyed,
-                 "EntityManager::RemoveComponents<ComponentTypes...>",
-                 "entity scheduled for destruction", "entity_id", entity_id);
-    (DeferRemovingComponent(entity,
-                            ComponentTypeDescrGetter<ComponentTypes>::Get().id),
-     ...);
-  }
-
-  template <typename ComponentType>
-  ComponentType* GetComponent(EntityId entity_id) {
-    const auto component_type_id{
-        ComponentTypeDescrGetter<ComponentType>::Get().id};
-    COMET_ASSERT(IsEntity(entity_id), "EntityManager::GetComponent",
-                 "entity does not exist", "entity_id", entity_id,
-                 "component_type_id", component_type_id);
-
-    if (!HasComponent(entity_id, component_type_id)) {
-      return nullptr;
-    }
-
-    const auto& record{records_[entity_id]};
-    const auto& archetype_record{
-        registered_component_types_.Get(component_type_id)
-            .archetype_map.Get(record.archetype->id)};
-
-    return reinterpret_cast<ComponentType*>(
-               record.archetype->components[archetype_record.cmp_array_index]
-                   .elements) +
-           record.row;
-  }
-
-  void AddParent(EntityId entity_id, EntityId parent_id);
-  bool HasParent(EntityId entity_id, EntityId parent_id);
-
-  template <typename... ComponentTypes, typename Function,
-            typename... ComponentTypeIds>
-  void Each(const Function& func, ComponentTypeIds... component_type_ids) {
-    constexpr auto component_type_count{sizeof...(ComponentTypes)};
-    constexpr auto component_type_ids_count{sizeof...(ComponentTypeIds)};
-    constexpr auto component_id_count{component_type_count +
-                                      component_type_ids_count};
-
-    usize i{0};
-    StaticArray<EntityId, component_id_count> all_ids{};
-    (void(all_ids[i++] = component_type_ids), ...);
-    (void(all_ids[i++] = ComponentTypeDescrGetter<ComponentTypes>::Get().id),
-     ...);
-
-    if (all_ids.IsEmpty()) {
-      for (const auto& archetype : archetypes_) {
-        for (const auto entity_id : archetype->entity_ids) {
-          func(entity_id);
-        }
-      }
-
-      return;
-    }
-
-    std::sort(all_ids.begin(), all_ids.end());
-
-    for (auto& archetype : archetypes_) {
-      if (archetype->entity_type.GetSize() < all_ids.GetSize()) {
-        continue;
-      }
-
-      usize count{0};
-
-      for (const auto component_type_id : archetype->entity_type) {
-        if (component_type_id == all_ids[count]) {
-          ++count;
-        }
-
-        if (count == all_ids.GetSize()) {
-          for (usize entity_index{0}; entity_index < archetype->size;
-               ++entity_index) {
-            func(archetype->entity_ids[entity_index]);
-          }
-
-          break;
-        }
-      }
-    }
-  }
-
-  template <typename... ComponentTypes, typename Function>
-  void EachChild(const Function& func, EntityId parent_id) {
-    Each<ComponentTypes...>(func, Tag(EntityIdTag::Child, parent_id));
-  }
-
+  // Lifecycle. | entity_manager_lifecycle.cc
  protected:
   void OnInitialize() override;
   void OnShutdown() override;
 
  private:
-  inline static constexpr usize kDeferredEntityInitialCount_{128};
+  void OnEvent(const event::Event& event);
+  void RegisterEvents();
+  void UnregisterEvents();
 
-  template <typename EntityType>
-  Archetype* GetArchetype(EntityType&& entity_type) {
-    for (auto& archetype : archetypes_) {
-      if (archetype->entity_type == entity_type) {
-        return archetype.get();
-      }
-    }
+  event::EventListenerId end_frame_listener_id_{event::kInvalidEventListenerId};
+  using PendingEntities = Map<EntityId, internal::PendingEntity>;
 
-    auto archetype{GenerateArchetype()};
-    archetype->entity_type = std::forward<EntityType>(entity_type);
-    ArchetypeId archetype_id{0};
+  // Flushing. | entity_manager_flush.cc
+ public:
+  void Flush();
 
-    for (const auto component_type_id : archetype->entity_type) {
-      archetype_id = HashCombine(archetype_id, component_type_id);
-      archetype->components.EmplaceBack(ComponentArray{nullptr, 0});
-    }
+  usize GetUpdateGeneration() const;
+  void WaitForUpdateGeneration(usize generation);
+  void WaitForEntityChanges();
+  bool HasPendingStructuralChanges() const;
 
-    archetype->id = archetype_id;
-    usize i{0};
+ private:
+  void ProcessPendingOperations();
 
-    for (const auto component_type_id : archetype->entity_type) {
-      registered_component_types_[component_type_id]
-          .archetype_map[archetype->id]
-          .cmp_array_index = i++;
-    }
+  Map<EntityId, internal::PendingEntity>& GetWritePendingEntities();
+  memory::Allocator* GetWritePendingAllocator();
+  u8 SwapPendingEntityBuffers();
 
-    auto* archetype_p{archetype.get()};
-    archetypes_.PushBack(std::move(archetype));
-    return archetype_p;
-  }
+#ifdef COMET_DEBUG_ENTITY
+  void ValidatePendingOperations(
+      const Map<EntityId, internal::PendingEntity>& pending_entities) const;
+#endif  // COMET_DEBUG_ENTITY
 
-  void RegisterComponentType(const ComponentTypeDescr& type_descr);
-  void RegisterComponentTypes(
-      const Array<ComponentDescr>& component_type_descrs);
-  void UnregisterComponentType(EntityId component_type_id);
+  void EnsurePendingComponentTypesKnown(
+      const Map<EntityId, internal::PendingEntity>& pending_entities);
+
+  internal::FlushPlan BuildFlushPlan(
+      const Map<EntityId, internal::PendingEntity>& pending_entities);
+
+  void ReserveTargetArchetypes(const internal::FlushPlan& plan);
+  void CopyIntoTargetArchetypes(const internal::FlushPlan& plan);
+  void CommitIncomingRecordsToStagingRows(const internal::FlushPlan& plan);
+  void ApplyInPlaceUpdates(const internal::FlushPlan& plan);
+  void CompactSourceArchetypes(internal::FlushPlan& plan);
+  void CommitArchetypeSizes(const internal::FlushPlan& plan);
+  void DestroyDeadEntities(const internal::FlushPlan& plan);
+  void ShrinkEmptyOrSparseArchetypes(const internal::FlushPlan& plan);
+
+  void EnsureComponentTypeKnown(const ComponentTypeDescr& type_descr);
+
+  internal::ArchetypePlan& GetOrCreateArchetypePlan(internal::FlushPlan& plan,
+                                                    Archetype* archetype);
+  EntityType GenerateFinalEntityType(const Archetype* old_archetype,
+                                     const internal::PendingEntity& pending);
+
+  void CopyExistingComponent(Archetype* old_archetype, usize old_cmp_index,
+                             usize old_entity_index, u8* new_cmp_elements,
+                             usize new_cmp_offset, usize cmp_size);
+  void CopyNewComponent(const Array<internal::AddedComponent>& added_cmps,
+                        EntityId component_type_id, u8* new_cmp_elements,
+                        usize new_cmp_offset, usize cmp_size);
 
   void ResizeArchetype(Archetype* archetype, s16 delta);
   void ReserveArchetypeCapacity(Archetype* archetype, usize capacity);
 
-  bool DoesEntityTypeContain(const EntityType& entity_type,
-                             EntityId component_type_id);
+  void DestroyEmptyArchetype(Archetype* archetype);
+  void ReleaseArchetypeElements(Archetype* archetype);
+  void RemoveArchetypeFromList(Archetype* archetype);
+  void ReleaseComponentTypeArchetypeRef(EntityId component_type_id);
 
-  template <typename... ComponentTypes>
-  void DeferAddingComponents(internal::DeferredEntity* entity,
-                             const ComponentTypes&... component) {
-    (DeferAddingComponent(entity, component), ...);
-  }
+  usize flush_generation_{0};
+  mutable fiber::FiberMutex flush_mutex_{};
+  fiber::FiberCV flush_cv_{};
+
+  // Read operations. | entity_manager_read_operations.cc
+ public:
+  bool IsEntity(const EntityId& entity_id) const;
+
+  bool HasComponent(EntityId entity_id, EntityId component_id) const;
 
   template <typename ComponentType>
-  void DeferAddingComponent(internal::DeferredEntity* entity,
-                            const ComponentType& component) {
-    const auto& type_descr{ComponentTypeDescrGetter<ComponentType>::Get()};
-    entity->removed_cmps.RemoveFromValue(type_descr.id);
+  bool HasComponent(EntityId entity_id) const;
 
-    if (type_descr.size == 0) {
-      entity->added_cmps.EmplaceBack(type_descr, nullptr);
-      return;
-    }
+  template <typename ComponentType>
+  ComponentType* GetComponent(EntityId entity_id);
 
-    auto& frame_allocator{frame::GetFrameAllocator()};
+  template <typename ComponentType>
+  const ComponentType* GetComponent(EntityId entity_id) const;
 
-    auto* data{static_cast<u8*>(
-        frame_allocator.AllocateAligned(type_descr.size, type_descr.align))};
-    memory::CopyMemory(data, reinterpret_cast<const u8*>(&component),
-                       type_descr.size);
-    entity->added_cmps.EmplaceBack(type_descr, data);
-  }
+  EntityId GetParentId(EntityId entity_id) const;
+  bool HasParent(EntityId entity_id, EntityId parent_id) const;
+  bool HasAnyParent(EntityId entity_id) const;
 
-  void DeferRemovingComponents(internal::DeferredEntity* entity,
+  EntityId FindParentId(const EntityType* entity_type) const;
+  bool IsDescendant(EntityId entity_id, EntityId potential_ancestor_id) const;
+
+  const EntityType* TryGetEntityType(EntityId entity_id) const;
+
+  usize GetEntityCount() const;
+  usize GetEntityCapacity() const;
+
+ private:
+  bool IsEntityUnlocked(const EntityId& entity_id) const;
+
+  bool HasComponentUnlocked(EntityId entity_id, EntityId component_id) const;
+
+  template <typename ComponentType>
+  bool HasComponentUnlocked(EntityId entity_id) const;
+
+  template <typename ComponentType>
+  ComponentType* GetComponentUnlocked(EntityId entity_id);
+
+  template <typename ComponentType>
+  const ComponentType* GetComponentUnlocked(EntityId entity_id) const;
+
+  EntityId GetParentIdUnlocked(EntityId entity_id) const;
+  bool HasParentUnlocked(EntityId entity_id, EntityId parent_id) const;
+  bool HasAnyParentUnlocked(EntityId entity_id) const;
+
+  EntityId FindParentIdUnlocked(const EntityType* entity_type) const;
+  bool IsDescendantUnlocked(EntityId entity_id,
+                            EntityId potential_ancestor_id) const;
+
+  const EntityType* TryGetEntityTypeUnlocked(EntityId entity_id) const;
+
+  usize GetEntityCountUnlocked() const;
+  usize GetEntityCapacityUnlocked() const;
+
+  template <typename ComponentType>
+  ComponentType* GetArchetypeComponentData(Archetype& archetype);
+
+  template <typename ComponentType>
+  const ComponentType* GetArchetypeComponentData(
+      const Archetype& archetype) const;
+
+  template <usize N>
+  static bool DoesArchetypeMatch(const Archetype& archetype,
+                                 const StaticArray<EntityId, N>& all_ids);
+
+  // Write operations. | entity_manager_write_operations.cc
+ public:
+  EntityId Generate();
+  void Destroy(EntityId entity_id);
+
+  template <typename... ComponentTypes>
+  void AddComponents(EntityId entity_id, const ComponentTypes&... components);
+
+  void RemoveComponents(EntityId entity_id,
+                        const Array<EntityId>& component_ids);
+
+  template <typename... ComponentIds>
+  void RemoveComponents(EntityId entity_id, ComponentIds&&... component_ids);
+
+  template <typename... ComponentTypes>
+  void RemoveComponents(EntityId entity_id);
+
+  void AddParent(EntityId entity_id, EntityId parent_id);
+
+ private:
+  template <typename EntityType>
+  Archetype* GetOrGenerateArchetype(EntityType&& entity_type);
+
+  // Read iterations. | entity_manager_read_iteration.h
+ public:
+  // Public API.
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEach(const Fn& fn, ComponentTypeIds... component_type_ids);
+
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEach(const Fn& fn, ComponentTypeIds... component_type_ids) const;
+
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEachId(const Fn& fn, ComponentTypeIds... component_type_ids) const;
+
+  template <typename... ComponentTypes, typename Fn>
+  void ForEachChild(const Fn& fn, EntityId parent_id);
+
+  template <typename... ComponentTypes, typename Fn>
+  void ForEachChild(const Fn& fn, EntityId parent_id) const;
+
+  template <typename... ComponentTypes, typename Fn>
+  void ForEachChildId(const Fn& fn, EntityId parent_id) const;
+
+ private:
+  // Unprotected API.
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEachUnlocked(const Fn& fn, ComponentTypeIds... component_type_ids);
+
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEachUnlocked(const Fn& fn,
+                       ComponentTypeIds... component_type_ids) const;
+
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEachIdUnlocked(const Fn& fn,
+                         ComponentTypeIds... component_type_ids) const;
+
+  template <typename... ComponentTypes, typename Fn>
+  void ForEachChildUnlocked(const Fn& fn, EntityId parent_id);
+
+  template <typename... ComponentTypes, typename Fn>
+  void ForEachChildUnlocked(const Fn& fn, EntityId parent_id) const;
+
+  template <typename... ComponentTypes, typename Fn>
+  void ForEachChildIdUnlocked(const Fn& fn, EntityId parent_id) const;
+
+  // Internal helpers.
+  template <typename Fn>
+  static void ForEachEntityIdInArchetype(const Archetype& archetype,
+                                         const Fn& fn);
+
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEachArchetypeMatching(const Fn& fn,
+                                ComponentTypeIds... component_type_ids);
+
+  template <typename... ComponentTypes, typename Fn,
+            typename... ComponentTypeIds>
+  void ForEachArchetypeMatching(const Fn& fn,
+                                ComponentTypeIds... component_type_ids) const;
+
+  // Pending. | entity_manager_pending.cc
+ public:
+  usize GetPendingEntityCount() const;
+
+ private:
+  inline static constexpr usize kPendingEntityInitialCount_{128};
+
+  internal::PendingEntity& GetOrCreatePendingEntity(EntityId entity_id);
+
+  bool HasPendingComponentAdd(const internal::PendingEntity* pending_entity,
+                              EntityId component_type_id) const;
+  bool HasPendingComponentRemoval(const internal::PendingEntity* pending_entity,
+                                  EntityId component_type_id) const;
+
+  const ComponentDescr* FindAddedComponentDescr(
+      const Array<internal::AddedComponent>& added_cmps,
+      EntityId component_type_id) const;
+
+  EntityId FindPendingParentId(
+      const internal::PendingEntity* pending_entity) const;
+
+  template <typename... ComponentTypes>
+  void DeferAddingComponents(internal::PendingEntity* entity,
+                             const ComponentTypes&... components);
+
+  template <typename ComponentType>
+  void DeferAddingComponent(internal::PendingEntity* entity,
+                            const ComponentType& component);
+
+  void DeferRemovingComponents(internal::PendingEntity* entity,
                                const Array<EntityId>& src);
-  void DeferRemovingComponent(internal::DeferredEntity* entity,
+  void DeferRemovingComponent(internal::PendingEntity* entity,
                               const EntityId& id);
 
-  void DeferAddingParent(internal::DeferredEntity* entity, EntityId parent_id);
+  void DeferAddingParent(internal::PendingEntity* entity, EntityId parent_id);
 
-  // Deferred operations.
-  void ProcessDeferredOperations();
+  mutable fiber::FiberMutex pending_mutex_{};
 
-  void RegisterDeferredComponentTypes();
+  internal::EntityPendingAllocator pending_allocators_[2]{
+      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagEntity},
+      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagEntity}};
 
-  internal::DeferredChanges PopulateChanges();
+  PendingEntities pending_entities_[2]{};
+  u8 write_pending_index_{0};
 
-  void PrepareDeferredDestroyedEntity(internal::DeferredChanges& changes,
-                                      const internal::DeferredEntity& entity);
-  void PrepareDeferredEntity(internal::DeferredChanges& changes,
-                             const internal::DeferredEntity& entity);
+  // Reads during flush. | entity_manager_reads_during_flush.cc
+ private:
+#ifdef COMET_DEBUG
+  void DiagnosePublicReadDuringFlush(const schar* context) const;
+#endif  // COMET_DEBUG
 
-  void AddDeferredEntitiesToNewArchetypes(
-      const internal::DeferredChanges& changes);
-  void RemoveDeferredEntitiesFromOldArchetypes(
-      internal::DeferredChanges& changes);
+  template <typename Fn>
+  decltype(auto) ReadSnapshot(const schar* context, Fn&& fn) const;
 
-  void ProcessDeferredDestructions(const internal::DeferredChanges& changes);
+  std::atomic_bool is_flushing_snapshot_{false};
+  mutable fiber::FiberSharedMutex snapshot_mutex_{};
 
-  void TransferComponents(Archetype* new_archetype, usize new_entity_index,
-                          Archetype* old_archetype, usize old_entity_index,
-                          const frame::FrameArray<ComponentDescr>& added_cmps);
-  void CopyExistingComponent(Archetype* old_archetype, usize old_cmp_index,
-                             usize old_entity_index, u8* new_cmp_elements,
-                             usize new_cmp_offset, usize cmp_size);
-  void CopyNewComponent(const frame::FrameArray<ComponentDescr>& added_cmps,
-                        EntityId component_type_id, u8* new_cmp_elements,
-                        usize new_cmp_offset, usize cmp_size);
+  // Data. | entity_manager_data.cc
+ private:
+  template <typename... ComponentTypes, typename... ComponentTypeIds>
+  static auto BuildSortedComponentIdArray(
+      ComponentTypeIds... component_type_ids);
 
-  void ResizeDeferredArchetypes(const internal::DeferredChanges& changes,
-                                bool is_growth);
-
-  void PrepareNewFrame();
-
-  void OnEvent(const event::Event& event);
-
-  void RegisterEvents();
-  void UnregisterEvents();
-
-  event::EventListenerId new_frame_listener_id_{event::kInvalidEventListenerId};
-  event::EventListenerId end_frame_listener_id_{event::kInvalidEventListenerId};
-
-  using DeferredEntities = frame::FrameMap<EntityId, internal::DeferredEntity>;
-
-  usize update_generation_{0};
-  fiber::FiberMutex deferred_mutex_{};
-  fiber::FiberMutex update_mutex_{};
-  fiber::FiberCV update_cv_{};
+  mutable fiber::FiberSharedMutex entity_id_mutex_{};
   Archetype* root_archetype_{nullptr};
   Array<ArchetypePtr> archetypes_{};
   gid::BreedHandler entity_id_handler_{};
-  gid::BreedHandler component_id_handler_{};
   Records records_{};
-  RegisteredComponentTypeMap registered_component_types_{};
-  DeferredEntities* deferred_entities_{};
+  RegisteredComponentTypeMap known_component_types_{};
 };
 }  // namespace entity
 }  // namespace comet
+
+#include "comet/entity/manager_impl/entity_manager_data_template.h"
+#include "comet/entity/manager_impl/entity_manager_pending_template.h"
+#include "comet/entity/manager_impl/entity_manager_read_iteration_template.h"
+#include "comet/entity/manager_impl/entity_manager_read_operation_template.h"
+#include "comet/entity/manager_impl/entity_manager_reads_during_flush_template.h"
+#include "comet/entity/manager_impl/entity_manager_write_operation_template.h"
 
 #endif  // COMET_COMET_ENTITY_ENTITY_MANAGER_H_

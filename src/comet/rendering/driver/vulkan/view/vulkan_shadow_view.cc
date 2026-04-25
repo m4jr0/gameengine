@@ -11,10 +11,10 @@
 #include "vulkan_shadow_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
@@ -102,7 +102,7 @@ void ShadowView::OnInitialize() {
   render_pass_descr.dependencies = frame::FrameArray<VkSubpassDependency>{};
   render_pass_descr.dependencies.Reserve(1);
 
-  auto& dependency{render_pass_descr.dependencies.EmplaceBack()};
+  auto& dependency{render_pass_descr.dependencies.EmplaceLast()};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass = 0;
   dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
@@ -113,7 +113,7 @@ void ShadowView::OnInitialize() {
 
   render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
   render_pass_descr.attachment_descrs.Reserve(1);
-  render_pass_descr.attachment_descrs.PushBack(GenerateDepthAttachmentDescr(
+  render_pass_descr.attachment_descrs.PushLast(GenerateDepthAttachmentDescr(
       pass_descr_.depth_load_op, pass_descr_.depth_store_op,
       VK_SAMPLE_COUNT_1_BIT));
 
@@ -148,8 +148,8 @@ void ShadowView::UpdateShadowShaderPassData() {
   const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
 
   static constexpr usize kShaderBufferBindingCapacity{3};
-  auto& buffer_bindings{*COMET_FRAME_ARRAY(ShaderBufferBindingUpdate,
-                                           kShaderBufferBindingCapacity)};
+  auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
+      ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -179,10 +179,10 @@ void ShadowView::UpdateShadowShaderPassData() {
 
 void ShadowView::PushShadowConstants(const ShadowRenderJob& job) {
   static constexpr usize kPushBlockCapacity{1};
-  auto& blocks{
-      *COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate, kPushBlockCapacity)};
+  auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderPushConstantBlockUpdate,
+                                                kPushBlockCapacity)};
 
-  auto& block{blocks.EmplaceBack()};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = 0;
   block.data = &job.view_proj;
   block.size = sizeof(job.view_proj);

@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
 #include "comet/entity/component.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 
 namespace comet {
 namespace entity {

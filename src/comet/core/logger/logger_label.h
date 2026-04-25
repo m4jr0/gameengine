@@ -11,7 +11,6 @@
 namespace comet {
 const schar* GetLoggerTypeLabel(LoggerType type);
 const schar* GetLogLevelLabel(LogLevel level);
-
 }  // namespace comet
 
 #endif  // COMET_COMET_CORE_LOGGER_LOGGER_LABEL_H_

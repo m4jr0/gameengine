@@ -11,7 +11,7 @@
 #include "opengl_shader_module_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/resource/resource_manager.h"
@@ -130,11 +130,12 @@ void ShaderModuleHandler::OnInitialize() {
 
 void ShaderModuleHandler::OnShutdown() {
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-  Array<ShaderModuleHandle> handles_to_destroy{&tmp_allocator};
+  auto handles_to_destroy{Array<ShaderModuleHandle>::WithCapacity(
+      &tmp_allocator, shader_modules_.GetLiveCount())};
 
   shader_modules_.ForEachLive(
       [&handles_to_destroy](ShaderModuleHandle handle, const ShaderModule*) {
-        handles_to_destroy.PushBack(handle);
+        handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : handles_to_destroy) {
@@ -210,7 +211,7 @@ ShaderModule* ShaderModuleHandler::GenerateShaderModule(
 
   if (msg_len > 0) {
     auto* error_message{
-        GenerateForOneFrame<schar>(static_cast<usize>(msg_len + 1))};
+        GenerateFrameString<schar>(static_cast<usize>(msg_len + 1))};
     glGetShaderInfoLog(shader_module->native_handle, msg_len, nullptr,
                        error_message);
 

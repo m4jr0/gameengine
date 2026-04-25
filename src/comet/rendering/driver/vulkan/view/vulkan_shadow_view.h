@@ -15,7 +15,7 @@
 #include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shadow_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_shadow.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
 #include "comet/rendering/rendering_handle.h"
 

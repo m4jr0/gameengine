@@ -10,21 +10,26 @@
 
 namespace comet {
 class Bitset {
+  struct WithSizeTag {};
+
  public:
   using Word = u64;
 
   static usize GetWordCountFromBitCount(usize bit_count);
 
+  static Bitset WithSize(memory::Allocator* allocator, usize bit_count) {
+    return Bitset{allocator, WithSizeTag{}, bit_count};
+  }
+
   Bitset() = default;
-  Bitset(memory::Allocator* allocator);
-  Bitset(memory::Allocator* allocator, usize bit_count);
+  explicit Bitset(memory::Allocator* allocator);
   Bitset(const Bitset& other);
   Bitset(Bitset&& other) noexcept;
   Bitset& operator=(const Bitset& other);
   Bitset& operator=(Bitset&& other) noexcept;
   ~Bitset();
 
-  void Destroy();
+  void Release();
 
   void Set(usize index);
   void Reset(usize index);
@@ -37,11 +42,16 @@ class Bitset {
   bool operator[](usize index) const;
 
   usize GetSize() const noexcept;
+  usize GetWordCount() const noexcept;
+  memory::Allocator* GetAllocator() noexcept;
+  const memory::Allocator* GetAllocator() const noexcept;
 
  private:
+  Bitset(memory::Allocator* allocator, WithSizeTag, usize bit_count);
+
   static inline constexpr usize kWorkBitCount_{sizeof(Word) * kCharBit};
   static_assert((kWorkBitCount_ & (kWorkBitCount_ - 1)) == 0,
-                "kWorkdBitCount_ must be a power of 2");
+                "kWorkBitCount_ must be a power of 2");
 
   usize bit_count_{0};
   usize word_count_{0};

@@ -12,8 +12,8 @@
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/geometry/type/geometry_mesh_type.h"
-#include "comet/geometry/type/geometry_skeleton_type.h"
+#include "comet/geometry/type/mesh.h"
+#include "comet/geometry/type/skeleton.h"
 
 namespace comet {
 namespace resource {
@@ -215,10 +215,11 @@ void StaticModelResourceHandler::Unpack(const ResourceFile& file,
   cursor += sizeof(mesh_count);
 
   auto* allocator{ResolveAllocator(byte_allocator_, life_span)};
-  resource->meshes = Array<StaticMeshResource>{allocator, mesh_count};
+  resource->meshes =
+      Array<StaticMeshResource>::WithCapacity(allocator, mesh_count);
 
   for (usize i{0}; i < mesh_count; ++i) {
-    auto& mesh{resource->meshes.EmplaceBack()};
+    auto& mesh{resource->meshes.EmplaceLast()};
     internal::UnpackMeshResource(buffer, cursor, allocator, mesh);
   }
 
@@ -317,10 +318,11 @@ void SkeletalModelResourceHandler::Unpack(const ResourceFile& file,
   cursor += sizeof(mesh_count);
 
   auto* allocator{ResolveAllocator(byte_allocator_, life_span)};
-  resource->meshes = Array<SkinnedMeshResource>{allocator, mesh_count};
+  resource->meshes =
+      Array<SkinnedMeshResource>::WithCapacity(allocator, mesh_count);
 
   for (usize i{0}; i < mesh_count; ++i) {
-    auto& mesh{resource->meshes.EmplaceBack()};
+    auto& mesh{resource->meshes.EmplaceLast()};
     internal::UnpackMeshResource(buffer, cursor, allocator, mesh);
   }
 
@@ -430,10 +432,10 @@ void SkeletonResourceHandler::Unpack(const ResourceFile& file,
 
   auto* allocator{ResolveAllocator(byte_allocator_, life_span)};
   resource->skeleton.joints =
-      Array<geometry::SkeletonJoint>{allocator, joint_count};
+      Array<geometry::SkeletonJoint>::WithCapacity(allocator, joint_count);
 
   for (usize i{0}; i < joint_count; ++i) {
-    auto& joint{resource->skeleton.joints.EmplaceBack()};
+    auto& joint{resource->skeleton.joints.EmplaceLast()};
 
     memory::CopyMemory(&joint.id, &buffer[cursor],
                        sizeof(geometry::SkeletonJointId));

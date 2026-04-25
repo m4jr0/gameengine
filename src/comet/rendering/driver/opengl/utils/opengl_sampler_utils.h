@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_SAMPLER_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_sampler_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_sampler.h"
 
 namespace comet {
 namespace rendering {

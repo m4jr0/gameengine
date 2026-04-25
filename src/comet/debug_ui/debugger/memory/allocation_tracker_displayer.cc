@@ -38,11 +38,7 @@ void AllocationTrackerDisplayer::Draw(
   ImGui::Text("MEMORY");
   ImGui::Indent();
 
-#ifdef COMET_MSVC
-  ImGui::Text("Usage: %s [Unreliable]", buffer);
-#else
-  ImGui::Text("Usage: %s [Unavailable]", buffer);
-#endif  // COMET_MSVC
+  ImGui::Text("Usage: %s", buffer);
 
   if (ImGui::CollapsingHeader("Tags")) {
     if (ImGui::BeginTable("MemoryTagsTable", 2,
@@ -51,12 +47,12 @@ void AllocationTrackerDisplayer::Draw(
       ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthStretch);
       ImGui::TableHeadersRow();
 
-      Array<Pair<memory::MemoryTag, usize>> sorted_tags{
+      auto sorted_tags{Array<Pair<memory::MemoryTag, usize>>::WithCapacity(
           frame::FrameManager::Get().GetFrameAllocator(),
-          profiler_data.tag_use.GetEntryCount()};
+          profiler_data.tag_use.GetEntryCount())};
 
       for (const auto& pair : profiler_data.tag_use) {
-        sorted_tags.PushBack(pair);
+        sorted_tags.PushLast(pair);
       }
 
       std::sort(

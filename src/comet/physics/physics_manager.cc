@@ -10,8 +10,10 @@
 #include "physics_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/entity/entity_id.h"
+#include "comet/core/concurrency/job/job_utils.h"
+#include "comet/core/concurrency/job/scheduler.h"
 #include "comet/entity/entity_manager.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/profiler/profiler.h"
 #include "comet/time/time_manager.h"
 
@@ -55,25 +57,6 @@ void PhysicsManager::Update(frame::FramePacket* packet) {
     counter_ = 0;
     last_current_time_ = real_now;
   }
-}
-
-void PhysicsManager::UpdateTree(
-    frame::FramePacket* packet, entity::EntityId parent_entity_id,
-    const TransformComponent* parent_transform_cmp) const {
-  auto& entity_manager{entity::EntityManager::Get()};
-
-  entity_manager.EachChild<TransformComponent>(
-      [&](auto entity_id) {
-        auto* transform_cmp{
-            entity_manager.GetComponent<TransformComponent>(entity_id)};
-
-        transform_cmp->global =
-            transform_cmp->local * parent_transform_cmp->global;
-
-        packet->RegisterDirtyTransform(entity_id, transform_cmp);
-        UpdateTree(packet, entity_id, transform_cmp);
-      },
-      parent_entity_id);
 }
 
 TransformRootComponent PhysicsManager::GenerateTransformRootComponent() const {
@@ -125,26 +108,99 @@ void PhysicsManager::UpdateEntityTransforms(frame::FramePacket* packet) {
   COMET_PROFILE("PhysicsManager::UpdateEntityTransforms");
   auto& entity_manager{entity::EntityManager::Get()};
 
-  entity_manager.Each<TransformRootComponent, TransformComponent>(
-      [&](auto entity_id) {
-        auto* root_cmp{
-            entity_manager.GetComponent<TransformRootComponent>(entity_id)};
+  struct DirtyRootEntry {
+    entity::EntityId entity_id{entity::kInvalidEntityId};
+    TransformRootComponent* root_cmp{nullptr};
+    TransformComponent* transform_cmp{nullptr};
+  };
 
-        if (!root_cmp->is_child_dirty) {
+  frame::FrameArray<DirtyRootEntry> dirty_roots{};
+  constexpr usize kInitialHierarchyStackCapacity{16};
+  dirty_roots.Reserve(kInitialHierarchyStackCapacity);
+
+  entity_manager.ForEach<TransformRootComponent, TransformComponent>(
+      [&](entity::EntityId entity_id, TransformRootComponent& root_cmp,
+          TransformComponent& transform_cmp) {
+        if (!root_cmp.is_child_dirty) {
           return;
         }
 
-        auto* transform_cmp{
-            entity_manager.GetComponent<TransformComponent>(entity_id)};
-
-        if (transform_cmp->is_dirty) {
-          transform_cmp->global = transform_cmp->local;
-          packet->RegisterDirtyTransform(entity_id, transform_cmp);
-        }
-
-        UpdateTree(packet, entity_id, transform_cmp);
-        root_cmp->is_child_dirty = false;
+        dirty_roots.PushLast(
+            DirtyRootEntry{entity_id, &root_cmp, &transform_cmp});
       });
+
+  job::CounterGuard guard{};
+  auto& scheduler{job::Scheduler::Get()};
+
+  for (const auto& dirty_root : dirty_roots) {
+    struct JobParams {
+      PhysicsManager* physics_manager{nullptr};
+      frame::FramePacket* packet{nullptr};
+      DirtyRootEntry dirty_root{};
+    };
+
+    auto* params{COMET_FRAME_ALLOC_ONE_AND_POPULATE(JobParams, this, packet,
+                                                    dirty_root)};
+
+    scheduler.Kick(job::GenerateJobDescr(
+        job::JobPriority::High,
+        [](job::JobParamsHandle params_handle) {
+          auto* params{reinterpret_cast<JobParams*>(params_handle)};
+          auto& dirty_root{params->dirty_root};
+
+          if (dirty_root.root_cmp == nullptr ||
+              dirty_root.transform_cmp == nullptr ||
+              !dirty_root.root_cmp->is_child_dirty) {
+            return;
+          }
+
+          if (dirty_root.transform_cmp->is_dirty) {
+            dirty_root.transform_cmp->global = dirty_root.transform_cmp->local;
+            params->packet->RegisterDirtyTransform(dirty_root.entity_id,
+                                                   dirty_root.transform_cmp);
+          }
+
+          params->physics_manager->UpdateTree(
+              params->packet, dirty_root.entity_id, dirty_root.transform_cmp);
+
+          dirty_root.root_cmp->is_child_dirty = false;
+        },
+        params, job::JobStackSize::Normal, guard.GetCounter(),
+        "update_transform_tree"));
+  }
+
+  guard.Wait();
+}
+
+void PhysicsManager::UpdateTree(
+    frame::FramePacket* packet, entity::EntityId root_entity_id,
+    const TransformComponent* root_transform_cmp) const {
+  auto& entity_manager{entity::EntityManager::Get()};
+
+  struct StackEntry {
+    entity::EntityId parent_entity_id{entity::kInvalidEntityId};
+    const TransformComponent* parent_transform_cmp{nullptr};
+  };
+
+  frame::FrameArray<StackEntry> stack{};
+  constexpr usize kInitialHierarchyStackCapacity{8};
+  stack.Reserve(kInitialHierarchyStackCapacity);
+  stack.PushLast(StackEntry{root_entity_id, root_transform_cmp});
+
+  while (!stack.IsEmpty()) {
+    const auto entry{stack.TakeLast()};
+
+    entity_manager.ForEachChild<TransformComponent>(
+        [&](entity::EntityId child_entity_id,
+            TransformComponent& transform_cmp) {
+          transform_cmp.global =
+              transform_cmp.local * entry.parent_transform_cmp->global;
+
+          packet->RegisterDirtyTransform(child_entity_id, &transform_cmp);
+          stack.PushLast(StackEntry{child_entity_id, &transform_cmp});
+        },
+        entry.parent_entity_id);
+  }
 }
 }  // namespace physics
 }  // namespace comet

@@ -12,7 +12,7 @@
 
 #include "comet/core/type/string_id.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/rendering_texture_label.h"
+#include "comet/rendering/label/texture_label.h"
 
 namespace comet {
 namespace resource {

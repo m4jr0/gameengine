@@ -173,7 +173,7 @@ void RenderPassHandler::OnShutdown() {
 
   render_passes_.ForEachLive(
       [&handles_to_destroy](RenderPassHandle handle, const RenderPass*) {
-        handles_to_destroy.PushBack(handle);
+        handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : handles_to_destroy) {
@@ -264,7 +264,7 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
                                    : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         vk_descr.flags = 0;
 
-        color_attachment_descrs.PushBack(vk_descr);
+        color_attachment_descrs.PushLast(vk_descr);
         break;
       }
 
@@ -294,7 +294,7 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
         vk_descr.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         vk_descr.flags = 0;
 
-        depth_attachment_descrs.PushBack(vk_descr);
+        depth_attachment_descrs.PushLast(vk_descr);
         break;
       }
 
@@ -313,7 +313,7 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
                                    : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         vk_descr.flags = 0;
 
-        resolve_attachment_descrs.PushBack(vk_descr);
+        resolve_attachment_descrs.PushLast(vk_descr);
         break;
       }
 
@@ -353,15 +353,15 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
                             depth_attachment_count + resolve_attachment_count);
 
   for (const auto& vk_descr : color_attachment_descrs) {
-    attachment_descrs.PushBack(vk_descr);
+    attachment_descrs.PushLast(vk_descr);
   }
 
   for (const auto& vk_descr : depth_attachment_descrs) {
-    attachment_descrs.PushBack(vk_descr);
+    attachment_descrs.PushLast(vk_descr);
   }
 
   for (const auto& vk_descr : resolve_attachment_descrs) {
-    attachment_descrs.PushBack(vk_descr);
+    attachment_descrs.PushLast(vk_descr);
   }
 
   VkSubpassDescription subpass{};
@@ -377,7 +377,7 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
     subpass.pColorAttachments = nullptr;
   } else {
     for (u32 i{0}; i < color_attachment_count; ++i) {
-      color_attachment_refs.EmplaceBack(
+      color_attachment_refs.EmplaceLast(
           attachment_index++, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     }
 
@@ -402,7 +402,7 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
     subpass.pResolveAttachments = nullptr;
   } else {
     for (u32 i{0}; i < resolve_attachment_count; ++i) {
-      resolve_attachment_refs.EmplaceBack(
+      resolve_attachment_refs.EmplaceLast(
           attachment_index++, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     }
 
@@ -447,20 +447,20 @@ RenderPass* RenderPassHandler::GenerateRenderPass(
       const auto swapchain_image_view{swapchain_images[i].image_view_handle};
 
       for (const auto& vk_descr : color_attachment_descrs) {
-        render_target.attachments.PushBack(
+        render_target.attachments.PushLast(
             Attachment{AttachmentType::Color, vk_descr,
                        is_msaa ? swapchain_->GetColorImage().image_view_handle
                                : swapchain_image_view});
       }
 
       for (const auto& vk_descr : depth_attachment_descrs) {
-        render_target.attachments.PushBack(
+        render_target.attachments.PushLast(
             Attachment{AttachmentType::Depth, vk_descr,
                        swapchain_->GetDepthImage().image_view_handle});
       }
 
       for (const auto& vk_descr : resolve_attachment_descrs) {
-        render_target.attachments.PushBack(Attachment{
+        render_target.attachments.PushLast(Attachment{
             AttachmentType::Resolve, vk_descr, swapchain_image_view});
       }
     }
@@ -483,10 +483,10 @@ void RenderPassHandler::DestroyRenderPass(RenderPass* render_pass) {
   }
 
   for (auto& render_target : render_pass->render_targets) {
-    render_target.attachments.Destroy();
+    render_target.attachments.Release();
   }
 
-  render_pass->render_targets.Destroy();
+  render_pass->render_targets.Release();
   render_pass->handle.Invalidate();
   allocator_.Deallocate(render_pass);
 }

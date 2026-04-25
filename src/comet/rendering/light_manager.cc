@@ -132,7 +132,7 @@ void LightManager::OnInitialize() {
 }
 
 void LightManager::OnShutdown() {
-  lights_.Destroy();
+  lights_.Release();
   light_pool_.Destroy();
   allocator_.Destroy();
 }

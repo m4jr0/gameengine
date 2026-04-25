@@ -19,7 +19,7 @@
 #include "comet/core/type/tstring.h"
 #include "comet/profiler/profiler.h"
 #include "comet/resource/resource.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/type/common.h"
 
 namespace comet {
 namespace resource {
@@ -86,7 +86,7 @@ template <typename T>
 inline void DefaultResources<T>::Destroy() {
   COMET_ASSERT(is_initialized_, "DefaultResources<T>::Destroy",
                "default resources are not initialized");
-  defaults_.Destroy();
+  defaults_.Release();
 
   is_initialized_ = false;
 }
@@ -244,7 +244,7 @@ inline void LoadingTracker<T>::Destroy() {
                "loading tracker destroyed with live states", "remaining_states",
                loading_.GetEntryCount());
 
-  loading_.Destroy();
+  loading_.Release();
   state_allocator_.Destroy();
 
   is_initialized_ = false;

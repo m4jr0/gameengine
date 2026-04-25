@@ -14,8 +14,8 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame_type.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_render_pass_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_render_pass.h"
 #include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
 #include "comet/rendering/rendering_handle.h"
 

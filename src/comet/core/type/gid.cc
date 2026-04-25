@@ -22,7 +22,7 @@ Gid GenerateNewGeneration(Gid id) noexcept {
                "gid::GenerateNewGeneration", "generation is out of range",
                "generation", generation, "max_generation",
                (kGenerationMask >> kIndexBits));
-  return generation | GetIndex(id);
+  return (generation << kIndexBits) | GetIndex(id);
 }
 
 void InitializeGids() { internal::IdGenerationAllocator::Get().Initialize(); }
@@ -88,7 +88,7 @@ BreedHandler& BreedHandler::operator=(BreedHandler&& other) noexcept {
 }
 
 void BreedHandler::Shutdown() {
-  generations_.Destroy();
+  generations_.Release();
   free_ids_.clear();
 }
 
@@ -105,7 +105,7 @@ Gid BreedHandler::Generate() {
     breed_id = gid::GenerateNewGeneration(breed_id);
   } else {
     breed_id = static_cast<Gid>(generations_.GetSize());
-    generations_.PushBack(0);
+    generations_.PushLast(0);
   }
 
   return breed_id;

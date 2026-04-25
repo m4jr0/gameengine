@@ -12,12 +12,12 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_view_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_view.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/rendering_common_type.h"
-#include "comet/rendering/type/rendering_texture_type.h"
-#include "comet/rendering/type/rendering_view_type.h"
+#include "comet/rendering/type/common.h"
+#include "comet/rendering/type/texture.h"
+#include "comet/rendering/type/view.h"
 
 namespace comet {
 namespace rendering {

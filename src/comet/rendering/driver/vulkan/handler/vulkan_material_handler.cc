@@ -16,7 +16,7 @@
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_texture_map_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
-#include "comet/rendering/label/rendering_texture_label.h"
+#include "comet/rendering/label/texture_label.h"
 #include "comet/resource/material/material_resource.h"
 #include "comet/resource/resource_manager.h"
 
@@ -129,13 +129,14 @@ void MaterialHandler::OnShutdown() {
   destroy_callback_user_data_ = nullptr;
 
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-  Array<MaterialHandle> material_handles{&tmp_allocator};
+  auto material_handles_to_destroy{Array<MaterialHandle>::WithCapacity(
+      &tmp_allocator, materials_.GetLiveCount())};
 
   materials_.ForEachLive([&](MaterialHandle handle, const Material*) {
-    material_handles.PushBack(handle);
+    material_handles_to_destroy.PushLast(handle);
   });
 
-  for (const auto handle : material_handles) {
+  for (const auto handle : material_handles_to_destroy) {
     const auto ref_count{materials_.GetRefCount(handle)};
 
     if (ref_count > 1) {

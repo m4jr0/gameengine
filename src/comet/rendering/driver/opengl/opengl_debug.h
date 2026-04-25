@@ -10,9 +10,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
+#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture.h"
 
 namespace comet {
 namespace rendering {

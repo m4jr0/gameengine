@@ -35,7 +35,7 @@ void DebugUiRegistry::Initialize() {
 void DebugUiRegistry::Destroy() {
   COMET_ASSERT(is_initialized_, "DebugUiRegistry::Destroy",
                "debug ui registry is not initialized");
-  entries_.Destroy();
+  entries_.Release();
   is_initialized_ = false;
 }
 
@@ -46,7 +46,7 @@ DebugUiRegistry::CallbackId DebugUiRegistry::Register(DrawCallback callback) {
 
   const auto id{next_callback_id_++};
 
-  auto& entry{entries_.EmplaceBack()};
+  auto& entry{entries_.EmplaceLast()};
   entry.id = id;
   entry.callback = std::move(callback);
 

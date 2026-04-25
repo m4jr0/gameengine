@@ -12,11 +12,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/common.h"
 
 namespace comet {
 namespace rendering {

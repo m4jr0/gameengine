@@ -14,6 +14,7 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/concurrency/fiber/fiber_utils.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory.h"
 #include "comet/math/math_scalar.h"
@@ -68,10 +69,10 @@ EventManager::EventManager()
 
 EventListenerId EventManager::Register(const Callback& function,
                                        stringid::StringId event_type) {
-  auto& listeners{listeners_[event_type]};
+  auto& listeners{listeners_.GetOrAdd(event_type)};
   const auto id{listener_id_counter_++};
-  listeners.EmplaceBack(id, function);
-  id_event_type_map_[id] = event_type;
+  listeners.EmplaceLast(id, function);
+  id_event_type_map_.Set(id, event_type);
   return id;
 }
 
@@ -80,7 +81,7 @@ void EventManager::Unregister(EventListenerId id) {
                "event::EventManager::Unregister", "event type not found",
                "listener_id", id);
 
-  auto& listeners{listeners_[id_event_type_map_.Get(id)]};
+  auto& listeners{listeners_.Get(id_event_type_map_.Get(id))};
   auto found_index{kInvalidIndex};
 
   for (usize i{0}; i < listeners.GetSize(); ++i) {
@@ -167,7 +168,11 @@ void EventManager::OnShutdown() {
   listener_allocator_.Destroy();
 }
 
-void EventManager::Add(EventPtr event) { event_queue_.Push(std::move(event)); }
+void EventManager::Add(EventPtr event) {
+  while (!event_queue_.TryPush(std::move(event))) {
+    fiber::Yield();
+  }
+}
 
 void EventManager::Dispatch(EventPtr event) const {
   auto* listeners{listeners_.TryGet(event->GetType())};

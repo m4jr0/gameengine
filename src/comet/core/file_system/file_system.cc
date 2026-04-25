@@ -12,7 +12,7 @@
 
 #include "comet/core/file_system/file_system_label.h"
 #include "comet/core/file_system/slash_helper.h"
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 #include "comet/core/hash.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/type_trait.h"
@@ -26,7 +26,7 @@ namespace comet {
 namespace internal {
 const tchar* GetTmpCopyWithNormalizedSlashes(CTStringView str) {
 #ifdef COMET_WINDOWS
-  auto* tmp{GenerateForOneFrame<tchar>(str.GetLength())};
+  auto* tmp{GenerateFrameString<tchar>(str.GetLength())};
 
   for (usize i{0}; i < str.GetLength(); ++i) {
     tchar c{str[i]};
@@ -335,7 +335,7 @@ bool Remove(CTStringView path, bool is_recursive) {
   // Add 1 character for *, 1 for an extra-slash (which could be needed) and 1
   // for the null terminator.
   const auto full_path_capacity{path.GetLength() + 3};
-  auto* full_path{GenerateForOneFrame<tchar>(full_path_capacity)};
+  auto* full_path{GenerateFrameString<tchar>(full_path_capacity)};
   usize full_path_len{0};
   Append(path, COMET_TCHAR("*"), full_path, full_path_capacity, &full_path_len);
   const auto file_handle{MSVC_FIND_FIRST_FILE(full_path, &find_data)};
@@ -359,7 +359,7 @@ bool Remove(CTStringView path, bool is_recursive) {
     }
 
     const auto sub_path_len{full_path_len + path_len + 2};
-    auto* sub_path{GenerateForOneFrame<tchar>(sub_path_len)};
+    auto* sub_path{GenerateFrameString<tchar>(sub_path_len)};
     Append(full_path, find_data.cFileName, sub_path, sub_path_len);
 
     if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -543,7 +543,7 @@ TString GetNormalizedPath(CTStringView path) {
   }
 
   usize normalized_cursor{0};
-  auto* normalized{GenerateForOneFrame<tchar>(path.GetLength())};
+  auto* normalized{GenerateFrameString<tchar>(path.GetLength())};
   const auto is_absolute{IsAbsolute(path)};
   auto is_previous_slash{false};
   auto dot_index{kInvalidIndex};
@@ -759,7 +759,7 @@ TString GetAbsolutePath(CTStringView relative_path) {
     auto len{last_slash + 1};
 
     if (last_slash != kInvalidIndex) {
-      auto* tmp{GenerateForOneFrame<tchar>(len)};
+      auto* tmp{GenerateFrameString<tchar>(len)};
       Copy(tmp, relative_path, len);
       tmp[len] = COMET_TCHAR('\0');
 
@@ -911,7 +911,7 @@ TString GetRelativePath(CTStringView to, CTStringView from) {
   }
 
   // 2. Get tmp string with specific size to contain both remaining paths.
-  auto* relative_path{GenerateForOneFrame<tchar>(relative_path_len)};
+  auto* relative_path{GenerateFrameString<tchar>(relative_path_len)};
   usize relative_path_cursor{0};
   auto is_previous_slash{IsSlash(*from_cursor)};
 
@@ -1138,7 +1138,7 @@ bool IsPathEmpty(CTStringView path) {
   // Add 1 character for *, 1 for an extra-slash (which could be needed) and 1
   // for the null terminator.
   const auto full_path_capacity{path.GetLength() + 3};
-  auto* full_path{GenerateForOneFrame<tchar>(full_path_capacity)};
+  auto* full_path{GenerateFrameString<tchar>(full_path_capacity)};
   usize full_path_len{0};
   Append(path, COMET_TCHAR("*"), full_path, full_path_capacity, &full_path_len);
   const auto file_handle{MSVC_FIND_FIRST_FILE(full_path, &find_data)};
@@ -1368,7 +1368,7 @@ void Clean(TString& str) { return Clean(str.GetTStr(), str.GetLength()); }
 
 const tchar* GetTmpTChar(const schar* str, [[maybe_unused]] usize len) {
 #ifdef COMET_WIDE_TCHAR
-  auto* tmp{GenerateForOneFrame<tchar>(len)};
+  auto* tmp{GenerateFrameString<tchar>(len)};
   Copy(tmp, str, len);
   tmp[len] = COMET_TCHAR('\0');
   return tmp;
@@ -1385,7 +1385,7 @@ const tchar* GetTmpTChar(const wchar* str, [[maybe_unused]] usize len) {
 #ifdef COMET_WIDE_TCHAR
   return str;
 #else
-  auto* tmp{GenerateForOneFrame<tchar>(len)};
+  auto* tmp{GenerateFrameString<tchar>(len)};
   Copy(tmp, str, len);
   tmp[len] = COMET_TCHAR('\0');
   return tmp;

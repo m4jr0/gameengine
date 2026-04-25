@@ -20,8 +20,8 @@
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/label/rendering_texture_label.h"
-#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/label/texture_label.h"
+#include "comet/rendering/type/texture.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/shader/shader_resource.h"
 #include "comet/resource/texture/texture_resource.h"
@@ -406,7 +406,7 @@ void ModelExporter::SceneContext::AddResourceFile(
                "resource files container is null");
 
   fiber::FiberLockGuard lock{resource_mutex};
-  resource_files->PushBack(file);
+  resource_files->PushLast(file);
 }
 }  // namespace asset
 }  // namespace editor

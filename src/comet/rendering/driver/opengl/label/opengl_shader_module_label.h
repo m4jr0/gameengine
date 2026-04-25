@@ -6,7 +6,7 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_LABEL_OPENGL_SHADER_MODULE_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_module_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_module.h"
 
 namespace comet {
 namespace rendering {

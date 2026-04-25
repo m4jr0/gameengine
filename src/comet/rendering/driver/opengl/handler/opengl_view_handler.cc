@@ -20,7 +20,7 @@
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/opengl/view/opengl_shadow_view.h"
 #include "comet/rendering/driver/opengl/view/opengl_world_view.h"
-#include "comet/rendering/label/rendering_view_label.h"
+#include "comet/rendering/label/view_label.h"
 
 #ifdef COMET_IMGUI
 #include "comet/rendering/driver/opengl/view/opengl_imgui_view.h"
@@ -197,7 +197,7 @@ const View* ViewHandler::Generate(const RenderingViewDescr& descr) {
                ToUnderlying(descr.type), "view_id", descr.id);
 
   view->Initialize();
-  views_.PushBack(std::move(view));
+  views_.PushLast(std::move(view));
   return views_.GetLast().get();
 }
 
@@ -231,7 +231,8 @@ const View* ViewHandler::TryGet(usize index) const {
 }
 
 void ViewHandler::OnInitialize() {
-  views_ = Array<memory::UniquePtr<View>>{&allocator_};
+  views_ = Array<memory::UniquePtr<View>>::WithCapacity(
+      &allocator_, rendering_view_descrs_->GetSize());
 
   for (const auto& view_descr : *rendering_view_descrs_) {
     Generate(view_descr);
@@ -244,7 +245,7 @@ void ViewHandler::OnShutdown() {
   }
 
   frame_state_ = nullptr;
-  views_.Destroy();
+  views_.Release();
 }
 
 View* ViewHandler::Get(usize index) {

@@ -6,7 +6,6 @@
 #define COMET_COMET_CORE_FILE_SYSTEM_FILE_SYSTEM_TYPE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/file_system/file_system_type.h"
 
 namespace comet {
 enum class RootType {

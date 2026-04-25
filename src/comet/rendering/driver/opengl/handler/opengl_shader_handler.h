@@ -18,11 +18,11 @@
 #include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_module_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_material_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_mesh_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_material.h"
+#include "comet/rendering/driver/opengl/type/opengl_mesh.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/rendering_shader_type.h"
+#include "comet/rendering/type/shader.h"
 #include "comet/resource/shader/shader_resource.h"
 
 namespace comet {

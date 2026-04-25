@@ -38,7 +38,7 @@ class ThreadProvider {
     COMET_ASSERT(is_initialized_, "thread::ThreadProvider::Destroy",
                  "provider is not initialized");
     OnDestroy();
-    array_.Destroy();
+    array_.Release();
     is_initialized_ = false;
   }
 

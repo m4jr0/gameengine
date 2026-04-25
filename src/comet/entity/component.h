@@ -6,8 +6,9 @@
 #define COMET_COMET_ENTITY_COMPONENT_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/hash.h"
 #include "comet/core/memory/memory.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 
 namespace comet {
 namespace entity {
@@ -30,6 +31,17 @@ struct ComponentTypeDescr {
   EntityId id{kInvalidEntityId};
   usize size{0};
   memory::Alignment align{0};
+};
+
+HashValue GenerateHash(const ComponentTypeDescr& descr);
+
+struct ComponentTypeDescrHashLogic {
+  using Value = ComponentTypeDescr;
+  using Hashable = ComponentTypeDescr;
+
+  static const Hashable& GetHashable(const Value& value);
+  static HashValue Hash(const Hashable& hashable);
+  static bool AreEqual(const Hashable& a, const Hashable& b);
 };
 
 class ComponentIdGenerator {
@@ -68,7 +80,7 @@ class ComponentTypeDescrGetter : public ComponentIdGenerator {
 
 struct ComponentDescr {
   ComponentTypeDescr type_descr{};
-  const u8* data{nullptr};
+  u8* data{nullptr};
 };
 }  // namespace entity
 }  // namespace comet

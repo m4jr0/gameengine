@@ -43,7 +43,10 @@ class SharedInstanceRegistry {
 
   explicit SharedInstanceRegistry(memory::Allocator* allocator,
                                   usize initial_capacity = 0)
-      : slots_{allocator}, source_ids_{allocator, initial_capacity} {}
+      : slots_{allocator} {
+    source_ids_ =
+        Map<SourceId, ItemHandle>::WithCapacity(allocator, initial_capacity);
+  }
 
   void Initialize() {
     COMET_ASSERT(!is_initialized_, "SharedInstanceRegistry::Initialize",
@@ -56,8 +59,8 @@ class SharedInstanceRegistry {
     COMET_ASSERT(is_initialized_, "SharedInstanceRegistry::Destroy",
                  "shared instance registry is not initialized");
     is_initialized_ = false;
-    slots_.Destroy();
-    source_ids_.Destroy();
+    slots_.Release();
+    source_ids_.Release();
     handle_pool_.Destroy();
   }
 
@@ -334,6 +337,13 @@ class SharedInstanceRegistry {
       std::invoke(fn, handle, slot.item);
     }
   }
+
+  usize GetLiveCount() const {
+    fiber::FiberLockGuard lock{mtx_};
+    return source_ids_.GetEntryCount();
+  }
+
+  bool HasNoLiveInstances() const { return GetLiveCount() == 0; }
 
   bool IsInitialized() const noexcept { return is_initialized_; }
 

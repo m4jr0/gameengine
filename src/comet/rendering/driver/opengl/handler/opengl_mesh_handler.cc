@@ -79,8 +79,7 @@ ShaderVertexSource MeshHandler::GetVertexSource() const {
 
 void MeshHandler::OnInitialize() {
   allocator_.Initialize();
-
-  proxies_ = Array<MeshProxy>{&allocator_, kDefaultProxyCount_};
+  proxies_ = Array<MeshProxy>::WithCapacity(&allocator_, kDefaultProxyCount_);
 
   vertex_buffer_ = VertexGpuBuffer{&allocator_, kVertexCountPerBlock_,
                                    kDefaultVertexCount_, 0, "vertex_buffer_"};
@@ -92,7 +91,7 @@ void MeshHandler::OnInitialize() {
 }
 
 void MeshHandler::OnShutdown() {
-  proxies_.Destroy();
+  proxies_.Release();
   vertex_buffer_.Destroy();
   index_buffer_.Destroy();
   allocator_.Destroy();
@@ -196,12 +195,12 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
         vertex_buffer_.Claim(geometry.vertices->GetSize())};
     const auto index_offset{index_buffer_.Claim(geometry.indices->GetSize())};
 
-    update_context.vertex_copy_regions.EmplaceBack(
+    update_context.vertex_copy_regions.EmplaceLast(
         update_context.current_staging_vertex_offset,
         static_cast<GLsizeiptr>(vertex_offset *
                                 sizeof(geometry::SkinnedVertex)),
         vertex_size);
-    update_context.index_copy_regions.EmplaceBack(
+    update_context.index_copy_regions.EmplaceLast(
         update_context.current_staging_index_offset,
         static_cast<GLsizeiptr>(index_offset * sizeof(geometry::Index)),
         index_size);
@@ -266,12 +265,12 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
     memory::CopyMemory(memory + update_context.current_staging_index_offset,
                        mesh.indices->GetData(), new_index_size);
 
-    update_context.vertex_copy_regions.EmplaceBack(
+    update_context.vertex_copy_regions.EmplaceLast(
         update_context.current_staging_vertex_offset,
         static_cast<GLsizeiptr>(vertex_offset *
                                 sizeof(geometry::SkinnedVertex)),
         new_vertex_size);
-    update_context.index_copy_regions.EmplaceBack(
+    update_context.index_copy_regions.EmplaceLast(
         update_context.current_staging_index_offset,
         static_cast<GLsizeiptr>(index_offset * sizeof(geometry::Index)),
         new_index_size);

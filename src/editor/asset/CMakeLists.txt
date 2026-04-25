@@ -62,36 +62,16 @@ target_sources(${EXECUTABLE_NAME}
 # Compiling ####################################################################
 target_include_directories(${EXECUTABLE_NAME}
   PRIVATE
-    ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
 
 # Linking ######################################################################
-target_link_directories(${EXECUTABLE_NAME}
-  PRIVATE
-    ${VCPKG_LIBRARY_DIR}
-)
-
 target_link_libraries(${EXECUTABLE_NAME}
   PRIVATE
     ${COMET_LIBRARY_NAME}
     nlohmann_json::nlohmann_json
     assimp::assimp
     SPIRV-Tools-opt
-    glslang
+    glslang::glslang
     unofficial::shaderc::shaderc
 )
-
-if(WIN32)
-  target_link_libraries(${EXECUTABLE_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()
-
-if(LINUX)
-  target_link_libraries(${EXECUTABLE_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()

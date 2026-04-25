@@ -6,9 +6,9 @@
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_UTILS_OPENGL_SHADER_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_utils.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_module_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
+#include "comet/core/frame/frame_container.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader_module.h"
 
 namespace comet {
 namespace rendering {

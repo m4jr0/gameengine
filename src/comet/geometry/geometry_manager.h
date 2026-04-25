@@ -12,13 +12,13 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
 #include "comet/geometry/component/model_component.h"
 #include "comet/geometry/component/skeleton_component.h"
-#include "comet/geometry/type/geometry_mesh_type.h"
+#include "comet/geometry/type/mesh.h"
 #include "comet/resource/model/model_resource.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/type/common.h"
 
 namespace comet {
 namespace geometry {

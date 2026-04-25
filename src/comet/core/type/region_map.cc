@@ -23,7 +23,7 @@ RegionMap::RegionMap(memory::Allocator* allocator, usize block_size, usize size)
 }
 
 void RegionMap::Destroy() {
-  block_map_.Destroy();
+  block_map_.Release();
   block_size_ = 0;
   size_ = 0;
 }

@@ -25,7 +25,7 @@
 #include "comet/core/type_trait.h"
 #include "comet/math/math_scalar.h"
 #include "comet/rendering/driver/vulkan/label/vulkan_texture_label.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_image_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
@@ -33,8 +33,8 @@
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
-#include "comet/rendering/label/rendering_texture_label.h"
-#include "comet/rendering/utils/rendering_texture_utils.h"
+#include "comet/rendering/label/texture_label.h"
+#include "comet/rendering/utils/texture_utils.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -191,11 +191,12 @@ void TextureHandler::OnInitialize() {
 
 void TextureHandler::OnShutdown() {
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-  Array<TextureHandle> handles_to_destroy{&tmp_allocator};
+  auto handles_to_destroy{Array<TextureHandle>::WithCapacity(
+      &tmp_allocator, textures_.GetLiveCount())};
 
   textures_.ForEachLive(
       [&handles_to_destroy](TextureHandle handle, const Texture*) {
-        handles_to_destroy.PushBack(handle);
+        handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : handles_to_destroy) {

@@ -11,10 +11,10 @@
 #include "opengl_world_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
 #include "comet/resource/resource.h"
@@ -138,7 +138,7 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
 
   {
     auto& field_updates{
-        *COMET_FRAME_ARRAY(ShaderBufferFieldUpdate, static_cast<usize>(6))};
+        *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderBufferFieldUpdate, 6)};
 
     AddWorldGlobalFieldUpdates(shader_handler_, world_shader_, packet,
                                field_updates);
@@ -152,9 +152,9 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
     const auto* shadow_map{lighting_handler_->GetShadowArrayTextureMap()};
 
     auto& image_bindings{
-        *COMET_FRAME_ARRAY(ShaderImageBindingUpdate, static_cast<usize>(1))};
+        *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderImageBindingUpdate, 1)};
     auto& image_descriptors{
-        *COMET_FRAME_ARRAY(ShaderImageDescriptor, static_cast<usize>(1))};
+        *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderImageDescriptor, 1)};
 
     AddWorldGlobalImageBindings(shader_handler_, world_shader_, shadow_map,
                                 image_bindings, image_descriptors);
@@ -169,7 +169,7 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
   const auto shadow_gpu_data{lighting_handler_->GetShadowGpuData(frame_index)};
 
   auto& buffer_bindings{
-      *COMET_FRAME_ARRAY(ShaderBufferBindingUpdate, static_cast<usize>(5))};
+      *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderBufferBindingUpdate, 5)};
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -220,7 +220,7 @@ void WorldView::RunSparseUpload() {
   const auto gpu_data{render_proxy_handler_->GetSparseUploadGpuData()};
 
   auto& buffer_bindings{
-      *COMET_FRAME_ARRAY(ShaderBufferBindingUpdate, static_cast<usize>(3))};
+      *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderBufferBindingUpdate, 3)};
 
   AddBufferBinding(
       buffer_bindings,
@@ -249,9 +249,9 @@ void WorldView::RunSparseUpload() {
   shader_handler_->UpdateGlobals(sparse_upload_shader_, global_update);
 
   auto& blocks{
-      *COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate, static_cast<usize>(1))};
+      *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderPushConstantBlockUpdate, 1)};
 
-  auto& block{blocks.EmplaceBack()};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = worldsparseuploadshaderconsts::kCountPushConstantIndex;
   block.data = &gpu_data.word_count;
   block.size = sizeof(gpu_data.word_count);
@@ -290,7 +290,7 @@ void WorldView::RunCull(frame::FramePacket* packet) {
 
   {
     auto& field_updates{
-        *COMET_FRAME_ARRAY(ShaderBufferFieldUpdate, static_cast<usize>(5))};
+        *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderBufferFieldUpdate, 5)};
 
     AddWorldGlobalFieldUpdates(shader_handler_, cull_shader_, packet,
                                field_updates);
@@ -301,7 +301,7 @@ void WorldView::RunCull(frame::FramePacket* packet) {
   }
 
   auto& buffer_bindings{
-      *COMET_FRAME_ARRAY(ShaderBufferBindingUpdate, static_cast<usize>(6))};
+      *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderBufferBindingUpdate, 6)};
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -358,10 +358,10 @@ void WorldView::RunCull(frame::FramePacket* packet) {
   {
     const auto draw_count{static_cast<u32>(packet->draw_count)};
 
-    auto& blocks{*COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate,
-                                    static_cast<usize>(1))};
+    auto& blocks{
+        *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderPushConstantBlockUpdate, 1)};
 
-    auto& block{blocks.EmplaceBack()};
+    auto& block{blocks.EmplaceLast()};
     block.block_index = worldcullshaderconsts::kDrawCountPushConstantIndex;
     block.data = &draw_count;
     block.size = sizeof(draw_count);
@@ -406,9 +406,9 @@ void WorldView::DrawWorld() {
   const auto light_count{lighting_handler_->GetLightCount()};
 
   auto& blocks{
-      *COMET_FRAME_ARRAY(ShaderPushConstantBlockUpdate, static_cast<usize>(1))};
+      *COMET_FRAME_ARRAY_WITH_CAPACITY(ShaderPushConstantBlockUpdate, 1)};
 
-  auto& block{blocks.EmplaceBack()};
+  auto& block{blocks.EmplaceLast()};
   block.block_index = worldshaderconsts::kLightingPushConstantIndex;
   block.data = &light_count;
   block.size = sizeof(light_count);

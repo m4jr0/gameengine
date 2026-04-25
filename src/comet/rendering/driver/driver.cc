@@ -31,9 +31,9 @@ Driver::Driver(const DriverDescr& descr)
       window_height_{descr.window_height},
       app_name_len_{descr.app_name_len},
       shadow_settings_{descr.shadow_settings} {
-  rendering_view_descrs_ = {&rendering_view_descrs_allocator_,
-                            descr.rendering_view_descrs.GetData(),
-                            descr.rendering_view_descrs.GetSize()};
+  rendering_view_descrs_ = Array<RenderingViewDescr>::FromData(
+      &rendering_view_descrs_allocator_, descr.rendering_view_descrs.GetData(),
+      descr.rendering_view_descrs.GetSize());
 
   Copy(app_name_, descr.app_name, app_name_len_);
   memory::CopyMemory(clear_color_, descr.clear_color,

@@ -38,11 +38,16 @@ class StackAllocator : public StatefulAllocator {
  private:
   using StackAllocatorMarker = u8*;
 
-  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize capacity_{0};
   u8* root_{nullptr};
   StackAllocatorMarker marker_{nullptr};
+
+#ifdef COMET_DEBUG_STACK_ALLOCATOR
+  usize allocation_count_{0};
+  usize clear_count_{0};
+  usize peak_used_size_{0};
+#endif  // COMET_DEBUG_STACK_ALLOCATOR
 };
 
 class FiberStackAllocator : public StatefulAllocator {
@@ -95,6 +100,18 @@ class FiberStackAllocator : public StatefulAllocator {
   FiberStackAllocatorMarker marker_{nullptr};
   u8* extended_root_{nullptr};
   FiberStackAllocatorMarker extended_marker_{nullptr};
+
+#ifdef COMET_DEBUG_STACK_ALLOCATOR
+  usize thread_allocation_count_{0};
+  usize common_allocation_count_{0};
+  usize extended_allocation_count_{0};
+  usize extended_grow_count_{0};
+  usize clear_count_{0};
+  usize peak_common_used_size_{0};
+  usize peak_extended_used_size_{0};
+  usize total_extended_capacity_{0};
+  usize peak_extended_capacity_{0};
+#endif  // COMET_DEBUG_STACK_ALLOCATOR
 };
 
 class IOStackAllocator : public StatefulAllocator {
@@ -131,11 +148,15 @@ class IOStackAllocator : public StatefulAllocator {
 
   using ThreadContexts = thread::IOThreadProvider<ThreadContext>;
 
-  bool is_destroyed_{false};
   MemoryTag memory_tag_{kEngineMemoryTagUntagged};
   usize thread_capacity_{0};
   ThreadContexts thread_contexts_{
       thread::ThreadProviderManager::Get().AllocateIOProvider<ThreadContext>()};
+
+#ifdef COMET_DEBUG_STACK_ALLOCATOR
+  usize allocation_count_{0};
+  usize clear_count_{0};
+#endif  // COMET_DEBUG_STACK_ALLOCATOR
 };
 
 class LockFreeStackAllocator : public StatefulAllocator {
@@ -171,6 +192,14 @@ class LockFreeStackAllocator : public StatefulAllocator {
   std::atomic<LockFreeStackAllocatorOffset> offset_{kInvalidOffset_};
 
   u8* root_{nullptr};
+
+#ifdef COMET_DEBUG_STACK_ALLOCATOR
+  static_assert(std::atomic<usize>::is_always_lock_free,
+                "std::atomic<usize> must be always lock-free");
+  std::atomic<usize> allocation_count_{0};
+  std::atomic<usize> peak_used_size_{0};
+  std::atomic<usize> clear_count_{0};
+#endif  // COMET_DEBUG_STACK_ALLOCATOR
 };
 
 template <typename Stack>

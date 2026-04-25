@@ -55,6 +55,8 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "double_frame_extended_1";
     case kEngineMemoryTagDoubleFrameExtended2:
       return "double_frame_extended_2";
+    case kEngineMemoryTagContinuation:
+      return "continuation";
     case kEngineMemoryTagGeometry:
       return "geometry";
     case kEngineMemoryTagRendering:

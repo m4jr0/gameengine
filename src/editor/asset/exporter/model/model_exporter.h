@@ -17,7 +17,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/tstring.h"
-#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/type/texture.h"
 #include "comet/resource/material/material_resource.h"
 #include "comet/resource/resource.h"
 #include "editor/asset/exporter/asset_exporter.h"

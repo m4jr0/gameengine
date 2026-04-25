@@ -12,8 +12,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
-#include "comet/rendering/utils/rendering_shader_utils.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
+#include "comet/rendering/utils/shader_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -45,7 +45,7 @@ u32 ResolveBinding(u32 set, u32 binding) {
 void AddBufferBinding(frame::FrameArray<ShaderBufferBindingUpdate>& updates,
                       ShaderBindingIndex binding_index, GLuint buffer_handle,
                       usize buffer_size, usize buffer_offset) {
-  auto& update{updates.EmplaceBack()};
+  auto& update{updates.EmplaceLast()};
   update.binding_index = binding_index;
   update.buffer_handle = buffer_handle;
   update.buffer_size = buffer_size;
@@ -56,7 +56,7 @@ void AddImageBinding(frame::FrameArray<ShaderImageBindingUpdate>& updates,
                      ShaderBindingIndex binding_index,
                      const ShaderImageDescriptor* descriptors,
                      u32 descriptor_count) {
-  auto& update{updates.EmplaceBack()};
+  auto& update{updates.EmplaceLast()};
   update.binding_index = binding_index;
   update.descriptors = descriptors;
   update.descriptor_count = descriptor_count;
@@ -66,7 +66,7 @@ void AddFieldUpdate(frame::FrameArray<ShaderBufferFieldUpdate>& updates,
                     ShaderBindingIndex binding_index,
                     ShaderFieldIndex field_index, const void* data,
                     usize size) {
-  auto& update{updates.EmplaceBack()};
+  auto& update{updates.EmplaceLast()};
   update.binding_index = binding_index;
   update.field_index = field_index;
   update.data = data;

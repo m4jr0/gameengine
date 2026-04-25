@@ -16,8 +16,8 @@
 #include "comet/math/vector.h"
 #include "comet/rendering/camera.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/rendering_camera_type.h"
-#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/camera.h"
+#include "comet/rendering/type/common.h"
 
 namespace comet {
 namespace rendering {

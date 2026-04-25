@@ -14,7 +14,7 @@
 #include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 
 namespace comet {

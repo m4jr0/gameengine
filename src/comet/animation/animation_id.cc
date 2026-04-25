@@ -10,7 +10,7 @@
 #include "animation_id.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 
 namespace comet {
 namespace animation {
@@ -34,7 +34,7 @@ AnimationClipId GenerateQualifiedAnimationClipId(CTStringView file_path,
   if (total_len + 1 <= kMaxStackBufferSize) {
     buffer = stack_buffer;
   } else {
-    buffer = GenerateForOneFrame<schar>(total_len + 1);
+    buffer = GenerateFrameString<schar>(total_len + 1);
   }
 
   Copy(buffer, file_path.GetCTStr(), path_len);

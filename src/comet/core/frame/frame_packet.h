@@ -5,21 +5,21 @@
 #ifndef COMET_COMET_CORE_FRAME_PACKET_H_
 #define COMET_COMET_CORE_FRAME_PACKET_H_
 
-#include "comet/animation/type/animation_skinning_type.h"
+#include "comet/animation/type/animation_skinning.h"
 #include "comet/core/concurrency/fiber/fiber_primitive.h"
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/hash.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/type/geometry_mesh_type.h"
+#include "comet/geometry/type/mesh.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/physics/component/transform_component.h"
-#include "comet/rendering/type/rendering_camera_type.h"
-#include "comet/rendering/type/rendering_light_type.h"
-#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/type/camera.h"
+#include "comet/rendering/type/light.h"
+#include "comet/rendering/type/texture.h"
 #include "comet/resource/material/material_resource.h"
 #include "comet/time/time_manager.h"
 
@@ -102,6 +102,15 @@ struct DirtyLight {
 struct RemovedLight {
   rendering::LightHandle light_handle{};
 };
+
+bool operator==(const AddedGeometry& lhs, const AddedGeometry& rhs) noexcept;
+bool operator==(const DirtyMesh& lhs, const DirtyMesh& rhs) noexcept;
+bool operator==(const DirtyTransform& lhs, const DirtyTransform& rhs) noexcept;
+bool operator==(const RemovedGeometry& lhs,
+                const RemovedGeometry& rhs) noexcept;
+bool operator==(const AddedLight& lhs, const AddedLight& rhs) noexcept;
+bool operator==(const DirtyLight& lhs, const DirtyLight& rhs) noexcept;
+bool operator==(const RemovedLight& lhs, const RemovedLight& rhs) noexcept;
 
 HashValue GenerateHash(const AddedGeometry& value);
 HashValue GenerateHash(const DirtyMesh& value);

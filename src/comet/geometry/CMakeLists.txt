@@ -19,41 +19,15 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/geometry/component/skeleton_component.h"
 
     # Label.
-    "${PROJECT_SOURCE_DIR}/src/comet/geometry/label/geometry_mesh_label.cc"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/label/mesh_label.cc"
 
     # Type.
-    "${PROJECT_SOURCE_DIR}/src/comet/geometry/type/geometry_mesh_type.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/geometry/type/geometry_skeleton_type.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/type/mesh.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/geometry/type/skeleton.h"
 )
 
 # Compiling ####################################################################
 target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE
-    ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
-
-# Linking ######################################################################
-target_link_directories(${COMET_LIBRARY_NAME}
-  PRIVATE
-    ${VCPKG_LIBRARY_DIR}
-)
-
-target_link_libraries(${COMET_LIBRARY_NAME}
-  PRIVATE
-    # Put libraries here.
-)
-
-if(WIN32)
-  target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()
-
-if(LINUX)
-  target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()

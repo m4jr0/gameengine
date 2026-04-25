@@ -17,6 +17,7 @@
 #include "comet/core/concurrency/provider/thread_provider_manager.h"
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/conf/configuration_manager.h"
+#include "comet/core/continuation/continuation_manager.h"
 #include "comet/core/frame/frame_manager.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/logic/game_logic_manager.h"
@@ -29,6 +30,7 @@
 #include "comet/geometry/geometry_manager.h"
 #include "comet/input/input_manager.h"
 #include "comet/physics/physics_manager.h"
+#include "comet/profiler/profiler.h"
 #include "comet/rendering/camera_manager.h"
 #include "comet/rendering/light_manager.h"
 #include "comet/rendering/rendering_manager.h"
@@ -124,27 +126,35 @@ void Engine::Run() {
 }
 
 void Engine::Update(f64& lag) {
-  COMET_ASSERT(is_running_, "Engine::Update", "engine is not running");
-
-  time::TimeManager::Get().Update();
-  lag += time::TimeManager::Get().GetDeltaTime();
-
-  job::CounterGuard guard{};
   auto& frame_manager{frame::FrameManager::Get()};
-  auto* logic_frame_packet{frame_manager.GetLogicFramePacket()};
-  logic_frame_packet->lag = lag;
-  logic_frame_packet->counter = guard.GetCounter();
 
-  auto* rendering_frame_packet{frame_manager.GetRenderingFramePacket()};
-  rendering_frame_packet->counter = guard.GetCounter();
+  {
+    COMET_PROFILE("Engine::Update");
+    COMET_ASSERT(is_running_, "Engine::Update", "engine is not running");
 
-  GameLogicManager::Get().Update(logic_frame_packet);
-  rendering::RenderingManager::Get().Update(rendering_frame_packet);
+    time::TimeManager::Get().Update();
+    lag += time::TimeManager::Get().GetDeltaTime();
 
-  guard.Wait();
-  logic_frame_packet->counter = nullptr;
-  rendering_frame_packet->counter = nullptr;
-  lag = logic_frame_packet->lag;
+    job::CounterGuard guard{};
+    auto* logic_frame_packet{frame_manager.GetLogicFramePacket()};
+    logic_frame_packet->lag = lag;
+    logic_frame_packet->counter = guard.GetCounter();
+
+    auto* rendering_frame_packet{frame_manager.GetRenderingFramePacket()};
+    rendering_frame_packet->counter = guard.GetCounter();
+
+    {
+      COMET_PROFILE("Engine::Update::LogicAndRendering");
+      GameLogicManager::Get().Update(logic_frame_packet);
+      rendering::RenderingManager::Get().Update(rendering_frame_packet);
+    }
+
+    guard.Wait();
+    logic_frame_packet->counter = nullptr;
+    rendering_frame_packet->counter = nullptr;
+    lag = logic_frame_packet->lag;
+  }
+
   frame_manager.Update();
 
 #ifdef COMET_PROFILING
@@ -280,6 +290,7 @@ void Engine::PreLoad() {
   OnPreLoadBefore();
   conf::ConfigurationManager::Get().Initialize();
   job::Scheduler::Get().Initialize();
+  ContinuationManager::Get().Initialize();
   OnPreLoadAfter();
 }
 
@@ -387,6 +398,7 @@ void Engine::Unload() {
   frame::FrameManager::Get().Shutdown();
   thread::ThreadProviderManager::Get().Shutdown();
   memory::TaggedHeap::Get().Destroy();
+  ContinuationManager::Get().Shutdown();
   job::Scheduler::Get().Shutdown();
   conf::ConfigurationManager::Get().Shutdown();
   is_running_ = false;

@@ -120,6 +120,8 @@ struct DefaultMapHashLogic<wchar*, TValue>
 template <typename Key, typename Value,
           typename HashLogic = internal::DefaultMapHashLogic<Key, Value>>
 class Map {
+  struct WithCapacityTag {};
+
  public:
   using KVPair = Pair<Key, Value>;
   using Pairs = HashSet<KVPair, HashLogic>;
@@ -127,22 +129,16 @@ class Map {
   using Iterator = typename Pairs::Iterator;
   using ConstIterator = typename Pairs::ConstIterator;
 
-  Iterator begin() { return pairs_.begin(); }
-  Iterator end() { return pairs_.end(); }
-  ConstIterator begin() const { return pairs_.begin(); }
-  ConstIterator end() const { return pairs_.end(); }
-  ConstIterator cbegin() const { return pairs_.cbegin(); }
-  ConstIterator cend() const { return pairs_.cend(); }
-
   static inline constexpr usize kDefaultCapacity{16};
+
+  static Map WithCapacity(memory::Allocator* allocator, usize capacity) {
+    return Map{allocator, WithCapacityTag{}, capacity};
+  }
 
   Map() = default;
 
-  Map(memory::Allocator* allocator)
-      : Map(allocator, allocator != nullptr ? kDefaultCapacity : 0) {}
-
-  Map(memory::Allocator* allocator, usize capacity)
-      : pairs_{allocator, capacity}, allocator_{allocator} {}
+  explicit Map(memory::Allocator* allocator)
+      : pairs_{allocator}, allocator_{allocator} {}
 
   Map(const Map& other) : pairs_{other.pairs_}, allocator_{other.allocator_} {}
 
@@ -156,7 +152,8 @@ class Map {
       return *this;
     }
 
-    Clear();
+    Release();
+
     pairs_ = other.pairs_;
     allocator_ = other.allocator_;
     return *this;
@@ -167,7 +164,8 @@ class Map {
       return *this;
     }
 
-    Clear();
+    Release();
+
     pairs_ = std::move(other.pairs_);
     allocator_ = other.allocator_;
 
@@ -175,51 +173,72 @@ class Map {
     return *this;
   }
 
-  ~Map() { Destroy(); }
+  ~Map() { Release(); }
 
-  void Destroy() { pairs_.Destroy(); }
+  Iterator begin() { return pairs_.begin(); }
 
-  Value& operator[](const Key& key) { return Get(key); }
+  Iterator end() { return pairs_.end(); }
+
+  ConstIterator begin() const { return pairs_.begin(); }
+
+  ConstIterator end() const { return pairs_.end(); }
+
+  ConstIterator cbegin() const { return pairs_.cbegin(); }
+
+  ConstIterator cend() const { return pairs_.cend(); }
 
   bool operator==(const Map& other) const { return pairs_ == other.pairs_; }
 
   bool operator!=(const Map& other) const { return !(*this == other); }
 
+  void Release() {
+    pairs_.Release();
+    allocator_ = nullptr;
+  }
+
   Value& Get(const Key& key) {
-    auto* value = TryGet(key);
-
-    if (value != nullptr) {
-      return *value;
-    }
-
-    if constexpr (std::is_constructible_v<Value, memory::Allocator*>) {
-      auto& new_pair{pairs_.Emplace(KVPair{key, Value(allocator_)})};
-      return new_pair.value;
-    } else if constexpr (std::is_default_constructible_v<Value>) {
-      auto& new_pair{pairs_.Emplace(KVPair{key, Value{}})};
-      return new_pair.value;
-    } else {
-      COMET_ASSERT(false, "Map::Get",
-                   "key not found and value is not default-constructible");
-      throw std::runtime_error(
-          "key not found and value is not default-constructible");
-    }
+    auto* value{TryGet(key)};
+    COMET_ASSERT(value != nullptr, "Map::Get", "key not found");
+    return *value;
   }
 
   const Value& Get(const Key& key) const {
-    auto* value = TryGet(key);
-    COMET_ASSERT(value != nullptr, "Map::Get", "no value found");
+    const auto* value{TryGet(key)};
+    COMET_ASSERT(value != nullptr, "Map::Get", "key not found");
     return *value;
   }
 
   Value* TryGet(const Key& key) {
     auto* pair{pairs_.Find(key)};
-    return pair ? &pair->value : nullptr;
+    return pair != nullptr ? &pair->value : nullptr;
   }
 
   const Value* TryGet(const Key& key) const {
     const auto* pair{pairs_.Find(key)};
-    return pair ? &pair->value : nullptr;
+    return pair != nullptr ? &pair->value : nullptr;
+  }
+
+  Value& GetOrAdd(const Key& key) {
+    auto* value{TryGet(key)};
+
+    if (value != nullptr) {
+      return *value;
+    }
+
+    return EmplaceDefaultValue(key).value;
+  }
+
+  template <typename... Targs>
+  Value& GetOrAdd(const Key& key, Targs&&... args) {
+    auto* value{TryGet(key)};
+
+    if (value != nullptr) {
+      return *value;
+    }
+
+    auto& pair{
+        pairs_.Emplace(KVPair{key, Value{std::forward<Targs>(args)...}})};
+    return pair.value;
   }
 
   template <typename K, typename V>
@@ -247,8 +266,8 @@ class Map {
   }
 
   Value Pop(const Key& key) {
-    const auto pair{pairs_.Pop(key)};
-    return pair.value;
+    auto pair{pairs_.Pop(key)};
+    return std::move(pair.value);
   }
 
   void Clear() { pairs_.Clear(); }
@@ -257,13 +276,44 @@ class Map {
 
   void Reserve(usize capacity) { pairs_.Reserve(capacity); }
 
+  void TrimCapacity() { pairs_.TrimCapacity(); }
+
+  void SetMaxLoadFactor(f32 max_load_factor) {
+    pairs_.SetMaxLoadFactor(max_load_factor);
+  }
+
+  f32 GetMaxLoadFactor() const noexcept { return pairs_.GetMaxLoadFactor(); }
+
   usize GetEntryCount() const noexcept { return pairs_.GetEntryCount(); }
 
   usize GetBucketCount() const noexcept { return pairs_.GetBucketCount(); }
 
   bool IsEmpty() const noexcept { return pairs_.IsEmpty(); }
 
+  memory::Allocator* GetAllocator() noexcept { return allocator_; }
+
+  const memory::Allocator* GetAllocator() const noexcept { return allocator_; }
+
  private:
+  Map(memory::Allocator* allocator, WithCapacityTag, usize capacity)
+      : pairs_{Pairs::WithCapacity(allocator, capacity)},
+        allocator_{allocator} {
+    COMET_ASSERT(capacity == 0 || allocator != nullptr, "Map::WithCapacity",
+                 "allocator is null");
+  }
+
+  KVPair& EmplaceDefaultValue(const Key& key) {
+    if constexpr (std::is_constructible_v<Value, memory::Allocator*>) {
+      return pairs_.Emplace(KVPair{key, Value{allocator_}});
+    } else if constexpr (std::is_default_constructible_v<Value>) {
+      return pairs_.Emplace(KVPair{key, Value{}});
+    } else {
+      COMET_ASSERT(false, "Map::GetOrAdd",
+                   "value is not default-constructible");
+      throw std::runtime_error("value is not default-constructible");
+    }
+  }
+
   Pairs pairs_{};
   memory::Allocator* allocator_{nullptr};
 };

@@ -12,12 +12,12 @@
 #include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/buffer_formatter.h"
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/essentials.h"
 #include "comet/core/logger/logger_label.h"
 #include "comet/core/logger/logger_type.h"
 #include "comet/core/type/array.h"
-#include "comet/core/type/buffer_formatter.h"
 #include "comet/core/type/tstring.h"
 #include "comet/time/chrono.h"
 

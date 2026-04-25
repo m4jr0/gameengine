@@ -13,6 +13,8 @@
 #include "comet/core/concurrency/job/worker_context.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
+#include "comet/core/continuation/continuation_manager.h"
+#include "comet/core/continuation/type/continuation_phase.h"
 #include "comet/core/frame/frame_event.h"
 #include "comet/event/event_manager.h"
 #include "comet/profiler/profiler_manager.h"
@@ -42,14 +44,17 @@ FrameManager::FrameManager()
                                  memory::kEngineMemoryTagDoubleFrame} {}
 
 void FrameManager::Update() {
+  auto& continuation_manager{ContinuationManager::Get()};
+  continuation_manager.Poll(ContinuationPhase::BeginFrame);
+
   auto& event_manager{event::EventManager::Get()};
   event_manager.FireEventNow<EndFrameEvent>();
+  continuation_manager.Poll(ContinuationPhase::AfterEndFrame);
+
   StepFrame();
 
-  // Fire a new frame event now, as many frame-specific systems rely on
-  // temporary allocations that must be reset or reallocated at the start of
-  // each frame.
   event_manager.FireEventNow<NewFrameEvent>();
+  continuation_manager.Poll(ContinuationPhase::BeginFrame);
 }
 
 void FrameManager::WaitForNextFrame() {

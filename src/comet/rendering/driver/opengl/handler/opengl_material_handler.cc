@@ -14,10 +14,10 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type_trait.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/type/opengl_sampler_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_sampler.h"
 #include "comet/rendering/driver/opengl/utils/opengl_texture_map_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_texture_utils.h"
-#include "comet/rendering/label/rendering_texture_label.h"
+#include "comet/rendering/label/texture_label.h"
 #include "comet/resource/material/material_resource.h"
 #include "comet/resource/resource_manager.h"
 #include "comet/resource/texture/texture_resource.h"
@@ -131,12 +131,12 @@ void MaterialHandler::OnShutdown() {
   destroy_callback_user_data_ = nullptr;
 
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-
-  Array<MaterialHandle> material_handles_to_destroy{&tmp_allocator};
+  auto material_handles_to_destroy{Array<MaterialHandle>::WithCapacity(
+      &tmp_allocator, materials_.GetLiveCount())};
 
   materials_.ForEachLive(
       [&material_handles_to_destroy](MaterialHandle handle, const Material*) {
-        material_handles_to_destroy.PushBack(handle);
+        material_handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : material_handles_to_destroy) {

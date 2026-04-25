@@ -7,8 +7,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/type/array.h"
-#include "comet/geometry/type/geometry_mesh_type.h"
-#include "comet/geometry/type/geometry_skeleton_type.h"
+#include "comet/geometry/type/mesh.h"
+#include "comet/geometry/type/skeleton.h"
 #include "comet/math/matrix.h"
 #include "comet/math/vector.h"
 #include "comet/resource/material/material_resource.h"

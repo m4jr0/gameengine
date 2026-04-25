@@ -8,10 +8,10 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/rendering/type/rendering_common_type.h"
-#include "comet/rendering/type/rendering_light_type.h"
-#include "comet/rendering/type/rendering_texture_type.h"
-#include "comet/rendering/type/rendering_view_type.h"
+#include "comet/rendering/type/common.h"
+#include "comet/rendering/type/light.h"
+#include "comet/rendering/type/texture.h"
+#include "comet/rendering/type/view.h"
 #include "comet/rendering/window/window.h"
 
 namespace comet {

@@ -12,8 +12,10 @@
 
 namespace comet {
 namespace animation {
-AnimationSet::AnimationSet(memory::Allocator* allocator, usize capacity)
-    : animations_{allocator, capacity} {}
+AnimationSet::AnimationSet(memory::Allocator* allocator, usize capacity) {
+  animations_ = Map<resource::RawResourceId, AnimationClipId>::WithCapacity(
+      allocator, capacity);
+}
 
 void AnimationSet::Reserve(usize capacity) { animations_.Reserve(capacity); }
 

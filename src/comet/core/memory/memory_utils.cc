@@ -44,6 +44,21 @@ void* CopyMemory(void* dst, const void* src, usize size) {
   return std::memcpy(dst, src, size);
 }
 
+void* MoveMemory(void* dst, const void* src, usize size) {
+  return std::memmove(dst, src, size);
+}
+
+void* CopyOrMoveMemory(void* dst, const void* src, usize size) {
+  const auto* s{static_cast<const u8*>(src)};
+  auto* d{static_cast<u8*>(dst)};
+
+  if (d < s + size && s < d + size) {
+    return MoveMemory(dst, src, size);
+  }
+
+  return CopyMemory(dst, src, size);
+}
+
 void Memset(void* ptr, u8 value, usize size) {
   // std::memset casts the value to an unsigned char anyway, so taking a value
   // as a u8 is OK.
@@ -269,10 +284,10 @@ MemoryDescr GetMemoryDescr() {
 }
 
 void ConvertAddressToHex(uptr address, schar* buffer, usize buffer_len) {
-  COMET_ASSERT(buffer_len > kHexAddressLength,
+  COMET_ASSERT(buffer_len >= kHexAddressBufferLen,
                "memory_utils::ConvertAddressToHex", "buffer is too small",
                "buffer_len", buffer_len, "required_buffer_len",
-               kHexAddressLength + 1);
+               kHexAddressBufferLen);
 #ifdef COMET_WINDOWS
   std::snprintf(buffer, buffer_len, "0x%016llx", address);
 #else
@@ -280,7 +295,7 @@ void ConvertAddressToHex(uptr address, schar* buffer, usize buffer_len) {
 #endif  // COMET_WINDOWS
 }
 
-void ConvertAddressToHex(void* address, schar* buffer, usize buffer_len) {
+void ConvertAddressToHex(const void* address, schar* buffer, usize buffer_len) {
   ConvertAddressToHex(reinterpret_cast<uptr>(address), buffer, buffer_len);
 }
 
@@ -306,8 +321,10 @@ void* AllocateAligned(usize size, Alignment align,
 }
 
 void Deallocate(void* ptr) {
-  COMET_REGISTER_PLATFORM_DEALLOCATION(ptr);
-  delete[] static_cast<u8*>(ResolveNonAligned(ptr));
+  COMET_ASSERT(ptr != nullptr, "memory_utils::Deallocate", "pointer is null");
+  auto* raw_ptr{ResolveNonAligned(ptr)};
+  COMET_REGISTER_PLATFORM_DEALLOCATION(raw_ptr);
+  delete[] static_cast<u8*>(raw_ptr);
 }
 }  // namespace memory
 }  // namespace comet

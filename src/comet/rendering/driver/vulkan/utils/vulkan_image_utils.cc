@@ -11,19 +11,13 @@
 #include "vulkan_image_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type_trait.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/label/rendering_common_label.h"
-#include "comet/rendering/label/rendering_light_label.h"
-#include "comet/rendering/label/rendering_pipeline_label.h"
-#include "comet/rendering/label/rendering_shader_label.h"
-#include "comet/rendering/label/rendering_texture_label.h"
-#include "comet/rendering/label/rendering_view_label.h"
 
 namespace comet {
 namespace rendering {
@@ -61,7 +55,7 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
   COMET_ASSERT(queue_family_indices.graphics_family.has_value(),
                "vulkan_image_utils::GenerateImage",
                "graphics queue family index is missing");
-  family_indices.PushBack(queue_family_indices.graphics_family.value());
+  family_indices.PushLast(queue_family_indices.graphics_family.value());
 
   if (IsTransferFamilyInQueueFamilyIndices(queue_family_indices)) {
     COMET_ASSERT(queue_family_indices.transfer_family.has_value(),
@@ -70,7 +64,7 @@ void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
 
     if (queue_family_indices.transfer_family.value() !=
         queue_family_indices.graphics_family.value()) {
-      family_indices.PushBack(queue_family_indices.transfer_family.value());
+      family_indices.PushLast(queue_family_indices.transfer_family.value());
       sharing_mode = VK_SHARING_MODE_CONCURRENT;
       queue_family_index_count = 2;
       queue_family_indices_pointer = family_indices.GetData();

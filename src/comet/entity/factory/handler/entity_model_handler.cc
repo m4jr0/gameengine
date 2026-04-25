@@ -12,31 +12,51 @@
 
 #include "comet/animation/animation_manager.h"
 #include "comet/animation/component/animation_component.h"
-#include "comet/core/c_string.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/frame/frame_allocator.h"
-#include "comet/core/frame/frame_manager.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/type/tstring.h"
+#include "comet/entity/entity_changes_fence.h"
 #include "comet/entity/entity_event.h"
-#include "comet/entity/entity_manager.h"
 #include "comet/event/event_manager.h"
-#include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/geometry_manager.h"
-#include "comet/physics/component/transform_component.h"
-#include "comet/physics/physics_manager.h"
 #include "comet/profiler/profiler.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
 namespace entity {
+namespace {
+template <typename MeshComponentType>
+void RegisterGeneratedGeometry(EntityId root_entity_id) {
+  auto& entity_manager{EntityManager::Get()};
+  auto* packet{frame::FrameManager::Get().GetLogicFramePacket()};
+
+  COMET_ASSERT(packet != nullptr, "entity::RegisterGeneratedGeometry",
+               "logic frame packet is null", "root_entity_id", root_entity_id);
+
+  if (!entity_manager.IsEntity(root_entity_id)) {
+    return;
+  }
+
+  entity_manager.ForEachChild<MeshComponentType, physics::TransformComponent>(
+      [&](EntityId entity_id, MeshComponentType& mesh_cmp,
+          physics::TransformComponent& transform_cmp) {
+        packet->RegisterNewGeometry(entity_id, &mesh_cmp, &transform_cmp);
+      },
+      root_entity_id);
+}
+
+void FireModelLoaded(EntityId root_entity_id) {
+  if (!EntityManager::Get().IsEntity(root_entity_id)) {
+    return;
+  }
+
+  event::EventManager::Get().FireEvent<ModelLoadedEvent>(root_entity_id);
+}
+}  // namespace
+
 EntityId ModelHandler::GenerateStatic(
     CTStringView model_path, resource::ResourceLifeSpan life_span) const {
   COMET_PROFILE("ModelHandler::GenerateStatic");
 
   auto& entity_manager{EntityManager::Get()};
   auto& geometry_manager{geometry::GeometryManager::Get()};
+  auto& physics_manager{physics::PhysicsManager::Get()};
 
   const auto root_entity_id{entity_manager.Generate()};
 
@@ -44,6 +64,7 @@ EntityId ModelHandler::GenerateStatic(
       root_entity_id, model_path, life_span)};
 
   if (!model_cmp.resource_handle) {
+    entity_manager.Destroy(root_entity_id);
     return kInvalidEntityId;
   }
 
@@ -53,65 +74,25 @@ EntityId ModelHandler::GenerateStatic(
 
   if (model_resource == nullptr) {
     geometry_manager.DestroyStaticModelComponent(&model_cmp);
+    entity_manager.Destroy(root_entity_id);
     return kInvalidEntityId;
   }
-
-  auto& physics_manager{physics::PhysicsManager::Get()};
 
   entity_manager.AddComponents(
       root_entity_id,
       physics_manager.GenerateTransformComponent(root_entity_id), model_cmp,
       physics_manager.GenerateTransformRootComponent());
 
-  job::CounterGuard guard{};
+  GenerateMeshChildren<resource::StaticMeshResource,
+                       internal::StaticGenerationJobParams>(
+      root_entity_id, model_resource->meshes, life_span,
+      static_job_params_allocator_, OnStaticGeneration, "mesh_sta_");
 
-#ifdef COMET_FIBER_DEBUG_LABEL
-  constexpr auto* kDebugLabelPrefix{"mesh_sta_"};
-  constexpr auto kDebugLabelPrefixLen{GetLength(kDebugLabelPrefix)};
-#endif  // COMET_FIBER_DEBUG_LABEL
+  AfterEntityChanges([root_entity_id] {
+    RegisterGeneratedGeometry<geometry::MeshComponent>(root_entity_id);
+    FireModelLoaded(root_entity_id);
+  });
 
-  auto entity_ids{internal::ParentEntityIds{&frame::GetFrameAllocator(),
-                                            model_resource->meshes.GetSize()}};
-
-  for (const auto& mesh : model_resource->meshes) {
-    entity_ids[mesh.internal_id] = entity_manager.Generate();
-  }
-
-  usize job_count{0};
-  auto& scheduler{job::Scheduler::Get()};
-
-  for (const auto& mesh : model_resource->meshes) {
-    auto* job_params{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
-        internal::StaticGenerationJobParams)};
-
-    job_params->life_span = life_span;
-    job_params->id = entity_ids[mesh.internal_id];
-    job_params->root_entity_id = root_entity_id;
-    job_params->parent_id = mesh.parent_id == resource::kInvalidRawResourceId
-                                ? root_entity_id
-                                : entity_ids[mesh.parent_id];
-    job_params->mesh = &mesh;
-
-#ifdef COMET_FIBER_DEBUG_LABEL
-    schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1]{'\0'};
-    Copy(debug_label, kDebugLabelPrefix, fiber::Fiber::kDebugLabelMaxLen_);
-    ConvertToStr(mesh.internal_id, debug_label + kDebugLabelPrefixLen,
-                 fiber::Fiber::kDebugLabelMaxLen_ - kDebugLabelPrefixLen);
-#else
-    schar* debug_label{nullptr};
-#endif  // COMET_FIBER_DEBUG_LABEL
-
-    scheduler.Kick(job::GenerateJobDescr(
-        job::JobPriority::Normal, OnStaticGeneration, job_params,
-        job::JobStackSize::Normal, guard.GetCounter(), debug_label));
-
-    if (++job_count % kMaxConcurrentJobs_ == 0) {
-      guard.Wait();
-    }
-  }
-
-  guard.Wait();
-  event::EventManager::Get().FireEvent<ModelLoadedEvent>(root_entity_id);
   return root_entity_id;
 }
 
@@ -121,6 +102,7 @@ EntityId ModelHandler::GenerateSkeletal(
 
   auto& entity_manager{EntityManager::Get()};
   auto& geometry_manager{geometry::GeometryManager::Get()};
+  auto& physics_manager{physics::PhysicsManager::Get()};
 
   const auto root_entity_id{entity_manager.Generate()};
 
@@ -128,6 +110,7 @@ EntityId ModelHandler::GenerateSkeletal(
       root_entity_id, model_path, life_span)};
 
   if (!model_cmp.resource_handle) {
+    entity_manager.Destroy(root_entity_id);
     return kInvalidEntityId;
   }
 
@@ -137,6 +120,7 @@ EntityId ModelHandler::GenerateSkeletal(
 
   if (model_resource == nullptr) {
     geometry_manager.DestroySkeletalModelComponent(&model_cmp);
+    entity_manager.Destroy(root_entity_id);
     return kInvalidEntityId;
   }
 
@@ -145,6 +129,7 @@ EntityId ModelHandler::GenerateSkeletal(
 
   if (!skeleton_cmp.resource_handle) {
     geometry_manager.DestroySkeletalModelComponent(&model_cmp);
+    entity_manager.Destroy(root_entity_id);
     return kInvalidEntityId;
   }
 
@@ -155,10 +140,9 @@ EntityId ModelHandler::GenerateSkeletal(
   if (skeleton_resource == nullptr) {
     geometry_manager.DestroySkeletonComponent(&skeleton_cmp);
     geometry_manager.DestroySkeletalModelComponent(&model_cmp);
+    entity_manager.Destroy(root_entity_id);
     return kInvalidEntityId;
   }
-
-  auto& physics_manager{physics::PhysicsManager::Get()};
 
   entity_manager.AddComponents(
       root_entity_id,
@@ -168,59 +152,42 @@ EntityId ModelHandler::GenerateSkeletal(
           animation::AnimationClipId::Invalid(), 1.0f, std::nullopt,
           life_span));
 
-  job::CounterGuard guard{};
+  GenerateMeshChildren<resource::SkinnedMeshResource,
+                       internal::SkeletalGenerationJobParams>(
+      root_entity_id, model_resource->meshes, life_span,
+      skeletal_job_params_allocator_, OnSkeletalGeneration, "mesh_ske_");
 
-#ifdef COMET_FIBER_DEBUG_LABEL
-  constexpr auto* kDebugLabelPrefix{"mesh_ske_"};
-  constexpr auto kDebugLabelPrefixLen{GetLength(kDebugLabelPrefix)};
-#endif  // COMET_FIBER_DEBUG_LABEL
+  AfterEntityChanges([root_entity_id] {
+    RegisterGeneratedGeometry<geometry::MeshComponent>(root_entity_id);
+    FireModelLoaded(root_entity_id);
+  });
 
-  auto entity_ids{internal::ParentEntityIds{&frame::GetFrameAllocator(),
-                                            model_resource->meshes.GetSize()}};
-
-  for (const auto& mesh : model_resource->meshes) {
-    entity_ids[mesh.internal_id] = entity_manager.Generate();
-  }
-
-  usize job_count{0};
-  auto& scheduler{job::Scheduler::Get()};
-
-  for (const auto& mesh : model_resource->meshes) {
-    auto* job_params{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
-        internal::SkeletalGenerationJobParams)};
-
-    job_params->life_span = life_span;
-    job_params->id = entity_ids[mesh.internal_id];
-    job_params->root_entity_id = root_entity_id;
-    job_params->parent_id = mesh.parent_id == resource::kInvalidRawResourceId
-                                ? root_entity_id
-                                : entity_ids[mesh.parent_id];
-    job_params->mesh = &mesh;
-
-#ifdef COMET_FIBER_DEBUG_LABEL
-    schar debug_label[fiber::Fiber::kDebugLabelMaxLen_ + 1]{'\0'};
-    Copy(debug_label, kDebugLabelPrefix, fiber::Fiber::kDebugLabelMaxLen_);
-    ConvertToStr(mesh.internal_id, debug_label + kDebugLabelPrefixLen,
-                 fiber::Fiber::kDebugLabelMaxLen_ - kDebugLabelPrefixLen);
-#else
-    schar* debug_label{nullptr};
-#endif  // COMET_FIBER_DEBUG_LABEL
-
-    scheduler.Kick(job::GenerateJobDescr(
-        job::JobPriority::Normal, OnSkeletalGeneration, job_params,
-        job::JobStackSize::Normal, guard.GetCounter(), debug_label));
-
-    if (++job_count % kMaxConcurrentJobs_ == 0) {
-      guard.Wait();
-    }
-  }
-
-  guard.Wait();
-  event::EventManager::Get().FireEvent<ModelLoadedEvent>(root_entity_id);
   return root_entity_id;
 }
 
 void ModelHandler::DestroyStatic(EntityId entity_id) const {
+  AfterEntityChanges([this, entity_id] { DestroyStaticNow(entity_id); });
+}
+
+void ModelHandler::DestroySkeletal(EntityId entity_id) const {
+  AfterEntityChanges([this, entity_id] { DestroySkeletalNow(entity_id); });
+}
+
+void ModelHandler::OnInitialize() {
+  static_job_params_allocator_.Initialize();
+  skeletal_job_params_allocator_.Initialize();
+}
+
+void ModelHandler::OnShutdown() {
+  skeletal_job_params_allocator_.Destroy();
+  static_job_params_allocator_.Destroy();
+}
+
+void ModelHandler::DestroyStaticNow(EntityId entity_id) const {
+  if (!EntityManager::Get().IsEntity(entity_id)) {
+    return;
+  }
+
   auto& entity_manager{EntityManager::Get()};
   auto& geometry_manager{geometry::GeometryManager::Get()};
   auto& physics_manager{physics::PhysicsManager::Get()};
@@ -248,7 +215,11 @@ void ModelHandler::DestroyStatic(EntityId entity_id) const {
   entity_manager.Destroy(entity_id);
 }
 
-void ModelHandler::DestroySkeletal(EntityId entity_id) const {
+void ModelHandler::DestroySkeletalNow(EntityId entity_id) const {
+  if (!EntityManager::Get().IsEntity(entity_id)) {
+    return;
+  }
+
   auto& entity_manager{EntityManager::Get()};
   auto& geometry_manager{geometry::GeometryManager::Get()};
   auto& animation_manager{animation::AnimationManager::Get()};
@@ -289,76 +260,16 @@ void ModelHandler::DestroySkeletal(EntityId entity_id) const {
   entity_manager.Destroy(entity_id);
 }
 
-void ModelHandler::DestroyStaticChildren(EntityId current_entity_id) const {
-  auto& entity_manager{EntityManager::Get()};
-  auto& geometry_manager{geometry::GeometryManager::Get()};
-  auto& physics_manager{physics::PhysicsManager::Get()};
-  auto* packet{frame::FrameManager::Get().GetLogicFramePacket()};
-
-  entity_manager.EachChild<>(
-      [&](auto child_entity_id) {
-        auto* mesh_cmp{entity_manager.GetComponent<geometry::MeshComponent>(
-            child_entity_id)};
-        auto* transform_cmp{
-            entity_manager.GetComponent<physics::TransformComponent>(
-                child_entity_id)};
-
-        if (mesh_cmp != nullptr) {
-          if (mesh_cmp->mesh_handle) {
-            const auto* mesh{
-                static_cast<const geometry::GeometryManager&>(geometry_manager)
-                    .TryGet(mesh_cmp->mesh_handle)};
-
-            if (mesh != nullptr) {
-              packet->RegisterRemovedGeometry(
-                  child_entity_id, mesh_cmp->model_entity_id, mesh->handle);
-            }
-          }
-
-          geometry_manager.DestroyStaticMeshComponent(mesh_cmp);
-        }
-
-        if (transform_cmp != nullptr) {
-          physics_manager.DestroyTransformComponent(transform_cmp);
-        }
-      },
-      current_entity_id);
+void ModelHandler::DestroyStaticChildren(EntityId entity_id) const {
+  DestroyChildren(entity_id, [](auto& geometry_manager, auto* mesh_cmp) {
+    geometry_manager.DestroyStaticMeshComponent(mesh_cmp);
+  });
 }
 
-void ModelHandler::DestroySkeletalChildren(EntityId current_entity_id) const {
-  auto& entity_manager{EntityManager::Get()};
-  auto& geometry_manager{geometry::GeometryManager::Get()};
-  auto& physics_manager{physics::PhysicsManager::Get()};
-  auto* packet{frame::FrameManager::Get().GetLogicFramePacket()};
-
-  entity_manager.EachChild<>(
-      [&](auto child_entity_id) {
-        auto* mesh_cmp{entity_manager.GetComponent<geometry::MeshComponent>(
-            child_entity_id)};
-        auto* transform_cmp{
-            entity_manager.GetComponent<physics::TransformComponent>(
-                child_entity_id)};
-
-        if (mesh_cmp != nullptr) {
-          if (mesh_cmp->mesh_handle) {
-            const auto* mesh{
-                static_cast<const geometry::GeometryManager&>(geometry_manager)
-                    .TryGet(mesh_cmp->mesh_handle)};
-
-            if (mesh != nullptr) {
-              packet->RegisterRemovedGeometry(
-                  child_entity_id, mesh_cmp->model_entity_id, mesh->handle);
-            }
-          }
-
-          geometry_manager.DestroySkinnedMeshComponent(mesh_cmp);
-        }
-
-        if (transform_cmp != nullptr) {
-          physics_manager.DestroyTransformComponent(transform_cmp);
-        }
-      },
-      current_entity_id);
+void ModelHandler::DestroySkeletalChildren(EntityId entity_id) const {
+  DestroyChildren(entity_id, [](auto& geometry_manager, auto* mesh_cmp) {
+    geometry_manager.DestroySkinnedMeshComponent(mesh_cmp);
+  });
 }
 
 void ModelHandler::OnStaticGeneration(job::JobParamsHandle params_handle) {
@@ -390,9 +301,6 @@ void ModelHandler::OnStaticGeneration(job::JobParamsHandle params_handle) {
 
   EntityManager::Get().AddComponents(params->id, mesh_cmp, transform_cmp);
   EntityManager::Get().AddParent(params->id, transform_cmp.parent_entity_id);
-
-  frame::FrameManager::Get().GetLogicFramePacket()->RegisterNewGeometry(
-      params->id, &mesh_cmp, &transform_cmp);
 }
 
 void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
@@ -424,9 +332,6 @@ void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
 
   EntityManager::Get().AddComponents(params->id, mesh_cmp, transform_cmp);
   EntityManager::Get().AddParent(params->id, transform_cmp.parent_entity_id);
-
-  frame::FrameManager::Get().GetLogicFramePacket()->RegisterNewGeometry(
-      params->id, &mesh_cmp, &transform_cmp);
 }
 }  // namespace entity
 }  // namespace comet

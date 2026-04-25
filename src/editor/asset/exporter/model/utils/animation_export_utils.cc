@@ -13,7 +13,7 @@
 #include "comet/animation/animation_id.h"
 #include "comet/animation/utils/animation_clip_utils.h"
 #include "comet/core/logger/logging.h"
-#include "comet/geometry/type/geometry_skeleton_type.h"
+#include "comet/geometry/type/skeleton.h"
 #include "comet/math/geometry.h"
 #include "comet/math/vector.h"
 #include "comet/resource/resource.h"
@@ -118,8 +118,8 @@ void PopulateMissingAnimationChannelDataNodes(
 
 AnimationChannelData GenerateAnimationChannelData(
     ModelExport& model_export, const aiAnimation* raw_animation) {
-  AnimationChannelData channel_data{model_export.allocator,
-                                    raw_animation->mNumChannels};
+  auto channel_data{AnimationChannelData::WithCapacity(
+      model_export.allocator, raw_animation->mNumChannels)};
 
   for (u32 c{0}; c < raw_animation->mNumChannels; ++c) {
     const auto* channel{raw_animation->mChannels[c]};
@@ -206,7 +206,7 @@ void PopulateAnimationClip(ModelExport& model_export,
   const auto tick_delta{ticks_per_second / clip.frames_per_second};
 
   for (u32 frame{0}; frame < clip.frame_count; ++frame) {
-    auto& sample{clip.samples.EmplaceBack()};
+    auto& sample{clip.samples.EmplaceLast()};
     PopulateSample(model_export, skeleton, channel_data, tick_delta, frame,
                    sample);
   }
@@ -227,7 +227,7 @@ Array<resource::AnimationClipResource> LoadAnimationClips(
 
   for (u32 i{0}; i < clip_count; ++i) {
     const auto* raw_animation{scene->mAnimations[i]};
-    auto& clip_resource{clips.EmplaceBack()};
+    auto& clip_resource{clips.EmplaceLast()};
     PopulateAnimationClip(model_export, raw_animation, skeleton, clip_resource);
   }
 

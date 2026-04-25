@@ -167,6 +167,7 @@ class Scheduler {
 
   bool TryAcquireRunnableJob(JobDescr& job_descr, fiber::Fiber*& fiber);
   void RequeueJob(const JobDescr& job_descr);
+  bool TryRequeueJob(const JobDescr& job_descr);
 
 #ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   void WorkFromMainThread();

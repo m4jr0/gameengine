@@ -86,7 +86,7 @@ void AddWorldGlobalImageBindings(
   image_descriptors.Clear();
   image_descriptors.Reserve(1);
 
-  auto& descriptor{image_descriptors.EmplaceBack()};
+  auto& descriptor{image_descriptors.EmplaceLast()};
   descriptor.texture_handle = shadow_map->texture_handle;
   descriptor.sampler_handle = shadow_map->sampler_handle;
 

@@ -11,39 +11,76 @@
 # Packages #####################################################################
 find_package(Catch2 3 REQUIRED)
 
+# Names ########################################################################
+set(FOUNDATION_TESTS_EXECUTABLE_NAME "comet_foundation_tests")
+set(ENGINE_TESTS_EXECUTABLE_NAME "comet_engine_tests")
+
 # Source files #################################################################
-list(APPEND TESTS_EXECUTABLE_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/tests/tests.cc"
-
+set(FOUNDATION_TESTS_EXECUTABLE_SOURCES
   "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.cc"
+  
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/tests_main_foundation.cc"
 
-  "${PROJECT_SOURCE_DIR}/src/tests/entity/tests_entity.cc"
-
-  "${PROJECT_SOURCE_DIR}/src/tests/core/tests_file_system.cc"
-
-  "${PROJECT_SOURCE_DIR}/src/tests/core/type/tests_ring_queue.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_array.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_bitset.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_hash_set.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_map.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_ring_queue.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_tstring.cc"
 )
 
-# Executable ###################################################################
-add_executable(${TESTS_EXECUTABLE_NAME} ${TESTS_EXECUTABLE_SOURCES})
+set(ENGINE_TESTS_EXECUTABLE_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.cc"
 
-set_target_properties(${TESTS_EXECUTABLE_NAME} PROPERTIES CXX_EXTENSIONS OFF CXX_RTTI OFF)
+  "${PROJECT_SOURCE_DIR}/src/tests/engine/tests_main_engine.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/tests/engine/core/tests_file_system.cc"
+
+  "${PROJECT_SOURCE_DIR}/src/tests/engine/entity/tests_entity.cc"
+)
+
+# Executables ##################################################################
+add_executable(${FOUNDATION_TESTS_EXECUTABLE_NAME}
+  ${FOUNDATION_TESTS_EXECUTABLE_SOURCES}
+)
+
+add_executable(${ENGINE_TESTS_EXECUTABLE_NAME}
+  ${ENGINE_TESTS_EXECUTABLE_SOURCES}
+)
+
+set_target_properties(${FOUNDATION_TESTS_EXECUTABLE_NAME}
+  PROPERTIES
+    CXX_EXTENSIONS OFF
+    CXX_RTTI OFF
+)
+
+set_target_properties(${ENGINE_TESTS_EXECUTABLE_NAME}
+  PROPERTIES
+    CXX_EXTENSIONS OFF
+    CXX_RTTI OFF
+)
 
 # Compiling ####################################################################
-target_include_directories(${TESTS_EXECUTABLE_NAME}
+target_include_directories(${FOUNDATION_TESTS_EXECUTABLE_NAME}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
-    ${VCPKG_INCLUDE_DIR}
+    ${PICOSHA2_INCLUDE_DIRS}
+)
+
+target_include_directories(${ENGINE_TESTS_EXECUTABLE_NAME}
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}/src"
     ${PICOSHA2_INCLUDE_DIRS}
 )
 
 # Linking ######################################################################
-target_link_directories(${TESTS_EXECUTABLE_NAME}
+target_link_libraries(${FOUNDATION_TESTS_EXECUTABLE_NAME}
   PRIVATE
-    ${VCPKG_LIBRARY_DIR}
+    Catch2::Catch2WithMain
+    ${COMET_LIBRARY_NAME}
 )
 
-target_link_libraries(${TESTS_EXECUTABLE_NAME}
+target_link_libraries(${ENGINE_TESTS_EXECUTABLE_NAME}
   PRIVATE
     Catch2::Catch2WithMain
     ${COMET_LIBRARY_NAME}

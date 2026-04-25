@@ -13,7 +13,7 @@
 #include "comet/core/algorithm/comparator.h"
 #include "comet/core/algorithm/iterator_utils.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 
 namespace comet {
 template <typename Iterator, typename Comparer = Less>
@@ -27,21 +27,21 @@ void InplaceMerge(Iterator begin, Iterator middle, Iterator end,
 
   while (left != middle && right != end) {
     if (comparer(*left, *right)) {
-      tmp.EmplaceBack(*left);
+      tmp.EmplaceLast(*left);
       ++left;
     } else {
-      tmp.EmplaceBack(*right);
+      tmp.EmplaceLast(*right);
       ++right;
     }
   }
 
   while (left != middle) {
-    tmp.EmplaceBack(*left);
+    tmp.EmplaceLast(*left);
     ++left;
   }
 
   while (right != end) {
-    tmp.EmplaceBack(*right);
+    tmp.EmplaceLast(*right);
     ++right;
   }
 

@@ -19,14 +19,14 @@
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_frame_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_light_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_shadow_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_map_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_type.h"
-#include "comet/rendering/type/rendering_camera_type.h"
-#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_frame.h"
+#include "comet/rendering/driver/opengl/type/opengl_light.h"
+#include "comet/rendering/driver/opengl/type/opengl_shadow.h"
+#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
+#include "comet/rendering/type/camera.h"
+#include "comet/rendering/type/light.h"
 
 namespace comet {
 namespace rendering {

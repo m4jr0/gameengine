@@ -40,7 +40,7 @@ void PopulateIndexedVertices(TModelExport& model_export, const aiMesh* raw_mesh,
   max_extents = math::Vec3{kF32Min};
 
   for (usize index{0}; index < vertex_count; ++index) {
-    auto& vertex{vertices.EmplaceBack()};
+    auto& vertex{vertices.EmplaceLast()};
     PopulateVertex(raw_mesh, index, vertex);
 
     if (weights != nullptr) {
@@ -59,7 +59,7 @@ resource::RawResourceId LoadMeshInternal(TModelExport& model_export,
                                          geometry::MeshType mesh_type) {
   auto& model{model_export.resources->model};
 
-  auto& mesh_resource{model.meshes.EmplaceBack()};
+  auto& mesh_resource{model.meshes.EmplaceLast()};
   mesh_resource.resource_id = model.id;
   mesh_resource.internal_id =
       static_cast<resource::RawResourceId>(model.meshes.GetSize());
@@ -113,8 +113,8 @@ void RegisterJoint(SkeletalModelExport& model_export, const aiNode* node,
   auto& joints{model_export.resources->skeleton.skeleton.joints};
   geometry::SkeletonJointIndex joint_index{
       static_cast<geometry::SkeletonJointIndex>(joints.GetSize())};
-  auto& joint{joints.EmplaceBack()};
-  model_export.skeleton_joint_map[node_name] = joint_index;
+  auto& joint{joints.EmplaceLast()};
+  model_export.skeleton_joint_map.Set(node_name, joint_index);
   joint.id = GenerateSkeletonJointId(node);
   joint.parent_index = parent_index;
 
@@ -132,8 +132,8 @@ void RegisterJoint(SkeletalModelExport& model_export, const aiNode* node,
 
 void PopulateSkeletonJoints(SkeletalModelExport& model_export) {
   model_export.skeleton_joint_map =
-      Map<const schar*, geometry::SkeletonJointIndex>{model_export.allocator,
-                                                      256};
+      Map<const schar*, geometry::SkeletonJointIndex>::WithCapacity(
+          model_export.allocator, 256);
 
   RegisterJoint(model_export, model_export.scene->mRootNode,
                 geometry::kInvalidSkeletonJointIndex);
@@ -170,7 +170,7 @@ void PopulateIndices(ModelExport& model_export, const aiMesh* raw_mesh,
 
     for (usize corner_index{0}; corner_index < face.mNumIndices;
          ++corner_index) {
-      indices.PushBack(face.mIndices[corner_index]);
+      indices.PushLast(face.mIndices[corner_index]);
     }
   }
 }
@@ -210,8 +210,8 @@ Map<usize, ModelVertexWeights> GenerateMeshWeights(
   auto& skeleton_joint_map{model_export.skeleton_joint_map};
   const auto vertex_count{raw_mesh->mNumVertices};
 
-  Map<usize, ModelVertexWeights> weights{
-      model_export.allocator, vertex_count * geometry::kMaxSkeletonJointCount};
+  auto weights{Map<usize, ModelVertexWeights>::WithCapacity(
+      model_export.allocator, vertex_count * geometry::kMaxSkeletonJointCount)};
 
   for (u32 i{0}; i < raw_mesh->mNumBones; ++i) {
     const auto* raw_bone{raw_mesh->mBones[i]};

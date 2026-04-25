@@ -12,10 +12,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_pipeline_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_pipeline.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_sampler_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
-#include "comet/rendering/label/rendering_pipeline_label.h"
+#include "comet/rendering/label/pipeline_label.h"
 
 namespace comet {
 namespace rendering {

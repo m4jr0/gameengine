@@ -19,9 +19,9 @@ target_sources(${COMET_LIBRARY_NAME}
     "${PROJECT_SOURCE_DIR}/src/comet/animation/component/animation_component.h"
 
     # Type.
-    "${PROJECT_SOURCE_DIR}/src/comet/animation/type/animation_clip_type.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/animation/type/animation_pose_type.h"
-    "${PROJECT_SOURCE_DIR}/src/comet/animation/type/animation_skinning_type.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/type/animation_clip.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/type/animation_pose.h"
+    "${PROJECT_SOURCE_DIR}/src/comet/animation/type/animation_skinning.h"
 
     # Utils.
     "${PROJECT_SOURCE_DIR}/src/comet/animation/utils/animation_clip_utils.cc"
@@ -30,31 +30,5 @@ target_sources(${COMET_LIBRARY_NAME}
 # Compiling ####################################################################
 target_include_directories(${COMET_LIBRARY_NAME}
   PRIVATE
-    ${VCPKG_INCLUDE_DIR}
     "${PROJECT_SOURCE_DIR}/src/"
 )
-
-# Linking ######################################################################
-target_link_directories(${COMET_LIBRARY_NAME}
-  PRIVATE
-    ${VCPKG_LIBRARY_DIR}
-)
-
-target_link_libraries(${COMET_LIBRARY_NAME}
-  PRIVATE
-    # Put libraries here.
-)
-
-if(WIN32)
-  target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()
-
-if(LINUX)
-  target_link_libraries(${COMET_LIBRARY_NAME}
-    PRIVATE
-      # Put libraries here.
-  )
-endif()

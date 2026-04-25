@@ -10,13 +10,12 @@
 #include "animation_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/type/animation_clip_type.h"
-#include "comet/animation/type/animation_pose_type.h"
+#include "comet/animation/type/animation_clip.h"
+#include "comet/animation/type/animation_pose.h"
 #include "comet/animation/utils/animation_clip_utils.h"
 #include "comet/core/concurrency/fiber/fiber.h"
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/entity/entity_id.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/geometry/component/skeleton_component.h"
 #include "comet/profiler/profiler.h"
@@ -39,17 +38,18 @@ void AnimationManager::Update(frame::FramePacket* packet) {
   last_time_ = packet->time + packet->lag;
 
   auto& entity_manager{entity::EntityManager::Get()};
-  auto* entity_ids{COMET_FRAME_ARRAY(
+  auto* entity_ids{COMET_FRAME_ARRAY_WITH_CAPACITY(
       entity::EntityId, scene::SceneManager::Get().GetExpectedEntityCount())};
 
-  entity_manager.Each<geometry::SkeletonComponent, AnimationComponent>(
-      [&](auto entity_id) { entity_ids->PushBack(entity_id); });
+  entity_manager.ForEachId<geometry::SkeletonComponent, AnimationComponent>(
+      [&](auto entity_id) { entity_ids->PushLast(entity_id); });
 
   const auto entity_count{entity_ids->GetSize()};
   packet->skinning_bindings->Resize(entity_count);
   packet->matrix_palettes->Resize(entity_count);
 
-  auto* jobs{COMET_FRAME_ARRAY(internal::AnimationJob, entity_count)};
+  auto* jobs{
+      COMET_FRAME_ARRAY_WITH_CAPACITY(internal::AnimationJob, entity_count)};
   auto& scheduler{job::Scheduler::Get()};
   job::CounterGuard guard{};
 
@@ -73,7 +73,7 @@ void AnimationManager::Update(frame::FramePacket* packet) {
     const schar* debug_label{nullptr};
 #endif  // COMET_FIBER_DEBUG_LABEL
 
-    auto& job{jobs->EmplaceBack()};
+    auto& job{jobs->EmplaceLast()};
     job.index = i;
     job.entity_id = entity_id;
     job.time = last_time_;

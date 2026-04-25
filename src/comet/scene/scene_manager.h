@@ -12,7 +12,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/manager.h"
 #include "comet/core/memory/memory.h"
-#include "comet/entity/entity_id.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 

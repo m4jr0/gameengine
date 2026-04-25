@@ -16,7 +16,7 @@
 #include "imgui.h"
 #endif  // COMET_IMGUI
 
-#include "comet/rendering/label/rendering_common_label.h"
+#include "comet/rendering/label/common_label.h"
 
 namespace comet {
 namespace debugui {
@@ -26,6 +26,12 @@ void DebuggerDebugUi::Draw(const profiler::ProfilerData& profiler_data,
                                       ImVec2{FLT_MAX, FLT_MAX});
 
   ImGui::Begin("Mini Profiler");
+
+  DrawSessionSection(profiler_data);
+  ImGui::Spacing();
+
+  DrawEntitySection(profiler_data);
+  ImGui::Spacing();
 
   DrawPhysicsSection(profiler_data);
   ImGui::Spacing();
@@ -41,6 +47,24 @@ void DebuggerDebugUi::Draw(const profiler::ProfilerData& profiler_data,
   DrawProfilingSection(profiler_data, controls);
 
   ImGui::End();
+}
+
+void DebuggerDebugUi::DrawSessionSection(
+    const profiler::ProfilerData& profiler_data) const {
+  ImGui::Text("SESSION");
+  ImGui::Indent();
+  ImGui::Text("Uptime: %s", profiler_data.uptime);
+  ImGui::Unindent();
+}
+
+void DebuggerDebugUi::DrawEntitySection(
+    const profiler::ProfilerData& profiler_data) const {
+  ImGui::Text("ENTITY");
+  ImGui::Indent();
+  ImGui::Text("Count: %zu", profiler_data.entity_count);
+  ImGui::Text("Capacity: %zu", profiler_data.entity_capacity);
+  ImGui::Text("Pending: %zu", profiler_data.pending_entity_count);
+  ImGui::Unindent();
 }
 
 void DebuggerDebugUi::DrawPhysicsSection(

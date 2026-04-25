@@ -35,9 +35,3 @@ target_include_directories(${EXECUTABLE_NAME}
     "${PROJECT_SOURCE_DIR}/src"
     ${VCPKG_INCLUDE_DIR}
 )
-
-# Linking ######################################################################
-target_link_directories(${EXECUTABLE_NAME}
-  PRIVATE
-    ${VCPKG_LIBRARY_DIR}
-)

@@ -80,6 +80,7 @@ TextureResourceHandler* ResourceManager::GetTextures() {
 void ResourceManager::OnInitialize() {
   global_allocator_.Initialize();
   scene_allocator_.Initialize();
+  ptr_allocator_.Initialize();
   byte_allocator_.Initialize();
 
   root_resource_path_.Reserve(conf::kMaxStrValueLength);
@@ -94,9 +95,10 @@ void ResourceManager::OnInitialize() {
 }
 
 void ResourceManager::OnShutdown() {
-  root_resource_path_.Destroy();
+  root_resource_path_.Release();
   DestroyHandlers();
   byte_allocator_.Destroy();
+  ptr_allocator_.Destroy();
   scene_allocator_.Destroy();
   global_allocator_.Destroy();
 }

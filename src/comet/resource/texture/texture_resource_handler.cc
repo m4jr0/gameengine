@@ -12,7 +12,7 @@
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
-#include "comet/rendering/type/rendering_texture_type.h"
+#include "comet/rendering/type/texture.h"
 
 namespace comet {
 namespace resource {

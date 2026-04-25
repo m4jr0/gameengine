@@ -108,18 +108,18 @@ void InputManager::OnInitialize() {
   thread_id_ = thread::GetThreadId();
 
   cached_input_state_.keys_pressed =
-      Bitset(&cached_input_state_allocator_, internal::kKeyCount);
+      Bitset::WithSize(&cached_input_state_allocator_, internal::kKeyCount);
   cached_input_state_.keys_down =
-      Bitset(&cached_input_state_allocator_, internal::kKeyCount);
+      Bitset::WithSize(&cached_input_state_allocator_, internal::kKeyCount);
   cached_input_state_.keys_up =
-      Bitset(&cached_input_state_allocator_, internal::kKeyCount);
+      Bitset::WithSize(&cached_input_state_allocator_, internal::kKeyCount);
 
-  cached_input_state_.mouse_buttons_pressed =
-      Bitset(&cached_input_state_allocator_, internal::kMouseButtonCount);
-  cached_input_state_.mouse_buttons_down =
-      Bitset(&cached_input_state_allocator_, internal::kMouseButtonCount);
-  cached_input_state_.mouse_buttons_up =
-      Bitset(&cached_input_state_allocator_, internal::kMouseButtonCount);
+  cached_input_state_.mouse_buttons_pressed = Bitset::WithSize(
+      &cached_input_state_allocator_, internal::kMouseButtonCount);
+  cached_input_state_.mouse_buttons_down = Bitset::WithSize(
+      &cached_input_state_allocator_, internal::kMouseButtonCount);
+  cached_input_state_.mouse_buttons_up = Bitset::WithSize(
+      &cached_input_state_allocator_, internal::kMouseButtonCount);
 
   glfwSetScrollCallback(window_handle_, []([[maybe_unused]] GLFWwindow* handle,
                                            f64 x_offset, f64 y_offset) {
@@ -244,13 +244,13 @@ void InputManager::OnShutdown() {
   glfwSetMonitorCallback(nullptr);
   window_handle_ = nullptr;
 
-  cached_input_state_.keys_pressed.Destroy();
-  cached_input_state_.keys_down.Destroy();
-  cached_input_state_.keys_up.Destroy();
+  cached_input_state_.keys_pressed.Release();
+  cached_input_state_.keys_down.Release();
+  cached_input_state_.keys_up.Release();
 
-  cached_input_state_.mouse_buttons_pressed.Destroy();
-  cached_input_state_.mouse_buttons_down.Destroy();
-  cached_input_state_.mouse_buttons_up.Destroy();
+  cached_input_state_.mouse_buttons_pressed.Release();
+  cached_input_state_.mouse_buttons_down.Release();
+  cached_input_state_.mouse_buttons_up.Release();
 
   thread_id_ = thread::kInvalidThreadId;
 }

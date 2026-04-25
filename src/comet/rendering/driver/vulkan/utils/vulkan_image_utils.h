@@ -11,9 +11,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer_type.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_command_buffer_type.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_image_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_command_buffer.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_image.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/driver/vulkan/vulkan_device.h"
 

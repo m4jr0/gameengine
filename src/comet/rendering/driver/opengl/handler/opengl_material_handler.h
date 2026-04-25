@@ -11,8 +11,8 @@
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_material_type.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_map_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_material.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
 #include "comet/rendering/rendering_handle.h"
 #include "comet/resource/material/material_resource.h"
 

@@ -13,7 +13,7 @@
 #include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/tstring.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/type/common.h"
 
 namespace comet {
 namespace editor {
@@ -52,7 +52,7 @@ comet::Array<T> json_to_array(const json& json_array,
   }
 
   for (const auto& entry : json_array) {
-    array.PushBack(entry.get<T>());
+    array.PushLast(entry.get<T>());
   }
 
   return array;

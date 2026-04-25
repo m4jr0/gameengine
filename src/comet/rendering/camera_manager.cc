@@ -106,7 +106,7 @@ void CameraManager::OnShutdown() {
   UnregisterEvents();
 
   main_camera_.Invalidate();
-  cameras_.Destroy();
+  cameras_.Release();
   camera_pool_.Destroy();
   allocator_.Destroy();
 }

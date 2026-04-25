@@ -11,20 +11,19 @@
 #include "vulkan_driver.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#define VMA_IMPLEMENTATION
 #include "comet/core/c_string.h"
 #include "comet/core/debug_label.h"
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/type/rendering_camera_type.h"
-#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/camera.h"
+#include "comet/rendering/type/common.h"
 
 namespace comet {
 namespace rendering {
@@ -607,7 +606,7 @@ void VulkanDriver::SubmitFrame(const frame::FramePacket* packet,
   wait_infos.Reserve(2);
 
   if (packet->can_present) {
-    auto& wait_present{wait_infos.EmplaceBack()};
+    auto& wait_present{wait_infos.EmplaceLast()};
     wait_present.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
     wait_present.semaphore = frame_data.present_semaphore_handle;
     wait_present.value = 0;
@@ -619,7 +618,7 @@ void VulkanDriver::SubmitFrame(const frame::FramePacket* packet,
   signal_infos.Reserve(0 + static_cast<ssize>(packet->can_present));
 
   if (packet->can_present) {
-    auto& signal_render{signal_infos.EmplaceBack()};
+    auto& signal_render{signal_infos.EmplaceLast()};
     signal_render.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
     signal_render.semaphore = context_->GetRenderSemaphoreHandle();
     signal_render.value = 0;
@@ -655,13 +654,13 @@ frame::FrameArray<const schar*> VulkanDriver::GetRequiredExtensions() {
   extensions.Reserve(glfw_extension_count);
 
   for (usize i{0}; i < glfw_extension_count; ++i) {
-    extensions.PushBack(glfw_extensions[i]);
+    extensions.PushLast(glfw_extensions[i]);
   }
 
 #ifdef COMET_DEBUG_RENDERING
   extensions.Reserve(extensions.GetSize() + 2);
-  extensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  extensions.PushBack(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+  extensions.PushLast(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  extensions.PushLast(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 #endif  // COMET_DEBUG_RENDERING
 
   return extensions;

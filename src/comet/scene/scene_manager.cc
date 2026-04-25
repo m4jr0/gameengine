@@ -17,13 +17,14 @@
 #include "comet/entity/entity_event.h"
 #include "comet/entity/entity_manager.h"
 #include "comet/entity/factory/entity_factory_manager.h"
+#include "comet/entity/type/entity_id.h"
 #include "comet/environment/environment_manager.h"
 #include "comet/math/geometry.h"
 #include "comet/physics/component/transform_component.h"
 #include "comet/physics/transform.h"
 #include "comet/rendering/light_manager.h"
-#include "comet/rendering/type/rendering_light_type.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/rendering/type/light.h"
+#include "comet/resource/type/common.h"
 #include "comet/scene/scene_event.h"
 
 namespace comet {
@@ -193,7 +194,7 @@ void SceneManager::HandleLoadedModelTmp(entity::EntityId entity_id) {
         auto& animation_manager{animation::AnimationManager::Get()};
         auto& scene_manager{SceneManager::Get()};
 
-        entity_manager.WaitForEntityUpdates();
+        entity_manager.WaitForEntityChanges();
 
         if (entity_manager.IsEntity(scene_manager.character_eve_id_tmp_)) {
           auto* character_eve_transform{

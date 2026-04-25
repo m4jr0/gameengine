@@ -28,6 +28,8 @@ class DebuggerDebugUi {
             const CpuProfilerGraph::Controls& controls);
 
  private:
+  void DrawSessionSection(const profiler::ProfilerData& profiler_data) const;
+  void DrawEntitySection(const profiler::ProfilerData& profiler_data) const;
   void DrawPhysicsSection(const profiler::ProfilerData& profiler_data) const;
   void DrawRenderingSection(const profiler::ProfilerData& profiler_data) const;
 #ifdef COMET_HAS_MEMORY_DEBUG_UI

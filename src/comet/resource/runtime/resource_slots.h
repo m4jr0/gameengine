@@ -18,12 +18,12 @@
 #include "comet/core/type/map.h"
 #include "comet/core/type_trait.h"
 #include "comet/resource/handler/resource_handler_utils.h"
-#include "comet/resource/label/resource_common_label.h"
+#include "comet/resource/label/common_label.h"
 #include "comet/resource/resource.h"
 #include "comet/resource/resource_id.h"
 #include "comet/resource/runtime/loaded_resource_handle.h"
 #include "comet/resource/runtime/resource_slot.h"
-#include "comet/resource/type/resource_common_type.h"
+#include "comet/resource/type/common.h"
 
 namespace comet {
 namespace resource {
@@ -40,9 +40,11 @@ class ResourceSlots {
 
   explicit ResourceSlots(memory::Allocator* allocator,
                          usize initial_capacity = 0)
-      : slots_{allocator},
-        handles_{allocator, initial_capacity},
-        allocator_{allocator} {}
+      : slots_{allocator}, allocator_{allocator} {
+    handles_ =
+        Map<internal::ResourceIdLifeSpanPair, LoadedHandle>::WithCapacity(
+            allocator, initial_capacity);
+  }
 
   ResourceSlots(const ResourceSlots&) = delete;
   ResourceSlots(ResourceSlots&&) noexcept = default;
@@ -69,8 +71,8 @@ class ResourceSlots {
                  "resource slots not initialized");
     is_initialized_ = false;
 
-    slots_.Destroy();
-    handles_.Destroy();
+    slots_.Release();
+    handles_.Release();
     pool_.Destroy();
   }
 
@@ -200,6 +202,11 @@ class ResourceSlots {
         slot.ref_count = 1;
         slot.resource = resource;
 
+        COMET_ASSERT(!handles_.IsContained(key), "ResourceSlots::Acquire",
+                     "resource handle key already exists before insertion",
+                     "id", id, "life_span", GetResourceLifeSpanLabel(life_span),
+                     "life_span_value", ToUnderlying(life_span));
+
         handles_.Set(key, handle);
       }
     }
@@ -269,7 +276,7 @@ class ResourceSlots {
 
       for (const auto& pair : handles_) {
         if (pair.key.life_span == life_span) {
-          handles_to_release.PushBack(pair.value);
+          handles_to_release.PushLast(pair.value);
         }
       }
     }

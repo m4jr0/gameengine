@@ -47,7 +47,7 @@ void TrackedAllocations::Destroy() {
   COMET_ASSERT(is_initialized, "TrackedAllocations::Destroy",
                "tracked allocations are not initialized");
 
-  allocations.Destroy();
+  allocations.Release();
   allocator = nullptr;
 
   is_initialized = false;
@@ -55,7 +55,7 @@ void TrackedAllocations::Destroy() {
 
 void TrackedAllocations::Push(void* ptr, usize size) {
   std::lock_guard lock{mutex};
-  allocations[ptr] = size;
+  allocations.Set(ptr, size);
 }
 
 usize TrackedAllocations::Pop(void* ptr) {
@@ -95,9 +95,9 @@ void TrackedTags::Destroy() {
   COMET_ASSERT(is_initialized, "TrackedTags::Destroy",
                "tracked tags are not initialized");
 
-  platform_allocations.Destroy();
-  platform_tags.Destroy();
-  tagged_heap_tags.Destroy();
+  platform_allocations.Release();
+  platform_tags.Release();
+  tagged_heap_tags.Release();
   allocator = nullptr;
 
   is_initialized = false;
@@ -106,8 +106,16 @@ void TrackedTags::Destroy() {
 void TrackedTags::IncreasePlatform(void* ptr, usize size,
                                    MemoryTag memory_tag) {
   std::unique_lock lock{platform_mutex};
-  platform_allocations[ptr] = {size, memory_tag};
-  platform_tags[memory_tag] += size;
+
+  COMET_ASSERT(ptr != nullptr, "TrackedTags::IncreasePlatform",
+               "tracked platform allocation pointer is null");
+  COMET_ASSERT(!platform_allocations.IsContained(ptr),
+               "TrackedTags::IncreasePlatform",
+               "platform allocation is already tracked", "ptr", ptr, "size",
+               size, "tag", memory_tag);
+
+  platform_allocations.Set(ptr, AllocationInfo{size, memory_tag});
+  platform_tags.GetOrAdd(memory_tag) += size;
 }
 
 void TrackedTags::DecreasePlatform(void* ptr) {
@@ -116,45 +124,48 @@ void TrackedTags::DecreasePlatform(void* ptr) {
   const auto alloc_info{platform_allocations.TryGet(ptr)};
 
   if (alloc_info == nullptr) {
+    // COMET_ASSERT(false, "TrackedTags::DecreasePlatform",
+    //              "platform allocation was not tracked", "ptr", ptr);
     return;
   }
 
   const auto size{alloc_info->size};
   const auto tag{alloc_info->tag};
   platform_allocations.Remove(ptr);
-  platform_tags[tag] -= size;
+  platform_tags.GetOrAdd(tag) -= size;
 }
 
 void TrackedTags::IncreaseTag(usize size, MemoryTag memory_tag) {
   std::unique_lock lock{platform_mutex};
-  platform_tags[memory_tag] += size;
+  platform_tags.GetOrAdd(memory_tag) += size;
 }
 
 void TrackedTags::DecreaseTag(usize size, MemoryTag memory_tag) {
   std::unique_lock lock{platform_mutex};
-  platform_tags[memory_tag] -= size;
+  platform_tags.GetOrAdd(memory_tag) -= size;
 }
 
 void TrackedTags::IncreaseTaggedHeapPool(usize size) {
   std::unique_lock lock{tagged_heap_mutex};
-  tagged_heap_tags[kEngineMemoryTagTaggedHeap] += size;
+  tagged_heap_tags.GetOrAdd(kEngineMemoryTagTaggedHeap) += size;
 }
 
 void TrackedTags::DecreaseTaggedHeapPool(usize size) {
   std::unique_lock lock{tagged_heap_mutex};
-  tagged_heap_tags[kEngineMemoryTagTaggedHeap] -= size;
+  tagged_heap_tags.GetOrAdd(kEngineMemoryTagTaggedHeap) -= size;
 }
 
 void TrackedTags::IncreaseTaggedHeap(usize size, MemoryTag memory_tag) {
   std::unique_lock lock{tagged_heap_mutex};
-  tagged_heap_tags[kEngineMemoryTagTaggedHeap] -= size;
-  tagged_heap_tags[memory_tag] += size;
+  tagged_heap_tags.GetOrAdd(kEngineMemoryTagTaggedHeap) -= size;
+  tagged_heap_tags.GetOrAdd(memory_tag) += size;
 }
 
 void TrackedTags::DecreaseTaggedHeap(MemoryTag memory_tag) {
   std::unique_lock lock{tagged_heap_mutex};
-  tagged_heap_tags[kEngineMemoryTagTaggedHeap] += tagged_heap_tags[memory_tag];
-  tagged_heap_tags[memory_tag] = 0;
+  tagged_heap_tags.GetOrAdd(kEngineMemoryTagTaggedHeap) +=
+      tagged_heap_tags.GetOrAdd(memory_tag);
+  tagged_heap_tags.Set(memory_tag, static_cast<usize>(0));
 }
 
 Map<MemoryTag, usize> TrackedTags::GetTagUse() {
@@ -165,7 +176,7 @@ Map<MemoryTag, usize> TrackedTags::GetTagUse() {
     std::shared_lock lock{platform_mutex};
 
     for (const auto& pair : platform_tags) {
-      info[pair.key] = pair.value;
+      info.Set(pair.key, pair.value);
     }
   }
 
@@ -173,7 +184,7 @@ Map<MemoryTag, usize> TrackedTags::GetTagUse() {
     std::shared_lock lock{tagged_heap_mutex};
 
     for (const auto& pair : tagged_heap_tags) {
-      info[pair.key] = pair.value;
+      info.Set(pair.key, pair.value);
     }
   }
 
@@ -198,6 +209,7 @@ void* MallocHooked(std::size_t size) {
 
   if (ptr != nullptr && !is_tracking_in_progress) {
     internal::ScopedFlagToggle toggle{is_tracking_in_progress};
+    MemoryUse::Get().allocations.Push(ptr, size);
     MemoryUse::Get().total_allocated.fetch_add(size, std::memory_order_relaxed);
   }
 
@@ -220,15 +232,19 @@ void* ReallocHooked(void* ptr, std::size_t size) {
 
   auto* new_ptr{PlatformRealloc(ptr, size)};
 
-  if (new_ptr != nullptr && !is_tracking_in_progress) {
+  if (!is_tracking_in_progress) {
     internal::ScopedFlagToggle toggle{is_tracking_in_progress};
 
-    if (ptr != nullptr) {
+    if (ptr != nullptr && (new_ptr != nullptr || size == 0)) {
       MemoryUse::Get().total_freed.fetch_add(
           MemoryUse::Get().allocations.Pop(ptr), std::memory_order_relaxed);
     }
 
-    MemoryUse::Get().total_allocated.fetch_add(size, std::memory_order_relaxed);
+    if (new_ptr != nullptr) {
+      MemoryUse::Get().allocations.Push(new_ptr, size);
+      MemoryUse::Get().total_allocated.fetch_add(size,
+                                                 std::memory_order_relaxed);
+    }
   }
 
   return new_ptr;
@@ -253,6 +269,7 @@ void* CallocHooked(std::size_t count, std::size_t size) {
   if (ptr != nullptr && !is_tracking_in_progress) {
     internal::ScopedFlagToggle toggle{is_tracking_in_progress};
 
+    MemoryUse::Get().allocations.Push(ptr, count * size);
     MemoryUse::Get().total_allocated.fetch_add(count * size,
                                                std::memory_order_relaxed);
   }
@@ -265,17 +282,6 @@ std::once_flag free_init_flag{};
 #endif  // !COMET_MSVC
 
 void FreeHooked(void* ptr) {
-  if (is_tracking_in_progress) {
-    return;
-  }
-
-  internal::ScopedFlagToggle toggle{is_tracking_in_progress};
-
-  if (ptr != nullptr) {
-    MemoryUse::Get().total_freed.fetch_add(
-        MemoryUse::Get().allocations.Pop(ptr), std::memory_order_relaxed);
-  }
-
 #ifndef COMET_MSVC
   std::call_once(free_init_flag, []() {
     PlatformFree =
@@ -284,16 +290,53 @@ void FreeHooked(void* ptr) {
                  "original free function could not be resolved");
   });
 #endif  // !COMET_MSVC
-  PlatformFree(ptr);
+
+  auto* platform_free{PlatformFree};
+
+  if (platform_free == nullptr) {
+    std::free(ptr);
+    return;
+  }
+
+  if (is_tracking_in_progress) {
+    platform_free(ptr);
+    return;
+  }
+
+  auto& memory_use{MemoryUse::Get()};
+
+  if (!memory_use.is_tracking) {
+    platform_free(ptr);
+    return;
+  }
+
+  internal::ScopedFlagToggle toggle{is_tracking_in_progress};
+
+  if (ptr != nullptr) {
+    memory_use.total_freed.fetch_add(memory_use.allocations.Pop(ptr),
+                                     std::memory_order_relaxed);
+  }
+
+  platform_free(ptr);
 }
 
 #ifdef COMET_MSVC
+void*(__cdecl* PlatformMalloc)(std::size_t) = std::malloc;
+void*(__cdecl* PlatformRealloc)(void*, std::size_t) = std::realloc;
+void*(__cdecl* PlatformCalloc)(std::size_t, std::size_t) = std::calloc;
+void(__cdecl* PlatformFree)(void*) = std::free;
+
+LPVOID(WINAPI* PlatformVirtualAlloc)(LPVOID, SIZE_T, DWORD,
+                                     DWORD) = VirtualAlloc;
+BOOL(WINAPI* PlatformVirtualFree)(LPVOID, SIZE_T, DWORD) = VirtualFree;
+
 void* WINAPI VirtualAllocHooked(LPVOID lp_address, SIZE_T dw_size,
                                 DWORD fl_allocation_type, DWORD fl_protect) {
   auto* result{PlatformVirtualAlloc(lp_address, dw_size, fl_allocation_type,
                                     fl_protect)};
 
-  if ((fl_allocation_type & MEM_COMMIT) != 0 && !is_tracking_in_progress) {
+  if (result != nullptr && (fl_allocation_type & MEM_COMMIT) != 0 &&
+      !is_tracking_in_progress) {
     internal::ScopedFlagToggle toggle{is_tracking_in_progress};
     MemoryUse::Get().allocations.Push(result, dw_size);
     MemoryUse::Get().total_allocated.fetch_add(dw_size,
@@ -307,7 +350,9 @@ BOOL WINAPI VirtualFreeHooked(LPVOID lp_address, SIZE_T dw_size,
                               DWORD dw_free_type) {
   const auto result{PlatformVirtualFree(lp_address, dw_size, dw_free_type)};
 
-  if (result && !is_tracking_in_progress) {
+  if (result && lp_address != nullptr && !is_tracking_in_progress &&
+      ((dw_free_type & MEM_RELEASE) != 0 ||
+       (dw_free_type & MEM_DECOMMIT) != 0)) {
     internal::ScopedFlagToggle toggle{is_tracking_in_progress};
 
     MemoryUse::Get().total_freed.fetch_add(
@@ -338,7 +383,7 @@ void* MmapHooked(void* addr, size_t len, int prot, int flags, int fd,
   internal::ScopedFlagToggle toggle{is_tracking_in_progress};
 
   if (ptr != MAP_FAILED) {
-    MemoryUse::Get().allocations.Push(addr, len);
+    MemoryUse::Get().allocations.Push(ptr, len);
     MemoryUse::Get().total_allocated.fetch_add(len, std::memory_order_relaxed);
   }
 
@@ -409,7 +454,7 @@ void MemoryUse::Destroy() {
 
 ScopedFlagToggle::ScopedFlagToggle(bool& flag)
     : previous_state_{flag}, flag_{flag} {
-  flag_ = !flag_;
+  flag_ = true;
 }
 
 ScopedFlagToggle::~ScopedFlagToggle() { flag_ = previous_state_; }
@@ -423,10 +468,39 @@ void (*PlatformFree)(void*){nullptr};
 void* (*PlatformMmap)(void*, std::size_t, int, int, int, off_t){nullptr};
 int (*PlatformMunmap)(void*, std::size_t){nullptr};
 #endif  // !COMET_MSVC
+
+#ifdef COMET_MSVC
+void TrackAlignedAlloc(void* ptr, std::size_t size) {
+  if (ptr == nullptr || comet::memory::internal::is_tracking_in_progress) {
+    return;
+  }
+
+  ScopedFlagToggle toggle{is_tracking_in_progress};
+
+  MemoryUse::Get().allocations.Push(ptr, size);
+  MemoryUse::Get().total_allocated.fetch_add(size, std::memory_order_relaxed);
+}
+
+void TrackAlignedFree(void* ptr) {
+  if (ptr == nullptr || comet::memory::internal::is_tracking_in_progress) {
+    return;
+  }
+
+  ScopedFlagToggle toggle{is_tracking_in_progress};
+
+  MemoryUse::Get().total_freed.fetch_add(MemoryUse::Get().allocations.Pop(ptr),
+                                         std::memory_order_relaxed);
+}
+#endif  // COMET_MSVC
 }  // namespace internal
 
 void InitializeAllocationTracking() {
   auto& memory_use{internal::MemoryUse::Get()};
+
+  if (memory_use.is_tracking) {
+    return;
+  }
+
   memory_use.Initialize();
 
 #ifdef COMET_MSVC
@@ -453,6 +527,11 @@ void InitializeAllocationTracking() {
 
 void DestroyAllocationTracking() {
   auto& memory_use{internal::MemoryUse::Get()};
+
+  if (!memory_use.is_tracking) {
+    return;
+  }
+
   memory_use.is_tracking = false;
 
 #ifdef COMET_MSVC
@@ -587,6 +666,29 @@ usize GetMemoryUse() {
 Map<MemoryTag, usize> GetTagUse() {
   return internal::MemoryUse::Get().tags.GetTagUse();
 }
+
+void UpdateMemoryUseSnapshot() {
+  auto tag_use{GetTagUse()};
+
+  MemoryUseSnapshot snapshot{};
+  snapshot.memory_use = GetMemoryUse();
+
+  for (const auto& pair : tag_use) {
+    if (snapshot.tag_count >= MemoryUseSnapshot::kMaxTagCount) {
+      break;
+    }
+
+    snapshot.tags[snapshot.tag_count++] = {pair.key, pair.value};
+  }
+
+  std::lock_guard lock{internal::latest_memory_snapshot_mutex};
+  internal::latest_memory_snapshot = snapshot;
+}
+
+MemoryUseSnapshot GetLatestMemoryUseSnapshot() {
+  std::lock_guard lock{internal::latest_memory_snapshot_mutex};
+  return internal::latest_memory_snapshot;
+}
 }  // namespace memory
 }  // namespace comet
 
@@ -645,13 +747,16 @@ void* operator new[](std::size_t size) {
 #ifdef __cpp_aligned_new
 #ifdef COMET_MSVC
 _VCRT_EXPORT_STD _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size)
-_VCRT_ALLOCATOR void* __CRTDECL operator new(std::size_t size,
-                                             std::align_val_t align) {
+_VCRT_ALLOCATOR
+void* __CRTDECL operator new(std::size_t size, std::align_val_t align) {
   if (size == 0) {
     size = 1;
   }
 
-  if (void* ptr{_aligned_malloc(size, static_cast<std::size_t>(align))}) {
+  auto* ptr{_aligned_malloc(size, static_cast<std::size_t>(align))};
+
+  if (ptr != nullptr) {
+    comet::memory::internal::TrackAlignedAlloc(ptr, size);
     return ptr;
   }
 
@@ -659,13 +764,16 @@ _VCRT_ALLOCATOR void* __CRTDECL operator new(std::size_t size,
 }
 
 _VCRT_EXPORT_STD _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size)
-_VCRT_ALLOCATOR void* __CRTDECL operator new[](std::size_t size,
-                                               std::align_val_t align) {
+_VCRT_ALLOCATOR
+void* __CRTDECL operator new[](std::size_t size, std::align_val_t align) {
   if (size == 0) {
     size = 1;
   }
 
-  if (void* ptr{_aligned_malloc(size, static_cast<std::size_t>(align))}) {
+  auto* ptr{_aligned_malloc(size, static_cast<std::size_t>(align))};
+
+  if (ptr != nullptr) {
+    comet::memory::internal::TrackAlignedAlloc(ptr, size);
     return ptr;
   }
 
@@ -685,7 +793,7 @@ _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
 
 _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
     _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-    void* __CRTDECL operator new[](size_t size,
+    void* __CRTDECL operator new[](std::size_t size,
                                    ::std::nothrow_t const&) noexcept {
   if (size == 0) {
     size = 1;
@@ -702,7 +810,9 @@ _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
     size = 1;
   }
 
-  return _aligned_malloc(size, static_cast<std::size_t>(align));
+  auto* ptr{_aligned_malloc(size, static_cast<std::size_t>(align))};
+  comet::memory::internal::TrackAlignedAlloc(ptr, size);
+  return ptr;
 }
 
 _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
@@ -713,7 +823,9 @@ _VCRT_EXPORT_STD _NODISCARD _Ret_maybenull_ _Success_(return != NULL)
     size = 1;
   }
 
-  return _aligned_malloc(size, static_cast<std::size_t>(align));
+  auto* ptr{_aligned_malloc(size, static_cast<std::size_t>(align))};
+  comet::memory::internal::TrackAlignedAlloc(ptr, size);
+  return ptr;
 }
 #else
 void* operator new(std::size_t size, std::align_val_t align) {
@@ -721,7 +833,10 @@ void* operator new(std::size_t size, std::align_val_t align) {
     size = 1;
   }
 
-  if (void* ptr{std::aligned_alloc(static_cast<std::size_t>(align), size)}) {
+  const auto alignment{static_cast<std::size_t>(align)};
+  const auto aligned_size{((size + alignment - 1) / alignment) * alignment};
+
+  if (void* ptr{std::aligned_alloc(alignment, aligned_size)}) {
     return ptr;
   }
 
@@ -733,7 +848,10 @@ void* operator new[](std::size_t size, std::align_val_t align) {
     size = 1;
   }
 
-  if (void* ptr{std::aligned_alloc(static_cast<std::size_t>(align), size)}) {
+  const auto alignment{static_cast<std::size_t>(align)};
+  const auto aligned_size{((size + alignment - 1) / alignment) * alignment};
+
+  if (void* ptr{std::aligned_alloc(alignment, aligned_size)}) {
     return ptr;
   }
 
@@ -762,7 +880,10 @@ void* operator new(std::size_t size, std::align_val_t align,
     size = 1;
   }
 
-  return std::aligned_alloc(static_cast<std::size_t>(align), size);
+  const auto alignment{static_cast<std::size_t>(align)};
+  const auto aligned_size{((size + alignment - 1) / alignment) * alignment};
+
+  return std::aligned_alloc(alignment, aligned_size);
 }
 
 void* operator new[](std::size_t size, std::align_val_t align,
@@ -771,7 +892,10 @@ void* operator new[](std::size_t size, std::align_val_t align,
     size = 1;
   }
 
-  return std::aligned_alloc(static_cast<std::size_t>(align), size);
+  const auto alignment{static_cast<std::size_t>(align)};
+  const auto aligned_size{((size + alignment - 1) / alignment) * alignment};
+
+  return std::aligned_alloc(alignment, aligned_size);
 }
 #endif  // COMET_MSVC
 #endif  // __cpp_aligned_new
@@ -793,6 +917,39 @@ void operator delete[](void* ptr, const std::nothrow_t&) noexcept {
 }
 
 #ifdef __cpp_aligned_new
+#ifdef COMET_MSVC
+void operator delete(void* ptr, std::align_val_t) noexcept {
+  comet::memory::internal::TrackAlignedFree(ptr);
+  _aligned_free(ptr);
+}
+
+void operator delete[](void* ptr, std::align_val_t) noexcept {
+  comet::memory::internal::TrackAlignedFree(ptr);
+  _aligned_free(ptr);
+}
+
+void operator delete(void* ptr, std::size_t, std::align_val_t) noexcept {
+  comet::memory::internal::TrackAlignedFree(ptr);
+  _aligned_free(ptr);
+}
+
+void operator delete[](void* ptr, std::size_t, std::align_val_t) noexcept {
+  comet::memory::internal::TrackAlignedFree(ptr);
+  _aligned_free(ptr);
+}
+
+void operator delete(void* ptr, std::align_val_t,
+                     const std::nothrow_t&) noexcept {
+  comet::memory::internal::TrackAlignedFree(ptr);
+  _aligned_free(ptr);
+}
+
+void operator delete[](void* ptr, std::align_val_t,
+                       const std::nothrow_t&) noexcept {
+  comet::memory::internal::TrackAlignedFree(ptr);
+  _aligned_free(ptr);
+}
+#else
 void operator delete(void* ptr, std::align_val_t) noexcept { std::free(ptr); }
 
 void operator delete[](void* ptr, std::align_val_t) noexcept { std::free(ptr); }
@@ -814,6 +971,7 @@ void operator delete[](void* ptr, std::align_val_t,
                        const std::nothrow_t&) noexcept {
   std::free(ptr);
 }
+#endif  // COMET_MSVC
 #endif  // __cpp_aligned_new
 
 #endif  // COMET_TRACK_ALLOCATIONS

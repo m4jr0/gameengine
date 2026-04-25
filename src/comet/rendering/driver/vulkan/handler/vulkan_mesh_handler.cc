@@ -13,7 +13,7 @@
 
 #include "comet/core/logger/logging.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
@@ -54,8 +54,8 @@ void MeshHandler::AcquireFromTransferQueueIfNeeded() {
   }
 
   if (is_transfer_queue_) {
-    auto* acquire_barriers{
-        COMET_FRAME_ARRAY(VkBufferMemoryBarrier, kDefaultAcquireBarrierCount_)};
+    auto* acquire_barriers{COMET_FRAME_ARRAY_WITH_CAPACITY(
+        VkBufferMemoryBarrier, kDefaultAcquireBarrierCount_)};
     auto& device{context_->GetDevice()};
     const auto transfer_queue_index{device.GetTransferQueueIndex()};
     const auto graphics_queue_index{device.GetGraphicsQueueIndex()};
@@ -110,7 +110,7 @@ const MeshProxy* MeshHandler::TryGet(geometry::MeshHandle handle) const {
 void MeshHandler::OnInitialize() {
   allocator_.Initialize();
 
-  proxies_ = Array<MeshProxy>{&allocator_, kDefaultProxyCount_};
+  proxies_ = Array<MeshProxy>::WithCapacity(&allocator_, kDefaultProxyCount_);
 
   const auto fence_info{init::GenerateFenceCreateInfo()};
   auto& device{context_->GetDevice()};
@@ -153,7 +153,7 @@ void MeshHandler::OnInitialize() {
 }
 
 void MeshHandler::OnShutdown() {
-  proxies_.Destroy();
+  proxies_.Release();
 
   vertex_buffer_.Destroy();
   index_buffer_.Destroy();
@@ -240,8 +240,8 @@ void MeshHandler::FinishUpdate(internal::UpdateContext& update_context) {
   UnmapBuffer(staging_buffer_);
   UploadMeshProxies(update_context);
 
-  auto* release_barriers{
-      COMET_FRAME_ARRAY(VkBufferMemoryBarrier, kDefaultAcquireBarrierCount_)};
+  auto* release_barriers{COMET_FRAME_ARRAY_WITH_CAPACITY(
+      VkBufferMemoryBarrier, kDefaultAcquireBarrierCount_)};
 
   if (is_transfer_ && is_transfer_queue_) {
     const auto transfer_queue_index{
@@ -328,10 +328,10 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
         vertex_buffer_.Claim(geometry.vertices->GetSize())};
     const auto index_offset{index_buffer_.Claim(geometry.indices->GetSize())};
 
-    update_context.vertex_copy_regions.EmplaceBack(
+    update_context.vertex_copy_regions.EmplaceLast(
         update_context.current_staging_vertex_offset,
         vertex_offset * sizeof(geometry::SkinnedVertex), vertex_size);
-    update_context.index_copy_regions.EmplaceBack(
+    update_context.index_copy_regions.EmplaceLast(
         update_context.current_staging_index_offset,
         index_offset * sizeof(geometry::Index), index_size);
 
@@ -395,10 +395,10 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
     memory::CopyMemory(memory + update_context.current_staging_index_offset,
                        mesh.indices->GetData(), new_index_size);
 
-    update_context.vertex_copy_regions.EmplaceBack(
+    update_context.vertex_copy_regions.EmplaceLast(
         update_context.current_staging_vertex_offset,
         vertex_offset * sizeof(geometry::SkinnedVertex), new_vertex_size);
-    update_context.index_copy_regions.EmplaceBack(
+    update_context.index_copy_regions.EmplaceLast(
         update_context.current_staging_index_offset,
         index_offset * sizeof(geometry::Index), new_index_size);
 

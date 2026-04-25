@@ -240,12 +240,10 @@ class FiberSharedMutex {
   void UnlockShared();
 
  private:
-  FiberMutex mutex_{};
-  FiberCV cv_{};
-  static_assert(std::atomic<usize>::is_always_lock_free,
-                "std::atomic<usize> must be always lock-free");
-  std::atomic<usize> reader_count_{0};
-  bool is_writer_{false};
+  FiberSpinLock spin_lock_{};
+  Fiber* writer_{nullptr};
+  usize reader_count_{0};
+  usize waiting_writers_{0};
 };
 
 enum class FiberSharedLockType { Unknown = 0, Shared, Exclusive };

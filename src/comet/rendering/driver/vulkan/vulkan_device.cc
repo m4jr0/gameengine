@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/c_string.h"
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/ordered_set.h"
@@ -20,8 +20,8 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/label/rendering_common_label.h"
-#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/label/common_label.h"
+#include "comet/rendering/type/common.h"
 
 namespace comet {
 namespace rendering {
@@ -56,7 +56,7 @@ frame::FrameArray<u32> GetUniqueIndices(const QueueFamilyIndices& indices) {
   list.Reserve(set.GetSize());
 
   for (auto& index : set) {
-    list.PushBack(index);
+    list.PushLast(index);
   }
 
   return list;
@@ -263,7 +263,7 @@ void Device::Initialize() {
   const auto queue_priority{1.0f};
 
   for (const auto queue_family_index : unique_queue_family_indices) {
-    queue_create_info.PushBack(init::GenerateDeviceQueueCreateInfo(
+    queue_create_info.PushLast(init::GenerateDeviceQueueCreateInfo(
         queue_family_index, queue_priority));
   }
 
@@ -336,7 +336,7 @@ void Device::Destroy() {
   properties_ = {};
   features_ = {};
   memory_properties_ = {};
-  queue_family_properties_.Destroy();
+  queue_family_properties_.Release();
   queue_family_indices_ = {};
   instance_handle_ = VK_NULL_HANDLE;
   physical_device_handle_ = VK_NULL_HANDLE;

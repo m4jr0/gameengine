@@ -12,8 +12,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/rendering_shader_label.h"
-#include "comet/rendering/utils/rendering_shader_utils.h"
+#include "comet/rendering/label/shader_label.h"
+#include "comet/rendering/utils/shader_utils.h"
 
 namespace comet {
 namespace rendering {
@@ -48,7 +48,7 @@ bool IsComputeStage(VkShaderStageFlags stage_flags) {
 void AddBufferBinding(frame::FrameArray<ShaderBufferBindingUpdate>& updates,
                       ShaderBindingIndex binding_index, VkBuffer buffer_handle,
                       VkDeviceSize buffer_size, VkDeviceSize buffer_offset) {
-  auto& update{updates.EmplaceBack()};
+  auto& update{updates.EmplaceLast()};
   update.binding_index = binding_index;
   update.buffer_handle = buffer_handle;
   update.buffer_size = buffer_size;
@@ -59,7 +59,7 @@ void AddImageBinding(frame::FrameArray<ShaderImageBindingUpdate>& updates,
                      ShaderBindingIndex binding_index,
                      const ShaderImageDescriptor* descriptors,
                      u32 descriptor_count) {
-  auto& update{updates.EmplaceBack()};
+  auto& update{updates.EmplaceLast()};
   update.binding_index = binding_index;
   update.descriptors = descriptors;
   update.descriptor_count = descriptor_count;
@@ -69,7 +69,7 @@ void AddFieldUpdate(frame::FrameArray<ShaderBufferFieldUpdate>& updates,
                     ShaderBindingIndex binding_index,
                     ShaderFieldIndex field_index, const void* data,
                     usize size) {
-  auto& update{updates.EmplaceBack()};
+  auto& update{updates.EmplaceLast()};
   update.binding_index = binding_index;
   update.field_index = field_index;
   update.data = data;
@@ -160,7 +160,7 @@ void GenerateImageDescriptors(ShaderBindingType binding_type,
                  "vulkan_shader_utils::GenerateImageDescriptors",
                  "texture map is null", "index", i);
 
-    descriptors.PushBack(
+    descriptors.PushLast(
         GenerateImageDescriptor(binding_type, texture_map->texture_handle,
                                 texture_map->sampler_handle, image_layouts[i]));
   }

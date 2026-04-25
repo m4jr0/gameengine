@@ -83,10 +83,10 @@ void AssetManager::OnInitialize() {
 
   exporters_ = Array<memory::UniquePtr<AssetExporter>>{&exporters_allocator_};
   exporters_.Reserve(4);
-  exporters_.PushBack(std::make_unique<ModelExporter>());
-  exporters_.PushBack(std::make_unique<ShaderExporter>());
-  exporters_.PushBack(std::make_unique<ShaderModuleExporter>());
-  exporters_.PushBack(std::make_unique<TextureExporter>());
+  exporters_.PushLast(std::make_unique<ModelExporter>());
+  exporters_.PushLast(std::make_unique<ShaderExporter>());
+  exporters_.PushLast(std::make_unique<ShaderModuleExporter>());
+  exporters_.PushLast(std::make_unique<TextureExporter>());
 
   for (const auto& exporter : exporters_) {
     exporter->SetRootResourcePath(root_resource_path_);
@@ -97,10 +97,10 @@ void AssetManager::OnInitialize() {
 void AssetManager::OnShutdown() {
   is_force_refresh_ = false;
   last_update_time_ = 0;
-  root_asset_path_.Destroy();
-  root_resource_path_.Destroy();
-  library_meta_path_.Destroy();
-  exporters_.Destroy();
+  root_asset_path_.Release();
+  root_resource_path_.Release();
+  library_meta_path_.Release();
+  exporters_.Release();
 }
 
 void AssetManager::OnRefresh(job::IOJobParamsHandle params_handle) {

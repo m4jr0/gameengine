@@ -6,14 +6,14 @@
 #define COMET_COMET_RENDERING_LIGHT_MANAGER_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
-#include "comet/core/frame/frame_utils.h"
 #include "comet/core/manager.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/handle.h"
 #include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/rendering_light_type.h"
+#include "comet/rendering/type/light.h"
 
 namespace comet {
 namespace rendering {

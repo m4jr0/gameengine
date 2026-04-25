@@ -34,8 +34,6 @@ target_sources(${COMET_LIBRARY_NAME}
 
 # Compiling ####################################################################
 target_include_directories(${COMET_LIBRARY_NAME}
-  PRIVATE SYSTEM
-    ${VCPKG_INCLUDE_DIR}
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src/"
 )

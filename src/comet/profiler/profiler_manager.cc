@@ -19,8 +19,11 @@
 #include "comet/core/date.h"
 #include "comet/core/memory/allocation_tracking.h"
 #include "comet/engine/engine_event.h"
+#include "comet/entity/entity_manager.h"
 #include "comet/physics/physics_manager.h"
 #include "comet/rendering/rendering_manager.h"
+#include "comet/time/time_manager.h"
+#include "comet/time/time_utils.h"
 
 #ifdef COMET_PROFILING
 namespace comet {
@@ -32,19 +35,41 @@ ProfilerManager& ProfilerManager::Get() {
 
 void ProfilerManager::Update() {
 #ifdef COMET_DEBUG
+  COMET_UPDATE_MEMORY_USE_SNAPSHOT();
+
   auto& physics_manager{physics::PhysicsManager::Get()};
   auto& rendering_manager{rendering::RenderingManager::Get()};
+  auto& entity_manager{entity::EntityManager::Get()};
 
   data_.physics_frame_time = physics_manager.GetFrameTime();
   data_.physics_frame_rate = physics_manager.GetFrameRate();
   data_.rendering_driver_type = rendering_manager.GetDriverType();
   data_.rendering_frame_time = rendering_manager.GetFrameTime();
   data_.rendering_frame_rate = rendering_manager.GetFrameRate();
+  data_.entity_count = entity_manager.GetEntityCount();
+  data_.entity_capacity = entity_manager.GetEntityCapacity();
+  data_.pending_entity_count = entity_manager.GetPendingEntityCount();
+
 #ifdef COMET_DEBUG_RENDERING
   data_.rendering_draw_count = rendering_manager.GetDrawCount();
 #endif  // COMET_DEBUG_RENDERING
-  COMET_GET_MEMORY_USE(data_.memory_use);
-  COMET_GET_TAG_USE(data_.tag_use);
+
+#ifdef COMET_TRACK_ALLOCATIONS
+  const auto memory_snapshot{memory::GetLatestMemoryUseSnapshot()};
+  data_.memory_use = memory_snapshot.memory_use;
+  data_.tag_use.Clear();
+
+  for (usize i{0}; i < memory_snapshot.tag_count; ++i) {
+    const auto& entry{memory_snapshot.tags[i]};
+    data_.tag_use.Set(entry.tag, entry.size);
+  }
+#else
+  data_.memory_use = 0;
+  data_.tag_use.Clear();
+#endif  // COMET_TRACK_ALLOCATIONS
+
+  const auto uptime{time::TimeManager::Get().GetUptime()};
+  time::GetTimeString(uptime, data_.uptime, sizeof(data_.uptime));
 #endif  // COMET_DEBUG
 }
 
@@ -88,13 +113,13 @@ void ProfilerManager::StartProfiling(const schar* label) {
   auto node{std::make_unique<ProfilerNode>(&allocator_, label, now)};
 
   if (thread_context.active_nodes.empty()) {
-    thread_context.root_nodes.PushBack(node.get());
+    thread_context.root_nodes.PushLast(node.get());
   } else {
-    thread_context.active_nodes.top()->children.PushBack(node.get());
+    thread_context.active_nodes.top()->children.PushLast(node.get());
   }
 
   thread_context.active_nodes.push(node.get());
-  thread_context.nodes.PushBack(std::move(node));
+  thread_context.nodes.PushLast(std::move(node));
 }
 
 void ProfilerManager::StopProfiling() {
@@ -178,7 +203,7 @@ void ProfilerManager::UnregisterEvents() {
 
 void ProfilerManager::RecordFrame() {
   if (!is_frame_recording_) {
-    data_.record_context.frame_contexts.PushBack(std::nullopt);
+    data_.record_context.frame_contexts.PushLast(std::nullopt);
     return;
   }
 
@@ -199,7 +224,7 @@ void ProfilerManager::RecordFrame() {
       1000000.0f;
 
   auto& frame_contexts{data_.record_context.frame_contexts};
-  frame_contexts.PushBack(std::move(recording_frame_context_));
+  frame_contexts.PushLast(std::move(recording_frame_context_));
 }
 }  // namespace profiler
 }  // namespace comet

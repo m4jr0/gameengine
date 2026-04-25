@@ -13,13 +13,13 @@
 #include "comet/core/concurrency/job/job_utils.h"
 #include "comet/core/concurrency/job/scheduler.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/generator.h"
+#include "comet/core/frame/frame_string.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/rendering_common_label.h"
-#include "comet/rendering/label/rendering_shader_label.h"
-#include "comet/rendering/type/rendering_common_type.h"
-#include "comet/rendering/type/rendering_shader_type.h"
+#include "comet/rendering/label/common_label.h"
+#include "comet/rendering/label/shader_label.h"
+#include "comet/rendering/type/common.h"
+#include "comet/rendering/type/shader.h"
 #include "comet/resource/resource_manager.h"
 #include "editor/asset/exporter/shader/utils/shader_module_export_utils.h"
 
@@ -53,7 +53,7 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   ShaderCodeContext shader_code_context{};
   shader_code_context.code =
-      GenerateForOneFrame<schar>(ShaderCodeContext::kMaxShaderCodeLen_);
+      GenerateFrameString<schar>(ShaderCodeContext::kMaxShaderCodeLen_);
   shader_code_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
   shader_code_context.allocator = context.allocator;
 
@@ -135,7 +135,7 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   COMET_LOG_DEBUG(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
                   "shader module processed", "asset_path",
                   shader_code_context.asset_abs_path);
-  context.files.PushBack(
+  context.files.PushLast(
       resource::ResourceManager::Get().GetShaderModules()->Pack(
           shader_module, compression_mode_));
 }

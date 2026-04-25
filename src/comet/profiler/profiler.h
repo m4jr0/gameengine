@@ -17,7 +17,7 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/rendering/type/rendering_common_type.h"
+#include "comet/rendering/type/common.h"
 
 #ifdef COMET_PROFILING
 namespace comet {
@@ -103,6 +103,10 @@ struct ProfilerData {
 #endif  // COMET_DEBUG_RENDERING
   rendering::DriverType rendering_driver_type{rendering::DriverType::Unknown};
   usize memory_use{0};
+  usize entity_count{0};
+  usize entity_capacity{0};
+  usize pending_entity_count{0};
+  schar uptime[32]{'\0'};
   Map<memory::MemoryTag, usize> tag_use{};
   ProfilerRecordContext record_context{};
 
@@ -128,10 +132,12 @@ class ProfiledScope {
 #endif  // COMET_PROFILING
 
 #ifdef COMET_PROFILING
-#define COMET_PROFILE(label) \
-  comet::profiler::ProfiledScope profiler { label }
+#define COMET_PROFILE(label)                                                \
+  comet::profiler::ProfiledScope COMET_CONCAT(_comet_profiler_, __LINE__) { \
+    label                                                                   \
+  }
 #else
-#define COMET_PROFILE(label)
+#define COMET_PROFILE(label) ((void)0)
 #endif  // COMET_PROFILING
 
 #endif  // COMET_COMET_PROFILER_PROFILER_H_

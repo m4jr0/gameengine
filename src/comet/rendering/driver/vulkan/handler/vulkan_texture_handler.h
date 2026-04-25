@@ -9,7 +9,7 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_texture_type.h"
+#include "comet/rendering/driver/vulkan/type/vulkan_texture.h"
 #include "comet/rendering/rendering_handle.h"
 #include "comet/resource/texture/texture_resource.h"
 

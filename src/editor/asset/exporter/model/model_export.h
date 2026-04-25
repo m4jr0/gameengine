@@ -13,7 +13,7 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type/map.h"
-#include "comet/geometry/type/geometry_skeleton_type.h"
+#include "comet/geometry/type/skeleton.h"
 #include "comet/resource/animation/animation_resource.h"
 #include "comet/resource/model/model_resource.h"
 

@@ -15,19 +15,19 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_utils.h"
+#include "comet/core/frame/frame_container.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type_trait.h"
-#include "comet/geometry/type/geometry_mesh_type.h"
+#include "comet/geometry/type/mesh.h"
 #include "comet/math/vector.h"
 #include "comet/rendering/driver/opengl/label/opengl_shader_module_label.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_type.h"
+#include "comet/rendering/driver/opengl/type/opengl_shader.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
-#include "comet/rendering/label/rendering_shader_label.h"
-#include "comet/rendering/type/rendering_common_type.h"
-#include "comet/rendering/type/rendering_pipeline_type.h"
-#include "comet/rendering/utils/rendering_shader_utils.h"
+#include "comet/rendering/label/shader_label.h"
+#include "comet/rendering/type/common.h"
+#include "comet/rendering/type/pipeline.h"
+#include "comet/rendering/utils/shader_utils.h"
 #include "comet/resource/resource_manager.h"
 
 namespace comet {
@@ -642,7 +642,7 @@ void ShaderHandler::UpdateInstance(ShaderHandle handle,
             Array<ShaderImageDescriptor>{&general_allocator_};
         new_runtime_binding.descriptors.PushFromRange(
             image_update.descriptors, image_update.descriptor_count);
-        instance.binding_data.image_bindings.EmplaceBack(
+        instance.binding_data.image_bindings.EmplaceLast(
             std::move(new_runtime_binding));
       } else {
         runtime_binding->descriptors.Clear();
@@ -785,11 +785,12 @@ void ShaderHandler::OnShutdown() {
   material_handler_->SetDestroyCallback(nullptr, nullptr);
 
   memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
-  Array<ShaderHandle> handles_to_destroy{&tmp_allocator};
+  auto handles_to_destroy{Array<ShaderHandle>::WithCapacity(
+      &tmp_allocator, shaders_.GetLiveCount())};
 
   shaders_.ForEachLive(
       [&handles_to_destroy](ShaderHandle handle, const Shader*) {
-        handles_to_destroy.PushBack(handle);
+        handles_to_destroy.PushLast(handle);
       });
 
   for (const auto handle : handles_to_destroy) {
@@ -928,14 +929,14 @@ void ShaderHandler::DestroyShader(Shader* shader) {
 
   for (auto& instance : shader->instances.list) {
     DestroyBindingRuntimeData(instance.binding_data);
-    instance.descriptor_data.binding_indices.Destroy();
+    instance.descriptor_data.binding_indices.Release();
   }
 
-  shader->instances.list.Destroy();
-  shader->instances.indices.Destroy();
+  shader->instances.list.Release();
+  shader->instances.indices.Release();
 
-  shader->global_descriptor_data.binding_indices.Destroy();
-  shader->storage_descriptor_data.binding_indices.Destroy();
+  shader->global_descriptor_data.binding_indices.Release();
+  shader->storage_descriptor_data.binding_indices.Release();
   shader->global_descriptor_data.update_frame = kInvalidFrameCount;
   shader->storage_descriptor_data.update_frame = kInvalidFrameCount;
 
@@ -956,16 +957,16 @@ void ShaderHandler::DestroyShader(Shader* shader) {
   }
 
   for (auto& binding : shader->bindings) {
-    binding.fields.Destroy();
+    binding.fields.Release();
   }
 
   for (auto& block : shader->push_constant_blocks) {
-    block.fields.Destroy();
+    block.fields.Release();
   }
 
-  shader->vertex_attributes.Destroy();
-  shader->bindings.Destroy();
-  shader->push_constant_blocks.Destroy();
+  shader->vertex_attributes.Release();
+  shader->bindings.Release();
+  shader->push_constant_blocks.Release();
 
   if (shader_module_handler_->IsInitialized()) {
     for (const auto module_handle : shader->module_handles) {
@@ -973,7 +974,7 @@ void ShaderHandler::DestroyShader(Shader* shader) {
     }
   }
 
-  shader->module_handles.Destroy();
+  shader->module_handles.Release();
 
   if (shader->graphics_program_native_handle != kInvalidGlNativeProgramHandle) {
     glDeleteProgram(shader->graphics_program_native_handle);
@@ -1024,7 +1025,7 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
 
   stride = static_cast<VertexAttributeStride>(sizeof(geometry::SkinnedVertex));
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 0,
       .component_count = 3,
       .component_type = GL_FLOAT,
@@ -1034,7 +1035,7 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
           offsetof(geometry::SkinnedVertex, position)),
   });
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 1,
       .component_count = 3,
       .component_type = GL_FLOAT,
@@ -1044,7 +1045,7 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
           offsetof(geometry::SkinnedVertex, normal)),
   });
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 2,
       .component_count = 4,
       .component_type = GL_FLOAT,
@@ -1054,7 +1055,7 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
           offsetof(geometry::SkinnedVertex, tangent)),
   });
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 3,
       .component_count = 2,
       .component_type = GL_FLOAT,
@@ -1064,7 +1065,7 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
           reinterpret_cast<const void*>(offsetof(geometry::SkinnedVertex, uv)),
   });
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 4,
       .component_count = 4,
       .component_type = GL_FLOAT,
@@ -1074,7 +1075,7 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
           offsetof(geometry::SkinnedVertex, color)),
   });
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 5,
       .component_count = 4,
       .component_type = GL_UNSIGNED_SHORT,
@@ -1084,7 +1085,7 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
           offsetof(geometry::SkinnedVertex, joint_indices)),
   });
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 6,
       .component_count = 4,
       .component_type = GL_FLOAT,
@@ -1102,7 +1103,7 @@ void ShaderHandler::PopulateDebugLineVertexAttributes(
 
   stride = static_cast<VertexAttributeStride>(sizeof(math::Vec4));
 
-  attributes.PushBack(VertexAttribute{
+  attributes.PushLast(VertexAttribute{
       .index = 0,
       .component_count = 4,
       .component_type = GL_FLOAT,
@@ -1276,12 +1277,12 @@ void ShaderHandler::BindMaterial(Shader* shader, const Material* material) {
     runtime_binding.descriptors =
         Array<ShaderImageDescriptor>{&general_allocator_};
     runtime_binding.descriptors.PushFromRange(resolved_image_descriptors);
-    instance.binding_data.image_bindings.EmplaceBack(
+    instance.binding_data.image_bindings.EmplaceLast(
         std::move(runtime_binding));
   }
 
   shader->instances.indices.Emplace(material->id, instance_index);
-  shader->instances.list.EmplaceBack(std::move(instance));
+  shader->instances.list.EmplaceLast(std::move(instance));
 }
 
 void ShaderHandler::UnbindMaterial(Shader* shader, const Material* material) {
@@ -1310,7 +1311,7 @@ void ShaderHandler::UnbindMaterial(Shader* shader, const Material* material) {
   if (index != last_index) {
     instances[index] = std::move(instances[last_index]);
     auto& moved_instance{instances[index]};
-    shader->instances.indices[moved_instance.material_resource_id] = index;
+    shader->instances.indices.Set(moved_instance.material_resource_id, index);
     UpdateInstanceUboBindings(shader, moved_instance, index);
   }
 
@@ -1332,7 +1333,7 @@ void ShaderHandler::HandleShaderModulesGeneration(
                  "shader_module_resource_id", shader_module_resource_id,
                  "shader_resource_id", shader->id);
 
-    shader->module_handles.PushBack(module_handle);
+    shader->module_handles.PushLast(module_handle);
   }
 }
 
@@ -1454,7 +1455,7 @@ void ShaderHandler::HandleBindingsGeneration(
       ShaderField field{};
       field.type = field_descr.type;
       field.array_count = field_descr.array_count;
-      binding.fields.PushBack(field);
+      binding.fields.PushLast(field);
     }
 
     ComputeBindingLayout(binding);
@@ -1494,7 +1495,7 @@ void ShaderHandler::HandleBindingsGeneration(
                    "binding_scope_value", ToUnderlying(binding.scope));
     }
 
-    shader->bindings.PushBack(std::move(binding));
+    shader->bindings.PushLast(std::move(binding));
   }
 }
 
@@ -1517,7 +1518,7 @@ void ShaderHandler::HandlePushConstantBlocksGeneration(
       ShaderField field{};
       field.type = field_descr.type;
       field.array_count = field_descr.array_count;
-      block.fields.PushBack(field);
+      block.fields.PushLast(field);
     }
 
     ComputePushConstantBlockLayout(block);
@@ -1526,7 +1527,7 @@ void ShaderHandler::HandlePushConstantBlocksGeneration(
     block.offset = push_constant_cursor;
     push_constant_cursor += block.size;
 
-    shader->push_constant_blocks.PushBack(std::move(block));
+    shader->push_constant_blocks.PushLast(std::move(block));
   }
 }
 
@@ -1555,7 +1556,7 @@ void ShaderHandler::HandleUboBufferGeneration(Shader* shader) const {
                "instance ubo size exceeds limit", "shader_handle",
                shader->handle, "ubo_stride", shader->instance_ubo_data.stride,
                "max_uniform_block_size", max_range);
-#endif
+#endif  // COMET_DEBUG
 
   ShaderOffset push_constant_total_size{0};
 
@@ -1651,7 +1652,7 @@ void ShaderHandler::AllocateGlobalDescriptorSets(Shader* shader) {
 
   for (const auto& binding : shader->bindings) {
     if (binding.set == shaderconsts::kGlobalSet) {
-      shader->global_descriptor_data.binding_indices.PushBack(binding.index);
+      shader->global_descriptor_data.binding_indices.PushLast(binding.index);
     }
   }
 }
@@ -1661,7 +1662,7 @@ void ShaderHandler::AllocateStorageDescriptorSets(Shader* shader) {
 
   for (const auto& binding : shader->bindings) {
     if (binding.set == shaderconsts::kPassSet) {
-      shader->storage_descriptor_data.binding_indices.PushBack(binding.index);
+      shader->storage_descriptor_data.binding_indices.PushLast(binding.index);
     }
   }
 }
@@ -1672,7 +1673,7 @@ void ShaderHandler::AllocateMaterialDescriptorSets(Shader* shader,
 
   for (const auto& binding : shader->bindings) {
     if (binding.set == shaderconsts::kMaterialSet) {
-      instance.descriptor_data.binding_indices.PushBack(binding.index);
+      instance.descriptor_data.binding_indices.PushLast(binding.index);
     }
   }
 }
@@ -1700,7 +1701,7 @@ void ShaderHandler::CollectMaterialTextureMaps(
                    "binding_index", binding.index, "expected_descriptor_count",
                    1u, "actual_descriptor_count", binding.descriptor_count);
 
-      texture_maps.PushBack(&material->diffuse_map);
+      texture_maps.PushLast(&material->diffuse_map);
       return;
 
     case ShaderImageBindingSemantic::MaterialSpecular:
@@ -1710,7 +1711,7 @@ void ShaderHandler::CollectMaterialTextureMaps(
                    "binding_index", binding.index, "expected_descriptor_count",
                    1u, "actual_descriptor_count", binding.descriptor_count);
 
-      texture_maps.PushBack(&material->specular_map);
+      texture_maps.PushLast(&material->specular_map);
       return;
 
     case ShaderImageBindingSemantic::MaterialNormal:
@@ -1720,7 +1721,7 @@ void ShaderHandler::CollectMaterialTextureMaps(
                    "binding_index", binding.index, "expected_descriptor_count",
                    1u, "actual_descriptor_count", binding.descriptor_count);
 
-      texture_maps.PushBack(&material->normal_map);
+      texture_maps.PushLast(&material->normal_map);
       return;
 
     case ShaderImageBindingSemantic::MaterialTextures:
@@ -1730,9 +1731,9 @@ void ShaderHandler::CollectMaterialTextureMaps(
                    "binding_index", binding.index, "expected_descriptor_count",
                    3u, "actual_descriptor_count", binding.descriptor_count);
 
-      texture_maps.PushBack(&material->diffuse_map);
-      texture_maps.PushBack(&material->specular_map);
-      texture_maps.PushBack(&material->normal_map);
+      texture_maps.PushLast(&material->diffuse_map);
+      texture_maps.PushLast(&material->specular_map);
+      texture_maps.PushLast(&material->normal_map);
       return;
 
     default:
@@ -1759,7 +1760,7 @@ void ShaderHandler::CollectMaterialImageDescriptors(
     ShaderImageDescriptor descriptor{};
     descriptor.texture_handle = texture_map->texture_handle;
     descriptor.sampler_handle = texture_map->sampler_handle;
-    descriptors.PushBack(descriptor);
+    descriptors.PushLast(descriptor);
   }
 }
 
@@ -1847,10 +1848,10 @@ ShaderBindingImageRuntimeData* ShaderHandler::FindBindingRuntimeData(
 void ShaderHandler::DestroyBindingRuntimeData(
     ShaderBindingRuntimeData& binding_data) const {
   for (auto& runtime_binding : binding_data.image_bindings) {
-    runtime_binding.descriptors.Destroy();
+    runtime_binding.descriptors.Release();
   }
 
-  binding_data.image_bindings.Destroy();
+  binding_data.image_bindings.Release();
 }
 
 ShaderOffset ShaderHandler::GetPushConstantBaseOffset(
