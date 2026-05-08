@@ -43,6 +43,8 @@ enum class PrimitiveTopology {
   Triangles,
   TriangleStrip
 };
+
+enum class PipelineBindType : u8 { Unknown = 0, Graphics, Compute };
 }  // namespace rendering
 }  // namespace comet
 

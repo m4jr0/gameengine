@@ -22,6 +22,7 @@
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/camera_manager.h"
 #include "comet/rendering/light_manager.h"
+#include "comet/rendering/rendering_manager.h"
 #include "comet/scene/scene_manager.h"
 
 namespace comet {
@@ -45,6 +46,7 @@ void GameLogicManager::Update(frame::FramePacket* packet) {
         COMET_PROFILE("GameLogicManager::Update::Job");
         auto* packet{reinterpret_cast<frame::FramePacket*>(params_handle)};
 
+        scene::SceneManager::Get().Update();
         rendering::LightManager::Get().Update(packet);
         environment::EnvironmentManager::Get().Update(packet);
         physics::PhysicsManager::Get().Update(packet);
@@ -59,7 +61,15 @@ void GameLogicManager::Update(frame::FramePacket* packet) {
 }
 
 void GameLogicManager::PopulatePacket(frame::FramePacket* packet) {
-  rendering::CameraManager::Get().PopulateMainRenderData(packet->camera_data);
+  const auto extent{rendering::RenderingManager::Get().GetWindowExtent()};
+
+  packet->main_camera_view_index =
+      rendering::CameraManager::Get().PopulateCameraViews(
+          *packet->camera_views, extent.width, extent.height);
+
+#ifdef COMET_DEBUG
+  packet->has_debug_camera = packet->camera_views->GetSize() > 1;
+#endif  // COMET_DEBUG
 
   const auto expected_entity_count{
       scene::SceneManager::Get().GetExpectedEntityCount()};
@@ -68,5 +78,7 @@ void GameLogicManager::PopulatePacket(frame::FramePacket* packet) {
   packet->dirty_meshes->Reserve(expected_entity_count);
   packet->dirty_transforms->Reserve(expected_entity_count);
   packet->removed_geometries->Reserve(expected_entity_count);
+
+  packet->is_populated = true;
 }
 }  // namespace comet

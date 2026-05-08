@@ -173,6 +173,14 @@ void ModelHandler::DestroySkeletal(EntityId entity_id) const {
   AfterEntityChanges([this, entity_id] { DestroySkeletalNow(entity_id); });
 }
 
+void ModelHandler::DestroyStaticImmediate(EntityId entity_id) const {
+  DestroyStaticNow(entity_id);
+}
+
+void ModelHandler::DestroySkeletalImmediate(EntityId entity_id) const {
+  DestroySkeletalNow(entity_id);
+}
+
 void ModelHandler::OnInitialize() {
   static_job_params_allocator_.Initialize();
   skeletal_job_params_allocator_.Initialize();
@@ -299,8 +307,8 @@ void ModelHandler::OnStaticGeneration(job::JobParamsHandle params_handle) {
   transform_cmp.parent_entity_id = params->parent_id;
   transform_cmp.local = mesh.transform;
 
-  EntityManager::Get().AddComponents(params->id, mesh_cmp, transform_cmp);
-  EntityManager::Get().AddParent(params->id, transform_cmp.parent_entity_id);
+  EntityManager::Get().AddChildComponents(
+      params->id, transform_cmp.parent_entity_id, mesh_cmp, transform_cmp);
 }
 
 void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
@@ -330,8 +338,8 @@ void ModelHandler::OnSkeletalGeneration(job::JobParamsHandle params_handle) {
   transform_cmp.parent_entity_id = params->parent_id;
   transform_cmp.local = mesh.transform;
 
-  EntityManager::Get().AddComponents(params->id, mesh_cmp, transform_cmp);
-  EntityManager::Get().AddParent(params->id, transform_cmp.parent_entity_id);
+  EntityManager::Get().AddChildComponents(
+      params->id, transform_cmp.parent_entity_id, mesh_cmp, transform_cmp);
 }
 }  // namespace entity
 }  // namespace comet

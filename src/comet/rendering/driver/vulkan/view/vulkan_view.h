@@ -15,6 +15,7 @@
 #include "comet/rendering/driver/vulkan/type/vulkan_view.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
 #include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/type/camera.h"
 #include "comet/rendering/type/common.h"
 #include "comet/rendering/type/texture.h"
 #include "comet/rendering/type/view.h"
@@ -22,6 +23,16 @@
 namespace comet {
 namespace rendering {
 namespace vk {
+struct ViewUpdate {
+  frame::FramePacket* packet{nullptr};
+  const RenderCameraData* camera_data{nullptr};
+  CameraKind camera_kind{CameraKind::Game};
+  CameraFlags camera_flags{kCameraFlagBitsNone};
+  usize camera_index{kInvalidIndex};
+  bool is_debug_draw_enabled{false};
+  ViewportRect viewport{};
+};
+
 struct ViewPassDescr {
   RenderTargetKind target_kind{RenderTargetKind::Swapchain};
   ViewPassFlags flags{kViewPassFlagBitsNone};
@@ -36,6 +47,7 @@ struct ViewPassDescr {
 };
 
 struct ViewDescr {
+  ViewRenderStage render_stage{ViewRenderStage::Unknown};
   WindowSize width{0};
   WindowSize height{0};
   f32 clear_color[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
@@ -58,15 +70,26 @@ class View {
   void Initialize();
   void Destroy();
 
-  virtual void Update(frame::FramePacket*) = 0;
+  virtual void Prepare(const ViewUpdate&);
+  virtual void Begin(const ViewUpdate&);
+  virtual void Draw(const ViewUpdate&);
+  virtual void End(const ViewUpdate&);
 
   virtual void SetSize(WindowSize width, WindowSize height);
+
+  CameraFlags GetCameraFlags() const noexcept;
+  void SetCameraFlags(CameraFlags flags) noexcept;
+  bool SupportsCamera(CameraFlagBits bit) const noexcept;
+
+  ViewRenderStage GetRenderStage() const noexcept;
+  void SetRenderStage(ViewRenderStage stage) noexcept;
 
   RenderingViewId GetId() const noexcept;
 
   bool IsInitialized() const noexcept;
   bool IsSwapchainTarget() const noexcept;
   bool IsOffscreenTarget() const noexcept;
+  bool IsOverlayTarget() const noexcept;
 
  protected:
   virtual void OnInitialize();
@@ -74,14 +97,24 @@ class View {
 
   bool is_initialized_{false};
   ViewPassDescr pass_descr_{};
+
+  CameraFlags camera_flags_{kCameraFlagBitsNone};
+
   WindowSize width_{0};
   WindowSize height_{0};
+
   f32 clear_color_[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                       1.0f};
+
   RenderingViewId id_{kInvalidRenderingViewId};
+
   const Context* context_{nullptr};
+
   RenderPassHandle render_pass_handle_{};
   RenderPassHandler* render_pass_handler_{nullptr};
+
+ private:
+  ViewRenderStage render_stage_{ViewRenderStage::SceneOverlay};
 };
 }  // namespace vk
 }  // namespace rendering

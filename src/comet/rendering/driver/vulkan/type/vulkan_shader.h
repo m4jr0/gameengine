@@ -11,6 +11,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_container.h"
+#include "comet/core/hash.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/type/vulkan_descriptor.h"
@@ -208,20 +209,23 @@ using VertexAttributeStride = s32;
 struct ShaderKey {
   resource::ShaderResourceId shader_resource_id{};
   RenderPassHandle render_pass_handle{};
+  PipelineBindType bind_type{PipelineBindType::Graphics};
 
   friend constexpr bool operator==(const ShaderKey& lhs,
                                    const ShaderKey& rhs) noexcept = default;
 };
 
-constexpr HashValue GenerateHash(const ShaderKey& key) noexcept {
+inline HashValue GenerateHash(const ShaderKey& key) noexcept {
   auto hash{resource::GenerateHash(key.shader_resource_id)};
   hash = HashCombine(hash, GenerateHash(key.render_pass_handle));
+  hash = HashCombine(hash, comet::GenerateHash(ToUnderlying(key.bind_type)));
   return hash;
 }
 
 struct ShaderDescr {
   resource::ShaderResourceId shader_resource_id{};
   RenderPassHandle render_pass_handle{};
+  PipelineBindType bind_type{PipelineBindType::Unknown};
 };
 
 struct Shader {
@@ -237,6 +241,7 @@ struct Shader {
   sptrdiff bound_global_ubo_offset{0};
   sptrdiff bound_instance_ubo_offset{0};
 
+  PipelineBindType bind_type{PipelineBindType::Graphics};
   RenderPassHandle render_pass_handle{};
   PipelineHandle graphics_pipeline{};
   PipelineHandle compute_pipeline{};

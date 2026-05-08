@@ -12,7 +12,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
@@ -26,14 +25,13 @@ namespace vk {
 ShadowView::ShadowView(const ShadowViewDescr& descr)
     : View{descr},
       shader_handler_{descr.shader_handler},
-      pipeline_handler_{descr.pipeline_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       lighting_handler_{descr.lighting_handler},
       mesh_handler_{descr.mesh_handler} {
   COMET_ASSERT(shader_handler_ != nullptr, "ShadowView::ShadowView",
                "shader handler is null");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "ShadowView::ShadowView",
-               "pipeline handler is null");
+  COMET_ASSERT(shader_handler_ != nullptr, "ShadowView::ShadowView",
+               "shader handler is null");
   COMET_ASSERT(render_proxy_handler_ != nullptr, "ShadowView::ShadowView",
                "render proxy handler is null");
   COMET_ASSERT(lighting_handler_ != nullptr, "ShadowView::ShadowView",
@@ -42,56 +40,57 @@ ShadowView::ShadowView(const ShadowViewDescr& descr)
                "mesh handler is null");
 }
 
-void ShadowView::Update(frame::FramePacket*) {
-  COMET_PROFILE("ShadowView::Update");
-  const auto* render_jobs{lighting_handler_->GetRenderJobs()};
+void ShadowView::Prepare(const ViewUpdate&) {
+  COMET_PROFILE("ShadowView::Prepare");
 
+  const auto* render_jobs{lighting_handler_->GetRenderJobs()};
   if (render_jobs == nullptr || render_jobs->IsEmpty()) {
-    pipeline_handler_->Reset();
     return;
   }
 
   if (render_proxy_handler_->GetRenderProxyCount() == 0) {
-    pipeline_handler_->Reset();
     return;
   }
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto cmd{frame_data.command_buffer_handle};
 
   UpdateShadowShaderPassData();
 
+  u32 shadow_job_index{0};
+
   for (const auto& job : *render_jobs) {
-    COMET_ASSERT(job.resource != nullptr, "ShadowView::Update",
-                 "shadow render job resource is null");
+    TransitionShadowMapForRendering(cmd, *job.resource, job.view_proj_index);
 
-    TransitionShadowMapForRendering(command_buffer_handle, *job.resource,
-                                    job.view_proj_index);
+    VkClearValue clear{};
+    clear.depthStencil.depth = 1.0f;
 
-    VkClearValue clear_values[1]{};
-    clear_values[0].depthStencil.depth = 1.0f;
-    clear_values[0].depthStencil.stencil = 0;
+    render_pass_handler_->BeginPass(render_pass_handle_, cmd, job.framebuffer,
+                                    &clear, 1);
 
-    render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
-                                    job.framebuffer, clear_values, 1);
-
-    shader_handler_->Bind(shadow_shader_, PipelineBindType::Graphics);
+    shader_handler_->Bind(shadow_shader_);
     PushShadowConstants(job);
 
-    vkCmdSetDepthBias(command_buffer_handle, job.bias_constant, .0f,
-                      job.bias_slope);
+    vkCmdSetDepthBias(cmd, job.bias_constant, .0f, job.bias_slope);
 
     SetViewportAndScissor(job.extent);
-    DrawShadowCasters();
 
-    render_pass_handler_->EndPass(command_buffer_handle);
+    DrawShadowCasters(shadow_job_index);
 
-    TransitionShadowMapForSampling(command_buffer_handle, *job.resource,
-                                   job.view_proj_index);
+    render_pass_handler_->EndPass(cmd);
+
+    TransitionShadowMapForSampling(cmd, *job.resource, job.view_proj_index);
+
+    ++shadow_job_index;
   }
-
-  pipeline_handler_->Reset();
 }
+
+void ShadowView::Begin([[maybe_unused]] const ViewUpdate& update) {}
+
+void ShadowView::Draw([[maybe_unused]] const ViewUpdate& update) {}
+
+void ShadowView::End([[maybe_unused]] const ViewUpdate& update) {}
 
 void ShadowView::OnInitialize() {
   RenderPassDescr render_pass_descr{};
@@ -121,13 +120,16 @@ void ShadowView::OnInitialize() {
 
   render_pass_handle_ = render_pass_handler_->GetOrGenerate(render_pass_descr);
   lighting_handler_->SetRenderPass(render_pass_handle_);
-  ShaderDescr shader_descr{};
 
-  shader_descr.shader_resource_id =
-      resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-          COMET_TCHAR("shaders/vulkan/shadow_shader.vk.cshader"));
-  shader_descr.render_pass_handle = render_pass_handle_;
-  shadow_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+  {
+    ShaderDescr shader_descr{};
+    shader_descr.shader_resource_id =
+        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
+            COMET_TCHAR("shaders/vulkan/shadow_shader.vk.cshader"));
+    shader_descr.render_pass_handle = render_pass_handle_;
+    shader_descr.bind_type = PipelineBindType::Graphics;
+    shadow_shader_ = shader_handler_->GetOrGenerate(shader_descr);
+  }
 }
 
 void ShadowView::OnDestroy() {
@@ -137,7 +139,6 @@ void ShadowView::OnDestroy() {
   }
 
   shader_handler_ = nullptr;
-  pipeline_handler_ = nullptr;
   render_proxy_handler_ = nullptr;
   lighting_handler_ = nullptr;
   mesh_handler_ = nullptr;
@@ -146,6 +147,8 @@ void ShadowView::OnDestroy() {
 void ShadowView::UpdateShadowShaderPassData() {
   const auto frame_index{context_->GetFrameInFlightIndex()};
   const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  const auto& shadow_proxy_ids{
+      render_proxy_handler_->GetShadowProxyIdsBuffer(frame_index)};
 
   static constexpr usize kShaderBufferBindingCapacity{3};
   auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
@@ -158,12 +161,11 @@ void ShadowView::UpdateShadowShaderPassData() {
                    gpu_data.ssbo_proxy_local_datas_handle,
                    gpu_data.ssbo_proxy_local_datas_size);
 
-  AddBufferBinding(buffer_bindings,
-                   shader_handler_->GetBindingIndex(
-                       shadow_shader_, shaderconsts::kPassSet,
-                       sharedshaderconsts::kProxyInstancesBinding),
-                   gpu_data.ssbo_proxy_instances_handle,
-                   gpu_data.ssbo_proxy_instances_size);
+  AddBufferBinding(
+      buffer_bindings,
+      shader_handler_->GetBindingIndex(shadow_shader_, shaderconsts::kPassSet,
+                                       sharedshaderconsts::kProxyIdsBinding),
+      shadow_proxy_ids.handle, shadow_proxy_ids.size);
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -192,39 +194,40 @@ void ShadowView::PushShadowConstants(const ShadowRenderJob& job) {
   shader_handler_->PushConstants(shadow_shader_, push_update);
 }
 
-void ShadowView::DrawShadowCasters() {
+void ShadowView::DrawShadowCasters(u32 shadow_job_index) {
   COMET_PROFILE("ShadowView::DrawShadowCasters");
-  const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
 
-  if (indirect_batches == nullptr || indirect_batches->IsEmpty()) {
+  const auto frame_index{context_->GetFrameInFlightIndex()};
+  const auto& range{
+      render_proxy_handler_->GetShadowCullRange(shadow_job_index)};
+
+  if (range.batch_count == 0) {
     return;
   }
 
-  const auto frame_index{context_->GetFrameInFlightIndex()};
-
   const auto& indirect_buffer{
       render_proxy_handler_->GetShadowIndirectBuffer(frame_index)};
+
   COMET_ASSERT(
       indirect_buffer.handle != VK_NULL_HANDLE, "ShadowView::DrawShadowCasters",
       "shadow indirect buffer handle is invalid", "frame_index", frame_index);
-  COMET_ASSERT(indirect_buffer.size > 0, "ShadowView::DrawShadowCasters",
-               "shadow indirect buffer size is zero", "frame_index",
-               frame_index);
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  auto& frame_data{context_->GetFrameData(frame_index)};
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   mesh_handler_->Bind();
-  shader_handler_->Bind(shadow_shader_, PipelineBindType::Graphics);
+  shader_handler_->Bind(shadow_shader_);
 
-  vkCmdDrawIndexedIndirect(command_buffer_handle, indirect_buffer.handle, 0,
-                           static_cast<u32>(indirect_batches->GetSize()),
-                           sizeof(GpuIndirectRenderProxy));
+  vkCmdDrawIndexedIndirect(
+      command_buffer_handle, indirect_buffer.handle,
+      range.indirect_offset * sizeof(GpuIndirectRenderProxy), range.batch_count,
+      sizeof(GpuIndirectRenderProxy));
 }
 
 void ShadowView::SetViewportAndScissor(VkExtent2D extent) const {
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   VkViewport viewport{};
   viewport.x = .0f;

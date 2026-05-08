@@ -18,6 +18,12 @@ struct ProxyLocalData {
   uint skinningOffset;
 };
 
+struct CameraData {
+  mat4 projection;
+  mat4 view;
+  vec4 viewPos;
+};
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormals;
 layout(location = 2) in vec4 inTangents;
@@ -26,23 +32,18 @@ layout(location = 4) in vec4 inColor;
 layout(location = 5) in uvec4 inJointIndices;
 layout(location = 6) in vec4 inJointWeights;
 
-layout(set = 0, binding = 0) uniform GlobalUbo {
-  mat4 projection;
-  mat4 view;
-  vec4 ambientColor;
-  vec4 viewPos;
-}
-globalUbo;
+layout(set = 0, binding = 0) uniform FrameGlobalsSsbo { vec4 ambientColor; }
+frameGlobals;
 
-layout(location = 1) out struct FragmentData {
-  vec4 ambientColor;
+layout(location = 1) out FragmentData {
   vec2 texCoord;
   vec3 normals;
-  vec4 tangents;  // xyz = tangent, w = sign.
+  vec4 tangents;
   vec3 viewPos;
   vec3 fragPos;
   vec4 color;
-} outData;
+}
+outData;
 
 layout(std430, set = 2, binding = 0) readonly buffer InProxyLocalDatasSsbo {
   ProxyLocalData inProxyLocalDatas[];
@@ -56,6 +57,17 @@ layout(std430, set = 2, binding = 7) readonly buffer InSkinningMatricesSsbo {
   mat4 inSkinningMatrices[];
 };
 
+layout(std430, set = 2, binding = 10) readonly buffer CameraDatasSsbo {
+  CameraData cameraDatas[];
+};
+
+layout(push_constant) uniform WorldPushConstants {
+  uint lightCount;
+  uint cameraIndex;
+  uint debugFlags;
+}
+constants;
+
 mat4 ComputeSkinMatrix(uint offset) {
   if (offset == InvalidSkinningMatrixOffset) {
     return mat4(1.0);
@@ -66,12 +78,15 @@ mat4 ComputeSkinMatrix(uint offset) {
   if (inJointWeights.x > 0.0 && inJointIndices.x != InvalidJointIndex) {
     skin += inJointWeights.x * inSkinningMatrices[offset + inJointIndices.x];
   }
+
   if (inJointWeights.y > 0.0 && inJointIndices.y != InvalidJointIndex) {
     skin += inJointWeights.y * inSkinningMatrices[offset + inJointIndices.y];
   }
+
   if (inJointWeights.z > 0.0 && inJointIndices.z != InvalidJointIndex) {
     skin += inJointWeights.z * inSkinningMatrices[offset + inJointIndices.z];
   }
+
   if (inJointWeights.w > 0.0 && inJointIndices.w != InvalidJointIndex) {
     skin += inJointWeights.w * inSkinningMatrices[offset + inJointIndices.w];
   }
@@ -83,28 +98,32 @@ void main() {
   uint proxyId = inProxyIds[gl_InstanceIndex];
   ProxyLocalData proxy = inProxyLocalDatas[proxyId];
 
-  mat4 model = proxy.transform;
-  mat4 skin = ComputeSkinMatrix(proxy.skinningOffset);
-  mat4 objectToWorld = model * skin;
+  mat4 objectToWorld =
+      proxy.transform * ComputeSkinMatrix(proxy.skinningOffset);
 
   vec4 worldPos4 = objectToWorld * vec4(inPosition, 1.0);
   vec3 worldPos = worldPos4.xyz;
 
-  outData.texCoord = inTexCoord;
-  outData.color = inColor;
-  outData.fragPos = worldPos;
-
   mat3 normalMatrix = transpose(inverse(mat3(objectToWorld)));
   vec3 worldNormal = normalize(normalMatrix * inNormals);
-  outData.normals = worldNormal;
 
   vec3 worldTangent = normalize(normalMatrix * inTangents.xyz);
   worldTangent =
       normalize(worldTangent - worldNormal * dot(worldNormal, worldTangent));
+
+  CameraData camera = cameraDatas[constants.cameraIndex];
+
+  mat4 projection = camera.projection;
+  mat4 view = camera.view;
+  vec4 cameraViewPos = camera.viewPos;
+  vec4 cameraSpacePos = view * vec4(worldPos, 1.0);
+
+  outData.texCoord = inTexCoord;
+  outData.color = inColor;
+  outData.fragPos = worldPos;
+  outData.normals = worldNormal;
   outData.tangents = vec4(worldTangent, inTangents.w);
+  outData.viewPos = cameraViewPos.xyz;
 
-  outData.ambientColor = globalUbo.ambientColor;
-  outData.viewPos = globalUbo.viewPos.xyz;
-
-  gl_Position = globalUbo.projection * globalUbo.view * vec4(worldPos, 1.0);
+  gl_Position = projection * cameraSpacePos;
 }

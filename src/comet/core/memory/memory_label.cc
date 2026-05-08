@@ -101,6 +101,14 @@ const schar* GetMemoryTagLabel(MemoryTag tag) {
       return "tstring";
     case kEngineMemoryTagEntity:
       return "entity";
+    case kEngineMemoryTagPendingEntity1:
+      return "pending_entity_1";
+    case kEngineMemoryTagPendingEntity1Extended:
+      return "pending_entity_1_extended";
+    case kEngineMemoryTagPendingEntity2:
+      return "pending_entity_2";
+    case kEngineMemoryTagPendingEntity2Extended:
+      return "pending_entity_2_extended";
     case kEngineMemoryTagFiber:
       return "fiber";
     case kEngineMemoryTagThreadProvider:

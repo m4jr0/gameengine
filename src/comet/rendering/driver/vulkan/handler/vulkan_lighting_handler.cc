@@ -189,16 +189,16 @@ void LightingHandler::OnInitialize() {
   for (usize i{0}; i < frame_count; ++i) {
     ssbo_shadow_data_[i] = GenerateBuffer(
         context_->GetAllocatorHandle(),
-        kShadowLayerCapacity_ * sizeof(GpuShadowData),
+        kMaxShadowLayerCount * sizeof(GpuShadowData),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VMA_MEMORY_USAGE_CPU_TO_GPU, 0, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         VK_SHARING_MODE_EXCLUSIVE, "ssbo_shadow_data_");
   }
 
   shadow_layer_usage_ = Array<bool>{&allocator_};
-  shadow_layer_usage_.Resize(kShadowLayerCapacity_);
+  shadow_layer_usage_.Resize(kMaxShadowLayerCount);
 
-  for (u32 i{0}; i < kShadowLayerCapacity_; ++i) {
+  for (u32 i{0}; i < kMaxShadowLayerCount; ++i) {
     shadow_layer_usage_[i] = false;
   }
 
@@ -398,7 +398,9 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
     proxies_[i].shadow_entry_count = 0;
   }
 
-  const auto& camera_data{packet->camera_data};
+  const auto* camera_data{packet->GetMainCameraData()};
+  COMET_ASSERT(camera_data != nullptr, "LightingHandler::RebuildRenderJobs",
+               "main camera data is null");
 
   for (usize i{0}; i < shadow_resources_.GetSize(); ++i) {
     if (!IsShadowSlotAlive(i)) {
@@ -427,13 +429,16 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
           camera_data, resource.max_distance, resource.view_proj_count,
           light->shadow.cascade_lambda, resource.cascade_splits);
 
-      f32 cascade_near{camera_data.near_plane};
+      f32 cascade_near{camera_data->near_plane};
 
       for (u32 j{0}; j < resource.view_proj_count; ++j) {
         const f32 cascade_far{resource.cascade_splits[j]};
 
+        StaticArray<math::Vec3, 8> corners{};
+        ComputeFrustumCorners(*camera_data, cascade_near, cascade_far, corners);
+
         resource.view_proj[j] = ComputeDirectionalCascadeViewProj(
-            camera_data, light->props.direction, cascade_near, cascade_far);
+            light->props.direction, corners, cascade_near, cascade_far);
 
         ShadowRenderJob job{};
         job.light_handle = resource.light_handle;
@@ -445,6 +450,11 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
         job.view_proj_index = j;
         job.view_proj = resource.view_proj[j];
         job.framebuffer = resource.framebuffers[j];
+
+#ifdef COMET_DEBUG_RENDERING
+        job.cascade_corners = corners;
+#endif  // COMET_DEBUG_RENDERING
+
         render_jobs_->PushLast(job);
 
         cascade_near = cascade_far;
@@ -489,16 +499,15 @@ void LightingHandler::UploadGpuLights(FrameInFlightIndex frame_index) {
       static_cast<VkDeviceSize>(live_light_count * sizeof(GpuLight))};
 
   if (required_size > ssbo_lights.size) {
-    ResizeBuffer(
-        ssbo_lights, context_->GetDevice(),
-        context_->GetFrameData().command_pool_handle,
+    auto& frame_data{context_->GetFrameData(frame_index)};
+
+    EnsureBufferCapacity(
+        ssbo_lights, frame_data.upload_command_buffer_handle,
         context_->GetAllocatorHandle(),
         math::Max<VkDeviceSize>(required_size, sizeof(GpuLight)),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VMA_MEMORY_USAGE_CPU_TO_GPU,
-        context_->GetDevice().GetGraphicsQueueHandle(), 0,
-        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_SHARING_MODE_EXCLUSIVE,
-        VK_NULL_HANDLE, "ssbo_lights_");
+        VMA_MEMORY_USAGE_CPU_TO_GPU, 0, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_SHARING_MODE_EXCLUSIVE, false, "ssbo_lights_");
   }
 
   ScopedMappedBuffer mapped{ssbo_lights};
@@ -530,17 +539,16 @@ void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
       static_cast<VkDeviceSize>(shadow_count * sizeof(GpuShadowData))};
 
   if (required_size > ssbo_shadow_data.size) {
-    ResizeBuffer(
-        ssbo_shadow_data, context_->GetDevice(),
-        context_->GetFrameData().command_pool_handle,
+    auto& frame_data{context_->GetFrameData(frame_index)};
+
+    EnsureBufferCapacity(
+        ssbo_shadow_data, frame_data.upload_command_buffer_handle,
         context_->GetAllocatorHandle(),
         math::Max<VkDeviceSize>(required_size,
-                                kShadowLayerCapacity_ * sizeof(GpuShadowData)),
+                                kMaxShadowLayerCount * sizeof(GpuShadowData)),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VMA_MEMORY_USAGE_CPU_TO_GPU,
-        context_->GetDevice().GetGraphicsQueueHandle(), 0,
-        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_SHARING_MODE_EXCLUSIVE,
-        VK_NULL_HANDLE, "ssbo_shadow_data_");
+        VMA_MEMORY_USAGE_CPU_TO_GPU, 0, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_SHARING_MODE_EXCLUSIVE, false, "ssbo_shadow_data_");
   }
 
   ScopedMappedBuffer mapped{ssbo_shadow_data};
@@ -611,14 +619,15 @@ void LightingHandler::InitializeShadowArrayResources() {
       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
   texture_descr.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
   texture_descr.view_type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-  texture_descr.layer_count = kShadowLayerCapacity_;
+  texture_descr.layer_count = kMaxShadowLayerCount;
   texture_descr.sample_count = VK_SAMPLE_COUNT_1_BIT;
   texture_descr.final_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
   texture_descr.debug_label = "shadow_array_depth_image";
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
-  const auto texture_handle{texture_handler_->Generate(texture_descr)};
+  const auto texture_handle{
+      texture_handler_->GenerateRuntimeImmediate(texture_descr)};
   COMET_ASSERT(texture_handle,
                "LightingHandler::InitializeShadowArrayResources",
                "failed to generate shadow array texture");
@@ -660,11 +669,11 @@ void LightingHandler::DestroyShadowArrayResources() {
 }
 
 s32 LightingHandler::AllocateShadowLayers(u32 layer_count) {
-  if (layer_count == 0 || layer_count > kShadowLayerCapacity_) {
+  if (layer_count == 0 || layer_count > kMaxShadowLayerCount) {
     return -1;
   }
 
-  for (u32 i{0}; i + layer_count <= kShadowLayerCapacity_; ++i) {
+  for (u32 i{0}; i + layer_count <= kMaxShadowLayerCount; ++i) {
     bool is_free{true};
 
     for (u32 j{0}; j < layer_count; ++j) {
@@ -688,7 +697,7 @@ s32 LightingHandler::AllocateShadowLayers(u32 layer_count) {
   COMET_LOG_ERROR(LoggerType::Rendering,
                   "LightingHandler::AllocateShadowLayers",
                   "no free shadow layers left", "layer_count", layer_count,
-                  "capacity", kShadowLayerCapacity_);
+                  "capacity", kMaxShadowLayerCount);
   return -1;
 }
 
@@ -874,13 +883,15 @@ bool LightingHandler::IsShadowSlotAlive(usize index) const noexcept {
   return resource.light_handle.IsValid();
 }
 
-void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
+void LightingHandler::PopulateCascadeSplits(const RenderCameraData* camera_data,
                                             f32 max_distance, u32 cascade_count,
                                             f32 lambda, f32* out_splits) const {
   COMET_ASSERT(out_splits != nullptr, "LightingHandler::PopulateCascadeSplits",
                "cascade split output is null");
+  COMET_ASSERT(camera_data != nullptr, "LightingHandler::PopulateCascadeSplits",
+               "main camera data is null");
 
-  const auto near_plane{camera_data.near_plane};
+  const auto near_plane{camera_data->near_plane};
   const auto far_plane{max_distance};
   const auto ratio{far_plane / near_plane};
 
@@ -893,11 +904,8 @@ void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
 }
 
 math::Mat4 LightingHandler::ComputeDirectionalCascadeViewProj(
-    const RenderCameraData& camera_data, const math::Vec3& light_dir,
+    const math::Vec3& light_dir, const StaticArray<math::Vec3, 8>& corners,
     f32 cascade_near, f32 cascade_far) const {
-  StaticArray<math::Vec3, 8> corners{};
-  ComputeFrustumCorners(camera_data, cascade_near, cascade_far, corners);
-
   math::Vec3 center{.0f};
 
   for (const auto& p : corners) {

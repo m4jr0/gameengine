@@ -12,7 +12,6 @@
 #include "vulkan/vulkan.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_packet.h"
 #include "comet/rendering/driver/vulkan/view/vulkan_view.h"
 #include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
 
@@ -32,17 +31,21 @@ class ImGuiView : public View {
   ImGuiView& operator=(ImGuiView&&) = delete;
   ~ImGuiView() override = default;
 
-  void Update(frame::FramePacket*) override;
+  void Prepare(const ViewUpdate&) override;
+  void Begin(const ViewUpdate&) override;
+  void Draw(const ViewUpdate&) override;
+  void End(const ViewUpdate&) override;
 
  protected:
   void OnInitialize() override;
   void OnDestroy() override;
 
  private:
-  void Draw() const;
+  void DrawDebugUi() const;
 
   VkDescriptorPool descriptor_pool_handle_{VK_NULL_HANDLE};
   VulkanGlfwWindow* window_{nullptr};
+  bool is_pass_open_{false};
 };
 }  // namespace vk
 }  // namespace rendering

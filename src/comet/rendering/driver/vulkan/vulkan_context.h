@@ -1,7 +1,3 @@
-// Copyright 2026 m4jr0. All Rights Reserved.
-// Use of this source code is governed by the MIT
-// license that can be found in the LICENSE file.
-
 #ifndef COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_CONTEXT_H_
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VULKAN_CONTEXT_H_
 
@@ -97,11 +93,26 @@ class Context {
 
   VmaAllocator GetAllocatorHandle() const noexcept;
 
-  VkCommandPool GetTransferCommandPoolHandle() const;
+  VkCommandPool GetGraphicsCommandPoolHandle(
+      FrameInFlightIndex frame_index = kInvalidFrameInFlightIndex) const;
 
-  const VkSemaphore* GetTransferSemaphoreHandle() const;
+  VkCommandPool GetUploadCommandPoolHandle(
+      FrameInFlightIndex frame_index = kInvalidFrameInFlightIndex) const;
+  const QueueContext& GetUploadQueueContext() const noexcept;
+  const VkSemaphore* GetUploadSemaphoreHandle() const;
 
-  u64 GetTransferTimelineValue() const;
+  VkQueue GetGraphicsQueueHandle() const noexcept;
+  VkQueue GetPresentQueueHandle() const noexcept;
+  VkQueue GetTransferQueueHandle() const noexcept;
+  VkQueue GetUploadQueueHandle() const noexcept;
+
+  u64 GetUploadTimelineValue() const noexcept;
+  u64 AdvanceUploadTimelineValue() noexcept;
+
+  VkCommandBuffer GetUploadCommandBufferHandle(
+      FrameInFlightIndex frame_index = kInvalidFrameInFlightIndex) const;
+  VkFence GetUploadFenceHandle(
+      FrameInFlightIndex frame_index = kInvalidFrameInFlightIndex) const;
 
   bool IsInitialized() const noexcept;
 
@@ -110,20 +121,26 @@ class Context {
   u8 vulkan_minor_version_{0};
   u8 vulkan_patch_version_{0};
   u8 vulkan_variant_version_{0};
+
   bool is_initialized_{false};
   bool is_sampler_anisotropy_{false};
   bool is_sample_rate_shading_{false};
+
   FrameIndex frame_count_{0};
   FrameInFlightIndex frame_in_flight_index_{0};
   FrameInFlightIndex max_frames_in_flight_{2};
-  u64 transfer_timeline_value_{0};
+
+  u64 upload_timeline_value_{0};
   usize max_object_count_{0};
+
   memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
   Array<FrameData> frame_data_{};
+
   VkInstance instance_handle_{VK_NULL_HANDLE};
   VmaAllocator allocator_handle_{VK_NULL_HANDLE};
-  VkCommandPool transfer_command_pool_handle_{VK_NULL_HANDLE};
-  VkSemaphore transfer_semaphore_handle_{VK_NULL_HANDLE};
+  VkCommandPool upload_command_pool_handle_{VK_NULL_HANDLE};
+  VkSemaphore upload_semaphore_handle_{VK_NULL_HANDLE};
+
   const ImageData* image_data_{nullptr};
   const Device* device_{nullptr};
 };

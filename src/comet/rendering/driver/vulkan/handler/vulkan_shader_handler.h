@@ -52,14 +52,13 @@ class ShaderHandler : public Handler {
 
   ShaderHandle GetOrGenerate(const ShaderDescr& descr);
   ShaderHandle GetOrGenerate(resource::ShaderResourceId shader_resource_id,
-                             RenderPassHandle render_pass_handle);
+                             RenderPassHandle render_pass_handle,
+                             PipelineBindType bind_type);
   void Destroy(ShaderHandle handle);
 
-  void Bind(ShaderHandle handle, PipelineBindType pipeline_type) const;
-  void BindInstance(ShaderHandle handle, MaterialHandle material_handle,
-                    PipelineBindType pipeline_type);
-  void BindInstance(ShaderHandle handle, const Material* material,
-                    PipelineBindType pipeline_type);
+  void Bind(ShaderHandle handle) const;
+  void BindInstance(ShaderHandle handle, MaterialHandle material_handle);
+  void BindInstance(ShaderHandle handle, const Material* material);
 
   void UpdateGlobals(ShaderHandle handle, const ShaderGlobalUpdate& update);
   void UpdatePass(ShaderHandle handle, const ShaderPassUpdate& update);

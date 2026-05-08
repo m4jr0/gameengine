@@ -11,6 +11,7 @@
 #include "vulkan_view_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
 #include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
@@ -36,31 +37,12 @@ void AddWorldGlobalFieldUpdates(
       shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
                                       sharedshaderconsts::kGlobalUboBinding)};
 
-  const auto& camera_data{packet->camera_data};
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 worldshaderconsts::kProjectionFieldIndex,
-                 &camera_data.projection_matrix,
-                 sizeof(camera_data.projection_matrix));
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 worldshaderconsts::kViewFieldIndex, &camera_data.view_matrix,
-                 sizeof(camera_data.view_matrix));
-
-  auto* ambient_color = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
+  const auto* ambient_color = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
       math::Vec4, packet->ambient_color.r, packet->ambient_color.g,
       packet->ambient_color.b, 1.0f);
 
   AddFieldUpdate(field_updates, global_binding_index,
                  worldshaderconsts::kAmbientColorFieldIndex, ambient_color,
-                 sizeof(math::Vec4));
-
-  auto* view_position = COMET_FRAME_ALLOC_ONE_AND_POPULATE(
-      math::Vec4, camera_data.view_position.x, camera_data.view_position.y,
-      camera_data.view_position.z, .0f);
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 worldshaderconsts::kViewPositionFieldIndex, view_position,
                  sizeof(math::Vec4));
 }
 
@@ -148,34 +130,35 @@ void AddWorldShadowSettingsFieldUpdates(
                  sizeof(math::S32Vec4));
 }
 
-void AddDebugGlobalFieldUpdates(
-    ShaderHandler* shader_handler, ShaderHandle shader_handle,
-    const frame::FramePacket* packet,
-    frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
+void AddCameraBufferBinding(
+    ShaderHandler* shader_handler, const CameraHandler* camera_handler,
+    ShaderHandle shader_handle, FrameInFlightIndex frame_index,
+    frame::FrameArray<ShaderBufferBindingUpdate>& buffer_bindings) {
   COMET_ASSERT(shader_handler != nullptr,
-               "vulkan_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "vulkan_view_shader_utils::AddCameraBufferBinding",
                "shader handler is null");
+  COMET_ASSERT(camera_handler != nullptr,
+               "vulkan_view_shader_utils::AddCameraBufferBinding",
+               "camera handler is null");
   COMET_ASSERT(shader_handle,
-               "vulkan_view_shader_utils::AddDebugGlobalFieldUpdates",
+               "vulkan_view_shader_utils::AddCameraBufferBinding",
                "shader handle is invalid");
-  COMET_ASSERT(packet != nullptr,
-               "vulkan_view_shader_utils::AddDebugGlobalFieldUpdates",
-               "frame packet is null");
 
-  const auto global_binding_index{
-      shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
-                                      sharedshaderconsts::kGlobalUboBinding)};
+  const auto camera_gpu_data{camera_handler->GetGpuData(frame_index)};
 
-  const auto& camera_data{packet->camera_data};
+  COMET_ASSERT(camera_gpu_data.ssbo_camera_datas_handle != VK_NULL_HANDLE,
+               "vulkan_view_shader_utils::AddCameraBufferBinding",
+               "camera buffer handle is invalid", "frame_index", frame_index);
+  COMET_ASSERT(camera_gpu_data.ssbo_camera_datas_size > 0,
+               "vulkan_view_shader_utils::AddCameraBufferBinding",
+               "camera buffer size is zero", "frame_index", frame_index);
 
-  AddFieldUpdate(field_updates, global_binding_index,
-                 debugshaderconsts::kProjectionFieldIndex,
-                 &camera_data.projection_matrix,
-                 sizeof(camera_data.projection_matrix));
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 debugshaderconsts::kViewFieldIndex, &camera_data.view_matrix,
-                 sizeof(camera_data.view_matrix));
+  AddBufferBinding(
+      buffer_bindings,
+      shader_handler->GetBindingIndex(shader_handle, shaderconsts::kPassSet,
+                                      sharedshaderconsts::kCameraDatasBinding),
+      camera_gpu_data.ssbo_camera_datas_handle,
+      camera_gpu_data.ssbo_camera_datas_size);
 }
 }  // namespace vk
 }  // namespace rendering

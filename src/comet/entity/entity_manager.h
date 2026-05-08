@@ -195,6 +195,10 @@ class EntityManager : public Manager {
   template <typename... ComponentTypes>
   void AddComponents(EntityId entity_id, const ComponentTypes&... components);
 
+  template <typename... ComponentTypes>
+  void AddChildComponents(EntityId entity_id, EntityId parent_id,
+                          const ComponentTypes&... components);
+
   void RemoveComponents(EntityId entity_id,
                         const Array<EntityId>& component_ids);
 
@@ -313,8 +317,10 @@ class EntityManager : public Manager {
   mutable fiber::FiberMutex pending_mutex_{};
 
   internal::EntityPendingAllocator pending_allocators_[2]{
-      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagEntity},
-      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagEntity}};
+      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagPendingEntity1,
+       memory::kEngineMemoryTagPendingEntity1Extended},
+      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagPendingEntity2,
+       memory::kEngineMemoryTagPendingEntity2Extended}};
 
   PendingEntities pending_entities_[2]{};
   u8 write_pending_index_{0};

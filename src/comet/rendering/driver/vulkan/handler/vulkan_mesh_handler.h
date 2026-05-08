@@ -14,7 +14,7 @@
 #include "comet/core/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
+#include "comet/core/type/shared_instance_registry.h"
 #include "comet/geometry/type/mesh.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
 #include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
@@ -36,9 +36,9 @@ struct UpdateContext {
   VkDeviceSize current_staging_index_offset{0};
   frame::FrameArray<VkBufferCopy> vertex_copy_regions{};
   frame::FrameArray<VkBufferCopy> index_copy_regions{};
-  VkCommandPool command_pool_handle{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
-  const Device* device{nullptr};
+  const QueueContext* upload_queue{nullptr};
+  const QueueContext* graphics_queue{nullptr};
 };
 
 struct FreeRegion {
@@ -46,6 +46,11 @@ struct FreeRegion {
 
   u32 offset{0};
   VkDeviceSize size{0};
+};
+
+struct MeshUploadResult {
+  bool uploaded_vertex{false};
+  bool uploaded_index{false};
 };
 }  // namespace internal
 
@@ -66,6 +71,8 @@ class MeshHandler : public Handler {
   void Bind();
   void AcquireFromTransferQueueIfNeeded();
 
+  void ReleasePendingUploadResources(FrameInFlightIndex frame_index);
+
   const MeshProxy* Get(geometry::MeshHandle handle) const;
   const MeshProxy* TryGet(geometry::MeshHandle handle) const;
 
@@ -74,12 +81,17 @@ class MeshHandler : public Handler {
   void OnShutdown() override;
 
  private:
+  struct MeshProxyRegistryTag;
+  using MeshProxyRegistry =
+      SharedInstanceRegistry<geometry::MeshHandle, MeshProxyRegistryTag,
+                             MeshProxy>;
+
   static inline constexpr usize kVertexCountPerBlock_{2048};
   static inline constexpr usize kIndexCountPerBlock_{3 * kVertexCountPerBlock_};
   static inline constexpr usize kDefaultVertexCount_{
       memory::RoundUpToMultiple(3'000'000, kVertexCountPerBlock_)};
   static inline constexpr usize kDefaultIndexCount_{memory::RoundUpToMultiple(
-      kIndexCountPerBlock_, 3 * kDefaultVertexCount_)};
+      3 * kDefaultVertexCount_, kIndexCountPerBlock_)};
   static inline constexpr usize kDefaultStagingBufferSize_{
       kDefaultVertexCount_ * sizeof(geometry::SkinnedVertex) +
       kDefaultIndexCount_ * sizeof(geometry::Index)};
@@ -93,23 +105,26 @@ class MeshHandler : public Handler {
                          internal::UpdateContext& update_context);
   void DestroyMeshProxies(const frame::RemovedGeometries* geometry);
 
-  void UploadMeshProxies(const internal::UpdateContext& update_context);
+  internal::MeshUploadResult UploadMeshProxies(
+      const internal::UpdateContext& update_context);
 
   static constexpr VkDeviceSize kMinUploadedBufferSize_{4194304};  // 4 MiB.
   static constexpr usize kDefaultProxyCount_{4096};
   static constexpr usize kDefaultReleaseBarrierCount_{2};
   static constexpr usize kDefaultAcquireBarrierCount_{2};
 
-  bool is_transfer_queue_{false};
-  bool is_transfer_{false};
   Buffer staging_buffer_{};
+
   memory::FiberFreeListAllocator allocator_{
-      sizeof(u32), sizeof(u32) * kDefaultProxyCount_ * 64,
+      sizeof(MeshProxy), sizeof(MeshProxy) * kDefaultProxyCount_,
       memory::kEngineMemoryTagRendering};
-  Array<MeshProxy> proxies_{};
+
+  memory::PlatformAllocator registry_allocator_{
+      memory::kEngineMemoryTagRendering};
+
+  MeshProxyRegistry proxies_{};
   VertexGpuBuffer vertex_buffer_{};
   IndexGpuBuffer index_buffer_{};
-  VkFence upload_fence_handle_{VK_NULL_HANDLE};
 };
 }  // namespace vk
 }  // namespace rendering

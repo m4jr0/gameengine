@@ -28,10 +28,21 @@ void CameraHandler::Initialize() {
 
   RegisterEvents();
 
-  camera_ = rendering::CameraManager::Get().GetMainCamera();
-  COMET_ASSERT(camera_, "CameraHandler::Initialize",
-               "main camera handle is invalid");
+  auto& camera_manager{rendering::CameraManager::Get()};
 
+  game_camera_ = camera_manager.GetMainCamera();
+  COMET_ASSERT(game_camera_, "CameraHandler::Initialize",
+               "game camera handle is invalid");
+
+#ifdef COMET_DEBUG
+  debug_camera_ = camera_manager.GetDebugCamera();
+
+  if (!debug_camera_) {
+    controlled_camera_ = ControlledCamera::Game;
+  }
+#endif  // COMET_DEBUG
+
+  controlled_camera_ = ControlledCamera::Game;
   is_initialized_ = true;
 }
 
@@ -41,7 +52,13 @@ void CameraHandler::Shutdown() {
 
   UnregisterEvents();
 
-  camera_.Invalidate();
+  game_camera_.Invalidate();
+
+#ifdef COMET_DEBUG
+  debug_camera_.Invalidate();
+#endif  // COMET_DEBUG
+
+  controlled_camera_ = ControlledCamera::Game;
   is_initialized_ = false;
 }
 
@@ -65,11 +82,10 @@ void CameraHandler::Update() {
   }
 
   auto& camera_manager{rendering::CameraManager::Get()};
-  COMET_ASSERT(camera_manager.IsAlive(camera_), "CameraHandler::Update",
-               "camera is invalid");
+  auto camera{GetControlledCamera()};
 
-  const auto width{camera_manager.GetWidth(camera_)};
-  const auto height{camera_manager.GetHeight(camera_)};
+  const auto width{camera_manager.GetWidth(camera)};
+  const auto height{camera_manager.GetHeight(camera)};
 
   if (width == 0 || height == 0) {
     return;
@@ -95,7 +111,7 @@ void CameraHandler::Update() {
     }
 
     delta *= kKeyboardMovementSensitivity_;
-    camera_manager.Move(camera_, delta);
+    camera_manager.Move(camera, delta);
   }
 
   if (!is_mouse_button) {
@@ -113,27 +129,27 @@ void CameraHandler::Update() {
   if (is_orbiting_from_mouse_) {
     math::Vec2 delta{mouse_pos_delta.x, -mouse_pos_delta.y};
     delta *= kMouseOrbitSensitivity_;
-    camera_manager.Orbit(camera_, delta);
+    camera_manager.Orbit(camera, delta);
     return;
   }
 
   if (is_rotating_from_mouse_) {
     mouse_pos_delta *= kMouseRotationSensitivity_;
-    camera_manager.Rotate(camera_, mouse_pos_delta);
+    camera_manager.Rotate(camera, mouse_pos_delta);
     return;
   }
 
   if (is_panning_from_mouse_) {
     math::Vec3 delta{-mouse_pos_delta.x, -mouse_pos_delta.y, .0f};
     delta *= kMousePanSensitivity_;
-    camera_manager.Move(camera_, delta);
+    camera_manager.Move(camera, delta);
     return;
   }
 
   if (is_zooming_from_mouse_) {
     math::Vec3 delta{.0f, .0f, -mouse_pos_delta.x + mouse_pos_delta.y};
     delta *= kMouseZoomSensitivity_;
-    camera_manager.Move(camera_, delta);
+    camera_manager.Move(camera, delta);
     return;
   }
 }
@@ -146,8 +162,9 @@ void CameraHandler::OnEvent(const event::Event& event) {
 
   const auto event_type{event.GetType()};
   auto& camera_manager{rendering::CameraManager::Get()};
+  auto camera{GetControlledCamera()};
 
-  if (!camera_manager.IsAlive(camera_)) {
+  if (!camera_manager.IsAlive(camera)) {
     return;
   }
 
@@ -158,8 +175,15 @@ void CameraHandler::OnEvent(const event::Event& event) {
     switch (keyboard_event.GetKey()) {
       case input::KeyCode::F:
         if (is_press) {
-          camera_manager.Reset(camera_);
+          camera_manager.Reset(camera);
         }
+
+        break;
+      case input::KeyCode::Tab:
+        if (is_press) {
+          SwitchControlledCamera();
+        }
+
         break;
 
       default:
@@ -214,8 +238,8 @@ void CameraHandler::OnEvent(const event::Event& event) {
     const auto& mouse_scroll_event{
         static_cast<const input::MouseScrollEvent&>(event)};
     camera_manager.Move(
-        camera_, math::Vec3(.0f, .0f,
-                            static_cast<f32>(mouse_scroll_event.GetYOffset())));
+        camera, math::Vec3(.0f, .0f,
+                           static_cast<f32>(mouse_scroll_event.GetYOffset())));
     return;
   }
 
@@ -317,6 +341,51 @@ void CameraHandler::ResetMousePosition() {
 
   last_mouse_pos_ = current_mouse_pos_ =
       input::InputManager::Get().GetMousePosition();
+}
+
+void CameraHandler::SwitchControlledCamera() {
+  StopMouseActions();
+
+#ifdef COMET_DEBUG
+  auto& camera_manager{rendering::CameraManager::Get()};
+
+  if (controlled_camera_ == ControlledCamera::Game && debug_camera_ &&
+      camera_manager.IsAlive(debug_camera_)) {
+    controlled_camera_ = ControlledCamera::Debug;
+  } else {
+    controlled_camera_ = ControlledCamera::Game;
+  }
+#else
+  controlled_camera_ = ControlledCamera::Game;
+#endif  // COMET_DEBUG
+
+  ResetMousePosition();
+}
+
+void CameraHandler::StopMouseActions() {
+  is_orbiting_from_mouse_ = false;
+  is_rotating_from_mouse_ = false;
+  is_panning_from_mouse_ = false;
+  is_zooming_from_mouse_ = false;
+
+  input::InputManager::Get().DisableUnconstrainedMouseCursor();
+}
+
+rendering::CameraHandle CameraHandler::GetControlledCamera() const {
+  rendering::CameraHandle camera{rendering::CameraHandle::Invalid()};
+
+#ifdef COMET_DEBUG
+  if (controlled_camera_ == ControlledCamera::Debug && debug_camera_) {
+    camera = debug_camera_;
+  } else
+#endif  // COMET_DEBUG
+    if (controlled_camera_ == ControlledCamera::Game) {
+      camera = game_camera_;
+    }
+
+  COMET_ASSERT(rendering::CameraManager::Get().IsAlive(camera),
+               "CameraHandler::Update", "camera is invalid");
+  return camera;
 }
 }  // namespace editor
 }  // namespace comet

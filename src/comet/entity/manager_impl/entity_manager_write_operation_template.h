@@ -25,6 +25,24 @@ void EntityManager::AddComponents(EntityId entity_id,
   (DeferAddingComponent(&entity, components), ...);
 }
 
+template <typename... ComponentTypes>
+void EntityManager::AddChildComponents(EntityId entity_id, EntityId parent_id,
+                                       const ComponentTypes&... components) {
+  COMET_ASSERT(entity_id != kInvalidEntityId,
+               "EntityManager::AddChildComponents", "invalid entity id");
+  COMET_ASSERT(parent_id != kInvalidEntityId,
+               "EntityManager::AddChildComponents", "invalid parent entity id");
+
+  fiber::FiberLockGuard lock{pending_mutex_};
+  auto& entity{GetOrCreatePendingEntity(entity_id)};
+
+  COMET_ASSERT(!entity.is_destroyed, "EntityManager::AddChildComponents",
+               "entity scheduled for destruction", "entity_id", entity_id);
+
+  (DeferAddingComponent(&entity, components), ...);
+  DeferAddingParent(&entity, parent_id);
+}
+
 template <typename... ComponentIds>
 void EntityManager::RemoveComponents(EntityId entity_id,
                                      ComponentIds&&... component_ids) {

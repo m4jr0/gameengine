@@ -31,6 +31,11 @@ enum class AntiAliasingType : u16 {
 };
 
 using WindowSize = u16;
+
+struct WindowExtent {
+  WindowSize width{0};
+  WindowSize height{0};
+};
 }  // namespace rendering
 }  // namespace comet
 

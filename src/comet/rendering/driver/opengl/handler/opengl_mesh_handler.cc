@@ -17,7 +17,8 @@
 namespace comet {
 namespace rendering {
 namespace gl {
-MeshHandler::MeshHandler(const MeshHandlerDescr& descr) : Handler{descr} {}
+MeshHandler::MeshHandler(const MeshHandlerDescr& descr)
+    : Handler{descr}, proxies_{&registry_allocator_, kDefaultProxyCount_} {}
 
 void MeshHandler::Update(const frame::FramePacket* packet) {
   COMET_PROFILE("MeshHandler::Update");
@@ -48,14 +49,13 @@ const MeshProxy* MeshHandler::TryGet(geometry::MeshHandle handle) const {
     return nullptr;
   }
 
-  const auto index{static_cast<usize>(handle.GetIndex())};
+  const auto proxy_handle{proxies_.TryGetHandle(handle)};
 
-  if (index >= proxies_.GetSize()) {
+  if (!proxy_handle) {
     return nullptr;
   }
 
-  const auto& proxy{proxies_[index]};
-  return proxy.is_alive ? &proxy : nullptr;
+  return proxies_.TryGet(proxy_handle);
 }
 
 GlNativeStorageHandle MeshHandler::GetVertexBufferHandle() const {
@@ -79,7 +79,7 @@ ShaderVertexSource MeshHandler::GetVertexSource() const {
 
 void MeshHandler::OnInitialize() {
   allocator_.Initialize();
-  proxies_ = Array<MeshProxy>::WithCapacity(&allocator_, kDefaultProxyCount_);
+  proxies_.Initialize();
 
   vertex_buffer_ = VertexGpuBuffer{&allocator_, kVertexCountPerBlock_,
                                    kDefaultVertexCount_, 0, "vertex_buffer_"};
@@ -91,9 +91,35 @@ void MeshHandler::OnInitialize() {
 }
 
 void MeshHandler::OnShutdown() {
-  proxies_.Release();
+  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+
+  auto handles_to_destroy{Array<MeshProxyRegistry::ItemHandle>::WithCapacity(
+      &tmp_allocator, proxies_.GetLiveCount())};
+
+  proxies_.ForEachLive(
+      [&handles_to_destroy](MeshProxyRegistry::ItemHandle handle,
+                            const MeshProxy*) {
+        handles_to_destroy.PushLast(handle);
+      });
+
+  for (const auto handle : handles_to_destroy) {
+    auto* proxy{proxies_.Drain(handle)};
+
+    if (proxy == nullptr) {
+      continue;
+    }
+
+    vertex_buffer_.Release(proxy->vertex_offset, proxy->vertex_count);
+    index_buffer_.Release(proxy->index_offset, proxy->index_count);
+
+    allocator_.Deallocate(proxy);
+  }
+
+  proxies_.Destroy();
+
   vertex_buffer_.Destroy();
   index_buffer_.Destroy();
+
   allocator_.Destroy();
 }
 
@@ -140,6 +166,7 @@ internal::UpdateContext MeshHandler::PrepareUpdate(
 
   update_context.staging_buffer =
       total_size > 0 ? COMET_FRAME_ALLOC(total_size) : nullptr;
+
   return update_context;
 }
 
@@ -166,18 +193,8 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
       continue;
     }
 
-    const auto proxy_index{static_cast<usize>(geometry.mesh_handle.GetIndex())};
-
-    if (proxy_index >= proxies_.GetSize()) {
-      proxies_.Resize(proxy_index + 1);
-    }
-
-    auto& proxy{proxies_[proxy_index]};
-
-    if (proxy.is_alive) {
-      COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::AddMeshProxies",
-                        "mesh proxy already exists", "mesh_handle",
-                        geometry.mesh_handle);
+    if (const auto proxy_handle{proxies_.TryAcquire(geometry.mesh_handle)};
+        proxy_handle) {
       continue;
     }
 
@@ -208,12 +225,19 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
     update_context.current_staging_vertex_offset += vertex_size;
     update_context.current_staging_index_offset += index_size;
 
-    proxy.is_alive = true;
-    proxy.mesh_handle = geometry.mesh_handle;
-    proxy.vertex_count = static_cast<GLsizei>(geometry.vertices->GetSize());
-    proxy.index_count = static_cast<GLsizei>(geometry.indices->GetSize());
-    proxy.vertex_offset = static_cast<GLint>(vertex_offset);
-    proxy.index_offset = static_cast<GLint>(index_offset);
+    auto* proxy{allocator_.AllocateOneAndPopulate<MeshProxy>()};
+
+    proxy->is_alive = true;
+    proxy->mesh_handle = geometry.mesh_handle;
+    proxy->vertex_count = static_cast<GLsizei>(geometry.vertices->GetSize());
+    proxy->index_count = static_cast<GLsizei>(geometry.indices->GetSize());
+    proxy->vertex_offset = static_cast<GLint>(vertex_offset);
+    proxy->index_offset = static_cast<GLint>(index_offset);
+
+    const auto proxy_handle{proxies_.Create(geometry.mesh_handle, proxy)};
+    COMET_ASSERT(proxy_handle, "MeshHandler::AddMeshProxies",
+                 "mesh proxy registry creation failed", "mesh_handle",
+                 geometry.mesh_handle);
   }
 }
 
@@ -234,16 +258,16 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
       continue;
     }
 
-    const auto proxy_index{static_cast<usize>(mesh.mesh_handle.GetIndex())};
+    const auto proxy_handle{proxies_.TryGetHandle(mesh.mesh_handle)};
 
-    if (proxy_index >= proxies_.GetSize() || !proxies_[proxy_index].is_alive) {
+    if (!proxy_handle) {
       COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::UpdateMeshProxies",
                         "mesh proxy not found", "mesh_handle",
                         mesh.mesh_handle);
       continue;
     }
 
-    auto& proxy{proxies_[proxy_index]};
+    auto* proxy{proxies_.Get(proxy_handle)};
 
     const auto new_vertex_size{static_cast<GLsizei>(
         mesh.vertices->GetSize() * sizeof(geometry::SkinnedVertex))};
@@ -251,14 +275,14 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
                                                    sizeof(geometry::Index))};
 
     const auto vertex_offset{vertex_buffer_.CheckOrMove(
-        proxy.vertex_offset, proxy.vertex_count, new_vertex_size)};
+        proxy->vertex_offset, proxy->vertex_count, mesh.vertices->GetSize())};
     const auto index_offset{index_buffer_.CheckOrMove(
-        proxy.index_offset, proxy.index_count, new_index_size)};
+        proxy->index_offset, proxy->index_count, mesh.indices->GetSize())};
 
-    proxy.vertex_count = static_cast<GLsizei>(mesh.vertices->GetSize());
-    proxy.index_count = static_cast<GLsizei>(mesh.indices->GetSize());
-    proxy.vertex_offset = static_cast<GLint>(vertex_offset);
-    proxy.index_offset = static_cast<GLint>(index_offset);
+    proxy->vertex_count = static_cast<GLsizei>(mesh.vertices->GetSize());
+    proxy->index_count = static_cast<GLsizei>(mesh.indices->GetSize());
+    proxy->vertex_offset = static_cast<GLint>(vertex_offset);
+    proxy->index_offset = static_cast<GLint>(index_offset);
 
     memory::CopyMemory(memory + update_context.current_staging_vertex_offset,
                        mesh.vertices->GetData(), new_vertex_size);
@@ -292,25 +316,33 @@ void MeshHandler::DestroyMeshProxies(
       continue;
     }
 
-    const auto proxy_index{static_cast<usize>(geometry.mesh_handle.GetIndex())};
+    const auto proxy_handle{proxies_.TryGetHandle(geometry.mesh_handle)};
 
-    if (proxy_index >= proxies_.GetSize() || !proxies_[proxy_index].is_alive) {
+    if (!proxy_handle) {
       COMET_LOG_WARNING(
           LoggerType::Rendering, "MeshHandler::DestroyMeshProxies",
           "mesh proxy not found", "mesh_handle", geometry.mesh_handle);
       continue;
     }
 
-    auto& proxy{proxies_[proxy_index]};
-    vertex_buffer_.Release(proxy.vertex_offset, proxy.vertex_count);
-    index_buffer_.Release(proxy.index_offset, proxy.index_count);
-    proxy = {};
+    auto* proxy{proxies_.Get(proxy_handle)};
+
+    if (!proxies_.Release(proxy_handle)) {
+      continue;
+    }
+
+    vertex_buffer_.Release(proxy->vertex_offset, proxy->vertex_count);
+    index_buffer_.Release(proxy->index_offset, proxy->index_count);
+
+    proxies_.Remove(proxy_handle);
+    allocator_.Deallocate(proxy);
   }
 }
 
 void MeshHandler::UploadMeshProxies(
     const internal::UpdateContext& update_context) {
   COMET_PROFILE("MeshHandler::UploadMeshProxies");
+
   vertex_buffer_.Upload(update_context.staging_buffer,
                         update_context.vertex_copy_regions);
   index_buffer_.Upload(update_context.staging_buffer,

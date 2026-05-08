@@ -226,7 +226,10 @@ void PipelineHandler::Bind(PipelineHandle handle) {
                "PipelineHandler::Bind", "pipeline native handle is invalid",
                "pipeline_handle", handle);
 
-  vkCmdBindPipeline(context_->GetFrameData().command_buffer_handle,
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  vkCmdBindPipeline(frame_data.command_buffer_handle,
                     pipeline->type == PipelineBindType::Graphics
                         ? VK_PIPELINE_BIND_POINT_GRAPHICS
                         : VK_PIPELINE_BIND_POINT_COMPUTE,

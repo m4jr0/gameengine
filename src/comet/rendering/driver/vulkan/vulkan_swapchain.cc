@@ -333,7 +333,7 @@ VkResult Swapchain::QueuePresent() {
                "swapchain handle is invalid");
 
   const auto present_queue_handle{
-      context_->GetDevice().GetPresentQueueHandle()};
+      context_->GetDevice().GetPresentQueueContext().handle};
   COMET_ASSERT(present_queue_handle != VK_NULL_HANDLE,
                "Swapchain::QueuePresent", "present queue handle is invalid");
 

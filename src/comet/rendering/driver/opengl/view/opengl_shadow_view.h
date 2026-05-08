@@ -34,7 +34,10 @@ class ShadowView : public View {
   ShadowView& operator=(ShadowView&&) = delete;
   ~ShadowView() override = default;
 
-  void Update(frame::FramePacket*) override;
+  void Prepare(const ViewUpdate&) override;
+  void Begin(const ViewUpdate&) override;
+  void Draw(const ViewUpdate&) override;
+  void End(const ViewUpdate&) override;
 
  protected:
   void OnInitialize() override;
@@ -43,7 +46,7 @@ class ShadowView : public View {
  private:
   void UpdateShadowShaderPassData();
   void PushShadowConstants(const ShadowRenderJob& job);
-  void DrawShadowCasters();
+  void DrawShadowCasters(u32 shadow_job_index);
   void SetViewport(u32 resolution) const;
 
   ShaderHandler* shader_handler_{nullptr};

@@ -17,14 +17,37 @@ enum class RenderingViewType : u16 {
   World,
   Shadow,
   Skybox,
+#ifdef COMET_DEBUG_VIEW
   Debug,
-  ImGui
+#endif  // COMET_DEBUG_VIEW
+#ifdef COMET_IMGUI
+  ImGui,
+#endif  // COMET_IMGUI
 };
 
 enum class RenderingViewMatrixSource : u8 {
   Unknown = 0,
   SceneCamera,
   UiCamera
+};
+
+enum class ViewRenderStage : u8 {
+  Unknown = 0,
+  Offscreen,
+  SceneBase,
+  SceneOverlay,
+  Overlay,
+};
+
+using WorldDebugFlaglags = u32;
+
+enum WorldDebugFlagBits : WorldDebugFlaglags {
+  kWorldDebugFlagBitsNone = 0x0,
+  kWorldDebugFlagBitsUseTextures = 0x1,
+  kWorldDebugFlagBitsUseLighting = 0x2,
+  kWorldDebugFlagBitsUseShadows = 0x4,
+  kWorldDebugFlagBitsShowNormals = 0x8,
+  kWorldDebugFlagBitsAll = static_cast<WorldDebugFlaglags>(-1),
 };
 
 using RenderingViewId = stringid::StringId;

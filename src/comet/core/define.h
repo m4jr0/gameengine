@@ -102,6 +102,7 @@
 
 // Fiber.
 #ifdef COMET_DEBUG
+#define COMET_LOG_USE_FIBER_PREFIX
 #define COMET_FIBER_DEBUG_LABEL
 #endif  // COMET_DEBUG
 
@@ -135,9 +136,6 @@
 
 // Compile shaders with debug info and no optimizations.
 #define COMET_DEBUG_SHADER
-
-// Display some debug data about culling.
-// #define COMET_DEBUG_CULLING
 
 // According to the Vulkan spec, it is better to enable the validation layers
 // individually to prevent a significant performance degradation.

@@ -33,7 +33,7 @@ Context::Context(const ContextDescr& descr)
       max_object_count_{descr.max_object_count},
       instance_handle_{descr.instance_handle},
       device_{descr.device} {
-  COMET_ASSERT(instance_handle_ != nullptr, "Context::Context",
+  COMET_ASSERT(instance_handle_ != VK_NULL_HANDLE, "Context::Context",
                "instance handle is null");
   COMET_ASSERT(device_ != nullptr, "Context::Context", "device is null");
 }
@@ -76,7 +76,7 @@ void Context::InitializeFrameData() {
 
 void Context::InitializeCommands() {
   auto pool_info{init::GenerateCommandPoolCreateInfo(
-      device_->GetGraphicsQueueIndex(),
+      device_->GetGraphicsQueueContext().family_index,
       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)};
 
   for (usize i{0}; i < max_frames_in_flight_; ++i) {
@@ -93,30 +93,32 @@ void Context::InitializeCommands() {
                                  &frame_data_[i].command_buffer_handle),
         "Context::InitializeCommands", "frame command buffer allocation failed",
         "frame", i);
-
-#ifdef COMET_RENDERING_USE_DEBUG_LABELS
-    constexpr auto kDebugLabelLen{31};
-    schar debug_label[kDebugLabelLen + 1]{'\0'};
-    const auto frame_data_len{GetLength("frame_data_")};
-    Copy(debug_label, "frame_data_", frame_data_len);
-    ConvertToStr(i, debug_label + frame_data_len,
-                 kDebugLabelLen - frame_data_len);
-    COMET_VK_SET_DEBUG_LABEL(frame_data_[i].command_buffer_handle, debug_label);
-#endif  // COMET_RENDERING_USE_DEBUG_LABELS
   }
 
-  if (!IsTransferFamilyInQueueFamilyIndices(device_->GetQueueFamilyIndices())) {
-    return;
+  if (!device_->IsUploadQueueGraphics()) {
+    auto upload_pool_info{init::GenerateCommandPoolCreateInfo(
+        device_->GetUploadQueueContext().family_index,
+        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT |
+            VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)};
+
+    COMET_CHECK_VK(
+        vkCreateCommandPool(*device_, &upload_pool_info, VK_NULL_HANDLE,
+                            &upload_command_pool_handle_),
+        "Context::InitializeCommands", "upload command pool creation failed");
   }
 
-  pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT |
-                    VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-  pool_info.queueFamilyIndex = device_->GetTransferQueueIndex();
+  for (usize i{0}; i < max_frames_in_flight_; ++i) {
+    const auto upload_allocate_info{init::GenerateCommandBufferAllocateInfo(
+        device_->IsUploadQueueGraphics() ? frame_data_[i].command_pool_handle
+                                         : upload_command_pool_handle_,
+        1)};
 
-  COMET_CHECK_VK(vkCreateCommandPool(*device_, &pool_info, VK_NULL_HANDLE,
-                                     &transfer_command_pool_handle_),
-                 "Context::InitializeCommands",
-                 "transfer command pool creation failed");
+    COMET_CHECK_VK(
+        vkAllocateCommandBuffers(*device_, &upload_allocate_info,
+                                 &frame_data_[i].upload_command_buffer_handle),
+        "Context::InitializeCommands",
+        "upload command buffer allocation failed", "frame", i);
+  }
 }
 
 void Context::InitializeSyncStructures() {
@@ -135,19 +137,27 @@ void Context::InitializeSyncStructures() {
                           &frame_data.present_semaphore_handle),
         "Context::InitializeSyncStructures",
         "frame present semaphore creation failed");
+
+    COMET_CHECK_VK(vkCreateFence(*device_, &fence_create_info, VK_NULL_HANDLE,
+                                 &frame_data.upload_fence_handle),
+                   "Context::InitializeSyncStructures",
+                   "upload fence creation failed");
   }
 
-  VkSemaphoreTypeCreateInfo transfer_semaphore_info{};
-  transfer_semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-  transfer_semaphore_info.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-  transfer_semaphore_info.initialValue = 0;
+  VkSemaphoreTypeCreateInfo upload_semaphore_type_info{};
+  upload_semaphore_type_info.sType =
+      VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+  upload_semaphore_type_info.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+  upload_semaphore_type_info.initialValue = 0;
 
-  semaphore_create_info.pNext = &transfer_semaphore_info;
+  semaphore_create_info.pNext = &upload_semaphore_type_info;
 
   COMET_CHECK_VK(vkCreateSemaphore(*device_, &semaphore_create_info,
-                                   VK_NULL_HANDLE, &transfer_semaphore_handle_),
+                                   VK_NULL_HANDLE, &upload_semaphore_handle_),
                  "Context::InitializeSyncStructures",
-                 "transfer semaphore creation failed");
+                 "upload semaphore creation failed");
+
+  upload_timeline_value_ = 0;
 }
 
 void Context::BindImageData(const ImageData* image_data) {
@@ -161,6 +171,7 @@ void Context::UnbindImageData() { image_data_ = nullptr; }
 void Context::Destroy() {
   COMET_ASSERT(is_initialized_, "Context::Destroy",
                "context is not initialized");
+
   DestroySyncStructures();
   DestroyCommands();
   DestroyFrameData();
@@ -170,16 +181,25 @@ void Context::Destroy() {
   vulkan_minor_version_ = 0;
   vulkan_patch_version_ = 0;
   vulkan_variant_version_ = 0;
+
   is_sampler_anisotropy_ = false;
   is_sample_rate_shading_ = false;
+
   frame_count_ = 0;
   frame_in_flight_index_ = 0;
   max_frames_in_flight_ = 2;
+
   max_object_count_ = 0;
+  upload_timeline_value_ = 0;
+
+  instance_handle_ = VK_NULL_HANDLE;
+
+  allocator_handle_ = VK_NULL_HANDLE;
+  upload_command_pool_handle_ = VK_NULL_HANDLE;
+  upload_semaphore_handle_ = VK_NULL_HANDLE;
+
   device_ = nullptr;
   image_data_ = nullptr;
-  instance_handle_ = VK_NULL_HANDLE;
-  transfer_command_pool_handle_ = VK_NULL_HANDLE;
 
   is_initialized_ = false;
 }
@@ -197,6 +217,12 @@ void Context::DestroyFrameData() { frame_data_.Release(); }
 
 void Context::DestroyCommands() {
   for (auto& frame_data : frame_data_) {
+    frame_data.command_buffer_handle = VK_NULL_HANDLE;
+    frame_data.upload_command_buffer_handle = VK_NULL_HANDLE;
+    frame_data.upload_timeline_wait_value = 0;
+    frame_data.requires_upload_ownership_acquire = false;
+    frame_data.has_upload_submission = false;
+
     if (frame_data.command_pool_handle != VK_NULL_HANDLE) {
       vkDestroyCommandPool(*device_, frame_data.command_pool_handle,
                            VK_NULL_HANDLE);
@@ -204,10 +230,9 @@ void Context::DestroyCommands() {
     }
   }
 
-  if (transfer_command_pool_handle_ != VK_NULL_HANDLE) {
-    vkDestroyCommandPool(*device_, transfer_command_pool_handle_,
-                         VK_NULL_HANDLE);
-    transfer_command_pool_handle_ = VK_NULL_HANDLE;
+  if (upload_command_pool_handle_ != VK_NULL_HANDLE) {
+    vkDestroyCommandPool(*device_, upload_command_pool_handle_, VK_NULL_HANDLE);
+    upload_command_pool_handle_ = VK_NULL_HANDLE;
   }
 }
 
@@ -223,11 +248,16 @@ void Context::DestroySyncStructures() {
                          VK_NULL_HANDLE);
       frame_data.present_semaphore_handle = VK_NULL_HANDLE;
     }
+
+    if (frame_data.upload_fence_handle != VK_NULL_HANDLE) {
+      vkDestroyFence(*device_, frame_data.upload_fence_handle, VK_NULL_HANDLE);
+      frame_data.upload_fence_handle = VK_NULL_HANDLE;
+    }
   }
 
-  if (transfer_semaphore_handle_ != VK_NULL_HANDLE) {
-    vkDestroySemaphore(*device_, transfer_semaphore_handle_, VK_NULL_HANDLE);
-    transfer_semaphore_handle_ = VK_NULL_HANDLE;
+  if (upload_semaphore_handle_ != VK_NULL_HANDLE) {
+    vkDestroySemaphore(*device_, upload_semaphore_handle_, VK_NULL_HANDLE);
+    upload_semaphore_handle_ = VK_NULL_HANDLE;
   }
 }
 
@@ -336,20 +366,87 @@ VmaAllocator Context::GetAllocatorHandle() const noexcept {
   return allocator_handle_;
 }
 
-VkCommandPool Context::GetTransferCommandPoolHandle() const {
-  if (transfer_command_pool_handle_ == VK_NULL_HANDLE) {
-    return GetFrameData().command_pool_handle;
+VkCommandPool Context::GetGraphicsCommandPoolHandle(
+    FrameInFlightIndex frame_index) const {
+  return GetFrameData(frame_index).command_pool_handle;
+}
+
+VkCommandPool Context::GetUploadCommandPoolHandle(
+    FrameInFlightIndex frame_index) const {
+  if (frame_index == kInvalidFrameInFlightIndex) {
+    frame_index = frame_in_flight_index_;
   }
 
-  return transfer_command_pool_handle_;
+  COMET_ASSERT(frame_index < frame_data_.GetSize(),
+               "Context::GetUploadCommandPoolHandle",
+               "frame index out of bounds", "frame_index", frame_index);
+
+  if (device_->IsUploadQueueGraphics()) {
+    return frame_data_[frame_index].command_pool_handle;
+  }
+
+  COMET_ASSERT(upload_command_pool_handle_ != VK_NULL_HANDLE,
+               "Context::GetUploadCommandPoolHandle",
+               "upload command pool handle is invalid");
+  return upload_command_pool_handle_;
 }
 
-const VkSemaphore* Context::GetTransferSemaphoreHandle() const {
-  return &transfer_semaphore_handle_;
+const QueueContext& Context::GetUploadQueueContext() const noexcept {
+  return device_->GetUploadQueueContext();
 }
 
-u64 Context::GetTransferTimelineValue() const {
-  return transfer_timeline_value_;
+const VkSemaphore* Context::GetUploadSemaphoreHandle() const {
+  return &upload_semaphore_handle_;
+}
+
+VkQueue Context::GetGraphicsQueueHandle() const noexcept {
+  return device_->GetGraphicsQueueContext().handle;
+}
+
+VkQueue Context::GetPresentQueueHandle() const noexcept {
+  return device_->GetPresentQueueContext().handle;
+}
+
+VkQueue Context::GetTransferQueueHandle() const noexcept {
+  return device_->GetTransferQueueContext().handle;
+}
+
+VkQueue Context::GetUploadQueueHandle() const noexcept {
+  return device_->GetUploadQueueContext().handle;
+}
+
+u64 Context::GetUploadTimelineValue() const noexcept {
+  return upload_timeline_value_;
+}
+
+u64 Context::AdvanceUploadTimelineValue() noexcept {
+  ++upload_timeline_value_;
+  return upload_timeline_value_;
+}
+
+VkCommandBuffer Context::GetUploadCommandBufferHandle(
+    FrameInFlightIndex frame_index) const {
+  if (frame_index == kInvalidFrameInFlightIndex) {
+    frame_index = frame_in_flight_index_;
+  }
+
+  COMET_ASSERT(frame_index < frame_data_.GetSize(),
+               "Context::GetUploadCommandBufferHandle",
+               "frame index out of bounds", "frame_index", frame_index);
+
+  return frame_data_[frame_index].upload_command_buffer_handle;
+}
+
+VkFence Context::GetUploadFenceHandle(FrameInFlightIndex frame_index) const {
+  if (frame_index == kInvalidFrameInFlightIndex) {
+    frame_index = frame_in_flight_index_;
+  }
+
+  COMET_ASSERT(frame_index < frame_data_.GetSize(),
+               "Context::GetUploadFenceHandle", "frame index out of bounds",
+               "frame_index", frame_index);
+
+  return frame_data_[frame_index].upload_fence_handle;
 }
 
 bool Context::IsInitialized() const noexcept { return is_initialized_; }

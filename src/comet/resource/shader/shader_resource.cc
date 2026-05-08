@@ -108,9 +108,6 @@ const schar** GetActiveShaderEngineDefines(usize& count) {
 #ifdef COMET_DEBUG_RENDERING
       "COMET_DEBUG_RENDERING",
 #endif  // COMET_DEBUG_RENDERING
-#ifdef COMET_DEBUG_CULLING
-      "COMET_DEBUG_CULLING",
-#endif  // COMET_DEBUG_CULLING
       nullptr};
 
   usize actual_count{0};

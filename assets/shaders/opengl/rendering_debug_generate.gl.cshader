@@ -1,0 +1,140 @@
+{
+  "shader_module_paths": [
+    "shaders/opengl/rendering_debug.gl.comp"
+  ],
+  "vertex_layout": "none",
+  "bindings": [
+    {
+      "name": "DebugAabbs",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 5,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "minExtents",
+          "type": "vec4"
+        },
+        {
+          "name": "maxExtents",
+          "type": "vec4"
+        }
+      ]
+    },
+    {
+      "name": "DebugLineVertices",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 6,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "position",
+          "type": "vec4"
+        },
+        {
+          "name": "color",
+          "type": "vec4"
+        }
+      ]
+    },
+    {
+      "name": "DebugLightFrustums",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 7,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "viewProj",
+          "type": "mat4"
+        }
+      ]
+    },
+    {
+      "name": "DebugCameraFrustums",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 11,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "viewProj",
+          "type": "mat4"
+        }
+      ]
+    },
+    {
+      "name": "DebugCascadeFrustumCorners",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 12,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "corners",
+          "type": "vec4",
+          "count": 8
+        }
+      ]
+    }
+  ],
+  "push_constants": [
+    {
+      "name": "DebugPushConstants",
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "aabbCount",
+          "type": "u32"
+        },
+        {
+          "name": "cameraFrustumCount",
+          "type": "u32"
+        },
+        {
+          "name": "cascadeFrustumCount",
+          "type": "u32"
+        },
+        {
+          "name": "lightFrustumCount",
+          "type": "u32"
+        },
+        {
+          "name": "cameraFrustumVertexOffset",
+          "type": "u32"
+        },
+        {
+          "name": "cascadeFrustumVertexOffset",
+          "type": "u32"
+        },
+        {
+          "name": "lightFrustumVertexOffset",
+          "type": "u32"
+        }
+      ]
+    }
+  ]
+}

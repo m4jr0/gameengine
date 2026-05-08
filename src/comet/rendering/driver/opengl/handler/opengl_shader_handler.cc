@@ -20,13 +20,12 @@
 #include "comet/core/type_trait.h"
 #include "comet/geometry/type/mesh.h"
 #include "comet/math/vector.h"
-#include "comet/rendering/driver/opengl/label/opengl_shader_module_label.h"
 #include "comet/rendering/driver/opengl/opengl_debug.h"
 #include "comet/rendering/driver/opengl/type/opengl_shader.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
+#include "comet/rendering/label/pipeline_label.h"
 #include "comet/rendering/label/shader_label.h"
 #include "comet/rendering/type/common.h"
-#include "comet/rendering/type/pipeline.h"
 #include "comet/rendering/utils/shader_utils.h"
 #include "comet/resource/resource_manager.h"
 
@@ -62,24 +61,20 @@ ShaderHandler::ShaderHandler(const ShaderHandlerDescr& descr)
                "sampler handler is null");
 }
 
-void ShaderHandler::Reset() {
-  bound_shader_ = nullptr;
-  bound_vertex_attribute_native_handle_ = kInvalidGlNativeVertexAttributeHandle;
-  bound_array_buffer_native_handle_ = kInvalidGlNativeStorageHandle;
-  bound_element_array_buffer_native_handle_ = kInvalidGlNativeStorageHandle;
-  bound_program_native_handle_ = kInvalidGlNativeProgramHandle;
-}
-
 ShaderHandle ShaderHandler::GetOrGenerate(const ShaderDescr& descr) {
-  return GetOrGenerate(descr.shader_resource_id);
+  return GetOrGenerate(descr.shader_resource_id, descr.bind_type);
 }
 
 ShaderHandle ShaderHandler::GetOrGenerate(
-    resource::ShaderResourceId shader_resource_id) {
+    resource::ShaderResourceId shader_resource_id, PipelineBindType bind_type) {
   COMET_ASSERT(shader_resource_id.IsValid(), "ShaderHandler::GetOrGenerate",
                "shader resource id is invalid");
 
-  if (const auto handle{shaders_.TryAcquire(shader_resource_id)}; handle) {
+  ShaderKey key{};
+  key.shader_resource_id = shader_resource_id;
+  key.bind_type = bind_type;
+
+  if (const auto handle{shaders_.TryAcquire(key)}; handle) {
     return handle;
   }
 
@@ -87,17 +82,28 @@ ShaderHandle ShaderHandler::GetOrGenerate(
   auto* shader_resource_handler{resource::ResourceManager::Get().GetShaders()};
 
   const auto is_loaded{shader_resource_handler->WithTemporaryLoad(
-      shader_resource_id, [this, &generated_handle, shader_resource_id](
-                              const resource::ShaderResource* shader_resource) {
-        auto* shader{GenerateShader(shader_resource)};
+      shader_resource_id,
+      [this, &generated_handle, shader_resource_id,
+       bind_type](const resource::ShaderResource* shader_resource) {
+        ShaderDescr descr{};
+        descr.shader_resource_id = shader_resource_id;
+        descr.bind_type = bind_type;
+
+        auto* shader{GenerateShader(descr, shader_resource)};
         COMET_ASSERT(shader != nullptr, "ShaderHandler::GetOrGenerate",
                      "generated shader is null", "shader_resource_id",
                      shader_resource_id);
 
-        generated_handle = shaders_.Create(shader->id, shader);
+        ShaderKey key{};
+        key.shader_resource_id = shader_resource_id;
+        key.bind_type = bind_type;
+
+        generated_handle = shaders_.Create(key, shader);
         COMET_ASSERT(generated_handle, "ShaderHandler::GetOrGenerate",
                      "shader instance creation failed", "shader_resource_id",
-                     shader_resource_id);
+                     shader_resource_id, "bind_type",
+                     GetPipelineBindTypeLabel(bind_type), "bind_type_value",
+                     ToUnderlying(bind_type));
 
         shader->handle = generated_handle;
       })};
@@ -116,26 +122,27 @@ void ShaderHandler::Destroy(ShaderHandle handle) {
   shaders_.Remove(handle);
 }
 
-void ShaderHandler::Bind(ShaderHandle handle, ShaderBindType bind_type) {
+void ShaderHandler::Bind(ShaderHandle handle) {
   const auto* shader{Get(handle)};
 
-  const auto program_native_handle{ResolveProgramHandle(shader, bind_type)};
+  const auto program_native_handle{shader->program_native_handle};
   COMET_ASSERT(program_native_handle != kInvalidGlNativeProgramHandle,
                "ShaderHandler::Bind", "shader program handle is invalid",
                "shader_handle", handle, "bind_type",
-               GetShaderBindTypeLabel(bind_type), "bind_type_value",
-               ToUnderlying(bind_type));
+               GetPipelineBindTypeLabel(shader->bind_type), "bind_type_value",
+               ToUnderlying(shader->bind_type));
 
   if (bound_program_native_handle_ != program_native_handle) {
     glUseProgram(program_native_handle);
     bound_program_native_handle_ = program_native_handle;
   }
 
-  if (bind_type == ShaderBindType::Graphics) {
+  if (shader->bind_type == PipelineBindType::Graphics) {
     glPolygonMode(GL_FRONT_AND_BACK,
                   shader->rasterizer.is_wireframe ? GL_LINE : GL_FILL);
 
     const auto gl_cull_mode{GetGlCullMode(shader->rasterizer.cull_mode)};
+
     if (gl_cull_mode == GL_NONE) {
       glDisable(GL_CULL_FACE);
     } else {
@@ -187,6 +194,10 @@ void ShaderHandler::BindInstance(ShaderHandle handle,
   auto* shader{Get(handle)};
   COMET_ASSERT(material != nullptr, "ShaderHandler::BindInstance",
                "material is null", "shader_handle", handle);
+  COMET_ASSERT(shader->bind_type == PipelineBindType::Graphics,
+               "ShaderHandler::BindInstance",
+               "materials are only supported on graphics shaders",
+               "shader_handle", shader->handle);
 
   if (!internal::HasBindingInSet(shader, shaderconsts::kMaterialSet)) {
 #ifdef COMET_DEBUG_RENDERING
@@ -234,6 +245,10 @@ void ShaderHandler::BindVertexSource(ShaderHandle handle,
   auto* shader{Get(handle)};
   COMET_ASSERT(shader != nullptr, "ShaderHandler::BindVertexSource",
                "shader is null", "shader_handle", handle);
+  COMET_ASSERT(shader->bind_type == PipelineBindType::Graphics,
+               "ShaderHandler::BindVertexSource",
+               "vertex source can only be bound on graphics shaders",
+               "shader_handle", handle);
 
   COMET_ASSERT(shader->vertex_attribute_native_handle !=
                    kInvalidGlNativeVertexAttributeHandle,
@@ -519,6 +534,10 @@ void ShaderHandler::UpdateInstance(ShaderHandle handle,
   COMET_ASSERT(internal::HasBindingInSet(shader, shaderconsts::kMaterialSet),
                "ShaderHandler::UpdateInstance", "shader has no material set",
                "shader_handle", shader->handle);
+  COMET_ASSERT(shader->bind_type == PipelineBindType::Graphics,
+               "ShaderHandler::UpdateInstance",
+               "materials are only supported on graphics shaders",
+               "shader_handle", shader->handle);
 
   auto& instance{GetInstance(shader, material)};
   shader->bound_instance_ubo_offset =
@@ -768,6 +787,14 @@ GLenum ShaderHandler::GetTopology(ShaderHandle handle) const {
   return Get(handle)->topology;
 }
 
+void ShaderHandler::Reset() {
+  bound_shader_ = nullptr;
+  bound_vertex_attribute_native_handle_ = kInvalidGlNativeVertexAttributeHandle;
+  bound_array_buffer_native_handle_ = kInvalidGlNativeStorageHandle;
+  bound_element_array_buffer_native_handle_ = kInvalidGlNativeStorageHandle;
+  bound_program_native_handle_ = kInvalidGlNativeProgramHandle;
+}
+
 void ShaderHandler::OnInitialize() {
   general_allocator_.Initialize();
   shader_instance_allocator_.Initialize();
@@ -797,10 +824,14 @@ void ShaderHandler::OnShutdown() {
     const auto ref_count{shaders_.GetRefCount(handle)};
 
     if (ref_count > 0) {
+      [[maybe_unused]] const auto key{shaders_.GetSourceId(handle)};
+
       COMET_LOG_WARNING(LoggerType::Rendering, "ShaderHandler::OnShutdown",
                         "forcing shader destruction", "shader_handle", handle,
                         "ref_count", ref_count, "shader_resource_id",
-                        shaders_.Get(handle)->id);
+                        key.shader_resource_id, "bind_type",
+                        GetPipelineBindTypeLabel(key.bind_type),
+                        "bind_type_value", ToUnderlying(key.bind_type));
     }
 
     auto* shader{shaders_.Drain(handle)};
@@ -860,6 +891,7 @@ const MaterialInstance* ShaderHandler::TryGetInstance(
   }
 
   auto* index{shader->instances.indices.TryGet(material->id)};
+
   if (index == nullptr) {
     return nullptr;
   }
@@ -868,13 +900,14 @@ const MaterialInstance* ShaderHandler::TryGetInstance(
 }
 
 Shader* ShaderHandler::GenerateShader(
-    const resource::ShaderResource* shader_resource) {
+    const ShaderDescr& descr, const resource::ShaderResource* shader_resource) {
   COMET_ASSERT(shader_resource != nullptr, "ShaderHandler::GenerateShader",
                "shader resource is null");
 
   auto* shader{shader_instance_allocator_.AllocateOneAndPopulate<Shader>()};
   shader->handle = ShaderHandle::Invalid();
   shader->id = shader_resource->GetId();
+  shader->bind_type = descr.bind_type;
 
   const auto& rasterizer_resource{shader_resource->descr.rasterizer};
 
@@ -911,10 +944,10 @@ Shader* ShaderHandler::GenerateShader(
       Map<resource::MaterialResourceId, u32>{&general_allocator_};
 
   HandleShaderModulesGeneration(shader, shader_resource);
-  HandleProgramGeneration(shader);
   HandleAttributesGeneration(shader, shader_resource);
   HandleBindingsGeneration(shader, shader_resource);
   HandlePushConstantBlocksGeneration(shader, shader_resource);
+  HandleProgramGeneration(shader);
   HandleUboBufferGeneration(shader);
 
   AllocateGlobalDescriptorSets(shader);
@@ -976,14 +1009,9 @@ void ShaderHandler::DestroyShader(Shader* shader) {
 
   shader->module_handles.Release();
 
-  if (shader->graphics_program_native_handle != kInvalidGlNativeProgramHandle) {
-    glDeleteProgram(shader->graphics_program_native_handle);
-    shader->graphics_program_native_handle = kInvalidGlNativeProgramHandle;
-  }
-
-  if (shader->compute_program_native_handle != kInvalidGlNativeProgramHandle) {
-    glDeleteProgram(shader->compute_program_native_handle);
-    shader->compute_program_native_handle = kInvalidGlNativeProgramHandle;
+  if (shader->program_native_handle != kInvalidGlNativeProgramHandle) {
+    glDeleteProgram(shader->program_native_handle);
+    shader->program_native_handle = kInvalidGlNativeProgramHandle;
   }
 
   shader->handle.Invalidate();
@@ -1099,9 +1127,9 @@ void ShaderHandler::PopulateSkinnedVertexAttributes(
 void ShaderHandler::PopulateDebugLineVertexAttributes(
     Array<VertexAttribute>& attributes, VertexAttributeStride& stride) {
   attributes.Clear();
-  attributes.Reserve(1);
+  attributes.Reserve(2);
 
-  stride = static_cast<VertexAttributeStride>(sizeof(math::Vec4));
+  stride = static_cast<VertexAttributeStride>(sizeof(GpuDebugLineVertex));
 
   attributes.PushLast(VertexAttribute{
       .index = 0,
@@ -1109,7 +1137,18 @@ void ShaderHandler::PopulateDebugLineVertexAttributes(
       .component_type = GL_FLOAT,
       .is_normalized = GL_FALSE,
       .stride = stride,
-      .offset = nullptr,
+      .offset =
+          reinterpret_cast<const void*>(offsetof(GpuDebugLineVertex, position)),
+  });
+
+  attributes.PushLast(VertexAttribute{
+      .index = 1,
+      .component_count = 4,
+      .component_type = GL_FLOAT,
+      .is_normalized = GL_FALSE,
+      .stride = stride,
+      .offset =
+          reinterpret_cast<const void*>(offsetof(GpuDebugLineVertex, color)),
   });
 }
 
@@ -1142,9 +1181,12 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
                                      const ShaderImageDescriptor* descriptors,
                                      u32 descriptor_count) const {
   COMET_ASSERT(descriptors != nullptr, "ShaderHandler::BindImageBinding",
-               "image descriptors are null", "binding_index", binding.index);
+               "image descriptors are null", "binding_set", binding.set,
+               "binding_binding", binding.binding, "binding_index",
+               binding.index);
   COMET_ASSERT(descriptor_count == binding.descriptor_count,
                "ShaderHandler::BindImageBinding", "descriptor count mismatch",
+               "binding_set", binding.set, "binding_binding", binding.binding,
                "binding_index", binding.index, "expected_descriptor_count",
                binding.descriptor_count, "actual_descriptor_count",
                descriptor_count);
@@ -1164,11 +1206,13 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
     switch (binding.type) {
       case ShaderBindingType::CombinedImageSampler:
         COMET_ASSERT(texture != nullptr, "ShaderHandler::BindImageBinding",
-                     "combined image sampler requires texture", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "combined image sampler requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
         COMET_ASSERT(sampler != nullptr, "ShaderHandler::BindImageBinding",
-                     "combined image sampler requires sampler", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "combined image sampler requires sampler", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         glBindTextureUnit(unit, texture->native_handle);
         glBindSampler(unit, sampler->native_handle);
@@ -1176,24 +1220,27 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
 
       case ShaderBindingType::SampledImage:
         COMET_ASSERT(texture != nullptr, "ShaderHandler::BindImageBinding",
-                     "sampled image requires texture", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "sampled image requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         glBindTextureUnit(unit, texture->native_handle);
         break;
 
       case ShaderBindingType::Sampler:
         COMET_ASSERT(sampler != nullptr, "ShaderHandler::BindImageBinding",
-                     "sampler binding requires sampler", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "sampler binding requires sampler", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         glBindSampler(unit, sampler->native_handle);
         break;
 
       case ShaderBindingType::StorageImage:
         COMET_ASSERT(texture != nullptr, "ShaderHandler::BindImageBinding",
-                     "storage image requires texture", "binding_index",
-                     binding.index, "descriptor_index", i);
+                     "storage image requires texture", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "descriptor_index", i);
 
         glBindImageTexture(unit, texture->native_handle, 0, GL_FALSE, 0,
                            GetGlImageAccess(binding.type),
@@ -1202,8 +1249,9 @@ void ShaderHandler::BindImageBinding(const ShaderBinding& binding,
 
       default:
         COMET_ASSERT(false, "ShaderHandler::BindImageBinding",
-                     "unsupported image binding type", "binding_index",
-                     binding.index, "binding_type",
+                     "unsupported image binding type", "binding_set",
+                     binding.set, "binding_binding", binding.binding,
+                     "binding_index", binding.index, "binding_type",
                      GetShaderBindingTypeLabel(binding.type),
                      "binding_type_value", ToUnderlying(binding.type));
         break;
@@ -1228,6 +1276,16 @@ void ShaderHandler::BindMaterial(Shader* shader, const Material* material) {
   COMET_ASSERT(!HasMaterial(shader, material), "ShaderHandler::BindMaterial",
                "material is already bound", "shader_handle", shader->handle,
                "material_resource_id", material->id);
+  COMET_ASSERT(shader->bind_type == PipelineBindType::Graphics,
+               "ShaderHandler::BindMaterial",
+               "materials are only supported on graphics shaders",
+               "shader_handle", shader->handle);
+  COMET_ASSERT(shader->instances.list.GetSize() < kMaxMaterialInstances,
+               "ShaderHandler::BindMaterial",
+               "maximum material instance count reached", "shader_handle",
+               shader->handle, "material_instance_count",
+               shader->instances.list.GetSize(), "max_material_instances",
+               kMaxMaterialInstances);
 
   if (!internal::HasBindingInSet(shader, shaderconsts::kMaterialSet)) {
     COMET_ASSERT(false, "ShaderHandler::BindMaterial",
@@ -1293,6 +1351,10 @@ void ShaderHandler::UnbindMaterial(Shader* shader, const Material* material) {
   COMET_ASSERT(HasMaterial(shader, material), "ShaderHandler::UnbindMaterial",
                "material is not bound", "shader_handle", shader->handle,
                "material_resource_id", material->id);
+  COMET_ASSERT(shader->bind_type == PipelineBindType::Graphics,
+               "ShaderHandler::UnbindMaterial",
+               "materials are only supported on graphics shaders",
+               "shader_handle", shader->handle);
 
   auto* index_ptr{shader->instances.indices.TryGet(material->id)};
   COMET_ASSERT(index_ptr != nullptr, "ShaderHandler::UnbindMaterial",
@@ -1338,45 +1400,74 @@ void ShaderHandler::HandleShaderModulesGeneration(
 }
 
 void ShaderHandler::HandleProgramGeneration(Shader* shader) const {
-  auto is_graphics{false};
-  auto is_compute{false};
+  [[maybe_unused]] bool has_graphics_stage{false};
+  [[maybe_unused]] bool has_compute_stage{false};
 
   for (const auto module_handle : shader->module_handles) {
     const auto stage{shader_module_handler_->GetStage(module_handle)};
 
     if (stage == GL_COMPUTE_SHADER) {
-      is_compute = true;
+      has_compute_stage = true;
     } else {
-      is_graphics = true;
+      has_graphics_stage = true;
     }
+  }
 
-    if (is_graphics && is_compute) {
+  COMET_ASSERT(!(has_graphics_stage && has_compute_stage),
+               "ShaderHandler::HandleProgramGeneration",
+               "shader mixes graphics and compute stages", "shader_handle",
+               shader->handle);
+
+  switch (shader->bind_type) {
+    case PipelineBindType::Graphics:
+      COMET_ASSERT(has_graphics_stage, "ShaderHandler::HandleProgramGeneration",
+                   "graphics shader has no graphics stages", "shader_handle",
+                   shader->handle);
+      COMET_ASSERT(!has_compute_stage, "ShaderHandler::HandleProgramGeneration",
+                   "graphics shader contains compute stage", "shader_handle",
+                   shader->handle);
       break;
-    }
+
+    case PipelineBindType::Compute:
+      COMET_ASSERT(has_compute_stage, "ShaderHandler::HandleProgramGeneration",
+                   "compute shader has no compute stage", "shader_handle",
+                   shader->handle);
+      COMET_ASSERT(!has_graphics_stage,
+                   "ShaderHandler::HandleProgramGeneration",
+                   "compute shader contains graphics stage", "shader_handle",
+                   shader->handle);
+      break;
+
+    default:
+      COMET_ASSERT(false, "ShaderHandler::HandleProgramGeneration",
+                   "unsupported shader bind type", "shader_handle",
+                   shader->handle, "bind_type",
+                   GetPipelineBindTypeLabel(shader->bind_type),
+                   "bind_type_value", ToUnderlying(shader->bind_type));
+      return;
   }
 
-  if (is_graphics) {
-    shader->graphics_program_native_handle = glCreateProgram();
-    HandleProgramCompilation(shader, ShaderBindType::Graphics);
-  }
+  shader->program_native_handle = glCreateProgram();
+  COMET_ASSERT(shader->program_native_handle != kInvalidGlNativeProgramHandle,
+               "ShaderHandler::HandleProgramGeneration",
+               "program creation failed", "shader_handle", shader->handle,
+               "bind_type", GetPipelineBindTypeLabel(shader->bind_type),
+               "bind_type_value", ToUnderlying(shader->bind_type));
 
-  if (is_compute) {
-    shader->compute_program_native_handle = glCreateProgram();
-    HandleProgramCompilation(shader, ShaderBindType::Compute);
-  }
+  HandleProgramCompilation(shader);
 }
 
-void ShaderHandler::HandleProgramCompilation(Shader* shader,
-                                             ShaderBindType bind_type) const {
-  const auto native_handle{ResolveProgramHandle(shader, bind_type)};
+void ShaderHandler::HandleProgramCompilation(Shader* shader) const {
+  const auto native_handle{shader->program_native_handle};
   COMET_ASSERT(native_handle != kInvalidGlNativeProgramHandle,
                "ShaderHandler::HandleProgramCompilation",
                "program handle is invalid", "shader_handle", shader->handle,
-               "bind_type", GetShaderBindTypeLabel(bind_type),
-               "bind_type_value", ToUnderlying(bind_type));
+               "bind_type", GetPipelineBindTypeLabel(shader->bind_type),
+               "bind_type_value", ToUnderlying(shader->bind_type));
 
   for (const auto module_handle : shader->module_handles) {
-    if (shader_module_handler_->GetBindType(module_handle) == bind_type) {
+    if (shader_module_handler_->GetBindType(module_handle) ==
+        shader->bind_type) {
       shader_module_handler_->Attach(shader, module_handle);
     }
   }
@@ -1398,15 +1489,16 @@ void ShaderHandler::HandleProgramCompilation(Shader* shader,
     if (result != GL_TRUE) {
       COMET_ASSERT(false, "ShaderHandler::HandleProgramCompilation",
                    "program link failed", "shader_handle", shader->handle,
-                   "bind_type", GetShaderBindTypeLabel(bind_type),
-                   "bind_type_value", ToUnderlying(bind_type), "info_log",
-                   error_message.GetData());
+                   "bind_type", GetPipelineBindTypeLabel(shader->bind_type),
+                   "bind_type_value", ToUnderlying(shader->bind_type),
+                   "info_log", error_message.GetData());
     }
   }
 #endif  // COMET_DEBUG
 
   for (const auto module_handle : shader->module_handles) {
-    if (shader_module_handler_->GetBindType(module_handle) == bind_type) {
+    if (shader_module_handler_->GetBindType(module_handle) ==
+        shader->bind_type) {
       shader_module_handler_->Detach(shader, module_handle);
     }
   }
@@ -1685,7 +1777,8 @@ void ShaderHandler::CollectMaterialTextureMaps(
                "material is null");
   COMET_ASSERT(IsImageBindingType(binding.type),
                "ShaderHandler::CollectMaterialTextureMaps",
-               "binding is not an image binding", "binding_index",
+               "binding is not an image binding", "binding_set", binding.set,
+               "binding_binding", binding.binding, "binding_index",
                binding.index, "binding_type",
                GetShaderBindingTypeLabel(binding.type), "binding_type_value",
                ToUnderlying(binding.type));
@@ -1698,8 +1791,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 1,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material diffuse binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   1u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 1u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->diffuse_map);
       return;
@@ -1708,8 +1803,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 1,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material specular binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   1u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 1u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->specular_map);
       return;
@@ -1718,8 +1815,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 1,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material normal binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   1u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 1u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->normal_map);
       return;
@@ -1728,8 +1827,10 @@ void ShaderHandler::CollectMaterialTextureMaps(
       COMET_ASSERT(binding.descriptor_count == 3,
                    "ShaderHandler::CollectMaterialTextureMaps",
                    "material textures binding descriptor count mismatch",
-                   "binding_index", binding.index, "expected_descriptor_count",
-                   3u, "actual_descriptor_count", binding.descriptor_count);
+                   "binding_set", binding.set, "binding_binding",
+                   binding.binding, "binding_index", binding.index,
+                   "expected_descriptor_count", 3u, "actual_descriptor_count",
+                   binding.descriptor_count);
 
       texture_maps.PushLast(&material->diffuse_map);
       texture_maps.PushLast(&material->specular_map);
@@ -1738,8 +1839,9 @@ void ShaderHandler::CollectMaterialTextureMaps(
 
     default:
       COMET_ASSERT(false, "ShaderHandler::CollectMaterialTextureMaps",
-                   "unsupported material image semantic", "binding_index",
-                   binding.index, "image_semantic",
+                   "unsupported material image semantic", "binding_set",
+                   binding.set, "binding_binding", binding.binding,
+                   "binding_index", binding.index, "image_semantic",
                    GetShaderImageBindingSemanticLabel(binding.image_semantic),
                    "image_semantic_value",
                    ToUnderlying(binding.image_semantic));
@@ -1781,6 +1883,7 @@ void ShaderHandler::UpdateInstanceUboBindings(Shader* shader,
                                               u32 instance_index) {
   COMET_ASSERT(shader != nullptr, "ShaderHandler::UpdateInstanceUboBindings",
                "shader is null");
+
   instance.offset = shader->instance_ubo_data.stride * instance_index;
 
   for (const auto& binding : shader->bindings) {

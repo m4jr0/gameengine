@@ -12,7 +12,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader.h"
+#include "comet/rendering/label/pipeline_label.h"
+#include "comet/rendering/label/shader_label.h"
 #include "comet/rendering/utils/shader_utils.h"
 
 namespace comet {
@@ -73,6 +74,85 @@ void AddFieldUpdate(frame::FrameArray<ShaderBufferFieldUpdate>& updates,
   update.size = size;
 }
 
+ShaderImageDescriptor GenerateImageDescriptor(ShaderBindingType binding_type,
+                                              TextureHandle texture_handle,
+                                              SamplerHandle sampler_handle) {
+  ShaderImageDescriptor descriptor{};
+
+  switch (binding_type) {
+    case ShaderBindingType::CombinedImageSampler:
+      COMET_ASSERT(texture_handle,
+                   "opengl_shader_utils::GenerateImageDescriptor",
+                   "combined image sampler requires texture");
+      COMET_ASSERT(sampler_handle,
+                   "opengl_shader_utils::GenerateImageDescriptor",
+                   "combined image sampler requires sampler");
+
+      descriptor.texture_handle = texture_handle;
+      descriptor.sampler_handle = sampler_handle;
+      return descriptor;
+
+    case ShaderBindingType::SampledImage:
+      COMET_ASSERT(texture_handle,
+                   "opengl_shader_utils::GenerateImageDescriptor",
+                   "sampled image requires texture");
+
+      descriptor.texture_handle = texture_handle;
+      descriptor.sampler_handle = {};
+      return descriptor;
+
+    case ShaderBindingType::Sampler:
+      COMET_ASSERT(sampler_handle,
+                   "opengl_shader_utils::GenerateImageDescriptor",
+                   "sampler binding requires sampler");
+
+      descriptor.texture_handle = {};
+      descriptor.sampler_handle = sampler_handle;
+      return descriptor;
+
+    case ShaderBindingType::StorageImage:
+      COMET_ASSERT(texture_handle,
+                   "opengl_shader_utils::GenerateImageDescriptor",
+                   "storage image requires texture");
+
+      descriptor.texture_handle = texture_handle;
+      descriptor.sampler_handle = {};
+      return descriptor;
+
+    default:
+      COMET_ASSERT(false, "opengl_shader_utils::GenerateImageDescriptor",
+                   "image binding type is unsupported", "binding_type",
+                   GetShaderBindingTypeLabel(binding_type),
+                   "binding_type_value", ToUnderlying(binding_type));
+
+      return descriptor;
+  }
+}
+
+void GenerateImageDescriptors(ShaderBindingType binding_type,
+                              const Array<const TextureMap*>& texture_maps,
+                              Array<ShaderImageDescriptor>& descriptors) {
+  COMET_ASSERT(IsImageBindingType(binding_type),
+               "opengl_shader_utils::GenerateImageDescriptors",
+               "binding type is not an image binding", "binding_type",
+               GetShaderBindingTypeLabel(binding_type), "binding_type_value",
+               ToUnderlying(binding_type));
+
+  descriptors.Clear();
+  descriptors.Reserve(texture_maps.GetSize());
+
+  for (usize i{0}; i < texture_maps.GetSize(); ++i) {
+    const auto* texture_map{texture_maps[i]};
+    COMET_ASSERT(texture_map != nullptr,
+                 "opengl_shader_utils::GenerateImageDescriptors",
+                 "texture map is null", "index", i);
+
+    descriptors.PushLast(GenerateImageDescriptor(binding_type,
+                                                 texture_map->texture_handle,
+                                                 texture_map->sampler_handle));
+  }
+}
+
 GLenum GetGlImageAccess(ShaderBindingType type) {
   switch (type) {
     case ShaderBindingType::StorageImage:
@@ -94,9 +174,11 @@ Alignment GetBindingFieldAlignment(ShaderMemoryLayout layout,
     default:
       COMET_ASSERT(false, "opengl_shader_utils::GetBindingFieldAlignment",
                    "shader memory layout is invalid", "layout",
+                   GetShaderMemoryLayoutLabel(layout), "layout_value",
                    ToUnderlying(layout));
-      return kInvalidAlignment;
   }
+
+  return kInvalidAlignment;
 }
 
 ShaderOffset AlignOffset(ShaderOffset offset, Alignment alignment) {
@@ -113,38 +195,24 @@ ShaderFieldLayoutInfo GetFieldLayoutInfo(ShaderMemoryLayout layout,
   COMET_ASSERT(info.element_size != kInvalidShaderVariableSize,
                "opengl_shader_utils::GetFieldLayoutInfo",
                "shader variable type size is invalid", "type",
+               GetShaderVariableTypeLabel(type), "type_value",
                ToUnderlying(type));
 
   info.alignment = GetBindingFieldAlignment(layout, type);
+
   info.aligned_size = static_cast<ShaderVariableSize>(memory::AlignSize(
       info.element_size, static_cast<memory::Alignment>(info.alignment)));
+
   info.stride = info.aligned_size;
-  info.total_size =
-      array_count > 1
-          ? static_cast<ShaderVariableSize>(info.stride * array_count)
-          : info.aligned_size;
+
+  if (array_count > 1) {
+    info.total_size =
+        static_cast<ShaderVariableSize>(info.stride * array_count);
+  } else {
+    info.total_size = info.aligned_size;
+  }
 
   return info;
-}
-
-GlNativeProgramHandle ResolveProgramHandle(const Shader* shader,
-                                           ShaderBindType bind_type) {
-  COMET_ASSERT(shader != nullptr, "opengl_shader_utils::ResolveProgramHandle",
-               "shader is null");
-
-  switch (bind_type) {
-    case ShaderBindType::Graphics:
-      return shader->graphics_program_native_handle;
-
-    case ShaderBindType::Compute:
-      return shader->compute_program_native_handle;
-
-    default:
-      COMET_ASSERT(false, "opengl_shader_utils::ResolveProgramHandle",
-                   "shader bind type is invalid", "bind_type",
-                   ToUnderlying(bind_type));
-      return kInvalidGlNativeProgramHandle;
-  }
 }
 
 GLenum GetGlCullMode(CullMode cull_mode) {
@@ -160,6 +228,7 @@ GLenum GetGlCullMode(CullMode cull_mode) {
     default:
       COMET_ASSERT(false, "opengl_shader_utils::GetGlCullMode",
                    "cull mode is unsupported", "cull_mode",
+                   GetCullModeLabel(cull_mode), "cull_mode_value",
                    ToUnderlying(cull_mode));
       return 0;
   }
@@ -180,6 +249,7 @@ GLenum GetGlPrimitiveTopology(PrimitiveTopology topology) {
     default:
       COMET_ASSERT(false, "opengl_shader_utils::GetGlPrimitiveTopology",
                    "primitive topology is unsupported", "topology",
+                   GetPrimitiveTopologyLabel(topology), "topology_value",
                    ToUnderlying(topology));
       return 0;
   }

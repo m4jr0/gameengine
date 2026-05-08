@@ -107,6 +107,27 @@ MaterialResource* MaterialResourceHandler::GetDefaultMaterialResource() {
     auto& descr{default_material_->descr};
     descr.diffuse_map.texture_resource_id = kDefaultDiffuseTextureId;
     descr.diffuse_map.type = rendering::TextureType::Diffuse;
+    descr.diffuse_map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.diffuse_map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.diffuse_map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.diffuse_map.min_filter_mode = rendering::TextureFilterMode::Linear;
+    descr.diffuse_map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+
+    descr.specular_map.texture_resource_id = kDefaultSpecularTextureId;
+    descr.specular_map.type = rendering::TextureType::Specular;
+    descr.specular_map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.specular_map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.specular_map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.specular_map.min_filter_mode = rendering::TextureFilterMode::Linear;
+    descr.specular_map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+
+    descr.normal_map.texture_resource_id = kDefaultNormalTextureId;
+    descr.normal_map.type = rendering::TextureType::Normal;
+    descr.normal_map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.normal_map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.normal_map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
+    descr.normal_map.min_filter_mode = rendering::TextureFilterMode::Linear;
+    descr.normal_map.mag_filter_mode = rendering::TextureFilterMode::Linear;
   }
 
   return default_material_.get();

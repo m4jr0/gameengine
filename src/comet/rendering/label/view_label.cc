@@ -25,10 +25,14 @@ const schar* GetRenderingViewTypeLabel(RenderingViewType type) {
       return "shadow";
     case RenderingViewType::Skybox:
       return "skybox";
+#ifdef COMET_DEBUG_VIEW
     case RenderingViewType::Debug:
       return "debug";
+#endif  // COMET_DEBUG_VIEW
+#ifdef COMET_IMGUI
     case RenderingViewType::ImGui:
       return "imgui";
+#endif  // COMET_IMGUI
     default:
       return kUnknownLabel;
   }

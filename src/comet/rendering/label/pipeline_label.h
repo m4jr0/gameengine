@@ -13,6 +13,7 @@ namespace rendering {
 const schar* GetCullModeLabel(CullMode mode);
 const schar* GetCompareOpLabel(CompareOp op);
 const schar* GetPrimitiveTopologyLabel(PrimitiveTopology topo);
+const schar* GetPipelineBindTypeLabel(PipelineBindType type);
 }  // namespace rendering
 }  // namespace comet
 

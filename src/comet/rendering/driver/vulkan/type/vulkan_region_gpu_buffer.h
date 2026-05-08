@@ -69,6 +69,14 @@ struct RegionGpuBuffer {
   void Initialize() {
     COMET_ASSERT(!is_initialized_, "RegionGpuBuffer::Initialize",
                  "region gpu buffer already initialized");
+
+    pending_buffer_destroys_ = Array<Array<Buffer>>{&platform_allocator_};
+    pending_buffer_destroys_.Resize(context_->GetMaxFramesInFlight());
+
+    for (usize i{0}; i < pending_buffer_destroys_.GetSize(); ++i) {
+      pending_buffer_destroys_[i] = Array<Buffer>{&platform_allocator_};
+    }
+
     Resize(element_count_);
     is_initialized_ = true;
   }
@@ -76,6 +84,19 @@ struct RegionGpuBuffer {
   void Destroy() {
     COMET_ASSERT(is_initialized_, "RegionGpuBuffer::Destroy",
                  "region gpu buffer not initialized");
+
+    for (auto& pending_buffers : pending_buffer_destroys_) {
+      for (auto& buffer : pending_buffers) {
+        if (IsBufferInitialized(buffer)) {
+          DestroyBuffer(buffer);
+        }
+      }
+
+      pending_buffers.Release();
+    }
+
+    pending_buffer_destroys_.Release();
+
     region_map_.Destroy();
 
     if (IsBufferInitialized(buffer_)) {
@@ -149,22 +170,73 @@ struct RegionGpuBuffer {
       return;
     }
 
-    auto& device{context_->GetDevice()};
-    element_count_ = new_element_count;
-    auto buffer_size{element_count_ * sizeof(T)};
+    const auto current_frame{context_->GetFrameInFlightIndex()};
+    auto& frame_data{context_->GetFrameData(current_frame)};
 
-    ResizeBuffer(
-        buffer_, device, context_->GetTransferCommandPoolHandle(),
+    element_count_ = new_element_count;
+    const auto buffer_size{element_count_ * sizeof(T)};
+
+    const auto result{EnsureBufferCapacity(
+        buffer_, frame_data.upload_command_buffer_handle,
         context_->GetAllocatorHandle(), static_cast<VkDeviceSize>(buffer_size),
-        usage_, vma_memory_usage_, device.GetTransferQueueHandle(),
-        memory_property_flags_, vma_flags_, sharing_mode_, VK_NULL_HANDLE
+        usage_, vma_memory_usage_, memory_property_flags_, vma_flags_,
+        sharing_mode_, true
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
         ,
         debug_label_
-#endif  // COMET_RENDERING_USE_DEBUG_LABELS
-    );
+#else
+        ,
+        nullptr
+#endif
+        )};
+
+    if (result.old_buffer.handle != VK_NULL_HANDLE) {
+      pending_buffer_destroys_[current_frame].PushLast(result.old_buffer);
+    }
+
+    if (result.has_transfer_work) {
+      frame_data.has_upload_submission = true;
+      frame_data.requires_upload_ownership_acquire |=
+          !context_->GetDevice().IsUploadQueueGraphics();
+
+      if (!context_->GetDevice().IsUploadQueueGraphics()) {
+        auto* release_barriers{
+            COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 1)};
+
+        const auto& upload_queue{context_->GetDevice().GetUploadQueueContext()};
+        const auto& graphics_queue{
+            context_->GetDevice().GetGraphicsQueueContext()};
+
+        AddBufferMemoryBarrier(buffer_, release_barriers,
+                               VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
+                               upload_queue.family_index,
+                               graphics_queue.family_index);
+
+        ApplyBufferMemoryBarriers(*release_barriers,
+                                  frame_data.upload_command_buffer_handle,
+                                  VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+      }
+    }
 
     region_map_.Resize(buffer_size);
+  }
+
+  void ReleasePendingBuffers(FrameInFlightIndex frame_index) {
+    COMET_ASSERT(frame_index < pending_buffer_destroys_.GetSize(),
+                 "RegionGpuBuffer::ReleasePendingBuffers",
+                 "frame index out of bounds", "frame_index", frame_index,
+                 "buffer_count", pending_buffer_destroys_.GetSize());
+
+    auto& pending_buffers{pending_buffer_destroys_[frame_index]};
+
+    for (auto& buffer : pending_buffers) {
+      if (IsBufferInitialized(buffer)) {
+        DestroyBuffer(buffer);
+      }
+    }
+
+    pending_buffers.Clear();
   }
 
   const Buffer& GetBuffer() const noexcept { return buffer_; }
@@ -179,6 +251,11 @@ struct RegionGpuBuffer {
   Context* context_{nullptr};
 
  private:
+  memory::PlatformAllocator platform_allocator_{
+      memory::kEngineMemoryTagRendering};
+
+  Array<Array<Buffer>> pending_buffer_destroys_{};
+
   bool is_initialized_{false};
   VmaMemoryUsage vma_memory_usage_{VMA_MEMORY_USAGE_AUTO};
   VkMemoryPropertyFlags memory_property_flags_{0};

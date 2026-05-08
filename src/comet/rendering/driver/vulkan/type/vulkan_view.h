@@ -24,8 +24,9 @@ enum ViewPassFlagBits : ViewPassFlags {
   kViewPassFlagBitsNone = 0x0,
   kViewPassFlagBitsSwapchainTarget = 0x1,
   kViewPassFlagBitsOffscreenTarget = 0x2,
-  kViewPassFlagBitsHasColor = 0x4,
-  kViewPassFlagBitsHasDepth = 0x8
+  kViewPassFlagBitsOverlayTarget = 0x4,
+  kViewPassFlagBitsHasColor = 0x8,
+  kViewPassFlagBitsHasDepth = 0x10
 };
 }  // namespace vk
 }  // namespace rendering

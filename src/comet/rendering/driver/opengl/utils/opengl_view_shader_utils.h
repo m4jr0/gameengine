@@ -7,8 +7,11 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
+#include "comet/rendering/driver/opengl/handler/opengl_camera_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/rendering/driver/opengl/type/opengl_frame.h"
 #include "comet/rendering/driver/opengl/type/opengl_shader.h"
+#include "comet/rendering/rendering_handle.h"
 #include "comet/rendering/type/light.h"
 
 namespace comet {
@@ -32,16 +35,17 @@ constexpr u32 kIndirectProxiesBinding{3};
 constexpr u32 kDebugDataBinding{4};
 constexpr u32 kDebugAabbsBinding{5};
 constexpr u32 kDebugLineVerticesBinding{6};
+constexpr u32 kDebugLightFrustumsBinding{7};
 constexpr u32 kMatrixPalettesBinding{7};
 constexpr u32 kLightsBinding{8};
 constexpr u32 kShadowsBinding{9};
+constexpr u32 kCameraDatasBinding{10};
+constexpr u32 kDebugCameraFrustumsBinding{11};
+constexpr u32 kDebugCascadeFrustumsBinding{12};
 }  // namespace sharedshaderconsts
 
 namespace worldshaderconsts {
-constexpr ShaderFieldIndex kProjectionFieldIndex{0};
-constexpr ShaderFieldIndex kViewFieldIndex{1};
-constexpr ShaderFieldIndex kAmbientColorFieldIndex{2};
-constexpr ShaderFieldIndex kViewPositionFieldIndex{3};
+constexpr ShaderFieldIndex kAmbientColorFieldIndex{0};
 constexpr ShaderFieldIndex kShadowSettingsParams0FieldIndex{0};
 constexpr ShaderFieldIndex kShadowSettingsParams1FieldIndex{1};
 constexpr ShaderPushConstantIndex kLightingPushConstantIndex{0};
@@ -61,12 +65,11 @@ constexpr ShaderPushConstantIndex kCountPushConstantIndex{0};
 
 namespace debugshaderconsts {
 constexpr ShaderFieldIndex kProjectionFieldIndex{0};
-constexpr ShaderFieldIndex kViewFieldIndex{1};
 constexpr ShaderPushConstantIndex kCountPushConstantIndex{0};
 }  // namespace debugshaderconsts
 
 namespace shadowshaderconsts {
-constexpr ShaderFieldIndex kShadowLightViewProjFieldIndex{0};
+constexpr ShaderFieldIndex kShadowPushConstantIndex{0};
 }  // namespace shadowshaderconsts
 
 void AddWorldGlobalFieldUpdates(
@@ -80,15 +83,15 @@ void AddWorldGlobalImageBindings(
     frame::FrameArray<ShaderImageBindingUpdate>& image_bindings,
     frame::FrameArray<ShaderImageDescriptor>& image_descriptors);
 
-void AddDebugGlobalFieldUpdates(
-    ShaderHandler* shader_handler, ShaderHandle shader_handle,
-    const frame::FramePacket* packet,
-    frame::FrameArray<ShaderBufferFieldUpdate>& field_updates);
-
 void AddWorldShadowSettingsFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
     const ShadowSettings* shadow_settings,
     frame::FrameArray<ShaderBufferFieldUpdate>& field_updates);
+
+void AddCameraBufferBinding(
+    ShaderHandler* shader_handler, const CameraHandler* camera_handler,
+    ShaderHandle shader_handle, FrameInFlightIndex frame_index,
+    frame::FrameArray<ShaderBufferBindingUpdate>& buffer_bindings);
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet

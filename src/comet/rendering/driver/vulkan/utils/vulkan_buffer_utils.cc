@@ -132,7 +132,7 @@ void UnmapBuffer(Buffer& buffer) {
   buffer.mapped_memory = nullptr;
 }
 
-bool IsBufferInitialized(Buffer& buffer) noexcept {
+bool IsBufferInitialized(const Buffer& buffer) noexcept {
   return buffer.allocator_handle != VK_NULL_HANDLE &&
          buffer.handle != VK_NULL_HANDLE &&
          buffer.allocation_handle != VK_NULL_HANDLE;
@@ -181,12 +181,12 @@ void CopyBufferImmediate(const Device& device,
                        queue_handle);
 }
 
-void ReallocateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
-                      VkDeviceSize new_size, VkBufferUsageFlags usage,
-                      VmaMemoryUsage vma_memory_usage,
-                      VkMemoryPropertyFlags memory_property_flags,
-                      VmaAllocationCreateFlags vma_flags,
-                      VkSharingMode sharing_mode, const schar* debug_label) {
+void RecreateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
+                    VkDeviceSize new_size, VkBufferUsageFlags usage,
+                    VmaMemoryUsage vma_memory_usage,
+                    VkMemoryPropertyFlags memory_property_flags,
+                    VmaAllocationCreateFlags vma_flags,
+                    VkSharingMode sharing_mode, const schar* debug_label) {
   if (!IsBufferInitialized(buffer)) {
     buffer = GenerateBuffer(allocator_handle, new_size, usage, vma_memory_usage,
                             memory_property_flags, vma_flags, sharing_mode,
@@ -205,41 +205,57 @@ void ReallocateBuffer(Buffer& buffer, VmaAllocator allocator_handle,
   buffer = new_buffer;
 }
 
-void ResizeBuffer(Buffer& buffer, const Device& device,
-                  VkCommandPool command_pool_handle,
-                  VmaAllocator allocator_handle, VkDeviceSize new_size,
-                  VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
-                  VkQueue queue_handle,
-                  VkMemoryPropertyFlags memory_property_flags,
-                  VmaAllocationCreateFlags vma_flags,
-                  VkSharingMode sharing_mode, BarrierDescr* barrier_descr,
-                  const schar* debug_label) {
-  COMET_ASSERT(command_pool_handle != VK_NULL_HANDLE,
-               "vulkan_buffer_utils::ResizeBuffer",
-               "command pool handle is invalid");
-  COMET_ASSERT(queue_handle != VK_NULL_HANDLE,
-               "vulkan_buffer_utils::ResizeBuffer", "queue handle is invalid");
+BufferCapacityResult EnsureBufferCapacity(
+    Buffer& buffer, VkCommandBuffer command_buffer_handle,
+    VmaAllocator allocator_handle, VkDeviceSize required_size,
+    VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
+    VkMemoryPropertyFlags memory_property_flags,
+    VmaAllocationCreateFlags vma_flags, VkSharingMode sharing_mode,
+    bool preserve_contents, const schar* debug_label) {
+  COMET_ASSERT(command_buffer_handle != VK_NULL_HANDLE,
+               "vulkan_buffer_utils::EnsureBufferCapacity",
+               "command buffer handle is invalid");
+  COMET_ASSERT(required_size > 0, "vulkan_buffer_utils::EnsureBufferCapacity",
+               "required size is zero");
+
+  BufferCapacityResult result{};
 
   if (!IsBufferInitialized(buffer)) {
-    buffer = GenerateBuffer(allocator_handle, new_size, usage, vma_memory_usage,
-                            memory_property_flags, vma_flags, sharing_mode,
-                            debug_label);
-    return;
+    buffer = GenerateBuffer(allocator_handle, required_size, usage,
+                            vma_memory_usage, memory_property_flags, vma_flags,
+                            sharing_mode, debug_label);
+    result.is_recreated = true;
+    return result;
   }
 
-  if (buffer.size >= new_size) {
-    return;
+  if (buffer.size >= required_size) {
+    return result;
   }
 
-  const auto new_buffer{GenerateBuffer(allocator_handle, new_size, usage,
+  const auto old_size{buffer.size};
+  const auto old_buffer{buffer};
+
+  const auto new_buffer{GenerateBuffer(allocator_handle, required_size, usage,
                                        vma_memory_usage, memory_property_flags,
                                        vma_flags, sharing_mode, debug_label)};
 
-  CopyBufferImmediate(device, command_pool_handle, buffer, new_buffer,
-                      buffer.size, queue_handle, barrier_descr);
+  if (preserve_contents && old_size > 0) {
+    VkBufferCopy copy{};
+    copy.srcOffset = 0;
+    copy.dstOffset = 0;
+    copy.size = old_size;
 
-  DestroyBuffer(buffer);
+    vkCmdCopyBuffer(command_buffer_handle, old_buffer.handle, new_buffer.handle,
+                    1, &copy);
+  }
+
   buffer = new_buffer;
+
+  result.is_recreated = true;
+  result.has_transfer_work = preserve_contents && old_size > 0;
+  result.copied_size = result.has_transfer_work ? old_size : 0;
+  result.old_buffer = old_buffer;
+  return result;
 }
 
 void AddBufferMemoryBarrier(const Buffer& buffer,

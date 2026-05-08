@@ -11,6 +11,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/geometry/type/mesh.h"
+#include "comet/math/vector.h"
 #include "comet/rendering/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
@@ -36,6 +37,11 @@ struct ShaderVertexSource {
   GlNativeStorageHandle index_buffer_native_handle{
       kInvalidGlNativeStorageHandle};
   VertexSourceId vertex_source_id{0};
+};
+
+struct GpuDebugLineVertex {
+  math::Vec4 position{.0f};
+  math::Vec4 color{.0f};
 };
 }  // namespace gl
 }  // namespace rendering

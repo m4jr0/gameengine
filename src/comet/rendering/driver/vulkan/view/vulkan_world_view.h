@@ -6,10 +6,9 @@
 #define COMET_COMET_RENDERING_DRIVER_VULKAN_VIEW_VULKAN_WORLD_VIEW_H_
 
 #include "comet/core/essentials.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
@@ -22,10 +21,9 @@ namespace rendering {
 namespace vk {
 struct WorldViewDescr : ViewDescr {
   const ShadowSettings* shadow_settings{nullptr};
+  CameraHandler* camera_handler{nullptr};
   ShaderHandler* shader_handler{nullptr};
   const TextureHandler* texture_handler{nullptr};
-  const MaterialHandler* material_handler{nullptr};
-  PipelineHandler* pipeline_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
   LightingHandler* lighting_handler{nullptr};
@@ -40,33 +38,31 @@ class WorldView : public View {
   WorldView& operator=(WorldView&&) = delete;
   ~WorldView() override = default;
 
-  void Update(frame::FramePacket* packet) override;
+  void Prepare(const ViewUpdate& update) override;
+  void Begin(const ViewUpdate&) override;
+  void Draw(const ViewUpdate& update) override;
+  void End(const ViewUpdate& update) override;
 
  protected:
   void OnInitialize() override;
   void OnDestroy() override;
 
  private:
-  void UpdateWorldShader(frame::FramePacket* packet);
-  void RunSparseUpload();
-  void RunCull(frame::FramePacket* packet);
-  void DrawWorld();
+  void UpdateWorldPassShaderData(const frame::FramePacket* packet);
+  void DrawWorld(const ViewUpdate& update);
 
-  void SetViewportAndScissor() const;
+  void SetViewportAndScissor(const ViewportRect& viewport) const;
 
   const ShadowSettings* shadow_settings_{nullptr};
 
+  CameraHandler* camera_handler_{nullptr};
   ShaderHandler* shader_handler_{nullptr};
   const TextureHandler* texture_handler_{nullptr};
-  const MaterialHandler* material_handler_{nullptr};
-  PipelineHandler* pipeline_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};
   LightingHandler* lighting_handler_{nullptr};
 
   ShaderHandle world_shader_{};
-  ShaderHandle cull_shader_{};
-  ShaderHandle sparse_upload_shader_{};
 };
 }  // namespace vk
 }  // namespace rendering

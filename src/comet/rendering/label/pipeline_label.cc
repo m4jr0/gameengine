@@ -75,5 +75,18 @@ const schar* GetPrimitiveTopologyLabel(PrimitiveTopology topo) {
       return kUnknownLabel;
   }
 }
+
+const schar* GetPipelineBindTypeLabel(PipelineBindType type) {
+  switch (type) {
+    case PipelineBindType::Unknown:
+      return "unknown";
+    case PipelineBindType::Graphics:
+      return "graphics";
+    case PipelineBindType::Compute:
+      return "compute";
+    default:
+      return kUnknownLabel;
+  }
+}
 }  // namespace rendering
 }  // namespace comet

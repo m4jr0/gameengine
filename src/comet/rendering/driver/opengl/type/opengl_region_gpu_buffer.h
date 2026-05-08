@@ -66,6 +66,7 @@ struct RegionGpuBuffer {
   void Initialize() {
     COMET_ASSERT(!is_initialized_, "RegionGpuBuffer::Initialize",
                  "region gpu buffer already initialized");
+
     Resize(element_count_);
     is_initialized_ = true;
   }
@@ -73,6 +74,7 @@ struct RegionGpuBuffer {
   void Destroy() {
     COMET_ASSERT(is_initialized_, "RegionGpuBuffer::Destroy",
                  "region gpu buffer not initialized");
+
     region_map_.Destroy();
 
     if (storage_native_handle_ != kInvalidGlNativeStorageHandle) {
@@ -88,6 +90,7 @@ struct RegionGpuBuffer {
 
   GLint Claim(usize claimed_count) {
     COMET_PROFILE("RegionGpuBuffer<T>::Claim");
+
     const auto claimed_size{claimed_count * sizeof(T)};
     auto block_offset{region_map_.Claim(claimed_size)};
 
@@ -118,6 +121,7 @@ struct RegionGpuBuffer {
 
   usize CheckOrMove(GLint old_index_offset, usize old_count, usize new_count) {
     COMET_PROFILE("RegionGpuBuffer<T>::CheckOrMove");
+
     if (old_count >= new_count) {
       return old_index_offset;
     }
@@ -156,6 +160,7 @@ struct RegionGpuBuffer {
 
   void Resize(usize new_element_count) {
     COMET_PROFILE("RegionGpuBuffer<T>::Resize");
+
     new_element_count =
         memory::RoundUpToMultiple(new_element_count, element_block_count_);
 
@@ -221,6 +226,7 @@ struct RegionGpuBuffer {
   usize element_count_{0};
   RegionMap region_map_{};
   void* mapped_memory_{nullptr};
+
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
   inline static constexpr usize kMaxDebugLabelLen_{31};
   schar debug_label_[kMaxDebugLabelLen_ + 1]{'\0'};

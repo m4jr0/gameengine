@@ -12,17 +12,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/logger/logging.h"
+#include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_context.h"
+#include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
-MeshHandler::MeshHandler(const MeshHandlerDescr& descr) : Handler{descr} {}
+MeshHandler::MeshHandler(const MeshHandlerDescr& descr)
+    : Handler{descr}, proxies_{&registry_allocator_, kDefaultProxyCount_} {}
 
 void MeshHandler::Update(const frame::FramePacket* packet) {
   COMET_PROFILE("MeshHandler::Update");
@@ -42,47 +42,66 @@ void MeshHandler::Update(const frame::FramePacket* packet) {
 }
 
 void MeshHandler::Bind() {
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
   vertex_buffer_.Bind(command_buffer_handle);
   index_buffer_.Bind(command_buffer_handle);
 }
 
 void MeshHandler::AcquireFromTransferQueueIfNeeded() {
-  if (!is_transfer_) {
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  if (!frame_data.requires_upload_ownership_acquire) {
     return;
   }
 
-  if (is_transfer_queue_) {
-    auto* acquire_barriers{COMET_FRAME_ARRAY_WITH_CAPACITY(
-        VkBufferMemoryBarrier, kDefaultAcquireBarrierCount_)};
-    auto& device{context_->GetDevice()};
-    const auto transfer_queue_index{device.GetTransferQueueIndex()};
-    const auto graphics_queue_index{device.GetGraphicsQueueIndex()};
+  auto& device{context_->GetDevice()};
 
-    AddBufferMemoryBarrier(vertex_buffer_.GetBuffer(), acquire_barriers,
-                           VK_ACCESS_NONE,
-                           VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT |
-                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-                           transfer_queue_index, graphics_queue_index);
+  COMET_ASSERT(!device.IsUploadQueueGraphics(),
+               "MeshHandler::AcquireFromTransferQueueIfNeeded",
+               "unexpected ownership acquire on graphics upload queue");
 
-    AddBufferMemoryBarrier(
-        index_buffer_.GetBuffer(), acquire_barriers, VK_ACCESS_NONE,
-        VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-        transfer_queue_index, graphics_queue_index);
+  auto* acquire_barriers{COMET_FRAME_ARRAY_WITH_CAPACITY(
+      VkBufferMemoryBarrier, kDefaultAcquireBarrierCount_)};
 
-    COMET_ASSERT(acquire_barriers != nullptr,
-                 "MeshHandler::AcquireFromTransferQueueIfNeeded",
-                 "acquire barriers are null");
+  const auto& upload_queue{device.GetUploadQueueContext()};
+  const auto& graphics_queue{device.GetGraphicsQueueContext()};
+  const auto upload_queue_index{upload_queue.family_index};
+  const auto graphics_queue_index{graphics_queue.family_index};
 
-    ApplyBufferMemoryBarriers(*acquire_barriers,
-                              context_->GetFrameData().command_buffer_handle,
-                              VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                              VK_PIPELINE_STAGE_VERTEX_INPUT_BIT |
-                                  VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT);
-  }
+  COMET_ASSERT(upload_queue.IsValid(),
+               "MeshHandler::AcquireFromTransferQueueIfNeeded",
+               "upload queue context is invalid");
+  COMET_ASSERT(graphics_queue.IsValid(),
+               "MeshHandler::AcquireFromTransferQueueIfNeeded",
+               "graphics queue context is invalid");
 
-  is_transfer_ = false;
+  AddBufferMemoryBarrier(
+      vertex_buffer_.GetBuffer(), acquire_barriers, VK_ACCESS_NONE,
+      VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+      upload_queue_index, graphics_queue_index);
+
+  AddBufferMemoryBarrier(
+      index_buffer_.GetBuffer(), acquire_barriers, VK_ACCESS_NONE,
+      VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+      upload_queue_index, graphics_queue_index);
+
+  ApplyBufferMemoryBarriers(
+      *acquire_barriers, frame_data.command_buffer_handle,
+      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+      VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT);
+
+  frame_data.requires_upload_ownership_acquire = false;
+  frame_data.has_upload_submission = false;
+}
+
+void MeshHandler::ReleasePendingUploadResources(
+    FrameInFlightIndex frame_index) {
+  vertex_buffer_.ReleasePendingBuffers(frame_index);
+  index_buffer_.ReleasePendingBuffers(frame_index);
 }
 
 const MeshProxy* MeshHandler::Get(geometry::MeshHandle handle) const {
@@ -97,30 +116,20 @@ const MeshProxy* MeshHandler::TryGet(geometry::MeshHandle handle) const {
     return nullptr;
   }
 
-  const auto index{static_cast<usize>(handle.GetIndex())};
+  const auto proxy_handle{proxies_.TryGetHandle(handle)};
 
-  if (index >= proxies_.GetSize()) {
+  if (!proxy_handle) {
     return nullptr;
   }
 
-  const auto& proxy{proxies_[index]};
-  return proxy.is_alive ? &proxy : nullptr;
+  return proxies_.TryGet(proxy_handle);
 }
 
 void MeshHandler::OnInitialize() {
   allocator_.Initialize();
-
-  proxies_ = Array<MeshProxy>::WithCapacity(&allocator_, kDefaultProxyCount_);
-
-  const auto fence_info{init::GenerateFenceCreateInfo()};
-  auto& device{context_->GetDevice()};
-
-  vkCreateFence(device, &fence_info, VK_NULL_HANDLE, &upload_fence_handle_);
+  proxies_.Initialize();
 
   auto* allocator_handle{context_->GetAllocatorHandle()};
-
-  is_transfer_queue_ =
-      IsTransferFamilyInQueueFamilyIndices(device.GetQueueFamilyIndices());
 
   staging_buffer_ = GenerateBuffer(
       allocator_handle, kDefaultStagingBufferSize_,
@@ -153,7 +162,31 @@ void MeshHandler::OnInitialize() {
 }
 
 void MeshHandler::OnShutdown() {
-  proxies_.Release();
+  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+
+  auto handles_to_destroy{Array<MeshProxyRegistry::ItemHandle>::WithCapacity(
+      &tmp_allocator, proxies_.GetLiveCount())};
+
+  proxies_.ForEachLive(
+      [&handles_to_destroy](MeshProxyRegistry::ItemHandle handle,
+                            const MeshProxy*) {
+        handles_to_destroy.PushLast(handle);
+      });
+
+  for (const auto handle : handles_to_destroy) {
+    auto* proxy{proxies_.Drain(handle)};
+
+    if (proxy == nullptr) {
+      continue;
+    }
+
+    vertex_buffer_.Release(proxy->vertex_offset, proxy->vertex_count);
+    index_buffer_.Release(proxy->index_offset, proxy->index_count);
+
+    allocator_.Deallocate(proxy);
+  }
+
+  proxies_.Destroy();
 
   vertex_buffer_.Destroy();
   index_buffer_.Destroy();
@@ -162,14 +195,7 @@ void MeshHandler::OnShutdown() {
     DestroyBuffer(staging_buffer_);
   }
 
-  if (upload_fence_handle_ != VK_NULL_HANDLE) {
-    vkDestroyFence(context_->GetDevice(), upload_fence_handle_, VK_NULL_HANDLE);
-    upload_fence_handle_ = VK_NULL_HANDLE;
-  }
-
   allocator_.Destroy();
-  is_transfer_queue_ = false;
-  is_transfer_ = false;
 }
 
 internal::UpdateContext MeshHandler::PrepareUpdate(
@@ -200,20 +226,34 @@ internal::UpdateContext MeshHandler::PrepareUpdate(
                         update_context.total_index_size};
 
   auto& device{context_->GetDevice()};
-  const auto command_pool_handle{context_->GetTransferCommandPoolHandle()};
+  const auto& upload_queue{context_->GetUploadQueueContext()};
+  const auto& graphics_queue{device.GetGraphicsQueueContext()};
 
-  update_context.device = &device;
-  update_context.command_pool_handle = command_pool_handle;
-  update_context.command_buffer_handle =
-      GenerateOneTimeCommand(device, update_context.command_pool_handle);
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  auto command_buffer_handle{frame_data.upload_command_buffer_handle};
+
+  COMET_ASSERT(command_buffer_handle != VK_NULL_HANDLE,
+               "MeshHandler::PrepareUpdate",
+               "upload command buffer handle is invalid");
+  COMET_ASSERT(frame_data.upload_fence_handle != VK_NULL_HANDLE,
+               "MeshHandler::PrepareUpdate", "upload fence handle is invalid");
+
+  update_context.upload_queue = &upload_queue;
+  update_context.graphics_queue = &graphics_queue;
+  update_context.command_buffer_handle = command_buffer_handle;
 
   if (staging_buffer_.size < total_size) {
-    ResizeBuffer(
-        staging_buffer_, device, command_pool_handle,
+    auto result{EnsureBufferCapacity(
+        staging_buffer_, frame_data.upload_command_buffer_handle,
         context_->GetAllocatorHandle(), total_size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VMA_MEMORY_USAGE_CPU_TO_GPU, device.GetTransferQueueHandle(), 0, 0,
-        VK_SHARING_MODE_EXCLUSIVE, VK_NULL_HANDLE, "staging_buffer_");
+        VMA_MEMORY_USAGE_CPU_TO_GPU, 0, 0, VK_SHARING_MODE_EXCLUSIVE, false,
+        "staging_buffer_")};
+
+    if (result.old_buffer.handle != VK_NULL_HANDLE) {
+      DestroyBuffer(result.old_buffer);
+    }
   }
 
   vertex_buffer_.Resize(update_context.total_vertex_size /
@@ -238,48 +278,51 @@ internal::UpdateContext MeshHandler::PrepareUpdate(
 void MeshHandler::FinishUpdate(internal::UpdateContext& update_context) {
   COMET_PROFILE("MeshHandler::FinishUpdate");
   UnmapBuffer(staging_buffer_);
-  UploadMeshProxies(update_context);
 
-  auto* release_barriers{COMET_FRAME_ARRAY_WITH_CAPACITY(
-      VkBufferMemoryBarrier, kDefaultAcquireBarrierCount_)};
+  const auto upload_result{UploadMeshProxies(update_context)};
 
-  if (is_transfer_ && is_transfer_queue_) {
-    const auto transfer_queue_index{
-        update_context.device->GetTransferQueueIndex()};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  if (!context_->GetDevice().IsUploadQueueGraphics()) {
+    auto* release_barriers{COMET_FRAME_ARRAY_WITH_CAPACITY(
+        VkBufferMemoryBarrier, kDefaultReleaseBarrierCount_)};
+
+    bool has_release_barrier{false};
+
+    const auto upload_queue_index{update_context.upload_queue->family_index};
     const auto graphics_queue_index{
-        update_context.device->GetGraphicsQueueIndex()};
+        update_context.graphics_queue->family_index};
 
-    AddBufferMemoryBarrier(vertex_buffer_.GetBuffer(), release_barriers,
-                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
-                           transfer_queue_index, graphics_queue_index);
+    if (upload_result.uploaded_vertex) {
+      AddBufferMemoryBarrier(vertex_buffer_.GetBuffer(), release_barriers,
+                             VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
+                             upload_queue_index, graphics_queue_index);
+      has_release_barrier = true;
+    }
 
-    AddBufferMemoryBarrier(index_buffer_.GetBuffer(), release_barriers,
-                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
-                           transfer_queue_index, graphics_queue_index);
+    if (upload_result.uploaded_index) {
+      AddBufferMemoryBarrier(index_buffer_.GetBuffer(), release_barriers,
+                             VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_NONE,
+                             upload_queue_index, graphics_queue_index);
+      has_release_barrier = true;
+    }
 
-    COMET_ASSERT(release_barriers != nullptr, "MeshHandler::FinishUpdate",
-                 "release barriers are null");
-
-    ApplyBufferMemoryBarriers(
-        *release_barriers, update_context.command_buffer_handle,
-        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+    if (has_release_barrier) {
+      ApplyBufferMemoryBarriers(
+          *release_barriers, update_context.command_buffer_handle,
+          VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+    }
   }
 
-  VkPipelineStageFlags wait_stage{VK_PIPELINE_STAGE_TRANSFER_BIT};
-  const auto transfer_value{context_->GetTransferTimelineValue()};
+  const bool uploaded_anything =
+      upload_result.uploaded_vertex || upload_result.uploaded_index;
 
-  const auto timeline_semaphore_info{init::GenerateTimelineSemaphoreSubmitInfo(
-      1, &transfer_value, 0, VK_NULL_HANDLE)};
+  frame_data.requires_upload_ownership_acquire |=
+      uploaded_anything && !context_->GetDevice().IsUploadQueueGraphics();
 
-  SubmitOneTimeCommandAsync(
-      update_context.command_buffer_handle,
-      update_context.device->GetTransferQueueHandle(), upload_fence_handle_,
-      context_->GetTransferSemaphoreHandle(), VK_NULL_HANDLE, &wait_stage,
-      &timeline_semaphore_info);
-
-  WaitAndRecycleOneTimeCommand(
-      *update_context.device, update_context.command_pool_handle,
-      update_context.command_buffer_handle, upload_fence_handle_);
+  frame_data.has_upload_submission =
+      frame_data.has_upload_submission || uploaded_anything;
 }
 
 void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
@@ -299,18 +342,8 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
       continue;
     }
 
-    const auto proxy_index{static_cast<usize>(geometry.mesh_handle.GetIndex())};
-
-    if (proxy_index >= proxies_.GetSize()) {
-      proxies_.Resize(proxy_index + 1);
-    }
-
-    auto& proxy{proxies_[proxy_index]};
-
-    if (proxy.is_alive) {
-      COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::AddMeshProxies",
-                        "mesh proxy already exists", "mesh_handle",
-                        geometry.mesh_handle);
+    if (const auto proxy_handle{proxies_.TryAcquire(geometry.mesh_handle)};
+        proxy_handle) {
       continue;
     }
 
@@ -338,12 +371,19 @@ void MeshHandler::AddMeshProxies(const frame::AddedGeometries* geometries,
     update_context.current_staging_vertex_offset += vertex_size;
     update_context.current_staging_index_offset += index_size;
 
-    proxy.is_alive = true;
-    proxy.mesh_handle = geometry.mesh_handle;
-    proxy.vertex_count = static_cast<u32>(geometry.vertices->GetSize());
-    proxy.index_count = static_cast<u32>(geometry.indices->GetSize());
-    proxy.vertex_offset = static_cast<u32>(vertex_offset);
-    proxy.index_offset = static_cast<u32>(index_offset);
+    auto* proxy{allocator_.AllocateOneAndPopulate<MeshProxy>()};
+
+    proxy->is_alive = true;
+    proxy->mesh_handle = geometry.mesh_handle;
+    proxy->vertex_count = static_cast<u32>(geometry.vertices->GetSize());
+    proxy->index_count = static_cast<u32>(geometry.indices->GetSize());
+    proxy->vertex_offset = static_cast<u32>(vertex_offset);
+    proxy->index_offset = static_cast<u32>(index_offset);
+
+    const auto proxy_handle{proxies_.Create(geometry.mesh_handle, proxy)};
+    COMET_ASSERT(proxy_handle, "MeshHandler::AddMeshProxies",
+                 "mesh proxy registry creation failed", "mesh_handle",
+                 geometry.mesh_handle);
   }
 }
 
@@ -364,16 +404,16 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
       continue;
     }
 
-    const auto proxy_index{static_cast<usize>(mesh.mesh_handle.GetIndex())};
+    const auto proxy_handle{proxies_.TryGetHandle(mesh.mesh_handle)};
 
-    if (proxy_index >= proxies_.GetSize() || !proxies_[proxy_index].is_alive) {
+    if (!proxy_handle) {
       COMET_LOG_WARNING(LoggerType::Rendering, "MeshHandler::UpdateMeshProxies",
                         "mesh proxy not found", "mesh_handle",
                         mesh.mesh_handle);
       continue;
     }
 
-    auto& proxy{proxies_[proxy_index]};
+    auto* proxy{proxies_.Get(proxy_handle)};
 
     const auto new_vertex_size{static_cast<VkDeviceSize>(
         mesh.vertices->GetSize() * sizeof(geometry::SkinnedVertex))};
@@ -381,14 +421,14 @@ void MeshHandler::UpdateMeshProxies(const frame::DirtyMeshes* meshes,
         mesh.indices->GetSize() * sizeof(geometry::Index))};
 
     const auto vertex_offset{vertex_buffer_.CheckOrMove(
-        proxy.vertex_offset, proxy.vertex_count, new_vertex_size)};
+        proxy->vertex_offset, proxy->vertex_count, mesh.vertices->GetSize())};
     const auto index_offset{index_buffer_.CheckOrMove(
-        proxy.index_offset, proxy.index_count, new_index_size)};
+        proxy->index_offset, proxy->index_count, mesh.indices->GetSize())};
 
-    proxy.vertex_count = static_cast<u32>(mesh.vertices->GetSize());
-    proxy.index_count = static_cast<u32>(mesh.indices->GetSize());
-    proxy.vertex_offset = static_cast<u32>(vertex_offset);
-    proxy.index_offset = static_cast<u32>(index_offset);
+    proxy->vertex_count = static_cast<u32>(mesh.vertices->GetSize());
+    proxy->index_count = static_cast<u32>(mesh.indices->GetSize());
+    proxy->vertex_offset = static_cast<u32>(vertex_offset);
+    proxy->index_offset = static_cast<u32>(index_offset);
 
     memory::CopyMemory(memory + update_context.current_staging_vertex_offset,
                        mesh.vertices->GetData(), new_vertex_size);
@@ -419,32 +459,42 @@ void MeshHandler::DestroyMeshProxies(
       continue;
     }
 
-    const auto proxy_index{static_cast<usize>(geometry.mesh_handle.GetIndex())};
+    const auto proxy_handle{proxies_.TryGetHandle(geometry.mesh_handle)};
 
-    if (proxy_index >= proxies_.GetSize() || !proxies_[proxy_index].is_alive) {
+    if (!proxy_handle) {
       COMET_LOG_WARNING(
           LoggerType::Rendering, "MeshHandler::DestroyMeshProxies",
           "mesh proxy not found", "mesh_handle", geometry.mesh_handle);
       continue;
     }
 
-    auto& proxy{proxies_[proxy_index]};
-    vertex_buffer_.Release(proxy.vertex_offset, proxy.vertex_count);
-    index_buffer_.Release(proxy.index_offset, proxy.index_count);
-    proxy = {};
+    auto* proxy{proxies_.Get(proxy_handle)};
+
+    if (!proxies_.Release(proxy_handle)) {
+      continue;
+    }
+
+    vertex_buffer_.Release(proxy->vertex_offset, proxy->vertex_count);
+    index_buffer_.Release(proxy->index_offset, proxy->index_count);
+
+    proxies_.Remove(proxy_handle);
+    allocator_.Deallocate(proxy);
   }
 }
 
-void MeshHandler::UploadMeshProxies(
+internal::MeshUploadResult MeshHandler::UploadMeshProxies(
     const internal::UpdateContext& update_context) {
   COMET_PROFILE("MeshHandler::UploadMeshProxies");
 
-  is_transfer_ =
-      !vertex_buffer_.Upload(update_context.command_buffer_handle,
-                             staging_buffer_,
-                             update_context.vertex_copy_regions) ||
-      !index_buffer_.Upload(update_context.command_buffer_handle,
-                            staging_buffer_, update_context.index_copy_regions);
+  internal::MeshUploadResult result{};
+  result.uploaded_vertex = vertex_buffer_.Upload(
+      update_context.command_buffer_handle, staging_buffer_,
+      update_context.vertex_copy_regions);
+  result.uploaded_index =
+      index_buffer_.Upload(update_context.command_buffer_handle,
+                           staging_buffer_, update_context.index_copy_regions);
+
+  return result;
 }
 }  // namespace vk
 }  // namespace rendering

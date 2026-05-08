@@ -1,0 +1,168 @@
+{
+  "shader_module_paths": [
+    "shaders/vulkan/shadow_cull.vk.comp"
+  ],
+  "bindings": [
+    {
+      "name": "ProxyLocalDatas",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 0,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "localCenter",
+          "type": "vec4"
+        },
+        {
+          "name": "localMaxExtents",
+          "type": "vec4"
+        },
+        {
+          "name": "transform",
+          "type": "mat4"
+        },
+        {
+          "name": "skinningOffset",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "ShadowProxyIds",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 1,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "proxyId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "ProxyInstances",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 2,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "proxyId",
+          "type": "u32"
+        },
+        {
+          "name": "batchId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "ShadowIndirectProxies",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 3,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "indexCount",
+          "type": "u32"
+        },
+        {
+          "name": "instanceCount",
+          "type": "u32"
+        },
+        {
+          "name": "firstIndex",
+          "type": "u32"
+        },
+        {
+          "name": "vertexOffset",
+          "type": "s32"
+        },
+        {
+          "name": "firstInstance",
+          "type": "u32"
+        },
+        {
+          "name": "proxyId",
+          "type": "u32"
+        },
+        {
+          "name": "batchId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "ShadowDebugData",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 4,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "visibleCount",
+          "type": "u32"
+        }
+      ]
+    }
+  ],
+  "push_constants": [
+    {
+      "name": "ShadowCullPushConstants",
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "drawCount",
+          "type": "u32"
+        },
+        {
+          "name": "indirectOffset",
+          "type": "u32"
+        },
+        {
+          "name": "proxyIdOffset",
+          "type": "u32"
+        },
+        {
+          "name": "cascadeIndex",
+          "type": "u32"
+        },
+        {
+          "name": "viewProj",
+          "type": "mat4"
+        }
+      ]
+    }
+  ],
+  "defines": [
+    {
+      "name": "COMET_DEBUG_RENDERING",
+      "value": "1"
+    }
+  ]
+}

@@ -12,7 +12,6 @@
 #include "comet/core/essentials.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
 #include "comet/rendering/driver/vulkan/type/vulkan_shadow.h"
@@ -24,7 +23,6 @@ namespace rendering {
 namespace vk {
 struct ShadowViewDescr : ViewDescr {
   ShaderHandler* shader_handler{nullptr};
-  PipelineHandler* pipeline_handler{nullptr};
   RenderProxyHandler* render_proxy_handler{nullptr};
   LightingHandler* lighting_handler{nullptr};
   MeshHandler* mesh_handler{nullptr};
@@ -40,7 +38,10 @@ class ShadowView : public View {
   ShadowView& operator=(ShadowView&&) = delete;
   ~ShadowView() override = default;
 
-  void Update(frame::FramePacket*) override;
+  void Prepare(const ViewUpdate&) override;
+  void Begin(const ViewUpdate& update) override;
+  void Draw(const ViewUpdate& update) override;
+  void End(const ViewUpdate& update) override;
 
  protected:
   void OnInitialize() override;
@@ -49,7 +50,7 @@ class ShadowView : public View {
  private:
   void UpdateShadowShaderPassData();
   void PushShadowConstants(const ShadowRenderJob& job);
-  void DrawShadowCasters();
+  void DrawShadowCasters(u32 shadow_job_index);
 
   void SetViewportAndScissor(VkExtent2D extent) const;
 
@@ -69,7 +70,6 @@ class ShadowView : public View {
                              VkPipelineStageFlags dst_stage_mask) const;
 
   ShaderHandler* shader_handler_{nullptr};
-  PipelineHandler* pipeline_handler_{nullptr};
   RenderProxyHandler* render_proxy_handler_{nullptr};
   LightingHandler* lighting_handler_{nullptr};
   MeshHandler* mesh_handler_{nullptr};

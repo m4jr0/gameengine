@@ -20,6 +20,8 @@
 #include "comet/core/memory/memory.h"
 #include "comet/core/type/array.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
+#include "comet/rendering/driver/vulkan/handler/vulkan_debug_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
 #include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
@@ -82,6 +84,10 @@ class VulkanDriver : public Driver {
   void PostDraw();
   void Draw(frame::FramePacket* packet);
 
+  void BeginUploadCommands();
+  void SubmitUploadCommands();
+  void ResetUploadFrameState();
+
   void WaitForFences();
   void HandleSwapchainState(frame::FramePacket* packet);
   void ResetRenderFence(FrameData& frame_data);
@@ -118,7 +124,12 @@ class VulkanDriver : public Driver {
   memory::UniquePtr<ShaderModuleHandler> shader_module_handler_{nullptr};
   memory::UniquePtr<TextureHandler> texture_handler_{nullptr};
   memory::UniquePtr<LightingHandler> lighting_handler_{nullptr};
+  memory::UniquePtr<CameraHandler> camera_handler_{nullptr};
   memory::UniquePtr<ViewHandler> view_handler_{nullptr};
+
+#ifdef COMET_DEBUG_RENDERING
+  memory::UniquePtr<DebugHandler> debug_handler_{nullptr};
+#endif  // COMET_DEBUG_RENDERING
 
 #ifdef COMET_DEBUG_RENDERING
   void InitializeDebugMessenger();

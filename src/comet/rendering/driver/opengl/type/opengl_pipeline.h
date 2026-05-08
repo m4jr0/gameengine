@@ -25,4 +25,5 @@ struct DepthStencilState {
 }  // namespace gl
 }  // namespace rendering
 }  // namespace comet
+
 #endif  // COMET_COMET_RENDERING_DRIVER_OPENGL_TYPE_OPENGL_PIPELINE_H_

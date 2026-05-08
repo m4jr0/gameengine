@@ -38,7 +38,8 @@ struct StageTimes {
   FrameStageTimestamp end{kInvalidFrameStageTimestamp};
 };
 
-constexpr auto kFrameStageCount{4};
+constexpr usize kFrameStageCount{4};
+constexpr usize kMaxCameraViewCount{2};
 
 #ifdef COMET_DEBUG
 using FramePacketDebugId = usize;
@@ -120,6 +121,8 @@ HashValue GenerateHash(const AddedLight& value);
 HashValue GenerateHash(const DirtyLight& value);
 HashValue GenerateHash(const RemovedLight& value);
 
+using CameraViews = DoubleFrameArray<rendering::CameraView>;
+
 using AddedGeometries = DoubleFrameOrderedSet<AddedGeometry>;
 using DirtyMeshes = DoubleFrameOrderedSet<DirtyMesh>;
 using DirtyTransforms = DoubleFrameOrderedSet<DirtyTransform>;
@@ -162,12 +165,23 @@ struct FramePacket {
 
   void RegisterRemovedLight(rendering::LightHandle light_handle);
 
+  const rendering::CameraView* GetMainCameraView() const;
+  const rendering::RenderCameraData* GetMainCameraData() const;
+#ifdef COMET_DEBUG
+  const rendering::CameraView* GetDebugCameraView() const;
+  const rendering::RenderCameraData* GetDebugCameraData() const;
+#endif  // COMET_DEBUG
+
   bool IsFrameStageStarted(FrameStage stage) const;
   bool IsFrameStageFinished(FrameStage stage) const;
 
   void Reset();
 
+  bool is_populated{false};
   bool can_present{true};
+#ifdef COMET_DEBUG
+  bool has_debug_camera{false};
+#endif  // COMET_DEBUG
   FrameCount frame_count{0};
   f64 lag{.0f};
   f64 time{.0f};
@@ -175,7 +189,9 @@ struct FramePacket {
   StageTimes stage_times[kFrameStageCount]{};
   math::Vec3 ambient_color{rendering::kColorWhiteRgb};
   usize draw_count{0};
-  rendering::RenderCameraData camera_data{};
+
+  usize main_camera_view_index{kInvalidIndex};
+  CameraViews* camera_views{nullptr};
 
   AddedGeometries* added_geometries{nullptr};
   DirtyMeshes* dirty_meshes{nullptr};

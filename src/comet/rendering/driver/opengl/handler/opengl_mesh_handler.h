@@ -12,8 +12,11 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_container.h"
 #include "comet/core/frame/frame_packet.h"
+#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/array.h"
+#include "comet/core/type/shared_instance_registry.h"
 #include "comet/geometry/type/mesh.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/type/opengl_mesh.h"
@@ -37,9 +40,6 @@ struct UpdateContext {
   frame::FrameArray<GpuBufferCopyRegion> index_copy_regions{};
   void* staging_buffer{nullptr};
 };
-
-template <typename T>
-struct GpuBuffer {};
 }  // namespace internal
 
 using MeshHandlerDescr = HandlerDescr;
@@ -68,12 +68,17 @@ class MeshHandler : public Handler {
   void OnShutdown() override;
 
  private:
-  static inline constexpr usize kVertexCountPerBlock_{1024};
+  struct MeshProxyRegistryTag;
+  using MeshProxyRegistry =
+      SharedInstanceRegistry<geometry::MeshHandle, MeshProxyRegistryTag,
+                             MeshProxy>;
+
+  static inline constexpr usize kVertexCountPerBlock_{2048};
   static inline constexpr usize kIndexCountPerBlock_{3 * kVertexCountPerBlock_};
   static inline constexpr usize kDefaultVertexCount_{
       memory::RoundUpToMultiple(3'000'000, kVertexCountPerBlock_)};
   static inline constexpr usize kDefaultIndexCount_{memory::RoundUpToMultiple(
-      kIndexCountPerBlock_, 3 * kDefaultVertexCount_)};
+      3 * kDefaultVertexCount_, kIndexCountPerBlock_)};
   static inline constexpr usize kDefaultStagingBufferSize_{
       kDefaultVertexCount_ * sizeof(geometry::SkinnedVertex) +
       kDefaultIndexCount_ * sizeof(geometry::Index)};
@@ -92,9 +97,13 @@ class MeshHandler : public Handler {
   static constexpr usize kDefaultProxyCount_{4096};
 
   memory::FiberFreeListAllocator allocator_{
-      sizeof(u32), sizeof(u32) * kDefaultProxyCount_ * 64,
+      sizeof(MeshProxy), sizeof(MeshProxy) * kDefaultProxyCount_,
       memory::kEngineMemoryTagRendering};
-  Array<MeshProxy> proxies_{};
+
+  memory::PlatformAllocator registry_allocator_{
+      memory::kEngineMemoryTagRendering};
+
+  MeshProxyRegistry proxies_{};
   VertexGpuBuffer vertex_buffer_{};
   IndexGpuBuffer index_buffer_{};
 };

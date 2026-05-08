@@ -20,6 +20,11 @@ struct MeshProxy {
   u32 vertex_offset{0};
   u32 index_offset{0};
 };
+
+struct GpuDebugLineVertex {
+  math::Vec4 position{.0f};
+  math::Vec4 color{.0f};
+};
 }  // namespace vk
 }  // namespace rendering
 }  // namespace comet

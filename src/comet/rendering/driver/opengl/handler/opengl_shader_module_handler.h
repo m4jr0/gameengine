@@ -16,6 +16,7 @@
 #include "comet/rendering/driver/opengl/type/opengl_shader.h"
 #include "comet/rendering/driver/opengl/type/opengl_shader_module.h"
 #include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/type/pipeline.h"
 #include "comet/resource/shader/shader_module_resource.h"
 
 namespace comet {
@@ -41,7 +42,7 @@ class ShaderModuleHandler : public Handler {
   void Detach(const Shader* shader, ShaderModuleHandle handle) const;
 
   GLenum GetStage(ShaderModuleHandle handle) const;
-  ShaderBindType GetBindType(ShaderModuleHandle handle) const;
+  PipelineBindType GetBindType(ShaderModuleHandle handle) const;
 
  protected:
   void OnInitialize() override;

@@ -11,6 +11,7 @@
 #include "opengl_view_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/rendering/driver/opengl/type/opengl_storage.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 
 namespace comet {
@@ -34,31 +35,12 @@ void AddWorldGlobalFieldUpdates(
       shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
                                       sharedshaderconsts::kGlobalUboBinding)};
 
-  const auto& camera_data{packet->camera_data};
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 worldshaderconsts::kProjectionFieldIndex,
-                 &camera_data.projection_matrix,
-                 sizeof(camera_data.projection_matrix));
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 worldshaderconsts::kViewFieldIndex, &camera_data.view_matrix,
-                 sizeof(camera_data.view_matrix));
-
-  auto* ambient_color{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
+  const auto* ambient_color{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
       math::Vec4, packet->ambient_color.r, packet->ambient_color.g,
       packet->ambient_color.b, 1.0f)};
 
   AddFieldUpdate(field_updates, global_binding_index,
                  worldshaderconsts::kAmbientColorFieldIndex, ambient_color,
-                 sizeof(math::Vec4));
-
-  auto* view_position{COMET_FRAME_ALLOC_ONE_AND_POPULATE(
-      math::Vec4, camera_data.view_position.x, camera_data.view_position.y,
-      camera_data.view_position.z, .0f)};
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 worldshaderconsts::kViewPositionFieldIndex, view_position,
                  sizeof(math::Vec4));
 }
 
@@ -67,17 +49,22 @@ void AddWorldGlobalImageBindings(
     const TextureMap* shadow_map,
     frame::FrameArray<ShaderImageBindingUpdate>& image_bindings,
     frame::FrameArray<ShaderImageDescriptor>& image_descriptors) {
+  if (shadow_map == nullptr) {
+    return;
+  }
+
+  COMET_ASSERT(shadow_map->texture_handle,
+               "opengl_view_shader_utils::AddWorldGlobalImageBindings",
+               "shadow map texture handle is invalid");
+  COMET_ASSERT(shadow_map->sampler_handle,
+               "opengl_view_shader_utils::AddWorldGlobalImageBindings",
+               "shadow map sampler handle is invalid");
   COMET_ASSERT(shader_handler != nullptr,
                "opengl_view_shader_utils::AddWorldGlobalImageBindings",
                "shader handler is null");
   COMET_ASSERT(shader_handle,
                "opengl_view_shader_utils::AddWorldGlobalImageBindings",
                "shader handle is invalid");
-
-  if (shadow_map == nullptr || !shadow_map->texture_handle ||
-      !shadow_map->sampler_handle) {
-    return;
-  }
 
   const auto binding_index{shader_handler->GetBindingIndex(
       shader_handle, shaderconsts::kGlobalSet,
@@ -85,43 +72,12 @@ void AddWorldGlobalImageBindings(
 
   image_descriptors.Clear();
   image_descriptors.Reserve(1);
-
-  auto& descriptor{image_descriptors.EmplaceLast()};
-  descriptor.texture_handle = shadow_map->texture_handle;
-  descriptor.sampler_handle = shadow_map->sampler_handle;
+  image_descriptors.PushLast(GenerateImageDescriptor(
+      ShaderBindingType::CombinedImageSampler, shadow_map->texture_handle,
+      shadow_map->sampler_handle));
 
   AddImageBinding(image_bindings, binding_index, image_descriptors.GetData(),
                   static_cast<u32>(image_descriptors.GetSize()));
-}
-
-void AddDebugGlobalFieldUpdates(
-    ShaderHandler* shader_handler, ShaderHandle shader_handle,
-    const frame::FramePacket* packet,
-    frame::FrameArray<ShaderBufferFieldUpdate>& field_updates) {
-  COMET_ASSERT(shader_handler != nullptr,
-               "opengl_view_shader_utils::AddDebugGlobalFieldUpdates",
-               "shader handler is null");
-  COMET_ASSERT(shader_handle,
-               "opengl_view_shader_utils::AddDebugGlobalFieldUpdates",
-               "shader handle is invalid");
-  COMET_ASSERT(packet != nullptr,
-               "opengl_view_shader_utils::AddDebugGlobalFieldUpdates",
-               "frame packet is null");
-
-  const auto global_binding_index{
-      shader_handler->GetBindingIndex(shader_handle, shaderconsts::kGlobalSet,
-                                      sharedshaderconsts::kGlobalUboBinding)};
-
-  const auto& camera_data{packet->camera_data};
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 debugshaderconsts::kProjectionFieldIndex,
-                 &camera_data.projection_matrix,
-                 sizeof(camera_data.projection_matrix));
-
-  AddFieldUpdate(field_updates, global_binding_index,
-                 debugshaderconsts::kViewFieldIndex, &camera_data.view_matrix,
-                 sizeof(camera_data.view_matrix));
 }
 
 void AddWorldShadowSettingsFieldUpdates(
@@ -160,6 +116,38 @@ void AddWorldShadowSettingsFieldUpdates(
   AddFieldUpdate(field_updates, binding_index,
                  worldshaderconsts::kShadowSettingsParams1FieldIndex, params1,
                  sizeof(math::S32Vec4));
+}
+
+void AddCameraBufferBinding(
+    ShaderHandler* shader_handler, const CameraHandler* camera_handler,
+    ShaderHandle shader_handle, FrameInFlightIndex frame_index,
+    frame::FrameArray<ShaderBufferBindingUpdate>& buffer_bindings) {
+  COMET_ASSERT(shader_handler != nullptr,
+               "opengl_view_shader_utils::AddCameraBufferBinding",
+               "shader handler is null");
+  COMET_ASSERT(camera_handler != nullptr,
+               "opengl_view_shader_utils::AddCameraBufferBinding",
+               "camera handler is null");
+  COMET_ASSERT(shader_handle,
+               "opengl_view_shader_utils::AddCameraBufferBinding",
+               "shader handle is invalid");
+
+  const auto camera_gpu_data{camera_handler->GetGpuData(frame_index)};
+
+  COMET_ASSERT(
+      camera_gpu_data.ssbo_camera_datas_handle != kInvalidGlNativeStorageHandle,
+      "opengl_view_shader_utils::AddCameraBufferBinding",
+      "camera buffer handle is invalid", "frame_index", frame_index);
+  COMET_ASSERT(camera_gpu_data.ssbo_camera_datas_size > 0,
+               "opengl_view_shader_utils::AddCameraBufferBinding",
+               "camera buffer size is zero", "frame_index", frame_index);
+
+  AddBufferBinding(
+      buffer_bindings,
+      shader_handler->GetBindingIndex(shader_handle, shaderconsts::kPassSet,
+                                      sharedshaderconsts::kCameraDatasBinding),
+      camera_gpu_data.ssbo_camera_datas_handle,
+      camera_gpu_data.ssbo_camera_datas_size);
 }
 }  // namespace gl
 }  // namespace rendering

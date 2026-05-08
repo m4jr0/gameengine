@@ -13,6 +13,13 @@
 
 namespace comet {
 namespace editor {
+enum class ControlledCamera {
+  Game,
+#ifdef COMET_DEBUG
+  Debug,
+#endif  // COMET_DEBUG
+};
+
 class CameraHandler {
  public:
   CameraHandler() = default;
@@ -37,6 +44,11 @@ class CameraHandler {
 
   void ResetMousePosition();
 
+  void SwitchControlledCamera();
+  void StopMouseActions();
+
+  rendering::CameraHandle GetControlledCamera() const;
+
   static constexpr f32 kKeyboardMovementSensitivity_{.05f};
   static constexpr f32 kMouseOrbitSensitivity_{.002f};
   static constexpr f32 kMouseRotationSensitivity_{.0005f};
@@ -60,10 +72,15 @@ class CameraHandler {
   bool is_panning_from_mouse_{false};
   bool is_zooming_from_mouse_{false};
 
+  ControlledCamera controlled_camera_{ControlledCamera::Game};
+
   math::Vec2 current_mouse_pos_{.0f, .0f};
   math::Vec2 last_mouse_pos_{.0f, .0f};
 
-  rendering::CameraHandle camera_{};
+  rendering::CameraHandle game_camera_{};
+#ifdef COMET_DEBUG
+  rendering::CameraHandle debug_camera_{};
+#endif  // COMET_DEBUG
 };
 }  // namespace editor
 }  // namespace comet

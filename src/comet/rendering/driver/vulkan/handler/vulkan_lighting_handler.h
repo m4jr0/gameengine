@@ -76,7 +76,6 @@ class LightingHandler : public Handler {
 
  private:
   static inline constexpr usize kDefaultLightCount_{128};
-  static inline constexpr u32 kShadowLayerCapacity_{128};
   static inline constexpr u32 kMaxShadowCascades_{4};
 
   void AddLights(const frame::AddedLights* lights);
@@ -113,12 +112,12 @@ class LightingHandler : public Handler {
   bool IsLightSlotAlive(usize index) const noexcept;
   bool IsShadowSlotAlive(usize index) const noexcept;
 
-  void PopulateCascadeSplits(const RenderCameraData& camera_data,
+  void PopulateCascadeSplits(const RenderCameraData* camera_data,
                              f32 max_distance, u32 cascade_count, f32 lambda,
                              f32* out_splits) const;
 
   math::Mat4 ComputeDirectionalCascadeViewProj(
-      const RenderCameraData& camera_data, const math::Vec3& light_dir,
+      const math::Vec3& light_dir, const StaticArray<math::Vec3, 8>& corners,
       f32 cascade_near, f32 cascade_far) const;
 
   math::Mat4 ComputeSpotLightViewProj(const LightProperties& props,

@@ -1,0 +1,200 @@
+#version 460 core
+
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef LOCAL_SIZE
+#define LOCAL_SIZE 256
+#endif  // LOCAL_SIZE
+
+struct ProxyLocalData {
+  vec4 localCenter;
+  vec4 localMaxExtents;
+  mat4 transform;
+  uint skinningOffset;
+};
+
+struct ProxyInstance {
+  uint proxyId;
+  uint batchId;
+};
+
+struct ShadowIndirectProxy {
+  uint indexCount;
+  uint instanceCount;
+  uint firstIndex;
+  int vertexOffset;
+  uint firstInstance;
+  uint proxyId;
+  uint batchId;
+};
+
+#ifdef COMET_DEBUG_RENDERING
+struct DebugData {
+  uint visibleCount;
+};
+#endif  // COMET_DEBUG_RENDERING
+
+layout(local_size_x = LOCAL_SIZE) in;
+
+layout(std430, binding = 20) readonly buffer InProxyLocalDatasSsbo {
+  ProxyLocalData inProxyLocalDatas[];
+};
+
+layout(std430, binding = 21) buffer OutShadowProxyIdsSsbo {
+  uint outShadowProxyIds[];
+};
+
+layout(std430, binding = 22) readonly buffer InProxyInstancesSsbo {
+  ProxyInstance inProxyInstances[];
+};
+
+layout(std430, binding = 23) buffer InShadowIndirectProxiesSsbo {
+  ShadowIndirectProxy inShadowIndirectProxies[];
+};
+
+#ifdef COMET_DEBUG_RENDERING
+layout(std430, binding = 24) buffer OutShadowDebugDataSsbo {
+  uint visibleCount[];
+};
+#endif  // COMET_DEBUG_RENDERING
+
+layout(std140, binding = 50) uniform ShadowCullPushConstants {
+  uint drawCount;
+  uint indirectOffset;
+  uint proxyIdOffset;
+  uint cascadeIndex;
+  mat4 viewProj;
+}
+pushConstants;
+
+shared vec4 sharedFrustumPlanes[6];
+
+vec4 GetRow(mat4 m, int row) {
+  return vec4(m[0][row], m[1][row], m[2][row], m[3][row]);
+}
+
+vec4 NormalizePlane(vec4 plane) {
+  float len = length(plane.xyz);
+
+  if (len <= 0.000001) {
+    return plane;
+  }
+
+  return plane / len;
+}
+
+void GenerateFrustumPlanes(mat4 viewProj) {
+  vec4 row0 = GetRow(viewProj, 0);
+  vec4 row1 = GetRow(viewProj, 1);
+  vec4 row2 = GetRow(viewProj, 2);
+  vec4 row3 = GetRow(viewProj, 3);
+
+#ifdef COMET_RENDERING_OPENGL_CLIP_CONTROL_ZERO_TO_ONE
+  sharedFrustumPlanes[0] = NormalizePlane(row3 + row0);
+  sharedFrustumPlanes[1] = NormalizePlane(row3 - row0);
+  sharedFrustumPlanes[2] = NormalizePlane(row3 + row1);
+  sharedFrustumPlanes[3] = NormalizePlane(row3 - row1);
+  sharedFrustumPlanes[4] = NormalizePlane(row2);
+  sharedFrustumPlanes[5] = NormalizePlane(row3 - row2);
+#else
+  sharedFrustumPlanes[0] = NormalizePlane(row3 + row0);
+  sharedFrustumPlanes[1] = NormalizePlane(row3 - row0);
+  sharedFrustumPlanes[2] = NormalizePlane(row3 + row1);
+  sharedFrustumPlanes[3] = NormalizePlane(row3 - row1);
+  sharedFrustumPlanes[4] = NormalizePlane(row3 + row2);
+  sharedFrustumPlanes[5] = NormalizePlane(row3 - row2);
+#endif  // COMET_RENDERING_OPENGL_CLIP_CONTROL_ZERO_TO_ONE
+}
+
+bool IsAabbInOrOnPlane(vec4 plane, vec3 center, vec3 extents) {
+  float radius = dot(extents, abs(plane.xyz));
+  float signedDistance = dot(plane.xyz, center) + plane.w;
+  return signedDistance >= -radius;
+}
+
+void GenerateWorldAabb(vec3 localCenter, vec3 localExtents, mat4 transform,
+                       out vec3 outCenter, out vec3 outExtents) {
+  vec3 localMin = localCenter - localExtents;
+  vec3 localMax = localCenter + localExtents;
+
+  mat3 basis = mat3(transform);
+  vec3 worldMin = vec3(0.0);
+  vec3 worldMax = vec3(0.0);
+
+  for (int axis = 0; axis < 3; ++axis) {
+    for (int component = 0; component < 3; ++component) {
+      float a = basis[component][axis] * localMin[component];
+      float b = basis[component][axis] * localMax[component];
+
+      if (a < b) {
+        worldMin[axis] += a;
+        worldMax[axis] += b;
+      } else {
+        worldMin[axis] += b;
+        worldMax[axis] += a;
+      }
+    }
+  }
+
+  vec3 translation = transform[3].xyz;
+  worldMin += translation;
+  worldMax += translation;
+
+  outCenter = 0.5 * (worldMin + worldMax);
+  outExtents = worldMax - outCenter;
+}
+
+bool IsWorldAabbVisible(vec3 center, vec3 extents) {
+  for (int i = 0; i < 6; ++i) {
+    if (!IsAabbInOrOnPlane(sharedFrustumPlanes[i], center, extents)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void main() {
+  uint drawIndex = gl_GlobalInvocationID.x;
+
+  if (drawIndex >= pushConstants.drawCount) {
+    return;
+  }
+
+  if (gl_LocalInvocationIndex == 0) {
+    GenerateFrustumPlanes(pushConstants.viewProj);
+  }
+
+  barrier();
+
+  uint proxyId = inProxyInstances[drawIndex].proxyId;
+  ProxyLocalData proxyData = inProxyLocalDatas[proxyId];
+
+  vec3 center;
+  vec3 extents;
+  GenerateWorldAabb(proxyData.localCenter.xyz, proxyData.localMaxExtents.xyz,
+                    proxyData.transform, center, extents);
+
+  extents *= 1.05;
+
+  if (!IsWorldAabbVisible(center, extents)) {
+    return;
+  }
+
+#ifdef COMET_DEBUG_RENDERING
+  atomicAdd(visibleCount[pushConstants.cascadeIndex], 1u);
+#endif  // COMET_DEBUG_RENDERING
+
+  uint batchId = inProxyInstances[drawIndex].batchId;
+  uint packedBatchId = pushConstants.indirectOffset + batchId;
+
+  uint visibleIndexInBatch =
+      atomicAdd(inShadowIndirectProxies[packedBatchId].instanceCount, 1u);
+
+  uint instanceIndex = inShadowIndirectProxies[packedBatchId].firstInstance +
+                       visibleIndexInBatch;
+
+  outShadowProxyIds[instanceIndex] = proxyId;
+}

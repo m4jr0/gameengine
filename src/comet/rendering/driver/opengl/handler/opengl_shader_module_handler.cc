@@ -81,8 +81,7 @@ void ShaderModuleHandler::Attach(const Shader* shader,
       "ShaderModuleHandler::Attach", "shader module native handle is invalid",
       "shader_module_handle", handle);
 
-  glAttachShader(ResolveProgramHandle(shader, shader_module->bind_type),
-                 shader_module->native_handle);
+  glAttachShader(shader->program_native_handle, shader_module->native_handle);
 }
 
 void ShaderModuleHandler::Detach(const Shader* shader,
@@ -96,15 +95,14 @@ void ShaderModuleHandler::Detach(const Shader* shader,
       "ShaderModuleHandler::Detach", "shader module native handle is invalid",
       "shader_module_handle", handle);
 
-  glDetachShader(ResolveProgramHandle(shader, shader_module->bind_type),
-                 shader_module->native_handle);
+  glDetachShader(shader->program_native_handle, shader_module->native_handle);
 }
 
 GLenum ShaderModuleHandler::GetStage(ShaderModuleHandle handle) const {
   return Get(handle)->stage;
 }
 
-ShaderBindType ShaderModuleHandler::GetBindType(
+PipelineBindType ShaderModuleHandler::GetBindType(
     ShaderModuleHandle handle) const {
   return Get(handle)->bind_type;
 }
@@ -190,8 +188,8 @@ ShaderModule* ShaderModuleHandler::GenerateShaderModule(
   shader_module->code_size = static_cast<usize>(code_size);
   shader_module->stage = GetGlStage(shader_module_resource->descr.stage);
   shader_module->bind_type = shader_module->stage == GL_COMPUTE_SHADER
-                                 ? ShaderBindType::Compute
-                                 : ShaderBindType::Graphics;
+                                 ? PipelineBindType::Compute
+                                 : PipelineBindType::Graphics;
 
   shader_module->native_handle = glCreateShader(shader_module->stage);
   COMET_ASSERT(

@@ -14,11 +14,6 @@ struct ProxyLocalData {
   uint skinningOffset;
 };
 
-struct ProxyInstance {
-  uint proxyId;
-  uint batchId;
-};
-
 layout(location = 0) in vec3 inPosition;
 layout(location = 5) in uvec4 inJointIndices;
 layout(location = 6) in vec4 inJointWeights;
@@ -27,8 +22,8 @@ layout(std430, binding = 20) readonly buffer InProxyLocalDatasSsbo {
   ProxyLocalData inProxyLocalDatas[];
 };
 
-layout(std430, binding = 22) readonly buffer InProxyInstancesSsbo {
-  ProxyInstance inProxyInstances[];
+layout(std430, binding = 21) readonly buffer InShadowProxyIdsSsbo {
+  uint inShadowProxyIds[];
 };
 
 layout(std430, binding = 27) readonly buffer InSkinningMatricesSsbo {
@@ -36,7 +31,7 @@ layout(std430, binding = 27) readonly buffer InSkinningMatricesSsbo {
 };
 
 layout(std140, binding = 50) uniform ShadowPushConstants { mat4 lightViewProj; }
-pushConstants;
+shadowPush;
 
 vec4 ApplySkinning(vec4 pos, uint offset) {
   if (offset == InvalidSkinningMatrixOffset) {
@@ -66,12 +61,12 @@ vec4 ApplySkinning(vec4 pos, uint offset) {
 
 void main() {
   uint instanceIndex = gl_BaseInstance + gl_InstanceID;
-  uint proxyId = inProxyInstances[instanceIndex].proxyId;
+  uint proxyId = inShadowProxyIds[instanceIndex];
   ProxyLocalData proxy = inProxyLocalDatas[proxyId];
 
   vec4 skinnedPosition =
       ApplySkinning(vec4(inPosition, 1.0), proxy.skinningOffset);
   vec4 worldPos = proxy.transform * skinnedPosition;
 
-  gl_Position = pushConstants.lightViewProj * worldPos;
+  gl_Position = shadowPush.lightViewProj * worldPos;
 }

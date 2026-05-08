@@ -29,17 +29,27 @@ ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
   COMET_ASSERT(window_ != nullptr, "ImGuiView::ImGuiView", "window is null");
 }
 
-void ImGuiView::Update(frame::FramePacket*) {
-  COMET_PROFILE("ImGuiView::Update");
+void ImGuiView::Prepare(const ViewUpdate&) {
+  COMET_PROFILE("ImGuiView::Prepare");
+
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  Draw();
+  DrawDebugUi();
 
   ImGui::Render();
+}
+
+void ImGuiView::Begin(const ViewUpdate&) { COMET_PROFILE("ImGuiView::Begin"); }
+
+void ImGuiView::Draw(const ViewUpdate&) {
+  COMET_PROFILE("ImGuiView::Draw");
+
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
+
+void ImGuiView::End(const ViewUpdate&) { COMET_PROFILE("ImGuiView::End"); }
 
 void ImGuiView::OnInitialize() {
 #ifdef COMET_DEBUG
@@ -56,9 +66,11 @@ void ImGuiView::OnDestroy() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
+
+  window_ = nullptr;
 }
 
-void ImGuiView::Draw() const {
+void ImGuiView::DrawDebugUi() const {
 #ifdef COMET_HAS_DEBUG_UI
   DebugUiRegistry::Get().Draw();
 #endif  // COMET_HAS_DEBUG_UI

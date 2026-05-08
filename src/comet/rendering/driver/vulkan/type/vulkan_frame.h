@@ -34,6 +34,12 @@ struct FrameData {
   VkCommandBuffer command_buffer_handle{VK_NULL_HANDLE};
   VkSemaphore present_semaphore_handle{VK_NULL_HANDLE};
   VkFence render_fence_handle{VK_NULL_HANDLE};
+
+  VkCommandBuffer upload_command_buffer_handle{VK_NULL_HANDLE};
+  VkFence upload_fence_handle{VK_NULL_HANDLE};
+  u64 upload_timeline_wait_value{0};
+  bool requires_upload_ownership_acquire{false};
+  bool has_upload_submission{false};
 };
 }  // namespace vk
 }  // namespace rendering

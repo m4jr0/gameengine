@@ -45,7 +45,7 @@
 #endif  // COMET_PROFILING
 
 #ifdef COMET_HAS_DEBUG_UI
-#include "comet/debug_ui/debug_ui_manager.h"
+#include "comet/debugging/ui/debug_ui_manager.h"
 #endif  // COMET_HAS_DEBUG_UI
 
 namespace comet {
@@ -178,8 +178,8 @@ void Engine::Shutdown() {
 
   COMET_LOG_INFO(LoggerType::Engine, "Engine::Shutdown", "engine destroyed");
   COMET_LOG_DESTROY();
-  thread::Thread::DetachMainThread();
   COMET_STRING_ID_DESTROY();
+  thread::Thread::DetachMainThread();
   COMET_DESTROY_ALLOCATION_TRACKING();
 
   is_initialized_ = false;
@@ -308,7 +308,7 @@ void Engine::Load() {
   geometry::GeometryManager::Get().Initialize();
   GameLogicManager::Get().Initialize();
 #ifdef COMET_HAS_DEBUG_UI
-  debugui::DebugUiManager::Get().Initialize();
+  debug::DebugUiManager::Get().Initialize();
 #endif  // COMET_HAS_DEBUG_UI
   OnLoadAfter();
 }
@@ -337,7 +337,7 @@ void Engine::PrepareShutdown() {
   OnPrepareShutdownBefore();
 
 #ifdef COMET_HAS_DEBUG_UI
-  debugui::DebugUiManager::Get().PrepareShutdown();
+  debug::DebugUiManager::Get().PrepareShutdown();
 #endif  // COMET_HAS_DEBUG_UI
   environment::EnvironmentManager::Get().PrepareShutdown();
   scene::SceneManager::Get().PrepareShutdown();
@@ -368,7 +368,7 @@ void Engine::PreUnload() {
   UnregisterEvents();
 
 #ifdef COMET_HAS_DEBUG_UI
-  debugui::DebugUiManager::Get().Shutdown();
+  debug::DebugUiManager::Get().Shutdown();
 #endif  // COMET_HAS_DEBUG_UI
   environment::EnvironmentManager::Get().Shutdown();
   scene::SceneManager::Get().Shutdown();

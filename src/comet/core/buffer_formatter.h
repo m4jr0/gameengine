@@ -25,6 +25,49 @@ concept HasBufferFormatter =
       } -> std::same_as<usize>;
     };
 
+template <>
+struct BufferFormatter<schar*> {
+  static usize Format(const schar* value, schar* buffer, usize buffer_len) {
+    if (value == nullptr) {
+      Copy(buffer, kNullLabel, kNullLabelLen);
+      return kNullLabelLen;
+    }
+
+    const auto len{GetLength(value)};
+    const auto copy_len{math::Min(len, buffer_len - 1)};
+
+    Copy(buffer, value, copy_len);
+    buffer[copy_len] = '\0';
+
+    return copy_len;
+  }
+};
+
+template <>
+struct BufferFormatter<const schar*> : BufferFormatter<schar*> {};
+
+template <>
+struct BufferFormatter<wchar*> {
+  static usize Format(const wchar* value, schar* buffer, usize buffer_len) {
+    if (value == nullptr) {
+      Copy(buffer, kNullLabel, kNullLabelLen);
+      return kNullLabelLen;
+    }
+
+    usize i{0};
+
+    for (; i + 1 < buffer_len && value[i] != L'\0'; ++i) {
+      buffer[i] = static_cast<schar>(value[i]);
+    }
+
+    buffer[i] = '\0';
+    return i;
+  }
+};
+
+template <>
+struct BufferFormatter<const wchar*> : BufferFormatter<wchar*> {};
+
 template <typename T>
 struct BufferFormatter<T*> {
   static usize Format(const T* value, schar* buffer, usize buffer_len) {

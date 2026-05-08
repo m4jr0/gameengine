@@ -14,7 +14,6 @@
 #include "comet/core/frame/frame_container.h"
 #include "comet/core/type/array.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
 #include "comet/rendering/driver/vulkan/vulkan_alloc.h"
 #include "comet/rendering/driver/vulkan/vulkan_debug.h"
@@ -164,7 +163,7 @@ bool HasStencilComponent(VkFormat format) {
 
 void CopyBufferToImage(VkCommandBuffer command_buffer_handle,
                        const Buffer& buffer, const Image& image, u32 width,
-                       u32 height) {
+                       u32 height, u32 layer_count) {
   COMET_ASSERT(command_buffer_handle != VK_NULL_HANDLE,
                "vulkan_image_utils::CopyBufferToImage",
                "command buffer handle is invalid");
@@ -175,9 +174,11 @@ void CopyBufferToImage(VkCommandBuffer command_buffer_handle,
                "vulkan_image_utils::CopyBufferToImage",
                "image handle is invalid");
   COMET_ASSERT(width > 0, "vulkan_image_utils::CopyBufferToImage",
-               "image width is zero");
+               "width is zero");
   COMET_ASSERT(height > 0, "vulkan_image_utils::CopyBufferToImage",
-               "image height is zero");
+               "height is zero");
+  COMET_ASSERT(layer_count > 0, "vulkan_image_utils::CopyBufferToImage",
+               "layer count is zero");
 
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
@@ -186,7 +187,7 @@ void CopyBufferToImage(VkCommandBuffer command_buffer_handle,
   region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   region.imageSubresource.mipLevel = 0;
   region.imageSubresource.baseArrayLayer = 0;
-  region.imageSubresource.layerCount = 1;
+  region.imageSubresource.layerCount = layer_count;
   region.imageOffset = {0, 0, 0};
   region.imageExtent = {width, height, 1};
 
@@ -195,25 +196,33 @@ void CopyBufferToImage(VkCommandBuffer command_buffer_handle,
 }
 
 void CopyBufferToImage(const CommandData& command_data, const Buffer& buffer,
-                       const Image& image, u32 width, u32 height) {
+                       const Image& image, u32 width, u32 height,
+                       u32 layer_count) {
   CopyBufferToImage(command_data.command_buffer_handle, buffer, image, width,
-                    height);
+                    height, layer_count);
 }
 
-void TransitionImageLayout(const Context& context, VkImage image_handle,
-                           VkFormat format, VkImageLayout old_layout,
-                           VkImageLayout new_layout, u32 mip_levels,
-                           u32 layer_count, u32 src_queue_family_index,
-                           u32 dst_queue_family_index) {
+void CmdTransitionImageLayoutGraphics(VkCommandBuffer command_buffer_handle,
+                                      VkImage image_handle, VkFormat format,
+                                      VkImageLayout old_layout,
+                                      VkImageLayout new_layout, u32 mip_levels,
+                                      u32 layer_count,
+                                      u32 src_queue_family_index,
+                                      u32 dst_queue_family_index) {
+  COMET_ASSERT(command_buffer_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::CmdTransitionImageLayoutGraphics",
+               "command buffer handle is invalid");
   COMET_ASSERT(image_handle != VK_NULL_HANDLE,
-               "vulkan_image_utils::TransitionImageLayout",
+               "vulkan_image_utils::CmdTransitionImageLayoutGraphics",
                "image handle is invalid");
   COMET_ASSERT(format != VK_FORMAT_UNDEFINED,
-               "vulkan_image_utils::TransitionImageLayout",
+               "vulkan_image_utils::CmdTransitionImageLayoutGraphics",
                "image format is undefined");
-  COMET_ASSERT(mip_levels > 0, "vulkan_image_utils::TransitionImageLayout",
+  COMET_ASSERT(mip_levels > 0,
+               "vulkan_image_utils::CmdTransitionImageLayoutGraphics",
                "mip level count is zero");
-  COMET_ASSERT(layer_count > 0, "vulkan_image_utils::TransitionImageLayout",
+  COMET_ASSERT(layer_count > 0,
+               "vulkan_image_utils::CmdTransitionImageLayoutGraphics",
                "layer count is zero");
 
   VkImageMemoryBarrier barrier{};
@@ -228,15 +237,9 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
   barrier.subresourceRange.baseArrayLayer = 0;
   barrier.subresourceRange.layerCount = layer_count;
 
-  VkPipelineStageFlags source_stage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-  VkPipelineStageFlags destination_stage{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT};
-  VkCommandPool command_pool_handle{context.GetFrameData().command_pool_handle};
-  VkQueue queue_handle{context.GetDevice().GetGraphicsQueueHandle()};
-  const auto& device{context.GetDevice()};
-
-  bool is_depth_format{HasDepthComponent(format) ||
-                       HasStencilComponent(format)};
-  bool is_depth_layout{
+  const bool is_depth_format{HasDepthComponent(format) ||
+                             HasStencilComponent(format)};
+  const bool is_depth_layout{
       new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
       new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL ||
       old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
@@ -252,20 +255,30 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   }
 
+  VkPipelineStageFlags source_stage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+  VkPipelineStageFlags destination_stage{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT};
+
   if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
       new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    command_pool_handle = context.GetTransferCommandPoolHandle();
-    queue_handle = device.GetTransferQueueHandle();
+
   } else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
              new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+  } else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&
+             new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
   } else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
              new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
     barrier.srcAccessMask = 0;
@@ -273,18 +286,21 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
   } else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
              new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
   } else if (old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL &&
              new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
     barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     source_stage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
     destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
   } else if (old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL &&
              new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
     barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -292,22 +308,136 @@ void TransitionImageLayout(const Context& context, VkImage image_handle,
                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
+  } else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
   } else {
-    COMET_ASSERT(false, "vulkan_image_utils::TransitionImageLayout",
-                 "image layout transition is unsupported", "old_layout_value",
-                 ToUnderlying(old_layout), "new_layout_value",
-                 ToUnderlying(new_layout));
+    COMET_ASSERT(false, "vulkan_image_utils::CmdTransitionImageLayoutGraphics",
+                 "unsupported graphics queue image layout transition",
+                 "old_layout_value", ToUnderlying(old_layout),
+                 "new_layout_value", ToUnderlying(new_layout));
     return;
   }
 
-  auto command_buffer_handle{
-      GenerateOneTimeCommand(device, command_pool_handle)};
-
   vkCmdPipelineBarrier(command_buffer_handle, source_stage, destination_stage,
-                       0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
+                       0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
 
-  SubmitOneTimeCommand(command_buffer_handle, command_pool_handle, device,
-                       queue_handle);
+void GenerateMipmaps(VkCommandBuffer command_buffer_handle,
+                     VkPhysicalDevice physical_device_handle,
+                     VkImage image_handle, VkFormat format, u32 width,
+                     u32 height, u32 mip_levels, u32 layer_count) {
+  COMET_ASSERT(command_buffer_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::GenerateMipmaps",
+               "command buffer handle is invalid");
+  COMET_ASSERT(physical_device_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::GenerateMipmaps",
+               "physical device handle is invalid");
+  COMET_ASSERT(image_handle != VK_NULL_HANDLE,
+               "vulkan_image_utils::GenerateMipmaps",
+               "image handle is invalid");
+  COMET_ASSERT(format != VK_FORMAT_UNDEFINED,
+               "vulkan_image_utils::GenerateMipmaps",
+               "image format is undefined");
+  COMET_ASSERT(width > 0, "vulkan_image_utils::GenerateMipmaps",
+               "width is zero");
+  COMET_ASSERT(height > 0, "vulkan_image_utils::GenerateMipmaps",
+               "height is zero");
+  COMET_ASSERT(mip_levels > 0, "vulkan_image_utils::GenerateMipmaps",
+               "mip level count is zero");
+  COMET_ASSERT(layer_count > 0, "vulkan_image_utils::GenerateMipmaps",
+               "layer count is zero");
+
+  VkFormatProperties format_properties{};
+  vkGetPhysicalDeviceFormatProperties(physical_device_handle, format,
+                                      &format_properties);
+
+  COMET_ASSERT(
+      static_cast<bool>(format_properties.optimalTilingFeatures &
+                        VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT),
+      "vulkan_image_utils::GenerateMipmaps",
+      "image format does not support linear blitting", "format_value",
+      ToUnderlying(format));
+
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.image = image_handle;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = layer_count;
+  barrier.subresourceRange.levelCount = 1;
+
+  auto mip_width{width};
+  auto mip_height{height};
+
+  for (u32 mip_level{1}; mip_level < mip_levels; ++mip_level) {
+    barrier.subresourceRange.baseMipLevel = mip_level - 1;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+    vkCmdPipelineBarrier(command_buffer_handle, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &barrier);
+
+    VkImageBlit blit{};
+    blit.srcOffsets[0] = {0, 0, 0};
+    blit.srcOffsets[1] = {static_cast<s32>(mip_width),
+                          static_cast<s32>(mip_height), 1};
+    blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.srcSubresource.mipLevel = mip_level - 1;
+    blit.srcSubresource.baseArrayLayer = 0;
+    blit.srcSubresource.layerCount = layer_count;
+
+    blit.dstOffsets[0] = {0, 0, 0};
+    blit.dstOffsets[1] = {mip_width > 1 ? static_cast<s32>(mip_width / 2) : 1,
+                          mip_height > 1 ? static_cast<s32>(mip_height / 2) : 1,
+                          1};
+    blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blit.dstSubresource.mipLevel = mip_level;
+    blit.dstSubresource.baseArrayLayer = 0;
+    blit.dstSubresource.layerCount = layer_count;
+
+    vkCmdBlitImage(command_buffer_handle, image_handle,
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image_handle,
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
+                   VK_FILTER_LINEAR);
+
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    vkCmdPipelineBarrier(command_buffer_handle, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr,
+                         0, nullptr, 1, &barrier);
+
+    if (mip_width > 1) {
+      mip_width /= 2;
+    }
+
+    if (mip_height > 1) {
+      mip_height /= 2;
+    }
+  }
+
+  barrier.subresourceRange.baseMipLevel = mip_levels - 1;
+  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+  vkCmdPipelineBarrier(command_buffer_handle, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &barrier);
 }
 }  // namespace vk
 }  // namespace rendering

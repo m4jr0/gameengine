@@ -20,29 +20,30 @@
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
 
+#ifdef COMET_DEBUG
+#include "comet/debugging/rendering/rendering_debug_settings.h"
+#endif  // COMET_DEBUG
+
 namespace comet {
 namespace rendering {
 namespace vk {
 WorldView::WorldView(const WorldViewDescr& descr)
     : View{descr},
       shadow_settings_{descr.shadow_settings},
+      camera_handler_{descr.camera_handler},
       shader_handler_{descr.shader_handler},
       texture_handler_{descr.texture_handler},
-      material_handler_{descr.material_handler},
-      pipeline_handler_{descr.pipeline_handler},
       render_proxy_handler_{descr.render_proxy_handler},
       mesh_handler_{descr.mesh_handler},
       lighting_handler_{descr.lighting_handler} {
   COMET_ASSERT(shadow_settings_ != nullptr, "WorldView::WorldView",
                "shadow settings are null");
-  COMET_ASSERT(texture_handler_ != nullptr, "WorldView::WorldView",
-               "texture handler is null");
+  COMET_ASSERT(camera_handler_ != nullptr, "WorldView::WorldView",
+               "camera handler is null");
   COMET_ASSERT(shader_handler_ != nullptr, "WorldView::WorldView",
                "shader handler is null");
-  COMET_ASSERT(material_handler_ != nullptr, "WorldView::WorldView",
-               "material handler is null");
-  COMET_ASSERT(pipeline_handler_ != nullptr, "WorldView::WorldView",
-               "pipeline handler is null");
+  COMET_ASSERT(texture_handler_ != nullptr, "WorldView::WorldView",
+               "texture handler is null");
   COMET_ASSERT(render_proxy_handler_ != nullptr, "WorldView::WorldView",
                "render proxy handler is null");
   COMET_ASSERT(mesh_handler_ != nullptr, "WorldView::WorldView",
@@ -51,13 +52,16 @@ WorldView::WorldView(const WorldViewDescr& descr)
                "lighting handler is null");
 }
 
-void WorldView::Update(frame::FramePacket* packet) {
-  COMET_PROFILE("WorldView::Update");
-  COMET_ASSERT(packet != nullptr, "WorldView::Update", "frame packet is null");
+void WorldView::Prepare(const ViewUpdate& update) {
+  COMET_PROFILE("WorldView::Prepare");
 
-  UpdateWorldShader(packet);
-  RunSparseUpload();
-  RunCull(packet);
+  auto* packet{update.packet};
+  COMET_ASSERT(packet != nullptr, "WorldView::Prepare", "frame packet is null");
+  UpdateWorldPassShaderData(packet);
+}
+
+void WorldView::Begin(const ViewUpdate&) {
+  COMET_PROFILE("WorldView::Begin");
 
   VkClearValue clear_values[2]{};
   memory::CopyMemory(&clear_values[0].color, clear_color_,
@@ -65,18 +69,27 @@ void WorldView::Update(frame::FramePacket* packet) {
   clear_values[1].depthStencil.depth = 1.0f;
   clear_values[1].depthStencil.stencil = 0;
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
+
   render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
                                   context_->GetImageIndex(), clear_values, 2);
+}
 
-  SetViewportAndScissor();
-  DrawWorld();
+void WorldView::Draw(const ViewUpdate& update) {
+  COMET_PROFILE("WorldView::Draw");
+  SetViewportAndScissor(update.viewport);
+  DrawWorld(update);
+}
 
-  render_pass_handler_->EndPass(command_buffer_handle);
+void WorldView::End([[maybe_unused]] const ViewUpdate& update) {
+  COMET_PROFILE("WorldView::End");
 
-  render_proxy_handler_->Reset();
-  pipeline_handler_->Reset();
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  render_pass_handler_->EndPass(frame_data.command_buffer_handle);
 }
 
 void WorldView::OnInitialize() {
@@ -139,26 +152,17 @@ void WorldView::OnInitialize() {
         resource::GenerateResourceIdFromPath<resource::ShaderResource>(
             COMET_TCHAR("shaders/vulkan/forward_shader.vk.cshader"));
     shader_descr.render_pass_handle = render_pass_handle_;
+    shader_descr.bind_type = PipelineBindType::Graphics;
     world_shader_ = shader_handler_->GetOrGenerate(shader_descr);
   }
 
-  {
-    ShaderDescr shader_descr{};
-    shader_descr.shader_resource_id =
-        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-            COMET_TCHAR("shaders/vulkan/forward_cull_shader.vk.cshader"));
-    shader_descr.render_pass_handle = render_pass_handle_;
-    cull_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-  }
+  CameraFlags camera_flags{kCameraFlagBitsGame};
 
-  {
-    ShaderDescr shader_descr{};
-    shader_descr.shader_resource_id =
-        resource::GenerateResourceIdFromPath<resource::ShaderResource>(
-            COMET_TCHAR("shaders/vulkan/sparse_upload.vk.cshader"));
-    shader_descr.render_pass_handle = render_pass_handle_;
-    sparse_upload_shader_ = shader_handler_->GetOrGenerate(shader_descr);
-  }
+#ifdef COMET_DEBUG
+  camera_flags |= kCameraFlagBitsDebug;
+#endif  // COMET_DEBUG
+
+  SetCameraFlags(camera_flags);
 }
 
 void WorldView::OnDestroy() {
@@ -167,31 +171,21 @@ void WorldView::OnDestroy() {
     world_shader_.Invalidate();
   }
 
-  if (cull_shader_) {
-    shader_handler_->Destroy(cull_shader_);
-    cull_shader_.Invalidate();
-  }
-
-  if (sparse_upload_shader_) {
-    shader_handler_->Destroy(sparse_upload_shader_);
-    sparse_upload_shader_.Invalidate();
-  }
-
   shadow_settings_ = nullptr;
+  camera_handler_ = nullptr;
   shader_handler_ = nullptr;
   texture_handler_ = nullptr;
-  material_handler_ = nullptr;
-  pipeline_handler_ = nullptr;
   render_proxy_handler_ = nullptr;
   mesh_handler_ = nullptr;
   lighting_handler_ = nullptr;
 }
 
-void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
-  packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
+void WorldView::UpdateWorldPassShaderData(const frame::FramePacket* packet) {
+  COMET_ASSERT(packet != nullptr, "WorldView::UpdateWorldPassShaderData",
+               "frame packet is null");
 
   {
-    static constexpr usize kShaderBufferFieldCapacity{6};
+    static constexpr usize kShaderBufferFieldCapacity{3};
     auto& field_updates{*COMET_FRAME_ARRAY_WITH_CAPACITY(
         ShaderBufferFieldUpdate, kShaderBufferFieldCapacity)};
 
@@ -215,8 +209,8 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
     AddWorldGlobalImageBindings(shader_handler_, texture_handler_,
                                 world_shader_, shadow_map, image_bindings,
                                 image_descriptors);
-    global_update.image_bindings = &image_bindings;
 
+    global_update.image_bindings = &image_bindings;
     shader_handler_->UpdateGlobals(world_shader_, global_update);
   }
 
@@ -225,7 +219,7 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
   const auto light_gpu_data{lighting_handler_->GetLightGpuData(frame_index)};
   const auto shadow_gpu_data{lighting_handler_->GetShadowGpuData(frame_index)};
 
-  static constexpr usize kShaderBufferBindingCapacity{5};
+  static constexpr usize kShaderBufferBindingCapacity{6};
   auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
       ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
 
@@ -262,211 +256,17 @@ void WorldView::UpdateWorldShader(frame::FramePacket* packet) {
       shadow_gpu_data.ssbo_shadow_data_handle,
       shadow_gpu_data.ssbo_shadow_data_size);
 
+  AddCameraBufferBinding(shader_handler_, camera_handler_, world_shader_,
+                         frame_index, buffer_bindings);
+
   ShaderPassUpdate pass_update{};
   pass_update.buffer_bindings = &buffer_bindings;
   shader_handler_->UpdatePass(world_shader_, pass_update);
 }
 
-void WorldView::RunSparseUpload() {
-  COMET_PROFILE("WorldView::RunSparseUpload");
-
-  if (!render_proxy_handler_->HasPendingSparseUpload()) {
-    return;
-  }
-
-  const auto gpu_data{render_proxy_handler_->GetSparseUploadGpuData()};
-
-  static constexpr usize kShaderBufferBindingCapacity{3};
-  auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
-      ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
-
-  AddBufferBinding(
-      buffer_bindings,
-      shader_handler_->GetBindingIndex(
-          sparse_upload_shader_, shaderconsts::kGlobalSet,
-          worldsparseuploadshaderconsts::kSparseUploadWordIndicesBinding),
-      gpu_data.ssbo_word_indices_handle, gpu_data.ssbo_word_indices_size);
-
-  AddBufferBinding(
-      buffer_bindings,
-      shader_handler_->GetBindingIndex(
-          sparse_upload_shader_, shaderconsts::kGlobalSet,
-          worldsparseuploadshaderconsts::kSparseUploadSourceWordsBinding),
-      gpu_data.ssbo_source_words_handle, gpu_data.ssbo_source_words_size);
-
-  AddBufferBinding(
-      buffer_bindings,
-      shader_handler_->GetBindingIndex(
-          sparse_upload_shader_, shaderconsts::kGlobalSet,
-          worldsparseuploadshaderconsts::kSparseUploadDestinationWordsBinding),
-      gpu_data.ssbo_destination_words_handle,
-      gpu_data.ssbo_destination_words_size);
-
-  ShaderGlobalUpdate global_update{};
-  global_update.buffer_bindings = &buffer_bindings;
-  shader_handler_->UpdateGlobals(sparse_upload_shader_, global_update);
-
-  static constexpr usize kShaderPushConstantBlockCapacity{1};
-  auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(
-      ShaderPushConstantBlockUpdate, kShaderPushConstantBlockCapacity)};
-  auto& block{blocks.EmplaceLast()};
-  block.block_index = worldsparseuploadshaderconsts::kCountPushConstantIndex;
-  block.data = &gpu_data.word_count;
-  block.size = sizeof(gpu_data.word_count);
-
-  ShaderPushConstantsUpdate push_constants{};
-  push_constants.blocks = &blocks;
-
-  shader_handler_->Bind(sparse_upload_shader_, PipelineBindType::Compute);
-  shader_handler_->PushConstants(sparse_upload_shader_, push_constants);
-
-  vkCmdDispatch(context_->GetFrameData().command_buffer_handle,
-                render_proxy_handler_->GetSparseUploadGroupCount(), 1, 1);
-
-  auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 1)};
-  render_proxy_handler_->PopulateSparseUploadBarriers(barriers);
-
-  ApplyBufferMemoryBarriers(barriers,
-                            context_->GetFrameData().command_buffer_handle,
-                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
-                                VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
-}
-
-void WorldView::RunCull(frame::FramePacket* packet) {
-  COMET_PROFILE("WorldView::RunCull");
-  const auto frame_index{context_->GetFrameInFlightIndex()};
-  const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
-
-  COMET_ASSERT(gpu_data.ssbo_indirect_proxies_handle != VK_NULL_HANDLE,
-               "WorldView::RunCull", "cull indirect buffer handle is invalid",
-               "frame_index", frame_index);
-  COMET_ASSERT(gpu_data.ssbo_proxy_instances_handle != VK_NULL_HANDLE,
-               "WorldView::RunCull",
-               "cull proxy instances buffer handle is invalid", "frame_index",
-               frame_index);
-  COMET_ASSERT(gpu_data.ssbo_proxy_ids_handle != VK_NULL_HANDLE,
-               "WorldView::RunCull", "cull proxy ids buffer handle is invalid",
-               "frame_index", frame_index);
-
-#ifdef COMET_DEBUG_RENDERING
-  render_proxy_handler_->PrepareCullDebugWrite(frame_index);
-#endif  // COMET_DEBUG_RENDERING
-
-  packet->draw_count = render_proxy_handler_->GetRenderProxyCount();
-
-  {
-    static constexpr usize kShaderBufferFieldCapacity{5};
-    auto& field_updates{*COMET_FRAME_ARRAY_WITH_CAPACITY(
-        ShaderBufferFieldUpdate, kShaderBufferFieldCapacity)};
-    AddWorldGlobalFieldUpdates(shader_handler_, cull_shader_, packet,
-                               field_updates);
-
-    ShaderGlobalUpdate global_update{};
-    global_update.field_updates = &field_updates;
-    shader_handler_->UpdateGlobals(cull_shader_, global_update);
-  }
-
-  static constexpr usize kShaderBufferBindingCapacity{6};
-  auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
-      ShaderBufferBindingUpdate, kShaderBufferBindingCapacity)};
-
-  AddBufferBinding(buffer_bindings,
-                   shader_handler_->GetBindingIndex(
-                       cull_shader_, shaderconsts::kPassSet,
-                       sharedshaderconsts::kProxyLocalDatasBinding),
-                   gpu_data.ssbo_proxy_local_datas_handle,
-                   gpu_data.ssbo_proxy_local_datas_size);
-
-  AddBufferBinding(
-      buffer_bindings,
-      shader_handler_->GetBindingIndex(cull_shader_, shaderconsts::kPassSet,
-                                       sharedshaderconsts::kProxyIdsBinding),
-      gpu_data.ssbo_proxy_ids_handle, gpu_data.ssbo_proxy_ids_size);
-
-  AddBufferBinding(buffer_bindings,
-                   shader_handler_->GetBindingIndex(
-                       cull_shader_, shaderconsts::kPassSet,
-                       sharedshaderconsts::kProxyInstancesBinding),
-                   gpu_data.ssbo_proxy_instances_handle,
-                   gpu_data.ssbo_proxy_instances_size);
-
-  AddBufferBinding(buffer_bindings,
-                   shader_handler_->GetBindingIndex(
-                       cull_shader_, shaderconsts::kPassSet,
-                       sharedshaderconsts::kIndirectProxiesBinding),
-                   gpu_data.ssbo_indirect_proxies_handle,
-                   gpu_data.ssbo_indirect_proxies_size);
-
-#ifdef COMET_DEBUG_RENDERING
-  if (gpu_data.ssbo_debug_data_handle != VK_NULL_HANDLE) {
-    AddBufferBinding(
-        buffer_bindings,
-        shader_handler_->GetBindingIndex(cull_shader_, shaderconsts::kPassSet,
-                                         sharedshaderconsts::kDebugDataBinding),
-        gpu_data.ssbo_debug_data_handle, gpu_data.ssbo_debug_data_size);
-  }
-#endif  // COMET_DEBUG_RENDERING
-
-#ifdef COMET_DEBUG_CULLING
-  if (gpu_data.ssbo_debug_aabbs_handle != VK_NULL_HANDLE) {
-    AddBufferBinding(buffer_bindings,
-                     shader_handler_->GetBindingIndex(
-                         cull_shader_, shaderconsts::kPassSet,
-                         sharedshaderconsts::kDebugAabbsBinding),
-                     gpu_data.ssbo_debug_aabbs_handle,
-                     gpu_data.ssbo_debug_aabbs_size);
-  }
-#endif  // COMET_DEBUG_CULLING
-
-  ShaderPassUpdate pass_update{};
-  pass_update.buffer_bindings = &buffer_bindings;
-  shader_handler_->UpdatePass(cull_shader_, pass_update);
-
-  static constexpr usize kShaderPushConstantBlockCapacity{1};
-  auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(
-      ShaderPushConstantBlockUpdate, kShaderPushConstantBlockCapacity)};
-
-  const auto draw_count{static_cast<u32>(packet->draw_count)};
-  auto& block{blocks.EmplaceLast()};
-  block.block_index = worldcullshaderconsts::kDrawCountPushConstantIndex;
-  block.data = &draw_count;
-  block.size = sizeof(draw_count);
-
-  ShaderPushConstantsUpdate push_constants{};
-  push_constants.blocks = &blocks;
-
-  shader_handler_->Bind(cull_shader_, PipelineBindType::Compute);
-  shader_handler_->PushConstants(cull_shader_, push_constants);
-
-  vkCmdDispatch(context_->GetFrameData().command_buffer_handle,
-                render_proxy_handler_->GetCullGroupCount(), 1, 1);
-
-  {
-    auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 2)};
-    render_proxy_handler_->PopulateDrawCullBarriers(frame_index, barriers);
-
-    ApplyBufferMemoryBarriers(barriers,
-                              context_->GetFrameData().command_buffer_handle,
-                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                              VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |
-                                  VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
-  }
-
-#ifdef COMET_DEBUG_RENDERING
-  {
-    auto& barriers{*COMET_FRAME_ARRAY_WITH_CAPACITY(VkBufferMemoryBarrier, 1)};
-    render_proxy_handler_->PopulateCullDebugReadBarriers(frame_index, barriers);
-
-    ApplyBufferMemoryBarriers(
-        barriers, context_->GetFrameData().command_buffer_handle,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT);
-  }
-#endif  // COMET_DEBUG_RENDERING
-}
-
-void WorldView::DrawWorld() {
+void WorldView::DrawWorld(const ViewUpdate& update) {
   COMET_PROFILE("WorldView::DrawWorld");
+
   const auto* batch_groups{render_proxy_handler_->GetBatchGroups()};
 
   if (batch_groups == nullptr || batch_groups->IsEmpty()) {
@@ -477,6 +277,7 @@ void WorldView::DrawWorld() {
 
   const auto& indirect_buffer{
       render_proxy_handler_->GetIndirectBuffer(frame_index)};
+
   COMET_ASSERT(indirect_buffer.handle != VK_NULL_HANDLE, "WorldView::DrawWorld",
                "draw indirect buffer handle is invalid", "frame_index",
                frame_index);
@@ -484,22 +285,42 @@ void WorldView::DrawWorld() {
                "draw indirect buffer size is zero", "frame_index", frame_index);
 
   const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
+  COMET_ASSERT(indirect_batches != nullptr, "WorldView::DrawWorld",
+               "indirect batches are null");
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
   mesh_handler_->Bind();
-  shader_handler_->Bind(world_shader_, PipelineBindType::Graphics);
+  shader_handler_->Bind(world_shader_);
 
-  const auto light_count{lighting_handler_->GetLightCount()};
+  struct WorldPushConstants {
+    u32 light_count{0};
+    u32 camera_index{0};
+    u32 debug_flags{0};
+  };
+
+  WorldPushConstants push_data{};
+  push_data.light_count = lighting_handler_->GetLightCount();
+  push_data.camera_index = static_cast<u32>(update.camera_index);
+
+#ifdef COMET_DEBUG
+  const auto is_debug_camera{update.camera_kind == CameraKind::Debug};
+  push_data.debug_flags =
+      debug::RenderingDebugSettings::Get().GetFlags(is_debug_camera);
+#else
+  push_data.debug_flags = kWorldDebugFlagBitsNone;
+#endif  // COMET_DEBUG
 
   static constexpr usize kShaderPushConstantBlockCapacity{1};
   auto& blocks{*COMET_FRAME_ARRAY_WITH_CAPACITY(
       ShaderPushConstantBlockUpdate, kShaderPushConstantBlockCapacity)};
+
   auto& block{blocks.EmplaceLast()};
   block.block_index = worldshaderconsts::kLightingPushConstantIndex;
-  block.data = &light_count;
-  block.size = sizeof(light_count);
+  block.data = &push_data;
+  block.size = sizeof(push_data);
 
   ShaderPushConstantsUpdate push_constants{};
   push_constants.blocks = &blocks;
@@ -509,17 +330,17 @@ void WorldView::DrawWorld() {
 
   for (const auto& group : *batch_groups) {
     const auto& batch{indirect_batches->Get(group.offset)};
-    const auto* proxy{batch.proxy};
+    const auto proxy_id{batch.proxy_id};
+    const auto material_handle{
+        render_proxy_handler_->GetMaterialHandle(proxy_id)};
 
-    if (proxy->material_handle != last_material_handle) {
-      if (!shader_handler_->HasMaterial(world_shader_,
-                                        proxy->material_handle)) {
-        shader_handler_->BindMaterial(world_shader_, proxy->material_handle);
+    if (material_handle != last_material_handle) {
+      if (!shader_handler_->HasMaterial(world_shader_, material_handle)) {
+        shader_handler_->BindMaterial(world_shader_, material_handle);
       }
 
-      shader_handler_->BindInstance(world_shader_, proxy->material_handle,
-                                    PipelineBindType::Graphics);
-      last_material_handle = proxy->material_handle;
+      shader_handler_->BindInstance(world_shader_, material_handle);
+      last_material_handle = material_handle;
     }
 
     vkCmdDrawIndexedIndirect(command_buffer_handle, indirect_buffer.handle,
@@ -528,22 +349,35 @@ void WorldView::DrawWorld() {
   }
 }
 
-void WorldView::SetViewportAndScissor() const {
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+void WorldView::SetViewportAndScissor(const ViewportRect& viewport) const {
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
 
-  VkViewport viewport{};
-  viewport.x = .0f;
-  viewport.y = .0f;
-  viewport.width = width_;
-  viewport.height = height_;
-  viewport.minDepth = .0f;
-  viewport.maxDepth = 1.0f;
-  vkCmdSetViewport(command_buffer_handle, 0, 1, &viewport);
+  VkViewport vk_viewport{
+      .x = viewport.x,
+      .y = viewport.y,
+      .width = viewport.width,
+      .height = viewport.height,
+      .minDepth = .0f,
+      .maxDepth = 1.0f,
+  };
 
-  VkRect2D scissor{};
-  scissor.offset = {0, 0};
-  scissor.extent = {width_, height_};
+  vkCmdSetViewport(command_buffer_handle, 0, 1, &vk_viewport);
+
+  VkRect2D scissor{
+      .offset =
+          {
+              static_cast<s32>(viewport.x),
+              static_cast<s32>(viewport.y),
+          },
+      .extent =
+          {
+              static_cast<u32>(viewport.width),
+              static_cast<u32>(viewport.height),
+          },
+  };
+
   vkCmdSetScissor(command_buffer_handle, 0, 1, &scissor);
 }
 }  // namespace vk

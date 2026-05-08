@@ -5,12 +5,17 @@
 #ifndef COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_DRIVER_H_
 #define COMET_COMET_RENDERING_DRIVER_OPENGL_OPENGL_DRIVER_H_
 
+// External. ///////////////////////////////////////////////////////////////////
+#include "glad/glad.h"
+////////////////////////////////////////////////////////////////////////////////
+
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/memory.h"
 #include "comet/event/event.h"
 #include "comet/event/event_manager.h"
 #include "comet/rendering/driver/driver.h"
+#include "comet/rendering/driver/opengl/handler/opengl_camera_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
 #include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
@@ -23,6 +28,10 @@
 #include "comet/rendering/driver/opengl/opengl_frame_state.h"
 #include "comet/rendering/type/common.h"
 #include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
+
+#ifdef COMET_DEBUG_RENDERING
+#include "comet/rendering/driver/opengl/handler/opengl_debug_handler.h"
+#endif  // COMET_DEBUG_RENDERING
 
 namespace comet {
 namespace rendering {
@@ -95,7 +104,12 @@ class OpenGlDriver : public Driver {
   memory::UniquePtr<ShaderHandler> shader_handler_{nullptr};
   memory::UniquePtr<LightingHandler> lighting_handler_{nullptr};
   memory::UniquePtr<RenderProxyHandler> render_proxy_handler_{nullptr};
+  memory::UniquePtr<CameraHandler> camera_handler_{nullptr};
   memory::UniquePtr<ViewHandler> view_handler_{nullptr};
+
+#ifdef COMET_DEBUG_RENDERING
+  memory::UniquePtr<DebugHandler> debug_handler_{nullptr};
+#endif  // COMET_DEBUG_RENDERING
 };
 }  // namespace gl
 }  // namespace rendering

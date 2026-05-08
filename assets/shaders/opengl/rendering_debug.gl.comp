@@ -1,0 +1,210 @@
+#version 460 core
+
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef LOCAL_SIZE
+#define LOCAL_SIZE 256
+#endif  // LOCAL_SIZE
+
+struct DebugAabb {
+  vec4 minExtents;
+  vec4 maxExtents;
+};
+
+struct DebugLineVertex {
+  vec4 position;
+  vec4 color;
+};
+
+struct DebugFrustumCorners {
+  vec4 corners[8];
+};
+
+layout(local_size_x = LOCAL_SIZE) in;
+
+layout(std430, binding = 25) readonly buffer InDebugAabbsSsbo {
+  DebugAabb inDebugAabbs[];
+};
+
+layout(std430, binding = 26) buffer OutDebugLineVerticesSsbo {
+  DebugLineVertex outLineVertices[];
+};
+
+layout(std430, binding = 27) readonly buffer InDebugLightFrustumsSsbo {
+  mat4 inDebugLightFrustums[];
+};
+
+layout(std430, binding = 31) readonly buffer InDebugCameraFrustumsSsbo {
+  mat4 inDebugCameraFrustums[];
+};
+
+layout(std430, binding = 32) readonly buffer InDebugCascadeFrustumsSsbo {
+  DebugFrustumCorners inDebugCascadeFrustums[];
+};
+
+layout(std140, binding = 50) uniform DebugPushConstants {
+  uint aabbCount;
+  uint cameraFrustumCount;
+  uint cascadeFrustumCount;
+  uint lightFrustumCount;
+  uint cameraFrustumVertexOffset;
+  uint cascadeFrustumVertexOffset;
+  uint lightFrustumVertexOffset;
+}
+pushConstants;
+
+const uint kLineVertexCount = 24u;
+
+const vec4 kAabbColor = vec4(0.0, 1.0, 0.0, 1.0);
+const vec4 kCameraFrustumColor = vec4(1.0, 0.85, 0.1, 1.0);
+
+const ivec2 cubeEdges[12] =
+    ivec2[](ivec2(0, 1), ivec2(1, 2), ivec2(2, 3), ivec2(3, 0), ivec2(4, 5),
+            ivec2(5, 6), ivec2(6, 7), ivec2(7, 4), ivec2(0, 4), ivec2(1, 5),
+            ivec2(2, 6), ivec2(3, 7));
+
+const vec3 cubeVertices[8] =
+    vec3[](vec3(0.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 0.0),
+           vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(1.0, 0.0, 1.0),
+           vec3(1.0, 1.0, 1.0), vec3(0.0, 1.0, 1.0));
+
+const vec3 ndcCorners[8] =
+    vec3[](vec3(-1.0, -1.0, 0.0), vec3(1.0, -1.0, 0.0), vec3(1.0, 1.0, 0.0),
+           vec3(-1.0, 1.0, 0.0), vec3(-1.0, -1.0, 1.0), vec3(1.0, -1.0, 1.0),
+           vec3(1.0, 1.0, 1.0), vec3(-1.0, 1.0, 1.0));
+
+const ivec2 frustumEdges[12] =
+    ivec2[](ivec2(0, 1), ivec2(1, 3), ivec2(3, 2), ivec2(2, 0), ivec2(4, 5),
+            ivec2(5, 7), ivec2(7, 6), ivec2(6, 4), ivec2(0, 4), ivec2(1, 5),
+            ivec2(2, 6), ivec2(3, 7));
+
+vec4 getCascadeSliceColor(uint index) {
+  float t = pushConstants.cascadeFrustumCount <= 1u
+                ? 0.0
+                : float(index) / float(pushConstants.cascadeFrustumCount - 1u);
+
+  vec3 nearRed = vec3(1.0, 0.15, 0.1);
+  vec3 farRed = vec3(1.0, 0.65, 0.45);
+
+  return vec4(mix(nearRed, farRed, t), 1.0);
+}
+
+vec4 getLightFrustumColor(uint index) {
+  float t = pushConstants.lightFrustumCount <= 1u
+                ? 0.0
+                : float(index) / float(pushConstants.lightFrustumCount - 1u);
+
+  vec3 nearBlue = vec3(0.15, 0.45, 1.0);
+  vec3 farBlue = vec3(0.65, 0.9, 1.0);
+
+  return vec4(mix(nearBlue, farBlue, t), 1.0);
+}
+
+void writeLine(uint vertexIndex, vec3 a, vec3 b, vec4 color) {
+  outLineVertices[vertexIndex].position = vec4(a, 1.0);
+  outLineVertices[vertexIndex].color = color;
+
+  outLineVertices[vertexIndex + 1u].position = vec4(b, 1.0);
+  outLineVertices[vertexIndex + 1u].color = color;
+}
+
+void writeAabb(uint aabbIndex) {
+  DebugAabb aabb = inDebugAabbs[aabbIndex];
+  vec3 worldCorners[8];
+
+  for (int i = 0; i < 8; ++i) {
+    worldCorners[i] =
+        mix(aabb.minExtents.xyz, aabb.maxExtents.xyz, cubeVertices[i]);
+  }
+
+  uint baseVertex = aabbIndex * kLineVertexCount;
+
+  for (int i = 0; i < 12; ++i) {
+    writeLine(baseVertex + uint(i) * 2u, worldCorners[cubeEdges[i].x],
+              worldCorners[cubeEdges[i].y], kAabbColor);
+  }
+}
+
+void writeCameraFrustum(uint cameraFrustumIndex) {
+  mat4 viewProjInverse = inverse(inDebugCameraFrustums[cameraFrustumIndex]);
+  vec3 worldCorners[8];
+
+  for (int i = 0; i < 8; ++i) {
+    vec4 world = viewProjInverse * vec4(ndcCorners[i], 1.0);
+    worldCorners[i] = world.xyz / world.w;
+  }
+
+  uint baseVertex = pushConstants.cameraFrustumVertexOffset +
+                    cameraFrustumIndex * kLineVertexCount;
+
+  for (int i = 0; i < 12; ++i) {
+    writeLine(baseVertex + uint(i) * 2u, worldCorners[cubeEdges[i].x],
+              worldCorners[cubeEdges[i].y], kCameraFrustumColor);
+  }
+}
+
+void writeCascadeFrustum(uint cascadeIndex) {
+  vec4 color = getCascadeSliceColor(cascadeIndex);
+  uint baseVertex = pushConstants.cascadeFrustumVertexOffset +
+                    cascadeIndex * kLineVertexCount;
+
+  for (int i = 0; i < 12; ++i) {
+    vec3 a =
+        inDebugCascadeFrustums[cascadeIndex].corners[frustumEdges[i].x].xyz;
+    vec3 b =
+        inDebugCascadeFrustums[cascadeIndex].corners[frustumEdges[i].y].xyz;
+
+    writeLine(baseVertex + uint(i) * 2u, a, b, color);
+  }
+}
+
+void writeLightFrustum(uint lightFrustumIndex) {
+  mat4 viewProjInverse = inverse(inDebugLightFrustums[lightFrustumIndex]);
+  vec3 worldCorners[8];
+
+  for (int i = 0; i < 8; ++i) {
+    vec4 world = viewProjInverse * vec4(ndcCorners[i], 1.0);
+    worldCorners[i] = world.xyz / world.w;
+  }
+
+  vec4 color = getLightFrustumColor(lightFrustumIndex);
+  uint baseVertex = pushConstants.lightFrustumVertexOffset +
+                    lightFrustumIndex * kLineVertexCount;
+
+  for (int i = 0; i < 12; ++i) {
+    writeLine(baseVertex + uint(i) * 2u, worldCorners[cubeEdges[i].x],
+              worldCorners[cubeEdges[i].y], color);
+  }
+}
+
+void main() {
+  uint index = gl_GlobalInvocationID.x;
+
+  if (index < pushConstants.aabbCount) {
+    writeAabb(index);
+    return;
+  }
+
+  index -= pushConstants.aabbCount;
+
+  if (index < pushConstants.cameraFrustumCount) {
+    writeCameraFrustum(index);
+    return;
+  }
+
+  index -= pushConstants.cameraFrustumCount;
+
+  if (index < pushConstants.cascadeFrustumCount) {
+    writeCascadeFrustum(index);
+    return;
+  }
+
+  index -= pushConstants.cascadeFrustumCount;
+
+  if (index < pushConstants.lightFrustumCount) {
+    writeLightFrustum(index);
+    return;
+  }
+}

@@ -12,9 +12,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/driver/opengl/type/opengl_shader.h"
+#include "comet/rendering/driver/opengl/type/opengl_storage.h"
 #include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
 #include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
 #include "comet/resource/resource.h"
@@ -39,17 +39,15 @@ ShadowView::ShadowView(const ShadowViewDescr& descr)
                "mesh handler is null");
 }
 
-void ShadowView::Update(frame::FramePacket*) {
-  COMET_PROFILE("ShadowView::Update");
-  const auto* render_jobs{lighting_handler_->GetRenderJobs()};
+void ShadowView::Prepare(const ViewUpdate&) {
+  COMET_PROFILE("ShadowView::Prepare");
 
+  const auto* render_jobs{lighting_handler_->GetRenderJobs()};
   if (render_jobs == nullptr || render_jobs->IsEmpty()) {
-    shader_handler_->Reset();
     return;
   }
 
   if (render_proxy_handler_->GetRenderProxyCount() == 0) {
-    shader_handler_->Reset();
     return;
   }
 
@@ -70,15 +68,17 @@ void ShadowView::Update(frame::FramePacket*) {
   glDisable(GL_BLEND);
   glEnable(GL_POLYGON_OFFSET_FILL);
 
-  shader_handler_->Bind(shadow_shader_, ShaderBindType::Graphics);
+  shader_handler_->Bind(shadow_shader_);
   shader_handler_->BindVertexSource(shadow_shader_,
                                     mesh_handler_->GetVertexSource());
 
+  u32 shadow_job_index{0};
+
   for (const auto& job : *render_jobs) {
-    COMET_ASSERT(job.resource != nullptr, "ShadowView::Update",
+    COMET_ASSERT(job.resource != nullptr, "ShadowView::Prepare",
                  "shadow render job resource is null");
     COMET_ASSERT(job.framebuffer != kInvalidFrameBufferHandle,
-                 "ShadowView::Update",
+                 "ShadowView::Prepare",
                  "shadow render job framebuffer is invalid");
 
     glBindFramebuffer(GL_FRAMEBUFFER, job.framebuffer);
@@ -87,7 +87,9 @@ void ShadowView::Update(frame::FramePacket*) {
     PushShadowConstants(job);
     glPolygonOffset(job.bias_slope, job.bias_constant);
     SetViewport(job.resolution);
-    DrawShadowCasters();
+    DrawShadowCasters(shadow_job_index);
+
+    ++shadow_job_index;
   }
 
   glDisable(GL_POLYGON_OFFSET_FILL);
@@ -96,15 +98,21 @@ void ShadowView::Update(frame::FramePacket*) {
   glViewport(previous_viewport[0], previous_viewport[1], previous_viewport[2],
              previous_viewport[3]);
   glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
-
-  shader_handler_->Reset();
 }
+
+void ShadowView::Begin(const ViewUpdate&) {}
+
+void ShadowView::Draw(const ViewUpdate&) {}
+
+void ShadowView::End(const ViewUpdate&) {}
 
 void ShadowView::OnInitialize() {
   ShaderDescr shader_descr{};
   shader_descr.shader_resource_id =
       resource::GenerateResourceIdFromPath<resource::ShaderResource>(
           COMET_TCHAR("shaders/opengl/shadow_shader.gl.cshader"));
+  shader_descr.bind_type = PipelineBindType::Graphics;
+
   shadow_shader_ = shader_handler_->GetOrGenerate(shader_descr);
 }
 
@@ -116,13 +124,15 @@ void ShadowView::OnDestroy() {
 
   shader_handler_ = nullptr;
   render_proxy_handler_ = nullptr;
-  mesh_handler_ = nullptr;
   lighting_handler_ = nullptr;
+  mesh_handler_ = nullptr;
 }
 
 void ShadowView::UpdateShadowShaderPassData() {
   const auto frame_index{frame_state_->GetFrameInFlightIndex()};
   const auto gpu_data{render_proxy_handler_->GetGpuData(frame_index)};
+  const auto& shadow_proxy_ids{
+      render_proxy_handler_->GetShadowProxyIdsBuffer(frame_index)};
 
   static constexpr usize kShaderBufferBindingCapacity{3};
   auto& buffer_bindings{*COMET_FRAME_ARRAY_WITH_CAPACITY(
@@ -135,12 +145,11 @@ void ShadowView::UpdateShadowShaderPassData() {
                    gpu_data.ssbo_proxy_local_datas_handle,
                    gpu_data.ssbo_proxy_local_datas_size);
 
-  AddBufferBinding(buffer_bindings,
-                   shader_handler_->GetBindingIndex(
-                       shadow_shader_, shaderconsts::kPassSet,
-                       sharedshaderconsts::kProxyInstancesBinding),
-                   gpu_data.ssbo_proxy_instances_handle,
-                   gpu_data.ssbo_proxy_instances_size);
+  AddBufferBinding(
+      buffer_bindings,
+      shader_handler_->GetBindingIndex(shadow_shader_, shaderconsts::kPassSet,
+                                       sharedshaderconsts::kProxyIdsBinding),
+      shadow_proxy_ids.native_handle, shadow_proxy_ids.size);
 
   AddBufferBinding(buffer_bindings,
                    shader_handler_->GetBindingIndex(
@@ -160,7 +169,7 @@ void ShadowView::PushShadowConstants(const ShadowRenderJob& job) {
                                                 kPushBlockCapacity)};
 
   auto& block{blocks.EmplaceLast()};
-  block.block_index = shadowshaderconsts::kShadowLightViewProjFieldIndex;
+  block.block_index = shadowshaderconsts::kShadowPushConstantIndex;
   block.data = &job.view_proj;
   block.size = sizeof(job.view_proj);
 
@@ -169,28 +178,36 @@ void ShadowView::PushShadowConstants(const ShadowRenderJob& job) {
   shader_handler_->PushConstants(shadow_shader_, push_update);
 }
 
-void ShadowView::DrawShadowCasters() {
+void ShadowView::DrawShadowCasters(u32 shadow_job_index) {
   COMET_PROFILE("ShadowView::DrawShadowCasters");
-  const auto* indirect_batches{render_proxy_handler_->GetIndirectBatches()};
 
-  if (indirect_batches == nullptr || indirect_batches->IsEmpty()) {
+  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+  const auto& range{
+      render_proxy_handler_->GetShadowCullRange(shadow_job_index)};
+
+  if (range.batch_count == 0) {
     return;
   }
 
-  const auto frame_index{frame_state_->GetFrameInFlightIndex()};
-  const auto indirect_buffer_handle{
-      render_proxy_handler_->GetShadowIndirectBufferHandle(frame_index)};
+  const auto& indirect_buffer{
+      render_proxy_handler_->GetShadowIndirectBuffer(frame_index)};
 
-  COMET_ASSERT(indirect_buffer_handle != kInvalidGlNativeStorageHandle,
+  COMET_ASSERT(indirect_buffer.native_handle != kInvalidGlNativeStorageHandle,
                "ShadowView::DrawShadowCasters",
-               "shadow indirect buffer handle is invalid");
+               "shadow indirect buffer handle is invalid", "frame_index",
+               frame_index);
 
-  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer_handle);
+  shader_handler_->Bind(shadow_shader_);
+  shader_handler_->BindVertexSource(shadow_shader_,
+                                    mesh_handler_->GetVertexSource());
 
-  glMultiDrawElementsIndirect(shader_handler_->GetTopology(shadow_shader_),
-                              GL_UNSIGNED_INT, nullptr,
-                              static_cast<GLsizei>(indirect_batches->GetSize()),
-                              sizeof(GpuIndirectRenderProxy));
+  glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_buffer.native_handle);
+
+  glMultiDrawElementsIndirect(
+      shader_handler_->GetTopology(shadow_shader_), GL_UNSIGNED_INT,
+      reinterpret_cast<const void*>(static_cast<usize>(range.indirect_offset) *
+                                    sizeof(GpuIndirectRenderProxy)),
+      static_cast<GLsizei>(range.batch_count), sizeof(GpuIndirectRenderProxy));
 
   glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }

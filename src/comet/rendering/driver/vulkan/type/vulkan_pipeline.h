@@ -35,8 +35,6 @@ struct PipelineLayout {
   PipelineLayoutHandle handle{};
 };
 
-enum class PipelineBindType { Unknown = 0, Graphics, Compute };
-
 struct PipelineLayoutDescr {
   u32 descriptor_set_layout_count{0};
   StaticArray<VkDescriptorSetLayout, kDescriptorSetMaxLayoutCount>*

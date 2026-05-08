@@ -30,25 +30,6 @@ const schar* GenerateTmpVkResultString(VkResult result);
 #define VMA_ASSERT(cond) \
   COMET_ASSERT((cond), "vulkan_debug::internal::VmaAssert", "vma assert failed")
 
-#ifdef COMET_DEBUG_RENDERING
-#undef VMA_DEBUG_LOG
-
-#ifdef COMET_VULKAN_DEBUG_VMA
-// Print debug messages from VMA.
-#define VMA_DEBUG_LOG(format, ...)                                          \
-  do {                                                                      \
-    constexpr auto kMessageLength{255};                                     \
-    char message[kMessageLength]{'\0'};                                     \
-    const auto len{                                                         \
-        std::snprintf(message, kMessageLength - 1, format, ##__VA_ARGS__)}; \
-    message[len] = '\0';                                                    \
-    COMET_LOG_DEBUG(comet::LoggerType::Rendering,                           \
-                    "vulkan_debug::internal::VmaDebugLog",                  \
-                    "vma debug message", "message", message);               \
-  } while (false)
-#endif  // COMET_VULKAN_DEBUG_VMA
-#endif  // COMET_DEBUG_RENDERING
-
 VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance_handle,
     const VkDebugUtilsMessengerCreateInfoEXT* create_info,

@@ -11,6 +11,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/type/shared_instance_registry.h"
 #include "comet/rendering/driver/opengl/handler/opengl_handler.h"
 #include "comet/rendering/driver/opengl/type/opengl_texture.h"
@@ -35,11 +36,15 @@ class TextureHandler : public Handler {
   TextureHandle GetOrGenerate(resource::TextureResourceId texture_resource_id);
   TextureHandle GetOrGenerate(resource::TextureResourceId texture_resource_id,
                               TextureType type);
-  TextureHandle Generate(const RuntimeTextureDescr& descr);
+
+  TextureHandle GenerateRuntimeDeferred(const RuntimeTextureDescr& descr);
+  TextureHandle GenerateRuntimeImmediate(const RuntimeTextureDescr& descr);
 
   void Destroy(TextureHandle handle);
 
   const Texture* Get(TextureHandle handle) const;
+
+  void ReleasePendingUploadResources(FrameInFlightIndex frame);
 
  protected:
   void OnInitialize() override;
@@ -50,6 +55,10 @@ class TextureHandler : public Handler {
 
   Texture* GenerateTexture(const resource::TextureResource* resource,
                            TextureType type);
+  Texture* GenerateRuntimeTexture(const RuntimeTextureDescr& descr);
+
+  TextureHandle RegisterTexture(Texture* texture);
+
   void DestroyTexture(Texture* texture);
   void GenerateMipmaps(const Texture* texture) const;
 

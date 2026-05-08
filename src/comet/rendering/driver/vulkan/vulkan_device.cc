@@ -299,25 +299,39 @@ void Device::Initialize() {
                      &handle_),
       "Device::Initialize", "logical device creation failed");
 
-  vkGetDeviceQueue(handle_, queue_family_indices_.graphics_family.value(), 0,
-                   &graphics_queue_handle_);
-  COMET_ASSERT(graphics_queue_handle_ != VK_NULL_HANDLE, "Device::Initialize",
-               "graphics queue handle is invalid");
+  graphics_queue_context_.family_index =
+      queue_family_indices_.graphics_family.value();
+  vkGetDeviceQueue(handle_, graphics_queue_context_.family_index, 0,
+                   &graphics_queue_context_.handle);
+  COMET_ASSERT(graphics_queue_context_.handle != VK_NULL_HANDLE,
+               "Device::Initialize", "graphics queue handle is invalid");
 
-  vkGetDeviceQueue(handle_, queue_family_indices_.present_family.value(), 0,
-                   &present_queue_handle_);
-  COMET_ASSERT(present_queue_handle_ != VK_NULL_HANDLE, "Device::Initialize",
-               "present queue handle is invalid");
+  present_queue_context_.family_index =
+      queue_family_indices_.present_family.value();
+  vkGetDeviceQueue(handle_, present_queue_context_.family_index, 0,
+                   &present_queue_context_.handle);
+  COMET_ASSERT(present_queue_context_.handle != VK_NULL_HANDLE,
+               "Device::Initialize", "present queue handle is invalid");
 
-  if (!IsTransferFamilyInQueueFamilyIndices(queue_family_indices_)) {
-    is_initialized_ = true;
-    return;
+  if (HasDedicatedTransferQueue()) {
+    transfer_queue_context_.family_index =
+        queue_family_indices_.transfer_family.value();
+    vkGetDeviceQueue(handle_, transfer_queue_context_.family_index, 0,
+                     &transfer_queue_context_.handle);
+    COMET_ASSERT(transfer_queue_context_.handle != VK_NULL_HANDLE,
+                 "Device::Initialize", "transfer queue handle is invalid");
+
+    if constexpr (kForceUploadQueueGraphics_) {
+      upload_queue_context_ = graphics_queue_context_;
+    } else if (HasDedicatedTransferQueue()) {
+      upload_queue_context_ = transfer_queue_context_;
+    } else {
+      upload_queue_context_ = graphics_queue_context_;
+    }
+  } else {
+    transfer_queue_context_ = {};
+    upload_queue_context_ = graphics_queue_context_;
   }
-
-  vkGetDeviceQueue(handle_, queue_family_indices_.transfer_family.value(), 0,
-                   &transfer_queue_handle_);
-  COMET_ASSERT(transfer_queue_handle_ != VK_NULL_HANDLE, "Device::Initialize",
-               "transfer queue handle is invalid");
 
   is_initialized_ = true;
 }
@@ -333,18 +347,24 @@ void Device::Destroy() {
   is_sampler_anisotropy_ = false;
   is_sample_rate_shading_ = false;
   anti_aliasing_type_ = AntiAliasingType::None;
+
   properties_ = {};
   features_ = {};
   memory_properties_ = {};
+
   queue_family_properties_.Release();
   queue_family_indices_ = {};
+
   instance_handle_ = VK_NULL_HANDLE;
   physical_device_handle_ = VK_NULL_HANDLE;
   handle_ = VK_NULL_HANDLE;
   surface_handle_ = VK_NULL_HANDLE;
-  graphics_queue_handle_ = VK_NULL_HANDLE;
-  present_queue_handle_ = VK_NULL_HANDLE;
-  transfer_queue_handle_ = VK_NULL_HANDLE;
+
+  graphics_queue_context_ = {};
+  present_queue_context_ = {};
+  transfer_queue_context_ = {};
+  upload_queue_context_ = {};
+
   msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
 
   is_initialized_ = false;
@@ -426,45 +446,37 @@ bool Device::IsMsaa() const noexcept {
 
 bool Device::IsInitialized() const noexcept { return is_initialized_; }
 
-const QueueFamilyIndices& Device::GetQueueFamilyIndices() const noexcept {
-  return queue_family_indices_;
+const QueueContext& Device::GetGraphicsQueueContext() const noexcept {
+  return graphics_queue_context_;
 }
 
-VkQueue Device::GetGraphicsQueueHandle() const noexcept {
-  return graphics_queue_handle_;
+const QueueContext& Device::GetPresentQueueContext() const noexcept {
+  return present_queue_context_;
 }
 
-VkQueue Device::GetPresentQueueHandle() const noexcept {
-  return present_queue_handle_;
-}
-
-VkQueue Device::GetTransferQueueHandle() const noexcept {
-  if (transfer_queue_handle_ != VK_NULL_HANDLE) {
-    return transfer_queue_handle_;
+const QueueContext& Device::GetTransferQueueContext() const noexcept {
+  if (transfer_queue_context_.IsValid()) {
+    return transfer_queue_context_;
   }
 
-  return graphics_queue_handle_;
+  return graphics_queue_context_;
 }
 
-u32 Device::GetGraphicsQueueIndex() const noexcept {
-  COMET_ASSERT(queue_family_indices_.graphics_family.has_value(),
-               "Device::GetGraphicsQueueIndex",
-               "graphics queue family is unavailable");
-  return queue_family_indices_.graphics_family.value();
+const QueueContext& Device::GetUploadQueueContext() const noexcept {
+  return upload_queue_context_;
 }
 
-u32 Device::GetPresentQueueIndex() const noexcept {
-  COMET_ASSERT(queue_family_indices_.present_family.has_value(),
-               "Device::GetPresentQueueIndex",
-               "present queue family is unavailable");
-  return queue_family_indices_.present_family.value();
+bool Device::HasDedicatedTransferQueue() const noexcept {
+  return IsTransferFamilyInQueueFamilyIndices(queue_family_indices_);
 }
 
-u32 Device::GetTransferQueueIndex() const noexcept {
-  COMET_ASSERT(queue_family_indices_.transfer_family.has_value(),
-               "Device::GetTransferQueueIndex",
-               "transfer queue family is unavailable");
-  return queue_family_indices_.transfer_family.value();
+bool Device::IsUploadQueueGraphics() const noexcept {
+  return upload_queue_context_.family_index ==
+         graphics_queue_context_.family_index;
+}
+
+const QueueFamilyIndices& Device::GetQueueFamilyIndices() const noexcept {
+  return queue_family_indices_;
 }
 
 PhysicalDeviceScore Device::GetPhysicalDeviceScore(

@@ -60,125 +60,35 @@ TextureHandle TextureHandler::GetOrGenerate(
                      "generated texture is null", "texture_resource_id",
                      texture_resource_id);
 
-        TextureKey key{
-            .kind = TextureKeyKind::Resource,
-            .texture_resource_id = texture->texture_resource_id,
-            .runtime_id = texture->runtime_id,
-            .type = texture->type,
-        };
+        generated_handle = RegisterTexture(texture);
 
-        generated_handle = textures_.Create(key, texture);
         COMET_ASSERT(generated_handle, "TextureHandler::GetOrGenerate",
                      "texture instance creation failed", "texture_resource_id",
                      texture_resource_id, "texture_type",
                      GetTextureTypeLabel(type), "texture_type_value",
                      ToUnderlying(type));
-
-        texture->handle = generated_handle;
       })};
 
   return is_loaded ? generated_handle : TextureHandle::Invalid();
 }
 
-TextureHandle TextureHandler::Generate(const RuntimeTextureDescr& descr) {
-  COMET_ASSERT(descr.width > 0, "TextureHandler::Generate",
-               "runtime texture width is zero");
-  COMET_ASSERT(descr.height > 0, "TextureHandler::Generate",
-               "runtime texture height is zero");
-  COMET_ASSERT(descr.format != GL_INVALID_VALUE, "TextureHandler::Generate",
-               "runtime texture format is invalid");
-  COMET_ASSERT(descr.internal_format != GL_INVALID_VALUE,
-               "TextureHandler::Generate",
-               "runtime texture internal format is invalid");
-  COMET_ASSERT(
-      descr.target == GL_TEXTURE_2D || descr.target == GL_TEXTURE_2D_ARRAY,
-      "TextureHandler::Generate", "runtime texture target is unsupported",
-      "target", descr.target);
+TextureHandle TextureHandler::GenerateRuntimeDeferred(
+    const RuntimeTextureDescr& descr) {
+  // Runtime texture creation is immediate on OpenGL.
+  auto* texture{GenerateRuntimeTexture(descr)};
+  COMET_ASSERT(texture != nullptr, "TextureHandler::GenerateRuntimeDeferred",
+               "generated runtime texture is null");
 
-  if (descr.target == GL_TEXTURE_2D_ARRAY) {
-    COMET_ASSERT(descr.depth > 0, "TextureHandler::Generate",
-                 "runtime texture array depth is zero");
-  }
+  return RegisterTexture(texture);
+}
 
-  auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
-  texture->handle = TextureHandle::Invalid();
+TextureHandle TextureHandler::GenerateRuntimeImmediate(
+    const RuntimeTextureDescr& descr) {
+  auto* texture{GenerateRuntimeTexture(descr)};
+  COMET_ASSERT(texture != nullptr, "TextureHandler::GenerateRuntimeImmediate",
+               "generated runtime texture is null");
 
-  COMET_ASSERT(next_runtime_texture_id_ != kInvalidRuntimeTextureId,
-               "TextureHandler::Generate", "runtime texture id overflow");
-
-  texture->is_runtime = true;
-  texture->texture_resource_id = resource::TextureResourceId::Invalid();
-  texture->runtime_id = next_runtime_texture_id_++;
-
-  texture->type = descr.type;
-  texture->target = descr.target;
-  texture->width = descr.width;
-  texture->height = descr.height;
-  texture->depth = descr.depth;
-  texture->mip_levels = descr.mip_levels;
-  texture->channel_count = descr.channel_count;
-  texture->format = descr.format;
-  texture->internal_format = descr.internal_format;
-
-  glGenTextures(1, &texture->native_handle);
-  COMET_ASSERT(texture->native_handle != kInvalidGlNativeTextureHandle,
-               "TextureHandler::Generate",
-               "opengl runtime texture creation failed", "runtime_texture_id",
-               texture->runtime_id);
-
-  glBindTexture(texture->target, texture->native_handle);
-
-#ifdef COMET_RENDERING_USE_DEBUG_LABELS
-  COMET_GL_SET_TEXTURE_DEBUG_LABEL(texture->native_handle, "runtime_texture");
-#endif  // COMET_RENDERING_USE_DEBUG_LABELS
-
-  switch (texture->target) {
-    case GL_TEXTURE_2D:
-      glTexImage2D(texture->target, 0,
-                   static_cast<GLint>(texture->internal_format),
-                   static_cast<GLsizei>(texture->width),
-                   static_cast<GLsizei>(texture->height), 0, texture->format,
-                   GL_UNSIGNED_BYTE, nullptr);
-      break;
-
-    case GL_TEXTURE_2D_ARRAY:
-      glTexImage3D(texture->target, 0,
-                   static_cast<GLint>(texture->internal_format),
-                   static_cast<GLsizei>(texture->width),
-                   static_cast<GLsizei>(texture->height),
-                   static_cast<GLsizei>(texture->depth), 0, texture->format,
-                   GL_UNSIGNED_BYTE, nullptr);
-      break;
-
-    default:
-      COMET_ASSERT(false, "TextureHandler::Generate",
-                   "runtime texture target is unsupported", "target",
-                   texture->target);
-      glBindTexture(texture->target, kInvalidGlNativeTextureHandle);
-      glDeleteTextures(1, &texture->native_handle);
-      texture->native_handle = kInvalidGlNativeTextureHandle;
-      allocator_.Deallocate(texture);
-      return TextureHandle::Invalid();
-  }
-
-  glBindTexture(texture->target, kInvalidGlNativeTextureHandle);
-
-  TextureKey key{
-      .kind = TextureKeyKind::Runtime,
-      .texture_resource_id = texture->texture_resource_id,
-      .runtime_id = texture->runtime_id,
-      .type = texture->type,
-  };
-
-  const auto handle{textures_.Create(key, texture)};
-  COMET_ASSERT(handle, "TextureHandler::Generate",
-               "texture instance creation failed", "runtime_texture_id",
-               texture->runtime_id, "texture_type",
-               GetTextureTypeLabel(texture->type), "texture_type_value",
-               ToUnderlying(texture->type));
-
-  texture->handle = handle;
-  return handle;
+  return RegisterTexture(texture);
 }
 
 void TextureHandler::Destroy(TextureHandle handle) {
@@ -197,6 +107,19 @@ const Texture* TextureHandler::Get(TextureHandle handle) const {
   COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture not found",
                "texture_handle", handle);
   return texture;
+}
+
+Texture* TextureHandler::Get(TextureHandle handle) {
+  auto* texture{textures_.TryGet(handle)};
+  COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture not found",
+               "texture_handle", handle);
+  return texture;
+}
+
+void TextureHandler::ReleasePendingUploadResources(
+    [[maybe_unused]] FrameInFlightIndex frame) {
+  // No-op.
+  // Texture uploads/transitions are not tied to an upload queue in OpenGL.
 }
 
 void TextureHandler::OnInitialize() {
@@ -219,16 +142,14 @@ void TextureHandler::OnShutdown() {
 
     if (ref_count > 0) {
       const auto* texture{textures_.Get(handle)};
-      [[maybe_unused]] const auto key{
-          texture->is_runtime
-              ? TextureKey{.kind = TextureKeyKind::Runtime,
-                           .texture_resource_id = texture->texture_resource_id,
-                           .runtime_id = texture->runtime_id,
-                           .type = texture->type}
-              : TextureKey{.kind = TextureKeyKind::Resource,
-                           .texture_resource_id = texture->texture_resource_id,
-                           .runtime_id = texture->runtime_id,
-                           .type = texture->type}};
+
+      [[maybe_unused]] TextureKey key{
+          .kind = texture->is_runtime ? TextureKeyKind::Runtime
+                                      : TextureKeyKind::Resource,
+          .texture_resource_id = texture->texture_resource_id,
+          .runtime_id = texture->runtime_id,
+          .type = texture->type,
+      };
 
       COMET_LOG_WARNING(LoggerType::Rendering, "TextureHandler::OnShutdown",
                         "forcing texture destruction", "texture_handle", handle,
@@ -259,12 +180,6 @@ void TextureHandler::OnShutdown() {
   allocator_.Destroy();
 }
 
-Texture* TextureHandler::Get(TextureHandle handle) {
-  auto* texture{textures_.TryGet(handle)};
-  COMET_ASSERT(texture != nullptr, "TextureHandler::Get", "texture is null");
-  return texture;
-}
-
 Texture* TextureHandler::GenerateTexture(
     const resource::TextureResource* resource, TextureType type) {
   COMET_ASSERT(resource != nullptr, "TextureHandler::GenerateTexture",
@@ -273,11 +188,11 @@ Texture* TextureHandler::GenerateTexture(
   auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
   texture->handle = TextureHandle::Invalid();
 
+  const auto& resource_descr{resource->descr};
+
   texture->is_runtime = false;
   texture->texture_resource_id = resource->GetId();
   texture->runtime_id = kInvalidRuntimeTextureId;
-
-  const auto& resource_descr{resource->descr};
 
   texture->type = type;
   texture->target = GL_TEXTURE_2D;
@@ -309,7 +224,120 @@ Texture* TextureHandler::GenerateTexture(
 
   GenerateMipmaps(texture);
   glBindTexture(texture->target, kInvalidGlNativeTextureHandle);
+
   return texture;
+}
+
+Texture* TextureHandler::GenerateRuntimeTexture(
+    const RuntimeTextureDescr& descr) {
+  COMET_ASSERT(descr.width > 0, "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture width is zero");
+  COMET_ASSERT(descr.height > 0, "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture height is zero");
+  COMET_ASSERT(descr.format != GL_INVALID_VALUE,
+               "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture format is invalid");
+  COMET_ASSERT(descr.internal_format != GL_INVALID_VALUE,
+               "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture internal format is invalid");
+  COMET_ASSERT(
+      descr.target == GL_TEXTURE_2D || descr.target == GL_TEXTURE_2D_ARRAY,
+      "TextureHandler::GenerateRuntimeTexture",
+      "runtime texture target is unsupported", "target", descr.target);
+
+  if (descr.target == GL_TEXTURE_2D_ARRAY) {
+    COMET_ASSERT(descr.depth > 0, "TextureHandler::GenerateRuntimeTexture",
+                 "runtime texture array depth is zero");
+  }
+
+  auto* texture{allocator_.AllocateOneAndPopulate<Texture>()};
+  texture->handle = TextureHandle::Invalid();
+
+  COMET_ASSERT(next_runtime_texture_id_ != kInvalidRuntimeTextureId,
+               "TextureHandler::GenerateRuntimeTexture",
+               "runtime texture id overflow");
+
+  texture->is_runtime = true;
+  texture->texture_resource_id = resource::TextureResourceId::Invalid();
+  texture->runtime_id = next_runtime_texture_id_++;
+
+  texture->type = descr.type;
+  texture->target = descr.target;
+  texture->width = descr.width;
+  texture->height = descr.height;
+  texture->depth = descr.depth;
+  texture->mip_levels = descr.mip_levels;
+  texture->channel_count = descr.channel_count;
+  texture->format = descr.format;
+  texture->internal_format = descr.internal_format;
+
+  glGenTextures(1, &texture->native_handle);
+  COMET_ASSERT(texture->native_handle != kInvalidGlNativeTextureHandle,
+               "TextureHandler::GenerateRuntimeTexture",
+               "opengl runtime texture creation failed", "runtime_texture_id",
+               texture->runtime_id);
+
+  glBindTexture(texture->target, texture->native_handle);
+
+#ifdef COMET_RENDERING_USE_DEBUG_LABELS
+  COMET_GL_SET_TEXTURE_DEBUG_LABEL(texture->native_handle, "runtime_texture");
+#endif  // COMET_RENDERING_USE_DEBUG_LABELS
+
+  switch (texture->target) {
+    case GL_TEXTURE_2D:
+      glTexImage2D(texture->target, 0,
+                   static_cast<GLint>(texture->internal_format),
+                   static_cast<GLsizei>(texture->width),
+                   static_cast<GLsizei>(texture->height), 0, texture->format,
+                   GL_UNSIGNED_BYTE, nullptr);
+      break;
+
+    case GL_TEXTURE_2D_ARRAY:
+      glTexImage3D(texture->target, 0,
+                   static_cast<GLint>(texture->internal_format),
+                   static_cast<GLsizei>(texture->width),
+                   static_cast<GLsizei>(texture->height),
+                   static_cast<GLsizei>(texture->depth), 0, texture->format,
+                   GL_UNSIGNED_BYTE, nullptr);
+      break;
+
+    default:
+      COMET_ASSERT(false, "TextureHandler::GenerateRuntimeTexture",
+                   "runtime texture target is unsupported", "target",
+                   texture->target);
+      glBindTexture(texture->target, kInvalidGlNativeTextureHandle);
+      glDeleteTextures(1, &texture->native_handle);
+      texture->native_handle = kInvalidGlNativeTextureHandle;
+      allocator_.Deallocate(texture);
+      return nullptr;
+  }
+
+  glBindTexture(texture->target, kInvalidGlNativeTextureHandle);
+  return texture;
+}
+
+TextureHandle TextureHandler::RegisterTexture(Texture* texture) {
+  COMET_ASSERT(texture != nullptr, "TextureHandler::RegisterTexture",
+               "texture is null");
+
+  TextureKey key{
+      .kind = texture->is_runtime ? TextureKeyKind::Runtime
+                                  : TextureKeyKind::Resource,
+      .texture_resource_id = texture->texture_resource_id,
+      .runtime_id = texture->runtime_id,
+      .type = texture->type,
+  };
+
+  const auto handle{textures_.Create(key, texture)};
+  COMET_ASSERT(handle, "TextureHandler::RegisterTexture",
+               "texture instance creation failed", "texture_type",
+               GetTextureTypeLabel(texture->type), "texture_type_value",
+               ToUnderlying(texture->type), "texture_resource_id",
+               texture->texture_resource_id, "runtime_texture_id",
+               texture->runtime_id);
+
+  texture->handle = handle;
+  return handle;
 }
 
 void TextureHandler::DestroyTexture(Texture* texture) {

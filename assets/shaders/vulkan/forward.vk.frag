@@ -8,17 +8,18 @@
 #extension GL_EXT_debug_printf : enable
 #endif  // COMET_VALIDATION_DEBUG_PRINTF_EXT
 
+struct CameraData {
+  mat4 projection;
+  mat4 view;
+  vec4 viewPos;
+};
+
 layout(location = 0) out vec4 outColor;
 
 layout(set = 0, binding = 1) uniform sampler2DArrayShadow shadowMaps;
 
-layout(set = 0, binding = 0) uniform GlobalUbo {
-  mat4 projection;
-  mat4 view;
-  vec4 ambientColor;
-  vec4 viewPos;
-}
-globalUbo;
+layout(set = 0, binding = 0) uniform FrameGlobalsSsbo { vec4 ambientColor; }
+frameGlobals;
 
 layout(set = 0, binding = 2) uniform ShadowSettingsUbo {
   vec4 params0;   // x = cascadeBlendRatio, y = pcfRadius, z = pcfSamples, w =
@@ -28,8 +29,11 @@ layout(set = 0, binding = 2) uniform ShadowSettingsUbo {
 }
 shadowSettings;
 
+layout(std430, set = 2, binding = 10) readonly buffer CameraDatasSsbo {
+  CameraData cameraDatas[];
+};
+
 layout(location = 1) in struct FragmentData {
-  vec4 ambientColor;
   vec2 texCoord;
   vec3 normals;
   vec4 tangents;  // xyz = tangent, w = sign.
@@ -69,8 +73,19 @@ layout(std430, set = 2, binding = 9) readonly buffer InShadowsSsbo {
   GpuShadowData inShadows[];
 };
 
-layout(push_constant) uniform Constants { uint lightCount; }
+layout(push_constant) uniform WorldPushConstants {
+  uint lightCount;
+  uint cameraIndex;
+  uint debugFlags;
+}
 constants;
+
+const uint WorldDebugDisableTextures = 0x1u;
+const uint WorldDebugDisableLighting = 0x2u;
+const uint WorldDebugDisableShadows = 0x4u;
+const uint WorldDebugShowNormals = 0x8u;
+
+bool hasFlag(uint flag) { return (constants.debugFlags & flag) != 0u; }
 
 const uint LightTypeDirectional = 1u;
 const uint LightTypeSpot = 2u;
@@ -83,6 +98,9 @@ const uint ShadowTypePointCubemap = 3u;
 
 const float kSpecularStrength = 0.2;
 const float kTau = 6.28318530718;  // 2 * pi.
+
+// Neutral color when textures are disabled.
+const vec3 kDebugGreyboxColor = vec3(0.65);
 
 // Discard transparent fragments.
 const float kAlphaCutout = 0.2;
@@ -168,6 +186,23 @@ mat2 computePoissonRotation(vec3 worldPos) {
   return mat2(c, -s, s, c);
 }
 
+float sampleShadowCompare(vec2 uv, float layer, float depth) {
+  return texture(shadowMaps, vec4(uv, layer, depth));
+}
+
+float sampleShadowPcf4(vec2 uv, float layer, float depth, vec2 texelSize,
+                       float radius) {
+  vec2 r = texelSize * radius;
+
+  float result = 0.0;
+  result += sampleShadowCompare(uv + vec2(-0.5, -0.5) * r, layer, depth);
+  result += sampleShadowCompare(uv + vec2(0.5, -0.5) * r, layer, depth);
+  result += sampleShadowCompare(uv + vec2(-0.5, 0.5) * r, layer, depth);
+  result += sampleShadowCompare(uv + vec2(0.5, 0.5) * r, layer, depth);
+
+  return result * 0.25;
+}
+
 // Shadow lookup path:
 // 1. Project world position into shadow-map space.
 // 2. Compute receiver bias.
@@ -202,12 +237,22 @@ float sampleShadowEntry(int shadowIndex, vec3 worldPos, vec3 shadowNormal,
   }
 
   vec2 texelSize = 1.0 / vec2(textureSize(shadowMaps, 0).xy);
+  float depth = proj.z - bias;
+
+  if (pcfSamples <= 0 || pcfRadius <= 0.0) {
+    return texture(shadowMaps, vec4(proj.xy, layer, depth));
+  }
+
+  if (pcfSamples <= 4) {
+    return sampleShadowPcf4(proj.xy, layer, depth, texelSize, pcfRadius);
+  }
+
   mat2 rot = computePoissonRotation(worldPos);
   float result = 0.0;
 
   for (int i = 0; i < pcfSamples; ++i) {
     vec2 offset = (rot * kPoissonDisk[i]) * texelSize * pcfRadius;
-    result += texture(shadowMaps, vec4(proj.xy + offset, layer, proj.z - bias));
+    result += texture(shadowMaps, vec4(proj.xy + offset, layer, depth));
   }
 
   return result / float(pcfSamples);
@@ -358,36 +403,64 @@ vec3 computePointLight(GpuLight light, vec3 fragPos, vec3 albedo,
 }
 
 void main() {
-  vec4 albedo4 =
-      texture(inTexSamplers[0], inFragmentData.texCoord) * inFragmentData.color;
+  // Base color setup.
+  vec4 albedo4 = inFragmentData.color;
+
+  if (!hasFlag(WorldDebugDisableTextures)) {
+    albedo4 *= texture(inTexSamplers[0], inFragmentData.texCoord);
+  } else {
+    albedo4 *= vec4(kDebugGreyboxColor, 1.0);
+  }
 
   if (albedo4.a < kAlphaCutout) {
     discard;
   }
 
-  vec3 albedo = albedo4.rgb;
-
+  // Base normal (ALWAYS defined first).
   vec3 baseNormal = normalize(inFragmentData.normals);
 
-  vec3 T = normalize(inFragmentData.tangents.xyz);
-  T = normalize(T - baseNormal * dot(baseNormal, T));
+  // Debug normals early-out.
+  if (hasFlag(WorldDebugShowNormals)) {
+    vec3 n = baseNormal * 0.5 + 0.5;
+    outColor = vec4(n, albedo4.a);
+    return;
+  }
 
-  float tangentSign = inFragmentData.tangents.w < 0.0 ? -1.0 : 1.0;
-  vec3 B = normalize(cross(baseNormal, T)) * tangentSign;
+  // Compute shading normal.
+  vec3 shadingNormal = baseNormal;
 
-  mat3 TBN = mat3(T, B, baseNormal);
+  if (!hasFlag(WorldDebugDisableTextures)) {
+    vec3 T = normalize(inFragmentData.tangents.xyz);
+    T = normalize(T - baseNormal * dot(baseNormal, T));
 
-  vec3 tangentNormal = texture(inTexSamplers[2], inFragmentData.texCoord).xyz;
-  tangentNormal = tangentNormal * 2.0 - 1.0;
+    float tangentSign = inFragmentData.tangents.w < 0.0 ? -1.0 : 1.0;
+    vec3 B = normalize(cross(baseNormal, T)) * tangentSign;
 
-  vec3 shadingNormal = normalize(TBN * tangentNormal);
+    mat3 TBN = mat3(T, B, baseNormal);
+
+    vec3 tangentNormal = texture(inTexSamplers[2], inFragmentData.texCoord).xyz;
+    tangentNormal = tangentNormal * 2.0 - 1.0;
+
+    shadingNormal = normalize(TBN * tangentNormal);
+  }
+
   vec3 shadowNormal = baseNormal;
 
+  // Lighting setup.
+  vec3 albedo = albedo4.rgb;
   vec3 viewDir = normalize(inFragmentData.viewPos - inFragmentData.fragPos);
-  vec3 lit = albedo * inFragmentData.ambientColor.rgb;
+  CameraData camera = cameraDatas[constants.cameraIndex];
+  float viewDepth = -(camera.view * vec4(inFragmentData.fragPos, 1.0)).z;
 
-  float viewDepth = -(globalUbo.view * vec4(inFragmentData.fragPos, 1.0)).z;
+  vec3 lit = albedo * frameGlobals.ambientColor.rgb;
 
+  // Lighting disabled debug.
+  if (hasFlag(WorldDebugDisableLighting)) {
+    outColor = vec4(albedo, albedo4.a);
+    return;
+  }
+
+  // Lighting loop.
   for (uint i = 0; i < constants.lightCount; ++i) {
     GpuLight light = inLights[i];
     uint lightType = getLightType(light);
@@ -396,9 +469,13 @@ void main() {
       vec3 l = normalize(-getLightDirection(light));
 
       int localCascadeIndex = -1;
-      float shadow =
-          computeDirectionalShadow(light, inFragmentData.fragPos, shadowNormal,
-                                   l, viewDepth, localCascadeIndex);
+      float shadow = 1.0;
+
+      if (!hasFlag(WorldDebugDisableShadows)) {
+        shadow = computeDirectionalShadow(light, inFragmentData.fragPos,
+                                          shadowNormal, l, viewDepth,
+                                          localCascadeIndex);
+      }
 
       vec3 dirLit = computeDirectionalLight(light, albedo, shadingNormal,
                                             viewDir, shadow);
@@ -412,9 +489,11 @@ void main() {
       vec3 toLight = getLightPosition(light) - inFragmentData.fragPos;
       float dist = length(toLight);
       vec3 l = dist > 0.0001 ? toLight / dist : vec3(0.0, 0.0, 1.0);
+
       float shadow = 1.0;
 
-      if (getShadowType(light) == ShadowTypeSpotPerspective &&
+      if (!hasFlag(WorldDebugDisableShadows) &&
+          getShadowType(light) == ShadowTypeSpotPerspective &&
           getShadowIndex(light) >= 0 && getShadowEntryCount(light) > 0) {
         shadow = sampleShadowEntry(getShadowIndex(light),
                                    inFragmentData.fragPos, shadowNormal, l);

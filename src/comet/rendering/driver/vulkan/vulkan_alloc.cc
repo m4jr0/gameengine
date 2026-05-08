@@ -51,14 +51,18 @@ void* VKAPI_PTR VulkanReallocate(void*, void* ptr, std::size_t size,
 
   if (size == 0) {
     std::free(ptr);
-  } else {
-    posix_memalign(&new_ptr, size, align);
-
-    if (new_ptr && ptr) {
-      std::memcpy(new_ptr, ptr, size);
-      std::free(ptr);
-    }
+    return nullptr;
   }
+
+  if (posix_memalign(&new_ptr, align, size) != 0) {
+    return nullptr;
+  }
+
+  if (ptr) {
+    std::free(ptr);
+  }
+
+  return new_ptr;
 #endif  // COMET_MSVC
 
   if (new_ptr != nullptr) {

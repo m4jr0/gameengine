@@ -22,6 +22,7 @@
 #include "comet/rendering/driver/opengl/type/opengl_mesh.h"
 #include "comet/rendering/driver/opengl/type/opengl_shader.h"
 #include "comet/rendering/rendering_handle.h"
+#include "comet/rendering/type/pipeline.h"
 #include "comet/rendering/type/shader.h"
 #include "comet/resource/shader/shader_resource.h"
 
@@ -45,13 +46,12 @@ class ShaderHandler : public Handler {
   ShaderHandler& operator=(ShaderHandler&&) = delete;
   ~ShaderHandler() override = default;
 
-  void Reset();
-
   ShaderHandle GetOrGenerate(const ShaderDescr& descr);
-  ShaderHandle GetOrGenerate(resource::ShaderResourceId shader_resource_id);
+  ShaderHandle GetOrGenerate(resource::ShaderResourceId shader_resource_id,
+                             PipelineBindType bind_type);
   void Destroy(ShaderHandle handle);
 
-  void Bind(ShaderHandle handle, ShaderBindType bind_type);
+  void Bind(ShaderHandle handle);
   void BindInstance(ShaderHandle handle, MaterialHandle material_handle);
   void BindInstance(ShaderHandle handle, const Material* material);
   void BindVertexSource(ShaderHandle handle, const ShaderVertexSource& source);
@@ -78,6 +78,8 @@ class ShaderHandler : public Handler {
                                      u32 binding) const;
   GLenum GetTopology(ShaderHandle handle) const;
 
+  void Reset();
+
  protected:
   void OnInitialize() override;
   void OnShutdown() override;
@@ -89,7 +91,8 @@ class ShaderHandler : public Handler {
   const MaterialInstance* TryGetInstance(const Shader* shader,
                                          const Material* material) const;
 
-  Shader* GenerateShader(const resource::ShaderResource* shader_resource);
+  Shader* GenerateShader(const ShaderDescr& descr,
+                         const resource::ShaderResource* shader_resource);
   void DestroyShader(Shader* shader);
 
   static void PopulateVertexAttributes(ShaderVertexLayout layout,
@@ -114,7 +117,7 @@ class ShaderHandler : public Handler {
   void HandleShaderModulesGeneration(Shader* shader,
                                      const resource::ShaderResource* resource);
   void HandleProgramGeneration(Shader* shader) const;
-  void HandleProgramCompilation(Shader* shader, ShaderBindType bind_type) const;
+  void HandleProgramCompilation(Shader* shader) const;
   void HandleAttributesGeneration(Shader* shader,
                                   const resource::ShaderResource* resource);
   void HandleBindingsGeneration(Shader* shader,
@@ -165,8 +168,7 @@ class ShaderHandler : public Handler {
       64, 256, memory::kEngineMemoryTagRendering};
   memory::FiberFreeListAllocator shader_instance_allocator_{
       sizeof(Shader), 1024, memory::kEngineMemoryTagRendering};
-  SharedInstanceRegistry<resource::ShaderResourceId, ShaderTag, Shader>
-      shaders_{};
+  SharedInstanceRegistry<ShaderKey, ShaderTag, Shader> shaders_{};
   mutable const Shader* bound_shader_{nullptr};
   mutable GlNativeVertexAttributeHandle bound_vertex_attribute_native_handle_{
       kInvalidGlNativeVertexAttributeHandle};

@@ -30,14 +30,18 @@ struct IndirectProxy {
   uint batchId;
 };
 
-#ifdef COMET_DEBUG_CULLING
+struct CameraData {
+  mat4 projection;
+  mat4 view;
+  vec4 viewPos;
+};
+
+#ifdef COMET_DEBUG_RENDERING
 struct DebugAabb {
   vec4 minExtents;
   vec4 maxExtents;
 };
-#endif  // COMET_DEBUG_CULLING
 
-#ifdef COMET_DEBUG_RENDERING
 struct DebugData {
   uint visibleCount;
 };
@@ -45,13 +49,11 @@ struct DebugData {
 
 layout(local_size_x = LOCAL_SIZE) in;
 
-layout(std140, binding = 0) uniform GlobalUbo {
-  mat4 projection;
-  mat4 view;
-  vec4 ambientColor;
-  vec4 viewPos;
+layout(std140, binding = 50) uniform Constants {
+  uint drawCount;
+  uint cameraIndex;
 }
-globalUbo;
+constants;
 
 layout(std430, binding = 20) readonly buffer InProxyLocalDatasSsbo {
   ProxyLocalData inProxyLocalDatas[];
@@ -71,28 +73,25 @@ layout(std430, binding = 23) buffer InIndirectProxiesSsbo {
 layout(std430, binding = 24) buffer OutDebugDataSsbo {
   DebugData outDebugData;
 };
-#endif  // COMET_DEBUG_RENDERING
 
-#ifdef COMET_DEBUG_CULLING
 layout(std430, binding = 25) buffer OutDebugAabbSsbo {
   DebugAabb outDebugAabbs[];
 };
-#endif  // COMET_DEBUG_CULLING
+#endif  // COMET_DEBUG_RENDERING
 
-layout(std140, binding = 50) uniform ComputeDrawPushConstants {
-  uint drawCount;
-}
-pushConstants;
+layout(std430, binding = 30) readonly buffer CameraDatasSsbo {
+  CameraData cameraDatas[];
+};
 
 shared vec4 sharedFrustumPlanes[6];
 
-vec4 GeneratePlaneFromPoints(vec3 a, vec3 b, vec3 c) {
+vec4 generatePlaneFromPoints(vec3 a, vec3 b, vec3 c) {
   vec3 normal = normalize(cross(b - a, c - a));
   float d = -dot(normal, a);
   return vec4(normal, d);
 }
 
-void GenerateFrustumPlanes(mat4 viewProjInverse) {
+void generateFrustumPlanes(mat4 viewProjInverse) {
   vec3 ndcCorners[8] =
       vec3[](vec3(-1.0, -1.0, -1.0), vec3(1.0, -1.0, -1.0),
              vec3(1.0, 1.0, -1.0), vec3(-1.0, 1.0, -1.0), vec3(-1.0, -1.0, 1.0),
@@ -105,27 +104,27 @@ void GenerateFrustumPlanes(mat4 viewProjInverse) {
     worldCorners[i] = world.xyz / world.w;
   }
 
-  sharedFrustumPlanes[0] = GeneratePlaneFromPoints(
+  sharedFrustumPlanes[0] = generatePlaneFromPoints(
       worldCorners[2], worldCorners[1], worldCorners[0]);
-  sharedFrustumPlanes[1] = GeneratePlaneFromPoints(
+  sharedFrustumPlanes[1] = generatePlaneFromPoints(
       worldCorners[6], worldCorners[7], worldCorners[4]);
-  sharedFrustumPlanes[2] = GeneratePlaneFromPoints(
+  sharedFrustumPlanes[2] = generatePlaneFromPoints(
       worldCorners[7], worldCorners[3], worldCorners[0]);
-  sharedFrustumPlanes[3] = GeneratePlaneFromPoints(
+  sharedFrustumPlanes[3] = generatePlaneFromPoints(
       worldCorners[6], worldCorners[5], worldCorners[1]);
-  sharedFrustumPlanes[4] = GeneratePlaneFromPoints(
+  sharedFrustumPlanes[4] = generatePlaneFromPoints(
       worldCorners[6], worldCorners[2], worldCorners[3]);
-  sharedFrustumPlanes[5] = GeneratePlaneFromPoints(
+  sharedFrustumPlanes[5] = generatePlaneFromPoints(
       worldCorners[1], worldCorners[4], worldCorners[0]);
 }
 
-bool IsAabbInOrOnPlane(vec4 plane, vec3 center, vec3 extents) {
+bool isAabbInOrOnPlane(vec4 plane, vec3 center, vec3 extents) {
   float radius = dot(extents, abs(plane.xyz));
   float signedDistance = dot(plane.xyz, center) + plane.w;
   return signedDistance >= -radius;
 }
 
-void GenerateWorldAabb(vec3 localCenter, vec3 localExtents, mat4 transform,
+void generateWorldAabb(vec3 localCenter, vec3 localExtents, mat4 transform,
                        out vec3 outCenter, out vec3 outExtents) {
   vec3 localMin = localCenter - localExtents;
   vec3 localMax = localCenter + localExtents;
@@ -159,7 +158,7 @@ void GenerateWorldAabb(vec3 localCenter, vec3 localExtents, mat4 transform,
 
 bool IsWorldAabbVisible(vec3 center, vec3 extents) {
   for (int i = 0; i < 6; ++i) {
-    if (!IsAabbInOrOnPlane(sharedFrustumPlanes[i], center, extents)) {
+    if (!isAabbInOrOnPlane(sharedFrustumPlanes[i], center, extents)) {
       return false;
     }
   }
@@ -170,14 +169,15 @@ bool IsWorldAabbVisible(vec3 center, vec3 extents) {
 void main() {
   uint drawIndex = gl_GlobalInvocationID.x;
 
-  if (drawIndex >= pushConstants.drawCount) {
+  if (drawIndex >= constants.drawCount) {
     return;
   }
 
   if (gl_LocalInvocationIndex == 0) {
-    mat4 viewProj = globalUbo.projection * globalUbo.view;
+    CameraData camera = cameraDatas[constants.cameraIndex];
+    mat4 viewProj = camera.projection * camera.view;
     mat4 viewProjInverse = inverse(viewProj);
-    GenerateFrustumPlanes(viewProjInverse);
+    generateFrustumPlanes(viewProjInverse);
   }
 
   barrier();
@@ -187,13 +187,13 @@ void main() {
 
   vec3 center;
   vec3 extents;
-  GenerateWorldAabb(proxyData.localCenter.xyz, proxyData.localMaxExtents.xyz,
+  generateWorldAabb(proxyData.localCenter.xyz, proxyData.localMaxExtents.xyz,
                     proxyData.transform, center, extents);
 
-#ifdef COMET_DEBUG_CULLING
+#ifdef COMET_DEBUG_RENDERING
   outDebugAabbs[proxyId].minExtents = vec4(center - extents, 0.0);
   outDebugAabbs[proxyId].maxExtents = vec4(center + extents, 0.0);
-#endif  // COMET_DEBUG_CULLING
+#endif  // COMET_DEBUG_RENDERING
 
   if (!IsWorldAabbVisible(center, extents)) {
     return;

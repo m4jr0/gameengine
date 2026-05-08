@@ -13,6 +13,7 @@
 
 #include "comet/core/debug_label.h"
 #include "comet/profiler/profiler.h"
+#include "comet/rendering/camera_manager.h"
 #include "comet/rendering/window/window_event.h"
 
 namespace comet {
@@ -44,10 +45,15 @@ void OpenGlDriver::Update(frame::FramePacket* packet) {
                "frame state is null");
 
   window_->Update();
+
   HandlePresentationState(packet);
   PreDraw(packet);
   Draw(packet);
-  PostDraw(packet);
+
+  if (packet->can_present) {
+    PostDraw(packet);
+  }
+
   frame_state_->GoToNextFrame();
 }
 
@@ -133,6 +139,9 @@ void OpenGlDriver::OnInitialize() {
 
 #ifdef COMET_RENDERING_OPENGL_CLIP_CONTROL_ZERO_TO_ONE
   glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+  CameraManager::Get().SetProjectionFlags(kProjectionFlagBitsDepthZeroToOne);
+#else
+  CameraManager::Get().SetProjectionFlags(kProjectionFlagBitsNone);
 #endif  // COMET_RENDERING_OPENGL_CLIP_CONTROL_ZERO_TO_ONE
 
   glEnable(GL_FRAMEBUFFER_SRGB);
@@ -154,12 +163,22 @@ void OpenGlDriver::OnShutdown() {
     window_->Destroy();
   }
 
-  frame_state_->Destroy();
-  frame_state_ = nullptr;
+  if (frame_state_ != nullptr) {
+    frame_state_->Destroy();
+    frame_state_ = nullptr;
+  }
+
   is_resize_ = false;
 }
 
 void OpenGlDriver::InitializeHandlers() {
+#ifdef COMET_DEBUG_RENDERING
+  DebugHandlerDescr debug_handler_descr{};
+  debug_handler_descr.frame_state = frame_state_.get();
+  debug_handler_descr.render_proxy_record_store = render_proxy_record_store_;
+  debug_handler_ = std::make_unique<DebugHandler>(debug_handler_descr);
+#endif  // COMET_DEBUG_RENDERING
+
   SamplerHandlerDescr sampler_handler_descr{};
   sampler_handler_descr.frame_state = frame_state_.get();
   sampler_handler_ = std::make_unique<SamplerHandler>(sampler_handler_descr);
@@ -200,23 +219,39 @@ void OpenGlDriver::InitializeHandlers() {
 
   RenderProxyHandlerDescr render_proxy_handler_descr{};
   render_proxy_handler_descr.frame_state = frame_state_.get();
+  render_proxy_handler_descr.render_proxy_record_store =
+      render_proxy_record_store_;
   render_proxy_handler_descr.material_handler = material_handler_.get();
   render_proxy_handler_descr.mesh_handler = mesh_handler_.get();
   render_proxy_handler_descr.shader_handler = shader_handler_.get();
   render_proxy_handler_ =
       std::make_unique<RenderProxyHandler>(render_proxy_handler_descr);
 
+  CameraHandlerDescr camera_handler_descr{};
+  camera_handler_descr.frame_state = frame_state_.get();
+  camera_handler_ = std::make_unique<CameraHandler>(camera_handler_descr);
+
   ViewHandlerDescr view_handler_descr{};
   view_handler_descr.frame_state = frame_state_.get();
   view_handler_descr.shadow_settings = shadow_settings_;
+  view_handler_descr.camera_handler = camera_handler_.get();
   view_handler_descr.shader_handler = shader_handler_.get();
-  view_handler_descr.material_handler = material_handler_.get();
+  view_handler_descr.texture_handler = texture_handler_.get();
   view_handler_descr.render_proxy_handler = render_proxy_handler_.get();
   view_handler_descr.mesh_handler = mesh_handler_.get();
   view_handler_descr.lighting_handler = lighting_handler_.get();
+
+#ifdef COMET_DEBUG_RENDERING
+  view_handler_descr.debug_handler = debug_handler_.get();
+#endif  // COMET_DEBUG_RENDERING
+
   view_handler_descr.window = window_.get();
   view_handler_descr.rendering_view_descrs = &rendering_view_descrs_;
   view_handler_ = std::make_unique<ViewHandler>(view_handler_descr);
+
+#ifdef COMET_DEBUG_RENDERING
+  debug_handler_->Initialize();
+#endif  // COMET_DEBUG_RENDERING
 
   texture_handler_->Initialize();
   shader_module_handler_->Initialize();
@@ -226,6 +261,7 @@ void OpenGlDriver::InitializeHandlers() {
   shader_handler_->Initialize();
   lighting_handler_->Initialize();
   render_proxy_handler_->Initialize();
+  camera_handler_->Initialize();
   view_handler_->Initialize();
 }
 
@@ -233,6 +269,11 @@ void OpenGlDriver::DestroyHandlers() {
   if (view_handler_ != nullptr) {
     view_handler_->Shutdown();
     view_handler_ = nullptr;
+  }
+
+  if (camera_handler_ != nullptr) {
+    camera_handler_->Shutdown();
+    camera_handler_ = nullptr;
   }
 
   if (lighting_handler_ != nullptr) {
@@ -274,6 +315,13 @@ void OpenGlDriver::DestroyHandlers() {
     shader_module_handler_->Shutdown();
     shader_module_handler_ = nullptr;
   }
+
+#ifdef COMET_DEBUG_RENDERING
+  if (debug_handler_ != nullptr) {
+    debug_handler_->Shutdown();
+    debug_handler_ = nullptr;
+  }
+#endif  // COMET_DEBUG_RENDERING
 }
 
 void OpenGlDriver::ApplyWindowResize() {
@@ -296,7 +344,7 @@ void OpenGlDriver::ApplyWindowResize() {
   is_resize_ = false;
 }
 
-void OpenGlDriver::PreDraw(frame::FramePacket* packet) {
+void OpenGlDriver::PreDraw([[maybe_unused]] frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::PreDraw");
   COMET_ASSERT(packet != nullptr, "OpenGlDriver::PreDraw",
                "frame packet is null");
@@ -306,10 +354,6 @@ void OpenGlDriver::PreDraw(frame::FramePacket* packet) {
   glClearColor(clear_color_[0], clear_color_[1], clear_color_[2],
                clear_color_[3]);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  if (!packet->can_present) {
-    return;
-  }
 }
 
 void OpenGlDriver::PostDraw(const frame::FramePacket* packet) {
@@ -352,13 +396,31 @@ void OpenGlDriver::UpdateGpuSceneState(frame::FramePacket* packet) {
   mesh_handler_->Update(packet);
   lighting_handler_->Update(packet);
   render_proxy_handler_->Update(packet);
+
+  const auto* render_jobs{lighting_handler_->GetRenderJobs()};
+
+  if (render_jobs != nullptr && !render_jobs->IsEmpty() &&
+      render_proxy_handler_->GetRenderProxyCount() > 0) {
+    const auto frame_index{frame_state_->GetFrameInFlightIndex()};
+    render_proxy_handler_->PrepareShadowCullData(
+        frame_index, static_cast<u32>(render_jobs->GetSize()));
+  }
+
+  camera_handler_->Update(packet);
+
+#ifdef COMET_DEBUG_RENDERING
+  debug_handler_->Update();
+#endif  // COMET_DEBUG_RENDERING
 }
 
 void OpenGlDriver::RecordFrame(frame::FramePacket* packet) {
   COMET_PROFILE("OpenGlDriver::RecordFrame");
   COMET_ASSERT(packet != nullptr, "OpenGlDriver::RecordFrame",
                "frame packet is null");
+
   view_handler_->Update(packet);
+  render_proxy_handler_->Reset();
+  shader_handler_->Reset();
 }
 
 #ifdef COMET_DEBUG_RENDERING

@@ -45,22 +45,18 @@
       ]
     },
     {
-      "name": "ProxyInstances",
+      "name": "ShadowProxyIds",
       "type": "storage_buffer",
       "scope": "pass",
       "layout": "std430",
       "set": 2,
-      "binding": 2,
+      "binding": 1,
       "stages": [
         "vertex"
       ],
       "fields": [
         {
           "name": "proxyId",
-          "type": "u32"
-        },
-        {
-          "name": "batchId",
           "type": "u32"
         }
       ]

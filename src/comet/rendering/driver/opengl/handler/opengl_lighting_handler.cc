@@ -152,9 +152,9 @@ void LightingHandler::OnInitialize() {
       Array<ShadowResource>::WithCapacity(&allocator_, kDefaultLightCount_);
 
   shadow_layer_usage_ = Array<bool>{&allocator_};
-  shadow_layer_usage_.Resize(kShadowLayerCapacity_);
+  shadow_layer_usage_.Resize(kMaxShadowLayerCount);
 
-  for (u32 i{0}; i < kShadowLayerCapacity_; ++i) {
+  for (u32 i{0}; i < kMaxShadowLayerCount; ++i) {
     shadow_layer_usage_[i] = false;
   }
 
@@ -174,7 +174,7 @@ void LightingHandler::OnInitialize() {
       static_cast<GLsizeiptr>(kDefaultLightCount_ * sizeof(GpuLight))};
 
   const auto initial_shadow_buffer_size{
-      static_cast<GLsizeiptr>(kShadowLayerCapacity_ * sizeof(GpuShadowData))};
+      static_cast<GLsizeiptr>(kMaxShadowLayerCount * sizeof(GpuShadowData))};
 
   for (FrameInFlightIndex i{0}; i < max_frames_in_flight; ++i) {
     ssbo_lights_[i] = kInvalidGlNativeStorageHandle;
@@ -250,6 +250,7 @@ void LightingHandler::OnShutdown() {
 void LightingHandler::AddLights(const frame::AddedLights* lights) {
   for (const auto& payload : *lights) {
     const auto handle{payload.light_handle};
+
     if (!handle) {
       continue;
     }
@@ -298,14 +299,17 @@ void LightingHandler::UpdateLights(const frame::DirtyLights* lights) {
 void LightingHandler::RemoveLights(const frame::RemovedLights* lights) {
   for (const auto& payload : *lights) {
     const auto handle{payload.light_handle};
+
     RemoveShadowForLight(handle);
 
     const auto index{static_cast<usize>(handle.GetIndex())};
+
     if (index >= proxies_.GetSize()) {
       continue;
     }
 
     auto& proxy{proxies_[index]};
+
     if (!proxy.handle || proxy.handle != handle) {
       continue;
     }
@@ -373,6 +377,7 @@ void LightingHandler::UpdateShadowForLight(const LightProxy& light) {
 
 void LightingHandler::RemoveShadowForLight(LightHandle light_handle) {
   auto* resource{TryGetShadowResource(light_handle)};
+
   if (resource == nullptr) {
     return;
   }
@@ -403,13 +408,17 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
     proxies_[i].shadow_entry_count = 0;
   }
 
+  const auto* camera_data{packet->GetMainCameraData()};
+  COMET_ASSERT(camera_data != nullptr, "LightingHandler::RebuildRenderJobs",
+               "main camera data is null");
+
   for (usize i{0}; i < shadow_resources_.GetSize(); ++i) {
     if (!IsShadowSlotAlive(i)) {
       continue;
     }
 
     auto& resource{shadow_resources_[i]};
-    auto* light{TryGetLight(resource.light_handle)};
+    const auto* light{TryGetLight(resource.light_handle)};
 
     if (light == nullptr) {
       continue;
@@ -427,17 +436,19 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
     if (light->props.type == LightType::Directional &&
         resource.type == ShadowType::DirectionalOrtho) {
       PopulateCascadeSplits(
-          packet->camera_data, resource.max_distance, resource.view_proj_count,
+          camera_data, resource.max_distance, resource.view_proj_count,
           light->shadow.cascade_lambda, resource.cascade_splits);
 
-      auto cascade_near{packet->camera_data.near_plane};
+      f32 cascade_near{camera_data->near_plane};
 
       for (u32 j{0}; j < resource.view_proj_count; ++j) {
-        const auto cascade_far{resource.cascade_splits[j]};
+        const f32 cascade_far{resource.cascade_splits[j]};
+
+        StaticArray<math::Vec3, 8> corners{};
+        ComputeFrustumCorners(*camera_data, cascade_near, cascade_far, corners);
 
         resource.view_proj[j] = ComputeDirectionalCascadeViewProj(
-            packet->camera_data, light->props.direction, cascade_near,
-            cascade_far);
+            light->props.direction, corners, cascade_near, cascade_far);
 
         ShadowRenderJob job{};
         job.light_handle = resource.light_handle;
@@ -449,6 +460,11 @@ void LightingHandler::RebuildRenderJobs(const frame::FramePacket* packet) {
         job.view_proj_index = j;
         job.view_proj = resource.view_proj[j];
         job.framebuffer = resource.framebuffers[j];
+
+#ifdef COMET_DEBUG_RENDERING
+        job.cascade_corners = corners;
+#endif  // COMET_DEBUG_RENDERING
+
         render_jobs_->PushLast(job);
 
         cascade_near = cascade_far;
@@ -490,8 +506,9 @@ void LightingHandler::UploadGpuLights(FrameInFlightIndex frame_index) {
   const auto required_size{
       static_cast<GLsizeiptr>(live_light_count * sizeof(GpuLight))};
 
-  EnsureStorageBufferCapacity(ssbo_lights_[frame_index],
-                              ssbo_lights_size_[frame_index], required_size);
+  EnsureStorageBufferCapacity(
+      ssbo_lights_[frame_index], ssbo_lights_size_[frame_index],
+      math::Max<GLsizeiptr>(required_size, sizeof(GpuLight)));
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_lights_[frame_index]);
 
@@ -521,6 +538,7 @@ void LightingHandler::UploadGpuLights(FrameInFlightIndex frame_index) {
 void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
   const auto shadow_count{render_jobs_ != nullptr ? render_jobs_->GetSize()
                                                   : 0};
+
   if (shadow_count == 0) {
     return;
   }
@@ -528,9 +546,10 @@ void LightingHandler::UploadGpuShadowData(FrameInFlightIndex frame_index) {
   const auto required_size{
       static_cast<GLsizeiptr>(shadow_count * sizeof(GpuShadowData))};
 
-  EnsureStorageBufferCapacity(ssbo_shadow_data_[frame_index],
-                              ssbo_shadow_data_size_[frame_index],
-                              required_size);
+  EnsureStorageBufferCapacity(
+      ssbo_shadow_data_[frame_index], ssbo_shadow_data_size_[frame_index],
+      math::Max<GLsizeiptr>(required_size,
+                            kMaxShadowLayerCount * sizeof(GpuShadowData)));
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_shadow_data_[frame_index]);
 
@@ -576,16 +595,21 @@ GpuLight LightingHandler::GenerateGpuLight(const LightProxy& light) const {
   const auto shadow_type{ResolveShadowType(light.props, light.shadow)};
 
   return {
-      math::Vec4{light.props.position.x, light.props.position.y,
-                 light.props.position.z, static_cast<f32>(light.props.type)},
-      math::Vec4{light.props.direction.x, light.props.direction.y,
-                 light.props.direction.z, light.props.intensity},
-      math::Vec4{light.props.color.x, light.props.color.y, light.props.color.z,
-                 light.props.range},
-      math::Vec4{static_cast<f32>(shadow_type),
-                 static_cast<f32>(light.gpu_shadow_index),
-                 static_cast<f32>(light.shadow_entry_count), .0f},
-      math::Vec4{light.props.inner_angle, light.props.outer_angle, .0f, .0f},
+      .position_type =
+          math::Vec4{light.props.position.x, light.props.position.y,
+                     light.props.position.z,
+                     static_cast<f32>(light.props.type)},
+      .direction_intensity =
+          math::Vec4{light.props.direction.x, light.props.direction.y,
+                     light.props.direction.z, light.props.intensity},
+      .color_range = math::Vec4{light.props.color.x, light.props.color.y,
+                                light.props.color.z, light.props.range},
+      .shadow_header =
+          math::Vec4{static_cast<f32>(shadow_type),
+                     static_cast<f32>(light.gpu_shadow_index),
+                     static_cast<f32>(light.shadow_entry_count), .0f},
+      .spot_data = math::Vec4{light.props.inner_angle, light.props.outer_angle,
+                              .0f, .0f},
   };
 }
 
@@ -595,13 +619,14 @@ void LightingHandler::InitializeShadowArrayResources() {
   texture_descr.target = GL_TEXTURE_2D_ARRAY;
   texture_descr.width = shadow_settings_->resolution;
   texture_descr.height = shadow_settings_->resolution;
-  texture_descr.depth = kShadowLayerCapacity_;
+  texture_descr.depth = kMaxShadowLayerCount;
   texture_descr.mip_levels = 1;
   texture_descr.channel_count = 1;
   texture_descr.format = GL_DEPTH_COMPONENT;
   texture_descr.internal_format = GL_DEPTH_COMPONENT32F;
 
-  const auto texture_handle{texture_handler_->Generate(texture_descr)};
+  const auto texture_handle{
+      texture_handler_->GenerateRuntimeImmediate(texture_descr)};
   COMET_ASSERT(texture_handle,
                "LightingHandler::InitializeShadowArrayResources",
                "failed to generate shadow array texture");
@@ -650,11 +675,11 @@ void LightingHandler::DestroyShadowArrayResources() {
 }
 
 s32 LightingHandler::AllocateShadowLayers(u32 layer_count) {
-  if (layer_count == 0 || layer_count > kShadowLayerCapacity_) {
+  if (layer_count == 0 || layer_count > kMaxShadowLayerCount) {
     return -1;
   }
 
-  for (u32 i{0}; i + layer_count <= kShadowLayerCapacity_; ++i) {
+  for (u32 i{0}; i + layer_count <= kMaxShadowLayerCount; ++i) {
     bool is_free{true};
 
     for (u32 j{0}; j < layer_count; ++j) {
@@ -678,7 +703,7 @@ s32 LightingHandler::AllocateShadowLayers(u32 layer_count) {
   COMET_LOG_ERROR(LoggerType::Rendering,
                   "LightingHandler::AllocateShadowLayers",
                   "no free shadow layers left", "layer_count", layer_count,
-                  "capacity", kShadowLayerCapacity_);
+                  "capacity", kMaxShadowLayerCount);
   return -1;
 }
 
@@ -763,10 +788,10 @@ void LightingHandler::DestroyShadowResource(ShadowResource& resource) {
 
 void LightingHandler::RecreateShadowResourceIfNeeded(ShadowResource& resource,
                                                      const LightProxy& light) {
-  const auto is_resolution_changed{resource.resolution !=
-                                   shadow_settings_->resolution};
+  bool is_resolution_changed{resource.resolution !=
+                             shadow_settings_->resolution};
   const auto resolved_type{ResolveShadowType(light.props, light.shadow)};
-  const auto is_type_changed{resource.type != resolved_type};
+  bool is_type_changed{resource.type != resolved_type};
   u32 desired_count{1};
 
   if (resolved_type == ShadowType::DirectionalOrtho) {
@@ -774,7 +799,7 @@ void LightingHandler::RecreateShadowResourceIfNeeded(ShadowResource& resource,
         math::Max<u32>(light.shadow.cascade_count, 1u), kMaxShadowCascades_);
   }
 
-  const auto is_count_changed{resource.view_proj_count != desired_count};
+  bool is_count_changed{resource.view_proj_count != desired_count};
 
   if (!is_resolution_changed && !is_type_changed && !is_count_changed) {
     return;
@@ -845,13 +870,15 @@ bool LightingHandler::IsShadowSlotAlive(usize index) const noexcept {
   return resource.light_handle.IsValid();
 }
 
-void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
+void LightingHandler::PopulateCascadeSplits(const RenderCameraData* camera_data,
                                             f32 max_distance, u32 cascade_count,
                                             f32 lambda, f32* out_splits) const {
   COMET_ASSERT(out_splits != nullptr, "LightingHandler::PopulateCascadeSplits",
                "cascade split output is null");
+  COMET_ASSERT(camera_data != nullptr, "LightingHandler::PopulateCascadeSplits",
+               "main camera data is null");
 
-  const auto near_plane{camera_data.near_plane};
+  const auto near_plane{camera_data->near_plane};
   const auto far_plane{max_distance};
   const auto ratio{far_plane / near_plane};
 
@@ -864,11 +891,8 @@ void LightingHandler::PopulateCascadeSplits(const RenderCameraData& camera_data,
 }
 
 math::Mat4 LightingHandler::ComputeDirectionalCascadeViewProj(
-    const RenderCameraData& camera_data, const math::Vec3& light_dir,
+    const math::Vec3& light_dir, const StaticArray<math::Vec3, 8>& corners,
     f32 cascade_near, f32 cascade_far) const {
-  StaticArray<math::Vec3, 8> corners{};
-  ComputeFrustumCorners(camera_data, cascade_near, cascade_far, corners);
-
   math::Vec3 center{.0f};
 
   for (const auto& p : corners) {
@@ -876,7 +900,6 @@ math::Mat4 LightingHandler::ComputeDirectionalCascadeViewProj(
   }
 
   center /= corners.GetSize();
-
   math::Vec3 dir{math::GetNormalizedCopy(light_dir)};
   const auto light_up{ComputeStableUpVector(dir)};
 

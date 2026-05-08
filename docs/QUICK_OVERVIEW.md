@@ -53,6 +53,42 @@ Three rendering backends available:
 
 Rendering is **data-driven** from the `FramePacket`, which isolates render data from engine logic: no locks between systems, just multiple buffered frames.
 
+### Debug Views & Visualization
+
+When `COMET_DEBUG_VIEW` is enabled, Comet exposes additional rendering visualization tools through the debug UI.
+
+Features include:
+
+* Independent debug camera
+* Multi-camera inspection
+* Camera frustum visualization
+* Cascaded shadow map (CSM) frustum visualization
+* Light frustum visualization
+* Culling box visualization
+* Runtime camera input switching (`Tab` cycles the active input camera)
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="images/debug_camera_0.png" width="100%"><br>
+    </td>
+    <td align="center">
+      <img src="images/debug_camera_1.png" width="100%"><br>
+    </td>
+  </tr>
+</table>
+
+### Rendering Debug Options
+
+`COMET_DEBUG_RENDERING` enables rendering-oriented debugging controls useful for isolating visual issues during development.
+
+Available options include:
+
+* Disable textures
+* Disable lighting
+* Disable shadows
+* Normal visualization
+
 ## Entities & ECS
 
 Archetype-based **Entity Component System**.
@@ -228,6 +264,5 @@ Modes:
 | `COMET_ENABLE_RENDERDOC_COMPATIBILITY` | Applies compatibility constraints for RenderDoc captures |
 | `COMET_DEBUG_VIEW` | Enables a rendering debug view |
 | `COMET_DEBUG_SHADER` | Compiles shaders with debug information and reduced optimization |
-| `COMET_DEBUG_CULLING` | Enables culling debug visualization/data |
 | `COMET_VALIDATION_DEBUG_PRINTF_EXT` | Enables Vulkan shader debug printf support |
 | `COMET_VALIDATION_SYNCHRONIZATION_VALIDATION_EXT` | Enables Vulkan synchronization validation |

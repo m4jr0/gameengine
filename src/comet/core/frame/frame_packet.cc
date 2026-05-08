@@ -1,3 +1,4 @@
+#include "frame_packet.h"
 // Copyright 2026 m4jr0. All Rights Reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
@@ -140,15 +141,51 @@ void FramePacket::RegisterRemovedLight(rendering::LightHandle light_handle) {
   removed_lights->Add(std::move(light));
 }
 
+const rendering::CameraView* FramePacket::GetMainCameraView() const {
+  if (camera_views == nullptr || camera_views->IsEmpty() ||
+      main_camera_view_index >= camera_views->GetSize()) {
+    return nullptr;
+  }
+
+  const auto& view{camera_views->Get(main_camera_view_index)};
+  return view.IsMain() ? &view : nullptr;
+}
+
+const rendering::RenderCameraData* FramePacket::GetMainCameraData() const {
+  const auto* view{GetMainCameraView()};
+  return view != nullptr ? &view->data : nullptr;
+}
+
+#ifdef COMET_DEBUG
+const rendering::CameraView* FramePacket::GetDebugCameraView() const {
+  if (camera_views == nullptr || camera_views->IsEmpty()) {
+    return GetMainCameraView();
+  }
+
+  for (const auto& view : *camera_views) {
+    if (view.kind == rendering::CameraKind::Debug) {
+      return &view;
+    }
+  }
+
+  return GetMainCameraView();
+}
+
+const rendering::RenderCameraData* FramePacket::GetDebugCameraData() const {
+  const auto* view{GetDebugCameraView()};
+  return view != nullptr ? &view->data : nullptr;
+}
+#endif  // COMET_DEBUG
+
 bool FramePacket::IsFrameStageStarted(FrameStage stage) const {
-  COMET_ASSERT(stage >= 0 && stage < kFrameStageCount,
+  COMET_ASSERT(static_cast<usize>(stage) < kFrameStageCount,
                "FramePacket::IsFrameStageStarted", "frame stage is invalid",
                "stage", stage);
   return stage_times[stage].start > 0;
 }
 
 bool FramePacket::IsFrameStageFinished(FrameStage stage) const {
-  COMET_ASSERT(stage >= 0 && stage < kFrameStageCount,
+  COMET_ASSERT(static_cast<usize>(stage) < kFrameStageCount,
                "FramePacket::IsFrameStageFinished", "frame stage is invalid",
                "stage", stage);
   return stage_times[stage].end > 0;
@@ -157,7 +194,11 @@ bool FramePacket::IsFrameStageFinished(FrameStage stage) const {
 void FramePacket::Reset() {
   // No locking required. This function is designed for single-threaded
   // execution.
+  is_populated = false;
   can_present = true;
+#ifdef COMET_DEBUG
+  has_debug_camera = false;
+#endif  // COMET_DEBUG
   frame_count = 0;
   lag = .0f;
   time = .0f;
@@ -170,7 +211,9 @@ void FramePacket::Reset() {
 
   ambient_color = rendering::kColorWhiteRgb;
   draw_count = 0;
-  camera_data = {};
+
+  main_camera_view_index = kInvalidIndex;
+  camera_views = COMET_DOUBLE_FRAME_ARRAY(rendering::CameraView);
 
   added_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(AddedGeometry);
   dirty_meshes = COMET_DOUBLE_FRAME_ORDERED_SET(DirtyMesh);

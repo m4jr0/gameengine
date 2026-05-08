@@ -4,35 +4,6 @@
   ],
   "bindings": [
     {
-      "name": "FrameGlobals",
-      "type": "uniform_buffer",
-      "scope": "global",
-      "layout": "std140",
-      "set": 0,
-      "binding": 0,
-      "stages": [
-        "compute"
-      ],
-      "fields": [
-        {
-          "name": "projection",
-          "type": "mat4"
-        },
-        {
-          "name": "view",
-          "type": "mat4"
-        },
-        {
-          "name": "ambientColor",
-          "type": "vec4"
-        },
-        {
-          "name": "viewPos",
-          "type": "vec4"
-        }
-      ]
-    },
-    {
       "name": "ProxyLocalDatas",
       "type": "storage_buffer",
       "scope": "pass",
@@ -177,6 +148,31 @@
           "type": "vec4"
         }
       ]
+    },
+    {
+      "name": "CameraDatas",
+      "type": "storage_buffer",
+      "scope": "pass",
+      "layout": "std430",
+      "set": 2,
+      "binding": 10,
+      "stages": [
+        "compute"
+      ],
+      "fields": [
+        {
+          "name": "projection",
+          "type": "mat4"
+        },
+        {
+          "name": "view",
+          "type": "mat4"
+        },
+        {
+          "name": "viewPos",
+          "type": "vec4"
+        }
+      ]
     }
   ],
   "push_constants": [
@@ -189,6 +185,10 @@
         {
           "name": "drawCount",
           "type": "u32"
+        },
+        {
+          "name": "cameraIndex",
+          "type": "u32"
         }
       ]
     }
@@ -196,10 +196,6 @@
   "defines": [
     {
       "name": "COMET_DEBUG_RENDERING",
-      "value": "1"
-    },
-    {
-      "name": "COMET_DEBUG_CULLING",
       "value": "1"
     }
   ]

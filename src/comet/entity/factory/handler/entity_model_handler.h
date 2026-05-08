@@ -68,6 +68,9 @@ class ModelHandler : public Handler {
   void DestroyStatic(EntityId entity_id) const;
   void DestroySkeletal(EntityId entity_id) const;
 
+  void DestroyStaticImmediate(EntityId entity_id) const;
+  void DestroySkeletalImmediate(EntityId entity_id) const;
+
  protected:
   void OnInitialize() override;
   void OnShutdown() override;

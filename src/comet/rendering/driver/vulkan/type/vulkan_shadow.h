@@ -18,6 +18,7 @@ namespace rendering {
 namespace vk {
 constexpr u32 kMaxShadowViewProjCount{6};
 constexpr u32 kMaxShadowCascades{4};
+constexpr u32 kMaxShadowLayerCount{128};
 
 struct ShadowResource {
   LightHandle light_handle{};
@@ -59,6 +60,10 @@ struct ShadowRenderJob {
   f32 bias_slope{.0f};
 
   const ShadowResource* resource{nullptr};
+
+#ifdef COMET_DEBUG_RENDERING
+  StaticArray<math::Vec3, 8> cascade_corners{};
+#endif  // COMET_DEBUG_RENDERING
 };
 
 struct GpuShadowSettings {
@@ -74,6 +79,16 @@ struct GpuShadowData {
   math::Vec4
       cascade_data{};      // x splitNear, y splitFar, z layerIndex, w unused.
   math::Vec4 bias_data{};  // x biasConstant, y biasSlope, z/w unused.
+};
+
+struct ShadowCullBatchRange {
+  u32 indirect_offset{0};  // In GpuIndirectRenderProxy units.
+  u32 proxy_id_offset{0};  // In RenderProxyId units.
+  u32 batch_count{0};
+  u32 instance_capacity{0};
+#ifdef COMET_DEBUG_RENDERING
+  u32 visible_count_debug{0};
+#endif  // COMET_DEBUG_RENDERING
 };
 }  // namespace vk
 }  // namespace rendering

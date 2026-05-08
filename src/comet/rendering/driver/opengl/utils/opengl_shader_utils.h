@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/frame/frame_container.h"
 #include "comet/rendering/driver/opengl/type/opengl_shader.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader_module.h"
+#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
 
 namespace comet {
 namespace rendering {
@@ -32,6 +32,14 @@ void AddFieldUpdate(frame::FrameArray<ShaderBufferFieldUpdate>& updates,
                     ShaderFieldIndex field_index, const void* data,
                     usize size = 0);
 
+ShaderImageDescriptor GenerateImageDescriptor(ShaderBindingType binding_type,
+                                              TextureHandle texture_handle,
+                                              SamplerHandle sampler_handle);
+
+void GenerateImageDescriptors(ShaderBindingType binding_type,
+                              const Array<const TextureMap*>& texture_maps,
+                              Array<ShaderImageDescriptor>& descriptors);
+
 Alignment GetBindingFieldAlignment(ShaderMemoryLayout layout,
                                    ShaderVariableType type);
 
@@ -40,9 +48,6 @@ ShaderOffset AlignOffset(ShaderOffset offset, Alignment alignment);
 ShaderFieldLayoutInfo GetFieldLayoutInfo(ShaderMemoryLayout layout,
                                          ShaderVariableType type,
                                          u32 array_count);
-
-GlNativeProgramHandle ResolveProgramHandle(const Shader* shader,
-                                           ShaderBindType bind_type);
 
 GLenum GetGlImageAccess(ShaderBindingType type);
 GLenum GetGlCullMode(CullMode cull_mode);

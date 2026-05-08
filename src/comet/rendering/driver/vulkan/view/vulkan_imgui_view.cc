@@ -20,9 +20,7 @@
 
 #include "comet/core/c_array.h"
 #include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
 #include "comet/profiler/profiler.h"
 #include "comet/rendering/debug_ui_registry.h"
 #include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
@@ -36,13 +34,20 @@ ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
   COMET_ASSERT(window_ != nullptr, "ImGuiView::ImGuiView", "window is null");
 }
 
-void ImGuiView::Update(frame::FramePacket*) {
-  COMET_PROFILE("ImGuiView::Update");
+void ImGuiView::Prepare(const ViewUpdate&) {
+  COMET_PROFILE("ImGuiView::Prepare");
+
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
-  Draw();
+
+  DrawDebugUi();
+
   ImGui::Render();
+}
+
+void ImGuiView::Begin(const ViewUpdate&) {
+  COMET_PROFILE("ImGuiView::Begin");
 
   VkClearValue clear_values[2]{};
   memory::CopyMemory(&clear_values[0].color, clear_color_,
@@ -50,12 +55,42 @@ void ImGuiView::Update(frame::FramePacket*) {
   clear_values[1].depthStencil.depth = 1.0f;
   clear_values[1].depthStencil.stencil = 0;
 
-  const auto command_buffer_handle{
-      context_->GetFrameData().command_buffer_handle};
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+  const auto command_buffer_handle{frame_data.command_buffer_handle};
+
   render_pass_handler_->BeginPass(render_pass_handle_, command_buffer_handle,
                                   context_->GetImageIndex(), clear_values, 2);
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_handle);
-  render_pass_handler_->EndPass(command_buffer_handle);
+
+  is_pass_open_ = true;
+}
+
+void ImGuiView::Draw(const ViewUpdate&) {
+  COMET_PROFILE("ImGuiView::Draw");
+
+  if (!is_pass_open_) {
+    return;
+  }
+
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(),
+                                  frame_data.command_buffer_handle);
+}
+
+void ImGuiView::End(const ViewUpdate&) {
+  COMET_PROFILE("ImGuiView::End");
+
+  if (!is_pass_open_) {
+    return;
+  }
+
+  const auto current_frame{context_->GetFrameInFlightIndex()};
+  auto& frame_data{context_->GetFrameData(current_frame)};
+
+  render_pass_handler_->EndPass(frame_data.command_buffer_handle);
+  is_pass_open_ = false;
 }
 
 void ImGuiView::OnInitialize() {
@@ -86,12 +121,16 @@ void ImGuiView::OnInitialize() {
   render_pass_descr.clear_flags = GenerateClearFlags(pass_descr_);
   render_pass_descr.attachment_descrs = frame::FrameArray<AttachmentDescr>{};
   render_pass_descr.attachment_descrs.Reserve(is_msaa ? 2 : 1);
+
   GenerateAttachmentDescrs(
       pass_descr_, is_msaa ? device.GetMsaaSamples() : VK_SAMPLE_COUNT_1_BIT,
       render_pass_descr.attachment_descrs);
 
-  render_pass_descr.options = kRenderPassOptionFlagBitsMultisampled |
-                              kRenderPassOptionFlagBitsSwapchainTarget;
+  render_pass_descr.options = kRenderPassOptionFlagBitsSwapchainTarget;
+
+  if (is_msaa) {
+    render_pass_descr.options |= kRenderPassOptionFlagBitsMultisampled;
+  }
 
   render_pass_handle_ = render_pass_handler_->GetOrGenerate(render_pass_descr);
 
@@ -123,17 +162,20 @@ void ImGuiView::OnInitialize() {
 #ifdef COMET_DEBUG
   IMGUI_CHECKVERSION();
 #endif  // COMET_DEBUG
+
   ImGui::CreateContext();
   ImGui_ImplGlfw_InitForVulkan(window_->GetHandle(), false);
+
   const auto image_count{context_->GetImageCount()};
 
   ImGui_ImplVulkan_InitInfo imgui_info{};
   imgui_info.Instance = context_->GetInstanceHandle();
   imgui_info.PhysicalDevice = device.GetPhysicalDeviceHandle();
   imgui_info.Device = device;
+
   auto& indices{device.GetQueueFamilyIndices()};
   imgui_info.QueueFamily = indices.graphics_family.value_or(0);
-  imgui_info.Queue = device.GetGraphicsQueueHandle();
+  imgui_info.Queue = device.GetGraphicsQueueContext().handle;
   imgui_info.PipelineCache = VK_NULL_HANDLE;
   imgui_info.DescriptorPool = descriptor_pool_handle_;
   imgui_info.PipelineInfoMain.RenderPass =
@@ -158,9 +200,11 @@ void ImGuiView::OnDestroy() {
   }
 
   ImGui::DestroyContext();
+  window_ = nullptr;
+  is_pass_open_ = false;
 }
 
-void vk::ImGuiView::Draw() const {
+void ImGuiView::DrawDebugUi() const {
 #ifdef COMET_HAS_DEBUG_UI
   DebugUiRegistry::Get().Draw();
 #endif  // COMET_HAS_DEBUG_UI
