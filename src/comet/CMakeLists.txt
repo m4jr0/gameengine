@@ -9,19 +9,16 @@
 ################################################################################
 
 # Subdirectories ###############################################################
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/animation")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/core")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/debugging")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/data")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/runtime")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/platform")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/render")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/engine")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/event")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/entity")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/environment")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/geometry")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/input")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/math")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/physics")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/profiler")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/rendering")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/resource")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/scene")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/time")
+
+add_library(${COMET_TARGET} INTERFACE)
+
+target_link_libraries(${COMET_TARGET}
+  INTERFACE
+    ${COMET_ENGINE_TARGET}
+)

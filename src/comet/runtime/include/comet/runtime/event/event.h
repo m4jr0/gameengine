@@ -1,0 +1,97 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_RUNTIME_EVENT_EVENT_H_
+#define COMET_RUNTIME_EVENT_EVENT_H_
+
+// External. ///////////////////////////////////////////////////////////////////
+#include <atomic>
+////////////////////////////////////////////////////////////////////////////////
+
+#include "comet/core/essentials.h"
+#include "comet/core/frame/frame_allocator.h"
+#include "comet/core/memory/memory.h"
+#include "comet/core/type/string_id.h"
+
+namespace comet {
+namespace event {
+// Base event class to inherit from when adding a new event.
+// Here is an implementation example:
+// In the .h file:
+//   class ExplosionEvent : public Event {
+//    public:
+//     static const stringid::StringId kStaticType_;
+//     ExplosionEvent(const u32 radius, const u32 damage);
+//     ExplosionEvent(const ExplosionEvent&) = default;
+//     ExplosionEvent(ExplosionEvent&&) noexcept = default;
+//     ExplosionEvent& operator=(const ExplosionEvent&) = default;
+//     ExplosionEvent& operator=(ExplosionEvent&&) noexcept = default;
+//     ~ExplosionEvent() override = default;
+//
+//     const stringid::StringId& GetType() const noexcept;
+//     u32 GetRadius() const noexcept;
+//     u32 GetDamage() const noexcept;
+//
+//    private:
+//     // For performance purposes, we do not want to generate the string ID
+//     // every time. The static type CANNOT be inline.
+//
+//     u32 radius_{0};
+//     u32 damage_{0};
+//   };
+
+// In the .cc file:
+//   ExplosionEvent::kStaticType_ = COMET_STRING_ID("event_explosion");
+//
+//    ExplosionEvent::ExplosionEvent(const u32 radius,
+//                                   const u32 damage)
+//        : radius_{radius}, damage_{damage} {}
+//
+//   u32 ExplosionEvent::GetRadius() const noexcept { return radius_; }
+//
+//   u32 ExplosionEvent::GetDamage() const noexcept { return damage_; }
+//
+//   const stringid::StringId& ExplosionEvent::GetType() const noexcept {
+//     return kStaticType_;
+//   };
+
+using SequenceNumber = u64;
+
+class Event {
+ public:
+  Event();
+  Event(const Event&) = default;
+  Event(Event&&) noexcept = default;
+  Event& operator=(const Event&) = default;
+  Event& operator=(Event&&) noexcept = default;
+  virtual ~Event() = default;
+
+  SequenceNumber GetSequenceNumber() const noexcept;
+  virtual stringid::StringId GetType() const noexcept = 0;
+
+ private:
+  static_assert(std::atomic<SequenceNumber>::is_always_lock_free,
+                "std::atomic<SequenceNumber> must be always lock-free");
+  static inline std::atomic<SequenceNumber> sequence_number_count_{0};
+  SequenceNumber sequence_number_{0};
+};
+
+using EventPtr = memory::CustomUniquePtr<comet::event::Event>;
+
+// Function that creates and returns a custom unique pointer using custom
+// allocator and deleter
+template <typename T, typename... Args>
+EventPtr GenerateEvent(Args&&... args) {
+  auto* p{frame::GetDoubleFrameAllocator().AllocateOne<T>()};
+
+  // No need to deallocate if an exception occurs: the temporary allocator will
+  // be flushed by the end of the frame following the current one.
+  EventPtr event(p, [](Event* p) { p->~Event(); });
+  memory::Populate<T>(event.get(), std::forward<Args>(args)...);
+  return event;
+}
+}  // namespace event
+}  // namespace comet
+
+#endif  // COMET_RUNTIME_EVENT_EVENT_H_

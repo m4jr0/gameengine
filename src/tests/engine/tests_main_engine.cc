@@ -16,7 +16,6 @@
 
 #include "comet/core/concurrency/job/job.h"
 #include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/concurrency/provider/thread_provider_manager.h"
 #include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/conf/configuration_manager.h"
 #include "comet/core/conf/configuration_value.h"
@@ -50,7 +49,6 @@ class TestsEventListener : public Catch::EventListenerBase {
     comet::job::Scheduler::Get().Run(job_descr, false);
 
     comet::memory::TaggedHeap::Get().Initialize();
-    comet::thread::ThreadProviderManager::Get().Initialize();
     comet::event::EventManager::Get().Initialize();
     comet::frame::FrameManager::Get().Initialize();
     comet::gid::InitializeGids();
@@ -65,7 +63,6 @@ class TestsEventListener : public Catch::EventListenerBase {
     comet::gid::DestroyGids();
     comet::frame::FrameManager::Get().Shutdown();
     comet::event::EventManager::Get().Shutdown();
-    comet::thread::ThreadProviderManager::Get().Shutdown();
     comet::memory::TaggedHeap::Get().Destroy();
     scheduler.Shutdown();
     comet::conf::ConfigurationManager::Get().Shutdown();

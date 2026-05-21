@@ -1,0 +1,38 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_RUNTIME_RESOURCE_SHADER_SHADER_MODULE_RESOURCE_HANDLER_H_
+#define COMET_RUNTIME_RESOURCE_SHADER_SHADER_MODULE_RESOURCE_HANDLER_H_
+
+#include "comet/core/essentials.h"
+#include "comet/resource/handler/resource_handler.h"
+#include "comet/resource/resource.h"
+#include "comet/resource/shader/shader_module_resource.h"
+#include "comet/resource/type/common.h"
+
+namespace comet {
+namespace resource {
+class ShaderModuleResourceHandler
+    : public ResourceHandler<ShaderModuleResourceTag, ShaderModuleResource> {
+ public:
+  using Base = ResourceHandler;
+
+  ShaderModuleResourceHandler(const ResourceHandlerDescr& descr);
+  ShaderModuleResourceHandler(const ShaderModuleResourceHandler&) = delete;
+  ShaderModuleResourceHandler(ShaderModuleResourceHandler&&) = delete;
+  ShaderModuleResourceHandler& operator=(const ShaderModuleResourceHandler&) =
+      delete;
+  ShaderModuleResourceHandler& operator=(ShaderModuleResourceHandler&&) =
+      delete;
+  ~ShaderModuleResourceHandler() override = default;
+
+  ResourceFile Pack(const ShaderModuleResource& resource,
+                    CompressionMode compression_mode) override;
+  void Unpack(const ResourceFile& file, ResourceLifeSpan life_span,
+              ShaderModuleResource* resource) override;
+};
+}  // namespace resource
+}  // namespace comet
+
+#endif  // COMET_RUNTIME_RESOURCE_SHADER_SHADER_MODULE_RESOURCE_HANDLER_H_

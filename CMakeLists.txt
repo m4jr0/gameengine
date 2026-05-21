@@ -22,16 +22,20 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Global variables #############################################################
 # Executables.
-set(EXECUTABLE_NAME "comet_editor")
+set(COMET_SANDBOX_TARGET "comet_sandbox")
+set(COMET_ASSETC_TARGET "comet_assetc")
 
-# Internal library names.
-set(COMET_LIBRARY_NAME "comet")
+set(COMET_TARGET "comet")
+set(COMET_CORE_TARGET "comet_core")
+set(COMET_DATA_TARGET "comet_data")
+set(COMET_RUNTIME_TARGET "comet_runtime")
+set(COMET_PLATFORM_TARGET "comet_platform")
+set(COMET_RENDER_TARGET "comet_render")
+set(COMET_ENGINE_TARGET "comet_engine")
 
 # Other.
 set(MESSAGE_PREFIX "[Comet] ")
 set(VCPKG_REPO "https://github.com/Microsoft/vcpkg.git")
-
-message(STATUS "${MESSAGE_PREFIX}Build type: ${CMAKE_BUILD_TYPE}")
 
 # OS specifics #################################################################
 if(UNIX AND NOT APPLE)
@@ -125,6 +129,8 @@ project("comet_game_engine"
 if(WIN32)
   enable_language(ASM_MASM)
 endif()
+
+message(STATUS "${MESSAGE_PREFIX}Build type: ${CMAKE_BUILD_TYPE}")
 
 # Debug feature groups.
 option(COMET_FORCE_DEBUG_DEFINES
@@ -278,31 +284,42 @@ list(GET VERSION_LIST 0 COMET_VERSION_MAJOR)
 list(GET VERSION_LIST 1 COMET_VERSION_MINOR)
 list(GET VERSION_LIST 2 COMET_VERSION_PATCH)
 
-add_library(${COMET_LIBRARY_NAME})
+function(comet_configure_target target_name)
+  target_compile_features(${target_name}
+    PUBLIC
+      cxx_std_20
+  )
 
-target_compile_definitions(${COMET_LIBRARY_NAME}
-  PUBLIC
-    $<$<OR:$<CONFIG:Debug>,$<CONFIG:DebugRelease>,$<BOOL:${COMET_FORCE_DEBUG_DEFINES}>>:COMET_DEBUG>
+  target_compile_definitions(${target_name}
+    PUBLIC
+      $<$<OR:$<CONFIG:Debug>,$<CONFIG:DebugRelease>,$<BOOL:${COMET_FORCE_DEBUG_DEFINES}>>:COMET_DEBUG>
+      $<$<BOOL:${COMET_FULL_DEBUG_CHECKS}>:COMET_FULL_DEBUG_CHECKS>
+      $<$<BOOL:${COMET_DEBUG_LABELIZE_STRING_IDS}>:COMET_DEBUG_LABELIZE_STRING_IDS>
+      $<$<BOOL:${COMET_DEBUG_MEMORY_CHECKS}>:COMET_DEBUG_MEMORY_CHECKS>
+      $<$<BOOL:${COMET_DEBUG_TRACK_ALLOCATIONS}>:COMET_DEBUG_TRACK_ALLOCATIONS>
+      $<$<BOOL:${COMET_DEBUG_LOG_CONTEXT_PREFIX}>:COMET_DEBUG_LOG_CONTEXT_PREFIX>
+      $<$<BOOL:${COMET_DEBUG_ENTITY_CHECKS}>:COMET_DEBUG_ENTITY_CHECKS>
+      $<$<BOOL:${COMET_DEBUG_RENDERING_CHECKS}>:COMET_DEBUG_RENDERING_CHECKS>
 
-    $<$<BOOL:${COMET_FULL_DEBUG_CHECKS}>:COMET_FULL_DEBUG_CHECKS>
-    $<$<BOOL:${COMET_DEBUG_LABELIZE_STRING_IDS}>:COMET_DEBUG_LABELIZE_STRING_IDS>
-    $<$<BOOL:${COMET_DEBUG_MEMORY_CHECKS}>:COMET_DEBUG_MEMORY_CHECKS>
-    $<$<BOOL:${COMET_DEBUG_TRACK_ALLOCATIONS}>:COMET_DEBUG_TRACK_ALLOCATIONS>
-    $<$<BOOL:${COMET_DEBUG_LOG_CONTEXT_PREFIX}>:COMET_DEBUG_LOG_CONTEXT_PREFIX>
-    $<$<BOOL:${COMET_DEBUG_ENTITY_CHECKS}>:COMET_DEBUG_ENTITY_CHECKS>
-    $<$<BOOL:${COMET_DEBUG_RENDERING_CHECKS}>:COMET_DEBUG_RENDERING_CHECKS>
+      COMET_NAME="${COMET_NAME}"
+      COMET_VERSION_MAJOR=${COMET_VERSION_MAJOR}
+      COMET_VERSION_MINOR=${COMET_VERSION_MINOR}
+      COMET_VERSION_PATCH=${COMET_VERSION_PATCH}
+      COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+  )
 
-    COMET_NAME="${COMET_NAME}"
-    COMET_VERSION_MAJOR=${COMET_VERSION_MAJOR}
-    COMET_VERSION_MINOR=${COMET_VERSION_MINOR}
-    COMET_VERSION_PATCH=${COMET_VERSION_PATCH}
-    COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
-)
+  target_precompile_headers(${target_name}
+    PRIVATE
+      "${PROJECT_SOURCE_DIR}/src/comet_pch.h"
+  )
 
-target_precompile_headers(${COMET_LIBRARY_NAME}
-  PRIVATE 
-    "${PROJECT_SOURCE_DIR}/src/comet_pch.h"
-)
+  if(MSVC AND COMET_IS_BUILD_PERFORMANCE_SUMMARY)
+    target_compile_options(${target_name}
+      PRIVATE
+        "$<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/Bt+>"
+    )
+  endif()
+endfunction()
 
 if(MSVC)
   if(COMET_IS_BUILD_PERFORMANCE_SUMMARY)
@@ -316,8 +333,9 @@ endif()
 
 # Subdirectories ###############################################################
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/editor")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/sandbox")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/tool")
 
 # Post-configure operations ####################################################
 # Copy configuration file.

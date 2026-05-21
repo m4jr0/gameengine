@@ -1,0 +1,159 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+// Precompiled. ////////////////////////////////////////////////////////////////
+#include "comet_pch.h"
+////////////////////////////////////////////////////////////////////////////////
+
+// Header. /////////////////////////////////////////////////////////////////////
+#include "comet/core/math/vector.h"
+////////////////////////////////////////////////////////////////////////////////
+
+#include "comet/math/math_scalar.h"
+
+namespace comet {
+namespace math {
+namespace internal {
+constexpr f32 kNormalizeSquaredEpsilon{1e-8f};
+}  // namespace internal
+
+f32 GetMagnitude(const Vec2& vec) { return Sqrt(Dot(vec, vec)); }
+
+f32 GetMagnitude(const Vec3& vec) { return Sqrt(Dot(vec, vec)); }
+
+f32 GetMagnitude(const Vec4& vec) { return Sqrt(Dot(vec, vec)); }
+
+f32 GetSquaredMagnitude(const Vec2& vec) { return Dot(vec, vec); }
+
+f32 GetSquaredMagnitude(const Vec3& vec) { return Dot(vec, vec); }
+
+f32 GetSquaredMagnitude(const Vec4& vec) { return Dot(vec, vec); }
+
+Vec2& Normalize(Vec2& vector) {
+  const auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec2{.0f};
+    return vector;
+  }
+
+  vector /= Sqrt(mag_sq);
+  return vector;
+}
+
+Vec3& Normalize(Vec3& vector) {
+  const auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec3{.0f};
+    return vector;
+  }
+
+  vector /= Sqrt(mag_sq);
+  return vector;
+}
+
+Vec4& Normalize(Vec4& vector) {
+  const auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec4{.0f};
+    return vector;
+  }
+
+  vector /= Sqrt(mag_sq);
+  return vector;
+}
+
+Vec2 GetNormalizedCopy(const Vec2& vector) {
+  auto copy{vector};
+  Normalize(copy);
+  return copy;
+}
+
+Vec3 GetNormalizedCopy(const Vec3& vector) {
+  auto copy{vector};
+  Normalize(copy);
+  return copy;
+}
+
+Vec4 GetNormalizedCopy(const Vec4& vector) {
+  auto copy{vector};
+  Normalize(copy);
+  return copy;
+}
+
+Vec2& NormalizeFast(Vec2& vector) {
+  const auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec2{.0f};
+    return vector;
+  }
+
+  vector *= FastInvSqrt(mag_sq);
+  return vector;
+}
+
+Vec3& NormalizeFast(Vec3& vector) {
+  const auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec3{.0f};
+    return vector;
+  }
+
+  vector *= FastInvSqrt(mag_sq);
+  return vector;
+}
+
+Vec4& NormalizeFast(Vec4& vector) {
+  const auto mag_sq{Dot(vector, vector)};
+
+  if (mag_sq <= internal::kNormalizeSquaredEpsilon) {
+    vector = Vec4{.0f};
+    return vector;
+  }
+
+  vector *= FastInvSqrt(mag_sq);
+  return vector;
+}
+
+Vec2 GetNormalizedCopyFast(const Vec2& vector) {
+  auto copy{vector};
+  NormalizeFast(copy);
+  return copy;
+}
+
+Vec3 GetNormalizedCopyFast(const Vec3& vector) {
+  auto copy{vector};
+  NormalizeFast(copy);
+  return copy;
+}
+
+Vec4 GetNormalizedCopyFast(const Vec4& vector) {
+  auto copy{vector};
+  NormalizeFast(copy);
+  return copy;
+}
+
+f32 Dot(const Vec2& a, const Vec2& b) { return a.x * b.x + a.y * b.y; }
+
+f32 Dot(const Vec3& a, const Vec3& b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+f32 Dot(const Vec4& a, const Vec4& b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+Vec3 Cross(const Vec3& a, const Vec3& b) {
+  return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+}
+
+f32 AverageComponents(const Vec3& vec) {
+  return (vec.x + vec.y + vec.z) * (1.0f / 3.0f);
+}
+}  // namespace math
+}  // namespace comet

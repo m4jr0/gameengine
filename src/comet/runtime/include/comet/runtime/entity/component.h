@@ -1,0 +1,88 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_COMET_ENTITY_COMPONENT_H_
+#define COMET_COMET_ENTITY_COMPONENT_H_
+
+#include "comet/core/essentials.h"
+#include "comet/core/hash.h"
+#include "comet/core/memory/memory.h"
+#include "comet/entity/type/entity_id.h"
+
+namespace comet {
+namespace entity {
+template <typename ComponentType>
+struct is_component {
+  static constexpr auto value{
+      std::is_trivially_copyable_v<std::decay_t<ComponentType>>};
+};
+
+template <class ComponentType>
+constexpr bool is_component_v{is_component<ComponentType>::value};
+
+template <typename ComponentType>
+constexpr void CheckComponent() {
+  static_assert(is_component_v<ComponentType>,
+                "ComponentType must be trivially copyable");
+}
+
+struct ComponentTypeDescr {
+  EntityId id{kInvalidEntityId};
+  usize size{0};
+  memory::Alignment align{0};
+};
+
+HashValue GenerateHash(const ComponentTypeDescr& descr);
+
+struct ComponentTypeDescrHashLogic {
+  using Value = ComponentTypeDescr;
+  using Hashable = ComponentTypeDescr;
+
+  static const Hashable& GetHashable(const Value& value);
+  static HashValue Hash(const Hashable& hashable);
+  static bool AreEqual(const Hashable& a, const Hashable& b);
+};
+
+class ComponentIdGenerator {
+ protected:
+  inline static EntityId GenerateId() {
+    COMET_ASSERT(component_id_counter_ < kMaxComponentId - 1,
+                 "ComponentIdGenerator::GenerateId",
+                 "max component count reached");
+
+    return Tag(EntityIdTag::Component, component_id_counter_++);
+  }
+
+ private:
+  inline static u8 component_id_counter_{0};
+};
+
+template <typename ComponentType>
+class ComponentTypeDescrGetter : public ComponentIdGenerator {
+ public:
+  static const ComponentTypeDescr& Get() {
+    if (is_descr_generated) {
+      return descr_;
+    }
+
+    descr_.id = GenerateId();
+    descr_.size = sizeof(ComponentType);
+    descr_.align = alignof(ComponentType);
+    is_descr_generated = true;
+    return descr_;
+  }
+
+ private:
+  inline static ComponentTypeDescr descr_{};
+  inline static auto is_descr_generated{false};
+};
+
+struct ComponentDescr {
+  ComponentTypeDescr type_descr{};
+  u8* data{nullptr};
+};
+}  // namespace entity
+}  // namespace comet
+
+#endif  // COMET_COMET_ENTITY_COMPONENT_H_

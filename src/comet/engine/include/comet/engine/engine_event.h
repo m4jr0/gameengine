@@ -1,0 +1,43 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_ENGINE_ENGINE_EVENT_H_
+#define COMET_ENGINE_ENGINE_EVENT_H_
+
+#include "comet/core/essentials.h"
+#include "comet/core/type/string_id.h"
+#include "comet/event/event.h"
+
+namespace comet {
+class ApplicationQuitEvent : public event::Event {
+ public:
+  const static stringid::StringId kStaticType_;
+
+  ApplicationQuitEvent() = default;
+  ApplicationQuitEvent(const ApplicationQuitEvent&) = default;
+  ApplicationQuitEvent(ApplicationQuitEvent&&) noexcept = default;
+  ApplicationQuitEvent& operator=(const ApplicationQuitEvent&) = default;
+  ApplicationQuitEvent& operator=(ApplicationQuitEvent&&) noexcept = default;
+  ~ApplicationQuitEvent() override = default;
+
+  stringid::StringId GetType() const noexcept override;
+};
+
+class UnrecoverableErrorEvent : public event::Event {
+ public:
+  const static stringid::StringId kStaticType_;
+
+  UnrecoverableErrorEvent() = default;
+  UnrecoverableErrorEvent(const UnrecoverableErrorEvent&) = default;
+  UnrecoverableErrorEvent(UnrecoverableErrorEvent&&) noexcept = default;
+  UnrecoverableErrorEvent& operator=(const UnrecoverableErrorEvent&) = default;
+  UnrecoverableErrorEvent& operator=(UnrecoverableErrorEvent&&) noexcept =
+      default;
+  ~UnrecoverableErrorEvent() override = default;
+
+  stringid::StringId GetType() const noexcept override;
+};
+}  // namespace comet
+
+#endif  // COMET_ENGINE_ENGINE_EVENT_H_

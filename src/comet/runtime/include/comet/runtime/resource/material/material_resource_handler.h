@@ -1,0 +1,46 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_RUNTIME_RESOURCE_MATERIAL_MATERIAL_RESOURCE_HANDLER_H_
+#define COMET_RUNTIME_RESOURCE_MATERIAL_MATERIAL_RESOURCE_HANDLER_H_
+
+#include "comet/core/essentials.h"
+#include "comet/core/memory/memory.h"
+#include "comet/resource/handler/resource_handler.h"
+#include "comet/resource/material/material_resource.h"
+#include "comet/resource/resource.h"
+#include "comet/resource/type/common.h"
+
+namespace comet {
+namespace resource {
+class MaterialResourceHandler
+    : public ResourceHandler<MaterialResourceTag, MaterialResource> {
+ public:
+  using Base = ResourceHandler;
+
+  explicit MaterialResourceHandler(const ResourceHandlerDescr& descr);
+  MaterialResourceHandler(const MaterialResourceHandler&) = delete;
+  MaterialResourceHandler(MaterialResourceHandler&&) = delete;
+  MaterialResourceHandler& operator=(const MaterialResourceHandler&) = delete;
+  MaterialResourceHandler& operator=(MaterialResourceHandler&&) = delete;
+  ~MaterialResourceHandler() override = default;
+
+  ResourceFile Pack(const MaterialResource& resource,
+                    CompressionMode compression_mode) override;
+  void Unpack(const ResourceFile& file, ResourceLifeSpan life_span,
+              MaterialResource* resource) override;
+
+  MaterialResource* GetDefaultMaterialResource();
+
+ protected:
+  void InitializeDefaults() override;
+  void DestroyDefaults() override;
+
+ private:
+  memory::UniquePtr<MaterialResource> default_material_{nullptr};
+};
+}  // namespace resource
+}  // namespace comet
+
+#endif  // COMET_RUNTIME_RESOURCE_MATERIAL_MATERIAL_RESOURCE_HANDLER_H_

@@ -1,0 +1,41 @@
+// Copyright 2026 m4jr0. All Rights Reserved.
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE file.
+
+#ifndef COMET_ENGINE_DEBUG_UI_PROFILER_CPU_PROFILER_DISPLAYER_H_
+#define COMET_ENGINE_DEBUG_UI_PROFILER_CPU_PROFILER_DISPLAYER_H_
+
+#include "comet/core/essentials.h"
+
+#ifdef COMET_HAS_PROFILER_DEBUG_UI
+
+#include "comet/debugging/ui/debugger/profiler/cpu_profiler_displayer_context.h"
+#include "comet/debugging/ui/debugger/profiler/cpu_profiler_graph.h"
+#include "comet/debugging/ui/debugger/profiler/cpu_profiler_tree.h"
+#include "comet/profiler/profiler.h"
+
+namespace comet {
+namespace debug {
+class CpuProfilerDisplayer {
+ public:
+  CpuProfilerDisplayer() = default;
+  CpuProfilerDisplayer(const CpuProfilerDisplayer&) = delete;
+  CpuProfilerDisplayer(CpuProfilerDisplayer&&) = delete;
+  CpuProfilerDisplayer& operator=(const CpuProfilerDisplayer&) = delete;
+  CpuProfilerDisplayer& operator=(CpuProfilerDisplayer&&) = delete;
+  ~CpuProfilerDisplayer() = default;
+
+  void Draw(const profiler::ProfilerData& profiler_data,
+            const CpuProfilerGraph::Controls& controls);
+
+ private:
+  CpuProfilerDisplayerContext context_{};
+  CpuProfilerGraph graph_{};
+  CpuProfilerTree tree_{};
+};
+}  // namespace debug
+}  // namespace comet
+
+#endif  // COMET_HAS_PROFILER_DEBUG_UI
+
+#endif  // COMET_ENGINE_DEBUG_UI_PROFILER_CPU_PROFILER_DISPLAYER_H_
