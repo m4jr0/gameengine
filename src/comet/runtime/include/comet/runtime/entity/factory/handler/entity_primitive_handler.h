@@ -6,9 +6,9 @@
 #define COMET_RUNTIME_ENTITY_FACTORY_HANDLER_ENTITY_PRIMITIVE_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/factory/handler/entity_handler.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/resource/type/common.h"
+#include "comet/runtime/entity/factory/handler/entity_handler.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace entity {

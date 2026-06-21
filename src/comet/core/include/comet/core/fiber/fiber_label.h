@@ -5,7 +5,7 @@
 #ifndef COMET_CORE_FIBER_FIBER_LABEL_H_
 #define COMET_CORE_FIBER_FIBER_LABEL_H_
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

@@ -6,9 +6,10 @@
 #define COMET_RUNTIME_GEOMETRY_COMPONENT_MESH_COMPONENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/resource/material/material_resource.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/data/resource/material/material_resource.h"
 
 namespace comet {
 namespace geometry {

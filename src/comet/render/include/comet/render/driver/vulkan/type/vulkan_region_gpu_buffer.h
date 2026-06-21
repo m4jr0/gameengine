@@ -16,9 +16,9 @@
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type/region_map.h"
 #include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
+#include "comet/render/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/render/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
 
 namespace comet {
 namespace rendering {
@@ -252,7 +252,7 @@ struct RegionGpuBuffer {
 
  private:
   memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagRendering};
+      memory::kEngineMemoryTagRender};
 
   Array<Array<Buffer>> pending_buffer_destroys_{};
 

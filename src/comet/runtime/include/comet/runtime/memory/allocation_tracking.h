@@ -12,7 +12,7 @@
 // on GCC. Tag allocation, however, appears to be functioning correctly in both
 // cases.
 
-#ifdef COMET_TRACK_ALLOCATIONS
+#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
 // External. ///////////////////////////////////////////////////////////////////
 #include <atomic>
 #include <mutex>
@@ -21,9 +21,10 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/map.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/map.h"
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"
@@ -35,7 +36,7 @@
 namespace comet {
 namespace memory {
 struct MemoryTagUseSnapshot {
-  memory::MemoryTag tag{memory::kEngineMemoryTagInvalid};
+  memory::MemoryTag tag{kEngineMemoryTagInvalid};
   usize size{0};
 };
 
@@ -120,7 +121,7 @@ struct MemoryUse {
   std::atomic<usize> total_allocated{0};
   std::atomic<usize> total_freed{0};
 
-  memory::PlatformAllocator allocator{memory::kEngineMemoryTagDebug};
+  memory::PlatformAllocator allocator{kEngineMemoryTagDebug};
   TrackedAllocations allocations{&allocator};
   TrackedTags tags{&allocator};
 
@@ -239,6 +240,6 @@ MemoryUseSnapshot GetLatestMemoryUseSnapshot();
 #define COMET_GET_TAG_USE(handle)
 #define COMET_UPDATE_MEMORY_USE_SNAPSHOT()
 #define COMET_GET_LATEST_MEMORY_USE_SNAPSHOT(handle)
-#endif  // COMET_TRACK_ALLOCATIONS
+#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
 
 #endif  // COMET_RUNTIME_MEMORY_ALLOCATION_TRACKING_H_

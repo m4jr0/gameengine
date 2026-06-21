@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,29 +14,29 @@
 #include <fstream>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger/logging.h"
 
 namespace comet {
 namespace conf {
-ConfigurationManager& ConfigurationManager::Get() {
-  static ConfigurationManager singleton{};
+ConfManager& ConfManager::Get() {
+  static ConfManager singleton{};
   return singleton;
 }
 
-void ConfigurationManager::ParseConfFile() {
+void ConfManager::ParseConfFile() {
   std::ifstream in_file;
 
   if (!OpenFileToReadFrom(kConfigFileRelativePath_, in_file)) {
-    COMET_LOG_INFO(LoggerType::Core, "ConfigurationManager::ParseConfFile",
+    COMET_LOG_INFO(LoggerType::Core, "ConfManager::ParseConfFile",
                    "configuration file not found", "path",
                    kConfigFileRelativePath_);
     return;
   }
 
   if (!in_file.good()) {
-    COMET_LOG_ERROR(LoggerType::Core, "ConfigurationManager::ParseConfFile",
+    COMET_LOG_ERROR(LoggerType::Core, "ConfManager::ParseConfFile",
                     "configuration file is invalid", "path",
                     kConfigFileRelativePath_);
     return;
@@ -87,31 +87,31 @@ void ConfigurationManager::ParseConfFile() {
   }
 }
 
-ConfValue& ConfigurationManager::Get(ConfKey key) {
+ConfValue& ConfManager::Get(ConfKey key) {
   auto* value{values_.TryGet(key)};
 
-  COMET_ASSERT(value != nullptr, "ConfigurationManager::Get",
+  COMET_ASSERT(value != nullptr, "ConfManager::Get",
                "configuration key is unknown", "key",
                COMET_STRING_ID_LABEL(key));
 
   return *value;
 }
 
-const ConfValue& ConfigurationManager::Get(ConfKey key) const {
+const ConfValue& ConfManager::Get(ConfKey key) const {
   const auto* value{values_.TryGet(key)};
 
-  COMET_ASSERT(value != nullptr, "ConfigurationManager::Get",
+  COMET_ASSERT(value != nullptr, "ConfManager::Get",
                "configuration key is unknown", "key",
                COMET_STRING_ID_LABEL(key));
 
   return *value;
 }
 
-const schar* ConfigurationManager::GetStr(ConfKey key) const {
+const schar* ConfManager::GetStr(ConfKey key) const {
   return Get(key).str_value;
 }
 
-const tchar* ConfigurationManager::GetTStr(ConfKey key) const {
+const tchar* ConfManager::GetTStr(ConfKey key) const {
 #ifdef COMET_WIDE_TCHAR
   return Get(key).wstr_value;
 #else
@@ -119,7 +119,7 @@ const tchar* ConfigurationManager::GetTStr(ConfKey key) const {
 #endif  // COMET_WIDE_TCHAR
 }
 
-void ConfigurationManager::GetTStr(ConfKey key, TString& str) const {
+void ConfManager::GetTStr(ConfKey key, TString& str) const {
 #ifdef COMET_WIDE_TCHAR
   str = Get(key).wstr_value;
 #else
@@ -127,68 +127,68 @@ void ConfigurationManager::GetTStr(ConfKey key, TString& str) const {
 #endif  // COMET_WIDE_TCHAR
 }
 
-u8 ConfigurationManager::GetU8(ConfKey key) const { return Get(key).u8_value; }
+u8 ConfManager::GetU8(ConfKey key) const { return Get(key).u8_value; }
 
-u16 ConfigurationManager::GetU16(ConfKey key) const {
+u16 ConfManager::GetU16(ConfKey key) const {
   return Get(key).u16_value;
 }
 
-u32 ConfigurationManager::GetU32(ConfKey key) const {
+u32 ConfManager::GetU32(ConfKey key) const {
   return Get(key).u32_value;
 }
 
-u64 ConfigurationManager::GetU64(ConfKey key) const {
+u64 ConfManager::GetU64(ConfKey key) const {
   return Get(key).u64_value;
 }
 
-s8 ConfigurationManager::GetS8(ConfKey key) const { return Get(key).s8_value; }
+s8 ConfManager::GetS8(ConfKey key) const { return Get(key).s8_value; }
 
-s16 ConfigurationManager::GetS16(ConfKey key) const {
+s16 ConfManager::GetS16(ConfKey key) const {
   return Get(key).s16_value;
 }
 
-s32 ConfigurationManager::GetS32(ConfKey key) const {
+s32 ConfManager::GetS32(ConfKey key) const {
   return Get(key).s32_value;
 }
 
-s64 ConfigurationManager::GetS64(ConfKey key) const {
+s64 ConfManager::GetS64(ConfKey key) const {
   return Get(key).s64_value;
 }
 
-f32 ConfigurationManager::GetF32(ConfKey key) const {
+f32 ConfManager::GetF32(ConfKey key) const {
   return Get(key).f32_value;
 }
 
-f64 ConfigurationManager::GetF64(ConfKey key) const {
+f64 ConfManager::GetF64(ConfKey key) const {
   return Get(key).f64_value;
 }
 
-usize ConfigurationManager::GetIndex(ConfKey key) const {
+usize ConfManager::GetIndex(ConfKey key) const {
   return Get(key).uindex_value;
 }
 
-ux ConfigurationManager::GetUx(ConfKey key) const { return Get(key).ux_value; }
+ux ConfManager::GetUx(ConfKey key) const { return Get(key).ux_value; }
 
-sx ConfigurationManager::GetSx(ConfKey key) const { return Get(key).sx_value; }
+sx ConfManager::GetSx(ConfKey key) const { return Get(key).sx_value; }
 
-fx ConfigurationManager::GetFx(ConfKey key) const { return Get(key).fx_value; }
+fx ConfManager::GetFx(ConfKey key) const { return Get(key).fx_value; }
 
-bool ConfigurationManager::GetBool(ConfKey key) const {
+bool ConfManager::GetBool(ConfKey key) const {
   return Get(key).bool_value;
 }
 
-void ConfigurationManager::Set(ConfKey key, const ConfValue& value) {
+void ConfManager::Set(ConfKey key, const ConfValue& value) {
   values_.Emplace(key, value);
 }
 
-void ConfigurationManager::SetStr(ConfKey key, const schar* value) {
+void ConfManager::SetStr(ConfKey key, const schar* value) {
   return SetStr(key, value, GetLength(value));
 }
 
-void ConfigurationManager::SetStr(ConfKey key, const schar* value,
+void ConfManager::SetStr(ConfKey key, const schar* value,
                                   usize length) {
   if (length > kMaxStrValueLength) {
-    COMET_LOG_ERROR(LoggerType::Core, "ConfigurationManager::SetStr",
+    COMET_LOG_ERROR(LoggerType::Core, "ConfManager::SetStr",
                     "string value is too long", "key",
                     COMET_STRING_ID_LABEL(key), "length", length, "max_length",
                     kMaxStrValueLength - 1);
@@ -201,14 +201,14 @@ void ConfigurationManager::SetStr(ConfKey key, const schar* value,
   str[length] = '\0';
 }
 
-void ConfigurationManager::SetTStr(ConfKey key, const tchar* value) {
+void ConfManager::SetTStr(ConfKey key, const tchar* value) {
   return SetTStr(key, value, GetLength(value));
 }
 
-void ConfigurationManager::SetTStr(ConfKey key, const tchar* value,
+void ConfManager::SetTStr(ConfKey key, const tchar* value,
                                    usize length) {
   if (length > kMaxStrValueLength) {
-    COMET_LOG_ERROR(LoggerType::Core, "ConfigurationManager::SetTStr",
+    COMET_LOG_ERROR(LoggerType::Core, "ConfManager::SetTStr",
                     "tstring value is too long", "key",
                     COMET_STRING_ID_LABEL(key), "length", length, "max_length",
                     kMaxStrValueLength - 1);
@@ -226,67 +226,67 @@ void ConfigurationManager::SetTStr(ConfKey key, const tchar* value,
   str[length] = COMET_TCHAR('\0');
 }
 
-void ConfigurationManager::SetU8(ConfKey key, u8 value) {
+void ConfManager::SetU8(ConfKey key, u8 value) {
   Get(key).u8_value = value;
 }
 
-void ConfigurationManager::SetU16(ConfKey key, u16 value) {
+void ConfManager::SetU16(ConfKey key, u16 value) {
   Get(key).u16_value = value;
 }
 
-void ConfigurationManager::SetU32(ConfKey key, u32 value) {
+void ConfManager::SetU32(ConfKey key, u32 value) {
   Get(key).u32_value = value;
 }
 
-void ConfigurationManager::SetU64(ConfKey key, u64 value) {
+void ConfManager::SetU64(ConfKey key, u64 value) {
   Get(key).u64_value = value;
 }
 
-void ConfigurationManager::SetS8(ConfKey key, s8 value) {
+void ConfManager::SetS8(ConfKey key, s8 value) {
   Get(key).s8_value = value;
 }
 
-void ConfigurationManager::SetS16(ConfKey key, s16 value) {
+void ConfManager::SetS16(ConfKey key, s16 value) {
   Get(key).s16_value = value;
 }
 
-void ConfigurationManager::SetS32(ConfKey key, s32 value) {
+void ConfManager::SetS32(ConfKey key, s32 value) {
   Get(key).s32_value = value;
 }
 
-void ConfigurationManager::SetS64(ConfKey key, s64 value) {
+void ConfManager::SetS64(ConfKey key, s64 value) {
   Get(key).s64_value = value;
 }
 
-void ConfigurationManager::SetF32(ConfKey key, f32 value) {
+void ConfManager::SetF32(ConfKey key, f32 value) {
   Get(key).f32_value = value;
 }
 
-void ConfigurationManager::SetF64(ConfKey key, f64 value) {
+void ConfManager::SetF64(ConfKey key, f64 value) {
   Get(key).f64_value = value;
 }
 
-void ConfigurationManager::SetIndex(ConfKey key, usize value) {
+void ConfManager::SetIndex(ConfKey key, usize value) {
   Get(key).uindex_value = value;
 }
 
-void ConfigurationManager::SetUx(ConfKey key, ux value) {
+void ConfManager::SetUx(ConfKey key, ux value) {
   Get(key).ux_value = value;
 }
 
-void ConfigurationManager::SetSx(ConfKey key, sx value) {
+void ConfManager::SetSx(ConfKey key, sx value) {
   Get(key).sx_value = value;
 }
 
-void ConfigurationManager::SetFx(ConfKey key, fx value) {
+void ConfManager::SetFx(ConfKey key, fx value) {
   Get(key).fx_value = value;
 }
 
-void ConfigurationManager::SetBool(ConfKey key, bool value) {
+void ConfManager::SetBool(ConfKey key, bool value) {
   Get(key).bool_value = value;
 }
 
-void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
+void ConfManager::ParseKeyValuePair(schar* raw_key,
                                              usize key_val_delimiter_pos,
                                              schar* value, usize value_len) {
   const auto key{COMET_STRING_ID(Trim(raw_key, key_val_delimiter_pos))};
@@ -358,7 +358,7 @@ void ConfigurationManager::ParseKeyValuePair(schar* raw_key,
   }
 }
 
-void ConfigurationManager::OnInitialize() {
+void ConfManager::OnInitialize() {
   values_ = ConfValues{&allocator_};
 
   values_.Emplace(kApplicationName, GetDefaultValue(kApplicationName));
@@ -463,6 +463,6 @@ void ConfigurationManager::OnInitialize() {
   ParseConfFile();
 }
 
-void ConfigurationManager::OnShutdown() { values_.Release(); }
+void ConfManager::OnShutdown() { values_.Release(); }
 }  // namespace conf
 }  // namespace comet

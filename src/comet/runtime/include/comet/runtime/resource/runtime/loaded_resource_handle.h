@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_RESOURCE_RUNTIME_LOADED_RESOURCE_HANDLE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/handle.h"
+#include "comet/core/handle/handle.h"
 
 namespace comet {
 namespace resource {

@@ -3,18 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/label/opengl_texture_label.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 const schar* GetTextureKeyKindLabel(TextureKeyKind kind) {
   switch (kind) {
@@ -27,5 +26,5 @@ const schar* GetTextureKeyKindLabel(TextureKeyKind kind) {
   }
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

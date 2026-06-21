@@ -13,12 +13,13 @@
 #include <functional>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 class DebugUiRegistry {
  public:
   using DrawCallback = std::function<void()>;
@@ -48,10 +49,10 @@ class DebugUiRegistry {
 
   bool is_initialized_{false};
   CallbackId next_callback_id_{1};
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagDebug};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagDebug};
   Array<Entry> entries_{};
 };
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_IMGUI

@@ -6,12 +6,12 @@
 #define COMET_RENDER_DRIVER_OPENGL_UTILS_OPENGL_SHADER_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/render/driver/opengl/type/opengl_shader.h"
+#include "comet/render/driver/opengl/type/opengl_texture_map.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 bool IsGraphicsStage(ShaderStageFlags flags);
 bool IsComputeStage(ShaderStageFlags flags);
@@ -55,7 +55,7 @@ GLenum GetGlPrimitiveTopology(PrimitiveTopology topology);
 GLenum GetGlCompareOp(CompareOp compare_op);
 GLenum GetGlStage(ShaderStage stage);
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_UTILS_OPENGL_SHADER_UTILS_H_

@@ -10,13 +10,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shadow.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/render/driver/vulkan/handler/vulkan_lighting_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_proxy_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_shadow.h"
+#include "comet/render/driver/vulkan/view/vulkan_view.h"
+#include "comet/render/render_handle.h"
 
 namespace comet {
 namespace rendering {

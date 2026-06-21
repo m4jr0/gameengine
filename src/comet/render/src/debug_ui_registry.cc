@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -13,7 +12,7 @@
 
 #ifdef COMET_IMGUI
 namespace comet {
-namespace rendering {
+namespace render {
 DebugUiRegistry& DebugUiRegistry::Get() {
   static DebugUiRegistry singleton{};
   return singleton;
@@ -79,7 +78,7 @@ void DebugUiRegistry::Draw() const {
     }
   }
 }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_IMGUI

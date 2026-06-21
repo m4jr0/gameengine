@@ -6,10 +6,11 @@
 #define COMET_RUNTIME_RESOURCE_MODEL_MODEL_RESOURCE_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/resource/handler/resource_handler.h"
-#include "comet/resource/model/model_resource.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/type/common.h"
+#include "comet/runtime/resource/resource_handler.h"
+#include "comet/data/resource/model/model_resource.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {

@@ -3,18 +3,16 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "model_export_label.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
-
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 const schar* GetModelExportTypeLabel(ModelExportType type) {
   switch (type) {
     case ModelExportType::Unknown:
@@ -27,6 +25,6 @@ const schar* GetModelExportTypeLabel(ModelExportType type) {
       return kUnknownLabel;
   }
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_engine_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,10 +12,10 @@
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
 
-#include "comet/core/c_string.h"
-#include "comet/core/date.h"
-#include "comet/math/math_scalar.h"
-#include "comet/time/time_manager.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/time/date.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/runtime/time/time_manager.h"
 
 namespace comet {
 namespace debug {

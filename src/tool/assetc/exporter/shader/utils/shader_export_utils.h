@@ -9,48 +9,44 @@
 #include "nlohmann/json.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/rendering/type/pipeline.h"
-#include "comet/rendering/type/shader.h"
+#include "comet/core.h"
+#include "comet/data.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
-rendering::CullMode GetCullMode(std::string_view raw_cull_mode);
+namespace tool {
+namespace assetc {
+render::CullMode GetCullMode(std::string_view raw_cull_mode);
 
-rendering::RasterizerDescr GetRasterizerDescr(
+render::RasterizerDescr GetRasterizerDescr(const nlohmann::json& shader_file);
+
+render::CompareOp GetCompareOp(std::string_view raw_compare_op);
+
+render::DepthStencilDescr GetDepthStencilDescr(
     const nlohmann::json& shader_file);
 
-rendering::CompareOp GetCompareOp(std::string_view raw_compare_op);
+render::PrimitiveTopology GetPrimitiveTopology(std::string_view raw_topology);
 
-rendering::DepthStencilDescr GetDepthStencilDescr(
-    const nlohmann::json& shader_file);
-
-rendering::PrimitiveTopology GetPrimitiveTopology(
-    std::string_view raw_topology);
-
-rendering::ShaderVertexLayout GetShaderVertexLayout(
+render::ShaderVertexLayout GetShaderVertexLayout(
     std::string_view raw_vertex_layout);
 
-rendering::ShaderVariableType GetShaderVariableType(
+render::ShaderVariableType GetShaderVariableType(
     std::string_view raw_data_type);
 
-rendering::ShaderBindingType GetShaderBindingType(
+render::ShaderBindingType GetShaderBindingType(
     std::string_view raw_binding_type);
 
-rendering::ShaderBindingScope GetShaderBindingScope(
+render::ShaderBindingScope GetShaderBindingScope(
     std::string_view raw_binding_scope);
 
-rendering::ShaderMemoryLayout GetShaderMemoryLayout(
-    std::string_view raw_layout);
+render::ShaderMemoryLayout GetShaderMemoryLayout(std::string_view raw_layout);
 
-rendering::ShaderStageFlags GetShaderStageFlags(
-    const nlohmann::json& raw_stages, memory::Allocator* allocator);
+render::ShaderStageFlags GetShaderStageFlags(const nlohmann::json& raw_stages,
+                                             memory::Allocator* allocator);
 
-rendering::ShaderImageBindingSemantic GetShaderImageBindingSemantic(
+render::ShaderImageBindingSemantic GetShaderImageBindingSemantic(
     std::string_view raw_semantic);
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_SHADER_UTILS_SHADER_EXPORT_UTILS_H_

@@ -5,11 +5,11 @@
 #ifndef COMET_COMET_RUNTIME_FRAME_FRAME_MANAGER_H_
 #define COMET_COMET_RUNTIME_FRAME_FRAME_MANAGER_H_
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_allocator.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/manager.h"
+#include "comet/runtime/frame/frame_allocator.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/manager.h"
 
 namespace comet {
 namespace frame {

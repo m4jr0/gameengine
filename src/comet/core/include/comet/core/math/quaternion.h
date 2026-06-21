@@ -11,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/math/vector.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
 namespace math {

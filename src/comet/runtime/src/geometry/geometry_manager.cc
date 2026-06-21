@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,9 +14,11 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/geometry/label/mesh_label.h"
-#include "comet/geometry/type/skeleton.h"
-#include "comet/resource/resource_manager.h"
+#include "comet/runtime/geometry/label/mesh_label.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/data/geometry/skeleton.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/runtime/resource/resource_manager.h"
 
 namespace comet {
 namespace geometry {
@@ -32,14 +34,14 @@ GeometryManager& GeometryManager::Get() {
 }
 
 GeometryManager::GeometryManager()
-    : mesh_allocator_{sizeof(Mesh), 1024, memory::kEngineMemoryTagGeometry},
+    : mesh_allocator_{sizeof(Mesh), 1024, kEngineMemoryTagGeometry},
       mesh_array_allocator_{sizeof(Mesh*), 1024,
-                            memory::kEngineMemoryTagGeometry},
+                            kEngineMemoryTagGeometry},
       mesh_map_allocator_{sizeof(Pair<MeshId, MeshHandle>), 1024,
-                          memory::kEngineMemoryTagGeometry},
+                          kEngineMemoryTagGeometry},
       vertex_allocator_{sizeof(SkinnedVertex), 1024,
-                        memory::kEngineMemoryTagGeometry},
-      index_allocator_{sizeof(Index), 1024, memory::kEngineMemoryTagGeometry} {}
+                        kEngineMemoryTagGeometry},
+      index_allocator_{sizeof(Index), 1024, kEngineMemoryTagGeometry} {}
 
 MeshHandle GeometryManager::GetOrGenerate(
     const resource::MeshResource& resource) {

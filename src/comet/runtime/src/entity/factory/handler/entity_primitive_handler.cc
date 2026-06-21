@@ -3,18 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/entity/factory/handler/entity_primitive_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_manager.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/geometry_manager.h"
-#include "comet/physics/physics_manager.h"
+#include "comet/runtime/frame/frame_manager.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/geometry/component/mesh_component.h"
+#include "comet/runtime/geometry/geometry_manager.h"
+#include "comet/runtime/physics/physics_manager.h"
 
 namespace comet {
 namespace entity {

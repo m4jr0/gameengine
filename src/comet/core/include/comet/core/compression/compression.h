@@ -6,7 +6,7 @@
 #define COMET_CORE_COMPRESSION_COMPRESSION_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
+#include "comet/core/container/array.h"
 
 namespace comet {
 void CompressLz4(const Array<u8>& src, Array<u8>& dst);

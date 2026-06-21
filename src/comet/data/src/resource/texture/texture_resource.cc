@@ -3,16 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_data_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/data/resource/texture/texture_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/type/string_id.h"
+#include "comet/core/id/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/texture_label.h"
+#include "comet/data/render/label/texture_label.h"
 
 namespace comet {
 namespace resource {
@@ -22,18 +23,18 @@ const TextureResource::TypeId TextureResource::kResourceTypeId{
 TextureResource::Id TextureResource::GetId() const noexcept { return Id{id}; }
 
 TextureResourceId GetDefaultTextureFromType(
-    rendering::TextureType texture_type) {
+    render::TextureType texture_type) {
   switch (texture_type) {
-    case rendering::TextureType::Diffuse:
+    case render::TextureType::Diffuse:
       return kDefaultDiffuseTextureId;
-    case rendering::TextureType::Specular:
+    case render::TextureType::Specular:
       return kDefaultSpecularTextureId;
-    case rendering::TextureType::Normal:
+    case render::TextureType::Normal:
       return kDefaultNormalTextureId;
     default:
       COMET_ASSERT(false, "texture_resource::GetDefaultTextureFromType",
                    "unsupported texture type", "texture_type",
-                   rendering::GetTextureTypeLabel(texture_type),
+                   render::GetTextureTypeLabel(texture_type),
                    "texture_type_value", ToUnderlying(texture_type));
       return TextureResourceId{kFallbackRawResourceId};
   }

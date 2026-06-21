@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/allocator/stack_allocator.h"
+#include "comet/runtime/memory/allocator/stack_allocator.h"
 
 namespace comet {
 namespace frame {

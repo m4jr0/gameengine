@@ -3,18 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/label/view_label.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 const schar* GetRenderingViewTypeLabel(RenderingViewType type) {
   switch (type) {
     case RenderingViewType::Unknown:
@@ -50,5 +49,5 @@ const schar* GetRenderingViewMatrixSourceLabel(RenderingViewMatrixSource src) {
       return kUnknownLabel;
   }
 }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

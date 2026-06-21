@@ -6,17 +6,17 @@
 #define COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_BUFFER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct GlBufferView {
   GlNativeStorageHandle native_handle{kInvalidGlNativeStorageHandle};
   GLsizei size{0};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_BUFFER_H_

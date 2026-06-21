@@ -9,27 +9,28 @@
 #include "glad/glad.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/container/array.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/core/math/matrix.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/math/matrix.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_frame.h"
-#include "comet/rendering/driver/opengl/type/opengl_light.h"
-#include "comet/rendering/driver/opengl/type/opengl_shadow.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
-#include "comet/rendering/type/camera.h"
-#include "comet/rendering/type/light.h"
+#include "comet/data/light/light.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_sampler_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_texture_handler.h"
+#include "comet/render/driver/opengl/type/opengl_frame.h"
+#include "comet/render/driver/opengl/type/opengl_light.h"
+#include "comet/render/driver/opengl/type/opengl_shadow.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
+#include "comet/render/driver/opengl/type/opengl_texture.h"
+#include "comet/render/driver/opengl/type/opengl_texture_map.h"
+#include "comet/runtime/camera/camera.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct LightGpuData {
   GlNativeStorageHandle ssbo_lights_native_handle{
@@ -115,7 +116,7 @@ class LightingHandler : public Handler {
   bool IsLightSlotAlive(usize index) const noexcept;
   bool IsShadowSlotAlive(usize index) const noexcept;
 
-  void PopulateCascadeSplits(const RenderCameraData* camera_data,
+  void PopulateCascadeSplits(const CameraViewData* camera_data,
                              f32 max_distance, u32 cascade_count, f32 lambda,
                              f32* out_splits) const;
 
@@ -132,10 +133,9 @@ class LightingHandler : public Handler {
 
   const TextureHandler* GetTextureHandler() const;
 
-  memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator platform_allocator_{kEngineMemoryTagRender};
   memory::FiberFreeListAllocator allocator_{sizeof(u32), 1024 * 64,
-                                            memory::kEngineMemoryTagRendering};
+                                            kEngineMemoryTagRender};
 
   Array<LightProxy> proxies_{};
   Array<ShadowResource> shadow_resources_{};
@@ -157,7 +157,7 @@ class LightingHandler : public Handler {
   SamplerHandler* sampler_handler_{nullptr};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_LIGHTING_HANDLER_H_

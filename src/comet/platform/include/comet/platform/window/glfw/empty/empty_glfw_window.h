@@ -6,7 +6,7 @@
 #define COMET_PLATFORM_WINDOW_GLFW_EMPTY_EMPTY_GLFW_WINDOW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/window/glfw/glfw_window.h"
+#include "comet/platform/window/glfw/glfw_window.h"
 
 namespace comet {
 namespace platform {

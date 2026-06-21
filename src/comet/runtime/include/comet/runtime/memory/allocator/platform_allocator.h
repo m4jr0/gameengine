@@ -8,7 +8,9 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/allocator/stateful_allocator.h"
+#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
 namespace memory {

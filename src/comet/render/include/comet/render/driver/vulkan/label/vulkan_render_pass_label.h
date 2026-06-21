@@ -6,7 +6,7 @@
 #define COMET_RENDER_DRIVER_VULKAN_LABEL_VULKAN_RENDER_PASS_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_render_pass.h"
+#include "comet/render/driver/vulkan/type/vulkan_render_pass.h"
 
 namespace comet {
 namespace rendering {

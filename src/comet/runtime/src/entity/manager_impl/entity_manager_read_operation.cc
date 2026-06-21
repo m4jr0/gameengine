@@ -3,19 +3,19 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/entity/entity_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/type/array.h"
-#include "comet/entity/entity_type.h"
-#include "comet/entity/type/archetype.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/entity/type/pending_entity.h"
+#include "comet/core/fiber/fiber_primitive.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/entity/entity_type.h"
+#include "comet/runtime/entity/archetype.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/entity/pending_entity.h"
 
 namespace comet {
 namespace entity {

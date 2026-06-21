@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,10 +11,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/logger/logging.h"
-#include "comet/profiler/profiler.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 MeshHandler::MeshHandler(const MeshHandlerDescr& descr)
     : Handler{descr}, proxies_{&registry_allocator_, kDefaultProxyCount_} {}
@@ -91,7 +91,7 @@ void MeshHandler::OnInitialize() {
 }
 
 void MeshHandler::OnShutdown() {
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
 
   auto handles_to_destroy{Array<MeshProxyRegistry::ItemHandle>::WithCapacity(
       &tmp_allocator, proxies_.GetLiveCount())};
@@ -349,5 +349,5 @@ void MeshHandler::UploadMeshProxies(
                        update_context.index_copy_regions);
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

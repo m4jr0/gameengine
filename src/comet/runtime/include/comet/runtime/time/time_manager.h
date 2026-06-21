@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_TIME_TIME_MANAGER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
+#include "comet/runtime/manager.h"
 
 namespace comet {
 namespace time {

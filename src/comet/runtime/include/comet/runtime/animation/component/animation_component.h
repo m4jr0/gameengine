@@ -5,15 +5,17 @@
 #ifndef COMET_RUNTIME_ANIMATION_COMPONENT_ANIMATION_COMPONENT_H_
 #define COMET_RUNTIME_ANIMATION_COMPONENT_ANIMATION_COMPONENT_H_
 
-#include "comet/animation/animation_id.h"
-#include "comet/animation/type/animation_clip.h"
-#include "comet/animation/type/animation_pose.h"
+#include "comet/data/animation/animation_id.h"
+#include "comet/data/animation/animation_clip.h"
+#include "comet/runtime/resource/animation/animation_resource_handle.h"
+#include "comet/runtime/animation/animation_override.h"
+#include "comet/runtime/animation/animation_pose.h"
 #include "comet/core/essentials.h"
 
 namespace comet {
 namespace animation {
 struct AnimationComponent {
-  AnimationClipHandle clip_handle{};
+  AnimationClipResourceHandle clip_handle{};
   f64 start_time{.0f};
   FrameIndex frame{0};
   f32 speed{1.0f};

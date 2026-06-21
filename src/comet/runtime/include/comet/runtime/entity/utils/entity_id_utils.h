@@ -6,8 +6,9 @@
 #define COMET_RUNTIME_ENTITY_UTILS_ENTITY_ID_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/gid.h"
-#include "comet/entity/type/entity_id.h"
+#include "comet/core/id/gid.h"
+#include "comet/core/id/gid_pool.h"
+#include "comet/runtime/entity/entity_id.h"
 
 namespace comet {
 namespace entity {

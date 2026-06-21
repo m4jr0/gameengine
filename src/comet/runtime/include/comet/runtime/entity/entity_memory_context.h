@@ -7,8 +7,8 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/entity/type/archetype.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/entity/archetype.h"
 
 namespace comet {
 namespace entity {

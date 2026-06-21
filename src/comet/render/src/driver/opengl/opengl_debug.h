@@ -10,12 +10,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture.h"
+#include "comet/render/driver/opengl/type/opengl_shader.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
+#include "comet/render/driver/opengl/type/opengl_texture.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 namespace debug {
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
@@ -36,21 +36,21 @@ void SetProgramDebugLabel(GlNativeProgramHandle native_handle,
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
 #define COMET_GL_SET_STORAGE_DEBUG_LABEL(native_handle, label) \
-  comet::rendering::gl::debug::SetStorageDebugLabel(native_handle, label)
+  comet::render::gl::debug::SetStorageDebugLabel(native_handle, label)
 #define COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(native_handle, label) \
-  comet::rendering::gl::debug::SetUniformBufferDebugLabel(native_handle, label)
+  comet::render::gl::debug::SetUniformBufferDebugLabel(native_handle, label)
 #define COMET_GL_SET_TEXTURE_DEBUG_LABEL(native_handle, label) \
-  comet::rendering::gl::debug::SetTextureDebugLabel(native_handle, label)
+  comet::render::gl::debug::SetTextureDebugLabel(native_handle, label)
 #define COMET_GL_SET_VERTEX_ATTRIBUTE_DEBUG_LABEL(native_handle, label)    \
-  comet::rendering::gl::debug::SetVertexAttributeDebugLabel(native_handle, \
+  comet::render::gl::debug::SetVertexAttributeDebugLabel(native_handle, \
                                                             label)
 #define COMET_GL_SET_PROGRAM_DEBUG_LABEL(native_handle, label) \
-  comet::rendering::gl::debug::SetProgramDebugLabel(native_handle, label)
+  comet::render::gl::debug::SetProgramDebugLabel(native_handle, label)
 #else
 #define COMET_GL_SET_STORAGE_DEBUG_LABEL(native_handle, label)
 #define COMET_GL_SET_UNIFORM_BUFFER_DEBUG_LABEL(native_handle, label)

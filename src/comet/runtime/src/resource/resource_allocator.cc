@@ -3,14 +3,14 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/resource/resource_allocator.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 #include "comet/core/type_trait.h"
 
 namespace comet {
@@ -81,7 +81,7 @@ void ResourceAllocator::OnInitialize() {
   small_allocator_ = memory::FiberFreeListAllocator{
       kSmallAllocatorAllocationUnitSize_,
       kSmallAllocatorCapacity_ / kSmallAllocatorAllocationUnitSize_,
-      memory::kEngineMemoryTagResource};
+      kEngineMemoryTagResource};
   small_allocator_.Initialize();
 
   COMET_ASSERT(small_allocator_.IsInitialized(),

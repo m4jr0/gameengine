@@ -10,23 +10,24 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/math/matrix.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_render_proxy.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shadow.h"
-#include "comet/rendering/render_proxy_record_store.h"
-#include "comet/rendering/type/render_proxy.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
+#include "comet/core/math/matrix.h"
+#include "comet/render/driver/vulkan/handler/vulkan_material_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_render_proxy.h"
+#include "comet/render/driver/vulkan/type/vulkan_shadow.h"
+#include "comet/render/render_proxy_record_store.h"
+#include "comet/render/type/render_proxy.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct RenderProxySparseUploadData {
   VkBuffer ssbo_sparse_upload_word_indices_handle{VK_NULL_HANDLE};
@@ -194,19 +195,19 @@ class RenderProxyHandler : public Handler {
 
   memory::FiberFreeListAllocator batch_allocator_{
       sizeof(RenderBatchEntry) * 32, kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator matrix_allocator_{
       sizeof(math::Mat4) * 32,
       kDefaultProxyCount_* kMaxSkinningMatricesPerModel_ / 8,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator handle_allocator_{
       sizeof(MaterialHandle) * 64, kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   Array<MaterialHandle> proxy_material_handles_{};
   Array<RenderBatchEntry> batch_entries_{};
@@ -258,7 +259,7 @@ class RenderProxyHandler : public Handler {
   frame::FrameArray<VkBufferMemoryBarrier>* post_update_barriers_{nullptr};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_RENDER_PROXY_HANDLER_H_

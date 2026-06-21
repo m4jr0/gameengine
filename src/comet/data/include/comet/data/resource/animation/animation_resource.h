@@ -5,10 +5,11 @@
 #ifndef COMET_DATA_RESOURCE_ANIMATION_ANIMATION_RESOURCE_H_
 #define COMET_DATA_RESOURCE_ANIMATION_ANIMATION_RESOURCE_H_
 
-#include "comet/animation/type/animation_clip.h"
+#include "comet/data/animation/animation_clip.h"
 #include "comet/core/essentials.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/type/common.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {

@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,12 +11,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/pipeline_label.h"
-#include "comet/rendering/label/shader_label.h"
-#include "comet/rendering/utils/shader_utils.h"
+#include "comet/data/render/label/pipeline_label.h"
+#include "comet/data/render/label/shader_label.h"
+#include "comet/data/render/utils/shader_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 bool IsGraphicsStage(ShaderStageFlags flags) {
   return (flags &
@@ -299,5 +298,5 @@ GLenum GetGlStage(ShaderStage stage) {
   }
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

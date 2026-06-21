@@ -10,14 +10,14 @@
 #include <semaphore>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/container/array.h"
+#include "comet/core/container/ring_queue.h"
 #include "comet/core/essentials.h"
 #include "comet/core/fiber/fiber.h"
 #include "comet/core/job/job.h"
 #include "comet/core/job/scheduler_config.h"
 #include "comet/core/job/scheduler_pools.h"
 #include "comet/core/job/worker.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/ring_queue.h"
 
 namespace comet {
 namespace job {
@@ -89,9 +89,7 @@ class Scheduler {
   LockFreeMPMCRingQueue<JobDescr> high_priority_queue_{};
   LockFreeMPMCRingQueue<IOJobDescr> io_queue_{};
 
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   LockFreeMPMCRingQueue<MainThreadJobDescr> main_thread_queue_{};
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
   using WorkFunc = void (Scheduler::*)();
 
@@ -117,9 +115,7 @@ class Scheduler {
   void RequeueJob(const JobDescr& job_descr);
   bool TryRequeueJob(const JobDescr& job_descr);
 
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   void WorkFromMainThread();
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 };
 
 class CounterGuard {

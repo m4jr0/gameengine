@@ -3,21 +3,20 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/handler/opengl_shader_module_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_string.h"
+#include "comet/runtime/frame/frame_string.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
-#include "comet/resource/resource_manager.h"
+#include "comet/render/driver/opengl/utils/opengl_shader_utils.h"
+#include "comet/runtime/resource/resource_manager.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 ShaderModuleHandler::ShaderModuleHandler(const ShaderModuleHandlerDescr& descr)
     : Handler{descr}, shader_modules_{&cache_allocator_, 256} {}
@@ -127,7 +126,7 @@ void ShaderModuleHandler::OnInitialize() {
 }
 
 void ShaderModuleHandler::OnShutdown() {
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   auto handles_to_destroy{Array<ShaderModuleHandle>::WithCapacity(
       &tmp_allocator, shader_modules_.GetLiveCount())};
 
@@ -247,5 +246,5 @@ void ShaderModuleHandler::DestroyShaderModule(ShaderModule* shader_module) {
   allocator_.Deallocate(shader_module);
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

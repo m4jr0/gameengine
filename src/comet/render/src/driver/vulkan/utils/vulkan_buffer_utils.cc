@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,12 +11,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/render/driver/vulkan/utils/vulkan_command_buffer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 Buffer GenerateBuffer(VmaAllocator allocator_handle, VkDeviceSize size,
                       VkBufferUsageFlags usage, VmaMemoryUsage vma_memory_usage,
@@ -313,5 +312,5 @@ ScopedMappedBuffer::ScopedMappedBuffer(Buffer& buffer) : buffer_{buffer} {
 
 ScopedMappedBuffer::~ScopedMappedBuffer() { UnmapBuffer(buffer_); }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

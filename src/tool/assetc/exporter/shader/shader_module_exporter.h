@@ -9,14 +9,12 @@
 #include "shaderc/shaderc.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/job/job.h"
-#include "comet/core/essentials.h"
-#include "comet/core/type/tstring.h"
-#include "editor/asset/exporter/asset_exporter.h"
+#include "comet/core.h"
+#include "exporter/asset_exporter.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 class ShaderModuleExporter : public AssetExporter {
  public:
   ShaderModuleExporter() = default;
@@ -43,8 +41,8 @@ class ShaderModuleExporter : public AssetExporter {
  private:
   static void OnShaderModuleLoading(job::IOJobParamsHandle params_handle);
 };
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_SHADER_SHADER_MODULE_EXPORTER_H_

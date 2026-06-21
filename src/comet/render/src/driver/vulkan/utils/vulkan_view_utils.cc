@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,10 +11,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/vulkan/label/vulkan_view_label.h"
+#include "comet/render/driver/vulkan/label/vulkan_view_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 void GenerateAttachmentDescrs(const ViewPassDescr& pass_descr,
                               VkSampleCountFlagBits samples,
@@ -114,5 +113,5 @@ VkAttachmentStoreOp ToVkAttachmentStoreOp(ViewStoreOp op) {
   }
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

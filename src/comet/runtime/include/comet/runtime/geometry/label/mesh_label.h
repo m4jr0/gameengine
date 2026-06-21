@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_GEOMETRY_LABEL_MESH_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/geometry/type/mesh.h"
+#include "comet/data/geometry/mesh.h"
 
 namespace comet {
 namespace geometry {

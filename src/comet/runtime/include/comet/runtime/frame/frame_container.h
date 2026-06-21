@@ -6,12 +6,12 @@
 #define COMET_COMET_RUNTIME_FRAME_FRAME_CONTAINER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/bitset.h"
-#include "comet/core/type/hash_set.h"
-#include "comet/core/type/map.h"
-#include "comet/core/type/ordered_set.h"
+#include "comet/runtime/frame/frame_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/bitset.h"
+#include "comet/core/container/hash_set.h"
+#include "comet/core/container/map.h"
+#include "comet/core/container/ordered_set.h"
 
 namespace comet {
 namespace frame {

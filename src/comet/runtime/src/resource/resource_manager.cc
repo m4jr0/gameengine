@@ -3,14 +3,14 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/resource/resource_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/conf/configuration_manager.h"
+#include "comet/runtime/conf/conf_manager.h"
 #include "comet/core/file_system/file_system.h"
 
 namespace comet {
@@ -129,52 +129,52 @@ void ResourceManager::InitializeHandlers() {
   // TODO(m4jr0): Those are wild guesses. Not sure if it should be
   // updated/configurable.
   descr.initial_capacity = 1024;
-  descr.memory_tag = memory::kEngineMemoryTagResourceAnimationHandler;
+  descr.memory_tag = kEngineMemoryTagResourceAnimationHandler;
   animation_clips_ = std::make_unique<AnimationClipResourceHandler>(descr);
   COMET_ASSERT(animation_clips_ != nullptr,
                "ResourceManager::InitializeHandlers",
                "animation clip handler allocation failed");
 
   descr.initial_capacity = 256;
-  descr.memory_tag = memory::kEngineMemoryTagResourceMaterialHandler;
+  descr.memory_tag = kEngineMemoryTagResourceMaterialHandler;
   materials_ = std::make_unique<MaterialResourceHandler>(descr);
   COMET_ASSERT(materials_ != nullptr, "ResourceManager::InitializeHandlers",
                "material handler allocation failed");
 
   descr.initial_capacity = 1024;
-  descr.memory_tag = memory::kEngineMemoryTagResourceStaticModelHandler;
+  descr.memory_tag = kEngineMemoryTagResourceStaticModelHandler;
   static_models_ = std::make_unique<StaticModelResourceHandler>(descr);
   COMET_ASSERT(static_models_ != nullptr, "ResourceManager::InitializeHandlers",
                "static model handler allocation failed");
 
   descr.initial_capacity = 128;
-  descr.memory_tag = memory::kEngineMemoryTagResourceSkeletalModelHandler;
+  descr.memory_tag = kEngineMemoryTagResourceSkeletalModelHandler;
   skeletal_models_ = std::make_unique<SkeletalModelResourceHandler>(descr);
   COMET_ASSERT(skeletal_models_ != nullptr,
                "ResourceManager::InitializeHandlers",
                "skeletal model handler allocation failed");
 
   descr.initial_capacity = 128;
-  descr.memory_tag = memory::kEngineMemoryTagResourceSkeletonHandler;
+  descr.memory_tag = kEngineMemoryTagResourceSkeletonHandler;
   skeletons_ = std::make_unique<SkeletonResourceHandler>(descr);
   COMET_ASSERT(skeletons_ != nullptr, "ResourceManager::InitializeHandlers",
                "skeleton handler allocation failed");
 
   descr.initial_capacity = 256;
-  descr.memory_tag = memory::kEngineMemoryTagResourceShaderModuleHandler;
+  descr.memory_tag = kEngineMemoryTagResourceShaderModuleHandler;
   shader_modules_ = std::make_unique<ShaderModuleResourceHandler>(descr);
   COMET_ASSERT(shader_modules_ != nullptr,
                "ResourceManager::InitializeHandlers",
                "shader module handler allocation failed");
 
   descr.initial_capacity = 128;
-  descr.memory_tag = memory::kEngineMemoryTagResourceShaderHandler;
+  descr.memory_tag = kEngineMemoryTagResourceShaderHandler;
   shaders_ = std::make_unique<ShaderResourceHandler>(descr);
   COMET_ASSERT(shaders_ != nullptr, "ResourceManager::InitializeHandlers",
                "shader handler allocation failed");
 
   descr.initial_capacity = 2048;
-  descr.memory_tag = memory::kEngineMemoryTagResourceTextureHandler;
+  descr.memory_tag = kEngineMemoryTagResourceTextureHandler;
   textures_ = std::make_unique<TextureResourceHandler>(descr);
   COMET_ASSERT(textures_ != nullptr, "ResourceManager::InitializeHandlers",
                "texture handler allocation failed");

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -27,7 +27,7 @@
 #endif  // COMET_MSVC
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/compiler.h"
 
 #ifdef COMET_MSVC
@@ -35,21 +35,21 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/time/time_manager.h"
-#include "comet/time/time_utils.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/time/time_manager.h"
+#include "comet/core/time/time_utils.h"
 
 #ifdef COMET_CHECK_STACK_OVERFLOWS
 #ifdef COMET_UNIX
 
-#include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/fiber/fiber_context.h"
 #endif  // COMET_UNIX
 #endif  // COMET_CHECK_STACK_OVERFLOWS
 
-#ifdef COMET_TRACK_ALLOCATIONS
-#include "comet/core/memory/allocation_tracking.h"
-#include "comet/core/memory/memory_label.h"
-#endif  // COMET_TRACK_ALLOCATIONS
+#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
+#include "comet/runtime/memory/allocation_tracking.h"
+#include "comet/runtime/memory/memory_label.h"
+#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
 
 namespace comet {
 namespace debug {
@@ -73,7 +73,7 @@ static void PrintEntityInfo() {
 }
 
 static void PrintMemoryUse() {
-#ifdef COMET_TRACK_ALLOCATIONS
+#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
   const auto snapshot{memory::GetLatestMemoryUseSnapshot()};
 
   constexpr usize kBufferCapacity{512};
@@ -97,7 +97,7 @@ static void PrintMemoryUse() {
   }
 #else
   std::cerr << "memory: allocation tracking disabled\n";
-#endif  // COMET_TRACK_ALLOCATIONS
+#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
 }
 }  // namespace internal
 

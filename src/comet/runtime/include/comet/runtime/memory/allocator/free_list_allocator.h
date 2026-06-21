@@ -5,10 +5,12 @@
 #ifndef COMET_RUNTIME_MEMORY_ALLOCATOR_FREE_LIST_ALLOCATOR_H_
 #define COMET_RUNTIME_MEMORY_ALLOCATOR_FREE_LIST_ALLOCATOR_H_
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/stateful_allocator.h"
+#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
 namespace memory {

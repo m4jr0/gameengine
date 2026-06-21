@@ -10,24 +10,24 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_shader_module_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_material.h"
-#include "comet/rendering/driver/opengl/type/opengl_mesh.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/pipeline.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/resource/shader/shader_resource.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_material_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_sampler_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_shader_module_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_texture_handler.h"
+#include "comet/render/driver/opengl/type/opengl_material.h"
+#include "comet/render/driver/opengl/type/opengl_mesh.h"
+#include "comet/render/driver/opengl/type/opengl_shader.h"
+#include "comet/render/render_handle.h"
+#include "comet/data/render/pipeline.h"
+#include "comet/data/render/shader.h"
+#include "comet/data/resource/shader/shader_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct ShaderHandlerDescr : HandlerDescr {
   ShaderModuleHandler* shader_module_handler{nullptr};
@@ -163,11 +163,11 @@ class ShaderHandler : public Handler {
 
   const MaterialHandler* GetMaterialHandler() const;
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{kEngineMemoryTagRender};
   memory::FiberFreeListAllocator general_allocator_{
-      64, 256, memory::kEngineMemoryTagRendering};
+      64, 256, kEngineMemoryTagRender};
   memory::FiberFreeListAllocator shader_instance_allocator_{
-      sizeof(Shader), 1024, memory::kEngineMemoryTagRendering};
+      sizeof(Shader), 1024, kEngineMemoryTagRender};
   SharedInstanceRegistry<ShaderKey, ShaderTag, Shader> shaders_{};
   mutable const Shader* bound_shader_{nullptr};
   mutable GlNativeVertexAttributeHandle bound_vertex_attribute_native_handle_{
@@ -184,7 +184,7 @@ class ShaderHandler : public Handler {
   const SamplerHandler* sampler_handler_{nullptr};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_SHADER_HANDLER_H_

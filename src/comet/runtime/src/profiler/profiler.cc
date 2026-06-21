@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,9 +14,9 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/math/math_scalar.h"
-#include "comet/profiler/profiler_manager.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/runtime/profiler/profiler_manager.h"
 
 #ifdef COMET_PROFILING
 namespace comet {

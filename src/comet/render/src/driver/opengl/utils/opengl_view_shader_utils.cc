@@ -3,19 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/utils/opengl_view_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
-#include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
+#include "comet/render/driver/opengl/utils/opengl_shader_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 void AddWorldGlobalFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
@@ -150,5 +149,5 @@ void AddCameraBufferBinding(
       camera_gpu_data.ssbo_camera_datas_size);
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

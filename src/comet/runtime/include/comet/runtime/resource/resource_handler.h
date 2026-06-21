@@ -9,27 +9,30 @@
 #include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_event.h"
+#include "comet/runtime/frame/frame_event.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/hash_set.h"
-#include "comet/core/type/tstring.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/hash_set.h"
+#include "comet/core/string/tstring.h"
 #include "comet/core/type_trait.h"
-#include "comet/event/event.h"
-#include "comet/event/event_manager.h"
-#include "comet/profiler/profiler.h"
-#include "comet/resource/handler/resource_handler_utils.h"
-#include "comet/resource/label/common_label.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_id.h"
-#include "comet/resource/runtime/loaded_resource_handle.h"
-#include "comet/resource/runtime/resource_slots.h"
-#include "comet/resource/type/common.h"
-#include "comet/scene/scene_event.h"
+#include "comet/runtime/resource/resource_file_loader.h"
+#include "comet/runtime/event/event.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/runtime/event/event_manager.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/runtime/resource/resource_handler_utils.h"
+#include "comet/data/resource/label/common_label.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_id.h"
+#include "comet/data/resource/runtime/loaded_resource_handle.h"
+#include "comet/data/resource/runtime/resource_slots.h"
+#include "comet/data/resource/common.h"
+#include "comet/runtime/scene/scene_event.h"
 
 namespace comet {
 namespace resource {
@@ -65,7 +68,7 @@ class LoadedResourceScope {
 }  // namespace internal
 
 struct ResourceHandlerDescr {
-  memory::MemoryTag memory_tag{memory::kEngineMemoryTagUntagged};
+  memory::MemoryTag memory_tag{kEngineMemoryTagUntagged};
   CTStringView root_path{};
   usize initial_capacity{kInvalidSize};
   internal::LifeSpanAllocators life_span_allocators{};

@@ -10,20 +10,21 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/handle.h"
-#include "comet/core/type/map.h"
+#include "comet/core/container/array.h"
+#include "comet/core/handle/handle.h"
+#include "comet/core/container/map.h"
 #include "comet/core/type_trait.h"
-#include "comet/resource/handler/resource_handler_utils.h"
-#include "comet/resource/label/common_label.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_id.h"
-#include "comet/resource/runtime/loaded_resource_handle.h"
-#include "comet/resource/runtime/resource_slot.h"
-#include "comet/resource/type/common.h"
+#include "comet/runtime/resource/resource_handler_utils.h"
+#include "comet/data/resource/label/common_label.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/resource_id.h"
+#include "comet/data/resource/runtime/loaded_resource_handle.h"
+#include "comet/data/resource/runtime/resource_slot.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {

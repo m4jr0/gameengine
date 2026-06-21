@@ -9,6 +9,7 @@
 
 #ifdef COMET_PROFILING
 #include "comet/engine/profiler/profiler_data.h"
+#include "comet/engine/profiler/profiler_data_collector.h"
 #include "comet/runtime/memory/allocator/platform_allocator.h"
 
 namespace comet {
@@ -30,7 +31,7 @@ class ProfilerDataCollector {
  private:
   ProfilerDataCollector() = default;
 
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagDebug};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagDebug};
   ProfilerData data_{&allocator_};
 };
 }  // namespace profiler

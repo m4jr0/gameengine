@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,11 +11,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/tstring.h"
-#include "comet/rendering/type/pipeline.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/rendering/utils/shader_utils.h"
+#include "comet/core/container/array.h"
+#include "comet/core/string/tstring.h"
+#include "comet/data/render/pipeline.h"
+#include "comet/data/render/shader.h"
+#include "comet/data/render/utils/shader_utils.h"
 
 namespace comet {
 namespace resource {
@@ -23,17 +23,17 @@ namespace internal {
 constexpr usize kU32Size{sizeof(u32)};
 constexpr usize kUsizeSize{sizeof(usize)};
 constexpr usize kBoolSize{sizeof(bool)};
-constexpr usize kCullModeSize{sizeof(rendering::CullMode)};
-constexpr usize kCompareOpSize{sizeof(rendering::CompareOp)};
-constexpr usize kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
-constexpr usize kShaderVertexLayoutSize{sizeof(rendering::ShaderVertexLayout)};
-constexpr usize kShaderBindingTypeSize{sizeof(rendering::ShaderBindingType)};
-constexpr usize kShaderBindingScopeSize{sizeof(rendering::ShaderBindingScope)};
-constexpr usize kShaderMemoryLayoutSize{sizeof(rendering::ShaderMemoryLayout)};
-constexpr usize kShaderStageFlagsSize{sizeof(rendering::ShaderStageFlags)};
-constexpr usize kShaderVariableTypeSize{sizeof(rendering::ShaderVariableType)};
+constexpr usize kCullModeSize{sizeof(render::CullMode)};
+constexpr usize kCompareOpSize{sizeof(render::CompareOp)};
+constexpr usize kPrimitiveTopologySize{sizeof(render::PrimitiveTopology)};
+constexpr usize kShaderVertexLayoutSize{sizeof(render::ShaderVertexLayout)};
+constexpr usize kShaderBindingTypeSize{sizeof(render::ShaderBindingType)};
+constexpr usize kShaderBindingScopeSize{sizeof(render::ShaderBindingScope)};
+constexpr usize kShaderMemoryLayoutSize{sizeof(render::ShaderMemoryLayout)};
+constexpr usize kShaderStageFlagsSize{sizeof(render::ShaderStageFlags)};
+constexpr usize kShaderVariableTypeSize{sizeof(render::ShaderVariableType)};
 constexpr usize kShaderImageBindingSemanticSize{
-    sizeof(rendering::ShaderImageBindingSemantic)};
+    sizeof(render::ShaderImageBindingSemantic)};
 
 usize GetTStringByteSize(const TString& str) {
   return str.GetLengthWithNullTerminator() * sizeof(tchar);
@@ -352,10 +352,10 @@ void ShaderResourceHandler::ParseDescr(const Array<u8>& dumped_descr,
                                        ShaderResourceDescr& descr) {
   descr.shader_module_resource_ids =
       Array<ShaderModuleResourceId>{byte_allocator_};
-  descr.defines = Array<rendering::ShaderDefineDescr>{byte_allocator_};
-  descr.bindings = Array<rendering::ShaderBindingDescr>{byte_allocator_};
+  descr.defines = Array<render::ShaderDefineDescr>{byte_allocator_};
+  descr.bindings = Array<render::ShaderBindingDescr>{byte_allocator_};
   descr.push_constants =
-      Array<rendering::ShaderPushConstantDescr>{byte_allocator_};
+      Array<render::ShaderPushConstantDescr>{byte_allocator_};
 
   const auto* buffer{dumped_descr.GetData()};
   usize cursor{0};
@@ -439,7 +439,7 @@ void ShaderResourceHandler::ParseShaderDefines(const u8* buffer,
     cursor += internal::kUsizeSize;
 
     if (define_name_len > 0) {
-      COMET_ASSERT(define_name_len < rendering::kMaxShaderDefineNameLen + 1,
+      COMET_ASSERT(define_name_len < render::kMaxShaderDefineNameLen + 1,
                    "ShaderResourceHandler::ParseShaderDefines",
                    "shader define name length is invalid", "name_len",
                    define_name_len);
@@ -454,7 +454,7 @@ void ShaderResourceHandler::ParseShaderDefines(const u8* buffer,
     cursor += internal::kUsizeSize;
 
     if (define_value_len > 0) {
-      COMET_ASSERT(define_value_len < rendering::kMaxShaderDefineValueLen + 1,
+      COMET_ASSERT(define_value_len < render::kMaxShaderDefineValueLen + 1,
                    "ShaderResourceHandler::ParseShaderDefines",
                    "shader define value length is invalid", "value_len",
                    define_value_len);
@@ -523,7 +523,7 @@ void ShaderResourceHandler::ParseBindings(const u8* buffer,
     memory::CopyMemory(&field_count, &buffer[cursor], internal::kUsizeSize);
     cursor += internal::kUsizeSize;
 
-    binding_descr.fields = Array<rendering::ShaderFieldDescr>{byte_allocator_};
+    binding_descr.fields = Array<render::ShaderFieldDescr>{byte_allocator_};
     binding_descr.fields.Reserve(field_count);
 
     for (usize j{0}; j < field_count; ++j) {
@@ -535,7 +535,7 @@ void ShaderResourceHandler::ParseBindings(const u8* buffer,
       cursor += internal::kUsizeSize;
 
       if (field_name_len > 0) {
-        COMET_ASSERT(field_name_len < rendering::kShaderNameMaxLen + 1,
+        COMET_ASSERT(field_name_len < render::kShaderNameMaxLen + 1,
                      "ShaderResourceHandler::ParseBindings",
                      "shader field name length is invalid", "name_len",
                      field_name_len);
@@ -589,7 +589,7 @@ void ShaderResourceHandler::ParsePushConstants(const u8* buffer,
     cursor += internal::kUsizeSize;
 
     push_constant_descr.fields =
-        Array<rendering::ShaderFieldDescr>{byte_allocator_};
+        Array<render::ShaderFieldDescr>{byte_allocator_};
     push_constant_descr.fields.Reserve(field_count);
 
     for (usize j{0}; j < field_count; ++j) {
@@ -601,7 +601,7 @@ void ShaderResourceHandler::ParsePushConstants(const u8* buffer,
       cursor += internal::kUsizeSize;
 
       if (field_name_len > 0) {
-        COMET_ASSERT(field_name_len < rendering::kShaderNameMaxLen + 1,
+        COMET_ASSERT(field_name_len < render::kShaderNameMaxLen + 1,
                      "ShaderResourceHandler::ParseBindings",
                      "shader field name length is invalid", "name_len",
                      field_name_len);

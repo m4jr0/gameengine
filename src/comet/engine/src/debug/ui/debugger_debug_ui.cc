@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_engine_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -16,7 +16,8 @@
 #include "imgui.h"
 #endif  // COMET_IMGUI
 
-#include "comet/rendering/label/common_label.h"
+#include "comet/data/resource/label/common_label.h"
+#include "comet/platform/window/window_common.h"
 
 namespace comet {
 namespace debug {

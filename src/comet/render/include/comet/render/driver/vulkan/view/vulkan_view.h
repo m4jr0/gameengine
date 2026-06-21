@@ -10,22 +10,23 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_view.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/camera.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/rendering/type/view.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_view.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/type/camera.h"
+#include "comet/render/common.h"
+#include "comet/render/type/texture.h"
+#include "comet/render/type/view.h"
 
 namespace comet {
 namespace rendering {
 namespace vk {
 struct ViewUpdate {
   frame::FramePacket* packet{nullptr};
-  const RenderCameraData* camera_data{nullptr};
+  const CameraViewData* camera_data{nullptr};
   CameraKind camera_kind{CameraKind::Game};
   CameraFlags camera_flags{kCameraFlagBitsNone};
   usize camera_index{kInvalidIndex};

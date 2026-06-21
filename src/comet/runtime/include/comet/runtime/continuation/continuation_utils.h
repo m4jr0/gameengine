@@ -11,8 +11,8 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/continuation/continuation_manager.h"
-#include "comet/core/continuation/type/continuation_phase.h"
+#include "comet/runtime/continuation/continuation_manager.h"
+#include "comet/runtime/continuation/continuation_phase.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

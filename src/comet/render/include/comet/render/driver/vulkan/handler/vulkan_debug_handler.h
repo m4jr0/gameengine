@@ -11,14 +11,14 @@
 
 #ifdef COMET_DEBUG_RENDERING
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/math/matrix.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_debug.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shadow.h"
-#include "comet/rendering/render_proxy_record_store.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/core/math/matrix.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/render/driver/vulkan/type/vulkan_debug.h"
+#include "comet/render/driver/vulkan/type/vulkan_shadow.h"
+#include "comet/render/render_proxy_record_store.h"
 
 namespace comet {
 namespace rendering {
@@ -101,7 +101,7 @@ class DebugHandler : public Handler {
                                  u32 light_frustum_count) const noexcept;
 
   memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   u32 aabb_count_{0};
   u32 visible_count_{0};

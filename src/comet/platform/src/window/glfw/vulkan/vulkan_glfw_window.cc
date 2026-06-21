@@ -3,19 +3,16 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_platform_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "comet/platform/window/vulkan_glfw_window.h"
+#include "comet/platform/window/glfw/vulkan/vulkan_glfw_window.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
-
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
 namespace platform {
@@ -56,10 +53,12 @@ void VulkanGlfwWindow::AttachSurface(VkInstance instance_handle) {
   COMET_ASSERT(handle_ != nullptr, "VulkanGlfwWindow::AttachSurface",
                "glfw window handle is null");
 
-  COMET_CHECK_VK(glfwCreateWindowSurface(instance_handle, handle_, nullptr,
-                                         &surface_handle_),
-                 "VulkanGlfwWindow::AttachSurface",
-                 "window surface creation failed");
+  [[maybe_unused]] const auto result{glfwCreateWindowSurface(
+      instance_handle, handle_, nullptr, &surface_handle_)};
+
+  COMET_ASSERT(result == VK_SUCCESS, "VulkanGlfwWindow::AttachSurface",
+               "window surface creation failed", "vk_result",
+               static_cast<s32>(result));
 }
 
 void VulkanGlfwWindow::DetachSurface(VkInstance instance_handle) {

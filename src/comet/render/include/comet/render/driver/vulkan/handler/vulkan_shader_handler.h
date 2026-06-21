@@ -10,25 +10,26 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_module_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/resource/shader/shader_resource.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/vulkan/handler/vulkan_descriptor_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_material_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_pipeline_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_sampler_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_module_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_material.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader.h"
+#include "comet/render/render_handle.h"
+#include "comet/data/resource/shader/shader_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct ShaderHandlerDescr : HandlerDescr {
   ShaderModuleHandler* shader_module_handler{nullptr};
@@ -171,11 +172,11 @@ class ShaderHandler : public Handler {
 
   u32 descriptor_set_layout_count_{0};
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{kEngineMemoryTagRender};
   memory::FiberFreeListAllocator general_allocator_{
-      64, 256, memory::kEngineMemoryTagRendering};
+      64, 256, kEngineMemoryTagRender};
   memory::FiberFreeListAllocator shader_instance_allocator_{
-      sizeof(Shader), 1024, memory::kEngineMemoryTagRendering};
+      sizeof(Shader), 1024, kEngineMemoryTagRender};
 
   SharedInstanceRegistry<ShaderKey, ShaderTag, Shader> shaders_{};
 
@@ -188,7 +189,7 @@ class ShaderHandler : public Handler {
   RenderPassHandler* render_pass_handler_{nullptr};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_SHADER_HANDLER_H_

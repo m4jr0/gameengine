@@ -6,9 +6,10 @@
 #define COMET_DATA_GEOMETRY_SKELETON_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/string_id.h"
-#include "comet/math/matrix.h"
+#include "comet/core/container/array.h"
+#include "comet/core/id/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
+#include "comet/core/math/matrix.h"
 
 namespace comet {
 namespace geometry {

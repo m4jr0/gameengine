@@ -12,7 +12,7 @@
 #include "comet/core/essentials.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 enum class RenderTargetKind : u8 { Swapchain, Offscreen };
 
@@ -33,7 +33,7 @@ enum ViewPassFlagBits : ViewPassFlags {
   kViewPassFlagBitsHasDepth = 0x10
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_VIEW_H_

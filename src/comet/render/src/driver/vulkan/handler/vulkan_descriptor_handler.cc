@@ -3,20 +3,19 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/handler/vulkan_descriptor_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/type/array.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/utils/vulkan_descriptor_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 DescriptorHandler::DescriptorHandler(const DescriptorHandlerDescr& descr)
     : Handler(descr) {}
@@ -174,5 +173,5 @@ void DescriptorHandler::OnShutdown() {
   dynamic_descriptor_pools_.Release();
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

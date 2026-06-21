@@ -6,11 +6,11 @@
 #define COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_SAMPLER_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_sampler.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_sampler.h"
+#include "comet/render/render_handle.h"
 
 namespace comet {
 namespace rendering {
@@ -42,10 +42,10 @@ class SamplerHandler : public Handler {
   Sampler* GenerateSampler(SamplerKey key, const SamplerDescr& descr);
   void DestroySampler(Sampler* sampler);
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator allocator_{sizeof(Sampler), 256,
-                                            memory::kEngineMemoryTagRendering};
+                                            memory::kEngineMemoryTagRender};
 
   SharedInstanceRegistry<SamplerKey, SamplerTag, Sampler> samplers_{};
 };

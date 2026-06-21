@@ -6,13 +6,13 @@
 #define COMET_RENDER_LABEL_COMMON_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/common.h"
+#include "comet/render/common.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 const schar* GetDriverTypeLabel(DriverType type);
 const schar* GetAntiAliasingTypeLabel(AntiAliasingType type);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_LABEL_COMMON_LABEL_H_

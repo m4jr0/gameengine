@@ -9,6 +9,7 @@
 #include "comet/core/container/array.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 #include "comet/data/resource/common.h"
 #include "comet/data/resource/label/common_label.h"
 #include "comet/data/resource/resource_id.h"

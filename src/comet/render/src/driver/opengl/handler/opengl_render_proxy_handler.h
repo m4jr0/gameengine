@@ -10,27 +10,28 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/ordered_set.h"
-#include "comet/math/matrix.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_material_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_buffer.h"
-#include "comet/rendering/driver/opengl/type/opengl_frame.h"
-#include "comet/rendering/driver/opengl/type/opengl_render_proxy.h"
-#include "comet/rendering/driver/opengl/type/opengl_shadow.h"
-#include "comet/rendering/render_proxy_record_store.h"
-#include "comet/rendering/type/render_proxy.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/ordered_set.h"
+#include "comet/core/math/matrix.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_material_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_mesh_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/render/driver/opengl/type/opengl_buffer.h"
+#include "comet/render/driver/opengl/type/opengl_frame.h"
+#include "comet/render/driver/opengl/type/opengl_render_proxy.h"
+#include "comet/render/driver/opengl/type/opengl_shadow.h"
+#include "comet/render/render_proxy_record_store.h"
+#include "comet/render/render_proxy.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct RenderProxySparseUploadData {
   GlNativeStorageHandle ssbo_sparse_upload_word_indices_handle{
@@ -190,19 +191,19 @@ class RenderProxyHandler : public Handler {
 
   memory::FiberFreeListAllocator batch_allocator_{
       sizeof(RenderBatchEntry) * 32, kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator matrix_allocator_{
       sizeof(math::Mat4) * 32,
       kDefaultProxyCount_* kMaxSkinningMatricesPerModel_ / 8,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator handle_allocator_{
       sizeof(MaterialHandle) * 64, kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   Array<MaterialHandle> proxy_material_handles_{};
   Array<RenderBatchEntry> batch_entries_{};
@@ -274,7 +275,7 @@ class RenderProxyHandler : public Handler {
       nullptr};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_RENDER_PROXY_HANDLER_H_

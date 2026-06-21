@@ -6,9 +6,10 @@
 #define COMET_DATA_RESOURCE_RESOURCE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/string/tstring.h"
-#include "comet/core/type/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
+#include "comet/core/id/string_id.h"
 #include "comet/data/resource/common.h"
 #include "comet/data/resource/resource_id.h"
 

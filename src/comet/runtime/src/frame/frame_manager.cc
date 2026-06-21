@@ -3,21 +3,24 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/frame/frame_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/job/worker_context.h"
-#include "comet/core/conf/configuration_manager.h"
-#include "comet/core/conf/configuration_value.h"
-#include "comet/core/continuation/continuation_manager.h"
-#include "comet/core/continuation/type/continuation_phase.h"
-#include "comet/core/frame/frame_event.h"
-#include "comet/event/event_manager.h"
-#include "comet/profiler/profiler_manager.h"
+#include "comet/core/job/worker_context.h"
+#include "comet/runtime/conf/conf_manager.h"
+#include "comet/runtime/conf/config_defaults.h"
+#include "comet/runtime/conf/config_keys.h"
+#include "comet/runtime/conf/config_value.h"
+#include "comet/runtime/continuation/continuation_manager.h"
+#include "comet/runtime/continuation/continuation_phase.h"
+#include "comet/runtime/event/event_manager.h"
+#include "comet/runtime/frame/frame_event.h"
+#include "comet/runtime/memory/tagged_memory.h"
+#include "comet/runtime/profiler/profiler_manager.h"
 
 namespace comet {
 namespace frame {
@@ -27,21 +30,21 @@ FrameManager& FrameManager::Get() {
 }
 
 FrameManager::FrameManager()
-    : fiber_frame_allocator_capacity_{COMET_CONF_U32(
-          conf::kCoreFiberFrameAllocatorBaseCapacity)},
+    : fiber_frame_allocator_capacity_{
+          COMET_CONF_U32(conf::kCoreFiberFrameAllocatorBaseCapacity)},
       io_frame_allocator_capacity_{
           COMET_CONF_U32(conf::kCoreIOFrameAllocatorBaseCapacity)},
       fiber_frame_allocator_{fiber_frame_allocator_capacity_,
-                             memory::kEngineMemoryTagFrame,
-                             memory::kEngineMemoryTagFrameExtended},
+                             kEngineMemoryTagFrame,
+                             kEngineMemoryTagFrameExtended},
       io_frame_allocator_{io_frame_allocator_capacity_,
-                          memory::kEngineMemoryTagFrame},
+                          kEngineMemoryTagFrame},
       fiber_double_frame_allocator_{
-          fiber_frame_allocator_capacity_, memory::kEngineMemoryTagDoubleFrame,
-          memory::kEngineMemoryTagDoubleFrameExtended1,
-          memory::kEngineMemoryTagDoubleFrameExtended2},
+          fiber_frame_allocator_capacity_, kEngineMemoryTagDoubleFrame,
+          kEngineMemoryTagDoubleFrameExtended1,
+          kEngineMemoryTagDoubleFrameExtended2},
       io_double_frame_allocator_{io_frame_allocator_capacity_,
-                                 memory::kEngineMemoryTagDoubleFrame} {}
+                                 kEngineMemoryTagDoubleFrame} {}
 
 void FrameManager::Update() {
   auto& continuation_manager{ContinuationManager::Get()};
@@ -112,8 +115,8 @@ void FrameManager::OnInitialize() {
   io_frame_allocator_.Initialize();
   io_double_frame_allocator_.Initialize();
 
-  frame_packets_ = memory::AllocateMany<FramePacket>(
-      kFramePacketCount_, memory::kEngineMemoryTagGid);
+  frame_packets_ = memory::AllocateMany<FramePacket>(kFramePacketCount_,
+                                                     kEngineMemoryTagGid);
 
   for (usize i{0}; i < kFramePacketCount_; ++i) {
     auto& packet{frame_packets_[i]};

@@ -7,6 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 #include "comet/engine/engine_client.h"
 #include "sandbox/camera_handler.h"
 

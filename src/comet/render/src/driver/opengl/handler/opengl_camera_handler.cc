@@ -3,21 +3,20 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/handler/opengl_camera_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/vector.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/driver/opengl/type/opengl_camera.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/opengl/opengl_debug.h"
+#include "comet/render/driver/opengl/type/opengl_camera.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 CameraHandler::CameraHandler(const CameraHandlerDescr& descr)
     : Handler{descr} {}
@@ -158,5 +157,5 @@ void CameraHandler::DestroyBuffer(GLuint& buffer_handle) {
   buffer_handle = kInvalidGlNativeStorageHandle;
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

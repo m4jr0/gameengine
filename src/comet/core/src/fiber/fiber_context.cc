@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -20,8 +20,8 @@
 #endif  // COMET_IS_TSAN
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_life_cycle.h"
-#include "comet/core/concurrency/thread/thread_context.h"
+#include "comet/core/fiber/fiber_life_cycle.h"
+#include "comet/core/thread/thread_context.h"
 
 namespace comet {
 namespace fiber {
@@ -136,16 +136,7 @@ void ResumeWorker() {
 }
 }  // namespace internal
 
-bool IsFiber() {
-  // Small workaround to force the main thread to behave like a regular thread
-  // (non-fiber).
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-  if (thread::IsMainThread()) {
-    return false;
-  }
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-  return tls_current_fiber != nullptr;
-}
+bool IsFiber() { return tls_current_fiber != nullptr; }
 
 FiberId GetFiberId() {
   return tls_current_fiber != nullptr ? tls_current_fiber->GetId()

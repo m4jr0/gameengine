@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_engine_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,7 +14,7 @@
 
 #include "comet/core/time/date.h"
 #include "comet/engine/profiler/profiler_data.h"
-#include "comet/render/rendering/rendering_manager.h"
+#include "comet/render/rendering/render_manager.h"
 #include "comet/runtime/entity/entity_manager.h"
 #include "comet/runtime/memory/allocation_tracking.h"
 #include "comet/runtime/physics/physics_manager.h"
@@ -34,24 +34,24 @@ void ProfilerDataCollector::Update() {
   COMET_UPDATE_MEMORY_USE_SNAPSHOT();
 
   auto& physics_manager{physics::PhysicsManager::Get()};
-  auto& rendering_manager{rendering::RenderingManager::Get()};
+  auto& render_manager{render::RenderManager::Get()};
   auto& entity_manager{entity::EntityManager::Get()};
 
   data_.physics_frame_time = physics_manager.GetFrameTime();
   data_.physics_frame_rate = physics_manager.GetFrameRate();
-  data_.rendering_driver_type = rendering_manager.GetDriverType();
-  data_.rendering_frame_time = rendering_manager.GetFrameTime();
-  data_.rendering_frame_rate = rendering_manager.GetFrameRate();
+  data_.rendering_driver_type = render_manager.GetDriverType();
+  data_.rendering_frame_time = render_manager.GetFrameTime();
+  data_.rendering_frame_rate = render_manager.GetFrameRate();
   data_.entity_count = entity_manager.GetEntityCount();
   data_.entity_capacity = entity_manager.GetEntityCapacity();
   data_.pending_entity_count = entity_manager.GetPendingEntityCount();
   data_.record_context = &ProfilerManager::Get().GetRecordContext();
 
 #ifdef COMET_DEBUG_RENDERING
-  data_.rendering_draw_count = rendering_manager.GetDrawCount();
+  data_.rendering_draw_count = render_manager.GetDrawCount();
 #endif  // COMET_DEBUG_RENDERING
 
-#ifdef COMET_TRACK_ALLOCATIONS
+#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
   const auto memory_snapshot{memory::GetLatestMemoryUseSnapshot()};
   data_.memory_use = memory_snapshot.memory_use;
   data_.tag_use.Clear();
@@ -63,7 +63,7 @@ void ProfilerDataCollector::Update() {
 #else
   data_.memory_use = 0;
   data_.tag_use.Clear();
-#endif  // COMET_TRACK_ALLOCATIONS
+#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
 
   const auto uptime{time::TimeManager::Get().GetUptime()};
   time::GetTimeString(uptime, data_.uptime, sizeof(data_.uptime));

@@ -6,7 +6,8 @@
 #define COMET_RENDER_DRIVER_VULKAN_TYPE_VULKAN_LIGHT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/light.h"
+#include "comet/render/type/light.h"
+#include "comet/runtime/light/light_handle.h"
 
 namespace comet {
 namespace rendering {

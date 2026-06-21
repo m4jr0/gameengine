@@ -10,20 +10,20 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/hash.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/rendering/driver/opengl/type/opengl_descriptor.h"
-#include "comet/rendering/driver/opengl/type/opengl_pipeline.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/resource/material/material_resource.h"
-#include "comet/resource/shader/shader_resource.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/core/hash/hash.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/map.h"
+#include "comet/render/driver/opengl/type/opengl_descriptor.h"
+#include "comet/render/driver/opengl/type/opengl_pipeline.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/common.h"
+#include "comet/data/render/shader.h"
+#include "comet/data/resource/material/material_resource.h"
+#include "comet/data/resource/shader/shader_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 namespace shaderconsts {
 constexpr u32 kGlobalSet{0};
@@ -299,7 +299,7 @@ struct Shader {
   MaterialInstances instances{};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_SHADER_H_

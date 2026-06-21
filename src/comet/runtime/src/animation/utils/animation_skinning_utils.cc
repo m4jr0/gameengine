@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,13 +11,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/compression.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/math/math_compression.h"
-#include "comet/math/math_interpolation.h"
-#include "comet/math/math_scalar.h"
-#include "comet/math/quaternion.h"
-#include "comet/math/vector.h"
-#include "comet/profiler/profiler.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/core/math/math_compression.h"
+#include "comet/core/math/math_interpolation.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/core/math/quaternion.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
 namespace animation {

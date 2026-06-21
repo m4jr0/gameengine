@@ -10,8 +10,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/core/container/array.h"
+#include "comet/render/render_handle.h"
 
 namespace comet {
 namespace rendering {

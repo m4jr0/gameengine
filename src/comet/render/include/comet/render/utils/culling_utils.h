@@ -6,16 +6,16 @@
 #define COMET_RENDER_UTILS_CULLING_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/type/camera.h"
+#include "comet/core/container/array.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/camera/camera.h"
 
 namespace comet {
-namespace rendering {
-void ComputeFrustumCorners(const RenderCameraData& camera_data,
+namespace render {
+void ComputeFrustumCorners(const CameraViewData& camera_data,
                            f32 near_distance, f32 far_distance,
                            StaticArray<math::Vec3, 8>& out);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_UTILS_CULLING_UTILS_H_

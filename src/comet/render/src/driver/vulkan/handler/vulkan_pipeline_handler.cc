@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,12 +11,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 
 PipelineHandler::PipelineHandler(const PipelineHandlerDescr& descr)
@@ -411,5 +410,5 @@ void PipelineHandler::DestroyPipelineLayoutObject(PipelineLayout* layout) {
   allocator_.Deallocate(layout);
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

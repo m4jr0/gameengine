@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_platform_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-namespace rendering {
+namespace platform {
 const stringid::StringId WindowInitializedEvent::kStaticType_{
     COMET_STRING_ID("event_window_initialize")};
 
@@ -50,5 +49,5 @@ const stringid::StringId WindowCloseEvent::kStaticType_{
 stringid::StringId WindowCloseEvent::GetType() const noexcept {
   return kStaticType_;
 }
-}  // namespace rendering
+}  // namespace platform
 }  // namespace comet

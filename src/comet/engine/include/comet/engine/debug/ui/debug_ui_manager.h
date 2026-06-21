@@ -9,13 +9,13 @@
 
 #ifdef COMET_HAS_DEBUG_UI
 
-#include "comet/core/manager.h"
-#include "comet/debugging/ui/environment/environment_debug_ui.h"
-#include "comet/debugging/ui/rendering/rendering_debug_ui.h"
-#include "comet/rendering/debug_ui_registry.h"
+#include "comet/runtime/manager.h"
+#include "comet/engine/debug/ui/environment/environment_debug_ui.h"
+#include "comet/engine/debug/ui/render/render_debug_ui.h"
+#include "comet/render/debug_ui_registry.h"
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
-#include "comet/debugging/ui/debugger/debugger_debug_ui.h"
+#include "comet/engine/debug/ui/debugger_debug_ui.h"
 #endif  // COMET_HAS_PROFILER_DEBUG_UI
 
 namespace comet {
@@ -41,19 +41,19 @@ class DebugUiManager : public Manager {
   bool is_paused_{false};
   f32 saved_time_scale_{1.0f};
 
-  rendering::DebugUiRegistry::CallbackId environment_callback_id_{
-      rendering::DebugUiRegistry::kInvalidCallbackId};
-  rendering::DebugUiRegistry::CallbackId camera_callback_id_{
-      rendering::DebugUiRegistry::kInvalidCallbackId};
+  render::DebugUiRegistry::CallbackId environment_callback_id_{
+      render::DebugUiRegistry::kInvalidCallbackId};
+  render::DebugUiRegistry::CallbackId camera_callback_id_{
+      render::DebugUiRegistry::kInvalidCallbackId};
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
-  rendering::DebugUiRegistry::CallbackId debugger_callback_id_{
-      rendering::DebugUiRegistry::kInvalidCallbackId};
+  render::DebugUiRegistry::CallbackId debugger_callback_id_{
+      render::DebugUiRegistry::kInvalidCallbackId};
   DebuggerDebugUi debugger_debug_ui_{};
 #endif  // COMET_HAS_PROFILER_DEBUG_UI
 
   EnvironmentDebugUi environment_debug_ui_{};
-  RenderingDebugUi rendering_debug_ui_{};
+  RenderDebugUi render_debug_ui_{};
 };
 }  // namespace debug
 }  // namespace comet

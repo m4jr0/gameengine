@@ -3,16 +3,16 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/continuation/continuation_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/continuation/label/continuation_phase_label.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/profiler/profiler.h"
+#include "comet/runtime/continuation/continuation_phase_label.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
 ContinuationManager& ContinuationManager::Get() {

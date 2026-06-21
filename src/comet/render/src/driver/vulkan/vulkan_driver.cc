@@ -3,31 +3,31 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/vulkan_driver.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/debug_label.h"
-#include "comet/core/frame/frame_container.h"
+#include "comet/core/container/array.h"
+#include "comet/core/debug/debug_label.h"
+#include "comet/runtime/frame/frame_container.h"
 #include "comet/core/logger/logging.h"
-#include "comet/core/type/array.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/camera_manager.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/type/camera.h"
-#include "comet/rendering/type/common.h"
+#include "comet/core/string/c_string.h"
+#include "comet/platform/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/runtime/camera/camera_manager.h"
+#include "comet/render/driver/vulkan/type/vulkan_frame.h"
+#include "comet/render/driver/vulkan/utils/vulkan_command_buffer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_alloc.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
+#include "comet/runtime/camera/camera.h"
+#include "comet/render/common.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
     : Driver(descr),
@@ -40,7 +40,7 @@ VulkanDriver::VulkanDriver(const VulkanDriverDescr& descr)
   window_descr.width = descr.window_width;
   window_descr.height = descr.window_height;
   SetName(window_descr, app_name_, app_name_len_);
-  window_ = std::make_unique<VulkanGlfwWindow>(window_descr);
+  window_ = std::make_unique<platform::VulkanGlfwWindow>(window_descr);
 }
 
 void VulkanDriver::Update(frame::FramePacket* packet) {
@@ -68,7 +68,7 @@ void VulkanDriver::SetSize(WindowSize width, WindowSize height) {
   window_->SetSize(width, height);
 }
 
-Window* VulkanDriver::GetWindow() { return window_.get(); }
+platform::Window* VulkanDriver::GetWindow() { return window_.get(); }
 
 u32 VulkanDriver::GetDrawCount() const {
   return render_proxy_handler_->GetVisibleCount();
@@ -975,5 +975,5 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDriver::LogVulkanDebugReportMessage(
 }
 #endif  // COMET_DEBUG_RENDERING
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

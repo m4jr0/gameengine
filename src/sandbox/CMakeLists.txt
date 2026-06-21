@@ -32,6 +32,12 @@ target_include_directories(${COMET_SANDBOX_TARGET}
     "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+# Precompiled headers ##########################################################
+target_precompile_headers(${COMET_SANDBOX_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/sandbox_pch.h"
+)
+
 # Linking ######################################################################
 target_link_libraries(${COMET_SANDBOX_TARGET}
   PRIVATE

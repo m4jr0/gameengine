@@ -6,15 +6,15 @@
 #define COMET_DATA_RENDER_LABEL_TEXTURE_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/texture.h"
+#include "comet/data/render/texture.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 const schar* GetTextureTypeLabel(TextureType type);
 const schar* GetTextureRepeatModeLabel(TextureRepeatMode mode);
 const schar* GetTextureFilterModeLabel(TextureFilterMode mode);
 const schar* GetTextureFormatLabel(TextureFormat format);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DATA_RENDER_LABEL_TEXTURE_LABEL_H_

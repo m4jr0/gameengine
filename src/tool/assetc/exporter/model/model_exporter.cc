@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,27 +14,17 @@
 #include "assimp/postprocess.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/file_system/file_system.h"
-#include "comet/core/logger/logging.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/label/texture_label.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/resource_manager.h"
-#include "comet/resource/shader/shader_resource.h"
-#include "comet/resource/texture/texture_resource.h"
-#include "editor/asset/asset_utils.h"
-#include "editor/asset/exporter/model/utils/model_exporter_utils.h"
+#include "comet/runtime.h"
+#include "asset_utils.h"
+#include "exporter/model/utils/model_exporter_utils.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
-#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/fiber/fiber.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 bool ModelExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("obj") || extension == COMET_TCHAR("fbx") ||
          extension == COMET_TCHAR("dae") || extension == COMET_TCHAR("gltf") ||
@@ -91,22 +81,22 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
     COMET_LOG_WARNING(
         LoggerType::External, "ModelExporter::LoadMaterialTextures",
         "texture count is greater than one, ignoring excess textures",
-        "texture_type", rendering::GetTextureTypeLabel(texture_type),
+        "texture_type", render::GetTextureTypeLabel(texture_type),
         "texture_count", texture_count);
   }
 
   resource::TextureMapResource* map{nullptr};
 
   switch (texture_type) {
-    case rendering::TextureType::Diffuse:
+    case render::TextureType::Diffuse:
       map = &material.descr.diffuse_map;
       break;
 
-    case rendering::TextureType::Specular:
+    case render::TextureType::Specular:
       map = &material.descr.specular_map;
       break;
 
-    case rendering::TextureType::Normal:
+    case render::TextureType::Normal:
       map = &material.descr.normal_map;
       break;
 
@@ -114,7 +104,7 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
       COMET_LOG_WARNING(LoggerType::External,
                         "ModelExporter::LoadMaterialTextures",
                         "texture type is unsupported", "texture_type",
-                        rendering::GetTextureTypeLabel(texture_type));
+                        render::GetTextureTypeLabel(texture_type));
       return;
   }
 
@@ -167,10 +157,10 @@ void ModelExporter::LoadMaterialTextures(CTStringView resource_path,
   map->u_repeat_mode = GetTextureRepeatMode(raw_u_repeat_mode);
   map->v_repeat_mode = GetTextureRepeatMode(raw_v_repeat_mode);
   map->w_repeat_mode =
-      rendering::TextureRepeatMode::Repeat;  // No AI_MATKEY_MAPPINGMODE_W.
+      render::TextureRepeatMode::Repeat;  // No AI_MATKEY_MAPPINGMODE_W.
 
-  map->min_filter_mode = rendering::TextureFilterMode::Linear;
-  map->mag_filter_mode = rendering::TextureFilterMode::Linear;
+  map->min_filter_mode = render::TextureFilterMode::Linear;
+  map->mag_filter_mode = render::TextureFilterMode::Linear;
 }
 
 void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
@@ -310,11 +300,11 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
     material.descr.shader_resource_id = resource::ShaderResourceId::Invalid();
 
     InitializeDefaultTextureMap(material.descr.diffuse_map,
-                                rendering::TextureType::Diffuse);
+                                render::TextureType::Diffuse);
     InitializeDefaultTextureMap(material.descr.specular_map,
-                                rendering::TextureType::Specular);
+                                render::TextureType::Specular);
     InitializeDefaultTextureMap(material.descr.normal_map,
-                                rendering::TextureType::Normal);
+                                render::TextureType::Normal);
 
     if (aiGetMaterialFloat(raw_material, AI_MATKEY_SHININESS,
                            &material.descr.shininess) != AI_SUCCESS) {
@@ -408,6 +398,6 @@ void ModelExporter::SceneContext::AddResourceFile(
   fiber::FiberLockGuard lock{resource_mutex};
   resource_files->PushLast(file);
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

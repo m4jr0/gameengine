@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_ENTITY_MANAGER_IMPL_ENTITY_MANAGER_WRITE_OPERATION_TEMPLATE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/utils/archetype_utils.h"
+#include "comet/runtime/entity/utils/archetype_utils.h"
 
 namespace comet {
 namespace entity {

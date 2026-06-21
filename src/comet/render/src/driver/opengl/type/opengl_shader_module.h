@@ -10,11 +10,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/resource/shader/shader_module_resource.h"
+#include "comet/render/render_handle.h"
+#include "comet/data/resource/shader/shader_module_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using GlShaderModuleNativeHandle = u32;
 constexpr auto kInvalidGlShaderModuleNativeHandle{0};
@@ -29,7 +29,7 @@ struct ShaderModule {
   GLenum stage{GL_INVALID_VALUE};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_SHADER_MODULE_H_

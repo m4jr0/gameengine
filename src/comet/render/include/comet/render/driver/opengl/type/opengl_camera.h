@@ -6,11 +6,11 @@
 #define COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_CAMERA_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/matrix.h"
-#include "comet/math/vector.h"
+#include "comet/core/math/matrix.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct GpuCameraData {
   math::Mat4 projection{1.0f};
@@ -18,7 +18,7 @@ struct GpuCameraData {
   math::Vec4 view_position{0.0f};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_CAMERA_H_

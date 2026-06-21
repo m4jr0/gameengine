@@ -9,17 +9,19 @@
 #include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/map.h"
-#include "comet/core/type/tstring.h"
-#include "comet/profiler/profiler.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/type/common.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/map.h"
+#include "comet/core/string/tstring.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {
@@ -206,7 +208,7 @@ class LoadingTracker {
   mutable fiber::FiberMutex mtx_{};
   Map<ResourceIdLifeSpanPair, LoadingResourceState<T>*> loading_{};
   memory::FiberFreeListAllocator state_allocator_{
-      sizeof(LoadingResourceState<T>), 128, memory::kEngineMemoryTagResource};
+      sizeof(LoadingResourceState<T>), 128, kEngineMemoryTagResource};
   memory::Allocator* ptr_allocator_{nullptr};
 };
 

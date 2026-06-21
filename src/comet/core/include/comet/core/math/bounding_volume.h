@@ -6,9 +6,9 @@
 #define COMET_CORE_MATH_BOUNDING_VOLUME_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/matrix.h"
-#include "comet/math/plane.h"
-#include "comet/math/vector.h"
+#include "comet/core/math/matrix.h"
+#include "comet/core/math/plane.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
 namespace math {

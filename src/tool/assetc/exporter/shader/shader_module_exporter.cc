@@ -3,29 +3,21 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "shader_module_exporter.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/file_system/file_system.h"
-#include "comet/core/frame/frame_string.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type_trait.h"
-#include "comet/rendering/label/common_label.h"
-#include "comet/rendering/label/shader_label.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/resource/resource_manager.h"
-#include "editor/asset/exporter/shader/utils/shader_module_export_utils.h"
+#include "comet/data.h"
+#include "comet/render.h"
+#include "comet/runtime.h"
+#include "exporter/shader/utils/shader_module_export_utils.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 bool ShaderModuleExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("comp") || extension == COMET_TCHAR("vert") ||
          extension == COMET_TCHAR("frag");
@@ -48,8 +40,8 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   ReplaceExtension(COMET_TCHAR(""), driver_keyword);
   const auto shader_keyword{GetExtension(asset_descr.asset_path)};
 
-  rendering::ShaderStage stage{rendering::ShaderStage::Unknown};
-  rendering::DriverType driver_type{rendering::DriverType::Unknown};
+  render::ShaderStage stage{render::ShaderStage::Unknown};
+  render::DriverType driver_type{render::DriverType::Unknown};
 
   ShaderCodeContext shader_code_context{};
   shader_code_context.code =
@@ -58,25 +50,25 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   shader_code_context.allocator = context.allocator;
 
   if (driver_keyword == COMET_TCHAR("gl")) {
-    driver_type = rendering::DriverType::OpenGl;
+    driver_type = render::DriverType::OpenGl;
   } else if (driver_keyword == COMET_TCHAR("vk")) {
-    driver_type = rendering::DriverType::Vulkan;
+    driver_type = render::DriverType::Vulkan;
   }
 
   if (shader_keyword == COMET_TCHAR("comp")) {
-    stage = rendering::ShaderStage::Compute;
+    stage = render::ShaderStage::Compute;
   } else if (shader_keyword == COMET_TCHAR("vert")) {
-    stage = rendering::ShaderStage::Vertex;
+    stage = render::ShaderStage::Vertex;
   } else if (shader_keyword == COMET_TCHAR("frag")) {
-    stage = rendering::ShaderStage::Fragment;
+    stage = render::ShaderStage::Fragment;
   }
 
-  if (stage == rendering::ShaderStage::Unknown) {
+  if (stage == render::ShaderStage::Unknown) {
     COMET_LOG_ERROR(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
                     "shader stage is unsupported", "shader_keyword",
                     shader_keyword, "asset_path", asset_descr.asset_path);
     return;
-  } else if (driver_type == rendering::DriverType::Unknown) {
+  } else if (driver_type == render::DriverType::Unknown) {
     COMET_LOG_ERROR(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
                     "driver type is unsupported", "driver_keyword",
                     driver_keyword, "asset_path", asset_descr.asset_path);
@@ -106,13 +98,13 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   auto is_success{false};
 
   switch (driver_type) {
-    case rendering::DriverType::Vulkan:
+    case render::DriverType::Vulkan:
       is_success = PopulateSpvShaderCode(
           shader_code_context.asset_abs_path, shader_code_context.code,
           shader_code_context.allocator, shader_module);
       break;
 
-    case rendering::DriverType::OpenGl:
+    case render::DriverType::OpenGl:
     default:
       is_success = PopulateGlShaderCode(
           shader_code_context.code, shader_code_context.code_len,
@@ -124,9 +116,9 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
     COMET_LOG_ERROR(LoggerType::External, "ShaderModuleExporter::PopulateFiles",
                     "shader module processing failed", "asset_path",
                     shader_code_context.asset_abs_path, "driver_type",
-                    rendering::GetDriverTypeLabel(driver_type),
+                    render::GetDriverTypeLabel(driver_type),
                     "driver_type_value", ToUnderlying(driver_type), "stage",
-                    rendering::GetShaderStageLabel(stage), "stage_value",
+                    render::GetShaderStageLabel(stage), "stage_value",
                     ToUnderlying(stage));
 
     return;
@@ -154,6 +146,6 @@ void ShaderModuleExporter::OnShaderModuleLoading(
       shader_code_context->asset_abs_path, shader_code_context->code,
       ShaderCodeContext::kMaxShaderCodeLen_, &shader_code_context->code_len);
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

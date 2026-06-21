@@ -6,10 +6,11 @@
 #define COMET_EDITOR_CAMERA_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/event/event.h"
-#include "comet/event/event_manager.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/runtime/event/event.h"
+#include "comet/runtime/camera/camera_handle.h"
+#include "comet/runtime/event/event_manager.h"
+#include "comet/core/math/vector.h"
+#include "comet/render/render_handle.h"
 
 namespace comet {
 namespace sandbox {
@@ -47,7 +48,7 @@ class CameraHandler {
   void SwitchControlledCamera();
   void StopMouseActions();
 
-  rendering::CameraHandle GetControlledCamera() const;
+  camera::CameraHandle GetControlledCamera() const;
 
   static constexpr f32 kKeyboardMovementSensitivity_{.05f};
   static constexpr f32 kMouseOrbitSensitivity_{.002f};
@@ -77,9 +78,9 @@ class CameraHandler {
   math::Vec2 current_mouse_pos_{.0f, .0f};
   math::Vec2 last_mouse_pos_{.0f, .0f};
 
-  rendering::CameraHandle game_camera_{};
+  camera::CameraHandle game_camera_{};
 #ifdef COMET_DEBUG
-  rendering::CameraHandle debug_camera_{};
+  camera::CameraHandle debug_camera_{};
 #endif  // COMET_DEBUG
 };
 }  // namespace sandbox

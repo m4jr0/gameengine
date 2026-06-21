@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -13,15 +12,15 @@
 
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type_trait.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_texture_map_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
-#include "comet/rendering/label/texture_label.h"
-#include "comet/resource/material/material_resource.h"
-#include "comet/resource/resource_manager.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/utils/vulkan_texture_map_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_texture_utils.h"
+#include "comet/data/render/label/texture_label.h"
+#include "comet/data/resource/material/material_resource.h"
+#include "comet/runtime/resource/resource_manager.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 MaterialHandler::MaterialHandler(const MaterialHandlerDescr& descr)
     : Handler{descr},
@@ -128,7 +127,7 @@ void MaterialHandler::OnShutdown() {
   destroy_callback_ = nullptr;
   destroy_callback_user_data_ = nullptr;
 
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   auto material_handles_to_destroy{Array<MaterialHandle>::WithCapacity(
       &tmp_allocator, materials_.GetLiveCount())};
 
@@ -243,5 +242,5 @@ Material* MaterialHandler::Get(MaterialHandle handle) {
   return material;
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -3,25 +3,20 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "model_exporter_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/logger/logging.h"
-#include "comet/core/type_trait.h"
-#include "comet/resource/material/material_resource.h"
-#include "comet/resource/model/model_resource.h"
-#include "comet/resource/resource.h"
-#include "editor/asset/exporter/assimp_utils.h"
-#include "editor/asset/exporter/model/model_export_label.h"
-#include "editor/asset/exporter/model/utils/animation_export_utils.h"
+#include "exporter/assimp_utils.h"
+#include "exporter/model/model_export_label.h"
+#include "exporter/model/utils/animation_export_utils.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 namespace internal {
 template <typename TModelExport>
 void PopulateIndexedVertices(TModelExport& model_export, const aiMesh* raw_mesh,
@@ -382,52 +377,52 @@ SkeletalModelResources LoadSkeletalModel(memory::Allocator* allocator,
 }
 
 void InitializeDefaultTextureMap(resource::TextureMapResource& map,
-                                 rendering::TextureType type) {
+                                 render::TextureType type) {
   map.texture_resource_id.Invalidate();
   map.type = type;
-  map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-  map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-  map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
-  map.min_filter_mode = rendering::TextureFilterMode::Linear;
-  map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+  map.u_repeat_mode = render::TextureRepeatMode::Repeat;
+  map.v_repeat_mode = render::TextureRepeatMode::Repeat;
+  map.w_repeat_mode = render::TextureRepeatMode::Repeat;
+  map.min_filter_mode = render::TextureFilterMode::Linear;
+  map.mag_filter_mode = render::TextureFilterMode::Linear;
 }
 
-rendering::TextureType GetTextureType(aiTextureType raw_texture_type) {
+render::TextureType GetTextureType(aiTextureType raw_texture_type) {
   switch (raw_texture_type) {
     case aiTextureType_BASE_COLOR:
     case aiTextureType_DIFFUSE:
-      return rendering::TextureType::Diffuse;
+      return render::TextureType::Diffuse;
 
     case aiTextureType_SPECULAR:
-      return rendering::TextureType::Specular;
+      return render::TextureType::Specular;
 
     case aiTextureType_NORMALS:
     case aiTextureType_HEIGHT:
-      return rendering::TextureType::Normal;
+      return render::TextureType::Normal;
 
     case aiTextureType_AMBIENT:
-      return rendering::TextureType::Ambient;
+      return render::TextureType::Ambient;
 
     default:
-      return rendering::TextureType::Unknown;
+      return render::TextureType::Unknown;
   }
 }
 
-rendering::TextureRepeatMode GetTextureRepeatMode(
+render::TextureRepeatMode GetTextureRepeatMode(
     aiTextureMapMode raw_texture_repeat_mode) {
   switch (raw_texture_repeat_mode) {
     case aiTextureMapMode_Wrap:
-      return rendering::TextureRepeatMode::Repeat;
+      return render::TextureRepeatMode::Repeat;
     case aiTextureMapMode_Mirror:
-      return rendering::TextureRepeatMode::MirroredRepeat;
+      return render::TextureRepeatMode::MirroredRepeat;
     case aiTextureMapMode_Clamp:
-      return rendering::TextureRepeatMode::ClampToEdge;
+      return render::TextureRepeatMode::ClampToEdge;
     case aiTextureMapMode_Decal:
-      return rendering::TextureRepeatMode::ClampToBorder;
+      return render::TextureRepeatMode::ClampToBorder;
     default:
-      return rendering::TextureRepeatMode::Unknown;
+      return render::TextureRepeatMode::Unknown;
   }
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

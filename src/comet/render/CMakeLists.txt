@@ -25,8 +25,9 @@ endif()
 
 # Source files #################################################################
 set(COMET_RENDER_SOURCES
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/camera_manager.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/comet_rendering_pch.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/render_define.h"
+
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/debug/rendering_debug_settings.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/debug_ui_registry.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/driver/driver.h"
@@ -142,24 +143,19 @@ set(COMET_RENDER_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/driver/vulkan/vulkan_device.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/driver/vulkan/vulkan_driver.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/driver/vulkan/vulkan_swapchain.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/common.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/frustum.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/label/common_label.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/label/view_label.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/light_manager.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/render_proxy_record_store.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/rendering_handle.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/rendering_manager.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/type/camera.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/type/common.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/type/light.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/type/render_proxy.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/type/view.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/utils/camera_utils.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/render_handle.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/render_manager.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/render_proxy.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/view.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/utils/culling_utils.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/utils/driver_utils.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/utils/geometry_utils.h"
 
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/camera_manager.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/rendering_debug_settings.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug_ui_registry.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/driver/driver.cc"
@@ -238,10 +234,8 @@ set(COMET_RENDER_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/frustum.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/label/common_label.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/label/view_label.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/light_manager.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/render_proxy_record_store.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/rendering_manager.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/camera_utils.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/render_manager.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/culling_utils.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/driver_utils.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/geometry_utils.cc"
@@ -255,7 +249,7 @@ target_sources(${COMET_RENDER_TARGET}
 # Compiling ####################################################################
 target_precompile_headers(${COMET_RENDER_TARGET}
   PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/render/comet_rendering_pch.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/comet_render_pch.h"
 )
 
 target_include_directories(${COMET_RENDER_TARGET}
@@ -312,6 +306,12 @@ if(LINUX)
       "${VULKAN_SDK}/include"
   )
 endif()
+
+# Precompiled headers ##########################################################
+target_precompile_headers(${COMET_RENDER_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/comet_render_pch.h"
+)
 
 # Linking ######################################################################
 target_link_libraries(${COMET_RENDER_TARGET}

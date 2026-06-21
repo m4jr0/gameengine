@@ -10,17 +10,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
+#include "comet/runtime/frame/frame_container.h"
 #include "comet/core/hash.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_descriptor.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_pipeline.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/pipeline.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/resource/material/material_resource.h"
+#include "comet/core/container/array.h"
+#include "comet/render/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/render/driver/vulkan/type/vulkan_descriptor.h"
+#include "comet/render/driver/vulkan/type/vulkan_frame.h"
+#include "comet/render/driver/vulkan/type/vulkan_pipeline.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/type/pipeline.h"
+#include "comet/render/type/shader.h"
+#include "comet/data/resource/material/material_resource.h"
 
 namespace comet {
 namespace rendering {

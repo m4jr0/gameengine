@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_engine_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,11 +12,11 @@
 
 #ifdef COMET_HAS_DEBUG_UI
 
-#include "comet/debugging/rendering/rendering_debug_settings.h"
-#include "comet/environment/environment_manager.h"
+#include "comet/render/debug/rendering_debug_settings.h"
+#include "comet/runtime/environment/environment_manager.h"
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
-#include "comet/profiler/profiler_manager.h"
+#include "comet/runtime/profiler/profiler_manager.h"
 #endif  // COMET_HAS_PROFILER_DEBUG_UI
 
 namespace comet {
@@ -27,7 +27,7 @@ DebugUiManager& DebugUiManager::Get() {
 }
 
 void DebugUiManager::OnInitialize() {
-  auto& registry{rendering::DebugUiRegistry::Get()};
+  auto& registry{render::DebugUiRegistry::Get()};
 
   environment_callback_id_ = registry.Register([this]() {
     environment_debug_ui_.Draw(environment::EnvironmentManager::Get());
@@ -50,22 +50,22 @@ void DebugUiManager::OnInitialize() {
 #endif  // COMET_HAS_PROFILER_DEBUG_UI
 
   camera_callback_id_ = registry.Register(
-      [this]() { rendering_debug_ui_.Draw(RenderingDebugSettings::Get()); });
+      [this]() { render_debug_ui_.Draw(RenderingDebugSettings::Get()); });
 }
 
 void DebugUiManager::OnShutdown() {
-  auto& registry{rendering::DebugUiRegistry::Get()};
+  auto& registry{render::DebugUiRegistry::Get()};
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
   registry.Unregister(debugger_callback_id_);
-  debugger_callback_id_ = rendering::DebugUiRegistry::kInvalidCallbackId;
+  debugger_callback_id_ = render::DebugUiRegistry::kInvalidCallbackId;
 #endif  // COMET_HAS_PROFILER_DEBUG_UI
 
   registry.Unregister(environment_callback_id_);
-  environment_callback_id_ = rendering::DebugUiRegistry::kInvalidCallbackId;
+  environment_callback_id_ = render::DebugUiRegistry::kInvalidCallbackId;
 
   registry.Unregister(camera_callback_id_);
-  camera_callback_id_ = rendering::DebugUiRegistry::kInvalidCallbackId;
+  camera_callback_id_ = render::DebugUiRegistry::kInvalidCallbackId;
 }
 
 void DebugUiManager::TogglePause() {

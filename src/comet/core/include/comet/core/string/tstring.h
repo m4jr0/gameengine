@@ -10,10 +10,11 @@
 #include <string_view>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_array.h"
-#include "comet/core/c_string.h"
+#include "comet/core/container/c_array.h"
+#include "comet/core/string/c_string.h"
+#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 
 namespace comet {
 namespace internal {

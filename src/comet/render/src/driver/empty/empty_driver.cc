@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,17 +13,17 @@
 #ifdef COMET_DEBUG
 
 #include "comet/core/logger/logging.h"
-#include "comet/rendering/window/window.h"
+#include "comet/platform/window/window.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace empty {
 EmptyDriver::EmptyDriver(const EmptyDriverDescr& descr) : Driver{descr} {
   WindowDescr window_descr{};
   window_descr.width = descr.window_width;
   window_descr.height = descr.window_height;
   SetName(window_descr, descr.app_name, descr.app_name_len);
-  window_ = std::make_unique<EmptyGlfwWindow>(window_descr);
+  window_ = std::make_unique<platform::EmptyGlfwWindow>(window_descr);
 }
 
 void EmptyDriver::Update(frame::FramePacket*) {}
@@ -33,7 +32,7 @@ DriverType EmptyDriver::GetType() const noexcept { return DriverType::Empty; }
 
 void EmptyDriver::SetSize(WindowSize, WindowSize) {}
 
-Window* EmptyDriver::GetWindow() { return window_.get(); }
+platform::Window* EmptyDriver::GetWindow() { return window_.get(); }
 
 u32 EmptyDriver::GetDrawCount() const { return 0; }
 
@@ -53,7 +52,7 @@ void EmptyDriver::OnShutdown() {
   }
 }
 }  // namespace empty
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DEBUG

@@ -6,12 +6,13 @@
 #define COMET_DATA_RESOURCE_SHADER_SHADER_RESOURCE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/type/pipeline.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_id.h"
-#include "comet/resource/shader/shader_module_resource.h"
+#include "comet/core/container/array.h"
+#include "comet/data/render/pipeline.h"
+#include "comet/data/render/shader.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/resource_id.h"
+#include "comet/data/resource/shader/shader_module_resource.h"
 
 namespace comet {
 namespace resource {
@@ -20,16 +21,16 @@ struct ShaderResourceTag {};
 using ShaderResourceId = ResourceIdT<ShaderResourceTag>;
 
 struct ShaderResourceDescr {
-  rendering::RasterizerDescr rasterizer{};
-  rendering::DepthStencilDescr depth_stencil{};
-  rendering::PrimitiveTopology topology{rendering::PrimitiveTopology::Unknown};
-  rendering::ShaderVertexLayout vertex_layout{
-      rendering::ShaderVertexLayout::None};
+  render::RasterizerDescr rasterizer{};
+  render::DepthStencilDescr depth_stencil{};
+  render::PrimitiveTopology topology{render::PrimitiveTopology::Unknown};
+  render::ShaderVertexLayout vertex_layout{
+      render::ShaderVertexLayout::None};
 
   Array<ShaderModuleResourceId> shader_module_resource_ids{};
-  Array<rendering::ShaderDefineDescr> defines{};
-  Array<rendering::ShaderBindingDescr> bindings{};
-  Array<rendering::ShaderPushConstantDescr> push_constants{};
+  Array<render::ShaderDefineDescr> defines{};
+  Array<render::ShaderBindingDescr> bindings{};
+  Array<render::ShaderPushConstantDescr> push_constants{};
 };
 
 struct ShaderResource : Resource {

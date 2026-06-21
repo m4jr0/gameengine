@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -18,11 +17,11 @@
 #include "imgui_impl_opengl3.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/debug_ui_registry.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/debug_ui_registry.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
     : View{descr}, window_{descr.window} {
@@ -76,6 +75,6 @@ void ImGuiView::DrawDebugUi() const {
 #endif  // COMET_HAS_DEBUG_UI
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 #endif  // COMET_IMGUI

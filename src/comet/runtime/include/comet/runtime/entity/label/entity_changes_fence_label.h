@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_ENTITY_LABEL_ENTITY_CHANGES_FENCE_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/entity_changes_fence.h"
+#include "comet/runtime/entity/entity_changes_fence.h"
 
 namespace comet {
 namespace entity {

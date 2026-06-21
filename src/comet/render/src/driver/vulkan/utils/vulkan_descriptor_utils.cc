@@ -3,21 +3,20 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/utils/vulkan_descriptor_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/type_trait.h"
-#include "comet/math/math_scalar.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 VkDescriptorPool GenerateDescriptorPool(VkDevice device_handle,
                                         u32 max_descriptor_set_count,
@@ -228,5 +227,5 @@ void SetDescriptorSetLabels(const VkDescriptorSet* set_handles, u32 count,
 }
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

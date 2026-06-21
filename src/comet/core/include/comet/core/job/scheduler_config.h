@@ -6,11 +6,14 @@
 #define COMET_CORE_JOB_SCHEDULER_CONFIG_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/job/worker_hooks.h"
 #include "comet/core/memory/allocator/allocator.h"
 
 namespace comet {
 namespace job {
 struct SchedulerConfig {
+  WorkerLifecycleCallbacks worker_lifecycle{};
+
   memory::Allocator* job_queue_allocator{nullptr};
   memory::Allocator* worker_allocator{nullptr};
 
@@ -22,9 +25,7 @@ struct SchedulerConfig {
   memory::Allocator* counter_queue_allocator{nullptr};
   memory::Allocator* counter_allocator{nullptr};
 
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   memory::Allocator* main_thread_queue_allocator{nullptr};
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
   usize job_queue_capacity{0};
   usize counter_count{0};
@@ -32,15 +33,12 @@ struct SchedulerConfig {
   usize large_fiber_count{0};
   usize gigantic_fiber_count{0};
 
-#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT // >:3 Remove.
   usize external_library_fiber_count{0};
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
   usize fiber_life_cycle_queue_capacity{0};
-
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   usize main_thread_queue_capacity{0};
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
   u8 forced_fiber_worker_count{0};
   u8 forced_io_worker_count{0};
@@ -48,11 +46,11 @@ struct SchedulerConfig {
 
   u32 promotion_interval{1000};
 
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   bool is_main_thread_worker_disabled{false};
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 };
 }  // namespace job
 }  // namespace comet
+
+#endif  // COMET_CORE_JOB_SCHEDULER_CONFIG_H_
 
 #endif  // COMET_CORE_JOB_SCHEDULER_CONFIG_H_

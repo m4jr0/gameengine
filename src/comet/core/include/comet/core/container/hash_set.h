@@ -11,13 +11,13 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
+#include "comet/core/container/array.h"
 #include "comet/core/type/traits.h"
-#include "comet/math/math_scalar.h"
+#include "comet/core/math/math_scalar.h"
 
 namespace comet {
 template <typename T, typename THashable>

@@ -9,18 +9,20 @@
 #include "vulkan/vulkan.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/container/array.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_image.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/platform/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/render/common.h"
+#include "comet/render/driver/vulkan/type/vulkan_frame.h"
+#include "comet/render/driver/vulkan/type/vulkan_image.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct SwapchainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities{};
@@ -103,7 +105,7 @@ class Swapchain {
   bool is_vsync_{false};
   bool is_triple_buffering_{false};
   ImageData image_data_{};
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagRender};
   VkFormat format_{VK_FORMAT_UNDEFINED};
   VkExtent2D extent_{0, 0};
   Array<Image> images_{};
@@ -116,7 +118,7 @@ class Swapchain {
   Context* context_{nullptr};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_VULKAN_SWAPCHAIN_H_

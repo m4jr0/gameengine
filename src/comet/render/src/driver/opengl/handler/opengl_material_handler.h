@@ -6,18 +6,18 @@
 #define COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_MATERIAL_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_sampler_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_material.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/resource/material/material_resource.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_sampler_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_texture_handler.h"
+#include "comet/render/driver/opengl/type/opengl_material.h"
+#include "comet/render/driver/opengl/type/opengl_texture_map.h"
+#include "comet/render/render_handle.h"
+#include "comet/data/resource/material/material_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using MaterialDestroyCallback = void (*)(const Material* material,
                                          void* user_data);
@@ -59,10 +59,10 @@ class MaterialHandler : public Handler {
 
   Material* Get(MaterialHandle handle);
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator allocator_{sizeof(Material), 256,
-                                            memory::kEngineMemoryTagRendering};
+                                            kEngineMemoryTagRender};
 
   SharedInstanceRegistry<resource::MaterialResourceId, MaterialTag, Material>
       materials_;
@@ -74,7 +74,7 @@ class MaterialHandler : public Handler {
   SamplerHandler* sampler_handler_{nullptr};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_MATERIAL_HANDLER_H_

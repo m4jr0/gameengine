@@ -11,7 +11,8 @@
 
 #include "comet/core/essentials.h"
 
-namespace comet {  // >:3 Move to time if time is in core now?
+namespace comet {
+namespace time {
 namespace internal {
 std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
     const std::time_t&);
@@ -22,6 +23,7 @@ f64 GetNow();
 u64 GetTimestampSeconds();
 u64 GetTimestampMilliSeconds();
 u64 GetTimestampNanoSeconds();
+}  // namespace time
 }  // namespace comet
 
 #endif  // COMET_CORE_TIME_DATE_H_

@@ -3,19 +3,19 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/vulkan_alloc.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/memory/allocation_tracking.h"
+#include "comet/runtime/memory/allocation_tracking.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 #ifdef COMET_DEBUG_RENDERING
 namespace internal {
@@ -32,7 +32,7 @@ void* VKAPI_PTR VulkanAllocate(void*, std::size_t size, std::size_t align,
 
   if (ptr != nullptr) {
     COMET_REGISTER_PLATFORM_ALLOCATION(ptr, size,
-                                       memory::kEngineMemoryTagRendering);
+                                       kEngineMemoryTagRender);
   }
 
   return ptr;
@@ -67,7 +67,7 @@ void* VKAPI_PTR VulkanReallocate(void*, void* ptr, std::size_t size,
 
   if (new_ptr != nullptr) {
     COMET_REGISTER_PLATFORM_ALLOCATION(new_ptr, size,
-                                       memory::kEngineMemoryTagRendering);
+                                       kEngineMemoryTagRender);
   }
 
   return new_ptr;
@@ -90,7 +90,7 @@ void VKAPI_PTR VulkanInternalAllocCallback(void*,
                                            VkInternalAllocationType,
                                            VkSystemAllocationScope) {
   COMET_REGISTER_TAG_ALLOCATION(size,
-                                memory::kEngineMemoryTagRenderingInternal);
+                                kEngineMemoryTagRenderInternal);
 }
 
 void VKAPI_PTR VulkanInternalDeallocCallback(void*,
@@ -98,18 +98,18 @@ void VKAPI_PTR VulkanInternalDeallocCallback(void*,
                                              VkInternalAllocationType,
                                              VkSystemAllocationScope) {
   COMET_REGISTER_TAG_DEALLOCATION(size,
-                                  memory::kEngineMemoryTagRenderingInternal);
+                                  kEngineMemoryTagRenderInternal);
 }
 
 void VKAPI_PTR VmaAllocate(VmaAllocator, std::uint32_t, VkDeviceMemory,
                            [[maybe_unused]] VkDeviceSize size, void*) {
-  COMET_REGISTER_TAG_ALLOCATION(size, memory::kEngineMemoryTagRenderingDevice);
+  COMET_REGISTER_TAG_ALLOCATION(size, kEngineMemoryTagRenderDevice);
 }
 
 void VKAPI_PTR VmaDeallocate(VmaAllocator, std::uint32_t, VkDeviceMemory,
                              [[maybe_unused]] VkDeviceSize size, void*) {
   COMET_REGISTER_TAG_DEALLOCATION(size,
-                                  memory::kEngineMemoryTagRenderingDevice);
+                                  kEngineMemoryTagRenderDevice);
 }
 }  // namespace internal
 #endif  // COMET_DEBUG_RENDERING
@@ -152,5 +152,5 @@ MemoryCallbacks::MemoryCallbacks() {
 #endif  // COMET_DEBUG_RENDERING
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

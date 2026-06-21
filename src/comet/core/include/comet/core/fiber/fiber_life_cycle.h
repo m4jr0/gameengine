@@ -5,10 +5,10 @@
 #ifndef COMET_CORE_FIBER_FIBER_LIFE_CYCLE_H_
 #define COMET_CORE_FIBER_FIBER_LIFE_CYCLE_H_
 
-#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/fiber/fiber.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/ring_queue.h"
+#include "comet/core/container/ring_queue.h"
 
 namespace comet {
 namespace fiber {

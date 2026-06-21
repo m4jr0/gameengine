@@ -12,8 +12,8 @@
 #include "vulkan/vulkan.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/render/driver/vulkan/view/vulkan_view.h"
+#include "comet/platform/window/glfw/vulkan/vulkan_glfw_window.h"
 
 namespace comet {
 namespace rendering {

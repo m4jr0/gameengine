@@ -25,7 +25,7 @@ struct ProfilerData {
   u32 rendering_draw_count{0};
 #endif  // COMET_DEBUG_RENDERING
 
-  rendering::DriverType rendering_driver_type{rendering::DriverType::Unknown};
+  render::DriverType rendering_driver_type{render::DriverType::Unknown};
   usize memory_use{0};
   usize entity_count{0};
   usize entity_capacity{0};

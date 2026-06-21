@@ -3,18 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/label/vulkan_descriptor_label.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 const schar* GetDescriptorTypeLabel(DescriptorType type) {
   switch (type) {
@@ -29,5 +28,5 @@ const schar* GetDescriptorTypeLabel(DescriptorType type) {
   }
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

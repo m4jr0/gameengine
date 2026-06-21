@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/pipeline.h"
+#include "comet/render/type/pipeline.h"
 
 namespace comet {
 namespace rendering {

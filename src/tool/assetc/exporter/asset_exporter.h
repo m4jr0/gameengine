@@ -5,21 +5,15 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_ASSET_EXPORTER_H_
 #define COMET_EDITOR_ASSET_EXPORTER_ASSET_EXPORTER_H_
 
-#include "comet/core/concurrency/job/job.h"
-#include "comet/core/essentials.h"
-#include "comet/core/file_system/file_system.h"
-#include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/tstring.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/type/common.h"
-#include "editor/asset/asset.h"
-#include "editor/memory/memory.h"
+#include "comet/core.h"
+#include "comet/data.h"
+#include "comet/runtime.h"
+#include "asset.h"
+#include "memory/memory.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 struct AssetExportDescr {
   const tchar* asset_abs_path{nullptr};
   memory::Allocator* allocator{nullptr};
@@ -87,8 +81,8 @@ class AssetExporter {
   memory::PlatformAllocator asset_export_allocator_{
       memory::kEditorMemoryTagAsset};
 };
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_ASSET_EXPORTER_H_

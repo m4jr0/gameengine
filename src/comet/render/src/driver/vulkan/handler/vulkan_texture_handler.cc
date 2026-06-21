@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -16,29 +15,30 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/type/string_id.h"
+#include "comet/core/id/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type_trait.h"
-#include "comet/math/math_scalar.h"
-#include "comet/rendering/driver/vulkan/label/vulkan_texture_label.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_image.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_command_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/driver/vulkan/vulkan_device.h"
-#include "comet/rendering/label/texture_label.h"
-#include "comet/rendering/utils/texture_utils.h"
-#include "comet/resource/resource_manager.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/render/driver/vulkan/label/vulkan_texture_label.h"
+#include "comet/render/driver/vulkan/type/vulkan_image.h"
+#include "comet/render/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_command_buffer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_image_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_texture_utils.h"
+#include "comet/render/driver/vulkan/vulkan_alloc.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/render/driver/vulkan/vulkan_device.h"
+#include "comet/data/render/label/texture_label.h"
+#include "comet/data/render/utils/texture_utils.h"
+#include "comet/runtime/resource/resource_manager.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 TextureHandler::TextureHandler(const TextureHandlerDescr& descr)
     : Handler{descr}, textures_{&cache_allocator_, 1024} {}
@@ -169,7 +169,7 @@ void TextureHandler::OnInitialize() {
 }
 
 void TextureHandler::OnShutdown() {
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   auto handles_to_destroy{Array<TextureHandle>::WithCapacity(
       &tmp_allocator, textures_.GetLiveCount())};
 
@@ -427,5 +427,5 @@ void TextureHandler::DestroyTexture(Texture* texture) {
   allocator_.Deallocate(texture);
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

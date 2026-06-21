@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -13,11 +12,11 @@
 
 #ifdef COMET_DEBUG_RENDERING
 
-#include "comet/rendering/driver/vulkan/type/vulkan_mesh.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/render/driver/vulkan/type/vulkan_mesh.h"
+#include "comet/render/driver/vulkan/utils/vulkan_buffer_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 DebugHandler::DebugHandler(const DebugHandlerDescr& descr)
     : Handler{descr},
@@ -384,7 +383,7 @@ VkDeviceSize DebugHandler::GetLineBufferSize(
   return static_cast<VkDeviceSize>(vertex_count * sizeof(GpuDebugLineVertex));
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DEBUG_RENDERING

@@ -6,9 +6,9 @@
 #define COMET_RUNTIME_TRANSFORM_TRANSFORM_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/matrix.h"
-#include "comet/math/vector.h"
-#include "comet/physics/component/transform_component.h"
+#include "comet/core/math/matrix.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/transform/component/transform_component.h"
 
 namespace comet {
 namespace transform {

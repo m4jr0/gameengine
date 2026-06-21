@@ -10,12 +10,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/texture/texture_resource.h"
+#include "comet/render/driver/opengl/type/opengl_texture.h"
+#include "comet/data/render/texture.h"
+#include "comet/data/resource/texture/texture_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 HashValue GenerateHash(const TextureKey& key);
 
@@ -25,7 +25,7 @@ GLenum GetGlFormat(const resource::TextureResource* resource);
 GLenum GetGlInternalFormat(const resource::TextureResource* resource,
                            TextureType type);
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_UTILS_OPENGL_TEXTURE_UTILS_H_

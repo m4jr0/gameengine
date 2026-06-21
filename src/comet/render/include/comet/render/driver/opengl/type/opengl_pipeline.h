@@ -6,10 +6,10 @@
 #define COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_PIPELINE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/pipeline.h"
+#include "comet/data/render/pipeline.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct RasterizerState {
   bool is_wireframe{false};
@@ -23,7 +23,7 @@ struct DepthStencilState {
   CompareOp compare_op{CompareOp::Less};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_PIPELINE_H_

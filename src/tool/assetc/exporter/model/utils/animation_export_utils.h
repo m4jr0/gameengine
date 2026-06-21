@@ -10,16 +10,13 @@
 #include "assimp/scene.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/math/matrix.h"
-#include "comet/resource/animation/animation_resource.h"
-#include "editor/asset/exporter/model/model_export.h"
+#include "comet/core.h"
+#include "comet/data.h"
+#include "exporter/model/model_export.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 constexpr auto kDefaultAnimationFrameRate{30};
 constexpr auto kDefaultTicksPerSecond{30.0f};
 
@@ -63,8 +60,8 @@ void PopulateAnimationClip(ModelExport& model_export,
 
 Array<resource::AnimationClipResource> LoadAnimationClips(
     ModelExport& model_export, const geometry::Skeleton& skeleton);
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_MODEL_UTILS_ANIMATION_EXPORT_UTILS_H_

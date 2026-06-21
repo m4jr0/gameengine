@@ -10,11 +10,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/core/math/vector.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct DebugGpuData {
   GlNativeStorageHandle ssbo_debug_data_handle{kInvalidGlNativeStorageHandle};
@@ -43,7 +43,7 @@ struct DebugFrustumCorners {
   math::Vec4 corners[8];
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_DEBUG_H_

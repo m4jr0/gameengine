@@ -9,7 +9,7 @@
 #include <atomic>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/fiber/fiber.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

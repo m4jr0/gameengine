@@ -10,14 +10,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_material.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_texture_map.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/resource/material/material_resource.h"
+#include "comet/data/resource/material/material_resource.h"
+#include "comet/render/driver/vulkan/handler/vulkan_sampler_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_material.h"
+#include "comet/render/driver/vulkan/type/vulkan_texture_map.h"
+#include "comet/render/render_handle.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/shared_instance_registry.h"
 
 namespace comet {
 namespace rendering {
@@ -57,10 +57,10 @@ class MaterialHandler : public Handler {
 
   Material* Get(MaterialHandle handle);
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator allocator_{sizeof(Material), 256,
-                                            memory::kEngineMemoryTagRendering};
+                                            memory::kEngineMemoryTagRender};
 
   SharedInstanceRegistry<resource::MaterialResourceId, MaterialTag, Material>
       materials_;

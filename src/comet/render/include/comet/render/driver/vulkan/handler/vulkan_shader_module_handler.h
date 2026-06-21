@@ -10,16 +10,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader_module.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/resource/shader/shader_module_resource.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader_module.h"
+#include "comet/render/render_handle.h"
+#include "comet/data/resource/shader/shader_module_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct ShaderModuleHandlerDescr : HandlerDescr {};
 
@@ -52,17 +53,17 @@ class ShaderModuleHandler : public Handler {
   ShaderModule* Get(ShaderModuleHandle handle);
   const ShaderModule* Get(ShaderModuleHandle handle) const;
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator allocator_{sizeof(ShaderModule), 256,
-                                            memory::kEngineMemoryTagRendering};
+                                            kEngineMemoryTagRender};
 
   SharedInstanceRegistry<resource::ShaderModuleResourceId, ShaderModuleTag,
                          ShaderModule>
       shader_modules_;
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_SHADER_MODULE_HANDLER_H_

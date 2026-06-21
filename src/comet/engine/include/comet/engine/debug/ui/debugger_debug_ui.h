@@ -9,11 +9,11 @@
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
 
-#include "comet/debugging/ui/debugger/profiler/cpu_profiler_displayer.h"
-#include "comet/profiler/profiler.h"
+#include "comet/engine/debug/ui/profiler/cpu_profiler_displayer.h"
+#include "comet/runtime/profiler/profiler.h"
 
 #ifdef COMET_HAS_MEMORY_DEBUG_UI
-#include "comet/debugging/ui/debugger/memory/allocation_tracker_displayer.h"
+#include "comet/engine/debug/ui/memory/allocation_tracker_displayer.h"
 #endif  // COMET_HAS_MEMORY_DEBUG_UI
 
 namespace comet {

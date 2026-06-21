@@ -5,23 +5,25 @@
 #ifndef COMET_COMET_RUNTIME_FRAME_FRAME_PACKET_H_
 #define COMET_COMET_RUNTIME_FRAME_FRAME_PACKET_H_
 
-#include "comet/animation/type/animation_skinning.h"
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/concurrency/job/job.h"
+#include "comet/runtime/animation/animation_skinning.h"
+#include "comet/core/fiber/fiber_primitive.h"
+#include "comet/core/job/job.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/hash.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/math/matrix.h"
-#include "comet/math/vector.h"
-#include "comet/physics/component/transform_component.h"
-#include "comet/rendering/type/camera.h"
-#include "comet/rendering/type/light.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/material/material_resource.h"
-#include "comet/time/time_manager.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/core/hash/hash.h"
+#include "comet/runtime/light/light_handle.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/geometry/component/mesh_component.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/core/math/matrix.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/transform/component/transform_component.h"
+#include "comet/runtime/camera/camera.h"
+#include "comet/data/light/light.h"
+#include "comet/data/render/texture.h"
+#include "comet/data/resource/material/material_resource.h"
+#include "comet/runtime/time/time_manager.h"
 
 namespace comet {
 namespace frame {
@@ -89,19 +91,19 @@ struct RemovedGeometry {
 };
 
 struct AddedLight {
-  rendering::LightHandle light_handle{};
-  rendering::LightProperties props{};
-  rendering::LightShadow shadow{};
+  light::LightHandle light_handle{};
+  light::LightProperties props{};
+  light::LightShadow shadow{};
 };
 
 struct DirtyLight {
-  rendering::LightHandle light_handle{};
-  rendering::LightProperties props{};
-  rendering::LightShadow shadow{};
+  light::LightHandle light_handle{};
+  light::LightProperties props{};
+  light::LightShadow shadow{};
 };
 
 struct RemovedLight {
-  rendering::LightHandle light_handle{};
+  light::LightHandle light_handle{};
 };
 
 bool operator==(const AddedGeometry& lhs, const AddedGeometry& rhs) noexcept;
@@ -121,7 +123,7 @@ HashValue GenerateHash(const AddedLight& value);
 HashValue GenerateHash(const DirtyLight& value);
 HashValue GenerateHash(const RemovedLight& value);
 
-using CameraViews = DoubleFrameArray<rendering::CameraView>;
+using CameraViews = DoubleFrameArray<camera::CameraView>;
 
 using AddedGeometries = DoubleFrameOrderedSet<AddedGeometry>;
 using DirtyMeshes = DoubleFrameOrderedSet<DirtyMesh>;
@@ -155,21 +157,21 @@ struct FramePacket {
                                entity::EntityId model_entity_id,
                                geometry::MeshHandle mesh_handle);
 
-  void RegisterNewLight(rendering::LightHandle light_handle,
-                        const rendering::LightProperties* props,
-                        const rendering::LightShadow* shadow);
+  void RegisterNewLight(light::LightHandle light_handle,
+                        const light::LightProperties* props,
+                        const light::LightShadow* shadow);
 
-  void RegisterDirtyLight(rendering::LightHandle light_handle,
-                          const rendering::LightProperties* props,
-                          const rendering::LightShadow* shadow);
+  void RegisterDirtyLight(light::LightHandle light_handle,
+                          const light::LightProperties* props,
+                          const light::LightShadow* shadow);
 
-  void RegisterRemovedLight(rendering::LightHandle light_handle);
+  void RegisterRemovedLight(light::LightHandle light_handle);
 
-  const rendering::CameraView* GetMainCameraView() const;
-  const rendering::RenderCameraData* GetMainCameraData() const;
+  const camera::CameraView* GetMainCameraView() const;
+  const camera::CameraViewData* GetMainCameraData() const;
 #ifdef COMET_DEBUG
-  const rendering::CameraView* GetDebugCameraView() const;
-  const rendering::RenderCameraData* GetDebugCameraData() const;
+  const camera::CameraView* GetDebugCameraView() const;
+  const camera::CameraViewData* GetDebugCameraData() const;
 #endif  // COMET_DEBUG
 
   bool IsFrameStageStarted(FrameStage stage) const;
@@ -187,7 +189,7 @@ struct FramePacket {
   f64 time{.0f};
   time::Interpolation interpolation{.0f};
   StageTimes stage_times[kFrameStageCount]{};
-  math::Vec3 ambient_color{rendering::kColorWhiteRgb};
+  math::Vec3 ambient_color{render::kColorWhiteRgb};
   usize draw_count{0};
 
   usize main_camera_view_index{kInvalidIndex};

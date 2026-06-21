@@ -11,23 +11,14 @@
 #include "assimp/scene.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/core/type/tstring.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/geometry/type/skeleton.h"
-#include "comet/math/matrix.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/rendering/utils/geometry_utils.h"
-#include "comet/resource/material/material_resource.h"
-#include "editor/asset/exporter/model/model_export.h"
+#include "comet/core.h"
+#include "comet/data.h"
+#include "comet/render.h"
+#include "exporter/model/model_export.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 struct ModelVertexWeights {
   geometry::SkeletonJointIndex weight_count{0};
   geometry::SkeletonJointIndex
@@ -76,10 +67,10 @@ void PopulateVertex(const aiMesh* raw_mesh, usize index, TVertex& vertex) {
                                     raw_mesh->mBitangents[index].z}};
 
     vertex.tangent =
-        rendering::GenerateTangentWithSign(normal, tangent, &bitangent);
+        render::GenerateTangentWithSign(normal, tangent, &bitangent);
   } else {
     vertex.tangent =
-        rendering::GenerateTangentWithSign(normal, math::Vec3{.0f}, nullptr);
+        render::GenerateTangentWithSign(normal, math::Vec3{.0f}, nullptr);
   }
 
   if (raw_mesh->mTextureCoords[0] != nullptr) {
@@ -89,7 +80,7 @@ void PopulateVertex(const aiMesh* raw_mesh, usize index, TVertex& vertex) {
     vertex.uv = math::Vec2{.0f};
   }
 
-  vertex.color = rendering::kColorWhiteRgba;
+  vertex.color = render::kColorWhiteRgba;
 }
 
 template <typename TVertex>
@@ -160,13 +151,13 @@ SkeletalModelResources LoadSkeletalModel(memory::Allocator* allocator,
                                          CTStringView path);
 
 void InitializeDefaultTextureMap(resource::TextureMapResource& map,
-                                 rendering::TextureType type);
+                                 render::TextureType type);
 
-rendering::TextureType GetTextureType(aiTextureType raw_texture_type);
-rendering::TextureRepeatMode GetTextureRepeatMode(
+render::TextureType GetTextureType(aiTextureType raw_texture_type);
+render::TextureRepeatMode GetTextureRepeatMode(
     aiTextureMapMode raw_texture_repeat_mode);
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_MODEL_UTILS_MODEL_EXPORTER_UTILS_H_

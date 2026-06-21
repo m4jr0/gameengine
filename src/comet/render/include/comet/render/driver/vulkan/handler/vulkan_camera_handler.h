@@ -9,12 +9,12 @@
 #include "vulkan/vulkan.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/render/driver/vulkan/type/vulkan_frame.h"
 
 namespace comet {
 namespace rendering {
@@ -54,7 +54,7 @@ class CameraHandler : public Handler {
                                const Buffer& buffer);
 
   memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagRendering};
+      memory::kEngineMemoryTagRender};
 
   Array<Buffer> staging_ssbo_camera_datas_{};
   Array<Buffer> ssbo_camera_datas_{};

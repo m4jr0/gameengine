@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,8 +12,9 @@
 
 #include "comet/core/file_system/file_system_label.h"
 #include "comet/core/file_system/slash_helper.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/logger/logging.h"
+#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type_trait.h"
 

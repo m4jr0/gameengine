@@ -6,9 +6,9 @@
 #define COMET_RENDER_DRIVER_VULKAN_TYPE_VULKAN_TEXTURE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_image.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/texture.h"
+#include "comet/render/driver/vulkan/type/vulkan_image.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/type/texture.h"
 #include "comet/resource/texture/texture_resource.h"
 
 namespace comet {

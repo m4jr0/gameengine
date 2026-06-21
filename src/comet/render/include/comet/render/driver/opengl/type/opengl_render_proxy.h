@@ -10,10 +10,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/render_proxy.h"
+#include "comet/render/render_proxy.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct DrawElementsIndirectCommand {
   GLuint indexCount{0};
@@ -29,7 +29,7 @@ struct GpuIndirectRenderProxy {
   BatchId batch_id{kInvalidBatchId};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_RENDER_PROXY_H_

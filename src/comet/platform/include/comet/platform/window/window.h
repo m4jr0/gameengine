@@ -6,7 +6,7 @@
 #define COMET_PLATFORM_WINDOW_WINDOW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/common.h"
+#include "comet/platform/window/window_common.h"
 
 namespace comet {
 namespace platform {

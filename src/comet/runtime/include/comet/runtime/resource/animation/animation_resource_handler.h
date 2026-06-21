@@ -5,16 +5,36 @@
 #ifndef COMET_RUNTIME_RESOURCE_ANIMATION_ANIMATION_RESOURCE_HANDLER_H_
 #define COMET_RUNTIME_RESOURCE_ANIMATION_ANIMATION_RESOURCE_HANDLER_H_
 
-#include "comet/animation/animation_id.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/resource/animation/animation_resource.h"
-#include "comet/resource/handler/resource_handler.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/type/common.h"
+#include "comet/data/animation/animation_id.h"
+#include "comet/data/resource/animation/animation_resource.h"
+#include "comet/data/resource/common.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/resource/animation/animation_resource_handle.h"
+#include "comet/runtime/resource/resource_handler.h"
 
 namespace comet {
 namespace resource {
+namespace internal {
+template <typename T>
+void WriteValue(u8* buffer, usize& cursor, const T& value) {
+  static_assert(std::is_trivially_copyable_v<T>);
+
+  memory::CopyMemory(&buffer[cursor], &value, sizeof(T));
+  cursor += sizeof(T);
+}
+
+template <typename T>
+void ReadValue(const u8* buffer, usize& cursor, T& value) {
+  static_assert(std::is_trivially_copyable_v<T>);
+
+  memory::CopyMemory(&value, &buffer[cursor], sizeof(T));
+  cursor += sizeof(T);
+}
+}  // namespace internal
+
 class AnimationClipResourceHandler
     : public ResourceHandler<animation::AnimationClipTag,
                              AnimationClipResource> {

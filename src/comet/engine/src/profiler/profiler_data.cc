@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_engine_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "comet/core/string/c_string.h"
+#include "comet/engine/profiler/profiler_data_collector.h"
 
 namespace comet {
 namespace profiler {
@@ -43,7 +44,7 @@ ProfilerData::ProfilerData(ProfilerData&& other) noexcept
 #ifdef COMET_DEBUG_RENDERING
   other.rendering_draw_count = 0;
 #endif  // COMET_DEBUG_RENDERING
-  other.rendering_driver_type = rendering::DriverType::Unknown;
+  other.rendering_driver_type = render::DriverType::Unknown;
   other.memory_use = 0;
   other.entity_count = 0;
   other.entity_capacity = 0;
@@ -81,7 +82,7 @@ ProfilerData& ProfilerData::operator=(ProfilerData&& other) noexcept {
 #ifdef COMET_DEBUG_RENDERING
   other.rendering_draw_count = 0;
 #endif  // COMET_DEBUG_RENDERING
-  other.rendering_driver_type = rendering::DriverType::Unknown;
+  other.rendering_driver_type = render::DriverType::Unknown;
   other.memory_use = 0;
   other.entity_count = 0;
   other.entity_capacity = 0;

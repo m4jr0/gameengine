@@ -3,28 +3,27 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/handler/vulkan_render_pass_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
+#include "comet/core/container/array.h"
 #include "comet/core/type_trait.h"
-#include "comet/math/math_scalar.h"
-#include "comet/rendering/driver/vulkan/label/vulkan_render_pass_label.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_render_pass_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/render/driver/vulkan/label/vulkan_render_pass_label.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_render_pass_utils.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 RenderPassHandler::RenderPassHandler(const RenderPassHandlerDescr& descr)
     : Handler{descr},
@@ -168,7 +167,7 @@ void RenderPassHandler::OnInitialize() {
 }
 
 void RenderPassHandler::OnShutdown() {
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   Array<RenderPassHandle> handles_to_destroy{&tmp_allocator};
 
   render_passes_.ForEachLive(
@@ -627,5 +626,5 @@ HashValue RenderPassHandler::GenerateHash(const RenderPassDescr& descr) {
   return hash;
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

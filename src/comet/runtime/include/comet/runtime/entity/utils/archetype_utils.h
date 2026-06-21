@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_ENTITY_UTILS_ARCHETYPE_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/type/archetype.h"
+#include "comet/runtime/entity/archetype.h"
 
 namespace comet {
 namespace entity {

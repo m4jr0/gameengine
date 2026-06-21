@@ -5,7 +5,7 @@
 #ifndef COMET_CORE_FIBER_FIBER_CONTEXT_H_
 #define COMET_CORE_FIBER_FIBER_CONTEXT_H_
 
-#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/fiber/fiber.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

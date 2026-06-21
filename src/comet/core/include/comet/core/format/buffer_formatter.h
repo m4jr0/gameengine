@@ -9,7 +9,7 @@
 #include <concepts>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory_utils.h"
 

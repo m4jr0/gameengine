@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,11 +11,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/logger/logging.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/math/vector.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace {
 constexpr auto operator|(RenderProxyDirtyFlag lhs,
                          RenderProxyDirtyFlag rhs) noexcept
@@ -508,5 +507,5 @@ void RenderProxyRecordStore::AssertInvariants() const {
   }
 }
 #endif  // COMET_DEBUG
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

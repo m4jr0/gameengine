@@ -6,7 +6,8 @@
 #define COMET_RUNTIME_CONF_CONF_VALUE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/string_id.h"
+#include "comet/core/id/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
 
 namespace comet {
 namespace conf {

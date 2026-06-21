@@ -10,13 +10,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_pipeline.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
-#include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
-#include "comet/rendering/type/pipeline.h"
-#include "comet/resource/material/material_resource.h"
+#include "comet/core/container/array.h"
+#include "comet/render/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/render/driver/vulkan/type/vulkan_pipeline.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader.h"
+#include "comet/render/driver/vulkan/vulkan_swapchain.h"
+#include "comet/render/type/pipeline.h"
+#include "comet/data/resource/material/material_resource.h"
 
 namespace comet {
 namespace rendering {

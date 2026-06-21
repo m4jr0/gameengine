@@ -10,9 +10,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
-#include "comet/event/event.h"
-#include "comet/event/event_manager.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/event/event.h"
+#include "comet/runtime/event/event_manager.h"
 
 namespace comet {
 namespace scene {

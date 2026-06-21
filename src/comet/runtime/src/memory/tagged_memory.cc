@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -27,16 +27,16 @@
 #endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/memory/allocation_tracking.h"
-#include "comet/core/type/array.h"
+#include "comet/runtime/memory/allocation_tracking.h"
+#include "comet/core/container/array.h"
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"
 #endif  // COMET_MSVC
 
-#include "comet/core/c_string.h"
-#include "comet/core/memory/memory_label.h"
-#include "comet/core/processor.h"
+#include "comet/core/string/c_string.h"
+#include "comet/runtime/memory/memory_label.h"
+#include "comet/core/processor/processor.h"
 
 namespace comet {
 namespace memory {

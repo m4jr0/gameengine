@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "tests_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
@@ -14,10 +14,11 @@
 #include "catch2/reporters/catch_reporter_registrars.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/thread/thread.h"
+#include "comet/core/thread/thread.h"
 #include "comet/core/logger/logging.h"
-#include "comet/core/memory/allocation_tracking.h"
-#include "comet/core/type/string_id.h"
+#include "comet/runtime/memory/allocation_tracking.h"
+#include "comet/core/id/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
 
 class CoreTestsEventListener : public Catch::EventListenerBase {
  public:

@@ -9,9 +9,10 @@
 #include <atomic>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber.h"
-#include "comet/core/concurrency/thread/thread.h"
 #include "comet/core/essentials.h"
+#include "comet/core/fiber/fiber.h"
+#include "comet/core/job/worker_hooks.h"
+#include "comet/core/thread/thread.h"
 
 namespace comet {
 namespace job {
@@ -29,18 +30,6 @@ using WorkerDetachHook = void (*)();
 
 class Worker {
  public:
-  static void SetAttachHook(
-      WorkerAttachHook hook);  // >:3 Move outside of Worker class? I'm talking
-                               // about Fiber/IO stuff. It's weird I think,
-                               // Worker shouldn't know about it?
-  static void SetDetachHook(WorkerDetachHook hook);
-
-  static void SetFiberWorkerAttachHook(WorkerAttachHook hook);
-  static void SetFiberWorkerDetachHook(WorkerDetachHook hook);
-
-  static void SetIOWorkerAttachHook(WorkerAttachHook hook);
-  static void SetIOWorkerDetachHook(WorkerDetachHook hook);
-
   virtual ~Worker() = default;
 
   virtual void Attach();
@@ -58,24 +47,18 @@ class Worker {
   virtual WorkerTypeIndex GetTypeIndex() const noexcept;
 
  protected:
-  Worker(WorkerTag tag, WorkerTypeIndex type_index);
+  Worker(WorkerTag tag, WorkerTypeIndex type_index,
+         const WorkerLifecycleCallbacks* lifecycle);
   Worker(const Worker&) = delete;
   Worker(Worker&& other) noexcept;
 
   Worker& operator=(const Worker&) = delete;
   Worker& operator=(Worker&& other) noexcept;
 
+ protected:
+  const WorkerLifecycleCallbacks* lifecycle_{nullptr};
+
  private:
-  // >:3 Same here?
-  inline static WorkerAttachHook attach_hook_{nullptr};
-  inline static WorkerDetachHook detach_hook_{nullptr};
-
-  inline static WorkerAttachHook fiber_attach_hook_{nullptr};
-  inline static WorkerDetachHook fiber_detach_hook_{nullptr};
-
-  inline static WorkerAttachHook io_attach_hook_{nullptr};
-  inline static WorkerDetachHook io_detach_hook_{nullptr};
-
   WorkerTag tag_{kInvalidWorkerTag};
   WorkerTypeIndex type_index_{kInvalidWorkerTypeIndex};
   thread::Thread thread_{};
@@ -85,7 +68,7 @@ class FiberWorker : public Worker {
  public:
   inline static constexpr WorkerTag kTag_{1};
 
-  FiberWorker();
+  explicit FiberWorker(const WorkerLifecycleCallbacks* lifecycle);
   FiberWorker(const FiberWorker&) = delete;
   FiberWorker(FiberWorker&& other) noexcept;
   FiberWorker& operator=(const FiberWorker&) = delete;
@@ -108,7 +91,7 @@ class IOWorker : public Worker {
  public:
   inline static constexpr WorkerTag kTag_{2};
 
-  IOWorker();
+  explicit IOWorker(const WorkerLifecycleCallbacks* lifecycle);
   IOWorker(const IOWorker&) = delete;
   IOWorker(IOWorker&& other) noexcept;
   IOWorker& operator=(const IOWorker&) = delete;

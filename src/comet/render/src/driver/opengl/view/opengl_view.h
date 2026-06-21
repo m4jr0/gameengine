@@ -6,20 +6,21 @@
 #define COMET_RENDER_DRIVER_OPENGL_VIEW_OPENGL_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/rendering/driver/opengl/opengl_frame_state.h"
-#include "comet/rendering/driver/opengl/type/opengl_view.h"
-#include "comet/rendering/type/camera.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/rendering/type/view.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/render/driver/opengl/opengl_frame_state.h"
+#include "comet/render/driver/opengl/type/opengl_view.h"
+#include "comet/runtime/camera/camera.h"
+#include "comet/render/common.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/data/render/texture.h"
+#include "comet/render/view.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct ViewUpdate {
   frame::FramePacket* packet{nullptr};
-  const RenderCameraData* camera_data{nullptr};
+  const CameraViewData* camera_data{nullptr};
   CameraKind camera_kind{CameraKind::Game};
   CameraFlags camera_flags{kCameraFlagBitsNone};
   usize camera_index{kInvalidIndex};
@@ -107,7 +108,7 @@ class View {
   ViewRenderStage render_stage_{ViewRenderStage::SceneOverlay};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_VIEW_OPENGL_VIEW_H_

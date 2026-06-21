@@ -5,20 +5,22 @@
 #ifndef COMET_RUNTIME_GEOMETRY_GEOMETRY_MANAGER_H_
 #define COMET_RUNTIME_GEOMETRY_GEOMETRY_MANAGER_H_
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/map.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/manager.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/component/model_component.h"
-#include "comet/geometry/component/skeleton_component.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/resource/model/model_resource.h"
-#include "comet/resource/type/common.h"
+#include "comet/core/fiber/fiber_primitive.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/data/resource/model/model_resource.h"
+#include "comet/runtime/geometry/component/skeleton_component.h"
+#include "comet/data/resource/common.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/geometry/component/mesh_component.h"
+#include "comet/runtime/geometry/component/model_component.h"
 
 namespace comet {
 namespace geometry {

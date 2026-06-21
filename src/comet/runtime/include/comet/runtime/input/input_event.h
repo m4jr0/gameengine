@@ -6,10 +6,11 @@
 #define COMET_RUNTIME_INPUT_INPUT_EVENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/string_id.h"
-#include "comet/event/event.h"
-#include "comet/input/input.h"
-#include "comet/math/vector.h"
+#include "comet/core/id/string_id_allocator.h"
+#include "comet/core/id/string_id.h"
+#include "comet/runtime/event/event.h"
+#include "comet/data/input/input.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
 namespace input {

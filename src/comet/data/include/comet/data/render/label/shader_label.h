@@ -6,10 +6,10 @@
 #define COMET_DATA_RENDER_LABEL_SHADER_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/shader.h"
+#include "comet/data/render/shader.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 const schar* GetShaderStageLabel(ShaderStage stage);
 const schar* GetShaderVariableTypeLabel(ShaderVariableType type);
 const schar* GetShaderBindingTypeLabel(ShaderBindingType type);
@@ -18,7 +18,7 @@ const schar* GetShaderMemoryLayoutLabel(ShaderMemoryLayout layout);
 const schar* GetShaderVertexLayoutLabel(ShaderVertexLayout layout);
 const schar* GetShaderImageBindingSemanticLabel(
     ShaderImageBindingSemantic semantic);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DATA_RENDER_LABEL_SHADER_LABEL_H_

@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,13 +11,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/math/vector.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_camera.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/type/vulkan_camera.h"
+#include "comet/render/driver/vulkan/utils/vulkan_buffer_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 CameraHandler::CameraHandler(const CameraHandlerDescr& descr)
     : Handler{descr} {}
@@ -217,5 +216,5 @@ void CameraHandler::AddUploadReleaseBarrier(FrameInFlightIndex frame_index,
 }
 
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -6,10 +6,12 @@
 #define COMET_RUNTIME_RESOURCE_RESOURCE_ALLOCATOR_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/memory/tagged_memory.h"
 
 namespace comet {
 namespace resource {
@@ -42,7 +44,7 @@ class ResourceAllocator : public memory::StatefulAllocator {
   inline static constexpr usize kAllocationThresholdSize_{
       20 * kSmallAllocatorAllocationUnitSize_};
   memory::FiberFreeListAllocator small_allocator_{};
-  memory::PlatformAllocator big_allocator_{memory::kEngineMemoryTagResource};
+  memory::PlatformAllocator big_allocator_{kEngineMemoryTagResource};
 };
 }  // namespace internal
 }  // namespace resource

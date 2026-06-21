@@ -3,15 +3,16 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_data_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "shader_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/type/string_id.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/id/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
 
 namespace comet {
 namespace resource {
@@ -22,20 +23,20 @@ ShaderResource::Id ShaderResource::GetId() const noexcept { return Id{id}; }
 
 usize GetSizeFromDescr(const ShaderResourceDescr& descr) {
   constexpr auto kBoolSize{sizeof(bool)};
-  constexpr auto kCullModeSize{sizeof(rendering::CullMode)};
-  constexpr auto kCompareOpSize{sizeof(rendering::CompareOp)};
-  constexpr auto kPrimitiveTopologySize{sizeof(rendering::PrimitiveTopology)};
-  constexpr auto kShaderVertexLayoutSize{sizeof(rendering::ShaderVertexLayout)};
+  constexpr auto kCullModeSize{sizeof(render::CullMode)};
+  constexpr auto kCompareOpSize{sizeof(render::CompareOp)};
+  constexpr auto kPrimitiveTopologySize{sizeof(render::PrimitiveTopology)};
+  constexpr auto kShaderVertexLayoutSize{sizeof(render::ShaderVertexLayout)};
   constexpr auto kUsizeSize{sizeof(usize)};
   constexpr auto kU32Size{sizeof(u32)};
 
-  constexpr auto kShaderBindingTypeSize{sizeof(rendering::ShaderBindingType)};
-  constexpr auto kShaderBindingScopeSize{sizeof(rendering::ShaderBindingScope)};
-  constexpr auto kShaderMemoryLayoutSize{sizeof(rendering::ShaderMemoryLayout)};
-  constexpr auto kShaderStageFlagsSize{sizeof(rendering::ShaderStageFlags)};
-  constexpr auto kShaderVariableTypeSize{sizeof(rendering::ShaderVariableType)};
+  constexpr auto kShaderBindingTypeSize{sizeof(render::ShaderBindingType)};
+  constexpr auto kShaderBindingScopeSize{sizeof(render::ShaderBindingScope)};
+  constexpr auto kShaderMemoryLayoutSize{sizeof(render::ShaderMemoryLayout)};
+  constexpr auto kShaderStageFlagsSize{sizeof(render::ShaderStageFlags)};
+  constexpr auto kShaderVariableTypeSize{sizeof(render::ShaderVariableType)};
   constexpr auto kShaderImageBindingSemanticSize{
-      sizeof(rendering::ShaderImageBindingSemantic)};
+      sizeof(render::ShaderImageBindingSemantic)};
 
   auto total_size{
       kBoolSize +               // rasterizer.is_wireframe

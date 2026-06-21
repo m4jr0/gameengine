@@ -6,10 +6,11 @@
 #define COMET_COMET_ENTITY_FACTORY_ENTITY_FACTORY_MANAGER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
+#include "comet/runtime/manager.h"
 #include "comet/core/memory/memory.h"
-#include "comet/entity/factory/handler/entity_model_handler.h"
-#include "comet/entity/factory/handler/entity_primitive_handler.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/entity/factory/handler/entity_model_handler.h"
+#include "comet/runtime/entity/factory/handler/entity_primitive_handler.h"
 
 namespace comet {
 namespace entity {

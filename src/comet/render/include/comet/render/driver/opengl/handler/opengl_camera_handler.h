@@ -9,15 +9,15 @@
 #include "glad/glad.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_frame.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/type/opengl_frame.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct CameraGpuData {
   GLuint ssbo_camera_datas_handle{kInvalidGlNativeStorageHandle};
@@ -52,14 +52,14 @@ class CameraHandler : public Handler {
   void DestroyBuffer(GLuint& buffer_handle);
 
   memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   Array<GLuint> ssbo_camera_datas_{};
   Array<usize> ssbo_camera_datas_sizes_{};
 };
 
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_CAMERA_HANDLER_H_

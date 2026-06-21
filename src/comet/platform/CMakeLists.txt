@@ -19,12 +19,15 @@ find_package(Vulkan REQUIRED)
 
 # Source files #################################################################
 set(COMET_PLATFORM_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform.h"
+
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/input/glfw_input_backend.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/window/glfw/empty/empty_glfw_window.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/window/glfw/glfw_window.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/window/glfw/opengl/opengl_glfw_window.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/window/glfw/vulkan/vulkan_glfw_window.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/window/window.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/window/window_common.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/platform/window/window_event.h"
 
   "${CMAKE_CURRENT_SOURCE_DIR}/src/input/glfw_input_backend.cc"
@@ -47,6 +50,12 @@ target_include_directories(${COMET_PLATFORM_TARGET}
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+# Precompiled headers ##########################################################
+target_precompile_headers(${COMET_PLATFORM_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/comet_platform_pch.h"
 )
 
 # Linking ######################################################################

@@ -6,14 +6,14 @@
 #define COMET_RENDER_DRIVER_OPENGL_LABEL_OPENGL_TEXTURE_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture.h"
+#include "comet/render/driver/opengl/type/opengl_texture.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 const schar* GetTextureKeyKindLabel(TextureKeyKind kind);
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_LABEL_OPENGL_TEXTURE_LABEL_H_

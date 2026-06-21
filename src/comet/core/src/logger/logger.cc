@@ -3,16 +3,16 @@
 // license that can be it in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/core/logger/logger.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/concurrency/fiber/fiber_context.h"
-#include "comet/core/concurrency/thread/thread_context.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/fiber/fiber_context.h"
+#include "comet/core/thread/thread_context.h"
 #include "comet/core/memory/memory_utils.h"
 
 namespace comet {

@@ -41,7 +41,7 @@ This model helps separate simulation from rendering cleanly and keeps the engine
   * `PlatformAllocator` (wrapped `new`/`delete` for tagging)
 * Temporary allocators for one/two-frame objects
 * Optional debugging:
-  * `COMET_TRACK_ALLOCATIONS` (per-tag memory usage)
+  * `COMET_DEBUG_TRACK_ALLOCATIONS` (per-tag memory usage)
   * `COMET_POISON_ALLOCATIONS` / `COMET_POISON_FIBER_STACKS`
 
 ## Rendering
@@ -106,7 +106,6 @@ All input data is snapshotted once per frame into a read-only structure to ensur
 ## Animations
 
 Animation data comes from 3D models and supports skeletons/joints.
-* Optional compression via `COMET_COMPRESS_ANIMATIONS` (enabled by default)
 * Standard pose interpolation from keyframes
 * Blending will come later
 
@@ -227,7 +226,7 @@ Requires `COMET_DEBUG` and `COMET_PROFILING`.
 
 Modes:
 * Frame metrics and CPU profiler (`COMET_IMGUI`)
-* Memory tracking (`COMET_TRACK_ALLOCATIONS`)
+* Memory tracking (`COMET_DEBUG_TRACK_ALLOCATIONS`)
 
 <p align="center">  
   <img src="images/profiling.png" width="600" alt="Frame metrics and CPU profiler">
@@ -247,7 +246,7 @@ Modes:
 | `COMET_IMGUI` | Enables the Dear ImGui debug UI |
 | `COMET_HAS_DEBUG_UI` | Internal derived define enabled when debug UI support is available |
 | `COMET_HAS_PROFILER_DEBUG_UI` | Internal derived define for profiler UI support |
-| `COMET_TRACK_ALLOCATIONS` | Tracks memory usage per memory tag |
+| `COMET_DEBUG_TRACK_ALLOCATIONS` | Tracks memory usage per memory tag |
 | `COMET_POISON_ALLOCATIONS` | Fills allocated/freed memory with debug patterns |
 | `COMET_POISON_FIBER_STACKS` | Fills fiber stacks with debug patterns |
 | `COMET_ALLOW_CUSTOM_MEMORY_TAG_LABELS` | Allows custom labels for memory tags |
@@ -256,7 +255,6 @@ Modes:
 | `COMET_LOG_USE_FIBER_PREFIX` | Prefixes log lines with the current fiber/thread |
 | `COMET_WIDE_TCHAR` | Uses wide-character paths/strings on Windows |
 | `COMET_NORMALIZE_PATHS` | Normalizes file paths across platforms |
-| `COMET_COMPRESS_ANIMATIONS` | Compresses animation transform data |
 | `COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER` | Allows disabling the main thread worker, required by the OpenGL backend |
 | `COMET_RENDERING_OPENGL_CLIP_CONTROL_ZERO_TO_ONE` | Uses a `[0, 1]` depth range in OpenGL to better match Vulkan-style clip space |
 | `COMET_DEBUG_RENDERING` | Enables rendering-specific debugging features |

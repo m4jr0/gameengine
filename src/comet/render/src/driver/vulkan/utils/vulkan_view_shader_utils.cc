@@ -3,21 +3,20 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/utils/vulkan_view_shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
+#include "comet/render/driver/vulkan/handler/vulkan_camera_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader.h"
+#include "comet/render/driver/vulkan/utils/vulkan_shader_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_texture_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 void AddWorldGlobalFieldUpdates(
     ShaderHandler* shader_handler, ShaderHandle shader_handle,
@@ -161,5 +160,5 @@ void AddCameraBufferBinding(
       camera_gpu_data.ssbo_camera_datas_size);
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -10,12 +10,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/core/math/vector.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct MeshProxy {
   bool is_alive{false};
@@ -44,7 +45,7 @@ struct GpuDebugLineVertex {
   math::Vec4 color{.0f};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_MESH_H_

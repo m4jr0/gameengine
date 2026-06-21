@@ -3,17 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "sandbox_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "camera_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/input/input_event.h"
-#include "comet/input/input_manager.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/camera_manager.h"
+#include "comet/runtime/input/input_event.h"
+#include "comet/runtime/input/input_manager.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/camera/camera_manager.h"
 
 namespace comet {
 namespace sandbox {
@@ -28,7 +28,7 @@ void CameraHandler::Initialize() {
 
   RegisterEvents();
 
-  auto& camera_manager{rendering::CameraManager::Get()};
+  auto& camera_manager{camera::CameraManager::Get()};
 
   game_camera_ = camera_manager.GetMainCamera();
   COMET_ASSERT(game_camera_, "CameraHandler::Initialize",
@@ -81,7 +81,7 @@ void CameraHandler::Update() {
     return;
   }
 
-  auto& camera_manager{rendering::CameraManager::Get()};
+  auto& camera_manager{camera::CameraManager::Get()};
   auto camera{GetControlledCamera()};
 
   const auto width{camera_manager.GetWidth(camera)};
@@ -161,7 +161,7 @@ void CameraHandler::OnEvent(const event::Event& event) {
                "camera handler is not initialized");
 
   const auto event_type{event.GetType()};
-  auto& camera_manager{rendering::CameraManager::Get()};
+  auto& camera_manager{camera::CameraManager::Get()};
   auto camera{GetControlledCamera()};
 
   if (!camera_manager.IsAlive(camera)) {
@@ -347,7 +347,7 @@ void CameraHandler::SwitchControlledCamera() {
   StopMouseActions();
 
 #ifdef COMET_DEBUG
-  auto& camera_manager{rendering::CameraManager::Get()};
+  auto& camera_manager{camera::CameraManager::Get()};
 
   if (controlled_camera_ == ControlledCamera::Game && debug_camera_ &&
       camera_manager.IsAlive(debug_camera_)) {
@@ -371,8 +371,8 @@ void CameraHandler::StopMouseActions() {
   input::InputManager::Get().DisableUnconstrainedMouseCursor();
 }
 
-rendering::CameraHandle CameraHandler::GetControlledCamera() const {
-  rendering::CameraHandle camera{rendering::CameraHandle::Invalid()};
+camera::CameraHandle CameraHandler::GetControlledCamera() const {
+  camera::CameraHandle camera{camera::CameraHandle::Invalid()};
 
 #ifdef COMET_DEBUG
   if (controlled_camera_ == ControlledCamera::Debug && debug_camera_) {
@@ -383,7 +383,7 @@ rendering::CameraHandle CameraHandler::GetControlledCamera() const {
       camera = game_camera_;
     }
 
-  COMET_ASSERT(rendering::CameraManager::Get().IsAlive(camera),
+  COMET_ASSERT(camera::CameraManager::Get().IsAlive(camera),
                "CameraHandler::Update", "camera is invalid");
   return camera;
 }

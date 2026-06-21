@@ -5,15 +5,15 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORT_LABEL_H_
 #define COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORT_LABEL_H_
 
-#include "comet/core/essentials.h"
-#include "editor/asset/exporter/model/model_export.h"
+#include "comet/core.h"
+#include "exporter/model/model_export.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 const schar* GetModelExportTypeLabel(ModelExportType type);
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORT_LABEL_H_

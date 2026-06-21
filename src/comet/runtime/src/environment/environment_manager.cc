@@ -3,21 +3,21 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/environment/environment_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/geometry.h"
-#include "comet/math/math_interpolation.h"
-#include "comet/math/math_scalar.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/light_manager.h"
-#include "comet/rendering/rendering_manager.h"
-#include "comet/rendering/type/light.h"
-#include "comet/time/time_manager.h"
+#include "comet/core/math/geometry.h"
+#include "comet/core/math/math_interpolation.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/runtime/light/light_manager.h"
+#include "comet/render/render_manager.h"
+#include "comet/data/light/light.h"
+#include "comet/runtime/time/time_manager.h"
 
 namespace comet {
 namespace environment {
@@ -56,7 +56,7 @@ void EnvironmentManager::Update(frame::FramePacket* packet) {
   const auto sun_intensity{
       math::Lerp(kNightIntensity, kDayIntensity, sun_daylight)};
 
-  auto& light_manager{rendering::LightManager::Get()};
+  auto& light_manager{light::LightManager::Get()};
   light_manager.SetDirection(sun_light_, sun_direction);
   light_manager.SetIntensity(sun_light_, sun_intensity);
 }
@@ -259,10 +259,10 @@ math::Vec3 EnvironmentManager::ComputeAmbientColor() const {
 
 void EnvironmentManager::OnInitialize() {
   const auto& shadow_settings{
-      rendering::RenderingManager::Get().GetShadowSettings()};
+      render::RenderManager::Get().GetShadowSettings()};
 
-  rendering::LightDescr sun{};
-  sun.props.type = rendering::LightType::Directional;
+  light::LightDescr sun{};
+  sun.props.type = light::LightType::Directional;
   sun.props.direction = math::Vec3{.0f, -1.0f, .0f};
   sun.props.color = math::Vec3{1.0f, .95f, .85f};
   sun.props.intensity = 4.0f;
@@ -275,12 +275,12 @@ void EnvironmentManager::OnInitialize() {
   sun.shadow.cascade_count = shadow_settings.cascade_count;
   sun.shadow.cascade_lambda = shadow_settings.cascade_lambda;
 
-  sun_light_ = rendering::LightManager::Get().Generate(sun);
+  sun_light_ = light::LightManager::Get().Generate(sun);
 }
 
 void EnvironmentManager::OnShutdown() {
   if (sun_light_) {
-    rendering::LightManager::Get().Destroy(sun_light_);
+    light::LightManager::Get().Destroy(sun_light_);
     sun_light_.Invalidate();
   }
 }

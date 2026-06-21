@@ -15,7 +15,7 @@
 #include "imgui.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/debugging/ui/debugger/profiler/cpu_profiler_displayer_context.h"
+#include "comet/engine/debug/ui/profiler/cpu_profiler_displayer_context.h"
 
 namespace comet {
 namespace debug {

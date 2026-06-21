@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_engine_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -18,11 +18,12 @@
 #include "imgui.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_manager.h"
+#include "comet/runtime/frame/frame_manager.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/memory/memory_label.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/memory/memory_label.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/debugging/ui/imgui_utils.h"
+#include "comet/engine/debug/ui/imgui_utils.h"
 
 namespace comet {
 namespace debug {
@@ -70,7 +71,7 @@ void AllocationTrackerDisplayer::Draw(
             memory::GetMemorySizeString(entry.value, buffer, kBufferCapacity,
                                         &buffer_len);
 
-            if (entry.key != memory::kEngineMemoryTagRenderingDevice) {
+            if (entry.key != kEngineMemoryTagRenderDevice) {
               total_size += entry.value;
             }
 

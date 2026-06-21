@@ -3,19 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "render/utils/culling_utils.h"
+#include "comet/render/utils/culling_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/geometry.h"
+#include "comet/core/math/geometry.h"
 
 namespace comet {
-namespace rendering {
-void ComputeFrustumCorners(const RenderCameraData& camera_data,
+namespace render {
+void ComputeFrustumCorners(const CameraViewData& camera_data,
                            f32 near_distance, f32 far_distance,
                            StaticArray<math::Vec3, 8>& out) {
   const auto& position{camera_data.view_position};
@@ -44,5 +43,5 @@ void ComputeFrustumCorners(const RenderCameraData& camera_data,
   out[6] = far_center - up * far_half_height - right * far_half_width;
   out[7] = far_center - up * far_half_height + right * far_half_width;
 }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

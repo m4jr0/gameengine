@@ -6,16 +6,15 @@
 #define COMET_DATA_ANIMATION_ANIMATION_ID_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/tstring.h"
-#include "comet/resource/resource_id.h"
-#include "comet/resource/runtime/loaded_resource_handle.h"
+#include "comet/core/string/tstring.h"
+#include "comet/data/resource/resource_id.h"
+#include "comet/data/resource/runtime/loaded_resource_handle.h"
 
 namespace comet {
 namespace animation {
 struct AnimationClipTag {};
 
 using AnimationClipId = resource::ResourceIdT<AnimationClipTag>;
-using AnimationClipHandle = resource::LoadedResourceHandle<AnimationClipTag>;
 
 AnimationClipId GenerateQualifiedAnimationClipId(CTStringView file_path,
                                                  const schar* animation_name);

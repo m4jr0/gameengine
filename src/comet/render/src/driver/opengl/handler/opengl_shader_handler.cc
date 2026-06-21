@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,22 +14,22 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
+#include "comet/runtime/frame/frame_container.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type_trait.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader.h"
-#include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
-#include "comet/rendering/label/pipeline_label.h"
-#include "comet/rendering/label/shader_label.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/utils/shader_utils.h"
-#include "comet/resource/resource_manager.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/core/math/vector.h"
+#include "comet/render/driver/opengl/opengl_debug.h"
+#include "comet/render/driver/opengl/type/opengl_shader.h"
+#include "comet/render/driver/opengl/utils/opengl_shader_utils.h"
+#include "comet/data/render/label/pipeline_label.h"
+#include "comet/data/render/label/shader_label.h"
+#include "comet/render/common.h"
+#include "comet/data/render/utils/shader_utils.h"
+#include "comet/runtime/resource/resource_manager.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 namespace internal {
 static bool HasBindingInSet(const Shader* shader, u32 set) {
@@ -811,7 +810,7 @@ void ShaderHandler::OnInitialize() {
 void ShaderHandler::OnShutdown() {
   material_handler_->SetDestroyCallback(nullptr, nullptr);
 
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   auto handles_to_destroy{Array<ShaderHandle>::WithCapacity(
       &tmp_allocator, shaders_.GetLiveCount())};
 
@@ -1967,5 +1966,5 @@ const MaterialHandler* ShaderHandler::GetMaterialHandler() const {
   return material_handler_;
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

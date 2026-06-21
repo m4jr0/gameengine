@@ -9,7 +9,7 @@
 
 #ifdef COMET_HAS_PROFILER_DEBUG_UI
 
-#include "comet/profiler/profiler.h"
+#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
 namespace debug {

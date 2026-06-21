@@ -3,12 +3,11 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/platform/comet_platform_pch.h"
-#include "comet_pch.h"
+#include "comet_platform_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "comet/platform/window/opengl_glfw_window.h"
+#include "comet/platform/window/glfw/opengl/opengl_glfw_window.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
@@ -22,25 +21,25 @@ OpenGlGlfwWindow::OpenGlGlfwWindow(OpenGlGlfwWindowDescr& descr)
       is_vsync_{descr.is_vsync},
       opengl_major_version_{descr.opengl_major_version},
       opengl_minor_version_{descr.opengl_minor_version},
-      anti_aliasing_type_{descr.anti_aliasing_type} {}
+      msaa_sample_count_{descr.msaa_sample_count} {}
 
 OpenGlGlfwWindow::OpenGlGlfwWindow(const OpenGlGlfwWindow& other)
     : GlfwWindow{other},
       is_vsync_{other.is_vsync_},
       opengl_major_version_{other.opengl_major_version_},
       opengl_minor_version_{other.opengl_minor_version_},
-      anti_aliasing_type_{other.anti_aliasing_type_} {}
+      msaa_sample_count_{other.msaa_sample_count_} {}
 
 OpenGlGlfwWindow::OpenGlGlfwWindow(OpenGlGlfwWindow&& other) noexcept
     : GlfwWindow{std::move(other)},
       is_vsync_{other.is_vsync_},
       opengl_major_version_{other.opengl_major_version_},
       opengl_minor_version_{other.opengl_minor_version_},
-      anti_aliasing_type_{other.anti_aliasing_type_} {
+      msaa_sample_count_{other.msaa_sample_count_} {
   other.is_vsync_ = true;
   other.opengl_major_version_ = 0;
   other.opengl_minor_version_ = 0;
-  other.anti_aliasing_type_ = AntiAliasingType::None;
+  other.msaa_sample_count_ = 1;
 }
 
 OpenGlGlfwWindow& OpenGlGlfwWindow::operator=(const OpenGlGlfwWindow& other) {
@@ -52,7 +51,7 @@ OpenGlGlfwWindow& OpenGlGlfwWindow::operator=(const OpenGlGlfwWindow& other) {
   is_vsync_ = other.is_vsync_;
   opengl_major_version_ = other.opengl_major_version_;
   opengl_minor_version_ = other.opengl_minor_version_;
-  anti_aliasing_type_ = other.anti_aliasing_type_;
+  msaa_sample_count_ = other.msaa_sample_count_;
   return *this;
 }
 
@@ -66,11 +65,12 @@ OpenGlGlfwWindow& OpenGlGlfwWindow::operator=(
   is_vsync_ = other.is_vsync_;
   opengl_major_version_ = other.opengl_major_version_;
   opengl_minor_version_ = other.opengl_minor_version_;
-  anti_aliasing_type_ = other.anti_aliasing_type_;
+  msaa_sample_count_ = other.msaa_sample_count_;
+
   other.is_vsync_ = true;
   other.opengl_major_version_ = 0;
   other.opengl_minor_version_ = 0;
-  other.anti_aliasing_type_ = AntiAliasingType::None;
+  other.msaa_sample_count_ = 1;
   return *this;
 }
 
@@ -80,28 +80,8 @@ void OpenGlGlfwWindow::SetGlfwHints() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
-  if (anti_aliasing_type_ != AntiAliasingType::None) {
-    s32 bit_value;
-
-    switch (anti_aliasing_type_) {
-      case AntiAliasingType::Msaa:
-      case AntiAliasingType::MsaaX64:
-      case AntiAliasingType::MsaaX32:
-      case AntiAliasingType::MsaaX16:
-      case AntiAliasingType::MsaaX8:
-        bit_value = 8;
-        break;
-      case AntiAliasingType::MsaaX4:
-        bit_value = 4;
-        break;
-      case AntiAliasingType::MsaaX2:
-        bit_value = 2;
-        break;
-      default:
-        bit_value = 1;
-    }
-
-    glfwWindowHint(GLFW_SAMPLES, bit_value);
+  if (msaa_sample_count_ > 1) {
+    glfwWindowHint(GLFW_SAMPLES, msaa_sample_count_);
   }
 }
 
@@ -116,11 +96,7 @@ void OpenGlGlfwWindow::SetVSync(bool is_vsync) {
     return;
   }
 
-  if (is_vsync_) {
-    glfwSwapInterval(1);
-  } else {
-    glfwSwapInterval(0);
-  }
+  glfwSwapInterval(is_vsync_ ? 1 : 0);
 }
 
 void OpenGlGlfwWindow::OnInitialize() {

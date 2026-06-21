@@ -3,32 +3,33 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/opengl_driver.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/camera_manager.h"
-#include "comet/rendering/window/window_event.h"
+#include "comet/core/debug/debug_label.h"
+#include "comet/platform/window/window_event.h"
+#include "comet/runtime/camera/camera_manager.h"
+#include "comet/render/utils/driver_utils.h"
+#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 OpenGlDriver::OpenGlDriver(const OpenGlDriverDescr& descr) : Driver(descr) {
-  OpenGlGlfwWindowDescr window_descr{};
+  platform::OpenGlGlfwWindowDescr window_descr{};
   window_descr.width = window_width_;
   window_descr.height = window_height_;
   SetName(window_descr, app_name_, app_name_len_);
   window_descr.opengl_major_version = descr.opengl_major_version;
   window_descr.opengl_minor_version = descr.opengl_minor_version;
   window_descr.is_vsync = is_vsync_;
-  window_descr.anti_aliasing_type = anti_aliasing_type_;
-  window_ = std::make_unique<OpenGlGlfwWindow>(window_descr);
+  window_descr.msaa_sample_count = GetMsaaSampleCount(anti_aliasing_type_);
+
+  window_ = std::make_unique<platform::OpenGlGlfwWindow>(window_descr);
 
   if (is_triple_buffering_) {
     COMET_LOG_WARNING(LoggerType::Rendering, "OpenGlDriver::OpenGlDriver",
@@ -65,18 +66,19 @@ void OpenGlDriver::SetSize(WindowSize, WindowSize) {
 }
 
 void OpenGlDriver::OnEvent(const event::Event& event) {
-  if (event.GetType() != WindowResizeEvent::kStaticType_) {
+  if (event.GetType() != platform::WindowResizeEvent::kStaticType_) {
     return;
   }
 
-  const auto& resize_event{static_cast<const WindowResizeEvent&>(event)};
+  const auto& resize_event{
+      static_cast<const platform::WindowResizeEvent&>(event)};
   SetSize(resize_event.GetWidth(), resize_event.GetHeight());
 }
 
 void OpenGlDriver::RegisterEvents() {
   window_resize_listener_id_ = event::EventManager::Get().Register(
       [this](const event::Event& event) { OnEvent(event); },
-      WindowResizeEvent::kStaticType_);
+      platform::WindowResizeEvent::kStaticType_);
   COMET_ASSERT(window_resize_listener_id_ != event::kInvalidEventListenerId,
                "OpenGlDriver::RegisterEvents",
                "window resize listener registration failed");
@@ -89,7 +91,7 @@ void OpenGlDriver::UnregisterEvents() {
   }
 }
 
-Window* OpenGlDriver::GetWindow() { return window_.get(); }
+platform::Window* OpenGlDriver::GetWindow() { return window_.get(); }
 
 u32 OpenGlDriver::GetDrawCount() const {
   return render_proxy_handler_ != nullptr
@@ -509,5 +511,5 @@ void GLAPIENTRY OpenGlDriver::LogOpenGlMessage(GLenum, GLenum type, GLuint,
 }
 #endif  // COMET_DEBUG_RENDERING
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

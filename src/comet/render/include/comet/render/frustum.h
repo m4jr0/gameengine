@@ -6,11 +6,11 @@
 #define COMET_RENDER_FRUSTUM_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/bounding_volume.h"
-#include "comet/math/plane.h"
+#include "comet/core/math/bounding_volume.h"
+#include "comet/core/math/plane.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 class Frustum {
  public:
   Frustum() = default;
@@ -48,7 +48,7 @@ class Frustum {
   math::Plane far_face_{};
   math::Plane near_face_{};
 };
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_FRUSTUM_H_

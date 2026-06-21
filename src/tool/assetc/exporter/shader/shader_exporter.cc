@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,19 +14,13 @@
 #include "nlohmann/json.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/file_system/file_system.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/utils/shader_utils.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_manager.h"
-#include "editor/asset/exporter/shader/data/shader_export_keys.h"
-#include "editor/asset/exporter/shader/utils/shader_export_utils.h"
+#include "comet/runtime.h"
+#include "exporter/shader/data/shader_export_keys.h"
+#include "exporter/shader/utils/shader_export_utils.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 bool ShaderExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("cshader");
 }
@@ -43,11 +37,10 @@ void ShaderExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   shader.descr.shader_module_resource_ids =
       Array<resource::ShaderModuleResourceId>{context.allocator};
-  shader.descr.defines = Array<rendering::ShaderDefineDescr>{context.allocator};
-  shader.descr.bindings =
-      Array<rendering::ShaderBindingDescr>{context.allocator};
+  shader.descr.defines = Array<render::ShaderDefineDescr>{context.allocator};
+  shader.descr.bindings = Array<render::ShaderBindingDescr>{context.allocator};
   shader.descr.push_constants =
-      Array<rendering::ShaderPushConstantDescr>{context.allocator};
+      Array<render::ShaderPushConstantDescr>{context.allocator};
 
   auto& resource_files{context.files};
 
@@ -165,7 +158,7 @@ void ShaderExporter::DumpShaderModules(const nlohmann::json& shader_file,
 void ShaderExporter::DumpDefines(const nlohmann::json& shader_file,
                                  memory::Allocator* allocator,
                                  resource::ShaderResource& shader) {
-  shader.descr.defines = Array<rendering::ShaderDefineDescr>{allocator};
+  shader.descr.defines = Array<render::ShaderDefineDescr>{allocator};
 
   if (!shader_file.contains(kCometEditorShaderKeyDefines)) {
     return;
@@ -247,7 +240,7 @@ void ShaderExporter::DumpBindings(const nlohmann::json& shader_file,
           GetShaderMemoryLayout(raw_binding[kCometEditorShaderKeyLayout]);
 #endif  // COMET_GCC
     } else {
-      binding_descr.layout = rendering::ShaderMemoryLayout::Unknown;
+      binding_descr.layout = render::ShaderMemoryLayout::Unknown;
     }
 
     binding_descr.stages = GetShaderStageFlags(
@@ -268,7 +261,7 @@ void ShaderExporter::DumpBindings(const nlohmann::json& shader_file,
           GetShaderImageBindingSemantic(raw_semantic.c_str());
     }
 
-    binding_descr.fields = Array<rendering::ShaderFieldDescr>{allocator};
+    binding_descr.fields = Array<render::ShaderFieldDescr>{allocator};
 
     if (!raw_binding.contains(kCometEditorShaderKeyFields)) {
       continue;
@@ -327,7 +320,7 @@ void ShaderExporter::DumpPushConstants(const nlohmann::json& shader_file,
     push_constant_descr.stages = GetShaderStageFlags(
         raw_push_constant[kCometEditorShaderKeyStages], allocator);
 
-    push_constant_descr.fields = Array<rendering::ShaderFieldDescr>{allocator};
+    push_constant_descr.fields = Array<render::ShaderFieldDescr>{allocator};
 
     if (!raw_push_constant.contains(kCometEditorShaderKeyFields)) {
       continue;
@@ -380,6 +373,6 @@ void ShaderExporter::OnShaderLoading(job::IOJobParamsHandle params_handle) {
   ReadStrFromFile(shader_context->asset_abs_path, shader_context->file,
                   shader_context->file_buffer_len, &shader_context->file_len);
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

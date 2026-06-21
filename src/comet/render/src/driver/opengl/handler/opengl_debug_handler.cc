@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -13,11 +12,11 @@
 
 #ifdef COMET_DEBUG_RENDERING
 
-#include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/driver/opengl/type/opengl_mesh.h"
+#include "comet/render/driver/opengl/opengl_debug.h"
+#include "comet/render/driver/opengl/type/opengl_mesh.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 DebugHandler::DebugHandler(const DebugHandlerDescr& descr)
     : Handler{descr},
@@ -408,7 +407,7 @@ void DebugHandler::ReallocateBufferIfNeeded(GlNativeStorageHandle buffer_handle,
   buffer_size = required_size;
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DEBUG_RENDERING

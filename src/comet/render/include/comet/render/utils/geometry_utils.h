@@ -6,14 +6,14 @@
 #define COMET_RENDER_UTILS_GEOMETRY_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/math/bounding_volume.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/frustum.h"
+#include "comet/core/container/array.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/core/math/bounding_volume.h"
+#include "comet/core/math/vector.h"
+#include "comet/render/frustum.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 math::Vec4 GenerateTangentWithSign(const math::Vec3& raw_normal,
                                    const math::Vec3& raw_tangent,
                                    const math::Vec3* raw_bitangent = nullptr);
@@ -25,7 +25,7 @@ void GenerateGeometry(const math::Aabb& aabb,
 void GenerateGeometry(const Frustum& frustum,
                       Array<geometry::SkinnedVertex>& vertices,
                       Array<geometry::Index>& indices);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_UTILS_GEOMETRY_UTILS_H_

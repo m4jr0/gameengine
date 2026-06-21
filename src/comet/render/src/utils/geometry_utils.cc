@@ -3,21 +3,20 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "render/utils/geometry_utils.h"
+#include "comet/render/utils/geometry_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/math_scalar.h"
-#include "comet/math/numeric_utils.h"
-#include "comet/math/plane.h"
-#include "comet/rendering/type/texture.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/core/math/numeric_utils.h"
+#include "comet/core/math/plane.h"
+#include "comet/data/render/texture.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace internal {
 math::Vec3 GetFallbackTangentAxis(const math::Vec3& normal) {
   return math::Abs(normal.y) < .999f ? math::Vec3{.0f, 1.0f, .0f}
@@ -309,5 +308,5 @@ void GenerateGeometry(const Frustum& frustum,
   indices.PushLast(kBottomRightNearIndex);
   indices.PushLast(kBottomLeftNearIndex);
 }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

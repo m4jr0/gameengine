@@ -15,7 +15,7 @@
 
 namespace comet {
 namespace memory {
-using MemoryTag = u64; // >:3 Check unused tags.
+using MemoryTag = u64;
 
 enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagUntagged = 0,
@@ -23,8 +23,6 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagConfig,
   kEngineMemoryTagTaggedHeap,
   kEngineMemoryTagGid,
-  kEngineMemoryTagStringId,
-  kEngineMemoryTagInput,
   kEngineMemoryTagFrame,
   kEngineMemoryTagDoubleFrame,
   kEngineMemoryTagFrameExtended,
@@ -32,9 +30,9 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagDoubleFrameExtended2,
   kEngineMemoryTagContinuation,
   kEngineMemoryTagGeometry,
-  kEngineMemoryTagRendering,
-  kEngineMemoryTagRenderingInternal,
-  kEngineMemoryTagRenderingDevice,
+  kEngineMemoryTagRender,
+  kEngineMemoryTagRenderInternal,
+  kEngineMemoryTagRenderDevice,
   kEngineMemoryTagResource,
   kEngineMemoryTagResourceGlobal,
   kEngineMemoryTagResourceGlobalExtended,
@@ -51,14 +49,12 @@ enum EngineMemoryTag : MemoryTag {
   kEngineMemoryTagResourceTextureHandler,
   kEngineMemoryTagResourceAnimation,
   kEngineMemoryTagResourceTexture,
-  kEngineMemoryTagTString,
   kEngineMemoryTagEntity,
   kEngineMemoryTagPendingEntity1,
   kEngineMemoryTagPendingEntity1Extended,
   kEngineMemoryTagPendingEntity2,
   kEngineMemoryTagPendingEntity2Extended,
   kEngineMemoryTagFiber,
-  kEngineMemoryTagThreadProvider,
   kEngineMemoryTagEvent,
   kEngineMemoryTagDebug,
   kEngineMemoryTagMainThread,

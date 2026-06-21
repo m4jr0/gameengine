@@ -22,6 +22,10 @@ endif()
 
 # Source files #################################################################
 set(COMET_CORE_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/core_define.h"
+
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/back_insert_iterator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/comparator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/inplace_merge.h"
@@ -41,7 +45,6 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/container/ring_queue.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/debug/debug.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/debug/debug_label.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/define.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/essentials.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/fiber/fiber.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/fiber/fiber_context.h"
@@ -54,7 +57,13 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/file_system/file_system_type.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/file_system/slash_helper.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/format/buffer_formatter.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/handle/handle.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/handle/handle_pool.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/hash/hash.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/id/gid.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/id/gid_pool.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/id/string_id.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/id/string_id_allocator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/job/job.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/job/job_fence.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/job/job_label.h"
@@ -96,12 +105,6 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/time/chrono.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/time/date.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/time/time_utils.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/type/gid.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/type/gid_pool.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/type/handle.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/type/handle_pool.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/type/string_id.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/type/string_id_allocator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/type_trait.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/version.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/windows.h"
@@ -120,6 +123,10 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/file_system/file_system_label.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/file_system/slash_helper.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/hash/hash.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/id/gid.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/id/gid_pool.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/id/string_id.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/id/string_id_allocator.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/job/job.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/job/job_fence.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/job/job_label.cc"
@@ -138,11 +145,7 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/math/plane.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/math/quaternion.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/math/vector.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/allocation_tracking.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/memory_label.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/memory_utils.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/tagged_heap.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/virtual_memory.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/allocator/allocator.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/allocator/default_allocator.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/memory/allocator/stateful_allocator.cc"
@@ -155,10 +158,6 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/time/chrono.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/time/date.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/time/time_utils.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/type/gid.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/type/gid_pool.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/type/string_id.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/type/string_id_allocator.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/version.cc"
 )
 
@@ -200,6 +199,12 @@ if(WIN32)
       ${DETOURS_INCLUDE_DIRS}
   )
 endif()
+
+# Precompiled headers ##########################################################
+target_precompile_headers(${COMET_CORE_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/comet_core_pch.h"
+)
 
 # Linking ######################################################################
 target_link_libraries(${COMET_CORE_TARGET}

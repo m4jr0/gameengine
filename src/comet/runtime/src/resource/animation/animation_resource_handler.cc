@@ -3,18 +3,42 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/resource/animation/animation_resource_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/container/array.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
 
 namespace comet {
 namespace resource {
+namespace internal {
+void WriteCompressedJointPose(u8* buffer, usize& cursor,
+                              const animation::CompressedJointPose& pose) {
+  WriteValue(buffer, cursor, pose.rotation_x);
+  WriteValue(buffer, cursor, pose.rotation_y);
+  WriteValue(buffer, cursor, pose.rotation_z);
+  WriteValue(buffer, cursor, pose.translation_x);
+  WriteValue(buffer, cursor, pose.translation_y);
+  WriteValue(buffer, cursor, pose.translation_z);
+  WriteValue(buffer, cursor, pose.scale);
+}
+
+void ReadCompressedJointPose(const u8* buffer, usize& cursor,
+                             animation::CompressedJointPose& pose) {
+  ReadValue(buffer, cursor, pose.rotation_x);
+  ReadValue(buffer, cursor, pose.rotation_y);
+  ReadValue(buffer, cursor, pose.rotation_z);
+  ReadValue(buffer, cursor, pose.translation_x);
+  ReadValue(buffer, cursor, pose.translation_y);
+  ReadValue(buffer, cursor, pose.translation_z);
+  ReadValue(buffer, cursor, pose.scale);
+}
+}  // namespace internal
+
 AnimationClipResourceHandler::AnimationClipResourceHandler(
     const ResourceHandlerDescr& descr)
     : Base{descr} {}
@@ -22,7 +46,7 @@ AnimationClipResourceHandler::AnimationClipResourceHandler(
 void AnimationClipResourceHandler::OnInitialize() {
   anim_allocator_ = memory::FiberFreeListAllocator{
       kAnimAllocatorElementSize_, kDefaultAllocatorCapacity_,
-      memory::kEngineMemoryTagResourceAnimation};
+      kEngineMemoryTagResourceAnimation};
 
   anim_allocator_.Initialize();
 }
@@ -61,11 +85,6 @@ ResourceFile AnimationClipResourceHandler::Pack(
   constexpr auto kFrameCountSize{sizeof(animation::FrameIndex)};
   constexpr auto kSampleCountSize{sizeof(usize)};
   constexpr auto kJointPoseCountSize{sizeof(usize)};
-#ifndef COMET_COMPRESS_ANIMATIONS
-  constexpr auto kJointPoseRotationSize{sizeof(math::Quat)};
-  constexpr auto kJointPoseTranslationSize{sizeof(math::Vec3)};
-  constexpr auto kJointPoseScaleSize{sizeof(f32)};
-#else
   constexpr auto kJointPoseRotationXSize{sizeof(u16)};
   constexpr auto kJointPoseRotationYSize{sizeof(u16)};
   constexpr auto kJointPoseRotationZSize{sizeof(u16)};
@@ -73,7 +92,6 @@ ResourceFile AnimationClipResourceHandler::Pack(
   constexpr auto kJointPoseTranslationYSize{sizeof(u16)};
   constexpr auto kJointPoseTranslationZSize{sizeof(u16)};
   constexpr auto kJointPoseScaleSize{sizeof(u16)};
-#endif  // COMET_COMPRESS_ANIMATIONS
   constexpr auto kIsLoopSize{sizeof(bool)};
 
   const auto& clip{resource.clip};
@@ -104,45 +122,7 @@ ResourceFile AnimationClipResourceHandler::Pack(
     cursor += kJointPoseCountSize;
 
     for (const auto& pose : sample.joint_poses) {
-#ifndef COMET_COMPRESS_ANIMATIONS
-      memory::CopyMemory(&buffer[cursor], &pose.rotation,
-                         kJointPoseRotationSize);
-      cursor += kJointPoseRotationSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.translation,
-                         kJointPoseTranslationSize);
-      cursor += kJointPoseTranslationSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.scale, kJointPoseScaleSize);
-      cursor += kJointPoseScaleSize;
-#else
-      memory::CopyMemory(&buffer[cursor], &pose.rotation_x,
-                         kJointPoseRotationXSize);
-      cursor += kJointPoseRotationXSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.rotation_y,
-                         kJointPoseRotationYSize);
-      cursor += kJointPoseRotationYSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.rotation_z,
-                         kJointPoseRotationZSize);
-      cursor += kJointPoseRotationZSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.translation_x,
-                         kJointPoseTranslationXSize);
-      cursor += kJointPoseTranslationXSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.translation_y,
-                         kJointPoseTranslationYSize);
-      cursor += kJointPoseTranslationYSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.translation_z,
-                         kJointPoseTranslationZSize);
-      cursor += kJointPoseTranslationZSize;
-
-      memory::CopyMemory(&buffer[cursor], &pose.scale, kJointPoseScaleSize);
-      cursor += kJointPoseScaleSize;
-#endif  // COMET_COMPRESS_ANIMATIONS
+      internal::WriteCompressedJointPose(buffer, cursor, pose);
     }
   }
 
@@ -178,19 +158,6 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
   constexpr auto kFrameCountSize{sizeof(animation::FrameIndex)};
   constexpr auto kSampleCountSize{sizeof(usize)};
   constexpr auto kJointPoseCountSize{sizeof(usize)};
-#ifndef COMET_COMPRESS_ANIMATIONS
-  constexpr auto kJointPoseRotationSize{sizeof(math::Quat)};
-  constexpr auto kJointPoseTranslationSize{sizeof(math::Vec3)};
-  constexpr auto kJointPoseScaleSize{sizeof(f32)};
-#else
-  constexpr auto kJointPoseRotationXSize{sizeof(u16)};
-  constexpr auto kJointPoseRotationYSize{sizeof(u16)};
-  constexpr auto kJointPoseRotationZSize{sizeof(u16)};
-  constexpr auto kJointPoseTranslationXSize{sizeof(u16)};
-  constexpr auto kJointPoseTranslationYSize{sizeof(u16)};
-  constexpr auto kJointPoseTranslationZSize{sizeof(u16)};
-  constexpr auto kJointPoseScaleSize{sizeof(u16)};
-#endif  // COMET_COMPRESS_ANIMATIONS
   constexpr auto kIsLoopSize{sizeof(bool)};
 
   memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
@@ -245,46 +212,7 @@ void AnimationClipResourceHandler::Unpack(const ResourceFile& file,
 
     for (usize j{0}; j < joint_pose_count; ++j) {
       auto& pose{sample.joint_poses.EmplaceLast()};
-
-#ifndef COMET_COMPRESS_ANIMATIONS
-      memory::CopyMemory(&pose.rotation, &buffer[cursor],
-                         kJointPoseRotationSize);
-      cursor += kJointPoseRotationSize;
-
-      memory::CopyMemory(&pose.translation, &buffer[cursor],
-                         kJointPoseTranslationSize);
-      cursor += kJointPoseTranslationSize;
-
-      memory::CopyMemory(&pose.scale, &buffer[cursor], kJointPoseScaleSize);
-      cursor += kJointPoseScaleSize;
-#else
-      memory::CopyMemory(&pose.rotation_x, &buffer[cursor],
-                         kJointPoseRotationXSize);
-      cursor += kJointPoseRotationXSize;
-
-      memory::CopyMemory(&pose.rotation_y, &buffer[cursor],
-                         kJointPoseRotationYSize);
-      cursor += kJointPoseRotationYSize;
-
-      memory::CopyMemory(&pose.rotation_z, &buffer[cursor],
-                         kJointPoseRotationZSize);
-      cursor += kJointPoseRotationZSize;
-
-      memory::CopyMemory(&pose.translation_x, &buffer[cursor],
-                         kJointPoseTranslationXSize);
-      cursor += kJointPoseTranslationXSize;
-
-      memory::CopyMemory(&pose.translation_y, &buffer[cursor],
-                         kJointPoseTranslationYSize);
-      cursor += kJointPoseTranslationYSize;
-
-      memory::CopyMemory(&pose.translation_z, &buffer[cursor],
-                         kJointPoseTranslationZSize);
-      cursor += kJointPoseTranslationZSize;
-
-      memory::CopyMemory(&pose.scale, &buffer[cursor], kJointPoseScaleSize);
-      cursor += kJointPoseScaleSize;
-#endif  // COMET_COMPRESS_ANIMATIONS
+      internal::ReadCompressedJointPose(buffer, cursor, pose);
     }
   }
 

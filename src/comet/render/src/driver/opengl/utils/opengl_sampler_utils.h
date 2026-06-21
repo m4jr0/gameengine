@@ -6,14 +6,14 @@
 #define COMET_RENDER_DRIVER_OPENGL_UTILS_OPENGL_SAMPLER_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_sampler.h"
+#include "comet/render/driver/opengl/type/opengl_sampler.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 SamplerKey GenerateSamplerKey(const SamplerDescr& descr);
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_UTILS_OPENGL_SAMPLER_UTILS_H_

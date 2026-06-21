@@ -10,14 +10,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_descriptor.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_descriptor.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct DescriptorHandlerDescr : public HandlerDescr {};
 
@@ -58,11 +59,11 @@ class DescriptorHandler : public Handler {
 
   VkDescriptorPool static_descriptor_pool_{VK_NULL_HANDLE};
   Array<VkDescriptorPool> dynamic_descriptor_pools_{};
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagRender};
 };
 
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_DESCRIPTOR_HANDLER_H_

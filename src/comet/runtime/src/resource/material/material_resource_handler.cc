@@ -3,18 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/resource/material/material_resource_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/memory/allocator/stack_allocator.h"
+#include "comet/runtime/memory/allocator/stack_allocator.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/texture/texture_resource.h"
+#include "comet/core/container/array.h"
+#include "comet/data/render/texture.h"
+#include "comet/data/resource/texture/texture_resource.h"
 
 namespace comet {
 namespace resource {
@@ -106,28 +106,28 @@ MaterialResource* MaterialResourceHandler::GetDefaultMaterialResource() {
 
     auto& descr{default_material_->descr};
     descr.diffuse_map.texture_resource_id = kDefaultDiffuseTextureId;
-    descr.diffuse_map.type = rendering::TextureType::Diffuse;
-    descr.diffuse_map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.diffuse_map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.diffuse_map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.diffuse_map.min_filter_mode = rendering::TextureFilterMode::Linear;
-    descr.diffuse_map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+    descr.diffuse_map.type = render::TextureType::Diffuse;
+    descr.diffuse_map.u_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.diffuse_map.v_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.diffuse_map.w_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.diffuse_map.min_filter_mode = render::TextureFilterMode::Linear;
+    descr.diffuse_map.mag_filter_mode = render::TextureFilterMode::Linear;
 
     descr.specular_map.texture_resource_id = kDefaultSpecularTextureId;
-    descr.specular_map.type = rendering::TextureType::Specular;
-    descr.specular_map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.specular_map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.specular_map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.specular_map.min_filter_mode = rendering::TextureFilterMode::Linear;
-    descr.specular_map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+    descr.specular_map.type = render::TextureType::Specular;
+    descr.specular_map.u_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.specular_map.v_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.specular_map.w_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.specular_map.min_filter_mode = render::TextureFilterMode::Linear;
+    descr.specular_map.mag_filter_mode = render::TextureFilterMode::Linear;
 
     descr.normal_map.texture_resource_id = kDefaultNormalTextureId;
-    descr.normal_map.type = rendering::TextureType::Normal;
-    descr.normal_map.u_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.normal_map.v_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.normal_map.w_repeat_mode = rendering::TextureRepeatMode::Repeat;
-    descr.normal_map.min_filter_mode = rendering::TextureFilterMode::Linear;
-    descr.normal_map.mag_filter_mode = rendering::TextureFilterMode::Linear;
+    descr.normal_map.type = render::TextureType::Normal;
+    descr.normal_map.u_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.normal_map.v_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.normal_map.w_repeat_mode = render::TextureRepeatMode::Repeat;
+    descr.normal_map.min_filter_mode = render::TextureFilterMode::Linear;
+    descr.normal_map.mag_filter_mode = render::TextureFilterMode::Linear;
   }
 
   return default_material_.get();

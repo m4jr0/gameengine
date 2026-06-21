@@ -6,10 +6,10 @@
 #define COMET_DATA_RENDER_SHADER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
+#include "comet/core/container/array.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 static constexpr auto kShaderLocalSize{256};
 
 enum class ShaderStage : u8 { Unknown = 0, Compute, Vertex, Fragment };
@@ -155,7 +155,7 @@ struct ShaderPushConstantDescr : ShaderNamedDescr {
 
 constexpr auto kMaxShaderCount{256};
 constexpr auto kMaxShaderTextureMapCount{32};
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DATA_RENDER_SHADER_H_

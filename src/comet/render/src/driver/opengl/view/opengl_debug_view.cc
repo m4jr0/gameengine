@@ -3,28 +3,28 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/view/opengl_debug_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader.h"
-#include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/shader/shader_resource.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/opengl/type/opengl_shader.h"
+#include "comet/render/driver/opengl/utils/opengl_view_shader_utils.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/shader/shader_resource.h"
 
 #ifdef COMET_DEBUG
-#include "comet/debugging/rendering/rendering_debug_settings.h"
+#include "comet/render/debug/rendering_debug_settings.h"
 #endif  // COMET_DEBUG
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 DebugView::DebugView(const DebugViewDescr& descr)
     : View{descr},
@@ -209,5 +209,5 @@ void DebugView::SetViewport(const ViewportRect& viewport) const {
              static_cast<GLsizei>(viewport.height));
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

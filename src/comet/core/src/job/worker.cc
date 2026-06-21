@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,43 +14,21 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_context.h"
-#include "comet/core/concurrency/fiber/fiber_life_cycle.h"
-#include "comet/core/concurrency/job/worker_context.h"
+#include "comet/core/fiber/fiber_context.h"
+#include "comet/core/fiber/fiber_life_cycle.h"
+#include "comet/core/job/worker_context.h"
 
 namespace comet {
 namespace job {
-void Worker::SetAttachHook(WorkerAttachHook hook) { attach_hook_ = hook; }
-
-void Worker::SetDetachHook(WorkerDetachHook hook) { detach_hook_ = hook; }
-
-void Worker::SetFiberWorkerAttachHook(WorkerAttachHook hook) {
-  fiber_attach_hook_ = hook;
-}
-
-void Worker::SetFiberWorkerDetachHook(WorkerDetachHook hook) {
-  fiber_detach_hook_ = hook;
-}
-
-void Worker::SetIOWorkerAttachHook(WorkerAttachHook hook) {
-  io_attach_hook_ = hook;
-}
-
-void Worker::SetIOWorkerDetachHook(WorkerDetachHook hook) {
-  io_detach_hook_ = hook;
-}
-
 void Worker::Attach() {
-  internal::AttachWorker(this);
-
-  if (attach_hook_ != nullptr) {
-    attach_hook_();
+  if (lifecycle_ != nullptr && lifecycle_->attach != nullptr) {
+    lifecycle_->attach();
   }
 }
 
 void Worker::Detach() {
-  if (detach_hook_ != nullptr) {
-    detach_hook_();
+  if (lifecycle_ != nullptr && lifecycle_->detach != nullptr) {
+    lifecycle_->detach();
   }
 
   internal::DetachWorker();
@@ -66,8 +44,9 @@ WorkerTag Worker::GetTag() const noexcept { return tag_; }
 
 WorkerTypeIndex Worker::GetTypeIndex() const noexcept { return type_index_; }
 
-Worker::Worker(WorkerTag tag, WorkerTypeIndex type_index)
-    : tag_{tag}, type_index_{type_index} {}
+Worker::Worker(WorkerTag tag, WorkerTypeIndex type_index,
+               const WorkerLifecycleCallbacks* lifecycle)
+    : lifecycle_{lifecycle}, tag_{tag}, type_index_{type_index} {}
 
 Worker::Worker(Worker&& other) noexcept
     : tag_{other.tag_},
@@ -91,8 +70,9 @@ Worker& Worker::operator=(Worker&& other) noexcept {
   return *this;
 }
 
-FiberWorker::FiberWorker()
-    : Worker{kTag_, index_counter_.fetch_add(1, std::memory_order_acq_rel)} {}
+FiberWorker::FiberWorker(const WorkerLifecycleCallbacks* lifecycle)
+    : Worker{kTag_, index_counter_.fetch_add(1, std::memory_order_acq_rel),
+             lifecycle} {}
 
 FiberWorker::FiberWorker(FiberWorker&& other) noexcept
     : Worker{std::move(other)},
@@ -118,8 +98,8 @@ FiberWorker& FiberWorker::operator=(FiberWorker&& other) noexcept {
 void FiberWorker::Attach() {
   Worker::Attach();
 
-  if (fiber_attach_hook_ != nullptr) {
-    fiber_attach_hook_();
+  if (lifecycle_ != nullptr && lifecycle_->fiber_attach != nullptr) {
+    lifecycle_->fiber_attach();
   }
 
   internal::AttachFiberWorker(this);
@@ -129,10 +109,8 @@ void FiberWorker::Attach() {
 }
 
 void FiberWorker::Detach() {
-  Worker::Detach();
-
-  if (fiber_detach_hook_ != nullptr) {
-    fiber_detach_hook_();
+  if (lifecycle_ != nullptr && lifecycle_->fiber_detach != nullptr) {
+    lifecycle_->fiber_detach();
   }
 
   fiber::DestroyFiberFromThread();
@@ -141,10 +119,12 @@ void FiberWorker::Detach() {
   worker_fiber_ = nullptr;
 
   internal::DetachFiberWorker();
+  Worker::Detach();
 }
 
-IOWorker::IOWorker()
-    : Worker{kTag_, index_counter_.fetch_add(1, std::memory_order_acq_rel)} {}
+IOWorker::IOWorker(const WorkerLifecycleCallbacks* lifecycle)
+    : Worker{kTag_, index_counter_.fetch_add(1, std::memory_order_acq_rel),
+             lifecycle} {}
 
 IOWorker::IOWorker(IOWorker&& other) noexcept : Worker{std::move(other)} {}
 
@@ -160,21 +140,20 @@ IOWorker& IOWorker::operator=(IOWorker&& other) noexcept {
 void IOWorker::Attach() {
   Worker::Attach();
 
-  if (io_attach_hook_ != nullptr) {
-    io_attach_hook_();
+  if (lifecycle_ != nullptr && lifecycle_->io_attach != nullptr) {
+    lifecycle_->io_attach();
   }
 
   internal::AttachIOWorker(this);
 }
 
 void IOWorker::Detach() {
-  Worker::Detach();
-
-  if (io_detach_hook_ != nullptr) {
-    io_detach_hook_();
+  if (lifecycle_ != nullptr && lifecycle_->io_detach != nullptr) {
+    lifecycle_->io_detach();
   }
 
   internal::DetachIOWorker();
+  Worker::Detach();
 }
 }  // namespace job
 }  // namespace comet

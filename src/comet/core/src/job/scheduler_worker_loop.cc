@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,12 +15,14 @@
 #include <thread>
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/fiber/fiber.h"
 #include "comet/core/fiber/fiber_context.h"
 #include "comet/core/fiber/fiber_life_cycle.h"
 #include "comet/core/fiber/fiber_utils.h"
 #include "comet/core/job/job_label.h"
+#include "comet/core/thread/thread_context.h"
+#include "comet/core/time/chrono.h"
 #include "comet/core/type_trait.h"
-#include "comet/time/chrono.h"
 
 namespace comet {
 namespace job {
@@ -215,16 +217,12 @@ void Scheduler::PromoteJobs() {
   }
 }
 
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 void Scheduler::WorkFromMainThread() {
-  main_thread_queue_ = LockFreeMPMCRingQueue<MainThreadJobDescr>{
-      config_->main_thread_queue_allocator,
-      config_->main_thread_queue_capacity};
-
   while (!is_shutdown_required_.load(std::memory_order_relaxed)) {
     const auto job_box{main_thread_queue_.TryPop()};
 
     if (!job_box.has_value()) {
+      thread::Yield();
       continue;
     }
 
@@ -235,9 +233,6 @@ void Scheduler::WorkFromMainThread() {
       job.counter->Decrement();
     }
   }
-
-  main_thread_queue_.Destroy();
 }
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 }  // namespace job
 }  // namespace comet

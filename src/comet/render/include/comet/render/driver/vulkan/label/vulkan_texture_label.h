@@ -6,7 +6,7 @@
 #define COMET_RENDER_DRIVER_VULKAN_LABEL_VULKAN_TEXTURE_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_texture.h"
+#include "comet/render/driver/vulkan/type/vulkan_texture.h"
 
 namespace comet {
 namespace rendering {

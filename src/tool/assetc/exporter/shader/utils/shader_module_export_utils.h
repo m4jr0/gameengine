@@ -9,14 +9,12 @@
 #include "shaderc/shaderc.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/tstring.h"
-#include "comet/resource/shader/shader_module_resource.h"
+#include "comet/core.h"
+#include "comet/data.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
                            memory::Allocator* allocator,
                            resource::ShaderModuleResource& shader_module);
@@ -25,8 +23,8 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
                           resource::ShaderModuleResource& shader_module);
 
 void AddSpvMacroDefinitions(shaderc::CompileOptions& options);
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_SHADER_SHADER_MODULE_EXPORT_UTILS_H_

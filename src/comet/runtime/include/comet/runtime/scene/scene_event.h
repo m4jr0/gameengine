@@ -6,8 +6,9 @@
 #define COMET_RUNTIME_SCENE_SCENE_EVENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/string_id.h"
-#include "comet/event/event.h"
+#include "comet/core/id/string_id_allocator.h"
+#include "comet/core/id/string_id.h"
+#include "comet/runtime/event/event.h"
 
 namespace comet {
 namespace scene {

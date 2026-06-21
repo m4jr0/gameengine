@@ -20,7 +20,7 @@
 
 #include "comet/core/compiler.h"
 #include "comet/core/define.h"
-#include "comet/core/type/primitive.h"
+#include "comet/core/primitive.h"
 
 #if defined(_MSC_VER)
 #if defined(_CPPRTTI)

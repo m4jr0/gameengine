@@ -9,17 +9,13 @@
 #include "assimp/scene.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/geometry/type/skeleton.h"
-#include "comet/resource/animation/animation_resource.h"
-#include "comet/resource/model/model_resource.h"
+#include "comet/core.h"
+#include "comet/data.h"
+#include "comet/render.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 struct StaticModelResources {
   resource::StaticModelResource model{};
 };
@@ -49,8 +45,8 @@ struct SkeletalModelExport : ModelExport {
   SkeletalModelResources* resources{nullptr};
   Map<const schar*, geometry::SkeletonJointIndex> skeleton_joint_map{};
 };
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_MODEL_MODEL_EXPORT_H_

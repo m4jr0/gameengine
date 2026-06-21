@@ -10,11 +10,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/handle.h"
-#include "comet/geometry/type/skeleton.h"
-#include "comet/math/matrix.h"
-#include "comet/math/vector.h"
+#include "comet/core/container/array.h"
+#include "comet/core/handle/handle.h"
+#include "comet/data/geometry/skeleton.h"
+#include "comet/core/math/matrix.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
 namespace geometry {

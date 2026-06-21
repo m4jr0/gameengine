@@ -3,28 +3,27 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/core/string/tstring.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/frame/frame_string.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
+#include "comet/core/math/math_scalar.h"
 #include "comet/core/memory/allocator/default_allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/math/math_scalar.h"
+#include "comet/core/string/c_string.h"
 
 namespace comet {
 namespace internal {
 static thread_local memory::Allocator* tls_tstring_allocator{nullptr};
 
 memory::Allocator* GetTStringAllocator() {
-  return tls_tstring_allocator != nullptr ? tls_tstring_allocator // >:3 Yeah, use TString here.
+  return tls_tstring_allocator != nullptr ? tls_tstring_allocator
                                           : &TStringAllocator::Get();
 }
 
@@ -49,6 +48,44 @@ const tchar* CharToStrInPlace(tchar c) noexcept {
   tmp[1] = COMET_TCHAR('\0');
   return tmp;
 }
+
+#ifdef COMET_WIDE_TCHAR
+struct TmpNarrowString {
+  schar* data{nullptr};
+  bool is_allocated{false};
+};
+
+static TmpNarrowString GenerateTmpNarrowString(const tchar* str, usize length) {
+  static constexpr usize kTmpNarrowStringCapacity{4096};
+  thread_local schar tmp[kTmpNarrowStringCapacity];
+
+  auto* buffer{tmp};
+  bool is_allocated{false};
+
+  if (length + 1 > kTmpNarrowStringCapacity) {
+    buffer = reinterpret_cast<schar*>(
+        GetTStringAllocator()->AllocateAligned(length + 1, alignof(schar)));
+    is_allocated = true;
+  }
+
+  for (usize i{0}; i < length; ++i) {
+    const auto c{str[i]};
+    buffer[i] = c <= 0x7f ? static_cast<schar>(c) : '?';
+  }
+
+  buffer[length] = '\0';
+  return TmpNarrowString{buffer, is_allocated};
+}
+
+static void ReleaseTmpNarrowString(TmpNarrowString& str) {
+  if (str.is_allocated && str.data != nullptr) {
+    GetTStringAllocator()->Deallocate(str.data);
+  }
+
+  str.data = nullptr;
+  str.is_allocated = false;
+}
+#endif  // COMET_WIDE_TCHAR
 
 static s32 CompareStrings(const tchar* lhs, usize lhs_length, const tchar* rhs,
                           usize rhs_length) {
@@ -509,7 +546,10 @@ TString CTStringView::GenerateSubString(usize offset, usize count) const {
 
 std::ostream& operator<<(std::ostream& stream, const TString& str) {
 #ifdef COMET_WIDE_TCHAR
-  return stream << GenerateFrameString<schar>(str.GetCTStr(), str.GetLength());
+  auto tmp{internal::GenerateTmpNarrowString(str.GetCTStr(), str.GetLength())};
+  stream << tmp.data;
+  internal::ReleaseTmpNarrowString(tmp);
+  return stream;
 #else
   return stream << str.GetCTStr();
 #endif  // COMET_WIDE_TCHAR
@@ -517,7 +557,10 @@ std::ostream& operator<<(std::ostream& stream, const TString& str) {
 
 std::ostream& operator<<(std::ostream& stream, const CTStringView& str) {
 #ifdef COMET_WIDE_TCHAR
-  return stream << GenerateFrameString<schar>(str.GetCTStr(), str.GetLength());
+  auto tmp{internal::GenerateTmpNarrowString(str.GetCTStr(), str.GetLength())};
+  stream << tmp.data;
+  internal::ReleaseTmpNarrowString(tmp);
+  return stream;
 #else
   return stream << str.GetCTStr();
 #endif  // COMET_WIDE_TCHAR

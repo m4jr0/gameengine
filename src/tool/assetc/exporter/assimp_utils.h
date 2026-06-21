@@ -11,21 +11,18 @@
 #include "assimp/scene.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/math/matrix.h"
-#include "comet/math/quaternion.h"
-#include "comet/math/vector.h"
+#include "comet/core.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 math::Vec3 ToVec3(const aiVector3D& assimp_vec);
 math::Quat ToQuat(const aiQuaternion& assimp_quat);
 math::Mat4x4 ToMat4x4(const aiMatrix4x4& assimp_mat);
 
 aiMatrix4x4 GenerateGlobalTransform(const aiNode* node);
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_ASSIMP_UTILS_H_

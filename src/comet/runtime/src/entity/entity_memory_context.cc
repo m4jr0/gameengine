@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -19,20 +19,20 @@ EntityMemoryContext& EntityMemoryContext::Get() {
 
 EntityMemoryContext::EntityMemoryContext()
     : small_block_allocator_{kSmallBlockSize_, kDefaultBlockCount_,
-                             memory::kEngineMemoryTagEntity},
+                             kEngineMemoryTagEntity},
       medium_block_allocator_{kMediumBlockSize_, kDefaultBlockCount_,
-                              memory::kEngineMemoryTagEntity},
+                              kEngineMemoryTagEntity},
       big_block_allocator_{kBigBlockSize_, kDefaultBlockCount_,
-                           memory::kEngineMemoryTagEntity},
+                           kEngineMemoryTagEntity},
       small_component_block_allocator_{kSmallComponentBlockSize_,
                                        kDefaultBlockCount_,
-                                       memory::kEngineMemoryTagEntity},
+                                       kEngineMemoryTagEntity},
       medium_component_block_allocator_{kMediumComponentBlockSize_,
                                         kDefaultBlockCount_,
-                                        memory::kEngineMemoryTagEntity},
+                                        kEngineMemoryTagEntity},
       big_component_block_allocator_{kBigComponentBlockSize_,
                                      kDefaultBlockCount_,
-                                     memory::kEngineMemoryTagEntity} {}
+                                     kEngineMemoryTagEntity} {}
 
 EntityMemoryContext::~EntityMemoryContext() {
   COMET_ASSERT(!is_initialized_, "EntityMemoryContext::~EntityMemoryContext",

@@ -10,8 +10,8 @@
 #include <deque>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber.h"
-#include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/fiber/fiber.h"
+#include "comet/core/fiber/fiber_context.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

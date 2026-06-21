@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,11 +11,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_sampler_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/render/driver/vulkan/utils/vulkan_sampler_utils.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 SamplerHandler::SamplerHandler(const SamplerHandlerDescr& descr)
     : Handler{descr}, samplers_{&cache_allocator_, 256} {}
@@ -66,7 +65,7 @@ void SamplerHandler::OnInitialize() {
 }
 
 void SamplerHandler::OnShutdown() {
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   auto handles_to_destroy{Array<SamplerHandle>::WithCapacity(
       &tmp_allocator, samplers_.GetLiveCount())};
 
@@ -155,5 +154,5 @@ void SamplerHandler::DestroySampler(Sampler* sampler) {
   allocator_.Deallocate(sampler);
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 Handler::Handler(const HandlerDescr& descr) : context_{descr.context} {
   COMET_ASSERT(context_ != nullptr, "Handler::Handler", "context is null");
@@ -43,5 +42,5 @@ void Handler::OnInitialize() {}
 
 void Handler::OnShutdown() {}
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

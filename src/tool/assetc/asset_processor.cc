@@ -2,24 +2,25 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#include "tools/assetc/asset_manager.h"
+// Header. /////////////////////////////////////////////////////////////////////
+#include "asset_processor.h"
+////////////////////////////////////////////////////////////////////////////////
 
+// External. ///////////////////////////////////////////////////////////////////
 #include <string>
 
-#include "comet/core/file_system/file_system.h"
-#include "comet/core/logger/logging.h"
-#include "comet/core/type/tstring.h"
 #include "nlohmann/json.hpp"
-#include "tools/assetc/asset_utils.h"
-#include "tools/assetc/exporter/model/model_exporter.h"
-#include "tools/assetc/exporter/shader/shader_exporter.h"
-#include "tools/assetc/exporter/shader/shader_module_exporter.h"
-#include "tools/assetc/exporter/texture/texture_exporter.h"
+////////////////////////////////////////////////////////////////////////////////
+
+#include "asset_utils.h"
+#include "exporter/model/model_exporter.h"
+#include "exporter/shader/shader_exporter.h"
+#include "exporter/shader/shader_module_exporter.h"
+#include "exporter/texture/texture_exporter.h"
 
 namespace comet {
 namespace tool {
-namespace asset {
-
+namespace assetc {
 AssetProcessor::AssetProcessor(const AssetcConfig& config) : config_{config} {
   root_asset_path_ = config_.asset_root;
   Clean(root_asset_path_);
@@ -212,7 +213,7 @@ void AssetProcessor::RefreshAsset(CTStringView asset_abs_path) {
 }
 
 bool AssetProcessor::IsRefreshNeeded(CTStringView asset_abs_path,
-                                   CTStringView metadata_file_path) const {
+                                     CTStringView metadata_file_path) const {
   if (is_force_refresh_ || asset_abs_path == root_asset_path_ ||
       !Exists(metadata_file_path)) {
     return true;
@@ -273,6 +274,6 @@ bool AssetProcessor::IsRefreshNeeded(CTStringView asset_abs_path,
   return false;
 }
 
-}  // namespace asset
+}  // namespace assetc
 }  // namespace tool
 }  // namespace comet

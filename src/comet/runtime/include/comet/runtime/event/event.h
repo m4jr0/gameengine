@@ -10,9 +10,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_allocator.h"
+#include "comet/runtime/frame/frame_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/string_id.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/id/string_id.h"
+#include "comet/core/id/string_id_allocator.h"
 
 namespace comet {
 namespace event {

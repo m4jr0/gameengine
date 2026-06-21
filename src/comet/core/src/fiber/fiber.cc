@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,13 +14,15 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_context.h"
+#include "comet/core/fiber/fiber_context.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/tagged_memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
-#include "comet/core/c_string.h"
-#include "comet/math/math_scalar.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/math/math_scalar.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 // TODO(m4jr0): Support other architectures.

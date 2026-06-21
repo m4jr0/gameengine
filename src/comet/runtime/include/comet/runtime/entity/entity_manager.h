@@ -13,19 +13,20 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/fiber/fiber_primitive.h"
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
+#include "comet/runtime/manager.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/entity/component.h"
-#include "comet/entity/entity_type.h"
-#include "comet/entity/type/archetype.h"
-#include "comet/entity/type/entity_flush.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/entity/type/pending_entity.h"
-#include "comet/event/event.h"
-#include "comet/event/event_manager.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/entity/component.h"
+#include "comet/runtime/entity/entity_type.h"
+#include "comet/runtime/entity/archetype.h"
+#include "comet/runtime/entity/entity_flush.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/entity/pending_entity.h"
+#include "comet/runtime/event/event.h"
+#include "comet/runtime/event/event_manager.h"
 
 namespace comet {
 namespace entity {
@@ -317,10 +318,10 @@ class EntityManager : public Manager {
   mutable fiber::FiberMutex pending_mutex_{};
 
   internal::EntityPendingAllocator pending_allocators_[2]{
-      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagPendingEntity1,
-       memory::kEngineMemoryTagPendingEntity1Extended},
-      {kPendingAllocatorCapacity_, memory::kEngineMemoryTagPendingEntity2,
-       memory::kEngineMemoryTagPendingEntity2Extended}};
+      {kPendingAllocatorCapacity_, kEngineMemoryTagPendingEntity1,
+       kEngineMemoryTagPendingEntity1Extended},
+      {kPendingAllocatorCapacity_, kEngineMemoryTagPendingEntity2,
+       kEngineMemoryTagPendingEntity2Extended}};
 
   PendingEntities pending_entities_[2]{};
   u8 write_pending_index_{0};
@@ -353,11 +354,11 @@ class EntityManager : public Manager {
 }  // namespace entity
 }  // namespace comet
 
-#include "comet/entity/manager_impl/entity_manager_data_template.h"
-#include "comet/entity/manager_impl/entity_manager_pending_template.h"
-#include "comet/entity/manager_impl/entity_manager_read_iteration_template.h"
-#include "comet/entity/manager_impl/entity_manager_read_operation_template.h"
-#include "comet/entity/manager_impl/entity_manager_reads_during_flush_template.h"
-#include "comet/entity/manager_impl/entity_manager_write_operation_template.h"
+#include "comet/runtime/entity/manager_impl/entity_manager_data_template.h"
+#include "comet/runtime/entity/manager_impl/entity_manager_pending_template.h"
+#include "comet/runtime/entity/manager_impl/entity_manager_read_iteration_template.h"
+#include "comet/runtime/entity/manager_impl/entity_manager_read_operation_template.h"
+#include "comet/runtime/entity/manager_impl/entity_manager_reads_during_flush_template.h"
+#include "comet/runtime/entity/manager_impl/entity_manager_write_operation_template.h"
 
 #endif  // COMET_COMET_ENTITY_ENTITY_MANAGER_H_

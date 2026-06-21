@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,11 +11,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/shader_label.h"
-#include "comet/rendering/utils/shader_utils.h"
+#include "comet/data/render/label/shader_label.h"
+#include "comet/data/render/utils/shader_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 VkShaderStageFlags ResolveStageFlags(ShaderStageFlags flags) {
   VkShaderStageFlags vk_flags{0};
@@ -285,5 +284,5 @@ VkShaderStageFlagBits GetVkStage(ShaderStage stage) {
   }
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

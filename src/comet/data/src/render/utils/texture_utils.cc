@@ -3,18 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_data_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "data/render/utils/texture_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/math/math_scalar.h"
+#include "comet/core/math/math_scalar.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 bool IsSrgbTextureType(TextureType type) {
   switch (type) {
     case TextureType::Diffuse:
@@ -50,5 +49,5 @@ u8 GetResolvedChannelCount(TextureFormat format, u8 fallback) {
       return fallback;
   }
 }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

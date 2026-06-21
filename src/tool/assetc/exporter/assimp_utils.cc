@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,8 +11,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 math::Vec3 ToVec3(const aiVector3D& assimp_vec) {
   return math::Vec3{assimp_vec.x, assimp_vec.y, assimp_vec.z};
 }
@@ -53,6 +53,6 @@ aiMatrix4x4 GenerateGlobalTransform(const aiNode* node) {
 
   return transform;
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

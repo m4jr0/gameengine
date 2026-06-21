@@ -5,14 +5,11 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_TEXTURE_TEXTURE_EXPORTER_H_
 #define COMET_EDITOR_ASSET_EXPORTER_TEXTURE_TEXTURE_EXPORTER_H_
 
-#include "comet/core/concurrency/job/job.h"
-#include "comet/core/essentials.h"
-#include "comet/core/type/tstring.h"
-#include "editor/asset/exporter/asset_exporter.h"
+#include "exporter/asset_exporter.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 class TextureExporter : public AssetExporter {
  public:
   TextureExporter() = default;
@@ -38,8 +35,8 @@ class TextureExporter : public AssetExporter {
 
   static void OnTextureLoading(job::IOJobParamsHandle params_handle);
 };
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_TEXTURE_TEXTURE_EXPORTER_H_

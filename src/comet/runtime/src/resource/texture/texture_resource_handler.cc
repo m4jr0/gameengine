@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,8 +11,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/type/texture.h"
+#include "comet/core/container/array.h"
+#include "comet/data/render/texture.h"
 
 namespace comet {
 namespace resource {
@@ -128,7 +128,7 @@ TextureResource* TextureResourceHandler::GetDefaultTextureResource() {
                  "TextureResourceHandler::GetDefaultTextureResource",
                  "default texture size is zero");
 
-    descr.format = rendering::TextureFormat::Rgba8;
+    descr.format = render::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
@@ -186,7 +186,7 @@ TextureResource* TextureResourceHandler::GetDefaultDiffuseTextureResource() {
                  "TextureResourceHandler::GetDefaultDiffuseTextureResource",
                  "default diffuse texture size is zero");
 
-    descr.format = rendering::TextureFormat::Rgba8;
+    descr.format = render::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
@@ -225,7 +225,7 @@ TextureResource* TextureResourceHandler::GetDefaultSpecularTextureResource() {
                  "TextureResourceHandler::GetDefaultSpecularTextureResource",
                  "default specular texture size is zero");
 
-    descr.format = rendering::TextureFormat::Rgba8;
+    descr.format = render::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;
@@ -264,7 +264,7 @@ TextureResource* TextureResourceHandler::GetDefaultNormalTextureResource() {
                  "TextureResourceHandler::GetDefaultNormalTextureResource",
                  "default normal texture size is zero");
 
-    descr.format = rendering::TextureFormat::Rgba8;
+    descr.format = render::TextureFormat::Rgba8;
     descr.resolution[0] = kDimension;
     descr.resolution[1] = kDimension;
     descr.channel_count = kChannelCount;

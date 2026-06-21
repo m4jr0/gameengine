@@ -26,6 +26,7 @@ set(COMET_SANDBOX_TARGET "comet_sandbox")
 set(COMET_ASSETC_TARGET "comet_assetc")
 
 set(COMET_TARGET "comet")
+set(COMET_BUILD_TARGET "comet_build")
 set(COMET_CORE_TARGET "comet_core")
 set(COMET_DATA_TARGET "comet_data")
 set(COMET_RUNTIME_TARGET "comet_runtime")
@@ -288,6 +289,11 @@ function(comet_configure_target target_name)
   target_compile_features(${target_name}
     PUBLIC
       cxx_std_20
+  )
+
+  target_include_directories(${target_name}
+    PUBLIC
+      "${PROJECT_SOURCE_DIR}/src/comet/build/include"
   )
 
   target_compile_definitions(${target_name}

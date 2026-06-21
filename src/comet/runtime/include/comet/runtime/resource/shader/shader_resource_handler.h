@@ -6,11 +6,12 @@
 #define COMET_RUNTIME_RESOURCE_SHADER_SHADER_RESOURCE_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/resource/handler/resource_handler.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/shader/shader_resource.h"
-#include "comet/resource/type/common.h"
+#include "comet/core/container/array.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/runtime/resource/resource_handler.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/shader/shader_resource.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {

@@ -6,10 +6,10 @@
 #define COMET_DATA_RENDER_TEXTURE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/vector.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 constexpr math::Vec3 kColorBlackRgb{.0f, .0f, .0f};
 constexpr math::Vec3 kColorWhiteRgb{1.0f, 1.0f, 1.0f};
 constexpr math::Vec3 kColorRedRgb{1.0f, .0f, .0f};
@@ -48,7 +48,7 @@ enum class TextureRepeatMode : u8 {
 enum class TextureFilterMode : u8 { Unknown = 0, Nearest, Linear };
 
 enum class TextureFormat : u32 { Unknown = 0, Rgba8, Rgb8 };
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DATA_RENDER_TEXTURE_H_

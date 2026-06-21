@@ -10,17 +10,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/common.h"
+#include "comet/render/common.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 DriverType GetDriverTypeFromStr(std::string_view str);
 DriverType GetDriverType();
 
 bool IsMultithreading([[maybe_unused]] DriverType type);
 
 AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str);
-}  // namespace rendering
+
+u8 GetMsaaSampleCount(AntiAliasingType anti_aliasing_type);
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_UTILS_DRIVER_UTILS_H_

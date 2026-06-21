@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 FrameState::FrameState(const FrameStateDescr& descr)
     : max_frames_in_flight_{descr.max_frames_in_flight} {}
@@ -46,5 +45,5 @@ void FrameState::GoToNextFrame() noexcept {
   ++frame_count_;
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

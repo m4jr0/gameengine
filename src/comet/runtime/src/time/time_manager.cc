@@ -3,16 +3,16 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "runtime/time/time_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/conf/configuration_manager.h"
-#include "comet/core/date.h"
-#include "comet/math/math_scalar.h"
+#include "comet/runtime/conf/conf_manager.h"
+#include "comet/core/time/date.h"
+#include "comet/core/math/math_scalar.h"
 
 namespace comet {
 namespace time {

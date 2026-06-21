@@ -6,9 +6,9 @@
 #define COMET_CORE_MATH_INTERPOLATION_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/geometry.h"
-#include "comet/math/math_scalar.h"
-#include "comet/math/quaternion.h"
+#include "comet/core/math/geometry.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/core/math/quaternion.h"
 
 namespace comet {
 namespace math {

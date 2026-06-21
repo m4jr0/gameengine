@@ -6,13 +6,13 @@
 #define COMET_RENDER_LABEL_VIEW_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/view.h"
+#include "comet/render/view.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 const schar* GetRenderingViewTypeLabel(RenderingViewType type);
 const schar* GetRenderingViewMatrixSourceLabel(RenderingViewMatrixSource src);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_LABEL_VIEW_LABEL_H_

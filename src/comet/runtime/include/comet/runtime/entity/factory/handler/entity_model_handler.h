@@ -5,35 +5,27 @@
 #ifndef COMET_RUNTIME_ENTITY_FACTORY_HANDLER_ENTITY_MODEL_HANDLER_H_
 #define COMET_RUNTIME_ENTITY_FACTORY_HANDLER_ENTITY_MODEL_HANDLER_H_
 
-#include "comet/core/c_string.h"
-#include "comet/core/concurrency/job/job.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
+#include "comet/core/container/map.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_manager.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/map.h"
-#include "comet/core/type/tstring.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/entity/factory/handler/entity_handler.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/geometry/component/mesh_component.h"
-#include "comet/geometry/geometry_manager.h"
-#include "comet/physics/component/transform_component.h"
-#include "comet/physics/physics_manager.h"
-#include "comet/resource/model/model_resource.h"
-#include "comet/resource/type/common.h"
-
-/*
->:3
-
-entity/factory/handler/entity_model_handler.*
-entity/factory/handler/entity_model_generation_jobs.*
-entity/factory/handler/entity_model_destroy.*
-
-*/
+#include "comet/core/job/job.h"
+#include "comet/core/job/job_utils.h"
+#include "comet/core/job/scheduler.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/string/tstring.h"
+#include "comet/data/resource/common.h"
+#include "comet/data/resource/model/model_resource.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/entity/factory/handler/entity_handler.h"
+#include "comet/runtime/frame/frame_manager.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/geometry/component/mesh_component.h"
+#include "comet/runtime/geometry/geometry_manager.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/runtime/physics/physics_manager.h"
+#include "comet/runtime/transform/component/transform_component.h"
 
 namespace comet {
 namespace entity {
@@ -88,16 +80,15 @@ class ModelHandler : public Handler {
   static constexpr inline usize kMaxConcurrentJobs_{10};
   static constexpr inline usize kGenerationScratchCapacity_{4096};
 
-  mutable memory::PlatformAllocator scratch_allocator_{
-      memory::kEngineMemoryTagEntity};
+  mutable memory::PlatformAllocator scratch_allocator_{kEngineMemoryTagEntity};
 
   mutable memory::FiberFreeListAllocator static_job_params_allocator_{
       sizeof(internal::StaticGenerationJobParams), kGenerationScratchCapacity_,
-      memory::kEngineMemoryTagEntity};
+      kEngineMemoryTagEntity};
 
   mutable memory::FiberFreeListAllocator skeletal_job_params_allocator_{
       sizeof(internal::SkeletalGenerationJobParams),
-      kGenerationScratchCapacity_, memory::kEngineMemoryTagEntity};
+      kGenerationScratchCapacity_, kEngineMemoryTagEntity};
 
   void DestroyStaticNow(EntityId entity_id) const;
   void DestroySkeletalNow(EntityId entity_id) const;

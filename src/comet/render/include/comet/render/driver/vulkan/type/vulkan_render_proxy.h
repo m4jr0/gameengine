@@ -10,7 +10,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/render_proxy.h"
+#include "comet/render/type/render_proxy.h"
 
 namespace comet {
 namespace rendering {

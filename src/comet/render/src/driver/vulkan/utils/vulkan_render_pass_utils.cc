@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 bool IsMultisampled(RenderPassOptionFlags flags) {
   return (flags & kRenderPassOptionFlagBitsMultisampled) != 0;
@@ -22,5 +21,5 @@ bool IsSwapchainTarget(RenderPassOptionFlags flags) {
   return (flags & kRenderPassOptionFlagBitsSwapchainTarget) != 0;
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

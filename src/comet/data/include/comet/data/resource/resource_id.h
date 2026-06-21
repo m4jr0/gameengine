@@ -11,10 +11,10 @@
 #include <ostream>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/buffer_formatter.h"
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
-#include "comet/resource/type/common.h"
+#include "comet/core/format/buffer_formatter.h"
+#include "comet/core/hash/hash.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {

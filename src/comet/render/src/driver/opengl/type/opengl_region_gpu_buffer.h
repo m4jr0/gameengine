@@ -13,13 +13,13 @@
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/region_map.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/core/container/region_map.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/opengl/opengl_debug.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct GpuBufferCopyRegion {
   GLsizeiptr src_offset{0};
@@ -266,7 +266,7 @@ struct IndexGpuBuffer : public RegionGpuBuffer<geometry::Index> {
   inline static constexpr usize kDefaultElementCount_{16384};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_REGION_GPU_BUFFER_H_

@@ -3,49 +3,49 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "shader_export_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "editor/asset/asset_utils.h"
-#include "editor/asset/exporter/shader/data/shader_export_keys.h"
+#include "asset_utils.h"
+#include "exporter/shader/data/shader_export_keys.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
-rendering::CullMode GetCullMode(std::string_view raw_cull_mode) {
+namespace tool {
+namespace assetc {
+render::CullMode GetCullMode(std::string_view raw_cull_mode) {
   if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeNone) {
-    return rendering::CullMode::None;
+    return render::CullMode::None;
   }
 
   if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeFront) {
-    return rendering::CullMode::Front;
+    return render::CullMode::Front;
   }
 
   if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeBack) {
-    return rendering::CullMode::Back;
+    return render::CullMode::Back;
   }
 
   if (raw_cull_mode == kCometEditorShaderKeyRasterizerCullModeFrontAndBack) {
-    return rendering::CullMode::FrontAndBack;
+    return render::CullMode::FrontAndBack;
   }
 
   COMET_LOG_ERROR(LoggerType::External, "shader_export_utils::GetCullMode",
                   "cull mode is unsupported", "cull_mode", raw_cull_mode);
-  return rendering::CullMode::Unknown;
+  return render::CullMode::Unknown;
 }
 
-rendering::RasterizerDescr GetRasterizerDescr(
+render::RasterizerDescr GetRasterizerDescr(
     const nlohmann::json& shader_file) {
-  rendering::RasterizerDescr rasterizer{};
+  render::RasterizerDescr rasterizer{};
 
   if (!shader_file.contains(kCometEditorShaderKeyRasterizer)) {
     rasterizer.is_wireframe = false;
     rasterizer.is_depth_bias = false;
-    rasterizer.cull_mode = rendering::CullMode::Back;
+    rasterizer.cull_mode = render::CullMode::Back;
     return rasterizer;
   }
 
@@ -58,7 +58,7 @@ rendering::RasterizerDescr GetRasterizerDescr(
                     raw_rasterizer.type_name());
     rasterizer.is_wireframe = false;
     rasterizer.is_depth_bias = false;
-    rasterizer.cull_mode = rendering::CullMode::Back;
+    rasterizer.cull_mode = render::CullMode::Back;
     return rasterizer;
   }
 
@@ -75,46 +75,46 @@ rendering::RasterizerDescr GetRasterizerDescr(
   return rasterizer;
 }
 
-rendering::CompareOp GetCompareOp(std::string_view raw_compare_op) {
+render::CompareOp GetCompareOp(std::string_view raw_compare_op) {
   if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpNever) {
-    return rendering::CompareOp::Never;
+    return render::CompareOp::Never;
   }
   if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpLess) {
-    return rendering::CompareOp::Less;
+    return render::CompareOp::Less;
   }
   if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpEqual) {
-    return rendering::CompareOp::Equal;
+    return render::CompareOp::Equal;
   }
   if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpLessOrEqual) {
-    return rendering::CompareOp::LessOrEqual;
+    return render::CompareOp::LessOrEqual;
   }
   if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpGreater) {
-    return rendering::CompareOp::Greater;
+    return render::CompareOp::Greater;
   }
   if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpNotEqual) {
-    return rendering::CompareOp::NotEqual;
+    return render::CompareOp::NotEqual;
   }
   if (raw_compare_op ==
       kCometEditorShaderKeyDepthStencilCompareOpGreaterOrEqual) {
-    return rendering::CompareOp::GreaterOrEqual;
+    return render::CompareOp::GreaterOrEqual;
   }
   if (raw_compare_op == kCometEditorShaderKeyDepthStencilCompareOpAlways) {
-    return rendering::CompareOp::Always;
+    return render::CompareOp::Always;
   }
 
   COMET_LOG_ERROR(LoggerType::External, "shader_export_utils::GetCompareOp",
                   "compare op is unsupported", "compare_op", raw_compare_op);
-  return rendering::CompareOp::Less;
+  return render::CompareOp::Less;
 }
 
-rendering::DepthStencilDescr GetDepthStencilDescr(
+render::DepthStencilDescr GetDepthStencilDescr(
     const nlohmann::json& shader_file) {
-  rendering::DepthStencilDescr depth_stencil{};
+  render::DepthStencilDescr depth_stencil{};
 
   if (!shader_file.contains(kCometEditorShaderKeyDepthStencil)) {
     depth_stencil.is_depth_test = true;
     depth_stencil.is_depth_write = true;
-    depth_stencil.compare_op = rendering::CompareOp::Less;
+    depth_stencil.compare_op = render::CompareOp::Less;
     return depth_stencil;
   }
 
@@ -128,7 +128,7 @@ rendering::DepthStencilDescr GetDepthStencilDescr(
 
     depth_stencil.is_depth_test = true;
     depth_stencil.is_depth_write = true;
-    depth_stencil.compare_op = rendering::CompareOp::Less;
+    depth_stencil.compare_op = render::CompareOp::Less;
     return depth_stencil;
   }
 
@@ -145,47 +145,47 @@ rendering::DepthStencilDescr GetDepthStencilDescr(
   return depth_stencil;
 }
 
-rendering::PrimitiveTopology GetPrimitiveTopology(
+render::PrimitiveTopology GetPrimitiveTopology(
     std::string_view raw_topology) {
   if (raw_topology == kCometEditorShaderKeyTopologyPoints) {
-    return rendering::PrimitiveTopology::Points;
+    return render::PrimitiveTopology::Points;
   }
 
   if (raw_topology == kCometEditorShaderKeyTopologyLines) {
-    return rendering::PrimitiveTopology::Lines;
+    return render::PrimitiveTopology::Lines;
   }
 
   if (raw_topology == kCometEditorShaderKeyTopologyLineStrip) {
-    return rendering::PrimitiveTopology::LineStrip;
+    return render::PrimitiveTopology::LineStrip;
   }
 
   if (raw_topology == kCometEditorShaderKeyTopologyTriangles) {
-    return rendering::PrimitiveTopology::Triangles;
+    return render::PrimitiveTopology::Triangles;
   }
 
   if (raw_topology == kCometEditorShaderKeyTopologyTriangleStrip) {
-    return rendering::PrimitiveTopology::TriangleStrip;
+    return render::PrimitiveTopology::TriangleStrip;
   }
 
   COMET_LOG_ERROR(
       LoggerType::External, "shader_export_utils::GetPrimitiveTopology",
       "primitive topology is unsupported", "topology", raw_topology);
 
-  return rendering::PrimitiveTopology::Unknown;
+  return render::PrimitiveTopology::Unknown;
 }
 
-rendering::ShaderVertexLayout GetShaderVertexLayout(
+render::ShaderVertexLayout GetShaderVertexLayout(
     std::string_view raw_vertex_layout) {
   if (raw_vertex_layout == kCometEditorShaderKeyVertexLayoutNone) {
-    return rendering::ShaderVertexLayout::None;
+    return render::ShaderVertexLayout::None;
   }
 
   if (raw_vertex_layout == kCometEditorShaderKeyVertexLayoutSkinnedVertex) {
-    return rendering::ShaderVertexLayout::SkinnedVertex;
+    return render::ShaderVertexLayout::SkinnedVertex;
   }
 
   if (raw_vertex_layout == kCometEditorShaderKeyVertexLayoutDebugLine) {
-    return rendering::ShaderVertexLayout::DebugLine;
+    return render::ShaderVertexLayout::DebugLine;
   }
 
   COMET_LOG_ERROR(LoggerType::External,
@@ -193,211 +193,211 @@ rendering::ShaderVertexLayout GetShaderVertexLayout(
                   "shader vertex layout is unsupported", "vertex_layout",
                   raw_vertex_layout);
 
-  return rendering::ShaderVertexLayout::None;
+  return render::ShaderVertexLayout::None;
 }
 
-rendering::ShaderVariableType GetShaderVariableType(
+render::ShaderVariableType GetShaderVariableType(
     std::string_view raw_data_type) {
   if (raw_data_type == kCometEditorShaderKeyVariableTypeB32) {
-    return rendering::ShaderVariableType::B32;
+    return render::ShaderVariableType::B32;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeS32) {
-    return rendering::ShaderVariableType::S32;
+    return render::ShaderVariableType::S32;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeU32) {
-    return rendering::ShaderVariableType::U32;
+    return render::ShaderVariableType::U32;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeF32) {
-    return rendering::ShaderVariableType::F32;
+    return render::ShaderVariableType::F32;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeF64) {
-    return rendering::ShaderVariableType::F64;
+    return render::ShaderVariableType::F64;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeB32Vec2) {
-    return rendering::ShaderVariableType::B32Vec2;
+    return render::ShaderVariableType::B32Vec2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeB32Vec3) {
-    return rendering::ShaderVariableType::B32Vec3;
+    return render::ShaderVariableType::B32Vec3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeB32Vec4) {
-    return rendering::ShaderVariableType::B32Vec4;
+    return render::ShaderVariableType::B32Vec4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeS32Vec2) {
-    return rendering::ShaderVariableType::S32Vec2;
+    return render::ShaderVariableType::S32Vec2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeS32Vec3) {
-    return rendering::ShaderVariableType::S32Vec3;
+    return render::ShaderVariableType::S32Vec3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeS32Vec4) {
-    return rendering::ShaderVariableType::S32Vec4;
+    return render::ShaderVariableType::S32Vec4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeU32Vec2) {
-    return rendering::ShaderVariableType::U32Vec2;
+    return render::ShaderVariableType::U32Vec2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeU32Vec3) {
-    return rendering::ShaderVariableType::U32Vec3;
+    return render::ShaderVariableType::U32Vec3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeU32Vec4) {
-    return rendering::ShaderVariableType::U32Vec4;
+    return render::ShaderVariableType::U32Vec4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeVec2) {
-    return rendering::ShaderVariableType::Vec2;
+    return render::ShaderVariableType::Vec2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeVec3) {
-    return rendering::ShaderVariableType::Vec3;
+    return render::ShaderVariableType::Vec3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeVec4) {
-    return rendering::ShaderVariableType::Vec4;
+    return render::ShaderVariableType::Vec4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeSVec2) {
-    return rendering::ShaderVariableType::S32Vec2;
+    return render::ShaderVariableType::S32Vec2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeSVec3) {
-    return rendering::ShaderVariableType::S32Vec3;
+    return render::ShaderVariableType::S32Vec3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeSVec4) {
-    return rendering::ShaderVariableType::S32Vec4;
+    return render::ShaderVariableType::S32Vec4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeF64Vec2) {
-    return rendering::ShaderVariableType::F64Vec2;
+    return render::ShaderVariableType::F64Vec2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeF64Vec3) {
-    return rendering::ShaderVariableType::F64Vec3;
+    return render::ShaderVariableType::F64Vec3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeF64Vec4) {
-    return rendering::ShaderVariableType::F64Vec4;
+    return render::ShaderVariableType::F64Vec4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat2 ||
       raw_data_type == kCometEditorShaderKeyVariableTypeMat2x2) {
-    return rendering::ShaderVariableType::Mat2x2;
+    return render::ShaderVariableType::Mat2x2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat2x3) {
-    return rendering::ShaderVariableType::Mat2x3;
+    return render::ShaderVariableType::Mat2x3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat2x4) {
-    return rendering::ShaderVariableType::Mat2x4;
+    return render::ShaderVariableType::Mat2x4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat3x2) {
-    return rendering::ShaderVariableType::Mat3x2;
+    return render::ShaderVariableType::Mat3x2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat3 ||
       raw_data_type == kCometEditorShaderKeyVariableTypeMat3x3) {
-    return rendering::ShaderVariableType::Mat3x3;
+    return render::ShaderVariableType::Mat3x3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat3x4) {
-    return rendering::ShaderVariableType::Mat3x4;
+    return render::ShaderVariableType::Mat3x4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat4x2) {
-    return rendering::ShaderVariableType::Mat4x2;
+    return render::ShaderVariableType::Mat4x2;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat4x3) {
-    return rendering::ShaderVariableType::Mat4x3;
+    return render::ShaderVariableType::Mat4x3;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeMat4 ||
       raw_data_type == kCometEditorShaderKeyVariableTypeMat4x4) {
-    return rendering::ShaderVariableType::Mat4x4;
+    return render::ShaderVariableType::Mat4x4;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeSampler) {
-    return rendering::ShaderVariableType::Sampler;
+    return render::ShaderVariableType::Sampler;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeImage) {
-    return rendering::ShaderVariableType::Image;
+    return render::ShaderVariableType::Image;
   }
 
   if (raw_data_type == kCometEditorShaderKeyVariableTypeAtomic) {
-    return rendering::ShaderVariableType::Atomic;
+    return render::ShaderVariableType::Atomic;
   }
 
   COMET_LOG_ERROR(
       LoggerType::External, "shader_export_utils::GetShaderVariableType",
       "shader variable type is unsupported", "variable_type", raw_data_type);
 
-  return rendering::ShaderVariableType::Unknown;
+  return render::ShaderVariableType::Unknown;
 }
 
-rendering::ShaderBindingType GetShaderBindingType(
+render::ShaderBindingType GetShaderBindingType(
     std::string_view raw_binding_type) {
   if (raw_binding_type == kCometEditorShaderKeyBindingTypeUniformBuffer) {
-    return rendering::ShaderBindingType::UniformBuffer;
+    return render::ShaderBindingType::UniformBuffer;
   }
 
   if (raw_binding_type == kCometEditorShaderKeyBindingTypeStorageBuffer) {
-    return rendering::ShaderBindingType::StorageBuffer;
+    return render::ShaderBindingType::StorageBuffer;
   }
 
   if (raw_binding_type ==
       kCometEditorShaderKeyBindingTypeCombinedImageSampler) {
-    return rendering::ShaderBindingType::CombinedImageSampler;
+    return render::ShaderBindingType::CombinedImageSampler;
   }
 
   if (raw_binding_type == kCometEditorShaderKeyBindingTypeSampledImage) {
-    return rendering::ShaderBindingType::SampledImage;
+    return render::ShaderBindingType::SampledImage;
   }
 
   if (raw_binding_type == kCometEditorShaderKeyBindingTypeSampler) {
-    return rendering::ShaderBindingType::Sampler;
+    return render::ShaderBindingType::Sampler;
   }
 
   if (raw_binding_type == kCometEditorShaderKeyBindingTypeStorageImage) {
-    return rendering::ShaderBindingType::StorageImage;
+    return render::ShaderBindingType::StorageImage;
   }
 
   COMET_LOG_ERROR(
       LoggerType::External, "shader_export_utils::GetShaderBindingType",
       "shader binding type is unsupported", "binding_type", raw_binding_type);
 
-  return rendering::ShaderBindingType::Unknown;
+  return render::ShaderBindingType::Unknown;
 }
 
-rendering::ShaderBindingScope GetShaderBindingScope(
+render::ShaderBindingScope GetShaderBindingScope(
     std::string_view raw_binding_scope) {
   if (raw_binding_scope == kCometEditorShaderKeyBindingScopeGlobal) {
-    return rendering::ShaderBindingScope::Global;
+    return render::ShaderBindingScope::Global;
   }
 
   if (raw_binding_scope == kCometEditorShaderKeyBindingScopeMaterial) {
-    return rendering::ShaderBindingScope::Material;
+    return render::ShaderBindingScope::Material;
   }
 
   if (raw_binding_scope == kCometEditorShaderKeyBindingScopePass) {
-    return rendering::ShaderBindingScope::Pass;
+    return render::ShaderBindingScope::Pass;
   }
 
   if (raw_binding_scope == kCometEditorShaderKeyBindingScopeDraw) {
-    return rendering::ShaderBindingScope::Draw;
+    return render::ShaderBindingScope::Draw;
   }
 
   COMET_LOG_ERROR(LoggerType::External,
@@ -405,33 +405,33 @@ rendering::ShaderBindingScope GetShaderBindingScope(
                   "shader binding scope is unsupported", "binding_scope",
                   raw_binding_scope);
 
-  return rendering::ShaderBindingScope::Unknown;
+  return render::ShaderBindingScope::Unknown;
 }
 
-rendering::ShaderMemoryLayout GetShaderMemoryLayout(
+render::ShaderMemoryLayout GetShaderMemoryLayout(
     std::string_view raw_layout) {
   if (raw_layout == kCometEditorShaderKeyMemoryLayoutStd140) {
-    return rendering::ShaderMemoryLayout::Std140;
+    return render::ShaderMemoryLayout::Std140;
   }
 
   if (raw_layout == kCometEditorShaderKeyMemoryLayoutStd430) {
-    return rendering::ShaderMemoryLayout::Std430;
+    return render::ShaderMemoryLayout::Std430;
   }
 
   if (raw_layout == kCometEditorShaderKeyMemoryLayoutPacked) {
-    return rendering::ShaderMemoryLayout::Packed;
+    return render::ShaderMemoryLayout::Packed;
   }
 
   COMET_LOG_ERROR(
       LoggerType::External, "shader_export_utils::GetShaderMemoryLayout",
       "shader memory layout is unsupported", "memory_layout", raw_layout);
 
-  return rendering::ShaderMemoryLayout::Unknown;
+  return render::ShaderMemoryLayout::Unknown;
 }
 
-rendering::ShaderStageFlags GetShaderStageFlags(
+render::ShaderStageFlags GetShaderStageFlags(
     const nlohmann::json& raw_stages, memory::Allocator* allocator) {
-  rendering::ShaderStageFlags stages{rendering::kShaderStageFlagBitsNone};
+  render::ShaderStageFlags stages{render::kShaderStageFlagBitsNone};
 
   if (!raw_stages.is_array()) {
     COMET_LOG_ERROR(
@@ -445,11 +445,11 @@ rendering::ShaderStageFlags GetShaderStageFlags(
 
   for (const auto& raw_stage : raw_stages_list) {
     if (raw_stage == kCometEditorShaderKeyStageCompute) {
-      stages |= rendering::kShaderStageFlagBitsCompute;
+      stages |= render::kShaderStageFlagBitsCompute;
     } else if (raw_stage == kCometEditorShaderKeyStageVertex) {
-      stages |= rendering::kShaderStageFlagBitsVertex;
+      stages |= render::kShaderStageFlagBitsVertex;
     } else if (raw_stage == kCometEditorShaderKeyStageFragment) {
-      stages |= rendering::kShaderStageFlagBitsFragment;
+      stages |= render::kShaderStageFlagBitsFragment;
     } else {
       COMET_LOG_ERROR(LoggerType::External,
                       "shader_export_utils::GetShaderStageFlags",
@@ -460,30 +460,30 @@ rendering::ShaderStageFlags GetShaderStageFlags(
   return stages;
 }
 
-rendering::ShaderImageBindingSemantic GetShaderImageBindingSemantic(
+render::ShaderImageBindingSemantic GetShaderImageBindingSemantic(
     std::string_view raw_semantic) {
   if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialDiffuse) {
-    return rendering::ShaderImageBindingSemantic::MaterialDiffuse;
+    return render::ShaderImageBindingSemantic::MaterialDiffuse;
   }
 
   if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialSpecular) {
-    return rendering::ShaderImageBindingSemantic::MaterialSpecular;
+    return render::ShaderImageBindingSemantic::MaterialSpecular;
   }
 
   if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialNormal) {
-    return rendering::ShaderImageBindingSemantic::MaterialNormal;
+    return render::ShaderImageBindingSemantic::MaterialNormal;
   }
 
   if (raw_semantic == kCometEditorShaderKeyImageSemanticMaterialTextures) {
-    return rendering::ShaderImageBindingSemantic::MaterialTextures;
+    return render::ShaderImageBindingSemantic::MaterialTextures;
   }
 
   if (raw_semantic == kCometEditorShaderKeyImageSemanticMainShadowMap) {
-    return rendering::ShaderImageBindingSemantic::MainShadowMap;
+    return render::ShaderImageBindingSemantic::MainShadowMap;
   }
 
   if (raw_semantic == kCometEditorShaderKeyImageSemanticShadowMaps) {
-    return rendering::ShaderImageBindingSemantic::ShadowMaps;
+    return render::ShaderImageBindingSemantic::ShadowMaps;
   }
 
   COMET_LOG_ERROR(LoggerType::External,
@@ -491,8 +491,8 @@ rendering::ShaderImageBindingSemantic GetShaderImageBindingSemantic(
                   "shader image binding semantic is unsupported", "semantic",
                   raw_semantic);
 
-  return rendering::ShaderImageBindingSemantic::Unknown;
+  return render::ShaderImageBindingSemantic::Unknown;
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

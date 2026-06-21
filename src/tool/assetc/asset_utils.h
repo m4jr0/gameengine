@@ -9,15 +9,12 @@
 #include "nlohmann/json.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/core/logger/logging.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/tstring.h"
-#include "comet/resource/type/common.h"
+#include "comet/core.h"
+#include "comet/data.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 TString GenerateAssetMetadataFilePath(CTStringView asset_file_path);
 
 void SaveMetadata(CTStringView metadata_file_path,
@@ -34,8 +31,8 @@ namespace internal {
 schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,
                                        usize buffer_len);
 }  // namespace internal
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 namespace nlohmann {

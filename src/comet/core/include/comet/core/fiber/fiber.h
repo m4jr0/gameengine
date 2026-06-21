@@ -13,7 +13,7 @@
 #include "comet/core/memory/allocator/allocator.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 namespace comet {

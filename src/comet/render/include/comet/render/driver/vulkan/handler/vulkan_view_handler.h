@@ -6,30 +6,32 @@
 #define COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_VIEW_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/platform/window/window_common.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/light.h"
-#include "comet/rendering/type/view.h"
-#include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
+#include "comet/render/driver/vulkan/handler/vulkan_camera_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_lighting_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_proxy_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/render/driver/vulkan/view/vulkan_view.h"
+#include "comet/render/common.h"
+#include "comet/render/type/light.h"
+#include "comet/render/type/view.h"
+#include "comet/platform/window/glfw/vulkan/vulkan_glfw_window.h"
 
 #ifdef COMET_DEBUG_RENDERING
-#include "comet/rendering/driver/vulkan/handler/vulkan_debug_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_debug_handler.h"
 #endif  // COMET_DEBUG_RENDERING
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct ViewHandlerDescr : HandlerDescr {
   const ShadowSettings* shadow_settings{nullptr};
@@ -99,7 +101,7 @@ class ViewHandler : public Handler {
                                 const CameraView* camera_view,
                                 usize camera_index) const;
 
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagRender};
 
   Array<memory::UniquePtr<View>> offscreen_views_{};
   Array<memory::UniquePtr<View>> scene_views_{};
@@ -129,7 +131,7 @@ class ViewHandler : public Handler {
   Array<RenderingViewDescr>* rendering_view_descrs_{nullptr};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_VIEW_HANDLER_H_

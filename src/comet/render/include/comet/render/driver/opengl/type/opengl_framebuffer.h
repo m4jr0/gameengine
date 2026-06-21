@@ -8,12 +8,12 @@
 #include "comet/core/essentials.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using FrameBufferHandle = GLuint;
 constexpr FrameBufferHandle kInvalidFrameBufferHandle{0};
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_FRAMEBUFFER_H_

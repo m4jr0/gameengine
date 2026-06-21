@@ -3,28 +3,28 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/entity/entity_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/frame/frame_allocator.h"
-#include "comet/core/frame/frame_container.h"
+#include "comet/core/fiber/fiber_primitive.h"
+#include "comet/core/job/job_utils.h"
+#include "comet/core/job/scheduler.h"
+#include "comet/runtime/frame/frame_allocator.h"
+#include "comet/runtime/frame/frame_container.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/entity/component.h"
-#include "comet/entity/entity_memory_context.h"
-#include "comet/entity/entity_type.h"
-#include "comet/entity/type/archetype.h"
-#include "comet/entity/type/entity_flush.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/entity/type/pending_entity.h"
-#include "comet/profiler/profiler.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/entity/component.h"
+#include "comet/runtime/entity/entity_memory_context.h"
+#include "comet/runtime/entity/entity_type.h"
+#include "comet/runtime/entity/archetype.h"
+#include "comet/runtime/entity/entity_flush.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/entity/pending_entity.h"
+#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
 namespace entity {

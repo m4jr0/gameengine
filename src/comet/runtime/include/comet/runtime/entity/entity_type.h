@@ -6,9 +6,9 @@
 #define COMET_COMET_ENTITY_ENTITY_TYPE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/entity/component.h"
-#include "comet/entity/type/entity_id.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/entity/component.h"
+#include "comet/runtime/entity/entity_id.h"
 
 namespace comet {
 namespace entity {

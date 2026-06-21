@@ -3,15 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/core/job/worker_context.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/conf/configuration_manager.h"
-#include "comet/core/conf/configuration_value.h"
+#include "comet/runtime/conf/conf_manager.h"
+#include "comet/runtime/conf/config_defaults.h"
+#include "comet/runtime/conf/config_keys.h"
+#include "comet/runtime/conf/config_value.h"
 
 namespace comet {
 namespace job {

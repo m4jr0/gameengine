@@ -9,13 +9,14 @@
 #include <optional>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/component/animation_component.h"
-#include "comet/core/concurrency/job/job.h"
+#include "comet/runtime/animation/component/animation_component.h"
+#include "comet/core/job/job.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/manager.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/resource/type/common.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/resource/animation/animation_resource_handle.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace animation {
@@ -70,7 +71,7 @@ class AnimationManager : public Manager {
  private:
   static void OnAnimationProcessing(job::JobParamsHandle params_handle);
 
-  void PlayInternal(entity::EntityId entity_id, AnimationClipHandle handle,
+  void PlayInternal(entity::EntityId entity_id, AnimationClipResourceHandle handle,
                     f32 speed = 1.0f,
                     std::optional<bool> is_loop = std::nullopt);
 

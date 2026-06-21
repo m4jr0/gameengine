@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "tests_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,19 +11,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Tested. /////////////////////////////////////////////////////////////////////
-#include "comet/entity/entity_manager.h"
-#include "comet/entity/entity_memory_context.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/entity/entity_memory_context.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
 #include "catch.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber.h"
-#include "comet/core/concurrency/job/job.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/frame/frame_container.h"
+#include "comet/core/fiber/fiber.h"
+#include "comet/core/job/job.h"
+#include "comet/core/job/job_utils.h"
+#include "comet/core/job/scheduler.h"
+#include "comet/runtime/frame/frame_container.h"
 
 namespace comet {
 namespace comettests {

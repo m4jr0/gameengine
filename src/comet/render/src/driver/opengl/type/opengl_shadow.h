@@ -10,12 +10,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/math/matrix.h"
-#include "comet/rendering/driver/opengl/type/opengl_framebuffer.h"
-#include "comet/rendering/type/light.h"
+#include "comet/core/math/matrix.h"
+#include "comet/render/driver/opengl/type/opengl_framebuffer.h"
+#include "comet/data/light/light.h"
+#include "comet/runtime/light/light_handle.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 constexpr u32 kMaxShadowViewProjCount{6};
 constexpr u32 kMaxShadowCascades{4};
@@ -90,7 +91,7 @@ struct ShadowCullBatchRange {
 #endif  // COMET_DEBUG_RENDERING
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_SHADOW_H_

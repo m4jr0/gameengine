@@ -6,14 +6,14 @@
 #define COMET_RENDER_DRIVER_VULKAN_VIEW_VULKAN_DEBUG_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/render/driver/vulkan/handler/vulkan_camera_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_proxy_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/render/driver/vulkan/view/vulkan_view.h"
+#include "comet/render/render_handle.h"
 
 #ifdef COMET_DEBUG_RENDERING
-#include "comet/rendering/driver/vulkan/handler/vulkan_debug_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_debug_handler.h"
 #endif  // COMET_DEBUG_RENDERING
 
 namespace comet {

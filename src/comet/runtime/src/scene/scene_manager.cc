@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,29 +15,30 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/animation_manager.h"
-#include "comet/animation/animation_set.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/frame/frame_manager.h"
-#include "comet/entity/component.h"
-#include "comet/entity/entity_changes_fence.h"
-#include "comet/entity/entity_event.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/entity/factory/entity_factory_manager.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/entity/utils/entity_id_utils.h"
-#include "comet/environment/environment_manager.h"
-#include "comet/math/geometry.h"
-#include "comet/physics/component/transform_component.h"
+#include "comet/runtime/animation/animation_manager.h"
+#include "comet/runtime/frame/frame_manager.h"
+#include "comet/core/job/job_utils.h"
+#include "comet/core/job/scheduler.h"
+#include "comet/data/animation/animation_set.h"
+#include "comet/runtime/entity/component.h"
+#include "comet/runtime/entity/entity_changes_fence.h"
+#include "comet/runtime/entity/entity_event.h"
+#include "comet/runtime/transform/transform.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/entity/factory/entity_factory_manager.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/entity/utils/entity_id_utils.h"
+#include "comet/runtime/environment/environment_manager.h"
+#include "comet/core/math/geometry.h"
+#include "comet/runtime/transform/component/transform_component.h"
 #include "comet/physics/transform.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/camera_manager.h"
-#include "comet/rendering/light_manager.h"
-#include "comet/rendering/type/light.h"
-#include "comet/resource/type/common.h"
-#include "comet/scene/scene_event.h"
-#include "comet/time/time_manager.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/runtime/camera/camera_manager.h"
+#include "comet/runtime/light/light_manager.h"
+#include "comet/data/light/light.h"
+#include "comet/data/resource/common.h"
+#include "comet/runtime/scene/scene_event.h"
+#include "comet/runtime/time/time_manager.h"
 
 namespace comet {
 namespace scene {
@@ -120,7 +121,7 @@ static void ResetGroup(AsyncModelGroup& group) {
   group.entity_fence.Reset();
 }
 
-memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagResourceScene};
+memory::PlatformAllocator tmp_allocator{kEngineMemoryTagResourceScene};
 
 AsyncModelGroup scene_load_group_tmp{};
 AsyncModelJob scene_model_jobs_tmp[kMaxSceneModelJobs]{};
@@ -243,10 +244,10 @@ static void GenerateLightsTmp() {
   for (usize i{0}; i < kSpotLightCount; ++i) {
     const auto& offset{kSpotLightOffsets[i]};
 
-    rendering::LightManager::Get().Generate({
+    light::LightManager::Get().Generate({
         .props =
             {
-                .type = rendering::LightType::Spot,
+                .type = light::LightType::Spot,
                 .position = offset,
                 .direction = {.0f, -1.0f, .0f},
                 .color = math::Vec3{1.0f, .55f, .18f},
@@ -367,9 +368,9 @@ static void StartSceneModelJobs() {
 }
 
 static void SetUpCameras() {
-  auto& camera_manager{rendering::CameraManager::Get()};
+  auto& camera_manager{camera::CameraManager::Get()};
 
-  rendering::CameraPose sponza_camera_pose{
+  camera::CameraPose sponza_camera_pose{
       .position = {4.491f, 1.285f, 1.995f},
       .rotation = {.831f, .0f, .55f, .01f},
   };

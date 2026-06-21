@@ -3,29 +3,31 @@
 // license that can be found in the LICENSE file.
 
 #ifndef COMET_RUNTIME_CONF_CONF_MANAGER_H_
-#define COMET_RUNTIME_CONF_CONF_MANAGER_H_  // >:3 Rename ConfManager (class).
+#define COMET_RUNTIME_CONF_CONF_MANAGER_H_
 
-#include "comet/core/conf/configuration_value.h"
+#include "comet/core/container/map.h"
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/map.h"
-#include "comet/core/type/tstring.h"
+#include "comet/core/string/tstring.h"
+#include "comet/runtime/conf/config_defaults.h"
+#include "comet/runtime/conf/config_keys.h"
+#include "comet/runtime/conf/config_value.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 
 namespace comet {
 namespace conf {
 using ConfValues = Map<ConfKey, ConfValue>;
 
-class ConfigurationManager : public Manager {
+class ConfManager : public Manager {
  public:
-  static ConfigurationManager& Get();
+  static ConfManager& Get();
 
-  ConfigurationManager() = default;
-  ConfigurationManager(const ConfigurationManager&) = delete;
-  ConfigurationManager(ConfigurationManager&&) = delete;
-  ConfigurationManager& operator=(const ConfigurationManager&) = delete;
-  ConfigurationManager& operator=(ConfigurationManager&&) = delete;
-  ~ConfigurationManager() override = default;
+  ConfManager() = default;
+  ConfManager(const ConfManager&) = delete;
+  ConfManager(ConfManager&&) = delete;
+  ConfManager& operator=(const ConfManager&) = delete;
+  ConfManager& operator=(ConfManager&&) = delete;
+  ~ConfManager() override = default;
 
   void ParseConfFile();
 
@@ -81,32 +83,30 @@ class ConfigurationManager : public Manager {
  private:
   static constexpr auto kConfigFileRelativePath_{
       COMET_CTSTRING_VIEW("./comet_config.cfg")};
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagConfig};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagConfig};
   ConfValues values_{};
 };
 }  // namespace conf
 }  // namespace comet
 
-#define COMET_CONF(key) comet::conf::ConfigurationManager::Get().Get(key)
-#define COMET_CONF_STR(key) comet::conf::ConfigurationManager::Get().GetStr(key)
+#define COMET_CONF(key) comet::conf::ConfManager::Get().Get(key)
+#define COMET_CONF_STR(key) comet::conf::ConfManager::Get().GetStr(key)
 #define COMET_CONF_TSTR(key, ...) \
-  comet::conf::ConfigurationManager::Get().GetTStr(key, ##__VA_ARGS__)
-#define COMET_CONF_U8(key) comet::conf::ConfigurationManager::Get().GetU8(key)
-#define COMET_CONF_U16(key) comet::conf::ConfigurationManager::Get().GetU16(key)
-#define COMET_CONF_U32(key) comet::conf::ConfigurationManager::Get().GetU32(key)
-#define COMET_CONF_U64(key) comet::conf::ConfigurationManager::Get().GetU64(key)
-#define COMET_CONF_S8(key) comet::conf::ConfigurationManager::Get().GetS8(key)
-#define COMET_CONF_S16(key) comet::conf::ConfigurationManager::Get().GetS16(key)
-#define COMET_CONF_S32(key) comet::conf::ConfigurationManager::Get().GetS32(key)
-#define COMET_CONF_S64(key) comet::conf::ConfigurationManager::Get().GetS64(key)
-#define COMET_CONF_F32(key) comet::conf::ConfigurationManager::Get().GetF32(key)
-#define COMET_CONF_F64(key) comet::conf::ConfigurationManager::Get().GetF64(key)
-#define COMET_CONF_UINDEX(key) \
-  comet::conf::ConfigurationManager::Get().GetIndex(key)
-#define COMET_CONF_UX(key) comet::conf::ConfigurationManager::Get().GetUx(key)
-#define COMET_CONF_SX(key) comet::conf::ConfigurationManager::Get().GetSx(key)
-#define COMET_CONF_FX(key) comet::conf::ConfigurationManager::Get().GetFx(key)
-#define COMET_CONF_BOOL(key) \
-  comet::conf::ConfigurationManager::Get().GetBool(key)
+  comet::conf::ConfManager::Get().GetTStr(key, ##__VA_ARGS__)
+#define COMET_CONF_U8(key) comet::conf::ConfManager::Get().GetU8(key)
+#define COMET_CONF_U16(key) comet::conf::ConfManager::Get().GetU16(key)
+#define COMET_CONF_U32(key) comet::conf::ConfManager::Get().GetU32(key)
+#define COMET_CONF_U64(key) comet::conf::ConfManager::Get().GetU64(key)
+#define COMET_CONF_S8(key) comet::conf::ConfManager::Get().GetS8(key)
+#define COMET_CONF_S16(key) comet::conf::ConfManager::Get().GetS16(key)
+#define COMET_CONF_S32(key) comet::conf::ConfManager::Get().GetS32(key)
+#define COMET_CONF_S64(key) comet::conf::ConfManager::Get().GetS64(key)
+#define COMET_CONF_F32(key) comet::conf::ConfManager::Get().GetF32(key)
+#define COMET_CONF_F64(key) comet::conf::ConfManager::Get().GetF64(key)
+#define COMET_CONF_UINDEX(key) comet::conf::ConfManager::Get().GetIndex(key)
+#define COMET_CONF_UX(key) comet::conf::ConfManager::Get().GetUx(key)
+#define COMET_CONF_SX(key) comet::conf::ConfManager::Get().GetSx(key)
+#define COMET_CONF_FX(key) comet::conf::ConfManager::Get().GetFx(key)
+#define COMET_CONF_BOOL(key) comet::conf::ConfManager::Get().GetBool(key)
 
 #endif  // COMET_RUNTIME_CONF_CONF_MANAGER_H_

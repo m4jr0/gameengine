@@ -5,10 +5,10 @@
 #ifndef COMET_DATA_ANIMATION_ANIMATION_SET_H_
 #define COMET_DATA_ANIMATION_ANIMATION_SET_H_
 
-#include "comet/animation/animation_id.h"
+#include "comet/data/animation/animation_id.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/map.h"
+#include "comet/core/container/map.h"
 
 namespace comet {
 namespace animation {

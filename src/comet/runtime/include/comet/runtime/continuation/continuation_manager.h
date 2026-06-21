@@ -11,12 +11,12 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/continuation/type/continuation_phase.h"
+#include "comet/core/fiber/fiber_primitive.h"
+#include "comet/runtime/continuation/continuation_phase.h"
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/array.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/core/container/array.h"
 
 namespace comet {
 template <typename T>
@@ -101,7 +101,7 @@ class ContinuationManager : public Manager {
     return handle;
   }
 
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagContinuation};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagContinuation};
   mutable fiber::FiberMutex mutex_{};
   bool is_polling_[kContinuationPhaseCount_]{false};
   Continuations continuations_[kContinuationPhaseCount_]{};

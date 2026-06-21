@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -16,34 +15,34 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
+#include "comet/runtime/frame/frame_container.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
+#include "comet/core/container/array.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_descriptor.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_mesh.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_pipeline.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_texture_map.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_descriptor_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_pipeline_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_texture_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/label/pipeline_label.h"
-#include "comet/rendering/label/shader_label.h"
-#include "comet/rendering/type/pipeline.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/rendering/utils/shader_utils.h"
-#include "comet/resource/resource_manager.h"
+#include "comet/render/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/render/driver/vulkan/type/vulkan_descriptor.h"
+#include "comet/render/driver/vulkan/type/vulkan_mesh.h"
+#include "comet/render/driver/vulkan/type/vulkan_pipeline.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader.h"
+#include "comet/render/driver/vulkan/type/vulkan_texture_map.h"
+#include "comet/render/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_descriptor_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_pipeline_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_shader_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_texture_utils.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
+#include "comet/data/render/label/pipeline_label.h"
+#include "comet/data/render/label/shader_label.h"
+#include "comet/data/render/pipeline.h"
+#include "comet/data/render/shader.h"
+#include "comet/data/render/utils/shader_utils.h"
+#include "comet/runtime/resource/resource_manager.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 namespace internal {
 static bool HasBindingInSet(const Shader* shader, u32 set) {
@@ -771,7 +770,7 @@ void ShaderHandler::OnShutdown() {
   material_handler_->SetDestroyCallback(nullptr, nullptr);
   descriptor_set_layout_count_ = 0;
 
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   auto handles_to_destroy{Array<ShaderHandle>::WithCapacity(
       &tmp_allocator, shaders_.GetLiveCount())};
 
@@ -2244,5 +2243,5 @@ const MaterialHandler* ShaderHandler::GetMaterialHandler() const {
   return material_handler_;
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

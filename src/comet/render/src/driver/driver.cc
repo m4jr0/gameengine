@@ -3,19 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/driver.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/memory/memory_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 Driver::Driver(const DriverDescr& descr)
     : is_vsync_{descr.is_vsync},
       is_triple_buffering_{descr.is_triple_buffering},
@@ -69,5 +68,5 @@ bool Driver::IsInitialized() const noexcept { return is_initialized_; }
 void Driver::OnInitialize() {}
 
 void Driver::OnShutdown() {}
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

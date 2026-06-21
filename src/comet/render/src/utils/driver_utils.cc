@@ -3,20 +3,21 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "render/utils/driver_utils.h"
+#include "comet/render/utils/driver_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/conf/configuration_manager.h"
-#include "comet/core/conf/configuration_value.h"
-#include "comet/rendering/type/common.h"
+#include "comet/render/common.h"
+#include "comet/runtime/conf/conf_manager.h"
+#include "comet/runtime/conf/config_defaults.h"
+#include "comet/runtime/conf/config_keys.h"
+#include "comet/runtime/conf/config_value.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 DriverType GetDriverTypeFromStr(std::string_view str) {
   if (str == conf::kRenderingDriverOpengl) {
     return DriverType::OpenGl;
@@ -38,26 +39,24 @@ DriverType GetDriverType() {
   return GetDriverTypeFromStr(COMET_CONF_STR(conf::kRenderingDriver));
 }
 
-bool IsMultithreading([[maybe_unused]] DriverType type) {
+bool IsMultithreading(DriverType type) {
 #ifdef COMET_ENABLE_RENDERDOC_COMPATIBILITY
-#ifndef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-  COMET_ASSERT(false, "rendering_driver_utils::IsMultithreading",
-               "main thread worker must be allowed when renderdoc "
-               "compatibility is enabled");
-#endif  // !COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   return false;
 #else
   switch (type) {
     case DriverType::OpenGl:
       return false;
+
     case DriverType::Vulkan:
-      return true;
     case DriverType::Direct3d12:
       return true;
+
 #ifdef COMET_DEBUG
     case DriverType::Empty:
       return true;
 #endif  // COMET_DEBUG
+
+    case DriverType::Unknown:
     default:
       return false;
   }
@@ -85,5 +84,26 @@ AntiAliasingType GetAntiAliasingTypeFromStr(std::string_view str) {
 
   return AntiAliasingType::None;
 }
-}  // namespace rendering
+
+u8 GetMsaaSampleCount(AntiAliasingType anti_aliasing_type) {
+  switch (anti_aliasing_type) {
+    case AntiAliasingType::Msaa:
+    case AntiAliasingType::MsaaX64:
+    case AntiAliasingType::MsaaX32:
+    case AntiAliasingType::MsaaX16:
+    case AntiAliasingType::MsaaX8:
+      return 8;
+
+    case AntiAliasingType::MsaaX4:
+      return 4;
+
+    case AntiAliasingType::MsaaX2:
+      return 2;
+
+    case AntiAliasingType::None:
+    default:
+      return 1;
+  }
+}
+}  // namespace render
 }  // namespace comet

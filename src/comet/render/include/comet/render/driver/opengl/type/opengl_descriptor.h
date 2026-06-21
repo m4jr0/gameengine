@@ -8,12 +8,12 @@
 #include "comet/core/essentials.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 constexpr auto kDescriptorSetMaxLayoutCount{8};
 constexpr auto kDescriptorBindingMaxCount{32};
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_DESCRIPTOR_H_

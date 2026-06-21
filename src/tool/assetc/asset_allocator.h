@@ -1,14 +1,17 @@
 #ifndef COMET_TOOL_ASSETC_ASSET_ALLOCATOR_H_
 #define COMET_TOOL_ASSETC_ASSET_ALLOCATOR_H_
 
+// External. ///////////////////////////////////////////////////////////////////
 #include <new>
 
+#include "nlohmann/json.hpp"
+////////////////////////////////////////////////////////////////////////////////
+
 #include "comet/core.h"
-#include "comet/core/essentials.h"
 
 namespace comet {
 namespace tool {
-namespace asset {
+namespace assetc {
 
 class AssetAllocator final : public memory::Allocator {
  public:
@@ -21,7 +24,7 @@ class AssetAllocator final : public memory::Allocator {
   }
 };
 
-}  // namespace asset
+}  // namespace assetc
 }  // namespace tool
 }  // namespace comet
 

@@ -3,19 +3,19 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/physics/physics_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/profiler/profiler.h"
-#include "comet/time/time_manager.h"
+#include "comet/core/job/job_utils.h"
+#include "comet/core/job/scheduler.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/runtime/time/time_manager.h"
 
 namespace comet {
 namespace physics {

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,10 +14,11 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_utils.h"
+#include "comet/core/fiber/fiber_utils.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory.h"
-#include "comet/math/math_scalar.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/math/math_scalar.h"
 
 namespace comet {
 namespace event {
@@ -65,7 +66,7 @@ EventManager::EventManager()
               sizeof(Pair<stringid::StringId, Array<EventListener>>),
               math::Max(sizeof(EventListener),
                         sizeof(Pair<EventListenerId, stringid::StringId>))),
-          4096, memory::kEngineMemoryTagEvent} {}
+          4096, kEngineMemoryTagEvent} {}
 
 EventListenerId EventManager::Register(const Callback& function,
                                        stringid::StringId event_type) {

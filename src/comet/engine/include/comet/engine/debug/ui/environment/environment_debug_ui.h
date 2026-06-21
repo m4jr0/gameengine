@@ -6,7 +6,7 @@
 #define COMET_ENGINE_DEBUG_UI_ENVIRONMENT_ENVIRONMENT_DEBUG_UI_H_
 
 #include "comet/core/essentials.h"
-#include "comet/environment/environment_manager.h"
+#include "comet/runtime/environment/environment_manager.h"
 
 #ifdef COMET_HAS_DEBUG_UI
 

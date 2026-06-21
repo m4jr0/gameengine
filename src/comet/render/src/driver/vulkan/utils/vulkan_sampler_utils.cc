@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,12 +14,12 @@
 #include <type_traits>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/label/texture_label.h"
+#include "comet/data/render/label/texture_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 SamplerKey GenerateSamplerKey(const SamplerDescr& descr) {
   SamplerKey hash{0};
@@ -72,11 +71,11 @@ VkSamplerAddressMode GetSamplerAddressMode(TextureRepeatMode repeat_mode) {
   }
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 namespace std {
-comet::rendering::vk::SamplerKey hash<VkSamplerCreateInfo>::operator()(
+comet::render::vk::SamplerKey hash<VkSamplerCreateInfo>::operator()(
     const VkSamplerCreateInfo& sampler_info) const {
   auto computed_hash{comet::HashCombine(
       static_cast<comet::u64>(sampler_info.borderColor),

@@ -6,18 +6,19 @@
 #define COMET_RUNTIME_RESOURCE_RESOURCE_MANAGER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/tstring.h"
-#include "comet/resource/animation/animation_resource_handler.h"
-#include "comet/resource/material/material_resource_handler.h"
-#include "comet/resource/model/model_resource_handler.h"
-#include "comet/resource/resource_allocator.h"
-#include "comet/resource/shader/shader_module_resource_handler.h"
-#include "comet/resource/shader/shader_resource_handler.h"
-#include "comet/resource/texture/texture_resource_handler.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/string/tstring.h"
+#include "comet/runtime/resource/animation/animation_resource_handler.h"
+#include "comet/runtime/resource/material/material_resource_handler.h"
+#include "comet/runtime/resource/model/model_resource_handler.h"
+#include "comet/runtime/resource/resource_allocator.h"
+#include "comet/runtime/resource/shader/shader_module_resource_handler.h"
+#include "comet/runtime/resource/shader/shader_resource_handler.h"
+#include "comet/runtime/resource/texture/texture_resource_handler.h"
 
 namespace comet {
 namespace resource {
@@ -54,17 +55,17 @@ class ResourceManager : public Manager {
 
   TString root_resource_path_{};
   memory::PlatformAllocator platform_allocator_{
-      memory::kEngineMemoryTagResource};
+      kEngineMemoryTagResource};
 
   memory::FiberStackAllocator global_allocator_{
       2097152,  // 2 MiB. TODO(m4jr0): Configure this in settings.
-      memory::kEngineMemoryTagResourceGlobal,
-      memory::kEngineMemoryTagResourceGlobalExtended};
+      kEngineMemoryTagResourceGlobal,
+      kEngineMemoryTagResourceGlobalExtended};
 
   memory::FiberStackAllocator scene_allocator_{
       2097152,  // 2 MiB. TODO(m4jr0): Configure this in settings.
-      memory::kEngineMemoryTagResourceScene,
-      memory::kEngineMemoryTagResourceSceneExtended};
+      kEngineMemoryTagResourceScene,
+      kEngineMemoryTagResourceSceneExtended};
 
   memory::UniquePtr<MaterialResourceHandler> materials_{nullptr};
   memory::UniquePtr<StaticModelResourceHandler> static_models_{nullptr};
@@ -76,7 +77,7 @@ class ResourceManager : public Manager {
   memory::UniquePtr<TextureResourceHandler> textures_{nullptr};
 
   memory::FiberFreeListAllocator ptr_allocator_{
-      sizeof(void*), 4096, memory::kEngineMemoryTagResource};
+      sizeof(void*), 4096, kEngineMemoryTagResource};
   internal::ResourceAllocator byte_allocator_{};
 };
 }  // namespace resource

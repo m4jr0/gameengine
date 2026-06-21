@@ -6,9 +6,10 @@
 #define COMET_RUNTIME_ENVIRONMENT_ENVIRONMENT_MANAGER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/manager.h"
-#include "comet/math/geometry.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/light/light_handle.h"
+#include "comet/core/math/geometry.h"
 
 namespace comet {
 namespace environment {
@@ -90,7 +91,7 @@ class EnvironmentManager : public Manager {
   f32 azimuth_offset_{static_cast<f32>(-math::kHalfPi)};
 
  private:
-  rendering::LightHandle sun_light_{};
+  light::LightHandle sun_light_{};
   math::Vec3 GenerateSunDirection(f32 azimuth, f32 elevation) const;
 };
 }  // namespace environment

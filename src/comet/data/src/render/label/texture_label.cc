@@ -3,18 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_data_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/data/render/label/texture_label.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 const schar* GetTextureTypeLabel(TextureType type) {
   switch (type) {
     case TextureType::Unknown:
@@ -76,5 +75,5 @@ const schar* GetTextureFormatLabel(TextureFormat format) {
       return kUnknownLabel;
   }
 }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

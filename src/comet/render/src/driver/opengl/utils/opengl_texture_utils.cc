@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,10 +11,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/utils/texture_utils.h"
+#include "comet/data/render/utils/texture_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 HashValue GenerateHash(const TextureKey& key) {
   HashValue hash{0};
@@ -104,5 +103,5 @@ GLenum GetGlInternalFormat(const resource::TextureResource* resource,
   }
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

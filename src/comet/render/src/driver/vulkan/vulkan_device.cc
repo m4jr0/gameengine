@@ -3,28 +3,27 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/vulkan_device.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/frame/frame_container.h"
+#include "comet/core/string/c_string.h"
+#include "comet/runtime/frame/frame_container.h"
 #include "comet/core/logger/logging.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/ordered_set.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/ordered_set.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/label/common_label.h"
-#include "comet/rendering/type/common.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_alloc.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
+#include "comet/data/resource/label/common_label.h"
+#include "comet/render/common.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 bool AreQueueFamilyIndicesComplete(const QueueFamilyIndices& indices) {
   return indices.graphics_family.has_value() &&
@@ -651,5 +650,5 @@ void Device::CheckRequiredExtensions() const {
 }
 #endif  // COMET_DEBUG
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

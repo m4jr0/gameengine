@@ -3,22 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "asset_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/date.h"
-#include "comet/core/file_system/file_system.h"
-#include "comet/math/math_scalar.h"
-#include "editor/asset/asset.h"
+#include "asset.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 TString GenerateAssetMetadataFilePath(CTStringView asset_file_path) {
   if (IsEmpty(asset_file_path)) {
     return {};
@@ -90,7 +86,7 @@ nlohmann::json SetAndGetMetadata(CTStringView metadata_file_path) {
   // We must use assignment here to prevent a bug with GCC where the generated
   // type is an array (which is wrong).
   auto metadata = GetMetadata(metadata_file_path);
-  const auto update_time{GetNow()};
+  const auto update_time{time::GetNow()};
   f64 creation_time{0};
   usize file_version{0};
 
@@ -139,6 +135,6 @@ schar* GenerateTmpAssetFiberDebugLabel(CTStringView path, schar* buffer,
   return buffer;
 }
 }  // namespace internal
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

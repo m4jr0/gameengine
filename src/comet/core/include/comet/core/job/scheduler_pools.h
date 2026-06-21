@@ -9,7 +9,7 @@
 #include "comet/core/fiber/fiber.h"
 #include "comet/core/job/job.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/ring_queue.h"
+#include "comet/core/container/ring_queue.h"
 
 namespace comet {
 namespace job {

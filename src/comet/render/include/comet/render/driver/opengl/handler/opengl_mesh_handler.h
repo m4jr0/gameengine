@@ -10,21 +10,22 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_mesh.h"
-#include "comet/rendering/driver/opengl/type/opengl_region_gpu_buffer.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/type/opengl_mesh.h"
+#include "comet/render/driver/opengl/type/opengl_region_gpu_buffer.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 namespace internal {
 struct UpdateContext {
@@ -98,17 +99,17 @@ class MeshHandler : public Handler {
 
   memory::FiberFreeListAllocator allocator_{
       sizeof(MeshProxy), sizeof(MeshProxy) * kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::PlatformAllocator registry_allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   MeshProxyRegistry proxies_{};
   VertexGpuBuffer vertex_buffer_{};
   IndexGpuBuffer index_buffer_{};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_MESH_HANDLER_H_

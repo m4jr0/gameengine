@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,12 +15,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/memory/tagged_heap.h"
+#include "comet/runtime/memory/tagged_heap.h"
 
 #if defined(COMET_DEBUG_FREE_LIST_ALLOCATOR) && \
     defined(COMET_VERBOSE_ALLOCATOR_LOGS)
 #include "comet/core/logger/logging.h"
-#include "comet/core/memory/memory_label.h"
+#include "comet/runtime/memory/memory_label.h"
 #endif  // defined(COMET_DEBUG_FREE_LIST_ALLOCATOR) &&
         // defined(COMET_VERBOSE_ALLOCATOR_LOGS)
 

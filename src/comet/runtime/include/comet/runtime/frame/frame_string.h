@@ -6,7 +6,7 @@
 #define COMET_COMET_RUNTIME_FRAME_FRAME_STRING_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_allocator.h"
+#include "comet/runtime/frame/frame_allocator.h"
 
 namespace comet {
 template <typename TChar>

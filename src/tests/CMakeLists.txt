@@ -73,6 +73,12 @@ target_include_directories(${ENGINE_TESTS_EXECUTABLE_NAME}
     ${PICOSHA2_INCLUDE_DIRS}
 )
 
+# Precompiled headers ##########################################################
+target_precompile_headers(${ENGINE_TESTS_EXECUTABLE_NAME}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests_pch.h"
+)
+
 # Linking ######################################################################
 target_link_libraries(${FOUNDATION_TESTS_EXECUTABLE_NAME}
   PRIVATE

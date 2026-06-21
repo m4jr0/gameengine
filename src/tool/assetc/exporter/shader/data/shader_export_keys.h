@@ -5,13 +5,13 @@
 #ifndef COMET_EDITOR_ASSET_EXPORTER_SHADER_DATA_SHADER_EXPORT_KEYS_H_
 #define COMET_EDITOR_ASSET_EXPORTER_SHADER_DATA_SHADER_EXPORT_KEYS_H_
 
-#include "comet/core/essentials.h"
+#include "comet/core.h"
 
 using namespace std::literals;
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 static constexpr auto kCometEditorShaderKeyRasterizer{"rasterizer"sv};
 static constexpr auto kCometEditorShaderKeyDepthStencil{"depth_stencil"sv};
 static constexpr auto kCometEditorShaderKeyTopology{"topology"sv};
@@ -162,8 +162,8 @@ static constexpr auto kCometEditorShaderKeyImageSemanticMainShadowMap{
     "main_shadow_map"sv};
 static constexpr auto kCometEditorShaderKeyImageSemanticShadowMaps{
     "shadow_maps"sv};
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_EXPORTER_SHADER_DATA_SHADER_EXPORT_KEYS_H_

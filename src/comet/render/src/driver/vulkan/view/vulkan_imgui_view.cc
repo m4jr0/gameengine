@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -18,16 +17,16 @@
 #include "imgui_impl_vulkan.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_array.h"
-#include "comet/core/frame/frame_container.h"
+#include "comet/core/container/c_array.h"
+#include "comet/runtime/frame/frame_container.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/debug_ui_registry.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/debug_ui_registry.h"
+#include "comet/render/driver/vulkan/utils/vulkan_view_utils.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 ImGuiView::ImGuiView(const ImGuiViewDescr& descr)
     : View{descr}, window_{descr.window} {
@@ -210,6 +209,6 @@ void ImGuiView::DrawDebugUi() const {
 #endif  // COMET_HAS_DEBUG_UI
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 #endif  // COMET_IMGUI

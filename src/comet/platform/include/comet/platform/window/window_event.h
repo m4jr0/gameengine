@@ -6,9 +6,10 @@
 #define COMET_PLATFORM_WINDOW_WINDOW_EVENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/string_id.h"
-#include "comet/event/event.h"
-#include "comet/rendering/type/common.h"
+#include "comet/core/id/string_id.h"
+#include "comet/runtime/event/event.h"
+#include "comet/core/id/string_id_allocator.h"
+#include "comet/platform/window/window_common.h"
 
 namespace comet {
 namespace platform {

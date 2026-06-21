@@ -9,15 +9,15 @@
 #include <functional>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/conf/configuration_manager.h"
+#include "comet/runtime/conf/conf_manager.h"
 #include "comet/core/essentials.h"
-#include "comet/core/manager.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/core/type/ring_queue.h"
-#include "comet/event/event.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/map.h"
+#include "comet/core/container/ring_queue.h"
+#include "comet/runtime/event/event.h"
 
 namespace comet {
 namespace event {
@@ -82,7 +82,7 @@ class EventManager : public Manager {
   // Platform allocator is used because it is only allocated once, during engine
   // startup.
   memory::PlatformAllocator event_queue_allocator_{
-      memory::kEngineMemoryTagEvent};
+      kEngineMemoryTagEvent};
 };
 }  // namespace event
 }  // namespace comet

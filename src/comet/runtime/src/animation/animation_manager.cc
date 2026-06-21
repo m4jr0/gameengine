@@ -3,25 +3,27 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/runtime/animation/animation_manager.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/type/animation_clip.h"
-#include "comet/animation/type/animation_pose.h"
-#include "comet/animation/utils/animation_clip_utils.h"
-#include "comet/core/concurrency/fiber/fiber.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/geometry/component/skeleton_component.h"
-#include "comet/profiler/profiler.h"
-#include "comet/resource/animation/animation_resource.h"
-#include "comet/resource/resource_manager.h"
-#include "comet/scene/scene_manager.h"
+#include "comet/data/animation/animation_clip.h"
+#include "comet/runtime/animation/animation_pose.h"
+#include "comet/data/animation/utils/animation_clip_utils.h"
+#include "comet/core/fiber/fiber.h"
+#include "comet/core/job/job_utils.h"
+#include "comet/runtime/animation/animation_override.h"
+#include "comet/runtime/animation/utils/animation_skinning_utils.h"
+#include "comet/core/job/scheduler.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/geometry/component/skeleton_component.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/data/resource/animation/animation_resource.h"
+#include "comet/runtime/resource/resource_manager.h"
+#include "comet/runtime/scene/scene_manager.h"
 
 namespace comet {
 namespace animation {
@@ -167,7 +169,7 @@ AnimationComponent AnimationManager::GenerateAnimationComponent(
         resource::ResourceManager::Get().GetAnimationClips()->Load(id,
                                                                    life_span);
   } else {
-    animation_cmp.clip_handle = AnimationClipHandle::Invalid();
+    animation_cmp.clip_handle = AnimationClipResourceHandle::Invalid();
   }
 
   animation_cmp.start_time = .0f;
@@ -248,7 +250,7 @@ void AnimationManager::OnAnimationProcessing(
 }
 
 void AnimationManager::PlayInternal(entity::EntityId entity_id,
-                                    AnimationClipHandle handle, f32 speed,
+                                    AnimationClipResourceHandle handle, f32 speed,
                                     std::optional<bool> is_loop) {
   COMET_PROFILE("AnimationManager::PlayInternal");
   COMET_ASSERT(handle, "AnimationManager::PlayInternal",

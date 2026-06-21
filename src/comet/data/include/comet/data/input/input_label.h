@@ -6,7 +6,7 @@
 #define COMET_DATA_INPUT_INPUT_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/input/input.h"
+#include "comet/data/input/input.h"
 
 namespace comet {
 namespace input {

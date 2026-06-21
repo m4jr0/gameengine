@@ -6,11 +6,12 @@
 #define COMET_DATA_RESOURCE_SHADER_SHADER_MODULE_RESOURCE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_id.h"
+#include "comet/core/container/array.h"
+#include "comet/render/common.h"
+#include "comet/data/render/shader.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_id.h"
 
 namespace comet {
 namespace resource {
@@ -18,8 +19,8 @@ struct ShaderModuleResourceTag {};
 using ShaderModuleResourceId = ResourceIdT<ShaderModuleResourceTag>;
 
 struct ShaderModuleResourceDescr {
-  rendering::ShaderStage stage{rendering::ShaderStage::Unknown};
-  rendering::DriverType driver_type{rendering::DriverType::Unknown};
+  render::ShaderStage stage{render::ShaderStage::Unknown};
+  render::DriverType driver_type{render::DriverType::Unknown};
 };
 
 struct ShaderModuleResource : Resource {

@@ -6,15 +6,15 @@
 #define COMET_RENDER_RENDER_PROXY_RECORD_STORE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/map.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/rendering/type/render_proxy.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/map.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/render/render_proxy.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 class RenderProxyRecordStore {
  public:
   RenderProxyRecordStore() = default;
@@ -79,14 +79,14 @@ class RenderProxyRecordStore {
 
   memory::FiberFreeListAllocator record_allocator_{
       sizeof(RenderProxyRecord), kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator id_allocator_{
       sizeof(RenderProxyId) * 64, kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator map_allocator_{
-      256, kDefaultProxyCount_, memory::kEngineMemoryTagRendering};
+      256, kDefaultProxyCount_, kEngineMemoryTagRender};
 
   Array<RenderProxyRecord> record_slots_{};
   Array<RenderProxyId> active_proxy_ids_{};
@@ -101,7 +101,7 @@ class RenderProxyRecordStore {
 
   usize render_proxy_count_{0};
 };
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // !COMET_RENDER_RENDER_PROXY_RECORD_STORE_H_

@@ -3,25 +3,25 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/view/opengl_shadow_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/opengl/type/opengl_shader.h"
-#include "comet/rendering/driver/opengl/type/opengl_storage.h"
-#include "comet/rendering/driver/opengl/utils/opengl_shader_utils.h"
-#include "comet/rendering/driver/opengl/utils/opengl_view_shader_utils.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/shader/shader_resource.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/opengl/type/opengl_shader.h"
+#include "comet/render/driver/opengl/type/opengl_storage.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/render/driver/opengl/utils/opengl_shader_utils.h"
+#include "comet/render/driver/opengl/utils/opengl_view_shader_utils.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/shader/shader_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 ShadowView::ShadowView(const ShadowViewDescr& descr)
     : View{descr},
@@ -217,5 +217,5 @@ void ShadowView::SetViewport(u32 resolution) const {
              static_cast<GLsizei>(resolution));
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

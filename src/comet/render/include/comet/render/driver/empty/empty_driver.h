@@ -8,13 +8,15 @@
 #ifdef COMET_DEBUG
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
+#include "comet/runtime/frame/frame_packet.h"
 #include "comet/core/memory/memory.h"
-#include "comet/rendering/driver/driver.h"
-#include "comet/rendering/window/glfw/empty/empty_glfw_window.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/platform/window/window.h"
+#include "comet/render/driver/driver.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace empty {
 struct EmptyDriverDescr : DriverDescr {};
 
@@ -33,7 +35,7 @@ class EmptyDriver : public Driver {
 
   void SetSize(WindowSize width, WindowSize height);
 
-  Window* GetWindow() override;
+  platform::Window* GetWindow() override;
   u32 GetDrawCount() const override;
 
  protected:
@@ -41,10 +43,10 @@ class EmptyDriver : public Driver {
   void OnShutdown() override;
 
  private:
-  memory::UniquePtr<EmptyGlfwWindow> window_{nullptr};
+  memory::UniquePtr<platform::Window> window_{nullptr};
 };
 }  // namespace empty
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DEBUG

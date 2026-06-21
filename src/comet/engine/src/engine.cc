@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_engine_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -20,38 +20,40 @@
 #endif  // COMET_MSVC
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/animation_manager.h"
-#include "comet/core/conf/configuration_manager.h"
-#include "comet/core/continuation/continuation_manager.h"
 #include "comet/core/file_system/file_system.h"
-#include "comet/core/frame/frame_manager.h"
-#include "comet/core/frame/frame_packet.h"
+#include "comet/core/id/gid.h"
+#include "comet/core/id/gid_pool.h"
 #include "comet/core/job/job.h"
 #include "comet/core/job/job_utils.h"
 #include "comet/core/job/scheduler.h"
 #include "comet/core/job/scheduler_config.h"
-#include "comet/core/logic/game_logic_manager.h"
-#include "comet/core/memory/allocation_tracking.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/memory/allocator/stack_allocator.h"
-#include "comet/core/memory/default_allocator.h"
-#include "comet/core/memory/tagged_heap.h"
-#include "comet/core/type/gid.h"
+#include "comet/core/memory/allocator/default_allocator.h"
 #include "comet/engine/engine_event.h"
-#include "comet/entity/entity_manager.h"
-#include "comet/environment/environment_manager.h"
-#include "comet/geometry/geometry_manager.h"
-#include "comet/input/input_manager.h"
-#include "comet/physics/physics_manager.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/camera_manager.h"
-#include "comet/rendering/light_manager.h"
-#include "comet/rendering/rendering_manager.h"
-#include "comet/rendering/window/window_event.h"
-#include "comet/resource/resource_manager.h"
-#include "comet/scene/scene_event.h"
-#include "comet/scene/scene_manager.h"
-#include "comet/time/time_manager.h"
+#include "comet/engine/frame/engine_frame_manager.h"
+#include "comet/engine/profiler/profiler_data_collector.h"
+#include "comet/platform/window/window_event.h"
+#include "comet/render/render_manager.h"
+#include "comet/runtime/animation/animation_manager.h"
+#include "comet/runtime/camera/camera_manager.h"
+#include "comet/runtime/conf/conf_manager.h"
+#include "comet/runtime/continuation/continuation_manager.h"
+#include "comet/runtime/entity/entity_manager.h"
+#include "comet/runtime/environment/environment_manager.h"
+#include "comet/runtime/frame/frame_manager.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/geometry/geometry_manager.h"
+#include "comet/runtime/input/input_manager.h"
+#include "comet/runtime/light/light_manager.h"
+#include "comet/runtime/memory/allocation_tracking.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/stack_allocator.h"
+#include "comet/runtime/memory/tagged_heap.h"
+#include "comet/runtime/physics/physics_manager.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/runtime/resource/resource_manager.h"
+#include "comet/runtime/scene/scene_event.h"
+#include "comet/runtime/scene/scene_manager.h"
+#include "comet/runtime/time/time_manager.h"
 
 /*
 >:3 Engine is fat.
@@ -64,11 +66,11 @@ engine_main_loop
 */
 
 #ifdef COMET_PROFILING
-#include "comet/profiler/profiler_manager.h"
+#include "comet/runtime/profiler/profiler_manager.h"
 #endif  // COMET_PROFILING
 
 #ifdef COMET_HAS_DEBUG_UI
-#include "comet/debugging/ui/debug_ui_manager.h"
+#include "comet/engine/debug/ui/debug_ui_manager.h"
 #endif  // COMET_HAS_DEBUG_UI
 
 namespace comet {
@@ -155,37 +157,8 @@ void Engine::Run() {
 }
 
 void Engine::Update(f64& lag) {
-  auto& frame_manager{frame::FrameManager::Get()};
-
-  {
-    COMET_PROFILE("Engine::Update");
-    COMET_ASSERT(is_running_, "Engine::Update", "engine is not running");
-
-    time::TimeManager::Get().Update();
-    lag += time::TimeManager::Get().GetDeltaTime();
-
-    job::CounterGuard guard{};
-    auto* logic_frame_packet{frame_manager.GetLogicFramePacket()};
-    logic_frame_packet->lag = lag;
-    logic_frame_packet->counter = guard.GetCounter();
-
-    auto* rendering_frame_packet{frame_manager.GetRenderingFramePacket()};
-    rendering_frame_packet->counter = guard.GetCounter();
-
-    {
-      COMET_PROFILE("Engine::Update::LogicAndRendering");
-      GameLogicManager::Get().Update(logic_frame_packet);
-      rendering::RenderingManager::Get().Update(rendering_frame_packet);
-    }
-
-    guard.Wait();
-    logic_frame_packet->counter = nullptr;
-    rendering_frame_packet->counter = nullptr;
-    lag = logic_frame_packet->lag;
-  }
-
-  frame_manager.Update();
-  client_->OnUpdate(lag);
+  COMET_ASSERT(is_running_, "Engine::Update", "engine is not running");
+  EngineFrameManager::Get().RunFrame(lag, *client_);
 
 #ifdef COMET_PROFILING
   profiler::ProfilerDataCollector::Get().Update();
@@ -239,7 +212,7 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   memory::AttachDefaultAllocator(&engine->core_default_allocator_);
 
   InitializeFileSystem({
-      .scratch_allocator = &frame::GetFrameAllocator(),
+      .get_scratch_allocator = &frame::GetFrameAllocator(),
   });
 
   frame::FrameManager::Get().Initialize();
@@ -256,34 +229,6 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
 
 Engine::Engine() { Engine::engine_ = this; }
 
-void Engine::OnPreLoadBefore() {}
-
-void Engine::OnPreLoadAfter() {}
-
-void Engine::OnLoadBefore() {}
-
-void Engine::OnLoadAfter() {}
-
-void Engine::OnPostLoadBefore() {}
-
-void Engine::OnPostLoadAfter() {}
-
-void Engine::OnPrepareShutdownBefore() {}
-
-void Engine::OnPrepareShutdownAfter() {}
-
-void Engine::OnPreUnloadBefore() {}
-
-void Engine::OnPreUnloadAfter() {}
-
-void Engine::OnUnloadBefore() {}
-
-void Engine::OnUnloadAfter() {}
-
-void Engine::OnPostUnloadBefore() {}
-
-void Engine::OnPostUnloadAfter() {}
-
 void Engine::Exit() {
   event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();
   Stop();
@@ -299,7 +244,7 @@ Engine& Engine::Get() {
 void Engine::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
-  if (event_type == rendering::WindowCloseEvent::kStaticType_) {
+  if (event_type == platform::WindowCloseEvent::kStaticType_) {
     COMET_LOG_DEBUG(LoggerType::Engine, "Engine::OnEvent",
                     "window close event");
     Quit();
@@ -311,7 +256,7 @@ void Engine::RegisterEvents() {
       [this](const event::Event& event) { OnEvent(event); }};
 
   window_close_listener_id_ = event::EventManager::Get().Register(
-      event_function, rendering::WindowCloseEvent::kStaticType_);
+      event_function, platform::WindowCloseEvent::kStaticType_);
   COMET_ASSERT(window_close_listener_id_ != event::kInvalidEventListenerId,
                "Engine::RegisterEvents",
                "window close listener registration failed");
@@ -323,8 +268,6 @@ void Engine::UnregisterEvents() {
     window_close_listener_id_ = event::kInvalidEventListenerId;
   }
 }
-
-
 
 #ifdef COMET_WINDOWS
 static BOOL WINAPI HandleConsole(DWORD window_event) {
@@ -365,7 +308,6 @@ void Engine::RegisterSignalHandlers() {
 }
 
 void Engine::PreLoad() {
-  ConfigureWorkerHooks();
   InitializeScheduler();
 
   ContinuationManager::Get().Initialize();
@@ -373,9 +315,9 @@ void Engine::PreLoad() {
 
 void Engine::Load() {
   RegisterSignalHandlers();
-  rendering::RenderingManager::Get().Initialize();
-  rendering::LightManager::Get().Initialize();
-  rendering::CameraManager::Get().Initialize();
+  render::RenderManager::Get().Initialize();
+  light::LightManager::Get().Initialize();
+  camera::CameraManager::Get().Initialize();
   physics::PhysicsManager::Get().Initialize();
 
   RegisterEvents();
@@ -383,31 +325,32 @@ void Engine::Load() {
   animation::AnimationManager::Get().Initialize();
   entity::EntityManager::Get().Initialize();
   geometry::GeometryManager::Get().Initialize();
-  GameLogicManager::Get().Initialize();
+  EngineFrameManager::Get().Initialize();
 #ifdef COMET_HAS_DEBUG_UI
   debug::DebugUiManager::Get().Initialize();
 #endif  // COMET_HAS_DEBUG_UI
 }
 
 void Engine::PostLoad() {
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   if (scheduler_config_.is_main_thread_worker_disabled) {
     job::CounterGuard guard{};
 
     job::Scheduler::Get().KickOnMainThread(job::GenerateMainThreadJobDescr(
-        [](job::MainThreadParamsHandle) {
-          glfw_input_backend_.AttachWindow(
-              rendering::RenderingManager::Get().GetWindowHandle());
+        [](job::MainThreadParamsHandle params_handle) {
+          auto* engine{reinterpret_cast<Engine*>(params_handle)};
+          COMET_ASSERT(engine != nullptr, "Engine::PostLoad", "engine is null");
 
-          input::InputManager::Get().AttachBackend(&glfw_input_backend_);
+          engine->glfw_input_backend_.AttachWindow(
+              render::RenderManager::Get().GetWindowHandle());
+
+          input::InputManager::Get().AttachBackend(
+              &engine->glfw_input_backend_);
           input::InputManager::Get().Initialize();
         },
-        nullptr, guard.GetCounter()));
+        this, guard.GetCounter()));
 
     guard.Wait();
-  } else
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-  {
+  } else {
     input::InputManager::Get().Initialize();
   }
 }
@@ -420,21 +363,21 @@ void Engine::PrepareShutdown() {
   scene::SceneManager::Get().PrepareShutdown();
   time::TimeManager::Get().PrepareShutdown();
   input::InputManager::Get().PrepareShutdown();
-  GameLogicManager::Get().PrepareShutdown();
+  EngineFrameManager::Get().PrepareShutdown();
   geometry::GeometryManager::Get().PrepareShutdown();
   entity::EntityManager::Get().PrepareShutdown();
   animation::AnimationManager::Get().PrepareShutdown();
   physics::PhysicsManager::Get().PrepareShutdown();
-  rendering::CameraManager::Get().PrepareShutdown();
-  rendering::LightManager::Get().PrepareShutdown();
-  rendering::RenderingManager::Get().PrepareShutdown();
+  camera::CameraManager::Get().PrepareShutdown();
+  light::LightManager::Get().PrepareShutdown();
+  render::RenderManager::Get().PrepareShutdown();
   resource::ResourceManager::Get().PrepareShutdown();
   event::EventManager::Get().PrepareShutdown();
   frame::FrameManager::Get().PrepareShutdown();
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().PrepareShutdown();
 #endif  // COMET_PROFILING
-  conf::ConfigurationManager::Get().PrepareShutdown();
+  conf::ConfManager::Get().PrepareShutdown();
 }
 
 void Engine::PreUnload() {
@@ -450,14 +393,14 @@ void Engine::PreUnload() {
   input::InputManager::Get().Shutdown();
   glfw_input_backend_.DetachWindow();
 
-  GameLogicManager::Get().Shutdown();
+  EngineFrameManager::Get().Shutdown();
   geometry::GeometryManager::Get().Shutdown();
   entity::EntityManager::Get().Shutdown();
   animation::AnimationManager::Get().Shutdown();
   physics::PhysicsManager::Get().Shutdown();
-  rendering::CameraManager::Get().Shutdown();
-  rendering::LightManager::Get().Shutdown();
-  rendering::RenderingManager::Get().Shutdown();
+  camera::CameraManager::Get().Shutdown();
+  light::LightManager::Get().Shutdown();
+  render::RenderManager::Get().Shutdown();
 }
 
 void Engine::Unload() {
@@ -474,7 +417,7 @@ void Engine::Unload() {
 
   memory::DetachDefaultAllocator();
 
-  conf::ConfigurationManager::Get().Shutdown();
+  conf::ConfManager::Get().Shutdown();
 
   memory::TaggedHeap::Get().Destroy();
 
@@ -486,28 +429,6 @@ void Engine::PostUnload() {
   Engine::engine_ = nullptr;
 
   ShutdownFileSystem();
-}
-
-void Engine::ConfigureWorkerHooks() {
-  conf::ConfigurationManager::Get().Initialize();
-
-  job::Worker::SetAttachHook([] {
-    frame::AttachFrameAllocator(frame::FrameManager::Get().GetFrameAllocator());
-
-    frame::AttachDoubleFrameAllocator(
-        frame::FrameManager::Get().GetDoubleFrameAllocator());
-  });
-
-  job::Worker::SetDetachHook([] {
-    frame::DetachFrameAllocator();
-    frame::DetachDoubleFrameAllocator();
-  });
-
-  job::Worker::SetIOWorkerAttachHook([] {
-    AttachTStringAllocator(frame::FrameManager::Get().GetFrameAllocator());
-  });
-
-  job::Worker::SetIOWorkerDetachHook([] { DetachTStringAllocator(); });
 }
 
 void Engine::InitializeScheduler() {
@@ -539,19 +460,39 @@ void Engine::InitializeScheduler() {
 
   scheduler_fiber_object_allocator_ = memory::PlatformStackAllocator{
       total_fiber_count * sizeof(fiber::Fiber) + alignof(fiber::Fiber),
-      memory::kEngineMemoryTagFiber};
+      kEngineMemoryTagFiber};
   scheduler_fiber_object_allocator_.Initialize();
 
   scheduler_fiber_stack_allocator_ = memory::PlatformStackAllocator{
-      total_fiber_stack_size, memory::kEngineMemoryTagFiber};
+      total_fiber_stack_size, kEngineMemoryTagFiber};
   scheduler_fiber_stack_allocator_.Initialize();
 
   scheduler_counter_allocator_ = memory::PlatformStackAllocator{
       counter_count * sizeof(job::Counter) + alignof(job::Counter),
-      memory::kEngineMemoryTagFiber};
+      kEngineMemoryTagFiber};
   scheduler_counter_allocator_.Initialize();
 
   scheduler_config_ = {
+      .worker_lifecycle = {
+          .attach =
+              [] {
+                frame::AttachFrameAllocator(
+                    frame::FrameManager::Get().GetFrameAllocator());
+                frame::AttachDoubleFrameAllocator(
+                    frame::FrameManager::Get().GetDoubleFrameAllocator());
+              },
+          .detach =
+              [] {
+                frame::DetachFrameAllocator();
+                frame::DetachDoubleFrameAllocator();
+              },
+          .io_attach =
+              [] {
+                AttachTStringAllocator(
+                    frame::FrameManager::Get().GetFrameAllocator());
+              },
+          .io_detach = [] { DetachTStringAllocator(); },
+      },
       .job_queue_allocator = &scheduler_job_queue_allocator_,
       .worker_allocator = &scheduler_worker_allocator_,
       .fiber_queue_allocator = &scheduler_fiber_queue_allocator_,
@@ -560,11 +501,7 @@ void Engine::InitializeScheduler() {
       .fiber_life_cycle_allocator = &scheduler_fiber_life_cycle_allocator_,
       .counter_queue_allocator = &scheduler_counter_queue_allocator_,
       .counter_allocator = &scheduler_counter_allocator_,
-
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
       .main_thread_queue_allocator = &scheduler_main_thread_queue_allocator_,
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-
       .job_queue_capacity = job_queue_capacity,
       .counter_count = counter_count,
       .large_fiber_count = large_fiber_count,
@@ -575,20 +512,13 @@ void Engine::InitializeScheduler() {
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
       .fiber_life_cycle_queue_capacity = 128,
-
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
       .main_thread_queue_capacity = 16,
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-
       .forced_fiber_worker_count =
           COMET_CONF_U8(conf::kCoreForcedFiberWorkerCount),
       .forced_io_worker_count = COMET_CONF_U8(conf::kCoreForcedIOWorkerCount),
       .default_io_worker_count = 2,
       .promotion_interval = 1000,
-
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
       .is_main_thread_worker_disabled = engine::IsMainThreadWorkerDisabled(),
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   };
 
   auto& scheduler{job::Scheduler::Get()};

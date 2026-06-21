@@ -10,12 +10,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/handle.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_pipeline.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/core/container/array.h"
+#include "comet/core/handle/handle.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_pipeline.h"
 
 namespace comet {
 namespace rendering {
@@ -71,7 +71,7 @@ class PipelineHandler : public Handler {
 
   memory::FiberFreeListAllocator allocator_{
       math::Max(sizeof(Pipeline), sizeof(PipelineLayout)), 256,
-      memory::kEngineMemoryTagRendering};
+      memory::kEngineMemoryTagRender};
 
   HandlePool<PipelineHandleTag> pipeline_pool_{};
   HandlePool<PipelineLayoutHandleTag> layout_pool_{};

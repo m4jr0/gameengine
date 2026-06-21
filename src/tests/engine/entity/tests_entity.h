@@ -6,7 +6,7 @@
 #define COMET_TESTS_ENTITY_TESTS_ENTITY_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/type/entity_id.h"
+#include "comet/runtime/entity/entity_id.h"
 
 namespace comet {
 namespace comettests {

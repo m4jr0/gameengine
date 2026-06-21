@@ -9,14 +9,25 @@
 ################################################################################
 
 # Subdirectories ###############################################################
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/core")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/data")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/runtime")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/platform")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/render")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet/engine")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/core")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/data")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/runtime")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/platform")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/render")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/engine")
 
+# Public Comet target ##########################################################
 add_library(${COMET_TARGET} INTERFACE)
+
+target_include_directories(${COMET_TARGET}
+  INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/build/include"
+)
+
+target_sources(${COMET_TARGET}
+  INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/build/include/comet/build/build_define.h"
+)
 
 target_link_libraries(${COMET_TARGET}
   INTERFACE

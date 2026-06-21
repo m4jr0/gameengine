@@ -10,10 +10,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/hash_set.h"
-#include "comet/core/type/iterator.h"
-#include "comet/core/type/map.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/hash_set.h"
+#include "comet/core/container/iterator.h"
+#include "comet/core/container/map.h"
 
 namespace comet {
 template <typename T, typename HashLogic = internal::DefaultSetHashLogic<T>>

@@ -6,7 +6,7 @@
 #define COMET_CORE_MATH_COMPRESSION_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/vector.h"
+#include "comet/core/math/vector.h"
 
 namespace comet {
 namespace math {

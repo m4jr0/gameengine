@@ -6,10 +6,11 @@
 #define COMET_DATA_RESOURCE_TEXTURE_TEXTURE_RESOURCE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_id.h"
+#include "comet/core/container/array.h"
+#include "comet/data/render/texture.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_id.h"
 
 namespace comet {
 namespace resource {
@@ -22,11 +23,11 @@ inline constexpr TextureResourceId kDefaultSpecularTextureId{2};
 inline constexpr TextureResourceId kDefaultNormalTextureId{3};
 
 TextureResourceId GetDefaultTextureFromType(
-    rendering::TextureType texture_type);
+    render::TextureType texture_type);
 
 struct TextureResourceDescr {
   u64 size{0};
-  rendering::TextureFormat format{rendering::TextureFormat::Unknown};
+  render::TextureFormat format{render::TextureFormat::Unknown};
   u32 resolution[3]{0, 0, 0};
   u8 channel_count{0};
 };

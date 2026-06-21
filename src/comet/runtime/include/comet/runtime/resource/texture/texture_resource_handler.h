@@ -6,12 +6,14 @@
 #define COMET_RUNTIME_RESOURCE_TEXTURE_TEXTURE_RESOURCE_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/resource/handler/resource_handler.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/texture/texture_resource.h"
-#include "comet/resource/type/common.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/resource/resource_handler.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/texture/texture_resource.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {
@@ -43,7 +45,7 @@ class TextureResourceHandler
 
  private:
   memory::PlatformAllocator resource_data_allocator_{
-      memory::kEngineMemoryTagResourceTexture};
+      kEngineMemoryTagResourceTexture};
   memory::UniquePtr<TextureResource> default_texture_{nullptr};
   memory::UniquePtr<TextureResource> diffuse_texture_{nullptr};
   memory::UniquePtr<TextureResource> normal_texture_{nullptr};

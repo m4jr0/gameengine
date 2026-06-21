@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/window/glfw/glfw_window.h"
+#include "comet/platform/window/glfw/glfw_window.h"
 
 namespace comet {
 namespace platform {

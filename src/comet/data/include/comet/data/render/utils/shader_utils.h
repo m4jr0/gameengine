@@ -6,10 +6,10 @@
 #define COMET_DATA_RENDER_UTILS_SHADER_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/shader.h"
+#include "comet/data/render/shader.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 Alignment GetScalarAlignment(ShaderVariableType type);
 Alignment GetStd140Alignment(ShaderVariableType type);
 Alignment GetStd430Alignment(ShaderVariableType type);
@@ -25,7 +25,7 @@ void SetValue(ShaderDefineDescr& descr, const schar* value, usize value_len);
 
 bool IsBufferBindingType(ShaderBindingType type);
 bool IsImageBindingType(ShaderBindingType type);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DATA_RENDER_UTILS_SHADER_UTILS_H_

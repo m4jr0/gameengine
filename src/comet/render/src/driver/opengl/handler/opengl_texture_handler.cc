@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -13,15 +12,15 @@
 
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/opengl/label/opengl_texture_label.h"
-#include "comet/rendering/driver/opengl/opengl_debug.h"
-#include "comet/rendering/driver/opengl/utils/opengl_texture_utils.h"
-#include "comet/rendering/label/texture_label.h"
-#include "comet/rendering/utils/texture_utils.h"
-#include "comet/resource/resource_manager.h"
+#include "comet/render/driver/opengl/label/opengl_texture_label.h"
+#include "comet/render/driver/opengl/opengl_debug.h"
+#include "comet/render/driver/opengl/utils/opengl_texture_utils.h"
+#include "comet/data/render/label/texture_label.h"
+#include "comet/data/render/utils/texture_utils.h"
+#include "comet/runtime/resource/resource_manager.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 TextureHandler::TextureHandler(const TextureHandlerDescr& descr)
     : Handler{descr}, textures_{&cache_allocator_, 1024} {}
@@ -128,7 +127,7 @@ void TextureHandler::OnInitialize() {
 }
 
 void TextureHandler::OnShutdown() {
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
   auto handles_to_destroy{Array<TextureHandle>::WithCapacity(
       &tmp_allocator, textures_.GetLiveCount())};
 
@@ -370,5 +369,5 @@ void TextureHandler::GenerateMipmaps(const Texture* texture) const {
   glBindTexture(texture->target, kInvalidGlNativeTextureHandle);
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,9 +11,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef COMET_FIBER_DEBUG_LABEL
-#include "comet/core/c_string.h"
-#include "comet/core/concurrency/fiber/fiber.h"
-#include "comet/math/math_scalar.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/fiber/fiber.h"
+#include "comet/core/math/math_scalar.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 namespace comet {

@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,13 +11,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_pipeline.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_sampler_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
-#include "comet/rendering/label/pipeline_label.h"
+#include "comet/render/driver/vulkan/type/vulkan_pipeline.h"
+#include "comet/render/driver/vulkan/utils/vulkan_sampler_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_shader_utils.h"
+#include "comet/data/render/label/pipeline_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 namespace init {
 VkDebugUtilsMessengerCreateInfoEXT GenerateDebugUtilsMessengerCreateInfo(
@@ -832,5 +831,5 @@ VkTimelineSemaphoreSubmitInfo GenerateTimelineSemaphoreSubmitInfo(
 }
 }  // namespace init
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -6,16 +6,16 @@
 #define COMET_RENDER_DRIVER_OPENGL_VIEW_OPENGL_SHADOW_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_shadow.h"
-#include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/render/driver/opengl/handler/opengl_lighting_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_mesh_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_render_proxy_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/render/driver/opengl/type/opengl_shadow.h"
+#include "comet/render/driver/opengl/view/opengl_view.h"
+#include "comet/render/render_handle.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct ShadowViewDescr : ViewDescr {
   ShaderHandler* shader_handler{nullptr};
@@ -57,7 +57,7 @@ class ShadowView : public View {
   ShaderHandle shadow_shader_{};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_VIEW_OPENGL_SHADOW_VIEW_H_

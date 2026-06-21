@@ -5,7 +5,7 @@
 #ifndef COMET_RUNTIME_CONTINUATION_CONTINUATION_PHASE_LABEL_H_
 #define COMET_RUNTIME_CONTINUATION_CONTINUATION_PHASE_LABEL_H_
 
-#include "comet/core/continuation/type/continuation_phase.h"
+#include "comet/runtime/continuation/continuation_phase.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

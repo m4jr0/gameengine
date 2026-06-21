@@ -3,19 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_data_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "data/render/utils/shader_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/logger/logging.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 Alignment GetScalarAlignment(ShaderVariableType type) {
   switch (type) {
     case ShaderVariableType::B32:
@@ -322,5 +321,5 @@ bool IsImageBindingType(ShaderBindingType type) {
          type == ShaderBindingType::Sampler ||
          type == ShaderBindingType::StorageImage;
 }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

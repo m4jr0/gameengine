@@ -6,17 +6,19 @@
 #define COMET_RENDER_DRIVER_DRIVER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/rendering/render_proxy_record_store.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/light.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/rendering/type/view.h"
-#include "comet/rendering/window/window.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/data/light/light.h"
+#include "comet/data/render/texture.h"
+#include "comet/platform/window/window.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/render/common.h"
+#include "comet/render/render_proxy_record_store.h"
+#include "comet/render/view.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 
 namespace comet {
-namespace rendering { // Rename to render >:3
+namespace render {  // Rename to render >:3
 struct DriverDescr {
   DriverType type{DriverType::Unknown};
   bool is_vsync{false};
@@ -56,7 +58,7 @@ class Driver {
 
   bool IsInitialized() const noexcept;
 
-  virtual Window* GetWindow() = 0;
+  virtual platform::Window* GetWindow() = 0;
   virtual u32 GetDrawCount() const = 0;
 
  protected:
@@ -81,10 +83,10 @@ class Driver {
   const ShadowSettings* shadow_settings_{};
   const RenderProxyRecordStore* render_proxy_record_store_{nullptr};
   memory::PlatformAllocator rendering_view_descrs_allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
   Array<RenderingViewDescr> rendering_view_descrs_{};
 };
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_DRIVER_H_

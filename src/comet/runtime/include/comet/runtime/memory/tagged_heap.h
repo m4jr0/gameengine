@@ -5,13 +5,17 @@
 #ifndef COMET_RUNTIME_MEMORY_TAGGED_HEAP_H_
 #define COMET_RUNTIME_MEMORY_TAGGED_HEAP_H_
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
-#include "comet/core/conf/configuration_manager.h"
-#include "comet/core/conf/configuration_value.h"
+#include "comet/core/fiber/fiber_primitive.h"
+#include "comet/runtime/conf/conf_manager.h"
+#include "comet/runtime/conf/config_defaults.h"
+#include "comet/runtime/conf/config_keys.h"
+#include "comet/runtime/conf/config_value.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/bitset.h"
+#include "comet/runtime/memory/tagged_memory.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/bitset.h"
 
 namespace comet {
 namespace memory {

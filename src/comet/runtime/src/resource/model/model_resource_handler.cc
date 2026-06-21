@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,9 +11,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/geometry/type/skeleton.h"
+#include "comet/core/container/array.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/data/geometry/skeleton.h"
 
 namespace comet {
 namespace resource {

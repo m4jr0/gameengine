@@ -6,18 +6,18 @@
 #define COMET_RENDER_DRIVER_OPENGL_VIEW_OPENGL_DEBUG_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/handler/opengl_camera_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
-#include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/render/driver/opengl/handler/opengl_camera_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_render_proxy_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/render/driver/opengl/view/opengl_view.h"
+#include "comet/render/render_handle.h"
 
 #ifdef COMET_DEBUG_RENDERING
-#include "comet/rendering/driver/opengl/handler/opengl_debug_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_debug_handler.h"
 #endif  // COMET_DEBUG_RENDERING
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct DebugViewDescr : ViewDescr {
   CameraHandler* camera_handler{nullptr};
@@ -66,7 +66,7 @@ class DebugView : public View {
   bool has_debug_lines_{false};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_VIEW_OPENGL_DEBUG_VIEW_H_

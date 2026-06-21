@@ -5,30 +5,32 @@
 #ifndef COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_VIEW_HANDLER_H_
 #define COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_VIEW_HANDLER_H_
 
+#include "comet/core/container/array.h"
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/opengl/handler/opengl_camera_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_lighting_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_mesh_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_render_proxy_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_shader_handler.h"
-#include "comet/rendering/driver/opengl/handler/opengl_texture_handler.h"
-#include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/light.h"
-#include "comet/rendering/type/view.h"
-#include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/data/light/light.h"
+#include "comet/platform/window/glfw/opengl/opengl_glfw_window.h"
+#include "comet/render/driver/opengl/handler/opengl_camera_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_lighting_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_mesh_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_render_proxy_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_shader_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_texture_handler.h"
+#include "comet/render/driver/opengl/view/opengl_view.h"
+#include "comet/render/common.h"
+#include "comet/render/view.h"
 
 #ifdef COMET_DEBUG_RENDERING
-#include "comet/rendering/driver/opengl/handler/opengl_debug_handler.h"
+#include "comet/render/driver/opengl/handler/opengl_debug_handler.h"
 #endif  // COMET_DEBUG_RENDERING
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct ViewHandlerDescr : HandlerDescr {
   const ShadowSettings* shadow_settings{nullptr};
@@ -43,7 +45,7 @@ struct ViewHandlerDescr : HandlerDescr {
   DebugHandler* debug_handler{nullptr};
 #endif  // COMET_DEBUG_RENDERING
 
-  OpenGlGlfwWindow* window{nullptr};
+  platform::OpenGlGlfwWindow* window{nullptr};
   Array<RenderingViewDescr>* rendering_view_descrs{nullptr};
 };
 
@@ -97,7 +99,7 @@ class ViewHandler : public Handler {
                                 const CameraView* camera_view,
                                 usize camera_index) const;
 
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagRender};
 
   Array<memory::UniquePtr<View>> offscreen_views_{};
   Array<memory::UniquePtr<View>> scene_views_{};
@@ -122,11 +124,11 @@ class ViewHandler : public Handler {
   DebugHandler* debug_handler_{nullptr};
 #endif  // COMET_DEBUG_RENDERING
 
-  OpenGlGlfwWindow* window_{nullptr};
+  platform::OpenGlGlfwWindow* window_{nullptr};
   Array<RenderingViewDescr>* rendering_view_descrs_{nullptr};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_VIEW_HANDLER_H_

@@ -6,14 +6,15 @@
 #define COMET_DATA_RESOURCE_MODEL_MODEL_RESOURCE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/geometry/type/skeleton.h"
-#include "comet/math/matrix.h"
-#include "comet/math/vector.h"
-#include "comet/resource/material/material_resource.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_id.h"
+#include "comet/core/container/array.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/data/geometry/skeleton.h"
+#include "comet/core/math/matrix.h"
+#include "comet/core/math/vector.h"
+#include "comet/data/resource/resource_file.h"
+#include "comet/data/resource/material/material_resource.h"
+#include "comet/data/resource/resource.h"
+#include "comet/data/resource/resource_id.h"
 
 namespace comet {
 namespace resource {

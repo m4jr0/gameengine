@@ -5,7 +5,7 @@
 #ifndef COMET_CORE_JOB_JOB_LABEL_H_
 #define COMET_CORE_JOB_JOB_LABEL_H_
 
-#include "comet/core/concurrency/job/job.h"
+#include "comet/core/job/job.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

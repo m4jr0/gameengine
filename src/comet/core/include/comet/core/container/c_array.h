@@ -13,6 +13,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
+#include "comet/runtime/memory/tagged_memory.h"
 
 namespace comet {
 template <typename T, usize size,

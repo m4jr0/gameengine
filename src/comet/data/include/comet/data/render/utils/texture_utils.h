@@ -6,15 +6,15 @@
 #define COMET_DATA_RENDER_UTILS_TEXTURE_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/type/texture.h"
+#include "comet/data/render/texture.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 bool IsSrgbTextureType(TextureType type);
 
 u32 GetMipLevels(u32 width, u32 height);
 u8 GetResolvedChannelCount(TextureFormat format, u8 fallback);
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DATA_RENDER_UTILS_TEXTURE_UTILS_H_

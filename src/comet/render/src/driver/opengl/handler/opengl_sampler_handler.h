@@ -10,13 +10,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_sampler.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/type/opengl_sampler.h"
+#include "comet/render/render_handle.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using SamplerHandlerDescr = HandlerDescr;
 
@@ -44,13 +44,13 @@ class SamplerHandler : public Handler {
   Sampler* GenerateSampler(const SamplerDescr& descr);
 
   memory::FiberFreeListAllocator allocator_{sizeof(Sampler), 256,
-                                            memory::kEngineMemoryTagRendering};
+                                            kEngineMemoryTagRender};
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{kEngineMemoryTagRender};
   SharedInstanceRegistry<SamplerKey, SamplerTag, Sampler> samplers_{};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_SAMPLER_HANDLER_H_

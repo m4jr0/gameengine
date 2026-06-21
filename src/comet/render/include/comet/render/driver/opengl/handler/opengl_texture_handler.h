@@ -10,16 +10,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/opengl/handler/opengl_handler.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/resource/texture/texture_resource.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/opengl/handler/opengl_handler.h"
+#include "comet/render/driver/opengl/type/opengl_texture.h"
+#include "comet/render/render_handle.h"
+#include "comet/data/resource/texture/texture_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using TextureHandlerDescr = HandlerDescr;
 
@@ -64,14 +64,14 @@ class TextureHandler : public Handler {
 
   RuntimeTextureId next_runtime_texture_id_{0};
 
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{kEngineMemoryTagRender};
   memory::FiberFreeListAllocator allocator_{sizeof(Texture), 256,
-                                            memory::kEngineMemoryTagRendering};
+                                            kEngineMemoryTagRender};
 
   SharedInstanceRegistry<TextureKey, TextureTag, Texture> textures_{};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_TEXTURE_HANDLER_H_

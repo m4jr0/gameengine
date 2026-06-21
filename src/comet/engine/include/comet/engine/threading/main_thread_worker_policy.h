@@ -5,11 +5,12 @@
 #ifndef COMET_ENGINE_THREADING_MAIN_THREAD_WORKER_POLICY_H_
 #define COMET_ENGINE_THREADING_MAIN_THREAD_WORKER_POLICY_H_
 
-#include "comet/core/concurrency/job/job.h"
+#include "comet/core/job/job.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
-#include "comet/event/event.h"
-#include "comet/event/event_manager.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/event/event.h"
+#include "comet/runtime/event/event_manager.h"
 
 namespace comet {
 namespace engine {

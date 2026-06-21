@@ -6,9 +6,10 @@
 #define COMET_COMET_ENTITY_COMPONENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/memory/memory.h"
-#include "comet/entity/type/entity_id.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/entity/entity_id.h"
 
 namespace comet {
 namespace entity {

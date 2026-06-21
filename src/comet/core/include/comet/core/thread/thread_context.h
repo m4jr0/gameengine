@@ -5,7 +5,7 @@
 #ifndef COMET_CORE_THREAD_THREAD_CONTEXT_H_
 #define COMET_CORE_THREAD_THREAD_CONTEXT_H_
 
-#include "comet/core/concurrency/thread/thread.h"
+#include "comet/core/thread/thread.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

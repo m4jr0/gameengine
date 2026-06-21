@@ -3,24 +3,23 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/view/vulkan_shadow_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader.h"
+#include "comet/render/driver/vulkan/utils/vulkan_image_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_shader_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_view_shader_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_view_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 ShadowView::ShadowView(const ShadowViewDescr& descr)
     : View{descr},
@@ -312,5 +311,5 @@ void ShadowView::TransitionShadowLayer(
                        0, nullptr, 0, nullptr, 1, &barrier);
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

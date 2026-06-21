@@ -3,11 +3,11 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "tests_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Tested. /////////////////////////////////////////////////////////////////////
-#include "comet/core/type/ring_queue.h"
+#include "comet/core/container/ring_queue.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
@@ -19,15 +19,16 @@
 #include "catch.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 #include "tests/dummies/dummy_object.h"
 
 namespace comet {
 namespace comettests {
 namespace memory {
 enum TestsMemoryTag : comet::memory::MemoryTag {
-  kTestsMemoryTagGeneral = comet::memory::kEngineMemoryTagUserBase + 1
+  kTestsMemoryTagGeneral = kEngineMemoryTagUserBase + 1
 };
 }  // namespace memory
 

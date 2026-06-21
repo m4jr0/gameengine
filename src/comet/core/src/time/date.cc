@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -11,6 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
+namespace time {
 namespace internal {
 std::chrono::time_point<std::chrono::system_clock> GetChronoTimePoint(
     const std::time_t& time) {
@@ -53,4 +54,5 @@ u64 GetTimestampNanoSeconds() {
                         .count()};
   return static_cast<u64>(now_ns);
 }
+}  // namespace time
 }  // namespace comet

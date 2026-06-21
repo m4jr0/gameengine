@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,14 +11,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/logger/logging.h"
-#include "comet/core/type/array.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/core/container/array.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 MeshHandler::MeshHandler(const MeshHandlerDescr& descr)
     : Handler{descr}, proxies_{&registry_allocator_, kDefaultProxyCount_} {}
@@ -162,7 +162,7 @@ void MeshHandler::OnInitialize() {
 }
 
 void MeshHandler::OnShutdown() {
-  memory::PlatformAllocator tmp_allocator{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator tmp_allocator{kEngineMemoryTagRender};
 
   auto handles_to_destroy{Array<MeshProxyRegistry::ItemHandle>::WithCapacity(
       &tmp_allocator, proxies_.GetLiveCount())};
@@ -497,5 +497,5 @@ internal::MeshUploadResult MeshHandler::UploadMeshProxies(
   return result;
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

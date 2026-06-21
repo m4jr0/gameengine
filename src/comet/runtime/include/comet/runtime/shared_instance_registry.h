@@ -2,19 +2,19 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_RUNTIME_RESOURCE_SHARED_INSTANCE_REGISTRY_H_
-#define COMET_RUNTIME_RESOURCE_SHARED_INSTANCE_REGISTRY_H_
+#ifndef COMET_RUNTIME_SHARED_INSTANCE_REGISTRY_H_
+#define COMET_RUNTIME_SHARED_INSTANCE_REGISTRY_H_
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <functional>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/fiber/fiber_primitive.h"
+#include "comet/core/container/array.h"
+#include "comet/core/container/map.h"
 #include "comet/core/essentials.h"
+#include "comet/core/fiber/fiber_primitive.h"
+#include "comet/core/handle/handle.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/handle.h"
-#include "comet/core/type/map.h"
 
 namespace comet {
 template <typename SourceId, typename HandleTag, typename T>
@@ -356,4 +356,4 @@ class SharedInstanceRegistry {
 };
 }  // namespace comet
 
-#endif  // COMET_RUNTIME_RESOURCE_SHARED_INSTANCE_REGISTRY_H_
+#endif  // COMET_RUNTIME_SHARED_INSTANCE_REGISTRY_H_

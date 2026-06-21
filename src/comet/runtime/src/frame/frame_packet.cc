@@ -4,7 +4,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_runtime_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,8 +15,9 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/type/ordered_set.h"
-#include "comet/geometry/geometry_manager.h"
+#include "comet/core/container/ordered_set.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/runtime/geometry/geometry_manager.h"
 
 namespace comet {
 namespace frame {
@@ -96,9 +97,9 @@ void FramePacket::RegisterRemovedGeometry(entity::EntityId entity_id,
   removed_geometries->Add(std::move(geometry));
 }
 
-void FramePacket::RegisterNewLight(rendering::LightHandle light_handle,
-                                   const rendering::LightProperties* props,
-                                   const rendering::LightShadow* shadow) {
+void FramePacket::RegisterNewLight(light::LightHandle light_handle,
+                                   const light::LightProperties* props,
+                                   const light::LightShadow* shadow) {
   COMET_ASSERT(props != nullptr, "FramePacket::RegisterNewLight",
                "light properties are null");
   COMET_ASSERT(shadow != nullptr, "FramePacket::RegisterNewLight",
@@ -114,9 +115,9 @@ void FramePacket::RegisterNewLight(rendering::LightHandle light_handle,
   added_lights->Add(std::move(light));
 }
 
-void FramePacket::RegisterDirtyLight(rendering::LightHandle light_handle,
-                                     const rendering::LightProperties* props,
-                                     const rendering::LightShadow* shadow) {
+void FramePacket::RegisterDirtyLight(light::LightHandle light_handle,
+                                     const light::LightProperties* props,
+                                     const light::LightShadow* shadow) {
   COMET_ASSERT(props != nullptr, "FramePacket::RegisterDirtyLight",
                "light properties are null");
   COMET_ASSERT(shadow != nullptr, "FramePacket::RegisterDirtyLight",
@@ -132,7 +133,7 @@ void FramePacket::RegisterDirtyLight(rendering::LightHandle light_handle,
   dirty_lights->Add(std::move(light));
 }
 
-void FramePacket::RegisterRemovedLight(rendering::LightHandle light_handle) {
+void FramePacket::RegisterRemovedLight(light::LightHandle light_handle) {
   RemovedLight light{
       .light_handle = light_handle,
   };
@@ -141,7 +142,7 @@ void FramePacket::RegisterRemovedLight(rendering::LightHandle light_handle) {
   removed_lights->Add(std::move(light));
 }
 
-const rendering::CameraView* FramePacket::GetMainCameraView() const {
+const camera::CameraView* FramePacket::GetMainCameraView() const {
   if (camera_views == nullptr || camera_views->IsEmpty() ||
       main_camera_view_index >= camera_views->GetSize()) {
     return nullptr;
@@ -151,19 +152,19 @@ const rendering::CameraView* FramePacket::GetMainCameraView() const {
   return view.IsMain() ? &view : nullptr;
 }
 
-const rendering::RenderCameraData* FramePacket::GetMainCameraData() const {
+const camera::CameraViewData* FramePacket::GetMainCameraData() const {
   const auto* view{GetMainCameraView()};
   return view != nullptr ? &view->data : nullptr;
 }
 
 #ifdef COMET_DEBUG
-const rendering::CameraView* FramePacket::GetDebugCameraView() const {
+const camera::CameraView* FramePacket::GetDebugCameraView() const {
   if (camera_views == nullptr || camera_views->IsEmpty()) {
     return GetMainCameraView();
   }
 
   for (const auto& view : *camera_views) {
-    if (view.kind == rendering::CameraKind::Debug) {
+    if (view.kind == camera::CameraKind::Debug) {
       return &view;
     }
   }
@@ -171,7 +172,7 @@ const rendering::CameraView* FramePacket::GetDebugCameraView() const {
   return GetMainCameraView();
 }
 
-const rendering::RenderCameraData* FramePacket::GetDebugCameraData() const {
+const camera::CameraViewData* FramePacket::GetDebugCameraData() const {
   const auto* view{GetDebugCameraView()};
   return view != nullptr ? &view->data : nullptr;
 }
@@ -209,11 +210,11 @@ void FramePacket::Reset() {
     stage_times[i].end = 0;
   }
 
-  ambient_color = rendering::kColorWhiteRgb;
+  ambient_color = render::kColorWhiteRgb;
   draw_count = 0;
 
   main_camera_view_index = kInvalidIndex;
-  camera_views = COMET_DOUBLE_FRAME_ARRAY(rendering::CameraView);
+  camera_views = COMET_DOUBLE_FRAME_ARRAY(camera::CameraView);
 
   added_geometries = COMET_DOUBLE_FRAME_ORDERED_SET(AddedGeometry);
   dirty_meshes = COMET_DOUBLE_FRAME_ORDERED_SET(DirtyMesh);

@@ -6,15 +6,15 @@
 #define COMET_RENDER_DRIVER_VULKAN_VIEW_VULKAN_WORLD_VIEW_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_view.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/light.h"
+#include "comet/render/driver/vulkan/handler/vulkan_camera_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_lighting_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_proxy_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/render/driver/vulkan/view/vulkan_view.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/type/light.h"
 
 namespace comet {
 namespace rendering {

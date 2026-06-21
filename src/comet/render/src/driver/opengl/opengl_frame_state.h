@@ -6,10 +6,10 @@
 #define COMET_RENDER_DRIVER_OPENGL_OPENGL_FRAME_STATE_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_frame.h"
+#include "comet/render/driver/opengl/type/opengl_frame.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct FrameStateDescr {
   FrameInFlightIndex max_frames_in_flight{2};
@@ -39,7 +39,7 @@ class FrameState {
   FrameInFlightIndex max_frames_in_flight_{2};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_OPENGL_FRAME_STATE_H_

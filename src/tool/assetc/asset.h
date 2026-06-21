@@ -11,14 +11,13 @@
 #include "nlohmann/json.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/essentials.h"
-#include "comet/core/type/tstring.h"
+#include "comet/core.h"
 
 using namespace std::literals;
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 constexpr unsigned short kCometEditorAssetMetadataIndent{2};
 static constexpr auto kCometEditorAssetMetadataFileExtension{
     COMET_CTSTRING_VIEW("meta")};
@@ -44,8 +43,8 @@ struct AssetDescr {
   TString metadata_path{};
   nlohmann::json metadata{};
 };
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet
 
 #endif  // COMET_EDITOR_ASSET_ASSET_H_

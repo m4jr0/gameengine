@@ -24,7 +24,6 @@ find_package(Threads REQUIRED)
 # Source files #################################################################
 set(COMET_ASSETC_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/asset.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/asset_allocator.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/asset_allocator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/asset_processor.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/asset_processor.h"
@@ -62,10 +61,6 @@ set(COMET_ASSETC_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/exporter/texture/data/texture_export_keys.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/exporter/texture/texture_exporter.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/exporter/texture/texture_exporter.h"
-
-  "${CMAKE_CURRENT_SOURCE_DIR}/memory/memory.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/memory/memory_label.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/memory/memory_label.h"
 )
 
 target_sources(${COMET_ASSETC_TARGET}
@@ -78,6 +73,12 @@ target_include_directories(${COMET_ASSETC_TARGET}
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${Stb_INCLUDE_DIR}"
+)
+
+# Precompiled headers ##########################################################
+target_precompile_headers(${COMET_ASSETC_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/assetc_pch.h"
 )
 
 # Linking ######################################################################

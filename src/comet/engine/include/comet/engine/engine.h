@@ -5,12 +5,14 @@
 #ifndef COMET_ENGINE_ENGINE_H_
 #define COMET_ENGINE_ENGINE_H_
 
-#include "comet/core/concurrency/job/job.h"
 #include "comet/core/essentials.h"
+#include "comet/core/job/job.h"
 #include "comet/core/memory/memory.h"
 #include "comet/engine/engine_client.h"
-#include "comet/event/event.h"
-#include "comet/event/event_manager.h"
+#include "comet/platform/input/glfw_input_backend.h"
+#include "comet/runtime/event/event.h"
+#include "comet/runtime/event/event_manager.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
 class Engine {
@@ -58,7 +60,6 @@ class Engine {
   void Unload();
   void PostUnload();
 
-  void ConfigureWorkerHooks();
   void InitializeScheduler();
   void ShutdownScheduler();
 
@@ -75,24 +76,19 @@ class Engine {
 
   input::GlfwInputBackend glfw_input_backend_{};
 
-  memory::PlatformAllocator core_default_allocator_{
-      memory::kEngineMemoryTagCore};
+  memory::PlatformAllocator core_default_allocator_{kEngineMemoryTagCore};
 
   memory::PlatformAllocator scheduler_job_queue_allocator_{
-      memory::kEngineMemoryTagFiber};
-  memory::PlatformAllocator scheduler_worker_allocator_{
-      memory::kEngineMemoryTagFiber};
+      kEngineMemoryTagFiber};
+  memory::PlatformAllocator scheduler_worker_allocator_{kEngineMemoryTagFiber};
   memory::PlatformAllocator scheduler_fiber_queue_allocator_{
-      memory::kEngineMemoryTagFiber};
+      kEngineMemoryTagFiber};
   memory::PlatformAllocator scheduler_counter_queue_allocator_{
-      memory::kEngineMemoryTagFiber};
+      kEngineMemoryTagFiber};
   memory::PlatformAllocator scheduler_fiber_life_cycle_allocator_{
-      memory::kEngineMemoryTagFiber};
-
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+      kEngineMemoryTagFiber};
   memory::PlatformAllocator scheduler_main_thread_queue_allocator_{
-      memory::kEngineMemoryTagMainThread};
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+      kEngineMemoryTagMainThread};
 
   memory::PlatformStackAllocator scheduler_fiber_object_allocator_{};
   memory::PlatformStackAllocator scheduler_fiber_stack_allocator_{};

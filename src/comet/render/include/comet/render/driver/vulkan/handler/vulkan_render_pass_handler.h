@@ -10,17 +10,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_render_pass.h"
-#include "comet/rendering/driver/vulkan/vulkan_swapchain.h"
-#include "comet/rendering/rendering_handle.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_frame.h"
+#include "comet/render/driver/vulkan/type/vulkan_render_pass.h"
+#include "comet/render/driver/vulkan/vulkan_swapchain.h"
+#include "comet/render/render_handle.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct RenderPassHandlerDescr : HandlerDescr {
   const Swapchain* swapchain{nullptr};
@@ -76,10 +77,10 @@ class RenderPassHandler : public Handler {
   static HashValue GenerateHash(const RenderPassDescr& descr);
 
  private:
-  memory::PlatformAllocator cache_allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator cache_allocator_{kEngineMemoryTagRender};
 
   memory::FiberFreeListAllocator allocator_{sizeof(RenderPass), 32,
-                                            memory::kEngineMemoryTagRendering};
+                                            kEngineMemoryTagRender};
 
   SharedInstanceRegistry<HashValue, RenderPassHandleTag, RenderPass>
       render_passes_{};
@@ -87,7 +88,7 @@ class RenderPassHandler : public Handler {
   const Swapchain* swapchain_{nullptr};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_RENDER_PASS_HANDLER_H_

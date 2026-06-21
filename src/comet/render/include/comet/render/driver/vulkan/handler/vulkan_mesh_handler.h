@@ -10,19 +10,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/memory/allocator/free_list_allocator.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/memory/memory.h"
+#include "comet/runtime/memory/memory_tag.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/shared_instance_registry.h"
-#include "comet/geometry/type/mesh.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_buffer.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_mesh.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_region_gpu_buffer.h"
+#include "comet/runtime/shared_instance_registry.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/data/geometry/mesh.h"
+#include "comet/render/driver/vulkan/handler/vulkan_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_buffer.h"
+#include "comet/render/driver/vulkan/type/vulkan_mesh.h"
+#include "comet/render/driver/vulkan/type/vulkan_region_gpu_buffer.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 namespace internal {
 struct UpdateContext {
@@ -117,17 +119,17 @@ class MeshHandler : public Handler {
 
   memory::FiberFreeListAllocator allocator_{
       sizeof(MeshProxy), sizeof(MeshProxy) * kDefaultProxyCount_,
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   memory::PlatformAllocator registry_allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
 
   MeshProxyRegistry proxies_{};
   VertexGpuBuffer vertex_buffer_{};
   IndexGpuBuffer index_buffer_{};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_MESH_HANDLER_H_

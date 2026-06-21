@@ -10,10 +10,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_descriptor.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/pipeline.h"
+#include "comet/core/container/array.h"
+#include "comet/render/driver/vulkan/type/vulkan_descriptor.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/type/pipeline.h"
 
 namespace comet {
 namespace rendering {

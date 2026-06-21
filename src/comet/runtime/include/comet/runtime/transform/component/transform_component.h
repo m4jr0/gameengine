@@ -6,8 +6,8 @@
 #define COMET_RUNTIME_TRANSFORM_COMPONENT_TRANSFORM_COMPONENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/math/matrix.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/core/math/matrix.h"
 
 namespace comet {
 namespace transform {

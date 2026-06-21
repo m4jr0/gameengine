@@ -6,15 +6,16 @@
 #include "vulkan/vulkan.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/container/array.h"
 #include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_frame.h"
-#include "comet/rendering/driver/vulkan/vulkan_device.h"
+#include "comet/render/driver/vulkan/type/vulkan_frame.h"
+#include "comet/render/driver/vulkan/vulkan_device.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct ContextDescr {
   u8 vulkan_major_version{0};
@@ -133,7 +134,7 @@ class Context {
   u64 upload_timeline_value_{0};
   usize max_object_count_{0};
 
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagRendering};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagRender};
   Array<FrameData> frame_data_{};
 
   VkInstance instance_handle_{VK_NULL_HANDLE};
@@ -145,7 +146,7 @@ class Context {
   const Device* device_{nullptr};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_VULKAN_CONTEXT_H_

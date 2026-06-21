@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using FrameIndex = u64;
 constexpr auto kInvalidFrameIndex{static_cast<FrameIndex>(-1)};
@@ -28,7 +28,7 @@ struct FrameData {
   bool has_upload_submission{false};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_FRAME_H_

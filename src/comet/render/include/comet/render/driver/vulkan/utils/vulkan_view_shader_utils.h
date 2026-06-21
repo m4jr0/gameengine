@@ -6,12 +6,12 @@
 #define COMET_RENDER_DRIVER_VULKAN_UTILS_VULKAN_VIEW_SHADER_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/light.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/render/driver/vulkan/handler/vulkan_camera_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/type/light.h"
 
 namespace comet {
 namespace rendering {

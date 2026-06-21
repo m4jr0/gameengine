@@ -14,7 +14,7 @@
 #include "comet/core/algorithm/iterator_utils.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
+#include "comet/core/container/array.h"
 
 namespace comet {
 template <typename Iterator, typename Comparer = Less>

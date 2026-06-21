@@ -3,18 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/opengl/utils/opengl_sampler_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 SamplerKey GenerateSamplerKey(const SamplerDescr& descr) {
   SamplerKey hash{0};
@@ -37,5 +36,5 @@ SamplerKey GenerateSamplerKey(const SamplerDescr& descr) {
   return hash;
 }
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -38,18 +38,12 @@ void ValidateSchedulerConfig(const SchedulerConfig& config) {
                "counter queue allocator is null");
   COMET_ASSERT(config.counter_allocator != nullptr,
                "job::ValidateSchedulerConfig", "counter allocator is null");
-
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-  if (config.is_main_thread_worker_disabled) {
-    COMET_ASSERT(config.main_thread_queue_allocator != nullptr,
-                 "job::ValidateSchedulerConfig",
-                 "main thread queue allocator is null");
-    COMET_ASSERT(config.main_thread_queue_capacity > 0,
-                 "job::ValidateSchedulerConfig",
-                 "main thread queue capacity is zero");
-  }
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-
+  COMET_ASSERT(config.main_thread_queue_allocator != nullptr,
+               "job::ValidateSchedulerConfig",
+               "main thread queue allocator is null");
+  COMET_ASSERT(config.main_thread_queue_capacity > 0,
+               "job::ValidateSchedulerConfig",
+               "main thread queue capacity is zero");
   COMET_ASSERT(config.job_queue_capacity > 0, "job::ValidateSchedulerConfig",
                "job queue capacity is zero");
   COMET_ASSERT(config.counter_count > 0, "job::ValidateSchedulerConfig",
@@ -118,6 +112,10 @@ void Scheduler::Initialize() {
   io_queue_ = LockFreeMPMCRingQueue<IOJobDescr>{config_->job_queue_allocator,
                                                 config_->job_queue_capacity};
 
+  main_thread_queue_ = LockFreeMPMCRingQueue<MainThreadJobDescr>{
+      config_->main_thread_queue_allocator,
+      config_->main_thread_queue_capacity};
+
   fiber::AttachFiberStackAllocator(config_->fiber_stack_allocator);
 
   large_stack_fibers_.Initialize({
@@ -182,10 +180,18 @@ void Scheduler::Initialize() {
                  fiber_worker_count_, "io_worker_count", io_worker_count_);
 
   fiber_workers_ = Array<FiberWorker>{config_->worker_allocator};
-  fiber_workers_.Resize(fiber_worker_count_);
+  fiber_workers_.Reserve(fiber_worker_count_);
+
+  for (usize i{0}; i < fiber_worker_count_; ++i) {
+    fiber_workers_.EmplaceLast(&config_->worker_lifecycle);
+  }
 
   io_workers_ = Array<IOWorker>{config_->worker_allocator};
-  io_workers_.Resize(io_worker_count_);
+  io_workers_.Reserve(io_worker_count_);
+
+  for (usize i{0}; i < io_worker_count_; ++i) {
+    io_workers_.EmplaceLast(&config_->worker_lifecycle);
+  }
 
   is_initialized_ = true;
 }
@@ -208,6 +214,7 @@ void Scheduler::Shutdown() {
   normal_priority_queue_.Destroy();
   high_priority_queue_.Destroy();
   io_queue_.Destroy();
+  main_thread_queue_.Destroy();
 
   large_stack_fibers_.Destroy();
   gigantic_stack_fibers_.Destroy();
@@ -225,10 +232,6 @@ void Scheduler::Shutdown() {
 
   fiber_workers_.Release();
   io_workers_.Release();
-
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
-  main_thread_queue_ = LockFreeMPMCRingQueue<MainThreadJobDescr>{};
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
   fiber_worker_count_ = 0;
   io_worker_count_ = 0;
@@ -257,19 +260,25 @@ void Scheduler::Run(const JobDescr& callback_descr,
     thread::Yield();
   }
 
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
   if (config_->is_main_thread_worker_disabled) {
-    fiber_workers_[0].Attach();
+    const auto& lifecycle{config_->worker_lifecycle};
+
+    if (lifecycle.attach != nullptr) {
+      lifecycle.attach();
+    }
+
     Kick(callback_descr);
 
     if (is_main_thread_worker) {
       WorkFromMainThread();
     }
 
-    fiber_workers_[0].Detach();
+    if (lifecycle.detach != nullptr) {
+      lifecycle.detach();
+    }
+
     return;
   }
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 
   Kick(callback_descr);
 

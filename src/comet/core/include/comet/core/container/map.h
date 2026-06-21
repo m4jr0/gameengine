@@ -12,9 +12,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/hash_set.h"
+#include "comet/core/container/hash_set.h"
 
 namespace comet {
 template <typename Key, typename Value>

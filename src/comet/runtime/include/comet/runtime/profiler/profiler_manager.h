@@ -54,7 +54,7 @@ class ProfilerManager : public Manager {
   bool is_recording_{false};
   bool is_frame_recording_{false};
 
-  memory::PlatformAllocator allocator_{memory::kEngineMemoryTagDebug};
+  memory::PlatformAllocator allocator_{kEngineMemoryTagDebug};
 
   ThreadProfilerContexts thread_contexts_{&allocator_};
   ProfilerRecordContext record_context_{&allocator_};

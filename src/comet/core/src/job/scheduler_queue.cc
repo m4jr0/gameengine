@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_core_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -94,18 +94,22 @@ void Scheduler::KickAndWait(usize job_count, const IOJobDescr* job_descrs) {
   }
 }
 
-void Scheduler::KickOnMainThread(
-    [[maybe_unused]] const MainThreadJobDescr& descr) {
-#ifdef COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
+void Scheduler::KickOnMainThread(const MainThreadJobDescr& descr) {
   COMET_ASSERT(is_initialized_, "Scheduler::KickOnMainThread",
                "scheduler is not initialized");
+  COMET_ASSERT(config_ != nullptr, "Scheduler::KickOnMainThread",
+               "scheduler config is not attached");
+  COMET_ASSERT(config_->is_main_thread_worker_disabled,
+               "Scheduler::KickOnMainThread",
+               "main thread queue is not being serviced");
 
-  descr.counter->Increment();
+  if (descr.counter != nullptr) {
+    descr.counter->Increment();
+  }
 
   while (!main_thread_queue_.TryPush(descr)) {
     fiber::Yield();
   }
-#endif  // COMET_ALLOW_DISABLED_MAIN_THREAD_WORKER
 }
 
 void Scheduler::SubmitJob(const JobDescr& job_descr) {

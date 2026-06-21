@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-namespace rendering {
+namespace render {
 Frustum::Frustum(const math::Plane& top_face, const math::Plane& bottom_face,
                  const math::Plane& left_face, const math::Plane& right_face,
                  const math::Plane& far_face, const math::Plane& near_face)
@@ -68,5 +67,5 @@ void Frustum::SetRight(const math::Plane& plane) noexcept {
 void Frustum::SetFar(const math::Plane& plane) noexcept { far_face_ = plane; }
 
 void Frustum::SetNear(const math::Plane& plane) noexcept { near_face_ = plane; }
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

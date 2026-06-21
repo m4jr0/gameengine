@@ -3,18 +3,17 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/label/vulkan_view_label.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/debug_label.h"
+#include "comet/core/debug/debug_label.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 const schar* GetRenderTargetKindLabel(RenderTargetKind kind) {
   switch (kind) {
@@ -62,5 +61,5 @@ const schar* GetViewFinalColorOpLabel(ViewFinalColorOp op) {
   }
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

@@ -6,10 +6,11 @@
 #define COMET_RENDER_DRIVER_VULKAN_TYPE_VULKAN_MESH_H_
 
 #include "comet/core/essentials.h"
-#include "comet/geometry/type/mesh.h"
+#include "comet/runtime/geometry/mesh.h"
+#include "comet/data/geometry/mesh.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct MeshProxy {
   bool is_alive{false};
@@ -26,7 +27,7 @@ struct GpuDebugLineVertex {
   math::Vec4 color{.0f};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_TYPE_VULKAN_MESH_H_

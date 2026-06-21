@@ -6,10 +6,10 @@
 #define COMET_RENDER_DRIVER_OPENGL_UTILS_OPENGL_TEXTURE_MAP_UTILS_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/type/opengl_texture_map.h"
+#include "comet/render/driver/opengl/type/opengl_texture_map.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 TextureMap BuildTextureMap(SamplerHandle sampler_handle,
                            TextureHandle texture_handle,
@@ -17,7 +17,7 @@ TextureMap BuildTextureMap(SamplerHandle sampler_handle,
                                resource::TextureResourceId::Invalid(),
                            TextureType type = TextureType::Unknown);
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_UTILS_OPENGL_TEXTURE_MAP_UTILS_H_

@@ -6,11 +6,12 @@
 #define COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_LIGHT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/type/light.h"
+#include "comet/core/math/vector.h"
+#include "comet/runtime/light/light_handle.h"
+#include "comet/data/light/light.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct LightProxy {
   LightHandle handle{};
@@ -31,7 +32,7 @@ struct GpuLight {
   math::Vec4 spot_data{};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_LIGHT_H_

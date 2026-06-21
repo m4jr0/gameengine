@@ -6,8 +6,8 @@
 #define COMET_RUNTIME_GEOMETRY_COMPONENT_MODEL_COMPONENT_H_
 
 #include "comet/core/essentials.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/resource/model/model_resource.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/data/resource/model/model_resource.h"
 
 namespace comet {
 namespace geometry {

@@ -8,14 +8,14 @@
 #include "comet/core/essentials.h"
 
 #ifdef COMET_IMGUI
-#include "comet/rendering/driver/opengl/view/opengl_view.h"
-#include "comet/rendering/window/glfw/opengl/opengl_glfw_window.h"
+#include "comet/render/driver/opengl/view/opengl_view.h"
+#include "comet/platform/window/glfw/opengl/opengl_glfw_window.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct ImGuiViewDescr : ViewDescr {
-  OpenGlGlfwWindow* window{nullptr};
+  platform::OpenGlGlfwWindow* window{nullptr};
 };
 
 class ImGuiView : public View {
@@ -39,10 +39,10 @@ class ImGuiView : public View {
  private:
   void DrawDebugUi() const;
 
-  OpenGlGlfwWindow* window_{nullptr};
+  platform::OpenGlGlfwWindow* window_{nullptr};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 #endif  // COMET_IMGUI
 

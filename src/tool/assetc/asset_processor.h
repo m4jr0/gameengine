@@ -2,16 +2,12 @@
 #ifndef COMET_TOOL_ASSETC_ASSET_PROCESSOR_H_
 #define COMET_TOOL_ASSETC_ASSET_PROCESSOR_H_
 
-#include "comet/core/essentials.h"
-#include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/tstring.h"
-#include "tool/asset/exporter/asset_exporter.h"
+#include "comet/core.h"
+#include "exporter/asset_exporter.h"
 
 namespace comet {
 namespace tool {
-namespace asset {
-
+namespace assetc {
 struct AssetcConfig {
   CTStringView asset_root{};
   CTStringView resource_root{};
@@ -58,7 +54,7 @@ class AssetProcessor {
   Array<memory::UniquePtr<AssetExporter>> exporters_{};
 };
 
-}  // namespace asset
+}  // namespace assetc
 }  // namespace tool
 }  // namespace comet
 

@@ -17,6 +17,9 @@ find_package(imgui CONFIG REQUIRED)
 
 # Source files #################################################################
 set(COMET_ENGINE_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/engine_define.h"
+
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/debug_ui_manager.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/debugger_debug_ui.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/environment/environment_debug_ui.h"
@@ -26,10 +29,11 @@ set(COMET_ENGINE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/profiler/cpu_profiler_displayer_context.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/profiler/cpu_profiler_graph.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/profiler/cpu_profiler_tree.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/rendering/rendering_debug_ui.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/debug/ui/render/render_debug_ui.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/engine.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/engine_client.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/engine_event.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/frame/engine_frame_manager.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/profiler/profiler_data.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/profiler/profiler_data_collector.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/engine/threading/main_thread_worker_policy.h"
@@ -37,13 +41,14 @@ set(COMET_ENGINE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/debug_ui_manager.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/debugger_debug_ui.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/environment/environment_debug_ui.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/frame/engine_frame_manager.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/imgui_utils.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/memory/allocation_tracker_displayer.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/profiler/cpu_profiler_displayer.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/profiler/cpu_profiler_displayer_context.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/profiler/cpu_profiler_graph.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/profiler/cpu_profiler_tree.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/rendering/rendering_debug_ui.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/debug/ui/render/render_debug_ui.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/engine.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/engine_event.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/profiler/profiler_data.cc"
@@ -62,6 +67,12 @@ target_include_directories(${COMET_ENGINE_TARGET}
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+# Precompiled headers ##########################################################
+target_precompile_headers(${COMET_ENGINE_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/comet_engine_pch.h"
 )
 
 # Linking ######################################################################

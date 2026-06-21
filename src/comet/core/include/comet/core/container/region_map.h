@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/bitset.h"
+#include "comet/core/container/bitset.h"
 
 namespace comet {
 class RegionMap {

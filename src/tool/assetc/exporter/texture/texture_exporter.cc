@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -15,21 +15,15 @@
 #include "stb_image.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
-#include "comet/core/frame/frame_string.h"
-#include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/resource.h"
-#include "comet/resource/resource_manager.h"
-#include "comet/resource/texture/texture_resource.h"
-#include "editor/asset/asset.h"
-#include "editor/asset/exporter/texture/data/texture_export_keys.h"
+#include "comet/core.h"
+#include "comet/data.h"
+#include "comet/runtime.h
+#include "asset.h"
+#include "exporter/texture/data/texture_export_keys.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 bool TextureExporter::IsCompatible(CTStringView extension) const {
   return extension == COMET_TCHAR("png") || extension == COMET_TCHAR("jpg") ||
          extension == COMET_TCHAR("tga");
@@ -78,7 +72,7 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
                        texture_context.tex_height * kOutputChannelCount;
 
   texture.descr.channel_count = kOutputChannelCount;
-  texture.descr.format = rendering::TextureFormat::Rgba8;
+  texture.descr.format = render::TextureFormat::Rgba8;
 
   texture.descr.resolution[0] = texture_context.tex_width;
   texture.descr.resolution[1] = texture_context.tex_height;
@@ -116,6 +110,6 @@ void TextureExporter::OnTextureLoading(job::IOJobParamsHandle params_handle) {
                 &texture_context->tex_height, &texture_context->tex_channels,
                 STBI_rgb_alpha);
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

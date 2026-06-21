@@ -12,14 +12,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/memory/allocator/platform_allocator.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/type/common.h"
+#include "comet/runtime/memory/memory_tag.h"
+#include "comet/core/container/array.h"
+#include "comet/render/common.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct QueueFamilyIndices {
   std::optional<u32> graphics_family{};
@@ -130,7 +131,7 @@ class Device {
   VkPhysicalDeviceMemoryProperties memory_properties_{};
   QueueFamilyIndices queue_family_indices_{};
   mutable memory::PlatformAllocator allocator_{
-      memory::kEngineMemoryTagRendering};
+      kEngineMemoryTagRender};
   Array<VkQueueFamilyProperties> queue_family_properties_{};
   VkInstance instance_handle_{VK_NULL_HANDLE};
   VkPhysicalDevice physical_device_handle_{VK_NULL_HANDLE};
@@ -155,7 +156,7 @@ class Device {
   VkSampleCountFlagBits msaa_samples_{VK_SAMPLE_COUNT_1_BIT};
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_VULKAN_DEVICE_H_

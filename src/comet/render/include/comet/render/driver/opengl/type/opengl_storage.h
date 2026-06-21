@@ -8,12 +8,12 @@
 #include "comet/core/essentials.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using GlNativeStorageHandle = u32;
 constexpr auto kInvalidGlNativeStorageHandle{0};
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_STORAGE_H_

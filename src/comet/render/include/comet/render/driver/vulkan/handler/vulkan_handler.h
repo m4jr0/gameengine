@@ -6,7 +6,7 @@
 #define COMET_RENDER_DRIVER_VULKAN_HANDLER_VULKAN_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
 
 namespace comet {
 namespace rendering {

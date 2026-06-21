@@ -6,10 +6,10 @@
 #define COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_HANDLER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/driver/opengl/opengl_frame_state.h"
+#include "comet/render/driver/opengl/opengl_frame_state.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 struct HandlerDescr {
   FrameState* frame_state{nullptr};
@@ -38,7 +38,7 @@ class Handler {
   FrameState* frame_state_{nullptr};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_HANDLER_OPENGL_HANDLER_H_

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "tests_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Tested. /////////////////////////////////////////////////////////////////////
@@ -18,9 +18,9 @@
 #include "catch2/reporters/catch_reporter_registrars.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type/tstring.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/container/array.h"
+#include "comet/core/string/tstring.h"
 
 #ifndef COMET_NORMALIZE_PATHS
 #define COMET_NORMALIZE_PATHS

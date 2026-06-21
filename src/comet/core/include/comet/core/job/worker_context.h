@@ -5,7 +5,7 @@
 #ifndef COMET_CORE_JOB_WORKER_CONTEXT_H_
 #define COMET_CORE_JOB_WORKER_CONTEXT_H_
 
-#include "comet/core/concurrency/job/worker.h"
+#include "comet/core/job/worker.h"
 #include "comet/core/essentials.h"
 
 namespace comet {

@@ -3,29 +3,28 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/view/vulkan_world_view.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/frame/frame_packet.h"
 #include "comet/core/memory/memory_utils.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_shader.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_view_utils.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/type/vulkan_shader.h"
+#include "comet/render/driver/vulkan/utils/vulkan_shader_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_view_shader_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_view_utils.h"
 
 #ifdef COMET_DEBUG
-#include "comet/debugging/rendering/rendering_debug_settings.h"
+#include "comet/render/debug/rendering_debug_settings.h"
 #endif  // COMET_DEBUG
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 WorldView::WorldView(const WorldViewDescr& descr)
     : View{descr},
@@ -381,5 +380,5 @@ void WorldView::SetViewportAndScissor(const ViewportRect& viewport) const {
   vkCmdSetScissor(command_buffer_handle, 0, 1, &scissor);
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

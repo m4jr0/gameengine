@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 enum class CullMode { Unknown = 0, None, Front, Back, FrontAndBack };
 
 struct RasterizerDescr {
@@ -45,7 +45,7 @@ enum class PrimitiveTopology {
 };
 
 enum class PipelineBindType : u8 { Unknown = 0, Graphics, Compute };
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_DATA_RENDER_PIPELINE_H_

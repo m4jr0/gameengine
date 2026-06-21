@@ -3,23 +3,22 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/utils/vulkan_image_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/type/array.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/core/container/array.h"
 #include "comet/core/type_trait.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_alloc.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 void GenerateImage(Image& image, const Device& device, u32 width, u32 height,
                    u32 mip_levels, u32 array_layers,
@@ -440,5 +439,5 @@ void GenerateMipmaps(VkCommandBuffer command_buffer_handle,
                        nullptr, 1, &barrier);
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

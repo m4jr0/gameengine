@@ -3,30 +3,29 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/handler/vulkan_lighting_handler.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_buffer_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_texture_map_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/type/camera.h"
-#include "comet/rendering/type/common.h"
-#include "comet/rendering/type/light.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/rendering/utils/camera_utils.h"
-#include "comet/rendering/utils/culling_utils.h"
-#include "comet/rendering/utils/light_utils.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/utils/vulkan_buffer_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_image_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_texture_map_utils.h"
+#include "comet/render/driver/vulkan/vulkan_alloc.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
+#include "comet/runtime/camera/camera.h"
+#include "comet/render/common.h"
+#include "comet/data/light/light.h"
+#include "comet/data/render/texture.h"
+#include "comet/runtime/camera/camera_utils.h"
+#include "comet/render/utils/culling_utils.h"
+#include "comet/data/render/utils/light_utils.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 LightingHandler::LightingHandler(const LightingHandlerDescr& descr)
     : Handler{descr},
@@ -883,7 +882,7 @@ bool LightingHandler::IsShadowSlotAlive(usize index) const noexcept {
   return resource.light_handle.IsValid();
 }
 
-void LightingHandler::PopulateCascadeSplits(const RenderCameraData* camera_data,
+void LightingHandler::PopulateCascadeSplits(const CameraViewData* camera_data,
                                             f32 max_distance, u32 cascade_count,
                                             f32 lambda, f32* out_splits) const {
   COMET_ASSERT(out_splits != nullptr, "LightingHandler::PopulateCascadeSplits",
@@ -979,5 +978,5 @@ const TextureHandler* LightingHandler::GetTextureHandler() const {
   return texture_handler_;
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

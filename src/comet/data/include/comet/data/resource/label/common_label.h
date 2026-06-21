@@ -6,7 +6,7 @@
 #define COMET_DATA_RESOURCE_LABEL_COMMON_LABEL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/resource/type/common.h"
+#include "comet/data/resource/common.h"
 
 namespace comet {
 namespace resource {

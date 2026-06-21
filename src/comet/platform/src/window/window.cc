@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_platform_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,8 +11,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/logger/logging.h"
-#include "comet/event/event_manager.h"
-#include "comet/rendering/window/window_event.h"
+#include "comet/runtime/event/event_manager.h"
+#include "comet/platform/window/window_event.h"
 
 namespace comet {
 namespace platform {

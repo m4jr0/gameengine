@@ -6,11 +6,11 @@
 #define COMET_RENDER_DRIVER_VULKAN_TYPE_VULKAN_MATERIAL_H_
 
 #include "comet/core/essentials.h"
-#include "comet/math/vector.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_texture_map.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/material/material_resource.h"
+#include "comet/core/math/vector.h"
+#include "comet/render/driver/vulkan/type/vulkan_texture_map.h"
+#include "comet/render/render_handle.h"
+#include "comet/render/type/texture.h"
+#include "comet/data/resource/material/material_resource.h"
 
 namespace comet {
 namespace rendering {

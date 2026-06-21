@@ -10,12 +10,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/rendering/rendering_handle.h"
-#include "comet/rendering/type/texture.h"
-#include "comet/resource/texture/texture_resource.h"
+#include "comet/render/render_handle.h"
+#include "comet/data/render/texture.h"
+#include "comet/data/resource/texture/texture_resource.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 using GlNativeTextureHandle = GLuint;
 constexpr auto kInvalidGlNativeTextureHandle{
@@ -72,7 +72,7 @@ struct RuntimeTextureDescr {
   GLenum internal_format{GL_INVALID_VALUE};
 };
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_OPENGL_TYPE_OPENGL_TEXTURE_H_

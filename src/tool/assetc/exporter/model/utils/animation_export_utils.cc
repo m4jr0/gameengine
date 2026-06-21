@@ -3,25 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "animation_export_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/animation/animation_id.h"
-#include "comet/animation/utils/animation_clip_utils.h"
-#include "comet/core/logger/logging.h"
-#include "comet/geometry/type/skeleton.h"
-#include "comet/math/geometry.h"
-#include "comet/math/vector.h"
-#include "comet/resource/resource.h"
-#include "editor/asset/exporter/assimp_utils.h"
+#include "exporter/assimp_utils.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 geometry::SkeletonJointId GenerateSkeletonJointId(const aiNode* node) {
   return COMET_STRING_ID(node->mName.C_Str());
 }
@@ -233,6 +226,6 @@ Array<resource::AnimationClipResource> LoadAnimationClips(
 
   return clips;
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

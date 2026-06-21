@@ -3,27 +3,18 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "shader_module_export_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/file_system/file_system.h"
-#include "comet/core/frame/frame_string.h"
-#include "comet/core/logger/logging.h"
-#include "comet/core/memory/memory_utils.h"
-#include "comet/core/type/array.h"
-#include "comet/core/type_trait.h"
-#include "comet/rendering/label/shader_label.h"
-#include "comet/rendering/type/shader.h"
-#include "comet/resource/shader/shader_resource.h"
+#include "comet/runtime.h"
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
                            memory::Allocator* allocator,
                            resource::ShaderModuleResource& shader_module) {
@@ -48,20 +39,20 @@ bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
   shaderc_shader_kind shader_kind{};
 
   switch (shader_module.descr.stage) {
-    case rendering::ShaderStage::Compute:
+    case render::ShaderStage::Compute:
       shader_kind = shaderc_shader_kind::shaderc_glsl_compute_shader;
       break;
-    case rendering::ShaderStage::Vertex:
+    case render::ShaderStage::Vertex:
       shader_kind = shaderc_shader_kind::shaderc_glsl_vertex_shader;
       break;
-    case rendering::ShaderStage::Fragment:
+    case render::ShaderStage::Fragment:
       shader_kind = shaderc_shader_kind::shaderc_glsl_fragment_shader;
       break;
     default:
       COMET_LOG_ERROR(LoggerType::External,
                       "shader_module_export_utils::PopulateSpvShaderCode",
                       "shader stage is unsupported", "stage",
-                      rendering::GetShaderStageLabel(shader_module.descr.stage),
+                      render::GetShaderStageLabel(shader_module.descr.stage),
                       "stage_value", ToUnderlying(shader_module.descr.stage),
                       "asset_path", asset_abs_path);
       break;
@@ -127,7 +118,7 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
   }
 
   const auto local_size_value_char_count{
-      GetCharCount(rendering::kShaderLocalSize)};
+      GetCharCount(render::kShaderLocalSize)};
 
   auto* local_size_value{
       GenerateFrameString<schar>(local_size_value_char_count)};
@@ -136,7 +127,7 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
                "local size buffer allocation failed");
 
   usize local_size_value_len;
-  ConvertToStr(rendering::kShaderLocalSize, local_size_value,
+  ConvertToStr(render::kShaderLocalSize, local_size_value,
                local_size_value_char_count, &local_size_value_len);
 
   constexpr schar kDefinePrefix[]{"#define "};
@@ -157,7 +148,7 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
       code_len + kAdditionalSizeEstimate + kDefinePrefixLen +
       kLocalSizeDefineLen + local_size_value_len + 1 +
       engine_define_count *
-          (rendering::kMaxShaderDefineNameLen + kDefinePrefixLen + 1);
+          (render::kMaxShaderDefineNameLen + kDefinePrefixLen + 1);
 
   shader_module.data.Resize(estimated_size);
 
@@ -219,7 +210,7 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
 void AddSpvMacroDefinitions(shaderc::CompileOptions& options) {
   // Inject local workgroup.
   const auto local_size_value_char_count{
-      GetCharCount(rendering::kShaderLocalSize)};
+      GetCharCount(render::kShaderLocalSize)};
 
   auto* local_size{GenerateFrameString<schar>(local_size_value_char_count)};
   COMET_ASSERT(local_size != nullptr,
@@ -228,7 +219,7 @@ void AddSpvMacroDefinitions(shaderc::CompileOptions& options) {
 
   usize local_size_len;
 
-  ConvertToStr(rendering::kShaderLocalSize, local_size,
+  ConvertToStr(render::kShaderLocalSize, local_size,
                local_size_value_char_count, &local_size_len);
   options.AddMacroDefinition("LOCAL_SIZE", GetLength("LOCAL_SIZE"), local_size,
                              local_size_len);
@@ -241,6 +232,6 @@ void AddSpvMacroDefinitions(shaderc::CompileOptions& options) {
     options.AddMacroDefinition(active_defines[i]);
   }
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

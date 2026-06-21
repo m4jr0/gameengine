@@ -3,28 +3,28 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "asset_exporter.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
-#include "comet/core/concurrency/job/job_utils.h"
-#include "comet/core/concurrency/job/scheduler.h"
+#include "asset_utils.h"
+#include "comet/core/job/job_utils.h"
+#include "comet/core/job/scheduler.h"
 #include "comet/core/logger/logging.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/type_trait.h"
-#include "comet/resource/label/common_label.h"
-#include "editor/asset/asset_utils.h"
+#include "comet/data/resource/label/common_label.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
-#include "comet/core/concurrency/fiber/fiber.h"
+#include "comet/core/fiber/fiber.h"
 #endif  // COMET_FIBER_DEBUG_LABEL
 
 namespace comet {
-namespace editor {
-namespace asset {
+namespace tool {
+namespace assetc {
 const TString& AssetExporter::GetRootResourcePath() const {
   return root_resource_path_;
 }
@@ -185,6 +185,6 @@ AssetExport* AssetExporter::GenerateAssetExport() {
 void AssetExporter::DestroyAssetExport(AssetExport* asset_export) {
   return asset_export_allocator_.Deallocate(asset_export);
 }
-}  // namespace asset
-}  // namespace editor
+}  // namespace assetc
+}  // namespace tool
 }  // namespace comet

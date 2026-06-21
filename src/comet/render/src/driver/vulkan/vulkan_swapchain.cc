@@ -3,25 +3,24 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/vulkan_swapchain.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
-#include "comet/math/math_scalar.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_image_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
-#include "comet/rendering/driver/vulkan/vulkan_device.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/utils/vulkan_image_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_alloc.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
+#include "comet/render/driver/vulkan/vulkan_device.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 void QuerySwapchainSupportDetails(VkPhysicalDevice physical_device_handle,
                                   VkSurfaceKHR surface_handle,
@@ -509,5 +508,5 @@ void Swapchain::DestroyColorResources() {
   }
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

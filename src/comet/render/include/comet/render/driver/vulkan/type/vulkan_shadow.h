@@ -10,8 +10,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/math/matrix.h"
-#include "comet/rendering/type/light.h"
+#include "comet/core/math/matrix.h"
+#include "comet/render/type/light.h"
+#include "comet/runtime/light/light_handle.h"
 
 namespace comet {
 namespace rendering {

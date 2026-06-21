@@ -12,34 +12,36 @@
 #include "comet/core/essentials.h"
 
 // Add specific debug header first to log VMA's messages. //////////////////////
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/frame/frame_container.h"
-#include "comet/core/frame/frame_packet.h"
+#include "comet/core/container/array.h"
 #include "comet/core/memory/memory.h"
-#include "comet/core/type/array.h"
-#include "comet/rendering/driver/driver.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_camera_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_debug_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_descriptor_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_lighting_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_material_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_mesh_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_pipeline_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_pass_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_render_proxy_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_sampler_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_shader_module_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_texture_handler.h"
-#include "comet/rendering/driver/vulkan/handler/vulkan_view_handler.h"
-#include "comet/rendering/driver/vulkan/type/vulkan_command_buffer.h"
-#include "comet/rendering/driver/vulkan/vulkan_context.h"
-#include "comet/rendering/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/platform/window/glfw/vulkan/vulkan_glfw_window.h"
+#include "comet/platform/window/window_common.h"
+#include "comet/render/driver/driver.h"
+#include "comet/render/driver/vulkan/handler/vulkan_camera_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_debug_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_descriptor_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_lighting_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_material_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_mesh_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_pipeline_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_pass_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_render_proxy_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_sampler_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_shader_module_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_texture_handler.h"
+#include "comet/render/driver/vulkan/handler/vulkan_view_handler.h"
+#include "comet/render/driver/vulkan/type/vulkan_command_buffer.h"
+#include "comet/render/driver/vulkan/vulkan_context.h"
+#include "comet/runtime/frame/frame_container.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 struct VulkanDriverDescr : DriverDescr {
   u8 vulkan_major_version{0};
@@ -156,7 +158,7 @@ class VulkanDriver : public Driver {
 #endif  // COMET_DEBUG_RENDERING
 };
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet
 
 #endif  // COMET_RENDER_DRIVER_VULKAN_VULKAN_DRIVER_H_

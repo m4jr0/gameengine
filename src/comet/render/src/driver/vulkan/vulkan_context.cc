@@ -3,24 +3,23 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/driver/vulkan/vulkan_context.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/rendering/driver/vulkan/utils/vulkan_initializer_utils.h"
-#include "comet/rendering/driver/vulkan/vulkan_alloc.h"
-#include "comet/rendering/driver/vulkan/vulkan_debug.h"
+#include "comet/render/driver/vulkan/utils/vulkan_initializer_utils.h"
+#include "comet/render/driver/vulkan/vulkan_alloc.h"
+#include "comet/render/driver/vulkan/vulkan_debug.h"
 
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 Context::Context(const ContextDescr& descr)
     : vulkan_major_version_{descr.vulkan_major_version},
@@ -451,5 +450,5 @@ VkFence Context::GetUploadFenceHandle(FrameInFlightIndex frame_index) const {
 
 bool Context::IsInitialized() const noexcept { return is_initialized_; }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

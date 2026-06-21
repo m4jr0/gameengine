@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -12,7 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace gl {
 namespace debug {
 #ifdef COMET_RENDERING_USE_DEBUG_LABELS
@@ -53,5 +52,5 @@ void SetProgramDebugLabel(GlNativeProgramHandle native_handle,
 #endif  // COMET_RENDERING_USE_DEBUG_LABELS
 }  // namespace debug
 }  // namespace gl
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

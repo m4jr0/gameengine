@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet_pch.h"
+#include "comet_data_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -14,14 +14,14 @@
 #include <fstream>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 #include "comet/core/compression.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type_trait.h"
-#include "comet/math/math_scalar.h"
-#include "comet/profiler/profiler.h"
+#include "comet/core/math/math_scalar.h"
+#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
 namespace resource {

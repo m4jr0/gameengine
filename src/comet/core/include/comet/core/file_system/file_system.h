@@ -8,7 +8,7 @@
 #include "comet/core/essentials.h"
 #include "comet/core/file_system/file_system_type.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/array.h"
+#include "comet/core/container/array.h"
 
 #ifdef COMET_MSVC
 #include "comet/core/windows.h"
@@ -44,8 +44,8 @@
 #include <dirent.h>
 #endif  // !COMET_WINDOWS
 
-#include "comet/core/c_string.h"
-#include "comet/core/type/tstring.h"
+#include "comet/core/string/c_string.h"
+#include "comet/core/string/tstring.h"
 
 namespace comet {
 constexpr CTStringView kDotFolderName{COMET_TCHAR(".")};

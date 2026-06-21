@@ -5,7 +5,7 @@
 #ifndef COMET_CORE_DEBUG_DEBUG_LABEL_H_
 #define COMET_CORE_DEBUG_DEBUG_LABEL_H_
 
-#include "comet/core/c_string.h"
+#include "comet/core/string/c_string.h"
 
 namespace comet {
 constexpr const schar* kUnknownLabel{"<?>"};

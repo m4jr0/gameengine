@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Precompiled. ////////////////////////////////////////////////////////////////
-#include "comet/rendering/comet_rendering_pch.h"
-#include "comet_pch.h"
+#include "comet_render_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
@@ -17,24 +16,24 @@
 
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type_trait.h"
-#include "comet/profiler/profiler.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_shader_utils.h"
-#include "comet/rendering/driver/vulkan/utils/vulkan_view_shader_utils.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_shadow_view.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_world_view.h"
-#include "comet/rendering/label/view_label.h"
+#include "comet/runtime/profiler/profiler.h"
+#include "comet/render/driver/vulkan/utils/vulkan_shader_utils.h"
+#include "comet/render/driver/vulkan/utils/vulkan_view_shader_utils.h"
+#include "comet/render/driver/vulkan/view/vulkan_shadow_view.h"
+#include "comet/render/driver/vulkan/view/vulkan_world_view.h"
+#include "comet/render/label/view_label.h"
 
 #ifdef COMET_IMGUI
-#include "comet/rendering/driver/vulkan/view/vulkan_imgui_view.h"
+#include "comet/render/driver/vulkan/view/vulkan_imgui_view.h"
 #endif  // COMET_IMGUI
 
 #ifdef COMET_DEBUG
-#include "comet/debugging/rendering/rendering_debug_settings.h"
-#include "comet/rendering/driver/vulkan/view/vulkan_debug_view.h"
+#include "comet/render/debug/rendering_debug_settings.h"
+#include "comet/render/driver/vulkan/view/vulkan_debug_view.h"
 #endif  // COMET_DEBUG
 
 namespace comet {
-namespace rendering {
+namespace render {
 namespace vk {
 ViewHandler::ViewHandler(const ViewHandlerDescr& descr)
     : Handler{descr},
@@ -1092,5 +1091,5 @@ ViewUpdate ViewHandler::GenerateViewUpdate(frame::FramePacket* packet,
   return update;
 }
 }  // namespace vk
-}  // namespace rendering
+}  // namespace render
 }  // namespace comet

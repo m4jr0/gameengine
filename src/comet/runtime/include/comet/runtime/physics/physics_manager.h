@@ -6,11 +6,11 @@
 #define COMET_RUNTIME_PHYSICS_PHYSICS_MANAGER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/core/frame/frame_packet.h"
-#include "comet/core/manager.h"
-#include "comet/entity/type/entity_id.h"
-#include "comet/math/matrix.h"
-#include "comet/physics/component/transform_component.h"
+#include "comet/runtime/frame/frame_packet.h"
+#include "comet/runtime/manager.h"
+#include "comet/runtime/entity/entity_id.h"
+#include "comet/core/math/matrix.h"
+#include "comet/runtime/transform/component/transform_component.h"
 
 namespace comet {
 namespace physics {
