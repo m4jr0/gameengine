@@ -10,7 +10,6 @@
 #include "comet/core/math/vector.h"
 #include "comet/data/resource/resource_file.h"
 #include "comet/data/resource/resource.h"
-#include "comet/data/resource/runtime/loaded_resource_handle.h"
 #include "comet/data/resource/shader/shader_resource.h"
 #include "comet/data/resource/texture/texture_resource.h"
 #include "comet/data/resource/common.h"
