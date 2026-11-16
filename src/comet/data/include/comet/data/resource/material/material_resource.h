@@ -75,6 +75,10 @@ usize GetMaterialResourceSize(const MaterialResource& resource);
 ResourceFile PackMaterialResource(const MaterialResource& resource,
                                   CompressionMode compression_mode,
                                   memory::Allocator* allocator);
+void UnpackMaterialResource(const ResourceFile& file,
+    memory::Allocator* scratch_allocator, memory::Allocator* payload_allocator,
+    MaterialResource* resource);
+
 }  // namespace resource
 }  // namespace comet
 

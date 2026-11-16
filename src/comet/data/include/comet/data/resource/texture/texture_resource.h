@@ -50,6 +50,10 @@ usize GetTextureResourceSize(const TextureResource& resource);
 ResourceFile PackTextureResource(const TextureResource& resource,
     CompressionMode compression_mode, memory::Allocator* allocator);
 
+void UnpackTextureResource(const ResourceFile& file,
+    memory::Allocator* scratch_allocator, memory::Allocator* payload_allocator,
+    TextureResource* resource);
+
 }  // namespace resource
 }  // namespace comet
 

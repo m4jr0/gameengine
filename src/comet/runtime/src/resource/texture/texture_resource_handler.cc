@@ -26,51 +26,11 @@ ResourceFile TextureResourceHandler::Pack(const TextureResource& resource,
 }
 
 void TextureResourceHandler::Unpack(const ResourceFile& file,
-                                    ResourceLifeSpan life_span,
-                                    TextureResource* resource) {
-  COMET_ASSERT(resource != nullptr, "TextureResourceHandler::Unpack",
-               "texture resource is null");
-
-  UnpackPodResourceDescr<TextureResourceDescr>(file, resource->descr);
-
-  Array<u8> data{byte_allocator_};
-  UnpackResourceData(file, data);
-
-  const auto* buffer{data.GetData()};
-  usize cursor{0};
-
-  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-
-  COMET_ASSERT(data.GetSize() >= kResourceIdSize + kResourceTypeIdSize,
-               "TextureResourceHandler::Unpack", "texture data is too small",
-               "data_size", data.GetSize());
-  const auto payload_size{data.GetSize() - kResourceIdSize -
-                          kResourceTypeIdSize};
-
-  memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
-  cursor += kResourceIdSize;
-
-  memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
-  COMET_ASSERT(resource->type_id == TextureResource::kResourceTypeId,
-               "TextureResourceHandler::Unpack",
-               "texture resource type id is invalid", "resource_type_id",
-               resource->type_id, "expected_type_id",
-               TextureResource::kResourceTypeId);
-
-  resource->data = Array<u8>{ResolveAllocator(byte_allocator_, life_span)};
-  resource->data.Resize(payload_size);
-  memory::CopyMemory(resource->data.GetData(), &buffer[cursor], payload_size);
-  cursor += payload_size;
-
-  COMET_ASSERT(cursor == data.GetSize(), "TextureResourceHandler::Unpack",
-               "unpacked texture size mismatch", "cursor", cursor, "data_size",
-               data.GetSize());
-
+    ResourceLifeSpan life_span, TextureResource* resource) {
+  UnpackTextureResource(file, byte_allocator_,
+      ResolveAllocator(byte_allocator_, life_span), resource);
   resource->life_span = life_span;
 }
-
 TextureResource* TextureResourceHandler::GetDefaultTextureResource() {
   if (default_texture_ == nullptr) {
     constexpr auto kDimension{256};

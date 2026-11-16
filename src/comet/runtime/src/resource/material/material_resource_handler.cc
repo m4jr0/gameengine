@@ -28,43 +28,11 @@ ResourceFile MaterialResourceHandler::Pack(const MaterialResource& resource,
 }
 
 void MaterialResourceHandler::Unpack(const ResourceFile& file,
-                                     ResourceLifeSpan life_span,
-                                     MaterialResource* resource) {
-  COMET_ASSERT(resource != nullptr, "MaterialResourceHandler::Unpack",
-               "material resource is null");
-
-  UnpackPodResourceDescr<MaterialResourceDescr>(file, resource->descr);
-
-  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-  constexpr auto kDataSize{kResourceIdSize + kResourceTypeIdSize};
-  memory::StaticStackAllocator<kDataSize> tmp_allocator{};
-
-  Array<u8> data{&tmp_allocator};
-  data.Resize(kDataSize);
-  UnpackResourceData(file, data, kDataSize);
-
-  const auto* buffer{data.GetData()};
-  usize cursor{0};
-
-  memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
-  cursor += kResourceIdSize;
-
-  memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
-  COMET_ASSERT(resource->type_id == MaterialResource::kResourceTypeId,
-               "MaterialResourceHandler::Unpack",
-               "material resource type id is invalid", "resource_type_id",
-               resource->type_id, "expected_type_id",
-               MaterialResource::kResourceTypeId);
-
-  COMET_ASSERT(cursor == data.GetSize(), "MaterialResourceHandler::Unpack",
-               "unpacked material size mismatch", "cursor", cursor, "data_size",
-               data.GetSize());
-
+    ResourceLifeSpan life_span, MaterialResource* resource) {
+  UnpackMaterialResource(file, byte_allocator_,
+      byte_allocator_, resource);
   resource->life_span = life_span;
 }
-
 MaterialResource* MaterialResourceHandler::GetDefaultMaterialResource() {
   if (default_material_ == nullptr) {
     default_material_ = std::make_unique<MaterialResource>();

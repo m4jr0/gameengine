@@ -41,6 +41,10 @@ usize GetShaderModuleResourceSize(const ShaderModuleResource& resource);
 ResourceFile PackShaderModuleResource(const ShaderModuleResource& resource,
     CompressionMode compression_mode, memory::Allocator* allocator);
 
+void UnpackShaderModuleResource(const ResourceFile& file,
+    memory::Allocator* scratch_allocator, memory::Allocator* payload_allocator,
+    ShaderModuleResource* resource);
+
 }  // namespace resource
 }  // namespace comet
 

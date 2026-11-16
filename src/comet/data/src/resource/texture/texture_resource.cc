@@ -89,5 +89,53 @@ ResourceFile PackTextureResource(const TextureResource& resource,
   return file;
 }
 
+void UnpackTextureResource(const ResourceFile& file,
+                                    memory::Allocator* scratch_allocator,
+    memory::Allocator* payload_allocator,
+                                    TextureResource* resource) {
+  COMET_ASSERT(payload_allocator != nullptr, "resource::UnpackTextureResource", "payload allocator is null");
+  COMET_ASSERT(resource != nullptr, "TextureResourceHandler::Unpack",
+               "texture resource is null");
+
+  UnpackPodResourceDescr<TextureResourceDescr>(file, resource->descr);
+
+  Array<u8> data{scratch_allocator};
+  UnpackResourceData(file, data);
+
+  const auto* buffer{data.GetData()};
+  usize cursor{0};
+
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
+
+  COMET_ASSERT(data.GetSize() >= kResourceIdSize + kResourceTypeIdSize,
+               "TextureResourceHandler::Unpack", "texture data is too small",
+               "data_size", data.GetSize());
+  const auto payload_size{data.GetSize() - kResourceIdSize -
+                          kResourceTypeIdSize};
+
+  memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
+  cursor += kResourceIdSize;
+
+  memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
+  cursor += kResourceTypeIdSize;
+  COMET_ASSERT(resource->type_id == TextureResource::kResourceTypeId,
+               "TextureResourceHandler::Unpack",
+               "texture resource type id is invalid", "resource_type_id",
+               resource->type_id, "expected_type_id",
+               TextureResource::kResourceTypeId);
+
+  resource->data = Array<u8>{payload_allocator};
+  resource->data.Resize(payload_size);
+  memory::CopyMemory(resource->data.GetData(), &buffer[cursor], payload_size);
+  cursor += payload_size;
+
+  COMET_ASSERT(cursor == data.GetSize(), "TextureResourceHandler::Unpack",
+               "unpacked texture size mismatch", "cursor", cursor, "data_size",
+               data.GetSize());
+
+}
+
+
 }  // namespace resource
 }  // namespace comet
