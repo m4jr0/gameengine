@@ -110,6 +110,15 @@ usize GetModelSize(const SkeletalModelResource& resource);
 
 usize GetSkeletonJointSize();
 usize GetSkeletonSize(const SkeletonResource& resource);
+ResourceFile PackStaticModelResource(const StaticModelResource& resource,
+    CompressionMode compression_mode, memory::Allocator* allocator);
+
+ResourceFile PackSkeletalModelResource(const SkeletalModelResource& resource,
+    CompressionMode compression_mode, memory::Allocator* allocator);
+
+ResourceFile PackSkeletonResource(const SkeletonResource& resource,
+    CompressionMode compression_mode, memory::Allocator* allocator);
+
 }  // namespace resource
 }  // namespace comet
 

@@ -139,49 +139,9 @@ StaticModelResourceHandler::StaticModelResourceHandler(
     const ResourceHandlerDescr& descr)
     : Base{descr} {}
 
-ResourceFile StaticModelResourceHandler::Pack(
-    const StaticModelResource& resource, CompressionMode compression_mode) {
-  COMET_ASSERT(resource.type_id == StaticModelResource::kResourceTypeId,
-               "StaticModelResourceHandler::Pack",
-               "static model resource type id is invalid", "resource_type_id",
-               resource.type_id, "expected_type_id",
-               StaticModelResource::kResourceTypeId);
-
-  ResourceFile file{};
-  file.resource_id = resource.id;
-  file.resource_type_id = StaticModelResource::kResourceTypeId;
-  file.compression_mode = compression_mode;
-  file.descr = Array<u8>{byte_allocator_};
-  file.data = Array<u8>{byte_allocator_};
-
-  Array<u8> data{byte_allocator_};
-  data.Resize(GetModelSize(resource));
-
-  auto* buffer{data.GetData()};
-  usize cursor{0};
-
-  memory::CopyMemory(&buffer[cursor], &resource.id, sizeof(RawResourceId));
-  cursor += sizeof(RawResourceId);
-
-  memory::CopyMemory(&buffer[cursor], &resource.type_id,
-                     sizeof(ResourceTypeId));
-  cursor += sizeof(ResourceTypeId);
-
-  const auto mesh_count{resource.meshes.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &mesh_count, sizeof(mesh_count));
-  cursor += sizeof(mesh_count);
-
-  for (const auto& mesh : resource.meshes) {
-    internal::PackMeshResource(mesh, buffer, cursor);
-  }
-
-  COMET_ASSERT(cursor == data.GetSize(), "StaticModelResourceHandler::Pack",
-               "packed static model size mismatch", "cursor", cursor,
-               "data_size", data.GetSize());
-
-  PackPodResourceDescr(resource.descr, file);
-  PackResourceData(data, file);
-  return file;
+ResourceFile StaticModelResourceHandler::Pack(const StaticModelResource& resource,
+    CompressionMode compression_mode) {
+  return PackStaticModelResource(resource, compression_mode, byte_allocator_);
 }
 
 void StaticModelResourceHandler::Unpack(const ResourceFile& file,
@@ -234,53 +194,9 @@ SkeletalModelResourceHandler::SkeletalModelResourceHandler(
     const ResourceHandlerDescr& descr)
     : Base{descr} {}
 
-ResourceFile SkeletalModelResourceHandler::Pack(
-    const SkeletalModelResource& resource, CompressionMode compression_mode) {
-  COMET_ASSERT(resource.type_id == SkeletalModelResource::kResourceTypeId,
-               "SkeletalModelResourceHandler::Pack",
-               "skeletal model resource type id is invalid", "resource_type_id",
-               resource.type_id, "expected_type_id",
-               SkeletalModelResource::kResourceTypeId);
-
-  ResourceFile file{};
-  file.resource_id = resource.id;
-  file.resource_type_id = SkeletalModelResource::kResourceTypeId;
-  file.compression_mode = compression_mode;
-  file.descr = Array<u8>{byte_allocator_};
-  file.data = Array<u8>{byte_allocator_};
-
-  Array<u8> data{byte_allocator_};
-  data.Resize(GetModelSize(resource));
-
-  auto* buffer{data.GetData()};
-  usize cursor{0};
-
-  memory::CopyMemory(&buffer[cursor], &resource.id, sizeof(RawResourceId));
-  cursor += sizeof(RawResourceId);
-
-  memory::CopyMemory(&buffer[cursor], &resource.type_id,
-                     sizeof(ResourceTypeId));
-  cursor += sizeof(ResourceTypeId);
-
-  memory::CopyMemory(&buffer[cursor], &resource.skeleton_id,
-                     sizeof(geometry::SkeletonId));
-  cursor += sizeof(geometry::SkeletonId);
-
-  const auto mesh_count{resource.meshes.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &mesh_count, sizeof(mesh_count));
-  cursor += sizeof(mesh_count);
-
-  for (const auto& mesh : resource.meshes) {
-    internal::PackMeshResource(mesh, buffer, cursor);
-  }
-
-  COMET_ASSERT(cursor == data.GetSize(), "SkeletalModelResourceHandler::Pack",
-               "packed skeletal model size mismatch", "cursor", cursor,
-               "data_size", data.GetSize());
-
-  PackPodResourceDescr(resource.descr, file);
-  PackResourceData(data, file);
-  return file;
+ResourceFile SkeletalModelResourceHandler::Pack(const SkeletalModelResource& resource,
+    CompressionMode compression_mode) {
+  return PackSkeletalModelResource(resource, compression_mode, byte_allocator_);
 }
 
 void SkeletalModelResourceHandler::Unpack(const ResourceFile& file,
@@ -338,62 +254,8 @@ SkeletonResourceHandler::SkeletonResourceHandler(
     : Base{descr} {}
 
 ResourceFile SkeletonResourceHandler::Pack(const SkeletonResource& resource,
-                                           CompressionMode compression_mode) {
-  COMET_ASSERT(resource.type_id == SkeletonResource::kResourceTypeId,
-               "SkeletonResourceHandler::Pack",
-               "skeleton resource type id is invalid", "resource_type_id",
-               resource.type_id, "expected_type_id",
-               SkeletonResource::kResourceTypeId);
-
-  ResourceFile file{};
-  file.resource_id = resource.id;
-  file.resource_type_id = SkeletonResource::kResourceTypeId;
-  file.compression_mode = compression_mode;
-  file.descr = Array<u8>{byte_allocator_};
-  file.data = Array<u8>{byte_allocator_};
-
-  Array<u8> data{byte_allocator_};
-  data.Resize(GetSkeletonSize(resource));
-
-  auto* buffer{data.GetData()};
-  usize cursor{0};
-
-  memory::CopyMemory(&buffer[cursor], &resource.id, sizeof(RawResourceId));
-  cursor += sizeof(RawResourceId);
-
-  memory::CopyMemory(&buffer[cursor], &resource.type_id,
-                     sizeof(ResourceTypeId));
-  cursor += sizeof(ResourceTypeId);
-
-  memory::CopyMemory(&buffer[cursor], &resource.skeleton.id,
-                     sizeof(geometry::SkeletonId));
-  cursor += sizeof(geometry::SkeletonId);
-
-  const auto joint_count{resource.skeleton.joints.GetSize()};
-  memory::CopyMemory(&buffer[cursor], &joint_count, sizeof(joint_count));
-  cursor += sizeof(joint_count);
-
-  for (const auto& joint : resource.skeleton.joints) {
-    memory::CopyMemory(&buffer[cursor], &joint.id,
-                       sizeof(geometry::SkeletonJointId));
-    cursor += sizeof(geometry::SkeletonJointId);
-
-    memory::CopyMemory(&buffer[cursor], &joint.parent_index,
-                       sizeof(geometry::SkeletonJointIndex));
-    cursor += sizeof(geometry::SkeletonJointIndex);
-
-    memory::CopyMemory(&buffer[cursor], &joint.bind_pose_inv,
-                       sizeof(math::Mat4));
-    cursor += sizeof(math::Mat4);
-  }
-
-  COMET_ASSERT(cursor == data.GetSize(), "SkeletonResourceHandler::Pack",
-               "packed skeleton size mismatch", "cursor", cursor, "data_size",
-               data.GetSize());
-
-  PackPodResourceDescr(resource.descr, file);
-  PackResourceData(data, file);
-  return file;
+    CompressionMode compression_mode) {
+  return PackSkeletonResource(resource, compression_mode, byte_allocator_);
 }
 
 void SkeletonResourceHandler::Unpack(const ResourceFile& file,

@@ -36,6 +36,9 @@ struct AnimationClipResource : Resource {
 };
 
 usize GetAnimationClipSize(const AnimationClipResource& resource);
+ResourceFile PackAnimationClipResource(const AnimationClipResource& resource,
+    CompressionMode compression_mode, memory::Allocator* allocator);
+
 }  // namespace resource
 }  // namespace comet
 
