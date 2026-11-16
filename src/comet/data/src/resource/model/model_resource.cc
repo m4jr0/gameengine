@@ -313,5 +313,227 @@ ResourceFile PackSkeletonResource(const SkeletonResource& resource,
   return file;
 }
 
+namespace decoding_internal {
+template <typename MeshResourceT>
+void UnpackMeshResource(const u8* buffer, usize& cursor,
+                        memory::Allocator* allocator, MeshResourceT& mesh) {
+  COMET_ASSERT(allocator != nullptr,
+               "model_resource_handler::internal::UnpackMeshResource",
+               "allocator is null");
+
+  memory::CopyMemory(&mesh.resource_id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&mesh.internal_id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&mesh.type, &buffer[cursor], sizeof(geometry::MeshType));
+  cursor += sizeof(geometry::MeshType);
+
+  memory::CopyMemory(&mesh.material_resource_id, &buffer[cursor],
+                     sizeof(MaterialResourceId));
+  cursor += sizeof(MaterialResourceId);
+
+  memory::CopyMemory(&mesh.transform, &buffer[cursor], sizeof(math::Mat4));
+  cursor += sizeof(math::Mat4);
+
+  memory::CopyMemory(&mesh.local_center, &buffer[cursor], sizeof(math::Vec3));
+  cursor += sizeof(math::Vec3);
+
+  memory::CopyMemory(&mesh.local_max_extents, &buffer[cursor],
+                     sizeof(math::Vec3));
+  cursor += sizeof(math::Vec3);
+
+  memory::CopyMemory(&mesh.parent_id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  usize vertex_count{0};
+  memory::CopyMemory(&vertex_count, &buffer[cursor], sizeof(vertex_count));
+  cursor += sizeof(vertex_count);
+
+  mesh.vertices = Array<geometry::SkinnedVertex>{allocator};
+  mesh.vertices.Resize(vertex_count);
+
+  if (vertex_count > 0) {
+    const auto vertex_total_size{sizeof(geometry::SkinnedVertex) *
+                                 vertex_count};
+    memory::CopyMemory(mesh.vertices.GetData(), &buffer[cursor],
+                       vertex_total_size);
+    cursor += vertex_total_size;
+  }
+
+  usize index_count{0};
+  memory::CopyMemory(&index_count, &buffer[cursor], sizeof(index_count));
+  cursor += sizeof(index_count);
+
+  mesh.indices = Array<geometry::Index>{allocator};
+  mesh.indices.Resize(index_count);
+
+  if (index_count > 0) {
+    const auto index_total_size{sizeof(geometry::Index) * index_count};
+    memory::CopyMemory(mesh.indices.GetData(), &buffer[cursor],
+                       index_total_size);
+    cursor += index_total_size;
+  }
+}
+}  // namespace decoding_internal
+
+void UnpackStaticModelResource(const ResourceFile& file,
+                                        memory::Allocator* scratch_allocator,
+    memory::Allocator* payload_allocator,
+                                        StaticModelResource* resource) {
+  COMET_ASSERT(resource != nullptr, "StaticModelResourceHandler::Unpack",
+               "static model resource is null");
+
+  UnpackPodResourceDescr<StaticModelResourceDescr>(file, resource->descr);
+
+  Array<u8> data{scratch_allocator};
+  UnpackResourceData(file, data);
+
+  const auto* buffer{data.GetData()};
+  usize cursor{0};
+
+  memory::CopyMemory(&resource->id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&resource->type_id, &buffer[cursor],
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
+  COMET_ASSERT(resource->type_id == StaticModelResource::kResourceTypeId,
+               "StaticModelResourceHandler::Unpack",
+               "static model resource type id is invalid", "resource_type_id",
+               resource->type_id, "expected_type_id",
+               StaticModelResource::kResourceTypeId);
+
+  usize mesh_count{0};
+  memory::CopyMemory(&mesh_count, &buffer[cursor], sizeof(mesh_count));
+  cursor += sizeof(mesh_count);
+
+  auto* allocator{payload_allocator};
+  resource->meshes =
+      Array<StaticMeshResource>::WithCapacity(allocator, mesh_count);
+
+  for (usize i{0}; i < mesh_count; ++i) {
+    auto& mesh{resource->meshes.EmplaceLast()};
+    decoding_internal::UnpackMeshResource(buffer, cursor, allocator, mesh);
+  }
+
+  COMET_ASSERT(cursor == data.GetSize(), "StaticModelResourceHandler::Unpack",
+               "unpacked static model size mismatch", "cursor", cursor,
+               "data_size", data.GetSize());
+
+}
+
+void UnpackSkeletalModelResource(const ResourceFile& file,
+                                          memory::Allocator* scratch_allocator,
+    memory::Allocator* payload_allocator,
+                                          SkeletalModelResource* resource) {
+  COMET_ASSERT(resource != nullptr, "SkeletalModelResourceHandler::Unpack",
+               "skeletal model resource is null");
+
+  UnpackPodResourceDescr<SkeletalModelResourceDescr>(file, resource->descr);
+
+  Array<u8> data{scratch_allocator};
+  UnpackResourceData(file, data);
+
+  const auto* buffer{data.GetData()};
+  usize cursor{0};
+
+  memory::CopyMemory(&resource->id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&resource->type_id, &buffer[cursor],
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
+
+  memory::CopyMemory(&resource->skeleton_id, &buffer[cursor],
+                     sizeof(geometry::SkeletonId));
+  cursor += sizeof(geometry::SkeletonId);
+  COMET_ASSERT(resource->type_id == SkeletalModelResource::kResourceTypeId,
+               "SkeletalModelResourceHandler::Unpack",
+               "skeletal model resource type id is invalid", "resource_type_id",
+               resource->type_id, "expected_type_id",
+               SkeletalModelResource::kResourceTypeId);
+
+  usize mesh_count{0};
+  memory::CopyMemory(&mesh_count, &buffer[cursor], sizeof(mesh_count));
+  cursor += sizeof(mesh_count);
+
+  auto* allocator{payload_allocator};
+  resource->meshes =
+      Array<SkinnedMeshResource>::WithCapacity(allocator, mesh_count);
+
+  for (usize i{0}; i < mesh_count; ++i) {
+    auto& mesh{resource->meshes.EmplaceLast()};
+    decoding_internal::UnpackMeshResource(buffer, cursor, allocator, mesh);
+  }
+
+  COMET_ASSERT(cursor == data.GetSize(), "SkeletalModelResourceHandler::Unpack",
+               "unpacked skeletal model size mismatch", "cursor", cursor,
+               "data_size", data.GetSize());
+
+}
+
+void UnpackSkeletonResource(const ResourceFile& file,
+                                     memory::Allocator* scratch_allocator,
+    memory::Allocator* payload_allocator,
+                                     SkeletonResource* resource) {
+  COMET_ASSERT(resource != nullptr, "SkeletonResourceHandler::Unpack",
+               "skeleton resource is null");
+
+  UnpackPodResourceDescr<SkeletonResourceDescr>(file, resource->descr);
+
+  Array<u8> data{scratch_allocator};
+  UnpackResourceData(file, data);
+
+  const auto* buffer{data.GetData()};
+  usize cursor{0};
+
+  memory::CopyMemory(&resource->id, &buffer[cursor], sizeof(RawResourceId));
+  cursor += sizeof(RawResourceId);
+
+  memory::CopyMemory(&resource->type_id, &buffer[cursor],
+                     sizeof(ResourceTypeId));
+  cursor += sizeof(ResourceTypeId);
+  COMET_ASSERT(resource->type_id == SkeletonResource::kResourceTypeId,
+               "SkeletonResourceHandler::Unpack",
+               "skeleton resource type id is invalid", "resource_type_id",
+               resource->type_id, "expected_type_id",
+               SkeletonResource::kResourceTypeId);
+
+  memory::CopyMemory(&resource->skeleton.id, &buffer[cursor],
+                     sizeof(geometry::SkeletonId));
+  cursor += sizeof(geometry::SkeletonId);
+
+  usize joint_count{0};
+  memory::CopyMemory(&joint_count, &buffer[cursor], sizeof(joint_count));
+  cursor += sizeof(joint_count);
+
+  auto* allocator{payload_allocator};
+  resource->skeleton.joints =
+      Array<geometry::SkeletonJoint>::WithCapacity(allocator, joint_count);
+
+  for (usize i{0}; i < joint_count; ++i) {
+    auto& joint{resource->skeleton.joints.EmplaceLast()};
+
+    memory::CopyMemory(&joint.id, &buffer[cursor],
+                       sizeof(geometry::SkeletonJointId));
+    cursor += sizeof(geometry::SkeletonJointId);
+
+    memory::CopyMemory(&joint.parent_index, &buffer[cursor],
+                       sizeof(geometry::SkeletonJointIndex));
+    cursor += sizeof(geometry::SkeletonJointIndex);
+
+    memory::CopyMemory(&joint.bind_pose_inv, &buffer[cursor],
+                       sizeof(math::Mat4));
+    cursor += sizeof(math::Mat4);
+  }
+
+  COMET_ASSERT(cursor == data.GetSize(), "SkeletonResourceHandler::Unpack",
+               "unpacked skeleton size mismatch", "cursor", cursor, "data_size",
+               data.GetSize());
+
+}
+
 }  // namespace resource
 }  // namespace comet

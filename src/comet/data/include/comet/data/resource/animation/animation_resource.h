@@ -39,6 +39,10 @@ usize GetAnimationClipSize(const AnimationClipResource& resource);
 ResourceFile PackAnimationClipResource(const AnimationClipResource& resource,
     CompressionMode compression_mode, memory::Allocator* allocator);
 
+void UnpackAnimationClipResource(const ResourceFile& file,
+    memory::Allocator* scratch_allocator, memory::Allocator* payload_allocator,
+    AnimationClipResource* resource);
+
 }  // namespace resource
 }  // namespace comet
 

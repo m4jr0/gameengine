@@ -119,6 +119,18 @@ ResourceFile PackSkeletalModelResource(const SkeletalModelResource& resource,
 ResourceFile PackSkeletonResource(const SkeletonResource& resource,
     CompressionMode compression_mode, memory::Allocator* allocator);
 
+void UnpackStaticModelResource(const ResourceFile& file,
+    memory::Allocator* scratch_allocator, memory::Allocator* payload_allocator,
+    StaticModelResource* resource);
+
+void UnpackSkeletalModelResource(const ResourceFile& file,
+    memory::Allocator* scratch_allocator, memory::Allocator* payload_allocator,
+    SkeletalModelResource* resource);
+
+void UnpackSkeletonResource(const ResourceFile& file,
+    memory::Allocator* scratch_allocator, memory::Allocator* payload_allocator,
+    SkeletonResource* resource);
+
 }  // namespace resource
 }  // namespace comet
 
