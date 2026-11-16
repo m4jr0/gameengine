@@ -10,7 +10,7 @@
 #include "comet/data/resource/material/material_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime/frame/frame_string.h"
+#include <memory>
 #include "comet/core/id/string_id_allocator.h"
 #include "comet/core/id/string_id.h"
 #include "comet/core/memory/memory_utils.h"
@@ -80,13 +80,15 @@ MaterialResourceId GenerateQualifiedMaterialId(CTStringView file_path,
 
   constexpr auto kMaxStackBufferSize{512};
   schar* buffer{nullptr};
+  std::unique_ptr<schar[]> heap_buffer{};
   schar stack_buffer[kMaxStackBufferSize]{'\0'};
   constexpr schar kAttributeSeparator{'|'};
 
   if (total_len + 1 <= kMaxStackBufferSize) {
     buffer = stack_buffer;
   } else {
-    buffer = GenerateFrameString<schar>(total_len + 1);
+    heap_buffer = std::make_unique<schar[]>(total_len + 1);
+    buffer = heap_buffer.get();
   }
 
   usize cursor{0};
