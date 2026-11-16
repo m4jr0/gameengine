@@ -37,7 +37,8 @@ struct SchedulerConfig {
   usize large_fiber_count{0};
   usize gigantic_fiber_count{0};
 
-#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT // >:3 Remove.
+// Optional pool for jobs that need larger stacks when calling external libraries.
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
   usize external_library_fiber_count{0};
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 

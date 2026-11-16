@@ -511,7 +511,7 @@ void Engine::InitializeScheduler() {
       .large_fiber_count = large_fiber_count,
       .gigantic_fiber_count = gigantic_fiber_count,
 
-#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT  // >:3 Useless now?
+#ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
       .external_library_fiber_count = external_library_fiber_count,
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
