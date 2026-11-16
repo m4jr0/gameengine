@@ -427,5 +427,306 @@ ResourceFile PackShaderResource(const ShaderResource& resource,
   return file;
 }
 
+namespace decoding_internal {
+void ParseShaderModules(const u8* buffer,
+                                               ShaderResourceDescr& descr,
+                                               usize& cursor, memory::Allocator* allocator) {
+  usize module_count{0};
+  memory::CopyMemory(&module_count, &buffer[cursor], packing_internal::kUsizeSize);
+  cursor += packing_internal::kUsizeSize;
+
+  descr.shader_module_resource_ids.Reserve(module_count);
+
+  constexpr auto kShaderModuleResourceIdSize{sizeof(ShaderModuleResourceId)};
+
+  for (usize i{0}; i < module_count; ++i) {
+    auto& module_resource_id{descr.shader_module_resource_ids.EmplaceLast()};
+    memory::CopyMemory(&module_resource_id, &buffer[cursor],
+                       kShaderModuleResourceIdSize);
+    cursor += kShaderModuleResourceIdSize;
+  }
+}
+
+void ParseShaderDefines(const u8* buffer,
+                                               ShaderResourceDescr& descr,
+                                               usize& cursor, memory::Allocator* allocator) {
+  usize define_count{0};
+  memory::CopyMemory(&define_count, &buffer[cursor], packing_internal::kUsizeSize);
+  cursor += packing_internal::kUsizeSize;
+
+  descr.defines.Reserve(define_count);
+
+  for (usize i{0}; i < define_count; ++i) {
+    auto& define_descr{descr.defines.EmplaceLast()};
+
+    usize define_name_len{0};
+    memory::CopyMemory(&define_name_len, &buffer[cursor], packing_internal::kUsizeSize);
+    cursor += packing_internal::kUsizeSize;
+
+    if (define_name_len > 0) {
+      COMET_ASSERT(define_name_len < render::kMaxShaderDefineNameLen + 1,
+                   "ParseShaderDefines",
+                   "shader define name length is invalid", "name_len",
+                   define_name_len);
+      SetName(define_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+              define_name_len);
+      cursor += define_name_len;
+    }
+
+    usize define_value_len{0};
+    memory::CopyMemory(&define_value_len, &buffer[cursor],
+                       packing_internal::kUsizeSize);
+    cursor += packing_internal::kUsizeSize;
+
+    if (define_value_len > 0) {
+      COMET_ASSERT(define_value_len < render::kMaxShaderDefineValueLen + 1,
+                   "ParseShaderDefines",
+                   "shader define value length is invalid", "value_len",
+                   define_value_len);
+      SetValue(define_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+               define_value_len);
+      cursor += define_value_len;
+    }
+  }
+}
+
+void ParseBindings(const u8* buffer,
+                                          ShaderResourceDescr& descr,
+                                          usize& cursor, memory::Allocator* allocator) {
+  usize binding_count{0};
+  memory::CopyMemory(&binding_count, &buffer[cursor], packing_internal::kUsizeSize);
+  cursor += packing_internal::kUsizeSize;
+
+  descr.bindings.Reserve(binding_count);
+
+  for (usize i{0}; i < binding_count; ++i) {
+    auto& binding_descr{descr.bindings.EmplaceLast()};
+
+    usize binding_name_len{0};
+    memory::CopyMemory(&binding_name_len, &buffer[cursor],
+                       packing_internal::kUsizeSize);
+    cursor += packing_internal::kUsizeSize;
+
+    if (binding_name_len > 0) {
+      SetName(binding_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+              binding_name_len);
+      cursor += binding_name_len;
+    }
+
+    memory::CopyMemory(&binding_descr.type, &buffer[cursor],
+                       packing_internal::kShaderBindingTypeSize);
+    cursor += packing_internal::kShaderBindingTypeSize;
+
+    memory::CopyMemory(&binding_descr.scope, &buffer[cursor],
+                       packing_internal::kShaderBindingScopeSize);
+    cursor += packing_internal::kShaderBindingScopeSize;
+
+    memory::CopyMemory(&binding_descr.layout, &buffer[cursor],
+                       packing_internal::kShaderMemoryLayoutSize);
+    cursor += packing_internal::kShaderMemoryLayoutSize;
+
+    memory::CopyMemory(&binding_descr.set, &buffer[cursor], packing_internal::kU32Size);
+    cursor += packing_internal::kU32Size;
+
+    memory::CopyMemory(&binding_descr.binding, &buffer[cursor],
+                       packing_internal::kU32Size);
+    cursor += packing_internal::kU32Size;
+
+    memory::CopyMemory(&binding_descr.descriptor_count, &buffer[cursor],
+                       packing_internal::kU32Size);
+    cursor += packing_internal::kU32Size;
+
+    memory::CopyMemory(&binding_descr.image_semantic, &buffer[cursor],
+                       packing_internal::kShaderImageBindingSemanticSize);
+    cursor += packing_internal::kShaderImageBindingSemanticSize;
+
+    memory::CopyMemory(&binding_descr.stages, &buffer[cursor],
+                       packing_internal::kShaderStageFlagsSize);
+    cursor += packing_internal::kShaderStageFlagsSize;
+
+    usize field_count{0};
+    memory::CopyMemory(&field_count, &buffer[cursor], packing_internal::kUsizeSize);
+    cursor += packing_internal::kUsizeSize;
+
+    binding_descr.fields = Array<render::ShaderFieldDescr>{allocator};
+    binding_descr.fields.Reserve(field_count);
+
+    for (usize j{0}; j < field_count; ++j) {
+      auto& field_descr{binding_descr.fields.EmplaceLast()};
+
+      usize field_name_len{0};
+      memory::CopyMemory(&field_name_len, &buffer[cursor],
+                         packing_internal::kUsizeSize);
+      cursor += packing_internal::kUsizeSize;
+
+      if (field_name_len > 0) {
+        COMET_ASSERT(field_name_len < render::kShaderNameMaxLen + 1,
+                     "ParseBindings",
+                     "shader field name length is invalid", "name_len",
+                     field_name_len);
+        SetName(field_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+                field_name_len);
+        cursor += field_name_len;
+      }
+
+      memory::CopyMemory(&field_descr.type, &buffer[cursor],
+                         packing_internal::kShaderVariableTypeSize);
+      cursor += packing_internal::kShaderVariableTypeSize;
+
+      memory::CopyMemory(&field_descr.array_count, &buffer[cursor],
+                         packing_internal::kU32Size);
+      cursor += packing_internal::kU32Size;
+    }
+  }
+}
+
+void ParsePushConstants(const u8* buffer,
+                                               ShaderResourceDescr& descr,
+                                               usize& cursor, memory::Allocator* allocator) {
+  usize push_constant_count{0};
+  memory::CopyMemory(&push_constant_count, &buffer[cursor],
+                     packing_internal::kUsizeSize);
+  cursor += packing_internal::kUsizeSize;
+
+  descr.push_constants.Reserve(push_constant_count);
+
+  for (usize i{0}; i < push_constant_count; ++i) {
+    auto& push_constant_descr{descr.push_constants.EmplaceLast()};
+
+    usize push_constant_name_len{0};
+    memory::CopyMemory(&push_constant_name_len, &buffer[cursor],
+                       packing_internal::kUsizeSize);
+    cursor += packing_internal::kUsizeSize;
+
+    if (push_constant_name_len > 0) {
+      SetName(push_constant_descr,
+              reinterpret_cast<const schar*>(&buffer[cursor]),
+              push_constant_name_len);
+      cursor += push_constant_name_len;
+    }
+
+    memory::CopyMemory(&push_constant_descr.stages, &buffer[cursor],
+                       packing_internal::kShaderStageFlagsSize);
+    cursor += packing_internal::kShaderStageFlagsSize;
+
+    usize field_count{0};
+    memory::CopyMemory(&field_count, &buffer[cursor], packing_internal::kUsizeSize);
+    cursor += packing_internal::kUsizeSize;
+
+    push_constant_descr.fields =
+        Array<render::ShaderFieldDescr>{allocator};
+    push_constant_descr.fields.Reserve(field_count);
+
+    for (usize j{0}; j < field_count; ++j) {
+      auto& field_descr{push_constant_descr.fields.EmplaceLast()};
+
+      usize field_name_len{0};
+      memory::CopyMemory(&field_name_len, &buffer[cursor],
+                         packing_internal::kUsizeSize);
+      cursor += packing_internal::kUsizeSize;
+
+      if (field_name_len > 0) {
+        COMET_ASSERT(field_name_len < render::kShaderNameMaxLen + 1,
+                     "ParseBindings",
+                     "shader field name length is invalid", "name_len",
+                     field_name_len);
+        SetName(field_descr, reinterpret_cast<const schar*>(&buffer[cursor]),
+                field_name_len);
+        cursor += field_name_len;
+      }
+
+      memory::CopyMemory(&field_descr.type, &buffer[cursor],
+                         packing_internal::kShaderVariableTypeSize);
+      cursor += packing_internal::kShaderVariableTypeSize;
+
+      memory::CopyMemory(&field_descr.array_count, &buffer[cursor],
+                         packing_internal::kU32Size);
+      cursor += packing_internal::kU32Size;
+    }
+  }
+}
+
+}  // namespace decoding_internal
+
+void ParseDescr(const Array<u8>& dumped_descr,
+    ShaderResourceDescr& descr, memory::Allocator* allocator) {
+  descr.shader_module_resource_ids =
+      Array<ShaderModuleResourceId>{allocator};
+  descr.defines = Array<render::ShaderDefineDescr>{allocator};
+  descr.bindings = Array<render::ShaderBindingDescr>{allocator};
+  descr.push_constants =
+      Array<render::ShaderPushConstantDescr>{allocator};
+
+  const auto* buffer{dumped_descr.GetData()};
+  usize cursor{0};
+
+  memory::CopyMemory(&descr.rasterizer.is_wireframe, &buffer[cursor],
+                     packing_internal::kBoolSize);
+  cursor += packing_internal::kBoolSize;
+
+  memory::CopyMemory(&descr.rasterizer.is_depth_bias, &buffer[cursor],
+                     packing_internal::kBoolSize);
+  cursor += packing_internal::kBoolSize;
+
+  memory::CopyMemory(&descr.rasterizer.cull_mode, &buffer[cursor],
+                     packing_internal::kCullModeSize);
+  cursor += packing_internal::kCullModeSize;
+
+  memory::CopyMemory(&descr.depth_stencil.is_depth_test, &buffer[cursor],
+                     packing_internal::kBoolSize);
+  cursor += packing_internal::kBoolSize;
+
+  memory::CopyMemory(&descr.depth_stencil.is_depth_write, &buffer[cursor],
+                     packing_internal::kBoolSize);
+  cursor += packing_internal::kBoolSize;
+
+  memory::CopyMemory(&descr.depth_stencil.compare_op, &buffer[cursor],
+                     packing_internal::kCompareOpSize);
+  cursor += packing_internal::kCompareOpSize;
+
+  memory::CopyMemory(&descr.topology, &buffer[cursor],
+                     packing_internal::kPrimitiveTopologySize);
+  cursor += packing_internal::kPrimitiveTopologySize;
+
+  memory::CopyMemory(&descr.vertex_layout, &buffer[cursor],
+                     packing_internal::kShaderVertexLayoutSize);
+  cursor += packing_internal::kShaderVertexLayoutSize;
+
+  decoding_internal::ParseShaderModules(buffer, descr, cursor, allocator);
+  decoding_internal::ParseShaderDefines(buffer, descr, cursor, allocator);
+  decoding_internal::ParseBindings(buffer, descr, cursor, allocator);
+  decoding_internal::ParsePushConstants(buffer, descr, cursor, allocator);
+
+  COMET_ASSERT(cursor == dumped_descr.GetSize(),
+               "ParseDescr",
+               "parsed shader description size mismatch", "cursor", cursor,
+               "descr_size", dumped_descr.GetSize());
+}
+
+
+
+void UnpackShaderResource(const ResourceFile& file,
+    memory::Allocator* allocator, ShaderResource* resource) {
+  COMET_ASSERT(resource != nullptr, "resource::UnpackShaderResource", "resource is null");
+  Array<u8> dumped_descr{allocator};
+  UnpackBytes(file.compression_mode, file.descr, file.descr_size, dumped_descr);
+  ParseDescr(dumped_descr, resource->descr, allocator);
+  Array<u8> data{allocator};
+  UnpackResourceData(file, data);
+  const auto* buffer{data.GetData()};
+  usize cursor{0};
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
+  COMET_ASSERT(data.GetSize() >= kResourceIdSize + kResourceTypeIdSize,
+      "resource::UnpackShaderResource", "shader data is too small");
+  memory::CopyMemory(&resource->id, &buffer[cursor], kResourceIdSize);
+  cursor += kResourceIdSize;
+  memory::CopyMemory(&resource->type_id, &buffer[cursor], kResourceTypeIdSize);
+  cursor += kResourceTypeIdSize;
+  COMET_ASSERT(resource->type_id == ShaderResource::kResourceTypeId,
+      "resource::UnpackShaderResource", "invalid shader type");
+  COMET_ASSERT(cursor == data.GetSize(), "resource::UnpackShaderResource", "shader data size mismatch");
+}
+
 }  // namespace resource
 }  // namespace comet

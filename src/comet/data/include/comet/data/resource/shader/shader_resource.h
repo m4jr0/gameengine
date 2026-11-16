@@ -55,6 +55,9 @@ ResourceFile PackShaderResource(const ShaderResource& resource,
                                 CompressionMode compression_mode,
                                 memory::Allocator* allocator);
 
+void UnpackShaderResource(const ResourceFile& file,
+    memory::Allocator* allocator, ShaderResource* resource);
+
 }  // namespace resource
 }  // namespace comet
 
