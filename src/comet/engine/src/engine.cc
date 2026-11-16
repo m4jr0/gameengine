@@ -206,10 +206,17 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   COMET_ASSERT(engine != nullptr, "Engine::OnSchedulerStarted",
                "engine is null");
 
-  memory::TaggedHeap::Get()
-      .Initialize();  // >:3 Clean this stuff, like create functions and so on.
+  engine->InitializeSchedulerBootstrap();
+  engine->Initialize();
+  engine->Run();
+  job::Scheduler::Get().RequestShutdown();
+}
 
-  memory::AttachDefaultAllocator(&engine->core_default_allocator_);
+
+void Engine::InitializeSchedulerBootstrap() {
+  memory::TaggedHeap::Get().Initialize();
+
+  memory::AttachDefaultAllocator(&core_default_allocator_);
 
   InitializeFileSystem({
       .get_scratch_allocator = &frame::GetFrameAllocator(),
@@ -222,11 +229,7 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   profiler::ProfilerManager::Get().Initialize();
 #endif  // COMET_PROFILING
   resource::ResourceManager::Get().Initialize();
-  engine->Initialize();
-  engine->Run();
-  job::Scheduler::Get().RequestShutdown();
 }
-
 
 void Engine::Exit() {
   event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();

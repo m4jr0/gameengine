@@ -39,6 +39,7 @@ class Engine {
   // Not accessible to prevent some spaghetti code.
   inline static Engine* engine_{nullptr};
   static void OnSchedulerStarted(job::JobParamsHandle handle);
+  void InitializeSchedulerBootstrap();
 
   void Exit();
 
