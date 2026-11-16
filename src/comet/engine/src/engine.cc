@@ -227,7 +227,6 @@ void Engine::OnSchedulerStarted(job::JobParamsHandle handle) {
   job::Scheduler::Get().RequestShutdown();
 }
 
-Engine::Engine() { Engine::engine_ = this; }
 
 void Engine::Exit() {
   event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();
