@@ -91,8 +91,8 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
       texture.descr.resolution[1];
   asset_descr.metadata[kCometEditorTextureMetadataKeySize] = texture.descr.size;
 
-  resource_files.PushLast(resource::ResourceManager::Get().GetTextures()->Pack(
-      texture, compression_mode_));
+  resource_files.PushLast(resource::PackTextureResource(
+      texture, compression_mode_, context.allocator));
   stbi_image_free(texture_context.pixel_data);
   COMET_LOG_DEBUG(LoggerType::External, "TextureExporter::PopulateFiles",
                   "texture processed", "asset_path", texture_context.path);

@@ -128,8 +128,8 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
                   "shader module processed", "asset_path",
                   shader_code_context.asset_abs_path);
   context.files.PushLast(
-      resource::ResourceManager::Get().GetShaderModules()->Pack(
-          shader_module, compression_mode_));
+      resource::PackShaderModuleResource(
+          shader_module, compression_mode_, context.allocator));
 }
 
 void ShaderModuleExporter::OnShaderModuleLoading(
