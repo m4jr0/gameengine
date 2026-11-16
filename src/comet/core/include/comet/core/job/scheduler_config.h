@@ -52,5 +52,3 @@ struct SchedulerConfig {
 }  // namespace comet
 
 #endif  // COMET_CORE_JOB_SCHEDULER_CONFIG_H_
-
-#endif  // COMET_CORE_JOB_SCHEDULER_CONFIG_H_
