@@ -51,6 +51,10 @@ usize GetSizeFromDescr(const ShaderResourceDescr& descr);
 const schar** GetActiveShaderEngineDefines(usize& count);
 bool IsShaderEngineDefineSet(const schar* engine_define,
                              usize engine_define_len);
+ResourceFile PackShaderResource(const ShaderResource& resource,
+                                CompressionMode compression_mode,
+                                memory::Allocator* allocator);
+
 }  // namespace resource
 }  // namespace comet
 

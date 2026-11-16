@@ -33,16 +33,6 @@ class ShaderResourceHandler
               ShaderResource* resource) override;
 
  private:
-  Array<u8> DumpDescr(const ShaderResourceDescr& descr);
-
-  void DumpShaderModules(const ShaderResourceDescr& descr, u8* buffer,
-                         usize& cursor);
-  void DumpShaderDefines(const ShaderResourceDescr& descr, u8* buffer,
-                         usize& cursor);
-  void DumpBindings(const ShaderResourceDescr& descr, u8* buffer,
-                    usize& cursor);
-  void DumpPushConstants(const ShaderResourceDescr& descr, u8* buffer,
-                         usize& cursor);
 
   void ParseDescr(const Array<u8>& dumped_descr, ShaderResourceDescr& descr);
 
