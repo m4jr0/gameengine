@@ -12,11 +12,10 @@
 
 namespace comet {
 namespace memory {
-namespace {
-void* SystemAllocator::AllocateAligned(usize size, Alignment align) override {
+void* SystemAllocator::AllocateAligned(usize size, Alignment align) {
   return ::operator new(size, std::align_val_t{align});
 }
 
-void SystemAllocator::Deallocate(void* ptr) override { ::operator delete(ptr); }
+void SystemAllocator::Deallocate(void* ptr) { ::operator delete(ptr); }
 }  // namespace memory
 }  // namespace comet
