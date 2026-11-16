@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "shader_resource.h"
+#include "comet/data/resource/shader/shader_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/string/c_string.h"
@@ -153,9 +153,6 @@ constexpr usize kShaderVariableTypeSize{sizeof(render::ShaderVariableType)};
 constexpr usize kShaderImageBindingSemanticSize{
     sizeof(render::ShaderImageBindingSemantic)};
 
-usize GetTStringByteSize(const TString& str) {
-  return str.GetLengthWithNullTerminator() * sizeof(tchar);
-}
 }  // namespace packing_internal
 
 namespace packing_internal {

@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "comet/data/resource_file.h"
+#include "comet/data/resource/resource_file.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
@@ -21,14 +21,12 @@
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/type_trait.h"
 #include "comet/core/math/math_scalar.h"
-#include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
 namespace resource {
 void PackBytes(const u8* bytes, usize bytes_size,
                CompressionMode compression_mode, Array<u8>* packed_bytes,
                usize* packed_bytes_size) {
-  COMET_PROFILE("resource::PackBytes");
   COMET_ASSERT(bytes_size == 0 || bytes != nullptr, "resource::PackBytes",
                "bytes are null for non-zero size", "bytes_size", bytes_size);
   COMET_ASSERT(packed_bytes != nullptr, "resource::PackBytes",
@@ -65,7 +63,6 @@ void PackBytes(const Array<u8>& bytes, CompressionMode compression_mode,
 }
 
 void PackResourceData(const Array<u8>& data, ResourceFile& file) {
-  COMET_PROFILE("resource::PackResourceData");
   file.data_size = data.GetSize();
   PackBytes(data, file.compression_mode, &file.data, &file.packed_data_size);
 }
@@ -73,7 +70,6 @@ void PackResourceData(const Array<u8>& data, ResourceFile& file) {
 void UnpackBytes(CompressionMode compression_mode, const u8* packed_bytes,
                  usize packed_bytes_size, usize decompressed_size,
                  Array<u8>& data) {
-  COMET_PROFILE("resource::UnpackBytes");
   COMET_ASSERT(packed_bytes_size == 0 || packed_bytes != nullptr,
                "resource::UnpackBytes",
                "packed bytes are null for non-zero size", "packed_bytes_size",
@@ -112,7 +108,6 @@ void UnpackBytes(CompressionMode compression_mode,
 
 void UnpackResourceData(const ResourceFile& file, Array<u8>& data,
                         usize max_data_size) {
-  COMET_PROFILE("resource::UnpackResourceData");
   COMET_ASSERT(max_data_size == kInvalidSize || max_data_size <= file.data_size,
                "resource::UnpackResourceData",
                "max data size exceeds file data size", "max_data_size",
@@ -130,7 +125,6 @@ void UnpackResourceData(const ResourceFile& file, Array<u8>& data,
 }
 
 bool SaveResourceFile(CTStringView path, const ResourceFile& file) {
-  COMET_PROFILE("resource::SaveResourceFile");
   COMET_ASSERT(!path.IsEmpty(), "resource::SaveResourceFile", "path is empty");
   COMET_ASSERT(file.packed_descr_size == 0 || file.descr.GetData() != nullptr,
                "resource::SaveResourceFile",

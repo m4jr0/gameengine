@@ -21,7 +21,7 @@
 #include "comet/data/render/pipeline.h"
 #include "comet/data/render/shader.h"
 #include "comet/data/render/texture.h"
-#include "comet/data/render/utils/light_utils.h"
+#include "comet/data/light/light_utils.h"
 #include "comet/data/render/utils/shader_utils.h"
 #include "comet/data/render/utils/texture_utils.h"
 #include "comet/data/resource/animation/animation_resource.h"

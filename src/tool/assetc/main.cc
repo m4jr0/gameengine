@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
   comet::memory::AttachDefaultAllocator(&allocator);
 
   comet::InitializeFileSystem({
-      .scratch_allocator = &allocator,
+      .get_scratch_allocator = [&allocator]() -> comet::memory::Allocator* { return &allocator; },
   });
 
   comet::job::SchedulerConfig scheduler_config{};
