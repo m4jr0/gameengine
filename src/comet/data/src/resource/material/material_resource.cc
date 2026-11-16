@@ -13,6 +13,7 @@
 #include "comet/runtime/frame/frame_string.h"
 #include "comet/core/id/string_id_allocator.h"
 #include "comet/core/id/string_id.h"
+#include "comet/core/memory/memory_utils.h"
 
 namespace comet {
 namespace resource {
@@ -110,6 +111,45 @@ MaterialResourceId GenerateQualifiedMaterialId(CTStringView file_path,
 }
 
 MaterialResource::Id MaterialResource::GetId() const noexcept { return Id{id}; }
+
+ResourceFile PackMaterialResource(const MaterialResource& resource,
+                                  CompressionMode compression_mode,
+                                  memory::Allocator* allocator) {
+  COMET_ASSERT(allocator != nullptr, "resource::PackMaterialResource",
+               "allocator is null");
+  COMET_ASSERT(resource.type_id == MaterialResource::kResourceTypeId,
+               "resource::PackMaterialResource",
+               "material resource type id is invalid");
+
+  ResourceFile file{};
+  file.resource_id = resource.id;
+  file.resource_type_id = MaterialResource::kResourceTypeId;
+  file.compression_mode = compression_mode;
+  file.descr = Array<u8>{allocator};
+  file.data = Array<u8>{allocator};
+
+  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
+  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
+
+  Array<u8> data{allocator};
+  data.Resize(GetMaterialResourceSize(resource));
+  usize cursor{0};
+  auto* buffer{data.GetData()};
+
+  memory::CopyMemory(&buffer[cursor], &resource.id, kResourceIdSize);
+  cursor += kResourceIdSize;
+
+  memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
+  cursor += kResourceTypeIdSize;
+
+  COMET_ASSERT(cursor == data.GetSize(), "resource::PackMaterialResource",
+               "packed material size mismatch", "cursor", cursor,
+               "data_size", data.GetSize());
+
+  PackPodResourceDescr(resource.descr, file);
+  PackResourceData(data, file);
+  return file;
+}
 
 usize GetMaterialResourceSize(const MaterialResource&) {
   return sizeof(RawResourceId) + sizeof(ResourceTypeId);

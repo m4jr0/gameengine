@@ -70,6 +70,11 @@ inline constexpr MaterialResource::Id GetDefaultMaterialId() noexcept {
 }
 
 usize GetMaterialResourceSize(const MaterialResource& resource);
+
+// Format-only packing; the caller owns the allocator and resulting buffers.
+ResourceFile PackMaterialResource(const MaterialResource& resource,
+                                  CompressionMode compression_mode,
+                                  memory::Allocator* allocator);
 }  // namespace resource
 }  // namespace comet
 

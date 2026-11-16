@@ -24,40 +24,7 @@ MaterialResourceHandler::MaterialResourceHandler(
 
 ResourceFile MaterialResourceHandler::Pack(const MaterialResource& resource,
                                            CompressionMode compression_mode) {
-  COMET_ASSERT(resource.type_id == MaterialResource::kResourceTypeId,
-               "MaterialResourceHandler::Pack",
-               "material resource type id is invalid", "resource_type_id",
-               resource.type_id, "expected_type_id",
-               MaterialResource::kResourceTypeId);
-
-  ResourceFile file{};
-  file.resource_id = resource.id;
-  file.resource_type_id = MaterialResource::kResourceTypeId;
-  file.compression_mode = compression_mode;
-  file.descr = Array<u8>{byte_allocator_};
-  file.data = Array<u8>{byte_allocator_};
-
-  constexpr auto kResourceIdSize{sizeof(RawResourceId)};
-  constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
-
-  Array<u8> data{byte_allocator_};
-  data.Resize(GetMaterialResourceSize(resource));
-  usize cursor{0};
-  auto* buffer{data.GetData()};
-
-  memory::CopyMemory(&buffer[cursor], &resource.id, kResourceIdSize);
-  cursor += kResourceIdSize;
-
-  memory::CopyMemory(&buffer[cursor], &resource.type_id, kResourceTypeIdSize);
-  cursor += kResourceTypeIdSize;
-
-  COMET_ASSERT(cursor == data.GetSize(), "MaterialResourceHandler::Pack",
-               "packed material size mismatch", "cursor", cursor, "data_size",
-               data.GetSize());
-
-  PackPodResourceDescr(resource.descr, file);
-  PackResourceData(data, file);
-  return file;
+  return PackMaterialResource(resource, compression_mode, byte_allocator_);
 }
 
 void MaterialResourceHandler::Unpack(const ResourceFile& file,
