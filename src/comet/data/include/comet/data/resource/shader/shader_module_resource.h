@@ -38,6 +38,9 @@ struct ShaderModuleResource : Resource {
 };
 
 usize GetShaderModuleResourceSize(const ShaderModuleResource& resource);
+ResourceFile PackShaderModuleResource(const ShaderModuleResource& resource,
+    CompressionMode compression_mode, memory::Allocator* allocator);
+
 }  // namespace resource
 }  // namespace comet
 

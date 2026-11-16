@@ -47,6 +47,9 @@ struct TextureResource : Resource {
 };
 
 usize GetTextureResourceSize(const TextureResource& resource);
+ResourceFile PackTextureResource(const TextureResource& resource,
+    CompressionMode compression_mode, memory::Allocator* allocator);
+
 }  // namespace resource
 }  // namespace comet
 
