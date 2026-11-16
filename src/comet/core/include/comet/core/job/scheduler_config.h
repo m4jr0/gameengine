@@ -37,8 +37,9 @@ struct SchedulerConfig {
   usize external_library_fiber_count{0};
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
-  usize fiber_life_cycle_queue_capacity{0};
-  usize main_thread_queue_capacity{0};
+  // Internal queue defaults; callers can override these when needed.
+  usize fiber_life_cycle_queue_capacity{128};
+  usize main_thread_queue_capacity{16};
 
   u8 forced_fiber_worker_count{0};
   u8 forced_io_worker_count{0};
