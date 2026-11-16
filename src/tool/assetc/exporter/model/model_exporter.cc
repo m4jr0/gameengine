@@ -353,8 +353,8 @@ void ModelExporter::LoadMaterials(SceneContext* scene_context) const {
     material.type_id = resource::MaterialResource::kResourceTypeId;
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetMaterials()->Pack(
-            material, compression_mode_));
+        resource::PackMaterialResource(
+            material, compression_mode_, scene_context->allocator));
   }
 }
 
