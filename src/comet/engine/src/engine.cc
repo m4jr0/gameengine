@@ -510,8 +510,6 @@ void Engine::InitializeScheduler() {
       .external_library_fiber_count = external_library_fiber_count,
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
-      .fiber_life_cycle_queue_capacity = 128,
-      .main_thread_queue_capacity = 16,
       .forced_fiber_worker_count =
           COMET_CONF_U8(conf::kCoreForcedFiberWorkerCount),
       .forced_io_worker_count = COMET_CONF_U8(conf::kCoreForcedIOWorkerCount),
