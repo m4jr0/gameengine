@@ -11,8 +11,6 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
-#include "comet/runtime/memory/memory_tag.h"
-#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/memory/memory_utils.h"
 
 namespace comet {
