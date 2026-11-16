@@ -11,9 +11,7 @@
 
 namespace comet {
 namespace job {
-struct SchedulerConfig {
-  WorkerLifecycleCallbacks worker_lifecycle{};
-
+struct SchedulerAllocators {
   memory::Allocator* job_queue_allocator{nullptr};
   memory::Allocator* worker_allocator{nullptr};
 
@@ -26,6 +24,12 @@ struct SchedulerConfig {
   memory::Allocator* counter_allocator{nullptr};
 
   memory::Allocator* main_thread_queue_allocator{nullptr};
+};
+
+struct SchedulerConfig {
+  WorkerLifecycleCallbacks worker_lifecycle{};
+
+  SchedulerAllocators allocators{};
 
   usize job_queue_capacity{0};
   usize counter_count{0};

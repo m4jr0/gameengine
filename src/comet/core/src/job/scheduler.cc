@@ -19,26 +19,26 @@ namespace comet {
 namespace job {
 namespace {
 void ValidateSchedulerConfig(const SchedulerConfig& config) {
-  COMET_ASSERT(config.job_queue_allocator != nullptr,
+  COMET_ASSERT(config.allocators.job_queue_allocator != nullptr,
                "job::ValidateSchedulerConfig", "job queue allocator is null");
-  COMET_ASSERT(config.worker_allocator != nullptr,
+  COMET_ASSERT(config.allocators.worker_allocator != nullptr,
                "job::ValidateSchedulerConfig", "worker allocator is null");
-  COMET_ASSERT(config.fiber_queue_allocator != nullptr,
+  COMET_ASSERT(config.allocators.fiber_queue_allocator != nullptr,
                "job::ValidateSchedulerConfig", "fiber queue allocator is null");
-  COMET_ASSERT(config.fiber_object_allocator != nullptr,
+  COMET_ASSERT(config.allocators.fiber_object_allocator != nullptr,
                "job::ValidateSchedulerConfig",
                "fiber object allocator is null");
-  COMET_ASSERT(config.fiber_stack_allocator != nullptr,
+  COMET_ASSERT(config.allocators.fiber_stack_allocator != nullptr,
                "job::ValidateSchedulerConfig", "fiber stack allocator is null");
-  COMET_ASSERT(config.fiber_life_cycle_allocator != nullptr,
+  COMET_ASSERT(config.allocators.fiber_life_cycle_allocator != nullptr,
                "job::ValidateSchedulerConfig",
                "fiber life cycle allocator is null");
-  COMET_ASSERT(config.counter_queue_allocator != nullptr,
+  COMET_ASSERT(config.allocators.counter_queue_allocator != nullptr,
                "job::ValidateSchedulerConfig",
                "counter queue allocator is null");
-  COMET_ASSERT(config.counter_allocator != nullptr,
+  COMET_ASSERT(config.allocators.counter_allocator != nullptr,
                "job::ValidateSchedulerConfig", "counter allocator is null");
-  COMET_ASSERT(config.main_thread_queue_allocator != nullptr,
+  COMET_ASSERT(config.allocators.main_thread_queue_allocator != nullptr,
                "job::ValidateSchedulerConfig",
                "main thread queue allocator is null");
   COMET_ASSERT(config.main_thread_queue_capacity > 0,
@@ -104,51 +104,51 @@ void Scheduler::Initialize() {
                "scheduler config is not attached");
 
   low_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
-      config_->job_queue_allocator, config_->job_queue_capacity};
+      config_->allocators.job_queue_allocator, config_->job_queue_capacity};
   normal_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
-      config_->job_queue_allocator, config_->job_queue_capacity};
+      config_->allocators.job_queue_allocator, config_->job_queue_capacity};
   high_priority_queue_ = LockFreeMPMCRingQueue<JobDescr>{
-      config_->job_queue_allocator, config_->job_queue_capacity};
-  io_queue_ = LockFreeMPMCRingQueue<IOJobDescr>{config_->job_queue_allocator,
+      config_->allocators.job_queue_allocator, config_->job_queue_capacity};
+  io_queue_ = LockFreeMPMCRingQueue<IOJobDescr>{config_->allocators.job_queue_allocator,
                                                 config_->job_queue_capacity};
 
   main_thread_queue_ = LockFreeMPMCRingQueue<MainThreadJobDescr>{
-      config_->main_thread_queue_allocator,
+      config_->allocators.main_thread_queue_allocator,
       config_->main_thread_queue_capacity};
 
-  fiber::AttachFiberStackAllocator(config_->fiber_stack_allocator);
+  fiber::AttachFiberStackAllocator(config_->allocators.fiber_stack_allocator);
 
   large_stack_fibers_.Initialize({
       .fiber_count = config_->large_fiber_count,
       .fiber_stack_size = fiber::kLargeStackSize,
-      .queue_allocator = config_->fiber_queue_allocator,
-      .fiber_allocator = config_->fiber_object_allocator,
+      .queue_allocator = config_->allocators.fiber_queue_allocator,
+      .fiber_allocator = config_->allocators.fiber_object_allocator,
   });
 
   gigantic_stack_fibers_.Initialize({
       .fiber_count = config_->gigantic_fiber_count,
       .fiber_stack_size = fiber::kGiganticStackSize,
-      .queue_allocator = config_->fiber_queue_allocator,
-      .fiber_allocator = config_->fiber_object_allocator,
+      .queue_allocator = config_->allocators.fiber_queue_allocator,
+      .fiber_allocator = config_->allocators.fiber_object_allocator,
   });
 
 #ifdef COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
   external_library_stack_fibers_.Initialize({
       .fiber_count = config_->external_library_fiber_count,
       .fiber_stack_size = fiber::kNormalExternalLibraryStackSize,
-      .queue_allocator = config_->fiber_queue_allocator,
-      .fiber_allocator = config_->fiber_object_allocator,
+      .queue_allocator = config_->allocators.fiber_queue_allocator,
+      .fiber_allocator = config_->allocators.fiber_object_allocator,
   });
 #endif  // COMET_FIBER_EXTERNAL_LIBRARY_SUPPORT
 
   counters_.Initialize({
       .counter_count = config_->counter_count,
-      .queue_allocator = config_->counter_queue_allocator,
-      .counter_allocator = config_->counter_allocator,
+      .queue_allocator = config_->allocators.counter_queue_allocator,
+      .counter_allocator = config_->allocators.counter_allocator,
   });
 
   auto& fiber_life_cycle{fiber::FiberLifeCycleHandler::Get()};
-  fiber_life_cycle.AttachAllocator(config_->fiber_life_cycle_allocator,
+  fiber_life_cycle.AttachAllocator(config_->allocators.fiber_life_cycle_allocator,
                                    config_->fiber_life_cycle_queue_capacity);
   fiber_life_cycle.Initialize();
 
@@ -179,14 +179,14 @@ void Scheduler::Initialize() {
                  "worker counts resolved", "fiber_worker_count",
                  fiber_worker_count_, "io_worker_count", io_worker_count_);
 
-  fiber_workers_ = Array<FiberWorker>{config_->worker_allocator};
+  fiber_workers_ = Array<FiberWorker>{config_->allocators.worker_allocator};
   fiber_workers_.Reserve(fiber_worker_count_);
 
   for (usize i{0}; i < fiber_worker_count_; ++i) {
     fiber_workers_.EmplaceLast(&config_->worker_lifecycle);
   }
 
-  io_workers_ = Array<IOWorker>{config_->worker_allocator};
+  io_workers_ = Array<IOWorker>{config_->allocators.worker_allocator};
   io_workers_.Reserve(io_worker_count_);
 
   for (usize i{0}; i < io_worker_count_; ++i) {
