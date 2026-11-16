@@ -169,9 +169,8 @@ void UnpackMaterialResource(const ResourceFile& file,
   constexpr auto kResourceIdSize{sizeof(RawResourceId)};
   constexpr auto kResourceTypeIdSize{sizeof(ResourceTypeId)};
   constexpr auto kDataSize{kResourceIdSize + kResourceTypeIdSize};
-  memory::StaticStackAllocator<kDataSize> tmp_allocator{};
-
-  Array<u8> data{&tmp_allocator};
+  COMET_ASSERT(scratch_allocator != nullptr, "resource::UnpackMaterialResource", "scratch allocator is null");
+  Array<u8> data{scratch_allocator};
   data.Resize(kDataSize);
   UnpackResourceData(file, data, kDataSize);
 
