@@ -241,17 +241,17 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
                                            scene_context->asset_path)};
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetSkeletons()->Pack(
-            resources.skeleton, exporter->compression_mode_));
+        resource::PackSkeletonResource(
+            resources.skeleton, exporter->compression_mode_, scene_context->allocator));
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetSkeletalModels()->Pack(
-            resources.model, exporter->compression_mode_));
+        resource::PackSkeletalModelResource(
+            resources.model, exporter->compression_mode_, scene_context->allocator));
 
     for (const auto& clip : resources.animation_clips) {
       scene_context->AddResourceFile(
-          resource::ResourceManager::Get().GetAnimationClips()->Pack(
-              clip, exporter->compression_mode_));
+          resource::PackAnimationClipResource(
+              clip, exporter->compression_mode_, scene_context->allocator));
     }
 
   } else {
@@ -259,8 +259,8 @@ void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
                                          scene_context->asset_path)};
 
     scene_context->AddResourceFile(
-        resource::ResourceManager::Get().GetStaticModels()->Pack(
-            resources.model, exporter->compression_mode_));
+        resource::PackStaticModelResource(
+            resources.model, exporter->compression_mode_, scene_context->allocator));
   }
 
   COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnModelProcessing",
