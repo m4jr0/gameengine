@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-#ifndef COMET_RUNTIME_MEMORY_MEMORY_UTILS_H_
-#define COMET_RUNTIME_MEMORY_MEMORY_UTILS_H_
+#ifndef COMET_CORE_MEMORY_MEMORY_UTILS_H_
+#define COMET_CORE_MEMORY_MEMORY_UTILS_H_
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <type_traits>
@@ -12,7 +12,6 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"
-#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
 namespace memory {
@@ -134,4 +133,4 @@ void ConvertAddressToHex(const void* address, schar* buffer, usize buffer_len);
 #define COMET_POISON(ptr, size)
 #endif  // COMET_POISON_ALLOCATIONS
 
-#endif  // COMET_RUNTIME_MEMORY_MEMORY_UTILS_H_
+#endif  // COMET_CORE_MEMORY_MEMORY_UTILS_H_
