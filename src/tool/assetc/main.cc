@@ -23,14 +23,14 @@ int main(int argc, char** argv) {
   });
 
   comet::job::SchedulerConfig scheduler_config{};
-  scheduler_config.job_queue_allocator = &allocator;
-  scheduler_config.worker_allocator = &allocator;
-  scheduler_config.fiber_queue_allocator = &allocator;
-  scheduler_config.fiber_object_allocator = &allocator;
-  scheduler_config.fiber_stack_allocator = &allocator;
-  scheduler_config.fiber_life_cycle_allocator = &allocator;
-  scheduler_config.counter_queue_allocator = &allocator;
-  scheduler_config.counter_allocator = &allocator;
+  scheduler_config.allocators.job_queue_allocator = &allocator;
+  scheduler_config.allocators.worker_allocator = &allocator;
+  scheduler_config.allocators.fiber_queue_allocator = &allocator;
+  scheduler_config.allocators.fiber_object_allocator = &allocator;
+  scheduler_config.allocators.fiber_stack_allocator = &allocator;
+  scheduler_config.allocators.fiber_life_cycle_allocator = &allocator;
+  scheduler_config.allocators.counter_queue_allocator = &allocator;
+  scheduler_config.allocators.counter_allocator = &allocator;
 
   scheduler_config.job_queue_capacity = 1024;
   scheduler_config.counter_count = 256;
