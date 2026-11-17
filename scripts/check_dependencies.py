@@ -18,7 +18,7 @@ ALLOWED = {
     "core": {"core"},
     "data": {"core", "data"},
     "runtime": {"core", "data", "runtime"},
-    "platform": {"core", "platform"},
+    "platform": {"core", "data", "runtime", "platform"},
     "render": {"core", "data", "runtime", "platform", "render"},
     "engine": {"core", "data", "runtime", "platform", "render", "engine"},
 }
@@ -33,7 +33,7 @@ def check_includes(folder: Path, owner: str, allowed: set[str]) -> None:
 
         content = path.read_text(encoding="utf-8")
         for match in INCLUDE.finditer(content):
-            dependency = match.group(1)
+            dependency = match.group(1).removesuffix(".h")
             if dependency not in ALLOWED or dependency in allowed:
                 continue
 

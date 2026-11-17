@@ -7,6 +7,7 @@ find_package(Catch2 3 CONFIG REQUIRED)
 set(FOUNDATION_TESTS_EXECUTABLE_NAME "comet_foundation_tests")
 set(FOUNDATION_TESTS_EXECUTABLE_SOURCES
   "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.h"
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/tests_main_foundation.cc"
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_command_line.cc"
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_c_string_format.cc"
@@ -39,6 +40,7 @@ if(NOT COMET_BUILD_FOUNDATION_ONLY)
     "${PROJECT_SOURCE_DIR}/src/tests/engine/tests_main_engine.cc"
     "${PROJECT_SOURCE_DIR}/src/tests/engine/core/tests_file_system.cc"
     "${PROJECT_SOURCE_DIR}/src/tests/engine/entity/tests_entity.cc"
+    "${PROJECT_SOURCE_DIR}/src/tests/engine/entity/tests_entity.h"
   )
   target_include_directories(${ENGINE_TESTS_EXECUTABLE_NAME}
     PRIVATE "${PROJECT_SOURCE_DIR}/src/tests"

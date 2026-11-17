@@ -14,6 +14,8 @@ comet_configure_target(${COMET_CORE_TARGET})
 
 # Packages #####################################################################
 find_package(lz4 REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_path(COMET_PICOSHA2_INCLUDE_DIR NAMES picosha2.h REQUIRED)
 
 if(WIN32)
   find_path(DETOURS_INCLUDE_DIRS "detours/detours.h" REQUIRED)
@@ -25,7 +27,6 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/core_define.h"
 
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/back_insert_iterator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/comparator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/inplace_merge.h"
@@ -74,6 +75,7 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/job/scheduler_pools.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/job/worker.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/job/worker_context.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/job/worker_hooks.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/logger/logger.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/logger/logger_label.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/logger/logger_type.h"
@@ -191,6 +193,7 @@ target_sources(${COMET_CORE_TARGET}
 target_include_directories(${COMET_CORE_TARGET}
   PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${COMET_PICOSHA2_INCLUDE_DIR}"
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
@@ -210,6 +213,8 @@ target_precompile_headers(${COMET_CORE_TARGET}
 
 # Linking ######################################################################
 target_link_libraries(${COMET_CORE_TARGET}
+  PUBLIC
+    glm::glm
   PRIVATE
     lz4::lz4
 )

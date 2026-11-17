@@ -16,6 +16,7 @@ comet_configure_target(${COMET_PLATFORM_TARGET})
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 # Source files #################################################################
 set(COMET_PLATFORM_SOURCES
@@ -66,4 +67,6 @@ target_link_libraries(${COMET_PLATFORM_TARGET}
     glfw
     glad::glad
     Vulkan::Vulkan
+  PRIVATE
+    imgui::imgui
 )
