@@ -11,15 +11,15 @@
 
 #include "comet/core/essentials.h"
 #include "comet/runtime/frame/frame_container.h"
-#include "comet/core/hash.h"
+#include "comet/core/hash/hash.h"
 #include "comet/core/container/array.h"
 #include "comet/render/driver/vulkan/type/vulkan_buffer.h"
 #include "comet/render/driver/vulkan/type/vulkan_descriptor.h"
 #include "comet/render/driver/vulkan/type/vulkan_frame.h"
 #include "comet/render/driver/vulkan/type/vulkan_pipeline.h"
 #include "comet/render/render_handle.h"
-#include "comet/render/type/pipeline.h"
-#include "comet/render/type/shader.h"
+#include "comet/data/render/pipeline.h"
+#include "comet/data/render/shader.h"
 #include "comet/data/resource/material/material_resource.h"
 
 namespace comet {

@@ -13,7 +13,7 @@
 #include "comet/core/container/array.h"
 #include "comet/render/driver/vulkan/type/vulkan_descriptor.h"
 #include "comet/render/render_handle.h"
-#include "comet/render/type/pipeline.h"
+#include "comet/data/render/pipeline.h"
 
 namespace comet {
 namespace rendering {

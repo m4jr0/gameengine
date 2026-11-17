@@ -9,7 +9,7 @@
 #include "comet/core/math/vector.h"
 #include "comet/render/driver/vulkan/type/vulkan_texture_map.h"
 #include "comet/render/render_handle.h"
-#include "comet/render/type/texture.h"
+#include "comet/data/render/texture.h"
 #include "comet/data/resource/material/material_resource.h"
 
 namespace comet {

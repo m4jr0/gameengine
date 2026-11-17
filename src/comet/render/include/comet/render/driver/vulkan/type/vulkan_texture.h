@@ -8,8 +8,8 @@
 #include "comet/core/essentials.h"
 #include "comet/render/driver/vulkan/type/vulkan_image.h"
 #include "comet/render/render_handle.h"
-#include "comet/render/type/texture.h"
-#include "comet/resource/texture/texture_resource.h"
+#include "comet/data/render/texture.h"
+#include "comet/data/resource/texture/texture_resource.h"
 
 namespace comet {
 namespace rendering {
