@@ -50,3 +50,11 @@ For each resource type (material, texture, shader module, shader, static model, 
 After building assetc, run `bash src/tool/assetc/test_cli.sh /path/to/assetc`.
 This checks parsing without writing assets. Resource round-trip and lifetime tests
 still require compiled fixtures and sanitizer runs.
+
+## Additional source-audit findings
+
+- The shader and texture exporters no longer call `GenerateFrameString`; they own their temporary buffers or use stack storage. Verify this without runtime libraries during compilation.
+- On Windows, `std::filesystem::path::string()` conversion of non-ASCII native paths may be lossy or throw. Assimp, stb_image, and shaderc narrow-string APIs need an explicit UTF-8 strategy and integration tests before claiming full Unicode path support.
+- `AssetAllocator` and `SystemAllocator` use alignment-sensitive allocation/deallocation paths that need a separate correctness review; do not assume over-aligned allocations are safe.
+- The command-line parser has foundation unit tests, and the CLI smoke script covers invalid arguments. Neither has been executed in this source-only pass.
+- Automated resource codec round-trip tests and compiled lifetime/sanitizer verification remain outstanding. The checklist above describes how to complete them, not tests already run.
