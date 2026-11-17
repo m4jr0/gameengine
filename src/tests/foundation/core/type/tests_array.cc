@@ -11,23 +11,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
-#include "catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/allocator/system_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
 namespace comettests {
-namespace memory {
-enum TestsMemoryTag : comet::memory::MemoryTag {
-  kTestsMemoryTagArray = kEngineMemoryTagUserBase + 1
-};
-}  // namespace memory
-
 namespace internal {
-comet::memory::PlatformAllocator array_allocator{memory::kTestsMemoryTagArray};
+comet::memory::SystemAllocator array_allocator{};
 
 struct TrackedArrayValue {
   inline static s32 alive_count{0};

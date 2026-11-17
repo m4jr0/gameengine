@@ -204,6 +204,8 @@ option(COMET_BUILD_FOUNDATION_ONLY
   OFF
 )
 
+option(COMET_BUILD_TESTS "Build Comet tests" ON)
+
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" ON)
 option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" OFF)
 option(COMET_IS_ASAN "Enable ASan (AddressSanitizer)" OFF)
@@ -343,9 +345,19 @@ else()
 endif()
 
 # Subdirectories ###############################################################
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+add_custom_target(comet_check_dependencies
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/check_dependencies.py"
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  VERBATIM
+)
+
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet")
 if(NOT COMET_BUILD_FOUNDATION_ONLY)
   add_subdirectory("${PROJECT_SOURCE_DIR}/src/sandbox")
+endif()
+if(COMET_BUILD_TESTS)
+  enable_testing()
   add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
 endif()
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/tool")

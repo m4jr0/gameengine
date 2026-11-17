@@ -11,23 +11,16 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
-#include "catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime/memory/allocator/platform_allocator.h"
+#include "comet/core/memory/allocator/system_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/runtime/memory/memory_tag.h"
 
 namespace comet {
 namespace comettests {
-namespace memory {
-enum TestsMemoryTag : comet::memory::MemoryTag {
-  kTestsMemoryTagMap = kEngineMemoryTagUserBase + 4
-};
-}  // namespace memory
-
 namespace internal {
-comet::memory::PlatformAllocator map_allocator{memory::kTestsMemoryTagMap};
+comet::memory::SystemAllocator map_allocator{};
 }  // namespace internal
 }  // namespace comettests
 }  // namespace comet

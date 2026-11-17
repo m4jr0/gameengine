@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include "comet/core/string/c_string.h"
-#include "catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 TEST_CASE("Core formatting writes caller-owned buffers", "[comet][string]") {
   comet::schar buffer[32]{};

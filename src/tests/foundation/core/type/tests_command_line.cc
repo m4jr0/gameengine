@@ -5,7 +5,7 @@
 #include <string_view>
 
 #include "comet/core/command_line/command_line.h"
-#include "catch.hpp"
+#include "catch2/catch_test_macros.hpp"
 
 TEST_CASE("Command line parses flags and values", "[comet][command_line]") {
   const char* argv[]{"tool", "--force", "--assets", "some assets",
