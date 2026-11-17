@@ -7,9 +7,7 @@
 
 #include "comet/core.h"
 #include "comet/data.h"
-#include "comet/runtime.h"
 #include "asset.h"
-#include "memory/memory.h"
 
 namespace comet {
 namespace tool {
@@ -78,8 +76,6 @@ class AssetExporter {
   AssetExport* GenerateAssetExport();
   void DestroyAssetExport(AssetExport* asset_export);
 
-  memory::PlatformAllocator asset_export_allocator_{
-      memory::kEditorMemoryTagAsset};
 };
 }  // namespace assetc
 }  // namespace tool
