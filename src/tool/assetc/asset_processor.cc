@@ -21,38 +21,6 @@
 namespace comet {
 namespace tool {
 namespace assetc {
-AssetProcessor::AssetProcessor(const AssetcConfig& config) : config_{config} {
-  root_asset_path_ = config_.asset_root;
-  Clean(root_asset_path_);
-
-  root_resource_path_ = config_.resource_root;
-  Clean(root_resource_path_);
-
-  library_meta_path_.Reserve(root_asset_path_.GetLength() + 8 +
-                             kCometAssetMetadataFileExtension.GetLength() + 1);
-  library_meta_path_ = root_asset_path_;
-  library_meta_path_ /= COMET_TCHAR("library.");
-  library_meta_path_ += kCometAssetMetadataFileExtension;
-  Clean(library_meta_path_);
-}
-
-AssetProcessor::~AssetProcessor() {
-  if (is_initialized_) {
-    ShutdownExporters();
-  }
-
-  root_asset_path_.Release();
-  root_resource_path_.Release();
-  library_meta_path_.Release();
-}
-
-bool AssetProcessor::Run() {
-  InitializeExporters();
-  Refresh();
-  ShutdownExporters();
-  return true;
-}
-
 void AssetProcessor::Initialize(const AssetcConfig& config) {
   COMET_ASSERT(!is_initialized_, "AssetProcessor::Initialize",
                "asset manager is already initialized");
@@ -70,17 +38,17 @@ void AssetProcessor::Initialize(const AssetcConfig& config) {
 
   library_meta_path_ = root_asset_path_;
   library_meta_path_ /= COMET_TCHAR("library.");
-  library_meta_path_ += kCometAssetMetadataFileExtension;
+  library_meta_path_ += kCometEditorAssetMetadataFileExtension;
   Clean(library_meta_path_);
 
   RefreshLibraryMetadataFile();
 
   exporters_ = Array<memory::UniquePtr<AssetExporter>>{allocator_};
   exporters_.Reserve(4);
-  exporters_.PushLast(std::make_unique<ModelExporter>());
-  exporters_.PushLast(std::make_unique<ShaderExporter>());
-  exporters_.PushLast(std::make_unique<ShaderModuleExporter>());
-  exporters_.PushLast(std::make_unique<TextureExporter>());
+  exporters_.PushLast(memory::UniquePtr<ModelExporter>{new ModelExporter{}});
+  exporters_.PushLast(memory::UniquePtr<ShaderExporter>{new ShaderExporter{}});
+  exporters_.PushLast(memory::UniquePtr<ShaderModuleExporter>{new ShaderModuleExporter{}});
+  exporters_.PushLast(memory::UniquePtr<TextureExporter>{new TextureExporter{}});
 
   for (const auto& exporter : exporters_) {
     exporter->SetRootResourcePath(root_resource_path_);
@@ -117,33 +85,6 @@ const TString& AssetProcessor::GetAssetsRootPath() const noexcept {
 
 const TString& AssetProcessor::GetResourcesRootPath() const noexcept {
   return root_resource_path_;
-}
-
-void AssetProcessor::InitializeExporters() {
-  if (is_initialized_) {
-    return;
-  }
-
-  RefreshLibraryMetadataFile();
-
-  exporters_ = Array<memory::UniquePtr<AssetExporter>>{&exporters_allocator_};
-  exporters_.Reserve(4);
-  exporters_.PushLast(std::make_unique<ModelExporter>());
-  exporters_.PushLast(std::make_unique<ShaderExporter>());
-  exporters_.PushLast(std::make_unique<ShaderModuleExporter>());
-  exporters_.PushLast(std::make_unique<TextureExporter>());
-
-  for (const auto& exporter : exporters_) {
-    exporter->SetRootResourcePath(root_resource_path_);
-    exporter->SetRootAssetPath(root_asset_path_);
-  }
-
-  is_initialized_ = true;
-}
-
-void AssetProcessor::ShutdownExporters() {
-  is_initialized_ = false;
-  exporters_.Release();
 }
 
 void AssetProcessor::RefreshLibrary() {
@@ -222,7 +163,7 @@ bool AssetProcessor::IsRefreshNeeded(CTStringView asset_abs_path,
   const auto existing_metadata = GetMetadata(metadata_file_path);
 
   const auto update_time{existing_metadata.value(
-      kCometAssetMetadataKeyUpdateTime, static_cast<f64>(-1))};
+      kCometEditorAssetMetadataKeyUpdateTime, static_cast<f64>(-1))};
 
   const auto modification_time{GetLastModificationTime(asset_abs_path)};
 
@@ -230,12 +171,12 @@ bool AssetProcessor::IsRefreshNeeded(CTStringView asset_abs_path,
     return true;
   }
 
-  if (!existing_metadata.contains(kCometAssetMetadataKeyResourceFiles)) {
+  if (!existing_metadata.contains(kCometEditorAssetMetadataKeyResourceFiles)) {
     return true;
   }
 
   const auto& resource_files{
-      existing_metadata[kCometAssetMetadataKeyResourceFiles]};
+      existing_metadata[kCometEditorAssetMetadataKeyResourceFiles]};
 
   if (!resource_files.is_array()) {
     COMET_LOG_WARNING(LoggerType::External, "AssetProcessor::IsRefreshNeeded",
