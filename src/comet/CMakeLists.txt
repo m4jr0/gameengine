@@ -11,12 +11,15 @@
 # Subdirectories ###############################################################
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/core")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/data")
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/runtime")
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/platform")
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/render")
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/engine")
+if(NOT COMET_BUILD_FOUNDATION_ONLY)
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/runtime")
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/platform")
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/render")
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/engine")
+endif()
 
 # Public Comet target ##########################################################
+if(NOT COMET_BUILD_FOUNDATION_ONLY)
 add_library(${COMET_TARGET} INTERFACE)
 
 target_include_directories(${COMET_TARGET}
@@ -33,3 +36,4 @@ target_link_libraries(${COMET_TARGET}
   INTERFACE
     ${COMET_ENGINE_TARGET}
 )
+endif()
