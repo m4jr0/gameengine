@@ -42,8 +42,9 @@ void ShaderModuleExporter::PopulateFiles(ResourceFilesContext& context) const {
   render::DriverType driver_type{render::DriverType::Unknown};
 
   ShaderCodeContext shader_code_context{};
-  shader_code_context.code =
-      GenerateFrameString<schar>(ShaderCodeContext::kMaxShaderCodeLen_);
+  memory::UniquePtr<schar[]> shader_code{
+      new schar[ShaderCodeContext::kMaxShaderCodeLen_]{} };
+  shader_code_context.code = shader_code.get();
   shader_code_context.asset_abs_path = asset_descr.asset_abs_path.GetCTStr();
   shader_code_context.allocator = context.allocator;
 

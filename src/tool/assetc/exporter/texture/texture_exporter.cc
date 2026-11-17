@@ -34,9 +34,9 @@ void TextureExporter::PopulateFiles(ResourceFilesContext& context) const {
 
   TextureContext texture_context{};
 #ifdef COMET_WIDE_TCHAR
-  texture_context.path =
-      GenerateFrameString<schar>(asset_descr.asset_abs_path.GetCTStr(),
-                                 asset_descr.asset_abs_path.GetLength());
+  const auto narrow_path{
+      std::filesystem::path{asset_descr.asset_abs_path.GetCTStr()}.string()};
+  texture_context.path = narrow_path.c_str();
 #else
   texture_context.path = asset_descr.asset_abs_path.GetCTStr();
 #endif  // COMET_WIDE_TCHAR

@@ -60,8 +60,9 @@ bool PopulateSpvShaderCode(CTStringView asset_abs_path, schar* code,
 
   const auto tmp_input_file_name{GetName(asset_abs_path)};
 #ifdef COMET_WIDE_TCHAR
-  const auto* input_file_name{GenerateFrameString<schar>(
-      tmp_input_file_name.GetCTStr(), tmp_input_file_name.GetLength())};
+  const auto narrow_file_name{
+      std::filesystem::path{tmp_input_file_name.GetCTStr()}.string()};
+  const auto* input_file_name{narrow_file_name.c_str()};
 #else
   const auto* input_file_name{tmp_input_file_name.GetCTStr()};
 #endif  // COMET_WIDE_TCHAR
@@ -120,8 +121,7 @@ bool PopulateGlShaderCode(schar* code, usize code_len,
   const auto local_size_value_char_count{
       GetCharCount(render::kShaderLocalSize)};
 
-  auto* local_size_value{
-      GenerateFrameString<schar>(local_size_value_char_count)};
+  schar local_size_value[local_size_value_char_count + 1]{};
   COMET_ASSERT(local_size_value != nullptr,
                "shader_module_export_utils::PopulateGlShaderCode",
                "local size buffer allocation failed");
@@ -212,7 +212,7 @@ void AddSpvMacroDefinitions(shaderc::CompileOptions& options) {
   const auto local_size_value_char_count{
       GetCharCount(render::kShaderLocalSize)};
 
-  auto* local_size{GenerateFrameString<schar>(local_size_value_char_count)};
+  schar local_size[local_size_value_char_count + 1]{};
   COMET_ASSERT(local_size != nullptr,
                "shader_module_export_utils::AddSpvMacroDefinitions",
                "local size buffer allocation failed");
