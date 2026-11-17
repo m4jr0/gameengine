@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
       argc, argv, options, sizeof(options) / sizeof(options[0]),
       &invalid_argument)};
   if (result != comet::command_line::ParseResult::Success) {
-    std::fprintf(stderr, "Invalid argument: %s\\n",
+    std::fprintf(stderr, "Invalid argument: %s\n",
                  invalid_argument != nullptr ? invalid_argument : "(null)");
     return EXIT_FAILURE;
   }
