@@ -13,7 +13,6 @@
 
 #include "comet/core.h"
 #include "comet/data.h"
-#include "comet/render.h"
 #include "exporter/model/model_export.h"
 
 namespace comet {
