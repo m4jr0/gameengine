@@ -6,10 +6,31 @@
 #include "assetc_pch.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <cstdio>
+
 #include "asset.h"
 #include "comet/core.h"
 
 int main(int argc, char** argv) {
+  comet::command_line::Option options[]{
+      {"help", false},
+      {"force", false},
+  };
+  const comet::schar* invalid_argument{nullptr};
+  const auto result{comet::command_line::Parse(
+      argc, argv, options, sizeof(options) / sizeof(options[0]),
+      &invalid_argument)};
+  if (result != comet::command_line::ParseResult::Success) {
+    std::fprintf(stderr, "Invalid argument: %s\\n",
+                 invalid_argument != nullptr ? invalid_argument : "(null)");
+    return EXIT_FAILURE;
+  }
+  if (options[0].is_present) {
+    std::puts("Usage: assetc [--force] [--help]");
+    std::puts("  --force  Reprocess assets even when unchanged");
+    std::puts("  --help   Show this help");
+    return EXIT_SUCCESS;
+  }
   comet::memory::SystemAllocator allocator{};
 
   comet::COMET_INITIALIZE_ALLOCATION_TRACKING();
@@ -50,7 +71,7 @@ int main(int argc, char** argv) {
   config.asset_root = COMET_CTSTRING_VIEW("assets");
   config.resource_root = COMET_CTSTRING_VIEW("resources");
   config.allocator = &allocator;
-  config.force = false;
+  config.force = options[1].is_present;
 
   comet::tool::assetc::AssetProcessor processor{};
   processor.Initialize(config);
