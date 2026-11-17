@@ -14,7 +14,8 @@
 #include "assimp/postprocess.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime.h"
+#include "comet/core.h"
+#include "comet/data.h"
 #include "asset_utils.h"
 #include "exporter/model/utils/model_exporter_utils.h"
 
