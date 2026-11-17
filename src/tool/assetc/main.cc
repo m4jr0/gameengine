@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdio>
+#include <filesystem>
 
 #include "asset.h"
 #include "comet/core.h"
@@ -15,6 +16,8 @@ int main(int argc, char** argv) {
   comet::command_line::Option options[]{
       {"help", false},
       {"force", false},
+      {"assets", true},
+      {"resources", true},
   };
   const comet::schar* invalid_argument{nullptr};
   const auto result{comet::command_line::Parse(
@@ -26,9 +29,11 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   if (options[0].is_present) {
-    std::puts("Usage: assetc [--force] [--help]");
+    std::puts("Usage: assetc [--assets PATH] [--resources PATH] [--force] [--help]");
     std::puts("  --force  Reprocess assets even when unchanged");
-    std::puts("  --help   Show this help");
+    std::puts("  --help       Show this help");
+    std::puts("  --assets     Asset input directory (default: assets)");
+    std::puts("  --resources  Compiled resource directory (default: resources)");
     return EXIT_SUCCESS;
   }
   comet::memory::SystemAllocator allocator{};
@@ -67,9 +72,14 @@ int main(int argc, char** argv) {
   scheduler.AttachConfig(scheduler_config);
   scheduler.Initialize();
 
+  const auto asset_path{std::filesystem::path{
+      options[2].is_present ? options[2].value : "assets"}.native()};
+  const auto resource_path{std::filesystem::path{
+      options[3].is_present ? options[3].value : "resources"}.native()};
+
   comet::tool::assetc::AssetcConfig config{};
-  config.asset_root = COMET_CTSTRING_VIEW("assets");
-  config.resource_root = COMET_CTSTRING_VIEW("resources");
+  config.asset_root = comet::CTStringView{asset_path.c_str()};
+  config.resource_root = comet::CTStringView{resource_path.c_str()};
   config.allocator = &allocator;
   config.force = options[1].is_present;
 
