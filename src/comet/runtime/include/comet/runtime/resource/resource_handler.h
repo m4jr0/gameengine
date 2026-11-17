@@ -29,8 +29,8 @@
 #include "comet/data/resource/label/common_label.h"
 #include "comet/data/resource/resource.h"
 #include "comet/data/resource/resource_id.h"
-#include "comet/data/resource/runtime/loaded_resource_handle.h"
-#include "comet/data/resource/runtime/resource_slots.h"
+#include "comet/runtime/resource/runtime/loaded_resource_handle.h"
+#include "comet/runtime/resource/runtime/resource_slots.h"
 #include "comet/data/resource/common.h"
 #include "comet/runtime/scene/scene_event.h"
 

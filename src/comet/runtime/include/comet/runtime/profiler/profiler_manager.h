@@ -12,7 +12,7 @@
 #include "comet/runtime/manager.h"
 #include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/runtime/profiler/profiler.h"
-#include "comet/runtime/thread/thread_provider.h"
+#include "comet/core/thread/thread_provider.h"
 
 namespace comet {
 namespace profiler {

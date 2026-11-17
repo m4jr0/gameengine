@@ -18,7 +18,7 @@
 #include "comet/core/memory/memory.h"
 #include "comet/runtime/memory/memory_tag.h"
 #include "comet/runtime/frame/frame_packet.h"
-#include "comet/runtime/thread/thread.h"
+#include "comet/core/thread/thread.h"
 
 #ifdef COMET_PROFILING
 namespace comet {

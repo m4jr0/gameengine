@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_MEMORY_ALLOCATOR_STACK_ALLOCATOR_H_
 
 #include "comet/core/fiber/fiber_primitive.h"
-#include "comet/core/concurrency/provider/thread_provider.h"
+#include "comet/core/thread/thread_provider.h"
 #include "comet/core/thread/thread_common.h"
 #include "comet/core/essentials.h"
 #include "comet/runtime/memory/tagged_memory.h"
