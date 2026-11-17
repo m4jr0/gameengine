@@ -105,10 +105,10 @@ void AssetProcessor::RefreshFolder(CTStringView asset_abs_path) {
   TString metadata_file_path{};
   metadata_file_path.Reserve(
       parent_path.GetLength() + folder_name.GetLength() + 1 +
-      kCometAssetFolderMetadataFileExtension.GetLength());
+      kCometEditorAssetFolderMetadataFileExtension.GetLength());
   metadata_file_path = parent_path;
   metadata_file_path /= folder_name;
-  metadata_file_path += kCometAssetFolderMetadataFileExtension;
+  metadata_file_path += kCometEditorAssetFolderMetadataFileExtension;
 
   if (asset_abs_path != root_asset_path_) {
     SetAndGetMetadata(metadata_file_path);
