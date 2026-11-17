@@ -14,7 +14,6 @@
 
 #include "comet/core.h"
 #include "comet/data.h"
-#include "comet/data/render/color.h"
 #include "exporter/asset_exporter.h"
 
 namespace comet {
@@ -64,9 +63,7 @@ class ModelExporter : public AssetExporter {
                             aiTextureType raw_texture_type) const;
 
   const f32 kDefaultMaterialShininess_{8.0f};
-  const aiColor3D kDefaultColor_{render::kColorBlackRgb[0],
-                                 render::kColorBlackRgb[1],
-                                 render::kColorBlackRgb[2]};
+  const aiColor3D kDefaultColor_{0.0f, 0.0f, 0.0f};
 };
 }  // namespace assetc
 }  // namespace tool
