@@ -14,7 +14,8 @@
 #include "nlohmann/json.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime.h"
+#include "comet/core.h"
+#include "comet/data.h"
 #include "exporter/shader/data/shader_export_keys.h"
 #include "exporter/shader/utils/shader_export_utils.h"
 
