@@ -355,12 +355,6 @@ if(LINUX)
   )
 endif()
 
-# Precompiled headers ##########################################################
-target_precompile_headers(${COMET_RENDER_TARGET}
-  PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/comet_render_pch.h"
-)
-
 # Linking ######################################################################
 target_link_libraries(${COMET_RENDER_TARGET}
   PUBLIC

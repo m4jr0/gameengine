@@ -5,44 +5,15 @@
   "homepage": "https://github.com/m4jr0/gameengine/",
   "builtin-baseline": "4b77da7fed37817f124936239197833469f1b9a8",
   "dependencies": [
-
     {
       "name": "assimp"
-    },
-    {
-      "name": "catch2"
     },
     {
       "name": "detours",
       "platform": "windows"
     },
     {
-      "name": "glad"
-    },
-    {
-      "name": "glfw3",
-      "platform": "windows"
-    },
-    {
-      "name": "glfw3",
-      "features": [
-        "wayland"
-      ],
-      "platform": "linux"
-    },
-    {
       "name": "glm"
-    },
-    {
-      "name": "imgui",
-      "features": [
-        "glfw-binding",
-        "opengl3-binding",
-        "vulkan-binding"
-      ]
-    },
-    {
-      "name": "opengl"
     },
     {
       "name": "nlohmann-json"
@@ -54,16 +25,63 @@
       "name": "stb"
     },
     {
-      "name": "vulkan"
-    },
-    {
-      "name": "vulkan-memory-allocator"
-    },
-    {
       "name": "lz4"
     },
     {
       "name": "shaderc"
     }
+  ],
+  "features": {
+    "engine": {
+      "description": "Full Comet engine graphics and window backends",
+      "dependencies": [
+        {
+          "name": "glad"
+        },
+        {
+          "name": "glfw3",
+          "platform": "windows"
+        },
+        {
+          "name": "glfw3",
+          "features": [
+            "wayland"
+          ],
+          "platform": "linux"
+        },
+        {
+          "name": "imgui",
+          "features": [
+            "glfw-binding",
+            "opengl3-binding",
+            "vulkan-binding"
+          ]
+        },
+        {
+          "name": "opengl"
+        },
+        {
+          "name": "vulkan"
+        },
+        {
+          "name": "vulkan-memory-allocator"
+        },
+        {
+          "name": "zlib"
+        }
+      ]
+    },
+    "tests": {
+      "description": "Comet test dependencies",
+      "dependencies": [
+        {
+          "name": "catch2"
+        }
+      ]
+    }
+  },
+  "default-features": [
+    "engine",
+    "tests"
   ]
 }

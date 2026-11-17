@@ -37,6 +37,7 @@ if(NOT COMET_BUILD_FOUNDATION_ONLY)
   set(ENGINE_TESTS_EXECUTABLE_NAME "comet_engine_tests")
   add_executable(${ENGINE_TESTS_EXECUTABLE_NAME}
     "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.cc"
+    "${PROJECT_SOURCE_DIR}/src/tests/dummies/dummy_object.h"
     "${PROJECT_SOURCE_DIR}/src/tests/engine/tests_main_engine.cc"
     "${PROJECT_SOURCE_DIR}/src/tests/engine/core/tests_file_system.cc"
     "${PROJECT_SOURCE_DIR}/src/tests/engine/entity/tests_entity.cc"

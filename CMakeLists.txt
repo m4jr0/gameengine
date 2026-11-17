@@ -43,7 +43,25 @@ if(UNIX AND NOT APPLE)
   set(LINUX TRUE)
 endif()
 
+option(COMET_BUILD_FOUNDATION_ONLY
+  "Build only comet_core, comet_data, and the standalone asset compiler"
+  OFF
+)
+
+option(COMET_BUILD_TESTS "Build Comet tests" ON)
+
 # Vcpkg setup ##################################################################
+# Select manifest features before project() loads the toolchain.
+set(VCPKG_MANIFEST_NO_DEFAULT_FEATURES ON)
+list(REMOVE_ITEM VCPKG_MANIFEST_FEATURES engine tests)
+if(NOT COMET_BUILD_FOUNDATION_ONLY)
+  list(APPEND VCPKG_MANIFEST_FEATURES engine)
+endif()
+if(COMET_BUILD_TESTS)
+  list(APPEND VCPKG_MANIFEST_FEATURES tests)
+endif()
+list(REMOVE_DUPLICATES VCPKG_MANIFEST_FEATURES)
+
 set(ENV{VCPKG_FEATURE_FLAGS} "versions")
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -199,12 +217,6 @@ if(MSVC)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
-option(COMET_BUILD_FOUNDATION_ONLY
-  "Build only comet_core, comet_data, and the standalone asset compiler"
-  OFF
-)
-
-option(COMET_BUILD_TESTS "Build Comet tests" ON)
 
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" ON)
 option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" OFF)
@@ -361,6 +373,47 @@ if(COMET_BUILD_TESTS)
   add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
 endif()
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/tool")
+
+# Validate the internal CMake dependency graph after all targets exist.
+function(comet_validate_dependencies target_name)
+  foreach(property LINK_LIBRARIES INTERFACE_LINK_LIBRARIES)
+    get_target_property(dependencies ${target_name} ${property})
+    if(NOT dependencies)
+      continue()
+    endif()
+
+    foreach(dependency IN LISTS dependencies)
+      # Static PRIVATE dependencies can appear as LINK_ONLY entries.
+      string(REPLACE "$<LINK_ONLY:" "" dependency "${dependency}")
+      string(REPLACE ">" "" dependency "${dependency}")
+      if(dependency MATCHES "^comet_(core|data|runtime|platform|render|engine)$"
+          OR dependency STREQUAL "${COMET_TARGET}")
+        if(NOT dependency IN_LIST ARGN)
+          message(FATAL_ERROR
+            "${MESSAGE_PREFIX}${target_name} must not link ${dependency}")
+        endif()
+      endif()
+    endforeach()
+  endforeach()
+endfunction()
+
+comet_validate_dependencies(${COMET_CORE_TARGET})
+comet_validate_dependencies(${COMET_DATA_TARGET} ${COMET_CORE_TARGET})
+comet_validate_dependencies(${COMET_ASSETC_TARGET}
+  ${COMET_CORE_TARGET} ${COMET_DATA_TARGET})
+if(NOT COMET_BUILD_FOUNDATION_ONLY)
+  comet_validate_dependencies(${COMET_RUNTIME_TARGET}
+    ${COMET_CORE_TARGET} ${COMET_DATA_TARGET})
+  comet_validate_dependencies(${COMET_PLATFORM_TARGET}
+    ${COMET_CORE_TARGET} ${COMET_DATA_TARGET} ${COMET_RUNTIME_TARGET})
+  comet_validate_dependencies(${COMET_RENDER_TARGET}
+    ${COMET_CORE_TARGET} ${COMET_DATA_TARGET}
+    ${COMET_RUNTIME_TARGET} ${COMET_PLATFORM_TARGET})
+  comet_validate_dependencies(${COMET_ENGINE_TARGET}
+    ${COMET_CORE_TARGET} ${COMET_DATA_TARGET}
+    ${COMET_RUNTIME_TARGET} ${COMET_PLATFORM_TARGET} ${COMET_RENDER_TARGET})
+endif()
+
 
 # Post-configure operations ####################################################
 # Copy configuration file.
