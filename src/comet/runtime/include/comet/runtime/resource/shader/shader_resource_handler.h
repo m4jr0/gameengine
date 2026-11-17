@@ -32,18 +32,6 @@ class ShaderResourceHandler
   void Unpack(const ResourceFile& file, ResourceLifeSpan life_span,
               ShaderResource* resource) override;
 
- private:
-
-  void ParseDescr(const Array<u8>& dumped_descr, ShaderResourceDescr& descr);
-
-  void ParseShaderModules(const u8* buffer, ShaderResourceDescr& descr,
-                          usize& cursor);
-  void ParseShaderDefines(const u8* buffer, ShaderResourceDescr& descr,
-                          usize& cursor);
-  void ParseBindings(const u8* buffer, ShaderResourceDescr& descr,
-                     usize& cursor);
-  void ParsePushConstants(const u8* buffer, ShaderResourceDescr& descr,
-                          usize& cursor);
 };
 }  // namespace resource
 }  // namespace comet
