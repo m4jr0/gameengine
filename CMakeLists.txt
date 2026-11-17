@@ -199,6 +199,11 @@ if(MSVC)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
+option(COMET_BUILD_FOUNDATION_ONLY
+  "Build only comet_core, comet_data, and the standalone asset compiler"
+  OFF
+)
+
 option(COMET_ARE_WARNINGS_ERRORS "Treat warnings as errors" ON)
 option(COMET_IS_TSAN "Enable TSan (ThreadSanitizer)" OFF)
 option(COMET_IS_ASAN "Enable ASan (AddressSanitizer)" OFF)
@@ -339,8 +344,10 @@ endif()
 
 # Subdirectories ###############################################################
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/comet")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/sandbox")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
+if(NOT COMET_BUILD_FOUNDATION_ONLY)
+  add_subdirectory("${PROJECT_SOURCE_DIR}/src/sandbox")
+  add_subdirectory("${PROJECT_SOURCE_DIR}/src/tests")
+endif()
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/tool")
 
 # Post-configure operations ####################################################
