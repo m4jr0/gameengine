@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <filesystem>
 
-#include "asset.h"
+#include "asset_processor.h"
 #include "comet/core.h"
 
 int main(int argc, char** argv) {
