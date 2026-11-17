@@ -16,8 +16,6 @@
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory_utils.h"
 #include "comet/core/container/iterator.h"
-#include "comet/core/traits.h"
-#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/math/math_scalar.h"
 
 namespace comet {
