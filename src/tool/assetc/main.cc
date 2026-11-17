@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <filesystem>
 
 #include "asset_processor.h"
 #include "comet/core.h"
@@ -16,6 +17,8 @@ int main(int argc, char** argv) {
   comet::command_line::Option options[]{
       {"help", false},
       {"force", false},
+      {"assets", true},
+      {"resources", true},
       {"assets", true},
       {"resources", true},
   };
@@ -36,6 +39,15 @@ int main(int argc, char** argv) {
     std::puts("  --resources  Compiled resource directory (default: resources)");
     return EXIT_SUCCESS;
   }
+  // Convert UTF-8 CLI paths to native filesystem paths before constructing
+  // CTStringView, which uses wchar_t on Windows.
+  const auto asset_path{std::filesystem::u8path(
+      options[2].is_present ? options[2].value : "assets")};
+  const auto resource_path{std::filesystem::u8path(
+      options[3].is_present ? options[3].value : "resources")};
+  const auto& native_asset_path{asset_path.native()};
+  const auto& native_resource_path{resource_path.native()};
+
   comet::memory::SystemAllocator allocator{};
 
   comet::COMET_INITIALIZE_ALLOCATION_TRACKING();
