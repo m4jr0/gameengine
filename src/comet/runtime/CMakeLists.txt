@@ -153,6 +153,7 @@ set(COMET_RUNTIME_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/frame/frame_event.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/frame/frame_manager.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/frame/frame_packet.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/frame/frame_string.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/geometry_manager.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/label/mesh_label.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/input/input_event.cc"

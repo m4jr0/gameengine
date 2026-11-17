@@ -18,7 +18,6 @@
 #include <string>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime/frame/frame_string.h"
 
 namespace comet {
 s32 Compare(const schar* str1, const schar* str2) {
@@ -757,13 +756,28 @@ void ConvertToStr(bool boolean, wchar* buffer, usize buffer_len,
   }
 }
 
-const schar* GenerateTmpFromFormat(usize buffer_size, const schar* format,
-                                   ...) {
-  auto* buffer{GenerateFrameString<schar>(buffer_size)};
+s32 VFormatToBuffer(schar* buffer, usize buffer_size, const schar* format,
+                    va_list args) {
+  if (buffer == nullptr || buffer_size == 0 || format == nullptr) {
+    return -1;
+  }
+
+  buffer[0] = '\0';
+  const auto result{std::vsnprintf(buffer, buffer_size, format, args)};
+
+  if (result < 0) {
+    buffer[0] = '\0';
+  }
+
+  return result;
+}
+
+s32 FormatToBuffer(schar* buffer, usize buffer_size, const schar* format, ...) {
   va_list args;
   va_start(args, format);
-  std::vsnprintf(buffer, buffer_size, format, args);
+  const auto result{VFormatToBuffer(buffer, buffer_size, format, args)};
   va_end(args);
-  return buffer;
+
+  return result;
 }
 }  // namespace comet

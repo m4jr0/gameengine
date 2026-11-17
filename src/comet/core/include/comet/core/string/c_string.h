@@ -5,6 +5,8 @@
 #ifndef COMET_CORE_STRING_C_STRING_H_
 #define COMET_CORE_STRING_C_STRING_H_
 
+#include <cstdarg>
+
 #include "comet/core/essentials.h"
 #include "comet/core/math/math_scalar.h"
 
@@ -618,7 +620,12 @@ bool ParseBool(const Char* str) {
 }
 }  // namespace internal
 
-const schar* GenerateTmpFromFormat(usize buffer_size, const schar* format, ...);
+// Formats into caller-owned storage. Returns the required character count
+// (excluding the terminator), or a negative value on formatting failure.
+// A return value >= buffer_size indicates truncation.
+s32 VFormatToBuffer(schar* buffer, usize buffer_size, const schar* format,
+                    va_list args);
+s32 FormatToBuffer(schar* buffer, usize buffer_size, const schar* format, ...);
 }  // namespace comet
 
 #endif  // COMET_CORE_STRING_C_STRING_H_

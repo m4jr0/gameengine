@@ -11,6 +11,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/logger/logging.h"
+#include "comet/runtime/frame/frame_string.h"
 
 namespace comet {
 namespace rendering {

@@ -22,6 +22,7 @@ set(FOUNDATION_TESTS_EXECUTABLE_SOURCES
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/tests_main_foundation.cc"
 
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_command_line.cc"
+  "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_c_string_format.cc"
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_array.cc"
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_bitset.cc"
   "${PROJECT_SOURCE_DIR}/src/tests/foundation/core/type/tests_hash_set.cc"

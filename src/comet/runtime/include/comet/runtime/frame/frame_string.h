@@ -6,9 +6,13 @@
 #define COMET_COMET_RUNTIME_FRAME_FRAME_STRING_H_
 
 #include "comet/core/essentials.h"
+#include "comet/core/string/c_string.h"
 #include "comet/runtime/frame/frame_allocator.h"
 
 namespace comet {
+// Returns a frame-owned string. Requires an attached frame allocator.
+const schar* GenerateTmpFromFormat(usize buffer_size, const schar* format, ...);
+
 template <typename TChar>
 TChar* GenerateFrameString(usize length) {
   COMET_ASSERT(length > 0, "generator::GenerateFrameString",
