@@ -14,7 +14,7 @@
 
 #include "comet/core.h"
 #include "comet/data.h"
-#include "comet/render.h"
+#include "comet/data/render/color.h"
 #include "exporter/asset_exporter.h"
 
 namespace comet {
