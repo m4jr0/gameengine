@@ -14,7 +14,6 @@
 #include "comet/core/file_system/slash_helper.h"
 #include "comet/core/hash/hash.h"
 #include "comet/core/logger/logging.h"
-#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/type_trait.h"
 
