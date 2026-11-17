@@ -11,8 +11,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/data.h"
-#include "comet/render.h"
-#include "comet/runtime.h"
 #include "exporter/shader/utils/shader_module_export_utils.h"
 
 namespace comet {
