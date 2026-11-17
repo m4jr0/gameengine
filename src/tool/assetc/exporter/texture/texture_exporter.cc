@@ -17,7 +17,6 @@
 
 #include "comet/core.h"
 #include "comet/data.h"
-#include "comet/runtime.h
 #include "asset.h"
 #include "exporter/texture/data/texture_export_keys.h"
 
