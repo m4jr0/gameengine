@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // External. ///////////////////////////////////////////////////////////////////
+#include <filesystem>
 #include <string>
 
 #include "nlohmann/json.hpp"
@@ -187,7 +188,6 @@ bool AssetProcessor::IsRefreshNeeded(CTStringView asset_abs_path,
 
   TString item_abs_path{};
   item_abs_path.Reserve(kMaxPathLength);
-  tchar item_path[kMaxPathLength + 1]{};
 
   for (const auto& item : resource_files) {
     if (!item.is_string()) {
@@ -200,12 +200,10 @@ bool AssetProcessor::IsRefreshNeeded(CTStringView asset_abs_path,
       return true;
     }
 
-    Copy(item_path, path_str.c_str(), path_str.size());
-    item_path[path_str.size()] = COMET_TCHAR('\0');
-
+    const auto native_path{std::filesystem::path{path_str}.native()};
     item_abs_path.Clear();
     item_abs_path /= root_resource_path_;
-    item_abs_path /= item_path;
+    item_abs_path /= native_path.c_str();
 
     if (!Exists(item_abs_path)) {
       return true;
