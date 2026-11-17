@@ -8,7 +8,6 @@
 
 #include <cstdio>
 #include <filesystem>
-#include <filesystem>
 
 #include "asset_processor.h"
 #include "comet/core.h"
@@ -17,8 +16,6 @@ int main(int argc, char** argv) {
   comet::command_line::Option options[]{
       {"help", false},
       {"force", false},
-      {"assets", true},
-      {"resources", true},
       {"assets", true},
       {"resources", true},
   };
@@ -84,14 +81,9 @@ int main(int argc, char** argv) {
   scheduler.AttachConfig(scheduler_config);
   scheduler.Initialize();
 
-  const auto asset_path{std::filesystem::path{
-      options[2].is_present ? options[2].value : "assets"}.native()};
-  const auto resource_path{std::filesystem::path{
-      options[3].is_present ? options[3].value : "resources"}.native()};
-
   comet::tool::assetc::AssetcConfig config{};
-  config.asset_root = comet::CTStringView{asset_path.c_str()};
-  config.resource_root = comet::CTStringView{resource_path.c_str()};
+  config.asset_root = comet::CTStringView{native_asset_path.c_str()};
+  config.resource_root = comet::CTStringView{native_resource_path.c_str()};
   config.allocator = &allocator;
   config.force = options[1].is_present;
 
