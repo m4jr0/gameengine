@@ -17,8 +17,6 @@
 #include "comet/core/fiber/fiber_context.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory.h"
-#include "comet/runtime/memory/tagged_memory.h"
-#include "comet/runtime/memory/memory_tag.h"
 
 #ifdef COMET_FIBER_DEBUG_LABEL
 #include "comet/core/string/c_string.h"
