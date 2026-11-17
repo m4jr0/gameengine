@@ -11,6 +11,8 @@
 #include "comet/data/resource/animation/animation_resource.h"
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <type_traits>
+
 #include "comet/core/container/array.h"
 #include "comet/core/id/string_id.h"
 #include "comet/core/id/string_id_allocator.h"
@@ -43,6 +45,13 @@ usize GetAnimationClipSize(const AnimationClipResource& resource) {
   return size;
 }
 namespace packing_internal {
+template <typename T>
+void WriteValue(u8* buffer, usize& cursor, const T& value) {
+  static_assert(std::is_trivially_copyable_v<T>);
+  memory::CopyMemory(&buffer[cursor], &value, sizeof(T));
+  cursor += sizeof(T);
+}
+
 void WriteCompressedJointPose(u8* buffer, usize& cursor,
                               const animation::CompressedJointPose& pose) {
   WriteValue(buffer, cursor, pose.rotation_x);
@@ -142,6 +151,13 @@ ResourceFile PackAnimationClipResource(
 }
 
 namespace decoding_internal {
+template <typename T>
+void ReadValue(const u8* buffer, usize& cursor, T& value) {
+  static_assert(std::is_trivially_copyable_v<T>);
+  memory::CopyMemory(&value, &buffer[cursor], sizeof(T));
+  cursor += sizeof(T);
+}
+
 void ReadCompressedJointPose(const u8* buffer, usize& cursor,
                              animation::CompressedJointPose& pose) {
   ReadValue(buffer, cursor, pose.rotation_x);
