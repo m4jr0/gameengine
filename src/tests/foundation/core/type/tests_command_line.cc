@@ -2,6 +2,8 @@
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
+#include <string_view>
+
 #include "comet/core/command_line/command_line.h"
 #include "catch.hpp"
 
