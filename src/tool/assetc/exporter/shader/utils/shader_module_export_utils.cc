@@ -10,7 +10,7 @@
 #include "shader_module_export_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime.h"
+#include "comet/data.h"
 
 namespace comet {
 namespace tool {
