@@ -6,7 +6,7 @@
 #define COMET_RUNTIME_RESOURCE_SHADER_SHADER_RESOURCE_HANDLE_H_
 
 #include "comet/data/resource/shader/shader_resource.h"
-#include "comet/runtime/resource/loaded_resource_handle.h"
+#include "comet/runtime/resource/runtime/loaded_resource_handle.h"
 
 namespace comet {
 namespace resource {

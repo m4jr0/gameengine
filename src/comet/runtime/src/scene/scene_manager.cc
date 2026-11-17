@@ -31,7 +31,7 @@
 #include "comet/runtime/environment/environment_manager.h"
 #include "comet/core/math/geometry.h"
 #include "comet/runtime/transform/component/transform_component.h"
-#include "comet/physics/transform.h"
+#include "comet/runtime/transform/transform.h"
 #include "comet/runtime/profiler/profiler.h"
 #include "comet/runtime/camera/camera_manager.h"
 #include "comet/runtime/light/light_manager.h"

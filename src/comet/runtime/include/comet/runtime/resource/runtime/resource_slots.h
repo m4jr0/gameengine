@@ -22,8 +22,8 @@
 #include "comet/data/resource/resource.h"
 #include "comet/data/resource/resource_file.h"
 #include "comet/data/resource/resource_id.h"
-#include "comet/data/resource/runtime/loaded_resource_handle.h"
-#include "comet/data/resource/runtime/resource_slot.h"
+#include "comet/runtime/resource/runtime/loaded_resource_handle.h"
+#include "comet/runtime/resource/runtime/resource_slot.h"
 #include "comet/data/resource/common.h"
 
 namespace comet {

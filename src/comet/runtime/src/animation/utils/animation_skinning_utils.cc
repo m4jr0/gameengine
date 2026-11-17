@@ -7,10 +7,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Header. /////////////////////////////////////////////////////////////////////
-#include "comet/runtime/animation/utils/animation_clip_utils.h"
+#include "comet/data/animation/utils/animation_clip_utils.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/compression.h"
+#include "comet/core/compression/compression.h"
 #include "comet/runtime/frame/frame_container.h"
 #include "comet/core/math/math_compression.h"
 #include "comet/core/math/math_interpolation.h"
