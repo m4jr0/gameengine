@@ -62,7 +62,7 @@ void AssetExporter::Process(const AssetExportDescr& export_descr) {
 
   auto resource_files = nlohmann::json::array();
   constexpr auto kBufferSize{GetCharCount<resource::RawResourceId>() + 1};
-  schar buffer[kBufferSize]{'\\0'};
+  schar buffer[kBufferSize]{'\0'};
   usize out_len{0};
   for (const auto& resource_file : context.files) {
     ConvertToStr(resource_file.resource_id, buffer, kBufferSize, &out_len);
