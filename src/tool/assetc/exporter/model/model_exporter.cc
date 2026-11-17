@@ -12,6 +12,7 @@
 
 // External. ///////////////////////////////////////////////////////////////////
 #include "assimp/postprocess.h"
+#include <filesystem>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core.h"
@@ -170,12 +171,11 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
                "scene context is null");
 
 #ifdef COMET_WIDE_TCHAR
-  const auto length{GetLength(scene_context->asset_abs_path)};
-  auto* scene_path{scene_context->allocator->AllocateMany<schar>(length + 1)};
-  Copy(scene_path, scene_context->asset_abs_path, length);
-  scene_path[length] = COMET_TCHAR('\0');
+  const auto narrow_scene_path{
+      std::filesystem::path{scene_context->asset_abs_path}.string()};
+  const auto* scene_path{narrow_scene_path.c_str()};
 #else
-  auto* scene_path{scene_context->asset_abs_path};
+  const auto* scene_path{scene_context->asset_abs_path};
 #endif  // COMET_WIDE_TCHAR
 
   COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnSceneLoading",
@@ -214,10 +214,6 @@ void ModelExporter::OnSceneLoading(job::IOJobParamsHandle params_handle) {
   COMET_LOG_DEBUG(LoggerType::External, "ModelExporter::OnSceneLoading",
                   "scene loaded", "asset_path", scene_path);
 
-#ifdef COMET_WIDE_TCHAR
-  scene_context->allocator->Deallocate(scene_path);
-  scene_path = nullptr;
-#endif  // COMET_WIDE_TCHAR
 }
 
 void ModelExporter::OnModelProcessing(job::JobParamsHandle params_handle) {
