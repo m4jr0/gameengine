@@ -66,7 +66,7 @@ struct adl_serializer<comet::Array<T>> {
 
 #ifdef COMET_FIBER_DEBUG_LABEL
 #define COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(path, buffer, buffer_len) \
-  comet::editor::asset::internal::GenerateTmpAssetFiberDebugLabel(     \
+  comet::tool::assetc::internal::GenerateTmpAssetFiberDebugLabel(     \
       path, buffer, buffer_len)
 #else
 #define COMET_ASSET_HANDLE_FIBER_DEBUG_LABEL(path, buffer, buffer_len) nullptr
