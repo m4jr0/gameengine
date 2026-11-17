@@ -11,7 +11,6 @@
 
 #include "comet/core.h"
 #include "comet/data.h"
-#include "comet/render.h"
 
 namespace comet {
 namespace tool {
