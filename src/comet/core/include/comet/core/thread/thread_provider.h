@@ -12,7 +12,7 @@
 #include "comet/core/job/worker_context.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/memory/default_allocator.h"
+#include "comet/core/memory/allocator/default_allocator.h"
 #include "comet/core/container/array.h"
 #include "comet/core/container/iterator.h"
 

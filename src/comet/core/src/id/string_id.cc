@@ -23,7 +23,7 @@
 #include <shared_mutex>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/type/string_id_allocator.h"
+#include "comet/core/id/string_id_allocator.h"
 
 #if defined(COMET_DEBUG_STRING_ID_ALLOCATOR) && \
     defined(COMET_VERBOSE_ALLOCATOR_LOGS)

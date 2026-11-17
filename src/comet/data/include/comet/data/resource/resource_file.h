@@ -5,7 +5,7 @@
 #ifndef COMET_DATA_RESOURCE_RESOURCE_FILE_H_
 #define COMET_DATA_RESOURCE_RESOURCE_FILE_H_
 
-#include "comet/core/compression.h"
+#include "comet/core/compression/compression.h"
 #include "comet/core/container/array.h"
 #include "comet/core/essentials.h"
 #include "comet/core/memory/memory.h"

@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/string/c_string.h"
-#include "comet/core/compression.h"
+#include "comet/core/compression/compression.h"
 #include "comet/core/file_system/file_system.h"
 #include "comet/core/logger/logging.h"
 #include "comet/core/memory/memory_utils.h"

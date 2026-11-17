@@ -16,7 +16,7 @@
 #include "comet/core/hash/hash.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/container/array.h"
-#include "comet/core/type/traits.h"
+#include "comet/core/type_trait.h"
 #include "comet/core/math/math_scalar.h"
 
 namespace comet {

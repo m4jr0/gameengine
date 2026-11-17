@@ -7,7 +7,7 @@
 
 #include "comet/core/essentials.h"
 #include "comet/core/memory/allocator/allocator.h"
-#include "comet/core/type/gid_pool.h"
+#include "comet/core/id/gid_pool.h"
 #include "comet/core/handle/handle.h"
 
 namespace comet {

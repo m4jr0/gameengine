@@ -10,7 +10,7 @@
 #include "comet/core/math/math_compression.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/compression.h"
+#include "comet/core/compression/compression.h"
 #include "comet/core/math/math_scalar.h"
 
 namespace comet {

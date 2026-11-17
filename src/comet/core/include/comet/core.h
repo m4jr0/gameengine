@@ -25,7 +25,7 @@
 #include "comet/core/container/ring_queue.h"
 #include "comet/core/debug/debug.h"
 #include "comet/core/debug/debug_label.h"
-#include "comet/core/define.h"
+#include "comet/core/core_define.h"
 #include "comet/core/essentials.h"
 #include "comet/core/fiber/fiber.h"
 #include "comet/core/fiber/fiber_context.h"

@@ -20,7 +20,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/compiler.h"
-#include "comet/core/define.h"
+#include "comet/core/core_define.h"
 #include "comet/core/os.h"
 
 namespace comet {
