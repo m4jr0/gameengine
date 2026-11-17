@@ -25,13 +25,6 @@ struct ResourceFilesContext {
   ResourceFiles files{};
 };
 
-class AssetExporter;
-
-struct AssetExport {
-  AssetExporter* exporter{nullptr};
-  ResourceFilesContext context{};
-};
-
 class AssetExporter {
  public:
   AssetExporter() = default;
@@ -61,20 +54,11 @@ class AssetExporter {
   const TString& GetRootAssetPath() const;
 
  protected:
-  static void OnResourceFilesProcess(job::JobParamsHandle params_handle);
-  static void OnResourceFilesWrite(job::IOJobParamsHandle params_handle);
-
   virtual void PopulateFiles(ResourceFilesContext& context) const = 0;
 
   resource::CompressionMode compression_mode_{resource::CompressionMode::Lz4};
   TString root_asset_path_{};
   TString root_resource_path_{};
-
- private:
-  void OnAssetProcessed(AssetExport* asset_export);
-
-  AssetExport* GenerateAssetExport();
-  void DestroyAssetExport(AssetExport* asset_export);
 
 };
 }  // namespace assetc
