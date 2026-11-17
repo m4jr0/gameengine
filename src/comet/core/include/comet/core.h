@@ -11,6 +11,7 @@
 #include "comet/core/algorithm/iterator_utils.h"
 #include "comet/core/algorithm/set_difference.h"
 #include "comet/core/algorithm/sort.h"
+#include "comet/core/command_line/command_line.h"
 #include "comet/core/compiler.h"
 #include "comet/core/compression/compression.h"
 #include "comet/core/container/array.h"

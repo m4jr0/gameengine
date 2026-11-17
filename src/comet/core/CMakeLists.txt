@@ -32,6 +32,7 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/iterator_utils.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/set_difference.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/algorithm/sort.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/command_line/command_line.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/compiler.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/compression/compression.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/container/array.h"
