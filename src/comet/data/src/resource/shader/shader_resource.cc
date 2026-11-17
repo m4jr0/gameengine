@@ -427,7 +427,7 @@ ResourceFile PackShaderResource(const ShaderResource& resource,
 namespace decoding_internal {
 void ParseShaderModules(const u8* buffer,
                                                ShaderResourceDescr& descr,
-                                               usize& cursor, memory::Allocator* allocator) {
+                                               usize& cursor) {
   usize module_count{0};
   memory::CopyMemory(&module_count, &buffer[cursor], packing_internal::kUsizeSize);
   cursor += packing_internal::kUsizeSize;
@@ -446,7 +446,7 @@ void ParseShaderModules(const u8* buffer,
 
 void ParseShaderDefines(const u8* buffer,
                                                ShaderResourceDescr& descr,
-                                               usize& cursor, memory::Allocator* allocator) {
+                                               usize& cursor) {
   usize define_count{0};
   memory::CopyMemory(&define_count, &buffer[cursor], packing_internal::kUsizeSize);
   cursor += packing_internal::kUsizeSize;
@@ -689,8 +689,8 @@ void ParseDescr(const Array<u8>& dumped_descr,
                      packing_internal::kShaderVertexLayoutSize);
   cursor += packing_internal::kShaderVertexLayoutSize;
 
-  decoding_internal::ParseShaderModules(buffer, descr, cursor, allocator);
-  decoding_internal::ParseShaderDefines(buffer, descr, cursor, allocator);
+  decoding_internal::ParseShaderModules(buffer, descr, cursor);
+  decoding_internal::ParseShaderDefines(buffer, descr, cursor);
   decoding_internal::ParseBindings(buffer, descr, cursor, allocator);
   decoding_internal::ParsePushConstants(buffer, descr, cursor, allocator);
 
