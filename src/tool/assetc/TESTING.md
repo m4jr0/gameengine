@@ -44,3 +44,9 @@ For each resource type (material, texture, shader module, shader, static model, 
 - Export orchestration is currently synchronous at the asset level; exporters may still schedule their own jobs.
 - Resource decoders use inherited offset/count handling; add bounded readers separately.
 - The core CLI parser intentionally supports only named flags and string-valued options, not positional arguments or subcommands.
+
+## Automated CLI smoke test
+
+After building assetc, run `bash src/tool/assetc/test_cli.sh /path/to/assetc`.
+This checks parsing without writing assets. Resource round-trip and lifetime tests
+still require compiled fixtures and sanitizer runs.
