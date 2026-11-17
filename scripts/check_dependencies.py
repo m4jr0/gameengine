@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Enforce Comet's compile-time module dependency boundaries."""
+"""Check direct Comet module includes and standalone tool boundaries.
+
+This is a source-level check, not a substitute for CMake link validation.
+"""
 
 from pathlib import Path
 import re
@@ -7,7 +10,10 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = ROOT / "src" / "comet"
-INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]comet/([^/"<>]+)(?:/[^"<>]*)?[">]', re.MULTILINE)
+INCLUDE = re.compile(
+    r'^\s*#\s*include\s*[<"]comet/([^/"<>]+)(?:/[^"<>]*)?[">]',
+    re.MULTILINE,
+)
 ALLOWED = {
     "core": {"core"},
     "data": {"core", "data"},
@@ -18,27 +24,34 @@ ALLOWED = {
 }
 EXTENSIONS = {".h", ".hpp", ".cc", ".cpp", ".cxx"}
 errors = []
-for module, allowed in ALLOWED.items():
-    folder = MODULES / module
-    for path in folder.rglob("*"):
+
+
+def check_includes(folder: Path, owner: str, allowed: set[str]) -> None:
+    for path in sorted(folder.rglob("*")):
         if not path.is_file() or path.suffix not in EXTENSIONS:
             continue
+
         content = path.read_text(encoding="utf-8")
         for match in INCLUDE.finditer(content):
             dependency = match.group(1)
-            if dependency in ALLOWED and dependency not in allowed:
-                line = content.count("\n", 0, match.start()) + 1
-                errors.append(f"{path.relative_to(ROOT)}:{line}: {module} must not include {dependency}")
-for path in (ROOT / "src" / "tool" / "assetc").rglob("*"):
-    if not path.is_file() or path.suffix not in EXTENSIONS:
-        continue
-    content = path.read_text(encoding="utf-8")
-    for match in INCLUDE.finditer(content):
-        dependency = match.group(1)
-        if dependency in ALLOWED and dependency not in {"core", "data"}:
+            if dependency not in ALLOWED or dependency in allowed:
+                continue
+
             line = content.count("\n", 0, match.start()) + 1
-            errors.append(f"{path.relative_to(ROOT)}:{line}: assetc must not include {dependency}")
+            errors.append(
+                f"{path.relative_to(ROOT)}:{line}: "
+                f"{owner} must not include {dependency}"
+            )
+
+
+for module, allowed in ALLOWED.items():
+    check_includes(MODULES / module, module, allowed)
+
+check_includes(ROOT / "src" / "tool" / "assetc", "assetc", {"core", "data"})
+check_includes(ROOT / "src" / "tests" / "foundation", "foundation tests", {"core", "data"})
+
 if errors:
     print("\n".join(errors), file=sys.stderr)
     sys.exit(1)
-print("Comet dependency boundaries: OK")
+
+print("Comet source dependency boundaries: OK")
