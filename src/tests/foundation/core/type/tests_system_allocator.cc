@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 
 #include <cstdint>
+#include <cstring>
+#include <initializer_list>
 
 #include "catch2/catch_test_macros.hpp"
 #include "comet/core/memory/allocator/system_allocator.h"
@@ -30,4 +32,23 @@ TEST_CASE("System allocator supports multiple live allocations",
   allocator.Deallocate(second);
   allocator.Deallocate(first);
   allocator.Deallocate(nullptr);
+}
+
+TEST_CASE("System allocator preserves data across aligned allocations",
+          "[comet][memory]") {
+  comet::memory::SystemAllocator allocator{};
+  for (comet::memory::Alignment align{1};
+       align <= comet::memory::kMaxAlignment; align *= 2) {
+    for (comet::usize size : {comet::usize{1}, comet::usize{17},
+                              comet::usize{255}, comet::usize{1024}}) {
+      auto* ptr{static_cast<unsigned char*>(allocator.AllocateAligned(size, align))};
+      REQUIRE(ptr != nullptr);
+      REQUIRE(reinterpret_cast<std::uintptr_t>(ptr) % align == 0);
+      std::memset(ptr, 0xa5, size);
+      for (comet::usize i{0}; i < size; ++i) {
+        REQUIRE(ptr[i] == 0xa5);
+      }
+      allocator.Deallocate(ptr);
+    }
+  }
 }
