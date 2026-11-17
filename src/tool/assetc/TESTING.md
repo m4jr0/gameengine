@@ -58,3 +58,9 @@ still require compiled fixtures and sanitizer runs.
 - `AssetAllocator` and `SystemAllocator` use alignment-sensitive allocation/deallocation paths that need a separate correctness review; do not assume over-aligned allocations are safe.
 - The command-line parser has foundation unit tests, and the CLI smoke script covers invalid arguments. Neither has been executed in this source-only pass.
 - Automated resource codec round-trip tests and compiled lifetime/sanitizer verification remain outstanding. The checklist above describes how to complete them, not tests already run.
+
+## Short options
+
+The shared core parser now supports `-h`, `-f`, `-a PATH`, `-r PATH`, and `-a=PATH` / `-r=PATH`.
+Long and short aliases count as the same option for duplicate detection. Combined flags such as `-hf` are deliberately unsupported.
+The implementation lives in `comet_core/src/command_line/command_line.cc`, not an inline header function.

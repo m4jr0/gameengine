@@ -14,10 +14,10 @@
 
 int main(int argc, char** argv) {
   comet::command_line::Option options[]{
-      {"help", false},
-      {"force", false},
-      {"assets", true},
-      {"resources", true},
+      {"help", false, false, nullptr, 'h'},
+      {"force", false, false, nullptr, 'f'},
+      {"assets", true, false, nullptr, 'a'},
+      {"resources", true, false, nullptr, 'r'},
   };
   const comet::schar* invalid_argument{nullptr};
   const auto result{comet::command_line::Parse(
@@ -29,11 +29,11 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   if (options[0].is_present) {
-    std::puts("Usage: assetc [--assets PATH] [--resources PATH] [--force] [--help]");
-    std::puts("  --force  Reprocess assets even when unchanged");
-    std::puts("  --help       Show this help");
-    std::puts("  --assets     Asset input directory (default: assets)");
-    std::puts("  --resources  Compiled resource directory (default: resources)");
+    std::puts("Usage: assetc [-a PATH] [-r PATH] [-f] [-h]");
+    std::puts("  -f, --force       Reprocess assets even when unchanged");
+    std::puts("  -h, --help        Show this help");
+    std::puts("  -a, --assets      Asset input directory (default: assets)");
+    std::puts("  -r, --resources   Compiled resource directory (default: resources)");
     return EXIT_SUCCESS;
   }
   // Convert UTF-8 CLI paths to native filesystem paths before constructing

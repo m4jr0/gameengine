@@ -110,6 +110,7 @@ set(COMET_CORE_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/version.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/core/windows.h"
 
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/command_line/command_line.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/compression/compression.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/container/bitset.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/container/region_map.cc"

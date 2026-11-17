@@ -43,3 +43,36 @@ TEST_CASE("Command line rejects malformed options", "[comet][command_line]") {
   const char* empty[]{"tool", "--assets="};
   REQUIRE(Parse(2, empty, options, 2) == ParseResult::MissingValue);
 }
+
+TEST_CASE("Command line parses short options", "[comet][command_line]") {
+  using comet::command_line::Option;
+  using comet::command_line::Parse;
+  using comet::command_line::ParseResult;
+
+  Option options[]{
+      {"help", false, false, nullptr, 'h'},
+      {"force", false, false, nullptr, 'f'},
+      {"assets", true, false, nullptr, 'a'},
+      {"resources", true, false, nullptr, 'r'},
+  };
+
+  const char* argv[]{"tool", "-h", "-f", "-a", "asset folder",
+                     "-r=resource folder"};
+  REQUIRE(Parse(6, argv, options, 4) == ParseResult::Success);
+  REQUIRE(options[0].is_present);
+  REQUIRE(options[1].is_present);
+  REQUIRE(std::string_view{options[2].value} == "asset folder");
+  REQUIRE(std::string_view{options[3].value} == "resource folder");
+
+  const char* repeated[]{"tool", "-f", "--force"};
+  REQUIRE(Parse(3, repeated, options, 4) == ParseResult::DuplicateOption);
+
+  const char* combined[]{"tool", "-hf"};
+  REQUIRE(Parse(2, combined, options, 4) == ParseResult::InvalidArgument);
+
+  const char* missing[]{"tool", "-a"};
+  REQUIRE(Parse(2, missing, options, 4) == ParseResult::MissingValue);
+
+  const char* unexpected[]{"tool", "-f=yes"};
+  REQUIRE(Parse(2, unexpected, options, 4) == ParseResult::UnexpectedValue);
+}
