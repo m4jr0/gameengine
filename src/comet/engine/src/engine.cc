@@ -20,7 +20,10 @@
 #endif  // COMET_MSVC
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "comet/core/debug/debug.h"
 #include "comet/core/file_system/file_system.h"
+#include "comet/core/memory/memory_utils.h"
+#include "comet/core/time/time_utils.h"
 #include "comet/core/id/gid.h"
 #include "comet/core/id/gid_pool.h"
 #include "comet/core/job/job.h"
@@ -45,6 +48,9 @@
 #include "comet/runtime/input/input_manager.h"
 #include "comet/runtime/light/light_manager.h"
 #include "comet/runtime/memory/allocation_tracking.h"
+#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
+#include "comet/runtime/memory/memory_label.h"
+#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
 #include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/runtime/memory/allocator/stack_allocator.h"
 #include "comet/runtime/memory/tagged_heap.h"
@@ -74,6 +80,41 @@ engine_main_loop
 #endif  // COMET_HAS_DEBUG_UI
 
 namespace comet {
+namespace {
+void AppendCriticalErrorDiagnostics(std::ostream& output) {
+  const auto uptime{time::TimeManager::Get().GetUptime()};
+  schar uptime_str[32]{'\0'};
+  time::GetTimeString(uptime, uptime_str, sizeof(uptime_str));
+  output << "uptime: " << uptime_str << '\n';
+
+  auto& entity_manager{entity::EntityManager::Get()};
+  output << "entity count: " << entity_manager.GetEntityCount() << '\n';
+  output << "entity capacity: " << entity_manager.GetEntityCapacity() << '\n';
+  output << "pending entity count: "
+         << entity_manager.GetPendingEntityCount() << '\n';
+
+#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
+  const auto snapshot{memory::GetLatestMemoryUseSnapshot()};
+  constexpr usize kBufferCapacity{512};
+  schar buffer[kBufferCapacity]{'\0'};
+  usize buffer_len{0};
+  memory::GetMemorySizeString(snapshot.memory_use, buffer, kBufferCapacity,
+                              &buffer_len);
+  output << "memory snapshot:\n";
+  output << "\tusage: " << buffer << '\n';
+  for (usize i{0}; i < snapshot.tag_count; ++i) {
+    const auto& entry{snapshot.tags[i]};
+    memory::GetMemorySizeString(entry.size, buffer, kBufferCapacity,
+                                &buffer_len);
+    output << "\t" << memory::GetMemoryTagLabel(entry.tag) << ": "
+           << buffer << '\n';
+  }
+#else
+  output << "memory: allocation tracking disabled\n";
+#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
+}
+}  // namespace
+
 Engine::Engine(EngineClient* client) : client_{client} {
   COMET_ASSERT(client_ != nullptr, "Engine::Engine", "engine client is null");
   Engine::engine_ = this;
@@ -120,6 +161,7 @@ void Engine::Run() {
     auto& scene_manager{scene::SceneManager::Get()};
     scene_manager.Initialize();
     environment::EnvironmentManager::Get().Initialize();
+    debug::SetCriticalErrorDiagnostics(&AppendCriticalErrorDiagnostics);
 
     event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>();
 
@@ -171,6 +213,7 @@ void Engine::Stop() {
 }
 
 void Engine::Shutdown() {
+  debug::SetCriticalErrorDiagnostics(nullptr);
   COMET_ASSERT(is_initialized_, "Engine::Shutdown",
                "engine is not initialized");
 
@@ -232,6 +275,7 @@ void Engine::InitializeSchedulerBootstrap() {
 }
 
 void Engine::Exit() {
+  debug::SetCriticalErrorDiagnostics(nullptr);
   event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();
   Stop();
   COMET_LOG_INFO(LoggerType::Engine, "Engine::Exit", "engine quit");
