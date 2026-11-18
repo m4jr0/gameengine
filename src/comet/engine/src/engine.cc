@@ -280,6 +280,9 @@ void Engine::InitializeSchedulerBootstrap() {
 void Engine::Exit() {
   debug::SetCriticalErrorDiagnostics(nullptr);
   event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();
+#ifdef COMET_PROFILING
+  profiler::ProfilerManager::Get().StopRecording();
+#endif  // COMET_PROFILING
   Stop();
   COMET_LOG_INFO(LoggerType::Engine, "Engine::Exit", "engine quit");
 }
