@@ -127,15 +127,17 @@ CameraProjectionFlags CameraManager::GetProjectionFlags() const noexcept {
 usize CameraManager::PopulateCameraViews(Array<CameraView>& views,
                                          WindowSize full_width,
                                          WindowSize full_height,
-                                         bool use_debug_camera,
-                                         bool draw_debug_on_game,
-                                         bool draw_debug_on_debug) {
+                                         CameraViewOptions options) {
   views.Clear();
 
 #ifndef COMET_DEBUG
-  use_debug_camera = false;
-  draw_debug_on_game = false;
-  draw_debug_on_debug = false;
+  options = kCameraViewOptionBitsNone;
+#endif  // COMET_DEBUG
+
+  const bool use_debug_camera{(options & kCameraViewOptionBitsDebugCamera) != 0};
+  const bool draw_debug_on_game{(options & kCameraViewOptionBitsDrawDebugOnGame) != 0};
+#ifdef COMET_DEBUG
+  const bool draw_debug_on_debug{(options & kCameraViewOptionBitsDrawDebugOnDebug) != 0};
 #endif  // COMET_DEBUG
 
   const u32 camera_count{use_debug_camera ? 2u : 1u};
