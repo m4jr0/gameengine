@@ -16,7 +16,6 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-
 #ifdef COMET_PROFILING
 namespace comet {
 namespace profiler {
@@ -42,6 +41,9 @@ void ProfilerManager::EndFrame() {
 }
 
 void ProfilerManager::ResetThreadContexts() {
+  COMET_ASSERT(thread_contexts_.IsInitialized(),
+               "ProfilerManager::ResetThreadContexts",
+               "thread contexts are not initialized");
   const auto thread_context_count{thread_contexts_.GetSize()};
 
   for (usize i{0}; i < thread_context_count; ++i) {
@@ -119,7 +121,6 @@ void ProfilerManager::OnInitialize() {
     auto& thread_context{thread_contexts_.GetFromIndex(i)};
     thread_context.thread_id = thread_contexts_.GetThreadIdFromIndex(i);
   }
-
 }
 
 void ProfilerManager::OnShutdown() {
