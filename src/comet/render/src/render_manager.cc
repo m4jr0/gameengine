@@ -8,6 +8,7 @@
 
 // Header. /////////////////////////////////////////////////////////////////////
 #include "comet/render/render_manager.h"
+#include "comet/platform/window/glfw/glfw_window.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/container/array.h"
@@ -93,6 +94,15 @@ void RenderManager::Update(frame::FramePacket* packet) {
   }
 
   ++counter_;
+}
+
+GLFWwindow* RenderManager::GetWindowHandle() const {
+  COMET_ASSERT(driver_ != nullptr, "RenderManager::GetWindowHandle",
+               "rendering driver is null");
+  auto* window{dynamic_cast<platform::GlfwWindow*>(driver_->GetWindow())};
+  COMET_ASSERT(window != nullptr, "RenderManager::GetWindowHandle",
+               "rendering window is not a GLFW window");
+  return window->GetHandle();
 }
 
 platform::WindowExtent RenderManager::GetWindowExtent() const {
