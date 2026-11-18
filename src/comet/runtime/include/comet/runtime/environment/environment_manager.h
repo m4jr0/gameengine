@@ -6,6 +6,7 @@
 #define COMET_RUNTIME_ENVIRONMENT_ENVIRONMENT_MANAGER_H_
 
 #include "comet/core/essentials.h"
+#include "comet/data/light/light.h"
 #include "comet/runtime/frame/frame_packet.h"
 #include "comet/runtime/manager.h"
 #include "comet/runtime/light/light_handle.h"
@@ -18,6 +19,9 @@ class EnvironmentManager : public Manager {
   static EnvironmentManager& Get();
 
   void Update(frame::FramePacket* packet);
+
+  // Configure sunlight before Initialize().
+  void SetSunShadowSettings(const light::ShadowSettings& settings);
 
   // Time controls.
   void SetTimeFrozen(bool is_frozen);
@@ -91,6 +95,7 @@ class EnvironmentManager : public Manager {
   f32 azimuth_offset_{static_cast<f32>(-math::kHalfPi)};
 
  private:
+  light::ShadowSettings sun_shadow_settings_{};
   light::LightHandle sun_light_{};
   math::Vec3 GenerateSunDirection(f32 azimuth, f32 elevation) const;
 };
