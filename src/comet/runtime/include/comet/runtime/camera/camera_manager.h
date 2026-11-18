@@ -18,7 +18,6 @@
 #include "comet/core/math/quaternion.h"
 #include "comet/core/math/vector.h"
 #include "comet/runtime/camera/camera.h"
-#include "comet/render/common.h"
 
 namespace comet {
 namespace camera {
