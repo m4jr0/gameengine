@@ -30,6 +30,7 @@ set(COMET_DATA_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/data/render/label/pipeline_label.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/data/render/label/shader_label.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/data/render/label/texture_label.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/data/render/driver.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/data/render/pipeline.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/data/render/shader.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/comet/data/render/texture.h"

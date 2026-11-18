@@ -6,11 +6,10 @@
 #define COMET_RENDER_COMMON_H_
 
 #include "comet/core/essentials.h"
+#include "comet/data/render/driver.h"
 
 namespace comet {
 namespace render {
-enum class DriverType : u8 { Unknown = 0, Empty, OpenGl, Vulkan, Direct3d12 };
-
 using FrameCount = u32;
 constexpr auto kInvalidFrameCount{static_cast<FrameCount>(-1)};
 
