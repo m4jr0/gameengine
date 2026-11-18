@@ -15,6 +15,9 @@
 #include "comet/core/job/scheduler.h"
 #include "comet/engine/engine_client.h"
 #include "comet/render/render_manager.h"
+#ifdef COMET_DEBUG
+#include "comet/render/debug/rendering_debug_settings.h"
+#endif  // COMET_DEBUG
 #include "comet/runtime/animation/animation_manager.h"
 #include "comet/runtime/camera/camera_manager.h"
 #include "comet/runtime/continuation/continuation_manager.h"
@@ -97,9 +100,22 @@ void EngineFrameManager::PrepareLogicPacket(frame::FramePacket* packet) {
 
   const auto extent{render::RenderManager::Get().GetWindowExtent()};
 
+  bool use_debug_camera{false};
+  bool draw_debug_on_game{false};
+  bool draw_debug_on_debug{false};
+#ifdef COMET_DEBUG
+  const auto& camera_settings{debug::RenderingDebugSettings::Get()};
+  use_debug_camera = camera_settings.IsDebugCameraEnabled();
+  draw_debug_on_game = camera_settings.GetDebugDrawFlags(false) !=
+                       debug::kDebugDrawFlagBitsNone;
+  draw_debug_on_debug = camera_settings.GetDebugDrawFlags(true) !=
+                        debug::kDebugDrawFlagBitsNone;
+#endif  // COMET_DEBUG
+
   packet->main_camera_view_index =
       camera::CameraManager::Get().PopulateCameraViews(
-          *packet->camera_views, extent.width, extent.height);
+          *packet->camera_views, extent.width, extent.height,
+          use_debug_camera, draw_debug_on_game, draw_debug_on_debug);
 
 #ifdef COMET_DEBUG
   packet->has_debug_camera = packet->camera_views->GetSize() > 1;
