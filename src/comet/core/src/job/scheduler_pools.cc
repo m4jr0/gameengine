@@ -11,7 +11,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/fiber/fiber_utils.h"
-#include "comet/runtime/memory/tagged_memory.h"
 
 namespace comet {
 namespace job {

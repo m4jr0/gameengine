@@ -13,8 +13,6 @@
 #include "comet/core/string/c_string.h"
 #include "comet/core/hash/hash.h"
 #include "comet/core/memory/memory.h"
-#include "comet/runtime/memory/memory_tag.h"
-#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/id/string_id_allocator.h"
 
 #ifdef COMET_LABELIZE_STRING_IDS

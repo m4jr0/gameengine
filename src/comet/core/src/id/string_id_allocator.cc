@@ -11,7 +11,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/allocator/default_allocator.h"
-#include "comet/runtime/memory/tagged_memory.h"
 
 #ifdef COMET_LABELIZE_STRING_IDS
 #include "comet/core/memory/memory_utils.h"

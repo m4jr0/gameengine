@@ -10,10 +10,6 @@
 #include "comet/core/job/worker_context.h"
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime/conf/conf_manager.h"
-#include "comet/runtime/conf/config_defaults.h"
-#include "comet/runtime/conf/config_keys.h"
-#include "comet/runtime/conf/config_value.h"
 
 namespace comet {
 namespace job {

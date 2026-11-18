@@ -17,8 +17,6 @@
 #include "comet/core/container/map.h"
 #include "comet/core/memory/allocator/stateful_allocator.h"
 #include "comet/core/memory/memory.h"
-#include "comet/runtime/memory/tagged_memory.h"
-#include "comet/runtime/memory/memory_tag.h"
 #include "comet/core/id/string_id.h"
 #endif  // COMET_LABELIZE_STRING_IDS
 
