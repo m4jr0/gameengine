@@ -14,13 +14,13 @@
 
 #include "comet/core/time/date.h"
 #include "comet/engine/profiler/profiler_data.h"
-#include "comet/render/rendering/render_manager.h"
+#include "comet/render/render_manager.h"
 #include "comet/runtime/entity/entity_manager.h"
 #include "comet/runtime/memory/allocation_tracking.h"
 #include "comet/runtime/physics/physics_manager.h"
 #include "comet/runtime/profiler/profiler_manager.h"
 #include "comet/runtime/time/time_manager.h"
-#include "comet/runtime/time/time_utils.h"
+#include "comet/core/time/time_utils.h"
 
 namespace comet {
 namespace profiler {
