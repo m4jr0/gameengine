@@ -87,6 +87,14 @@ struct CameraProjectionDescr {
   CameraProjectionFlags flags{kProjectionFlagBitsDepthZeroToOne};
 };
 
+using CameraViewOptions = u8;
+enum CameraViewOptionBits : CameraViewOptions {
+  kCameraViewOptionBitsNone = 0x0,
+  kCameraViewOptionBitsDebugCamera = 0x1,
+  kCameraViewOptionBitsDrawDebugOnGame = 0x2,
+  kCameraViewOptionBitsDrawDebugOnDebug = 0x4,
+};
+
 struct CameraView {
   CameraHandle camera{};
   CameraKind kind{CameraKind::Unknown};
