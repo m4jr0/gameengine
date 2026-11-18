@@ -18,6 +18,8 @@
 #include "comet/runtime/manager.h"
 #include "comet/runtime/memory/memory_tag.h"
 
+struct GLFWwindow;
+
 namespace comet {
 namespace render {
 class RenderManager : public Manager {
@@ -34,6 +36,7 @@ class RenderManager : public Manager {
   void Update(frame::FramePacket* packet);
 
   platform::WindowExtent GetWindowExtent() const;
+  GLFWwindow* GetWindowHandle() const;
   DriverType GetDriverType() const noexcept;
   FrameCount GetFrameRate() const noexcept;
   f64 GetFrameTime() const noexcept;
