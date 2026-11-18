@@ -15,7 +15,6 @@
 #include "comet/core/math/math_scalar.h"
 #include "comet/runtime/profiler/profiler.h"
 #include "comet/runtime/light/light_manager.h"
-#include "comet/render/render_manager.h"
 #include "comet/data/light/light.h"
 #include "comet/runtime/time/time_manager.h"
 
@@ -24,6 +23,11 @@ namespace environment {
 EnvironmentManager& EnvironmentManager::Get() {
   static EnvironmentManager singleton{};
   return singleton;
+}
+
+void EnvironmentManager::SetSunShadowSettings(
+    const light::ShadowSettings& settings) {
+  sun_shadow_settings_ = settings;
 }
 
 void EnvironmentManager::Update(frame::FramePacket* packet) {
@@ -258,9 +262,6 @@ math::Vec3 EnvironmentManager::ComputeAmbientColor() const {
 }
 
 void EnvironmentManager::OnInitialize() {
-  const auto& shadow_settings{
-      render::RenderManager::Get().GetShadowSettings()};
-
   light::LightDescr sun{};
   sun.props.type = light::LightType::Directional;
   sun.props.direction = math::Vec3{.0f, -1.0f, .0f};
@@ -268,12 +269,12 @@ void EnvironmentManager::OnInitialize() {
   sun.props.intensity = 4.0f;
 
   sun.shadow.is_enabled = true;
-  sun.shadow.max_distance = shadow_settings.max_distance;
-  sun.shadow.bias_constant = shadow_settings.bias_constant;
-  sun.shadow.bias_slope = shadow_settings.bias_slope;
+  sun.shadow.max_distance = sun_shadow_settings_.max_distance;
+  sun.shadow.bias_constant = sun_shadow_settings_.bias_constant;
+  sun.shadow.bias_slope = sun_shadow_settings_.bias_slope;
 
-  sun.shadow.cascade_count = shadow_settings.cascade_count;
-  sun.shadow.cascade_lambda = shadow_settings.cascade_lambda;
+  sun.shadow.cascade_count = sun_shadow_settings_.cascade_count;
+  sun.shadow.cascade_lambda = sun_shadow_settings_.cascade_lambda;
 
   sun_light_ = light::LightManager::Get().Generate(sun);
 }
