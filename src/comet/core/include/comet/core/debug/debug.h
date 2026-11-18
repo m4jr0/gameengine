@@ -43,6 +43,11 @@ concept AssertFieldKey = std::is_convertible_v<T, const schar*> ||
                          std::is_convertible_v<T, const wchar*> ||
                          std::is_convertible_v<T, std::string_view>;
 
+// Optional engine diagnostics. Registration and removal synchronize with
+// callbacks already in progress. Do not register from inside a callback.
+using CriticalErrorDiagnosticsCallback = void (*)(std::ostream& output);
+
+void SetCriticalErrorDiagnostics(CriticalErrorDiagnosticsCallback callback);
 void HandleCriticalError();
 
 namespace internal {
