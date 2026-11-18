@@ -10,7 +10,7 @@
 #include "comet/runtime/memory/memory.h"
 
 #ifdef COMET_PROFILING
-#include "comet/render/type/common.h"
+#include "comet/data/render/driver.h"
 #include "comet/runtime/profiler/profiler.h"
 
 namespace comet {
