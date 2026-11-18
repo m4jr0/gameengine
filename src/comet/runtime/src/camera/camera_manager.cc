@@ -123,8 +123,8 @@ CameraProjectionFlags CameraManager::GetProjectionFlags() const noexcept {
 }
 
 usize CameraManager::PopulateCameraViews(Array<CameraView>& views,
-                                         platform::WindowSize full_width,
-                                         platform::WindowSize full_height,
+                                         CameraSize full_width,
+                                         CameraSize full_height,
                                          CameraViewOptions options) {
   views.Clear();
 
@@ -237,22 +237,22 @@ void CameraManager::SetRotation(CameraHandle handle,
   RefreshBasis(camera);
 }
 
-void CameraManager::SetSize(CameraHandle handle, platform::WindowSize width,
-                            platform::WindowSize height) {
+void CameraManager::SetSize(CameraHandle handle, CameraSize width,
+                            CameraSize height) {
   auto& camera{*GetCamera(handle)};
   camera.width = width;
   camera.height = height;
 }
 
-void CameraManager::SetSize(CameraHandle handle, platform::WindowExtent extent) {
+void CameraManager::SetSize(CameraHandle handle, CameraExtent extent) {
   SetSize(handle, extent.width, extent.height);
 }
 
-void CameraManager::SetWidth(CameraHandle handle, platform::WindowSize width) {
+void CameraManager::SetWidth(CameraHandle handle, CameraSize width) {
   GetCamera(handle)->width = width;
 }
 
-void CameraManager::SetHeight(CameraHandle handle, platform::WindowSize height) {
+void CameraManager::SetHeight(CameraHandle handle, CameraSize height) {
   GetCamera(handle)->height = height;
 }
 
@@ -318,16 +318,16 @@ const math::Vec3& CameraManager::GetRight(CameraHandle handle) const {
   return GetCamera(handle)->right;
 }
 
-platform::WindowExtent CameraManager::GetSize(CameraHandle handle) const {
+CameraExtent CameraManager::GetSize(CameraHandle handle) const {
   const auto& camera{*GetCamera(handle)};
   return {.width = camera.width, .height = camera.height};
 }
 
-platform::WindowSize CameraManager::GetWidth(CameraHandle handle) const {
+CameraSize CameraManager::GetWidth(CameraHandle handle) const {
   return GetCamera(handle)->width;
 }
 
-platform::WindowSize CameraManager::GetHeight(CameraHandle handle) const {
+CameraSize CameraManager::GetHeight(CameraHandle handle) const {
   return GetCamera(handle)->height;
 }
 
