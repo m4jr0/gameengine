@@ -29,13 +29,13 @@ struct DriverDescr {
   u8 app_minor_version{0};
   u8 app_patch_version{0};
   AntiAliasingType anti_aliasing_type{AntiAliasingType::None};
-  WindowSize window_width{0};
-  WindowSize window_height{0};
+  platform::WindowSize window_width{0};
+  platform::WindowSize window_height{0};
   f32 clear_color[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                      1.0f};
   schar app_name[kMaxAppNameLen]{'\0'};
   usize app_name_len{0};
-  const ShadowSettings* shadow_settings{nullptr};
+  const light::ShadowSettings* shadow_settings{nullptr};
   const RenderProxyRecordStore* render_proxy_record_store{nullptr};
   Array<RenderingViewDescr> rendering_view_descrs{};
 };
@@ -74,13 +74,13 @@ class Driver {
   u8 app_major_version_{0};
   u8 app_minor_version_{0};
   u8 app_patch_version_{0};
-  WindowSize window_width_{0};
-  WindowSize window_height_{0};
+  platform::WindowSize window_width_{0};
+  platform::WindowSize window_height_{0};
   f32 clear_color_[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                       1.0f};
   schar app_name_[kMaxAppNameLen]{'\0'};
   usize app_name_len_{0};
-  const ShadowSettings* shadow_settings_{};
+  const light::ShadowSettings* shadow_settings_{};
   const RenderProxyRecordStore* render_proxy_record_store_{nullptr};
   memory::PlatformAllocator rendering_view_descrs_allocator_{
       kEngineMemoryTagRender};
