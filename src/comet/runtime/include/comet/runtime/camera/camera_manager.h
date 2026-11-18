@@ -6,7 +6,6 @@
 #define COMET_RUNTIME_CAMERA_CAMERA_MANAGER_H_
 
 #include "comet/core/essentials.h"
-#include "comet/platform/window/window_common.h"
 #include "comet/runtime/manager.h"
 #include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/container/array.h"
@@ -43,8 +42,8 @@ class CameraManager : public Manager {
   void SetProjectionFlags(CameraProjectionFlags flags) noexcept;
   CameraProjectionFlags GetProjectionFlags() const noexcept;
 
-  usize PopulateCameraViews(Array<CameraView>& views, platform::WindowSize full_width,
-                            platform::WindowSize full_height,
+  usize PopulateCameraViews(Array<CameraView>& views, CameraSize full_width,
+                            CameraSize full_height,
                             CameraViewOptions options);
 
   void Reset(CameraHandle handle);
@@ -56,10 +55,10 @@ class CameraManager : public Manager {
 
   void SetPosition(CameraHandle handle, const math::Vec3& position);
   void SetRotation(CameraHandle handle, const math::Quat& rotation);
-  void SetSize(CameraHandle handle, platform::WindowSize width, platform::WindowSize height);
-  void SetSize(CameraHandle handle, platform::WindowExtent extent);
-  void SetWidth(CameraHandle handle, platform::WindowSize width);
-  void SetHeight(CameraHandle handle, platform::WindowSize height);
+  void SetSize(CameraHandle handle, CameraSize width, CameraSize height);
+  void SetSize(CameraHandle handle, CameraExtent extent);
+  void SetWidth(CameraHandle handle, CameraSize width);
+  void SetHeight(CameraHandle handle, CameraSize height);
   void SetFov(CameraHandle handle, f32 fov);
   void SetNearPlane(CameraHandle handle, f32 value);
   void SetFarPlane(CameraHandle handle, f32 value);
@@ -70,9 +69,9 @@ class CameraManager : public Manager {
   const math::Vec3& GetUp(CameraHandle handle) const;
   const math::Vec3& GetFront(CameraHandle handle) const;
   const math::Vec3& GetRight(CameraHandle handle) const;
-  platform::WindowExtent GetSize(CameraHandle handle) const;
-  platform::WindowSize GetWidth(CameraHandle handle) const;
-  platform::WindowSize GetHeight(CameraHandle handle) const;
+  CameraExtent GetSize(CameraHandle handle) const;
+  CameraSize GetWidth(CameraHandle handle) const;
+  CameraSize GetHeight(CameraHandle handle) const;
   f32 GetFov(CameraHandle handle) const;
   f32 GetFovInRadians(CameraHandle handle) const;
   f32 GetNearPlane(CameraHandle handle) const;
@@ -92,8 +91,8 @@ class CameraManager : public Manager {
  private:
   struct CameraEntry {
     CameraHandle handle{};
-    platform::WindowSize width{0};
-    platform::WindowSize height{0};
+    CameraSize width{0};
+    CameraSize height{0};
 
     f32 z_near{.1f};
     f32 z_far{1000.0f};
