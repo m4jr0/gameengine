@@ -9,7 +9,6 @@
 
 #ifdef COMET_PROFILING
 #include "comet/engine/profiler/profiler_data.h"
-#include "comet/engine/profiler/profiler_data_collector.h"
 #include "comet/runtime/memory/allocator/platform_allocator.h"
 
 namespace comet {
