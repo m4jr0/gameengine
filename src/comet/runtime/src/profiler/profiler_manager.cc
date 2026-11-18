@@ -25,8 +25,14 @@ ProfilerManager& ProfilerManager::Get() {
 }
 
 void ProfilerManager::StartFrame(frame::FrameCount frame_count) {
+  COMET_ASSERT(!is_frame_recording_, "ProfilerManager::StartFrame",
+               "previous profiling frame has not ended");
   if (!is_recording_) {
     return;
+  }
+
+  if (record_context_.frame_contexts.IsEmpty()) {
+    record_context_.start_frame_count = frame_count;
   }
 
   recording_frame_context_ = {&allocator_};
@@ -54,15 +60,13 @@ void ProfilerManager::ResetThreadContexts() {
     thread_context.nodes = Array<memory::UniquePtr<ProfilerNode>>{&allocator_};
   }
 
-  COMET_ASSERT(thread_contexts_.IsInitialized(), "ProfilerManager::EndFrame",
-               "thread contexts are not initialized");
 }
 
 void ProfilerManager::StartProfiling(const schar* label) {
   COMET_ASSERT(label != nullptr, "ProfilerManager::StartProfiling",
                "profile label is null");
 
-  if (!is_recording_) {
+  if (!is_frame_recording_) {
     return;
   }
 
@@ -101,11 +105,28 @@ void ProfilerManager::StopProfiling() {
   thread_context.active_nodes.pop();
 }
 
-void ProfilerManager::Record() { is_recording_ = true; }
+void ProfilerManager::Record() {
+  if (is_recording_) {
+    return;
+  }
+
+  // Preserve the active frame when recording is resumed mid-frame.
+  if (!is_frame_recording_) {
+    record_context_ = ProfilerRecordContext{&allocator_};
+  }
+
+  is_recording_ = true;
+}
 
 void ProfilerManager::StopRecording() { is_recording_ = false; }
 
-void ProfilerManager::ToggleRecording() { is_recording_ = !is_recording_; }
+void ProfilerManager::ToggleRecording() {
+  if (is_recording_) {
+    StopRecording();
+  } else {
+    Record();
+  }
+}
 
 const ProfilerRecordContext& ProfilerManager::GetRecordContext() const noexcept {
   return record_context_;
@@ -129,7 +150,6 @@ void ProfilerManager::OnShutdown() {
 
 void ProfilerManager::RecordFrame() {
   if (!is_frame_recording_) {
-    record_context_.frame_contexts.PushLast(std::nullopt);
     return;
   }
 
@@ -150,6 +170,7 @@ void ProfilerManager::RecordFrame() {
       1000000.0f;
 
   auto& frame_contexts{record_context_.frame_contexts};
+  record_context_.end_frame_count = recording_frame_context_.frame_count;
   frame_contexts.PushLast(std::move(recording_frame_context_));
 }
 }  // namespace profiler
