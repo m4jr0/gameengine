@@ -11,9 +11,7 @@
 #include "comet/runtime/memory/allocator/free_list_allocator.h"
 #include "comet/core/container/array.h"
 #include "comet/core/handle/handle.h"
-#include "comet/runtime/event/event.h"
 #include "comet/runtime/camera/camera_handle.h"
-#include "comet/runtime/event/event_manager.h"
 #include "comet/core/math/matrix.h"
 #include "comet/core/math/quaternion.h"
 #include "comet/core/math/vector.h"
@@ -114,10 +112,6 @@ class CameraManager : public Manager {
 #endif  // COMET_DEBUG
   };
 
-  void OnEvent(const event::Event& event);
-  void RegisterEvents();
-  void UnregisterEvents();
-
   CameraHandle GenerateMainCamera();
 
 #ifdef COMET_DEBUG
@@ -142,11 +136,6 @@ class CameraManager : public Manager {
   static constexpr math::Vec3 kWorldUp_{.0f, 1.0f, .0f};
   static constexpr math::Vec3 kWorldRight_{1.0f, .0f, .0f};
   static constexpr math::Vec3 kWorldFront_{.0f, .0f, 1.0f};
-
-  event::EventListenerId window_initialized_listener_id_{
-      event::kInvalidEventListenerId};
-  event::EventListenerId window_resize_listener_id_{
-      event::kInvalidEventListenerId};
 
   CameraProjectionFlags projection_flags_{kProjectionFlagBitsDepthZeroToOne};
 
