@@ -12,6 +12,8 @@
 
 // External. ///////////////////////////////////////////////////////////////////
 #include <iostream>
+#include <mutex>
+#include <shared_mutex>
 
 #ifdef COMET_MSVC
 #include <cstdio>
@@ -35,9 +37,6 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/runtime/entity/entity_manager.h"
-#include "comet/runtime/time/time_manager.h"
-#include "comet/core/time/time_utils.h"
 
 #ifdef COMET_CHECK_STACK_OVERFLOWS
 #ifdef COMET_UNIX
@@ -46,68 +45,36 @@
 #endif  // COMET_UNIX
 #endif  // COMET_CHECK_STACK_OVERFLOWS
 
-#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
-#include "comet/runtime/memory/allocation_tracking.h"
-#include "comet/runtime/memory/memory_label.h"
-#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
-
 namespace comet {
 namespace debug {
 namespace internal {
-static void PrintUptime() {
-  auto uptime{time::TimeManager::Get().GetUptime()};
-  schar uptime_str[32]{'\0'};
-  time::GetTimeString(uptime, uptime_str, sizeof(uptime_str));
-  std::cerr << "uptime: " << uptime_str << '\n';
-}
-static void PrintEntityInfo() {
-  auto entity_count{entity::EntityManager::Get().GetEntityCount()};
-  std::cerr << "entity count: " << entity_count << '\n';
-
-  auto entity_capacity{entity::EntityManager::Get().GetEntityCapacity()};
-  std::cerr << "entity capacity: " << entity_capacity << '\n';
-
-  auto pending_entity_count{
-      entity::EntityManager::Get().GetPendingEntityCount()};
-  std::cerr << "pending entity count: " << pending_entity_count << '\n';
-}
-
-static void PrintMemoryUse() {
-#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
-  const auto snapshot{memory::GetLatestMemoryUseSnapshot()};
-
-  constexpr usize kBufferCapacity{512};
-  schar buffer[kBufferCapacity]{'\0'};
-  usize buffer_len{0};
-
-  memory::GetMemorySizeString(snapshot.memory_use, buffer, kBufferCapacity,
-                              &buffer_len);
-
-  std::cerr << "memory snapshot:\n";
-  std::cerr << "\tusage: " << buffer << '\n';
-
-  for (usize i{0}; i < snapshot.tag_count; ++i) {
-    const auto& entry{snapshot.tags[i]};
-
-    memory::GetMemorySizeString(entry.size, buffer, kBufferCapacity,
-                                &buffer_len);
-
-    std::cerr << "\t" << memory::GetMemoryTagLabel(entry.tag) << ": " << buffer
-              << '\n';
-  }
-#else
-  std::cerr << "memory: allocation tracking disabled\n";
-#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
-}
+// A shared lock pins the provider while it is running. Unregistering waits
+// for active providers to finish before runtime managers are destroyed.
+std::shared_mutex diagnostics_mutex;
+CriticalErrorDiagnosticsCallback diagnostics_callback{nullptr};
+thread_local bool is_reporting_critical_error{false};
 }  // namespace internal
+
+void SetCriticalErrorDiagnostics(CriticalErrorDiagnosticsCallback callback) {
+  std::unique_lock<std::shared_mutex> lock{internal::diagnostics_mutex};
+  internal::diagnostics_callback = callback;
+}
 
 // TODO(m4jr0): Handle critical error properly.
 void HandleCriticalError() {
   std::cerr << "debug::HandleCriticalError: critical failure\n";
 
-  internal::PrintUptime();
-  internal::PrintEntityInfo();
-  internal::PrintMemoryUse();
+  // A nested assertion must not recursively invoke the provider.
+  if (!internal::is_reporting_critical_error) {
+    internal::is_reporting_critical_error = true;
+    // try_lock prevents deadlock if an assertion occurs during registration.
+    std::shared_lock<std::shared_mutex> lock{internal::diagnostics_mutex,
+                                            std::try_to_lock};
+    if (lock.owns_lock() && internal::diagnostics_callback != nullptr) {
+      internal::diagnostics_callback(std::cerr);
+    }
+    internal::is_reporting_critical_error = false;
+  }
 
   constexpr auto kBufferLen{4096};
   schar buffer[kBufferLen]{'\0'};
