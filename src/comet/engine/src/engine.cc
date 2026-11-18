@@ -293,6 +293,19 @@ Engine& Engine::Get() {
 void Engine::OnEvent(const event::Event& event) {
   const auto& event_type{event.GetType()};
 
+  if (event_type == platform::WindowResizeEvent::kStaticType_) {
+    const auto& resize_event{
+        static_cast<const platform::WindowResizeEvent&>(event)};
+    auto& camera_manager{camera::CameraManager::Get()};
+    camera_manager.SetSize(camera_manager.GetMainCamera(),
+                           resize_event.GetWidth(), resize_event.GetHeight());
+#ifdef COMET_DEBUG
+    camera_manager.SetSize(camera_manager.GetDebugCamera(),
+                           resize_event.GetWidth(), resize_event.GetHeight());
+#endif  // COMET_DEBUG
+    return;
+  }
+
   if (event_type == platform::WindowCloseEvent::kStaticType_) {
     COMET_LOG_DEBUG(LoggerType::Engine, "Engine::OnEvent",
                     "window close event");
@@ -304,6 +317,12 @@ void Engine::RegisterEvents() {
   const auto event_function{
       [this](const event::Event& event) { OnEvent(event); }};
 
+  window_resize_listener_id_ = event::EventManager::Get().Register(
+      event_function, platform::WindowResizeEvent::kStaticType_);
+  COMET_ASSERT(window_resize_listener_id_ != event::kInvalidEventListenerId,
+               "Engine::RegisterEvents",
+               "window resize listener registration failed");
+
   window_close_listener_id_ = event::EventManager::Get().Register(
       event_function, platform::WindowCloseEvent::kStaticType_);
   COMET_ASSERT(window_close_listener_id_ != event::kInvalidEventListenerId,
@@ -312,6 +331,10 @@ void Engine::RegisterEvents() {
 }
 
 void Engine::UnregisterEvents() {
+  if (window_resize_listener_id_ != event::kInvalidEventListenerId) {
+    event::EventManager::Get().Unregister(window_resize_listener_id_);
+    window_resize_listener_id_ = event::kInvalidEventListenerId;
+  }
   if (window_close_listener_id_ != event::kInvalidEventListenerId) {
     event::EventManager::Get().Unregister(window_close_listener_id_);
     window_close_listener_id_ = event::kInvalidEventListenerId;
@@ -366,7 +389,13 @@ void Engine::Load() {
   RegisterSignalHandlers();
   render::RenderManager::Get().Initialize();
   light::LightManager::Get().Initialize();
-  camera::CameraManager::Get().Initialize();
+  auto& camera_manager{camera::CameraManager::Get()};
+  camera_manager.Initialize();
+  const auto window_extent{render::RenderManager::Get().GetWindowExtent()};
+  camera_manager.SetSize(camera_manager.GetMainCamera(), window_extent);
+#ifdef COMET_DEBUG
+  camera_manager.SetSize(camera_manager.GetDebugCamera(), window_extent);
+#endif  // COMET_DEBUG
   physics::PhysicsManager::Get().Initialize();
 
   RegisterEvents();
