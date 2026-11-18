@@ -33,13 +33,13 @@ class RenderManager : public Manager {
 
   void Update(frame::FramePacket* packet);
 
-  WindowExtent GetWindowExtent() const;
+  platform::WindowExtent GetWindowExtent() const;
   DriverType GetDriverType() const noexcept;
   FrameCount GetFrameRate() const noexcept;
   f64 GetFrameTime() const noexcept;
   u32 GetDrawCount() const noexcept;
 
-  const ShadowSettings& GetShadowSettings() const noexcept;
+  const light::ShadowSettings& GetShadowSettings() const noexcept;
 
   bool IsMultithreaded() const noexcept;
 
@@ -60,7 +60,7 @@ class RenderManager : public Manager {
   inline static constexpr usize kDefaultRenderProxyCount_{512};
 
   frame::FrameArray<RenderingViewDescr> GenerateRenderingViewDescrs() const;
-  ShadowSettings GenerateShadowSettings() const;
+  light::ShadowSettings GenerateShadowSettings() const;
 
   bool IsFpsCapReached() const;
 
@@ -69,7 +69,7 @@ class RenderManager : public Manager {
   FrameCount counter_{0};
   f64 frame_time_threshold_{0};
   f64 current_time_{0};
-  ShadowSettings shadow_settings_{};
+  light::ShadowSettings shadow_settings_{};
   RenderProxyRecordStore render_proxy_record_store_{};
   memory::UniquePtr<Driver> driver_{nullptr};
 };
