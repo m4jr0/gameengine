@@ -395,9 +395,11 @@ void Engine::Load() {
   auto& camera_manager{camera::CameraManager::Get()};
   camera_manager.Initialize();
   const auto window_extent{render::RenderManager::Get().GetWindowExtent()};
-  camera_manager.SetSize(camera_manager.GetMainCamera(), window_extent);
+  camera_manager.SetSize(camera_manager.GetMainCamera(), window_extent.width,
+                         window_extent.height);
 #ifdef COMET_DEBUG
-  camera_manager.SetSize(camera_manager.GetDebugCamera(), window_extent);
+  camera_manager.SetSize(camera_manager.GetDebugCamera(), window_extent.width,
+                         window_extent.height);
 #endif  // COMET_DEBUG
   physics::PhysicsManager::Get().Initialize();
 
