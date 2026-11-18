@@ -160,7 +160,10 @@ void Engine::Run() {
 
     auto& scene_manager{scene::SceneManager::Get()};
     scene_manager.Initialize();
-    environment::EnvironmentManager::Get().Initialize();
+    auto& environment_manager{environment::EnvironmentManager::Get()};
+    environment_manager.SetSunShadowSettings(
+        render::RenderManager::Get().GetShadowSettings());
+    environment_manager.Initialize();
     debug::SetCriticalErrorDiagnostics(&AppendCriticalErrorDiagnostics);
 
     event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>();
