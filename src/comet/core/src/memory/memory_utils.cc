@@ -27,7 +27,6 @@
 #endif  // COMET_INVESTIGATE_MEMORY_CORRUPTION
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/runtime/memory/allocation_tracking.h"
 #include "comet/core/container/array.h"
 
 #ifdef COMET_MSVC
@@ -35,7 +34,6 @@
 #endif  // COMET_MSVC
 
 #include "comet/core/string/c_string.h"
-#include "comet/runtime/memory/memory_label.h"
 #include "comet/core/processor/processor.h"
 
 namespace comet {
