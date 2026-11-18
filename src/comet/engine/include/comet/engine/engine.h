@@ -70,6 +70,8 @@ class Engine {
 
   EngineClient* client_{nullptr};
 
+  event::EventListenerId window_resize_listener_id_{
+      event::kInvalidEventListenerId};
   event::EventListenerId window_close_listener_id_{
       event::kInvalidEventListenerId};
 
