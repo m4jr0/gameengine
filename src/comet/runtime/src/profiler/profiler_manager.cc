@@ -59,7 +59,6 @@ void ProfilerManager::ResetThreadContexts() {
     thread_context.root_nodes = Array<ProfilerNode*>{&allocator_};
     thread_context.nodes = Array<memory::UniquePtr<ProfilerNode>>{&allocator_};
   }
-
 }
 
 void ProfilerManager::StartProfiling(const schar* label) {
@@ -85,7 +84,7 @@ void ProfilerManager::StartProfiling(const schar* label) {
 }
 
 void ProfilerManager::StopProfiling() {
-  if (!is_recording_) {
+  if (!is_frame_recording_) {
     return;
   }
 
