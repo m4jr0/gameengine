@@ -95,7 +95,7 @@ void RenderManager::Update(frame::FramePacket* packet) {
   ++counter_;
 }
 
-WindowExtent RenderManager::GetWindowExtent() const {
+platform::WindowExtent RenderManager::GetWindowExtent() const {
   COMET_ASSERT(driver_ != nullptr, "RenderManager::OnShutdown",
                "rendering driver is null");
   const auto* window{driver_->GetWindow()};
@@ -124,7 +124,7 @@ u32 RenderManager::GetDrawCount() const noexcept {
   return driver_->GetDrawCount();
 }
 
-const ShadowSettings& RenderManager::GetShadowSettings() const noexcept {
+const light::ShadowSettings& RenderManager::GetShadowSettings() const noexcept {
   return shadow_settings_;
 }
 
@@ -275,9 +275,9 @@ void RenderManager::FillDriverDescr(DriverDescr& descr) const {
   descr.clear_color[3] = COMET_CONF_F32(conf::kRenderingClearColorA);
 
   descr.window_width =
-      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth));
+      static_cast<platform::WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth));
   descr.window_height =
-      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight));
+      static_cast<platform::WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight));
 
   descr.anti_aliasing_type =
       GetAntiAliasingTypeFromStr(COMET_CONF_STR(conf::kRenderingAntiAliasing));
@@ -329,11 +329,11 @@ RenderManager::GenerateRenderingViewDescrs() const {
   clear_color[3] = COMET_CONF_F32(conf::kRenderingClearColorA);
 
   const auto window_width{
-      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth)),
+      static_cast<platform::WindowSize>(COMET_CONF_U16(conf::kRenderingWindowWidth)),
   };
 
   const auto window_height{
-      static_cast<WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight)),
+      static_cast<platform::WindowSize>(COMET_CONF_U16(conf::kRenderingWindowHeight)),
   };
 
   usize cursor{0};
@@ -341,9 +341,9 @@ RenderManager::GenerateRenderingViewDescrs() const {
   auto& shadow_view_descr{descrs[cursor]};
   shadow_view_descr.type = RenderingViewType::Shadow;
   shadow_view_descr.width =
-      static_cast<WindowSize>(shadow_settings_.resolution);
+      static_cast<platform::WindowSize>(shadow_settings_.resolution);
   shadow_view_descr.height =
-      static_cast<WindowSize>(shadow_settings_.resolution);
+      static_cast<platform::WindowSize>(shadow_settings_.resolution);
   shadow_view_descr.id = COMET_STRING_ID("rendering_shadow_view");
   ++cursor;
 
@@ -385,8 +385,8 @@ RenderManager::GenerateRenderingViewDescrs() const {
   return descrs;
 }
 
-ShadowSettings RenderManager::GenerateShadowSettings() const {
-  ShadowSettings settings{};
+light::ShadowSettings RenderManager::GenerateShadowSettings() const {
+  light::ShadowSettings settings{};
   settings.resolution =
       static_cast<u32>(COMET_CONF_U16(conf::kRenderingShadowResolution));
   settings.max_distance = COMET_CONF_F32(conf::kRenderingShadowDistance);
