@@ -87,6 +87,13 @@ struct CameraProjectionDescr {
   CameraProjectionFlags flags{kProjectionFlagBitsDepthZeroToOne};
 };
 
+using CameraSize = u16;
+
+struct CameraExtent {
+  CameraSize width{0};
+  CameraSize height{0};
+};
+
 using CameraViewOptions = u8;
 enum CameraViewOptionBits : CameraViewOptions {
   kCameraViewOptionBitsNone = 0x0,
