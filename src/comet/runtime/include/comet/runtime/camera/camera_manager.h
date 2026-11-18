@@ -46,9 +46,8 @@ class CameraManager : public Manager {
   CameraProjectionFlags GetProjectionFlags() const noexcept;
 
   usize PopulateCameraViews(Array<CameraView>& views, WindowSize full_width,
-                            WindowSize full_height, bool use_debug_camera,
-                            bool draw_debug_on_game,
-                            bool draw_debug_on_debug);
+                            WindowSize full_height,
+                            CameraViewOptions options);
 
   void Reset(CameraHandle handle);
   void Translate(CameraHandle handle, const math::Vec3& translation);
