@@ -12,7 +12,6 @@
 
 #ifdef COMET_DEBUG
 #include "comet/core/string/c_string.h"
-#include "comet/render/debug/rendering_debug_settings.h"
 #endif  // COMET_DEBUG
 
 #include "comet/runtime/event/event_manager.h"
@@ -127,20 +126,16 @@ CameraProjectionFlags CameraManager::GetProjectionFlags() const noexcept {
 
 usize CameraManager::PopulateCameraViews(Array<CameraView>& views,
                                          WindowSize full_width,
-                                         WindowSize full_height) {
+                                         WindowSize full_height,
+                                         bool use_debug_camera,
+                                         bool draw_debug_on_game,
+                                         bool draw_debug_on_debug) {
   views.Clear();
 
-#ifdef COMET_DEBUG
-  const auto& camera_settings{debug::RenderingDebugSettings::Get()};
-  const auto use_debug_camera{camera_settings.IsDebugCameraEnabled()};
-  const auto draw_debug_on_game{camera_settings.GetDebugDrawFlags(false) !=
-                                debug::kDebugDrawFlagBitsNone};
-  const auto draw_debug_on_debug{camera_settings.GetDebugDrawFlags(true) !=
-                                 debug::kDebugDrawFlagBitsNone};
-#else
-  constexpr bool use_debug_camera{false};
-  constexpr bool draw_debug_on_game{false};
-  [[maybe_unused]] constexpr bool draw_debug_on_debug{false};
+#ifndef COMET_DEBUG
+  use_debug_camera = false;
+  draw_debug_on_game = false;
+  draw_debug_on_debug = false;
 #endif  // COMET_DEBUG
 
   const u32 camera_count{use_debug_camera ? 2u : 1u};
