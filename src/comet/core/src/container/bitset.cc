@@ -11,7 +11,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/memory/memory_utils.h"
-#include "comet/runtime/memory/tagged_memory.h"
 
 namespace comet {
 usize Bitset::GetWordCountFromBitCount(usize bit_count) {

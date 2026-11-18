@@ -12,7 +12,6 @@
 
 #include "comet/core/container/c_array.h"
 #include "comet/core/string/c_string.h"
-#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/essentials.h"
 #include "comet/core/hash/hash.h"
 

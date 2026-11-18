@@ -14,7 +14,6 @@
 
 #include "comet/core/thread/thread_common.h"
 #include "comet/core/essentials.h"
-#include "comet/runtime/memory/tagged_memory.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/container/array.h"
 
