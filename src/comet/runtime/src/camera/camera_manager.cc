@@ -14,13 +14,11 @@
 #include "comet/core/string/c_string.h"
 #endif  // COMET_DEBUG
 
-#include "comet/runtime/event/event_manager.h"
 #include "comet/core/math/geometry.h"
 #include "comet/core/math/math_scalar.h"
 #include "comet/core/math/numeric_utils.h"
 #include "comet/core/math/quaternion.h"
 #include "comet/runtime/camera/camera_utils.h"
-#include "comet/platform/window/window_event.h"
 
 namespace comet {
 namespace camera {
@@ -394,8 +392,6 @@ void CameraManager::OnInitialize() {
   allocator_.Initialize();
   cameras_ = Array<CameraEntry>{&allocator_};
 
-  RegisterEvents();
-
   main_camera_ = GenerateMainCamera();
 
 #ifdef COMET_DEBUG
@@ -404,8 +400,6 @@ void CameraManager::OnInitialize() {
 }
 
 void CameraManager::OnShutdown() {
-  UnregisterEvents();
-
 #ifdef COMET_DEBUG
   debug_camera_.Invalidate();
 #endif  // COMET_DEBUG
@@ -414,69 +408,6 @@ void CameraManager::OnShutdown() {
   cameras_.Release();
   camera_pool_.Destroy();
   allocator_.Destroy();
-}
-
-void CameraManager::OnEvent(const event::Event& event) {
-  if (!main_camera_ || !IsAlive(main_camera_)) {
-    return;
-  }
-
-  if (event.GetType() == platform::WindowInitializedEvent::kStaticType_) {
-    const auto& e{static_cast<const platform::WindowInitializedEvent&>(event)};
-    SetSize(main_camera_, e.GetWidth(), e.GetHeight());
-
-#ifdef COMET_DEBUG
-    if (debug_camera_ && IsAlive(debug_camera_)) {
-      SetSize(debug_camera_, e.GetWidth(), e.GetHeight());
-    }
-#endif  // COMET_DEBUG
-
-    return;
-  }
-
-  if (event.GetType() == platform::WindowResizeEvent::kStaticType_) {
-    const auto& e{static_cast<const platform::WindowResizeEvent&>(event)};
-    SetSize(main_camera_, e.GetWidth(), e.GetHeight());
-
-#ifdef COMET_DEBUG
-    if (debug_camera_ && IsAlive(debug_camera_)) {
-      SetSize(debug_camera_, e.GetWidth(), e.GetHeight());
-    }
-#endif  // COMET_DEBUG
-  }
-}
-
-void CameraManager::RegisterEvents() {
-  auto& event_manager{event::EventManager::Get()};
-  const auto event_function{
-      [this](const event::Event& event) { OnEvent(event); }};
-
-  window_initialized_listener_id_ = event_manager.Register(
-      event_function, platform::WindowInitializedEvent::kStaticType_);
-  COMET_ASSERT(
-      window_initialized_listener_id_ != event::kInvalidEventListenerId,
-      "CameraManager::RegisterEvents",
-      "window initialized listener registration failed");
-
-  window_resize_listener_id_ = event_manager.Register(
-      event_function, platform::WindowResizeEvent::kStaticType_);
-  COMET_ASSERT(window_resize_listener_id_ != event::kInvalidEventListenerId,
-               "CameraManager::RegisterEvents",
-               "window resize listener registration failed");
-}
-
-void CameraManager::UnregisterEvents() {
-  auto& event_manager{event::EventManager::Get()};
-
-  if (window_initialized_listener_id_ != event::kInvalidEventListenerId) {
-    event_manager.Unregister(window_initialized_listener_id_);
-    window_initialized_listener_id_ = event::kInvalidEventListenerId;
-  }
-
-  if (window_resize_listener_id_ != event::kInvalidEventListenerId) {
-    event_manager.Unregister(window_resize_listener_id_);
-    window_resize_listener_id_ = event::kInvalidEventListenerId;
-  }
 }
 
 CameraHandle CameraManager::GenerateMainCamera() {
