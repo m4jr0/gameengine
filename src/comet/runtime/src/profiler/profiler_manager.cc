@@ -16,14 +16,6 @@
 #include <utility>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "comet/core/time/date.h"
-#include "comet/runtime/memory/allocation_tracking.h"
-#include "comet/engine/engine_event.h"
-#include "comet/runtime/entity/entity_manager.h"
-#include "comet/runtime/physics/physics_manager.h"
-#include "comet/render/render_manager.h"
-#include "comet/runtime/time/time_manager.h"
-#include "comet/core/time/time_utils.h"
 
 #ifdef COMET_PROFILING
 namespace comet {
@@ -31,46 +23,6 @@ namespace profiler {
 ProfilerManager& ProfilerManager::Get() {
   static ProfilerManager singleton{};
   return singleton;
-}
-
-void ProfilerManager::Update() {
-#ifdef COMET_DEBUG
-  COMET_UPDATE_MEMORY_USE_SNAPSHOT();
-
-  auto& physics_manager{physics::PhysicsManager::Get()};
-  auto& render_manager{render::RenderManager::Get()};
-  auto& entity_manager{entity::EntityManager::Get()};
-
-  data_.physics_frame_time = physics_manager.GetFrameTime();
-  data_.physics_frame_rate = physics_manager.GetFrameRate();
-  data_.rendering_driver_type = render_manager.GetDriverType();
-  data_.rendering_frame_time = render_manager.GetFrameTime();
-  data_.rendering_frame_rate = render_manager.GetFrameRate();
-  data_.entity_count = entity_manager.GetEntityCount();
-  data_.entity_capacity = entity_manager.GetEntityCapacity();
-  data_.pending_entity_count = entity_manager.GetPendingEntityCount();
-
-#ifdef COMET_DEBUG_RENDERING
-  data_.rendering_draw_count = render_manager.GetDrawCount();
-#endif  // COMET_DEBUG_RENDERING
-
-#ifdef COMET_DEBUG_TRACK_ALLOCATIONS
-  const auto memory_snapshot{memory::GetLatestMemoryUseSnapshot()};
-  data_.memory_use = memory_snapshot.memory_use;
-  data_.tag_use.Clear();
-
-  for (usize i{0}; i < memory_snapshot.tag_count; ++i) {
-    const auto& entry{memory_snapshot.tags[i]};
-    data_.tag_use.Set(entry.tag, entry.size);
-  }
-#else
-  data_.memory_use = 0;
-  data_.tag_use.Clear();
-#endif  // COMET_DEBUG_TRACK_ALLOCATIONS
-
-  const auto uptime{time::TimeManager::Get().GetUptime()};
-  time::GetTimeString(uptime, data_.uptime, sizeof(data_.uptime));
-#endif  // COMET_DEBUG
 }
 
 void ProfilerManager::StartFrame(frame::FrameCount frame_count) {
@@ -86,6 +38,10 @@ void ProfilerManager::StartFrame(frame::FrameCount frame_count) {
 
 void ProfilerManager::EndFrame() {
   RecordFrame();
+  ResetThreadContexts();
+}
+
+void ProfilerManager::ResetThreadContexts() {
   const auto thread_context_count{thread_contexts_.GetSize()};
 
   for (usize i{0}; i < thread_context_count; ++i) {
@@ -149,7 +105,9 @@ void ProfilerManager::StopRecording() { is_recording_ = false; }
 
 void ProfilerManager::ToggleRecording() { is_recording_ = !is_recording_; }
 
-const ProfilerData& ProfilerManager::GetData() const noexcept { return data_; }
+const ProfilerRecordContext& ProfilerManager::GetRecordContext() const noexcept {
+  return record_context_;
+}
 
 bool ProfilerManager::IsRecording() const noexcept { return is_recording_; }
 
@@ -162,48 +120,15 @@ void ProfilerManager::OnInitialize() {
     thread_context.thread_id = thread_contexts_.GetThreadIdFromIndex(i);
   }
 
-  RegisterEvents();
-
-#ifdef COMET_PROFILING
-#ifdef COMET_IMGUI
-#endif  // COMET_IMGUI
-#endif  // COMET_DEBUG
 }
 
 void ProfilerManager::OnShutdown() {
-  UnregisterEvents();
   thread_contexts_.Destroy();
-}
-
-void ProfilerManager::OnEvent(const event::Event& event) {
-  const auto& event_type{event.GetType()};
-
-  if (event_type == ApplicationQuitEvent::kStaticType_) {
-    ProfilerManager::Get().StopRecording();
-  }
-}
-
-void ProfilerManager::RegisterEvents() {
-  const auto event_function{
-      [this](const event::Event& event) { OnEvent(event); }};
-
-  application_quit_listener_id_ = event::EventManager::Get().Register(
-      event_function, ApplicationQuitEvent::kStaticType_);
-  COMET_ASSERT(application_quit_listener_id_ != event::kInvalidEventListenerId,
-               "ProfilerManager::RegisterEvents",
-               "application quit listener registration failed");
-}
-
-void ProfilerManager::UnregisterEvents() {
-  if (application_quit_listener_id_ != event::kInvalidEventListenerId) {
-    event::EventManager::Get().Unregister(application_quit_listener_id_);
-    application_quit_listener_id_ = event::kInvalidEventListenerId;
-  }
 }
 
 void ProfilerManager::RecordFrame() {
   if (!is_frame_recording_) {
-    data_.record_context.frame_contexts.PushLast(std::nullopt);
+    record_context_.frame_contexts.PushLast(std::nullopt);
     return;
   }
 
@@ -223,7 +148,7 @@ void ProfilerManager::RecordFrame() {
                                        recording_frame_context_.start_time) /
       1000000.0f;
 
-  auto& frame_contexts{data_.record_context.frame_contexts};
+  auto& frame_contexts{record_context_.frame_contexts};
   frame_contexts.PushLast(std::move(recording_frame_context_));
 }
 }  // namespace profiler
