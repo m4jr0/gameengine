@@ -81,7 +81,7 @@ engine_main_loop
 
 namespace comet {
 namespace {
-void AppendCriticalErrorDiagnostics(std::ostream& output) {
+void OnCriticalErrorDiagnostics(std::ostream& output) {
   const auto uptime{time::TimeManager::Get().GetUptime()};
   schar uptime_str[32]{'\0'};
   time::GetTimeString(uptime, uptime_str, sizeof(uptime_str));
@@ -164,7 +164,7 @@ void Engine::Run() {
     environment_manager.SetSunShadowSettings(
         render::RenderManager::Get().GetShadowSettings());
     environment_manager.Initialize();
-    debug::SetCriticalErrorDiagnostics(&AppendCriticalErrorDiagnostics);
+    debug::SetCriticalErrorDiagnostics(&OnCriticalErrorDiagnostics);
 
     event::EventManager::Get().FireEvent<scene::SceneLoadRequestEvent>();
 
@@ -216,7 +216,7 @@ void Engine::Stop() {
 }
 
 void Engine::Shutdown() {
-  debug::SetCriticalErrorDiagnostics(nullptr);
+  debug::UnsetCriticalErrorDiagnostics();
   COMET_ASSERT(is_initialized_, "Engine::Shutdown",
                "engine is not initialized");
 
@@ -278,7 +278,7 @@ void Engine::InitializeSchedulerBootstrap() {
 }
 
 void Engine::Exit() {
-  debug::SetCriticalErrorDiagnostics(nullptr);
+  debug::UnsetCriticalErrorDiagnostics();
   event::EventManager::Get().FireEventNow<ApplicationQuitEvent>();
 #ifdef COMET_PROFILING
   profiler::ProfilerManager::Get().StopRecording();
