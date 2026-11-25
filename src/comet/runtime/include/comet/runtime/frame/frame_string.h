@@ -10,7 +10,8 @@
 #include "comet/runtime/frame/frame_allocator.h"
 
 namespace comet {
-// Returns a frame-owned string. Requires an attached frame allocator.
+// Return a string backed by frame memory.
+// Require an attached frame allocator.
 const schar* GenerateTmpFromFormat(usize buffer_size, const schar* format, ...);
 
 template <typename TChar>
