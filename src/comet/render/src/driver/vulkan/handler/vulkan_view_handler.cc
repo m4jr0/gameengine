@@ -321,7 +321,7 @@ void ViewHandler::Destroy(usize index) { Destroy(Get(index)); }
 
 void ViewHandler::Destroy(View* view) { Destroy(view, false); }
 
-void ViewHandler::SetSize(WindowSize width, WindowSize height) {
+void ViewHandler::SetSize(RenderSize width, RenderSize height) {
   for (auto& view : scene_views_) {
     view->SetSize(width, height);
   }

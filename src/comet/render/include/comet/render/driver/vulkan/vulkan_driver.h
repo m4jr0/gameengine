@@ -64,7 +64,7 @@ class VulkanDriver : public Driver {
 
   DriverType GetType() const noexcept override;
 
-  void SetSize(WindowSize width, WindowSize height);
+  void SetSize(platform::WindowSize width, platform::WindowSize height);
 
   Window* GetWindow() override;
   u32 GetDrawCount() const override;

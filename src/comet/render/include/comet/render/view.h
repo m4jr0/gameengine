@@ -8,7 +8,6 @@
 #include "comet/core/essentials.h"
 #include "comet/core/id/string_id.h"
 #include "comet/core/id/string_id_allocator.h"
-#include "comet/platform/window/window_common.h"
 #include "comet/data/render/texture.h"
 #include "comet/render/common.h"
 
@@ -58,8 +57,8 @@ constexpr auto kInvalidRenderingViewId{static_cast<RenderingViewId>(-1)};
 struct RenderingViewDescr {
   RenderingViewMatrixSource matrix_source{RenderingViewMatrixSource::Unknown};
   RenderingViewType type{RenderingViewType::Unknown};
-  WindowSize width{0};
-  WindowSize height{0};
+  RenderSize width{0};
+  RenderSize height{0};
   f32 clear_color[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                      1.0f};
   RenderingViewId id{kInvalidRenderingViewId};

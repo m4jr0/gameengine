@@ -64,7 +64,7 @@ void VulkanDriver::Update(frame::FramePacket* packet) {
 
 DriverType VulkanDriver::GetType() const noexcept { return DriverType::Vulkan; }
 
-void VulkanDriver::SetSize(WindowSize width, WindowSize height) {
+void VulkanDriver::SetSize(platform::WindowSize width, platform::WindowSize height) {
   window_->SetSize(width, height);
 }
 
@@ -519,8 +519,8 @@ void VulkanDriver::ApplyWindowResize() {
   context_->HandlePostSwapchainReload();
   swapchain_->HandlePostSwapchainReload();
   const auto& extent{swapchain_->GetExtent()};
-  view_handler_->SetSize(static_cast<WindowSize>(extent.width),
-                         static_cast<WindowSize>(extent.height));
+  view_handler_->SetSize(extent.width,
+                         extent.height);
 }
 
 void VulkanDriver::PreDraw(frame::FramePacket* packet) {

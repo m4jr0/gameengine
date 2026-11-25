@@ -40,8 +40,8 @@ VkPresentModeKHR ChooseSwapPresentMode(
     const Array<VkPresentModeKHR>& present_modes, bool is_vsync = true,
     bool is_triple_buffering = true);
 VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                            WindowSize current_width,
-                            WindowSize current_height);
+                            platform::WindowSize current_width,
+                            platform::WindowSize current_height);
 
 struct SwapchainDescr {
   bool is_vsync{false};

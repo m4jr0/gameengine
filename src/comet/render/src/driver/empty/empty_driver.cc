@@ -30,7 +30,7 @@ void EmptyDriver::Update(frame::FramePacket*) {}
 
 DriverType EmptyDriver::GetType() const noexcept { return DriverType::Empty; }
 
-void EmptyDriver::SetSize(WindowSize, WindowSize) {}
+void EmptyDriver::SetSize(platform::WindowSize, platform::WindowSize) {}
 
 platform::Window* EmptyDriver::GetWindow() { return window_.get(); }
 

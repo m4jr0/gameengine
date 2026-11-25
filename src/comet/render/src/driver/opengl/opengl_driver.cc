@@ -60,7 +60,7 @@ void OpenGlDriver::Update(frame::FramePacket* packet) {
 
 DriverType OpenGlDriver::GetType() const noexcept { return DriverType::OpenGl; }
 
-void OpenGlDriver::SetSize(WindowSize, WindowSize) {
+void OpenGlDriver::SetSize(platform::WindowSize, platform::WindowSize) {
   // OpenGL mutations stay deferred to the main update path.
   is_resize_ = true;
 }

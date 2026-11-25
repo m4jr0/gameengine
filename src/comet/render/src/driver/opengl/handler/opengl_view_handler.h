@@ -64,7 +64,7 @@ class ViewHandler : public Handler {
   void Destroy(usize view);
   void Destroy(View* view);
 
-  void SetSize(WindowSize width, WindowSize height);
+  void SetSize(RenderSize width, RenderSize height);
 
   const View* Get(usize index) const;
   const View* TryGet(usize index) const;

@@ -33,7 +33,7 @@ class EmptyDriver : public Driver {
 
   DriverType GetType() const noexcept override;
 
-  void SetSize(WindowSize width, WindowSize height);
+  void SetSize(platform::WindowSize width, platform::WindowSize height);
 
   platform::Window* GetWindow() override;
   u32 GetDrawCount() const override;

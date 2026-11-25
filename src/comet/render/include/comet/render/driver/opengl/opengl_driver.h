@@ -56,7 +56,7 @@ class OpenGlDriver : public Driver {
 
   DriverType GetType() const noexcept override;
 
-  void SetSize(WindowSize width, WindowSize height);
+  void SetSize(platform::WindowSize width, platform::WindowSize height);
   void OnEvent(const event::Event& event);
 
   void RegisterEvents();

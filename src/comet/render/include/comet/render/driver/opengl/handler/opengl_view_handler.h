@@ -7,7 +7,6 @@
 
 #include "comet/core/container/array.h"
 #include "comet/core/essentials.h"
-#include "comet/platform/window/window_common.h"
 #include "comet/runtime/frame/frame_packet.h"
 #include "comet/runtime/memory/allocator/platform_allocator.h"
 #include "comet/core/memory/memory.h"
@@ -65,7 +64,7 @@ class ViewHandler : public Handler {
   void Destroy(usize view);
   void Destroy(View* view);
 
-  void SetSize(WindowSize width, WindowSize height);
+  void SetSize(RenderSize width, RenderSize height);
 
   const View* Get(usize index) const;
   const View* TryGet(usize index) const;

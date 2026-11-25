@@ -73,7 +73,7 @@ void View::Draw(const ViewUpdate&) {}
 
 void View::End(const ViewUpdate&) {}
 
-void View::SetSize(WindowSize width, WindowSize height) {
+void View::SetSize(RenderSize width, RenderSize height) {
   if (width_ == width && height_ == height) {
     return;
   }

@@ -10,6 +10,8 @@
 
 namespace comet {
 namespace render {
+using RenderSize = u32;
+
 using FrameCount = u32;
 constexpr auto kInvalidFrameCount{static_cast<FrameCount>(-1)};
 

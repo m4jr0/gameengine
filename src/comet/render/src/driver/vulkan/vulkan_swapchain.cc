@@ -120,8 +120,8 @@ VkPresentModeKHR ChooseSwapPresentMode(
 }
 
 VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities,
-                            WindowSize current_width,
-                            WindowSize current_height) {
+                            platform::WindowSize current_width,
+                            platform::WindowSize current_height) {
   if (capabilities.currentExtent.width != static_cast<u32>(-1)) {
     return capabilities.currentExtent;
   } else {

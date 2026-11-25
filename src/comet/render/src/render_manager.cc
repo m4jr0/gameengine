@@ -351,9 +351,9 @@ RenderManager::GenerateRenderingViewDescrs() const {
   auto& shadow_view_descr{descrs[cursor]};
   shadow_view_descr.type = RenderingViewType::Shadow;
   shadow_view_descr.width =
-      static_cast<platform::WindowSize>(shadow_settings_.resolution);
+      static_cast<RenderSize>(shadow_settings_.resolution);
   shadow_view_descr.height =
-      static_cast<platform::WindowSize>(shadow_settings_.resolution);
+      static_cast<RenderSize>(shadow_settings_.resolution);
   shadow_view_descr.id = COMET_STRING_ID("rendering_shadow_view");
   ++cursor;
 

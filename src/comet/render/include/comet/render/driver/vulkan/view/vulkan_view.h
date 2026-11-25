@@ -10,7 +10,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "comet/core/essentials.h"
-#include "comet/platform/window/window_common.h"
 #include "comet/runtime/frame/frame_packet.h"
 #include "comet/render/driver/vulkan/handler/vulkan_render_pass_handler.h"
 #include "comet/render/driver/vulkan/type/vulkan_view.h"
@@ -49,8 +48,8 @@ struct ViewPassDescr {
 
 struct ViewDescr {
   ViewRenderStage render_stage{ViewRenderStage::Unknown};
-  WindowSize width{0};
-  WindowSize height{0};
+  RenderSize width{0};
+  RenderSize height{0};
   f32 clear_color[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                      1.0f};
   RenderingViewId id{kInvalidRenderingViewId};
@@ -76,7 +75,7 @@ class View {
   virtual void Draw(const ViewUpdate&);
   virtual void End(const ViewUpdate&);
 
-  virtual void SetSize(WindowSize width, WindowSize height);
+  virtual void SetSize(RenderSize width, RenderSize height);
 
   CameraFlags GetCameraFlags() const noexcept;
   void SetCameraFlags(CameraFlags flags) noexcept;
@@ -101,8 +100,8 @@ class View {
 
   CameraFlags camera_flags_{kCameraFlagBitsNone};
 
-  WindowSize width_{0};
-  WindowSize height_{0};
+  RenderSize width_{0};
+  RenderSize height_{0};
 
   f32 clear_color_[4]{kColorBlackRgb[0], kColorBlackRgb[1], kColorBlackRgb[2],
                       1.0f};
