@@ -60,6 +60,10 @@ void SetCriticalErrorDiagnostics(CriticalErrorDiagnosticsCallback callback) {
   internal::diagnostics_callback = callback;
 }
 
+void UnsetCriticalErrorDiagnostics() {
+  SetCriticalErrorDiagnostics(nullptr);
+}
+
 // TODO(m4jr0): Handle critical error properly.
 void HandleCriticalError() {
   std::cerr << "debug::HandleCriticalError: critical failure\n";
