@@ -20,7 +20,7 @@ class EnvironmentManager : public Manager {
 
   void Update(frame::FramePacket* packet);
 
-  // Configure sunlight before Initialize().
+  // Configure sunlight shadow settings before initialization.
   void SetSunShadowSettings(const light::ShadowSettings& settings);
 
   // Time controls.
