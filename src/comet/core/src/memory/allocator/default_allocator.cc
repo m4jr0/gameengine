@@ -15,7 +15,7 @@
 namespace comet {
 namespace memory {
 namespace {
-// Keep core usable before an engine-specific allocator is attached (e.g. assetc).
+// Provide a fallback until a default allocator is attached.
 SystemAllocator fallback_allocator{};
 Allocator* default_allocator{&fallback_allocator};
 bool is_custom_allocator_attached{false};
