@@ -22,15 +22,26 @@ namespace memory {
 void* SystemAllocator::AllocateAligned(usize size, Alignment align) {
   if (align == 0 || align > kMaxAlignment ||
       (align & (align - 1)) != 0) {
-    throw std::bad_alloc{};
+    COMET_ASSERT(false, "SystemAllocator::AllocateAligned",
+                 "invalid alignment", "alignment", align);
+    return nullptr;
   }
 
   if (size > std::numeric_limits<usize>::max() - align) {
-    throw std::bad_array_new_length{};
+    COMET_ASSERT(false, "SystemAllocator::AllocateAligned",
+                 "allocation size overflow", "size", size);
+    return nullptr;
   }
 
   const auto allocation_size{size + align};
-  auto* raw_ptr{::operator new(allocation_size)};
+  auto* raw_ptr{::operator new(allocation_size, std::nothrow)};
+
+  if (raw_ptr == nullptr) {
+    COMET_ASSERT(false, "SystemAllocator::AllocateAligned",
+                 "allocation failed", "size", allocation_size);
+    return nullptr;
+  }
+
   return StoreShiftAndReturnAligned(raw_ptr, size, allocation_size, align);
 }
 
