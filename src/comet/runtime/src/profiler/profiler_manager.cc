@@ -19,6 +19,12 @@
 #ifdef COMET_PROFILING
 namespace comet {
 namespace profiler {
+namespace {
+const ProfileBackend kRuntimeProfileBackend{
+    [](const schar* label) { return ProfilerManager::Get().StartProfiling(label); },
+    [](ProfileToken token) { ProfilerManager::Get().StopProfiling(token); }};
+}  // namespace
+
 ProfilerManager& ProfilerManager::Get() {
   static ProfilerManager singleton{};
   return singleton;
@@ -61,12 +67,12 @@ void ProfilerManager::ResetThreadContexts() {
   }
 }
 
-void ProfilerManager::StartProfiling(const schar* label) {
+ProfileToken ProfilerManager::StartProfiling(const schar* label) {
   COMET_ASSERT(label != nullptr, "ProfilerManager::StartProfiling",
                "profile label is null");
 
   if (!is_frame_recording_) {
-    return;
+    return kInvalidProfileToken;
   }
 
   auto& thread_context{thread_contexts_.Get()};
@@ -80,17 +86,20 @@ void ProfilerManager::StartProfiling(const schar* label) {
   }
 
   thread_context.active_nodes.push(node.get());
+  const auto token{static_cast<ProfileToken>(node->id)};
   thread_context.nodes.PushLast(std::move(node));
+  return token;
 }
 
-void ProfilerManager::StopProfiling() {
+void ProfilerManager::StopProfiling(ProfileToken token) {
   if (!is_frame_recording_) {
     return;
   }
 
   auto& thread_context{thread_contexts_.Get()};
 
-  if (thread_context.active_nodes.empty()) {
+  if (thread_context.active_nodes.empty() ||
+      thread_context.active_nodes.top()->id != token) {
     return;
   }
 
@@ -141,9 +150,13 @@ void ProfilerManager::OnInitialize() {
     auto& thread_context{thread_contexts_.GetFromIndex(i)};
     thread_context.thread_id = thread_contexts_.GetThreadIdFromIndex(i);
   }
+  SetProfileBackend(&kRuntimeProfileBackend);
 }
 
 void ProfilerManager::OnShutdown() {
+  SetProfileBackend(nullptr);
+  is_recording_ = false;
+  is_frame_recording_ = false;
   thread_contexts_.Destroy();
 }
 

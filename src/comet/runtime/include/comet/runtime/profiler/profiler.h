@@ -14,6 +14,7 @@
 #include "comet/core/container/array.h"
 #include "comet/core/container/map.h"
 #include "comet/core/essentials.h"
+#include "comet/core/profiler/profiler.h"
 #include "comet/core/memory/allocator/allocator.h"
 #include "comet/core/memory/memory.h"
 #include "comet/runtime/memory/memory_tag.h"
@@ -93,26 +94,8 @@ struct ProfilerRecordContext {
   ~ProfilerRecordContext() = default;
 };
 
-class ProfiledScope {
- public:
-  explicit ProfiledScope(const schar* label);
-  ProfiledScope(const ProfiledScope&) = default;
-  ProfiledScope(ProfiledScope&&) noexcept = default;
-  ProfiledScope& operator=(const ProfiledScope&) = default;
-  ProfiledScope& operator=(ProfiledScope&&) noexcept = default;
-  ~ProfiledScope();
-};
 }  // namespace profiler
 }  // namespace comet
-#endif  // COMET_PROFILING
-
-#ifdef COMET_PROFILING
-#define COMET_PROFILE(label)                                                \
-  comet::profiler::ProfiledScope COMET_CONCAT(_comet_profiler_, __LINE__) { \
-    label                                                                   \
-  }
-#else
-#define COMET_PROFILE(label) ((void)0)
 #endif  // COMET_PROFILING
 
 #endif  // COMET_RUNTIME_PROFILER_PROFILER_H_

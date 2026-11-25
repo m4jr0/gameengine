@@ -30,8 +30,8 @@ class ProfilerManager : public Manager {
   void StartFrame(frame::FrameCount frame_count);
   void EndFrame();
 
-  void StartProfiling(const schar* label);
-  void StopProfiling();
+  ProfileToken StartProfiling(const schar* label);
+  void StopProfiling(ProfileToken token);
 
   void Record();
   void StopRecording();

@@ -16,7 +16,6 @@
 
 #include "comet/core/string/c_string.h"
 #include "comet/core/math/math_scalar.h"
-#include "comet/runtime/profiler/profiler_manager.h"
 
 #ifdef COMET_PROFILING
 namespace comet {
@@ -183,11 +182,6 @@ ProfilerRecordContext& ProfilerRecordContext::operator=(
   return *this;
 }
 
-ProfiledScope::ProfiledScope(const schar* label) {
-  ProfilerManager::Get().StartProfiling(label);
-}
-
-ProfiledScope::~ProfiledScope() { ProfilerManager::Get().StopProfiling(); }
 }  // namespace profiler
 }  // namespace comet
 #endif  // COMET_PROFILING
