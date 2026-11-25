@@ -96,7 +96,9 @@ void InitializeServices(memory::Allocator* allocator,
   memory::AttachDefaultAllocator(allocator);
 
   InitializeFileSystem({
-      .get_scratch_allocator = []() -> memory::Allocator* { return &memory::GetDefaultAllocator(); },
+      .get_scratch_allocator = []() -> memory::Allocator* {
+        return &memory::GetDefaultAllocator();
+      },
   });
 
   auto& scheduler{job::Scheduler::Get()};
@@ -115,7 +117,6 @@ void ShutdownServices() {
   COMET_LOG_DESTROY();
   thread::Thread::DetachMainThread();
   COMET_DESTROY_ALLOCATION_TRACKING();
-
 }
 
 void ProcessAssets(const Arguments& arguments, memory::Allocator* allocator) {
@@ -129,7 +130,6 @@ void ProcessAssets(const Arguments& arguments, memory::Allocator* allocator) {
   processor.Initialize(config);
   processor.Refresh();
   processor.Shutdown();
-
 }
 }  // namespace
 
